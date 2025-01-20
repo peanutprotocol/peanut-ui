@@ -22,7 +22,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: Local
 
     return (
         <Box
-            className="overflow-x-hidden bg-secondary"
+            className="bg-secondary overflow-x-hidden"
             style={{
                 backgroundImage: `url(${PeanutsBG.src})`,
                 backgroundSize: '10rem auto',

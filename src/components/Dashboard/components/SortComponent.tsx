@@ -32,7 +32,7 @@ export const SortComponent = ({
                             onClick={() => {
                                 setSortingValue(type)
                             }}
-                            className=" hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 dark:hover:bg-white/20"
+                            className=" flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 dark:hover:bg-white/20"
                             key={type}
                         >
                             <div className="text-h8">{type}</div>

@@ -269,7 +269,7 @@ export function WelcomeSDK() {
                     </div>
                 </div>
 
-                <div className="center-xy z-index-1 bg-primary-1 relative hidden w-1/3 items-center justify-center overflow-hidden border-l-2 border-black py-3 lg:flex lg:pb-16 lg:pt-16 ">
+                <div className="center-xy z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden border-l-2 border-black bg-primary-1 py-3 lg:flex lg:pb-16 lg:pt-16 ">
                     <img
                         src={PEANUTMAN_HAPPY.src}
                         className="absolute duration-200 hover:rotate-12"
@@ -279,11 +279,11 @@ export function WelcomeSDK() {
             </div>
 
             <div className="grid w-full grid-cols-1  gap-4 px-4 py-2 text-black lg:grid-cols-3">
-                <label className="bg-primary-1 flex items-center justify-center border border-n-2 px-4 py-8 text-center text-h3 font-black sm:px-16">
+                <label className="flex items-center justify-center border border-n-2 bg-primary-1 px-4 py-8 text-center text-h3 font-black sm:px-16">
                     300k+ Transactions
                 </label>
 
-                <label className="bg-secondary-1 flex items-center justify-center border border-n-2 px-4 py-8 text-center text-h3 font-black sm:px-16">
+                <label className="flex items-center justify-center border border-n-2 bg-secondary-1 px-4 py-8 text-center text-h3 font-black sm:px-16">
                     105k+ Unique wallet addresses
                 </label>
 
@@ -292,7 +292,7 @@ export function WelcomeSDK() {
                 </label>
             </div>
             <div className="w-full px-4 text-black">
-                <div className="bg-primary-1 flex w-full flex-col items-center justify-between gap-4 border border-n-2 py-8 lg:flex-row ">
+                <div className="flex w-full flex-col items-center justify-between gap-4 border border-n-2 bg-primary-1 py-8 lg:flex-row ">
                     <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
                         <a href="https://docs.peanut.to/overview/what-are-links" target="_blank">
                             <img
@@ -326,7 +326,7 @@ export function WelcomeSDK() {
                 </div>
             </div>
             <div className="w-full px-4 text-black">
-                <div className="bg-secondary-1 flex w-full flex-col items-center justify-between gap-4 border border-n-2 py-8 lg:flex-row-reverse ">
+                <div className="flex w-full flex-col items-center justify-between gap-4 border border-n-2 bg-secondary-1 py-8 lg:flex-row-reverse ">
                     <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
                         <a
                             href="https://docs.peanut.to/overview/case-studies/raffles-to-boost-uwas-and-transactions"

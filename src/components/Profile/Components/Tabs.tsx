@@ -22,7 +22,7 @@ export const Tabs = ({ className, classButton, items, value, setValue }: TabsPro
         <div className={` flex flex-wrap ${className}`}>
             {items.map((item, index) => (
                 <button
-                    className={`text-md hover:text-grey-1 whitespace-nowrap rounded px-5 py-1 font-bold outline-none transition-colors tap-highlight-color  ${
+                    className={`text-md whitespace-nowrap rounded px-5 py-1 font-bold outline-none transition-colors tap-highlight-color hover:text-grey-1  ${
                         value === item.value ? 'bg-n-1 !text-white dark:bg-white/[0.08]' : ''
                     } ${classButton}`}
                     onClick={() => handleClick(item.value, item.onClick)}

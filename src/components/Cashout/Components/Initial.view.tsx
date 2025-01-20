@@ -344,7 +344,7 @@ export const InitialCashoutView = ({
                                                         <div className="flex flex-grow items-center overflow-hidden">
                                                             <Icon
                                                                 name={'bank'}
-                                                                className="fill-grey-1 mr-2 h-4 flex-shrink-0"
+                                                                className="mr-2 h-4 flex-shrink-0 fill-grey-1"
                                                             />
                                                             <label
                                                                 htmlFor={`bank-${index}`}

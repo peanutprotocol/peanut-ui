@@ -30,7 +30,7 @@ const ProfileSection = ({}: ProfileSectionProps) => {
                         <div className="flex items-center gap-3">
                             <div className="">{user?.user.username}</div>
                             {user?.user.kycStatus !== null && (
-                                <Badge color="purple" className="text-primary-1 bg-white">
+                                <Badge color="purple" className="bg-white text-primary-1">
                                     No KYC
                                 </Badge>
                             )}

@@ -106,7 +106,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                         <div className="flex items-center gap-2">
                             <label className="font-bold">{primaryInfo.title}</label>
                             {primaryInfo.subtitle && (
-                                <label className="text-grey-1 text-xs">{primaryInfo.subtitle}</label>
+                                <label className="text-xs text-grey-1">{primaryInfo.subtitle}</label>
                             )}
                         </div>
                         {isHistory && transactionStatus && (
@@ -121,10 +121,10 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                     <div className="flex w-full flex-row items-center justify-between">
                         <div className="flex flex-col items-start justify-end gap-2 text-start">
                             {metadata.recipientAddress && (
-                                <label className="text-grey-1 text-xs font-normal">{metadata.recipientAddress}</label>
+                                <label className="text-xs font-normal text-grey-1">{metadata.recipientAddress}</label>
                             )}
                             {secondaryInfo.subText && (
-                                <label className="text-grey-1 text-xs font-normal">{secondaryInfo.subText}</label>
+                                <label className="text-xs font-normal text-grey-1">{secondaryInfo.subText}</label>
                             )}
                         </div>
                         {metadata.subText && (
@@ -152,7 +152,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                                 onClick={() => {
                                     transactionDetails.link && window.open(transactionDetails?.link ?? '', '_blank')
                                 }}
-                                className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                             >
                                 Refund
                             </div>
@@ -164,7 +164,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                             onClick={() => {
                                 utils.copyTextToClipboardWithFallback(transactionDetails?.link ?? '')
                             }}
-                            className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             Copy link
                         </div>
@@ -180,7 +180,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                                 const explorerUrl = utils.getExplorerUrl(chainId)
                                 window.open(`${explorerUrl}/tx/${transactionDetails?.txHash ?? ''}`, '_blank')
                             }}
-                            className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             Show in explorer
                         </div>
@@ -190,7 +190,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                             href={transactionDetails.attachmentUrl}
                             download
                             target="_blank"
-                            className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             Download attachment
                         </a>
@@ -203,7 +203,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                                 return url.toString()
                             })()}
                             target="_blank"
-                            className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             Check Status
                         </a>

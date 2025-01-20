@@ -56,7 +56,7 @@ const NavSection: React.FC<NavSectionProps> = ({ title, tabs, pathName, isLastSe
                 <span className="block w-fit pt-0.5 text-center text-base font-semibold">{name}</span>
             </Link>
         ))}
-        {!isLastSection && <div className="border-grey-1 w-full border-b" />}
+        {!isLastSection && <div className="w-full border-b border-grey-1" />}
     </>
 )
 

@@ -34,7 +34,7 @@ export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible
     }, [])
 
     return (
-        <div className="bg-primary-1 relative flex min-h-[96vh] flex-col justify-between overflow-x-hidden md:min-h-[97vh]">
+        <div className="relative flex min-h-[96vh] flex-col justify-between overflow-x-hidden bg-primary-1 md:min-h-[97vh]">
             <CloudImages screenWidth={screenWidth} />
 
             <div className="lg:mb-16- lg:mt-24- relative mb-8 mt-12 flex grow flex-col justify-between space-y-6 md:mb-10 md:mt-12">

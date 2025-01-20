@@ -49,7 +49,7 @@ const ProfileWalletBalance = () => {
                             $ {printableUsdc(BigInt(Math.floor(Number(getMaxBalanceToken?.value || 0) * 10 ** 6)))}
                         </div>
                         {getMaxBalanceToken?.symbol && getMaxBalanceToken?.name && (
-                            <div className="text-grey-1 text-xs">
+                            <div className="text-xs text-grey-1">
                                 {getMaxBalanceToken?.symbol} on {getMaxBalanceToken?.name}
                             </div>
                         )}

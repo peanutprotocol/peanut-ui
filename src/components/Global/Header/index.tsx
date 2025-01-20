@@ -150,7 +150,7 @@ const MenuLink = ({
                 {title}
             </Text>
             {isBeta && (
-                <span className="text-primary-1 relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase">
+                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-primary-1">
                     BETA
                 </span>
             )}

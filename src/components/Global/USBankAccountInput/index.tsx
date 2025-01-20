@@ -97,7 +97,7 @@ export const USBankAccountInput = ({ register, setValue, errors, defaultValues }
             </div>
             <button
                 type="button"
-                className="text-grey-1 text-h9 underline"
+                className="text-h9 text-grey-1 underline"
                 onClick={() => {
                     setValue('routingNumber', '')
                     setValue('accountNumber', '')

@@ -106,7 +106,7 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                             />
                         </div>
                         {wallet.walletProviderType !== WalletProviderType.PEANUT && (
-                            <div className="text-grey-1 rounded-md bg-white/75 px-2 py-1 text-xs font-bold">
+                            <div className="rounded-md bg-white/75 px-2 py-1 text-xs font-bold text-grey-1">
                                 External
                             </div>
                         )}

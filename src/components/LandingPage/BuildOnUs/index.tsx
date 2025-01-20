@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 
 export default function BuildOnUs() {
     return (
-        <div className="bg-primary-1 relative flex min-h-[72vh] flex-col items-center justify-center overflow-x-hidden">
+        <div className="relative flex min-h-[72vh] flex-col items-center justify-center overflow-x-hidden bg-primary-1">
             <motion.div
                 className="flex flex-col items-center gap-8"
                 initial={{ opacity: 0, translateY: 20 }}

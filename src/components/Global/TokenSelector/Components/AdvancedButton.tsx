@@ -59,7 +59,7 @@ export const AdvancedTokenSelectorButton = ({
             role="button"
             tabIndex={0}
             aria-label="Open token selector"
-            className={`flex w-full ${!isStatic && ' cursor-pointer '} hover:bg-grey-1/10 h-18 flex-row items-center justify-between border border-n-1 px-4 py-2 dark:border-white ${classNameButton}`}
+            className={`flex w-full ${!isStatic && ' cursor-pointer '} h-18 flex-row items-center justify-between border border-n-1 px-4 py-2 hover:bg-grey-1/10 dark:border-white ${classNameButton}`}
             onClick={() => {
                 !isStatic && onClick()
             }}
@@ -97,12 +97,12 @@ export const AdvancedTokenSelectorButton = ({
 
                     {type === 'send' &&
                         (tokenBalance ? (
-                            <p className="text-grey-1 text-xs">
+                            <p className="text-xs text-grey-1">
                                 Balance: {utils.formatTokenAmount(tokenBalance ?? 0, 4)}
                             </p>
                         ) : null)}
                     {tokenAmount && tokenPrice && (
-                        <p className="text-grey-1 text-xs">
+                        <p className="text-xs text-grey-1">
                             ${utils.formatTokenAmount(Number(tokenAmount) * tokenPrice, 4)}
                         </p>
                     )}

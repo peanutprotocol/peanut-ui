@@ -3,10 +3,10 @@
 @tailwind utilities;
 
 :root {
-    --primary-color: #FF90E8;
-    --secondary-color: #6340DF;
-    --background-color: #90A8ED;
-    --accent-color: #6340DF;
+    --primary-color: #ff90e8;
+    --secondary-color: #6340df;
+    --background-color: #90a8ed;
+    --accent-color: #6340df;
 }
 
 @layer components {
@@ -57,7 +57,7 @@ Firefox input[type='number'] {
     }
 }
 
-.scroller>span {
+.scroller > span {
     position: absolute;
     top: 0;
     animation: slide 10s infinite;

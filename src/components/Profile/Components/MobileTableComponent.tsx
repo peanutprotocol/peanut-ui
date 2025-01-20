@@ -78,11 +78,11 @@ export const MobileTableComponent = ({
                                     ) : dashboardItem.status === 'paid' ? (
                                         <div className="border border-teal-3 p-0.5 text-center text-teal-3">paid</div>
                                     ) : dashboardItem.status ? (
-                                        <div className="border-grey-1 text-grey-1 border p-0.5 text-center">
+                                        <div className="border border-grey-1 p-0.5 text-center text-grey-1">
                                             {dashboardItem.status.toLowerCase().replaceAll('_', ' ')}
                                         </div>
                                     ) : (
-                                        <div className="border-grey-1 text-grey-1 border p-0.5 text-center">
+                                        <div className="border border-grey-1 p-0.5 text-center text-grey-1">
                                             pending
                                         </div>
                                     )
@@ -123,7 +123,7 @@ export const MobileTableComponent = ({
                                     onClick={() => {
                                         dashboardItem.link && window.open(dashboardItem?.link ?? '', '_blank')
                                     }}
-                                    className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
+                                    className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
                                 >
                                     Refund
                                 </div>
@@ -135,7 +135,7 @@ export const MobileTableComponent = ({
                                 onClick={() => {
                                     utils.copyTextToClipboardWithFallback(dashboardItem?.link ?? '')
                                 }}
-                                className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                             >
                                 Copy link
                             </div>
@@ -151,7 +151,7 @@ export const MobileTableComponent = ({
                                     const explorerUrl = utils.getExplorerUrl(chainId)
                                     window.open(`${explorerUrl}/tx/${dashboardItem?.txHash ?? ''}`, '_blank')
                                 }}
-                                className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
+                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
                             >
                                 Show in explorer
                             </div>
@@ -161,7 +161,7 @@ export const MobileTableComponent = ({
                                 href={dashboardItem.attachmentUrl}
                                 download
                                 target="_blank"
-                                className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                             >
                                 Download attachment
                             </a>
@@ -174,7 +174,7 @@ export const MobileTableComponent = ({
                                     return url.toString()
                                 })()}
                                 target="_blank"
-                                className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                             >
                                 Check Status
                             </a>
@@ -183,7 +183,7 @@ export const MobileTableComponent = ({
                 ) : (
                     type === 'contacts' && (
                         <Link href={`/send?recipientAddress=${encodeURIComponent(address as string)}`}>
-                            <div className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 ">
+                            <div className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 ">
                                 Send to this address
                             </div>
                         </Link>

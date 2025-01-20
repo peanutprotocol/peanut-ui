@@ -15,7 +15,7 @@ const RecentRecipients = ({ recentRecipients, onClick, isLoading }: RecentRecipi
                 {[0, 1, 2].map((idx) => (
                     <div
                         key={idx}
-                        className="hover:bg-grey-1/10 flex h-10 w-full flex-row items-center justify-between border border-n-1 p-2 transition-colors"
+                        className="flex h-10 w-full flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-grey-1/10"
                     >
                         <div className="flex w-full flex-row items-center justify-between overflow-hidden text-h7">
                             <div className="flex flex-row items-center justify-start gap-2">
@@ -38,7 +38,7 @@ const RecentRecipients = ({ recentRecipients, onClick, isLoading }: RecentRecipi
                 {recentRecipients.map((recipient) => (
                     <div
                         key={recipient.address}
-                        className="hover:bg-grey-1/10 flex h-10 w-full cursor-pointer flex-row items-center justify-between border border-n-1 p-2 transition-colors"
+                        className="flex h-10 w-full cursor-pointer flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-grey-1/10"
                         onClick={() => onClick(recipient.address)}
                     >
                         <div className="flex w-full flex-row items-center justify-between overflow-hidden text-h7">

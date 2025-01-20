@@ -119,7 +119,7 @@ export const TableComponent = ({
 
                                     <td className="td-custom">
                                         {!data.dashboardItem.status ? (
-                                            <div className="border-grey-1 text-grey-1 border px-2 py-1 text-center">
+                                            <div className="border border-grey-1 px-2 py-1 text-center text-grey-1">
                                                 <Loading />
                                             </div>
                                         ) : data.dashboardItem.status === 'claimed' ? (
@@ -135,11 +135,11 @@ export const TableComponent = ({
                                                 paid
                                             </div>
                                         ) : data.dashboardItem.status ? (
-                                            <div className="border-grey-1 text-grey-1 border px-2 py-1 text-center">
+                                            <div className="border border-grey-1 px-2 py-1 text-center text-grey-1">
                                                 {data.dashboardItem.status.toLowerCase().replaceAll('_', ' ')}
                                             </div>
                                         ) : (
-                                            <div className="border-grey-1 text-grey-1 border px-2 py-1 text-center">
+                                            <div className="border border-grey-1 px-2 py-1 text-center text-grey-1">
                                                 pending
                                             </div>
                                         )}

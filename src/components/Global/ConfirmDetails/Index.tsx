@@ -35,7 +35,7 @@ const ConfirmDetails = ({
                     </label>
                 </div>
                 {tokenPrice && (
-                    <label className="text-grey-1 text-h7 font-bold">
+                    <label className="text-h7 font-bold text-grey-1">
                         $ {formatTokenAmount(Number(tokenAmount) * tokenPrice)}
                     </label>
                 )}
@@ -46,7 +46,7 @@ const ConfirmDetails = ({
                 ) : (
                     <Icon name="chain_placeholder" className="h-6 w-6" fill="#999" />
                 )}
-                <label className="text-grey-1 text-sm font-bold">{chainName}</label>
+                <label className="text-sm font-bold text-grey-1">{chainName}</label>
             </div>
         </div>
     )

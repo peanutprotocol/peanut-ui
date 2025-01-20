@@ -26,7 +26,7 @@ const ToggleTheme = ({}: ToggleThemeProps) => {
 
     return (
         <div
-            className={`before:bg-primary-1 relative flex h-6.5 w-14 overflow-hidden rounded-sm border border-n-1 before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1/2 before:transition-all dark:border-white ${
+            className={`relative flex h-6.5 w-14 overflow-hidden rounded-sm border border-n-1 before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1/2 before:bg-primary-1 before:transition-all dark:border-white ${
                 colorMode === 'dark' ? 'before:translate-x-full' : ''
             }`}
         >

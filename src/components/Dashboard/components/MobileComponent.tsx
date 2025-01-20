@@ -54,7 +54,7 @@ export const MobileItemComponent = ({
                         {linkDetail.status === 'claimed' ? (
                             <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">claimed</div>
                         ) : (
-                            <div className="border-grey-1 text-grey-1 border border-n-1 px-2 py-1">pending</div>
+                            <div className="border border-grey-1 border-n-1 px-2 py-1 text-grey-1">pending</div>
                         )}
                     </div>
                 </div>
@@ -67,7 +67,7 @@ export const MobileItemComponent = ({
             >
                 <div className="flex w-full flex-col items-center justify-center p-2 "></div>
                 {linkDetail.type === 'Link Sent' && (
-                    <div className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 ">
+                    <div className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 ">
                         <div
                             className="text-h8"
                             onClick={() => {
@@ -82,7 +82,7 @@ export const MobileItemComponent = ({
                     onClick={() => {
                         utils.copyTextToClipboardWithFallback(linkDetail?.link ?? linkDetail.txHash ?? '')
                     }}
-                    className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                    className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                 >
                     <div className="text-h8">Copy Link</div>
                 </div>
@@ -91,7 +91,7 @@ export const MobileItemComponent = ({
                         href={linkDetail.attachmentUrl}
                         download
                         target="_blank"
-                        className="hover:bg-grey-1/10 flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 focus:outline-none disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                        className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 focus:outline-none disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                     >
                         Download attachment
                     </a>

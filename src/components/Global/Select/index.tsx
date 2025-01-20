@@ -73,7 +73,7 @@ const Select = ({
                                 <Transition leave="transition duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
                                     <Listbox.Options
                                         className={twMerge(
-                                            `border-grey-1 absolute left-0 right-0 mt-1 w-full rounded-md border-2 bg-white p-2 shadow-lg dark:border-white dark:bg-n-1 ${
+                                            `absolute left-0 right-0 mt-1 w-full rounded-md border-2 border-grey-1 bg-white p-2 shadow-lg dark:border-white dark:bg-n-1 ${
                                                 small ? 'p-0' : ''
                                             } ${up ? 'bottom-full top-auto mb-1 mt-0' : ''} z-50 ${classOptions}`
                                         )}
@@ -87,7 +87,7 @@ const Select = ({
                                         {items.map((item: any) => (
                                             <Listbox.Option
                                                 className={twMerge(
-                                                    `text-grey-1 ui-selected:!bg-grey-1/20 flex cursor-pointer items-start rounded-sm px-3 py-2 text-start text-sm font-bold transition-colors tap-highlight-color ui-selected:!text-n-1 hover:text-n-1 dark:text-white/50 dark:ui-selected:!text-white dark:hover:text-white ${
+                                                    `flex cursor-pointer items-start rounded-sm px-3 py-2 text-start text-sm font-bold text-grey-1 transition-colors tap-highlight-color ui-selected:!bg-grey-1/20 ui-selected:!text-n-1 hover:text-n-1 dark:text-white/50 dark:ui-selected:!text-white dark:hover:text-white ${
                                                         small ? '!py-1 !pl-4 text-xs' : ''
                                                     } ${classOption}`
                                                 )}
