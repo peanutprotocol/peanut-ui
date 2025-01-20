@@ -134,7 +134,6 @@ export function LinkPreviewImg({
                         style={{
                             fontSize: '49px',
                             fontWeight: 'bold',
-                            textShadow: '1px 1px 1px rgba(0,0,0,0.3)',
                             color: 'black',
                         }}
                     >
