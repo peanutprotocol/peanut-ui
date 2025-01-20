@@ -39,7 +39,7 @@ export function LinkPreviewImg({
         process.env.NEXT_PUBLIC_VERCEL_URL
             ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
             : process.env.NEXT_PUBLIC_BASE_URL
-    }/preview-bg.png`
+    }/social-preview-bg.png`
 
     return (
         <div
