@@ -10,6 +10,8 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { WalletProviderType } from '@/interfaces'
+import { useAppDispatch } from '@/redux/hooks'
+import { walletActions } from '@/redux/slices/wallet-slice'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
@@ -21,6 +23,7 @@ const cardWidth = 300
 const cardMargin = 16
 
 export default function Home() {
+    const dispatch = useAppDispatch()
     const controls = useAnimation()
     const router = useRouter()
     const carouselRef = useRef<HTMLDivElement>(null)
@@ -31,16 +34,16 @@ export default function Home() {
         return prefs?.balanceHidden ?? false
     })
 
-    const { addBYOW, username } = useAuth()
+    const { username } = useAuth()
 
     const { selectedWallet, wallets, isPeanutWallet, isConnected, setSelectedWallet, isWalletConnected } = useWallet()
 
-    // Initialize focusedIndex to match selectedWalletIndex
+    // initialize focusedIndex to match selectedWalletIndex
     const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
     const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
     const [focusedIndex, setFocusedIndex] = useState(selectedWalletIndex)
 
-    // Update focusedIndex when selectedWallet changes
+    // update focusedIndex when selectedWallet changes
     useEffect(() => {
         const index = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
         if (index !== -1) {
@@ -75,6 +78,7 @@ export default function Home() {
 
             if (focusedIndex !== index) {
                 setFocusedIndex(index)
+                dispatch(walletActions.setFocusedWallet(wallet))
                 controls.start({
                     x: -(index * (cardWidth + cardMargin)),
                     transition: { type: 'spring', stiffness: 300, damping: 30 },
@@ -105,6 +109,8 @@ export default function Home() {
         setFocusedIndex(targetIndex)
 
         if (targetIndex < wallets.length) {
+            dispatch(walletActions.setFocusedWallet(wallets[targetIndex]))
+
             const targetWallet = wallets[targetIndex]
             if (targetWallet.walletProviderType === WalletProviderType.PEANUT || isWalletConnected(targetWallet)) {
                 setSelectedWallet(targetWallet)
@@ -177,8 +183,6 @@ export default function Home() {
                                             wallet={wallet}
                                             username={username ?? ''}
                                             selected={selectedWalletIndex === index}
-                                            // isConnected={isWalletConnected(wallet)}
-                                            // isUsable={isWalletUsable(wallet)}
                                             onClick={() => handleCardClick(index)}
                                             index={index}
                                             isBalanceHidden={isBalanceHidden}
