@@ -5,7 +5,7 @@ import Link from 'next/link'
 import React, { useCallback, useEffect, useState } from 'react'
 
 import { HAMBURGER_LOTTIE, PEANUTMAN_LOGO } from '@/assets'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { breakpoints, emToPx } from '@/styles/theme'
 import { shortenAddress } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'

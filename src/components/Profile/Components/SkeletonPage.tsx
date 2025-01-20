@@ -2,7 +2,7 @@ import * as assets from '@/assets'
 import Loading from '@/components/Global/Loading'
 import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
 import { GlobalRegisterComponent } from '@/components/Global/RegisterComponent'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { useState } from 'react'
 
 type ProfileSkeletonProps = {

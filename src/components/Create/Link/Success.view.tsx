@@ -77,7 +77,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
+            <Card.Header className="mx-auto text-center">
                 <Card.Title className="text-center">Yay!</Card.Title>
             </Card.Header>
             <Card.Content className="flex flex-col gap-4 text-center">

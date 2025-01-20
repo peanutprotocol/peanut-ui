@@ -96,9 +96,9 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
 
     return (
         <Card className="w-full shadow-none sm:shadow-primary-4">
-            <Card.Header>
+            <Card.Header className="mx-auto">
                 <Card.Title className="mx-auto">Yay!</Card.Title>
-                <Card.Description>
+                <Card.Description className="mx-auto">
                     You have successfully paid <AddressLink address={requestLinkData.recipientAddress} />!
                 </Card.Description>
             </Card.Header>

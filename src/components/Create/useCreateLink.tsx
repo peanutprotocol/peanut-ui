@@ -18,8 +18,8 @@ interface ICheckUserHasEnoughBalanceProps {
 
 import { Hex } from 'viem'
 
-import { useWallet } from '@/hooks/useWallet'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
 
 export const useCreateLink = () => {

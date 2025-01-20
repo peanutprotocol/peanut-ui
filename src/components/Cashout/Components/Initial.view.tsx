@@ -13,8 +13,8 @@ import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offra
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
-import { useWallet } from '@/hooks/useWallet'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { balanceByToken, floorFixed, formatIban, printableUsdc, validateBankAccount } from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import { useAppKit } from '@reown/appkit/react'
@@ -261,8 +261,8 @@ export const InitialCashoutView = ({
             <FlowHeader />
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
-                    <Card.Title>Cash Out</Card.Title>
-                    <Card.Description className="text-center">
+                    <Card.Title className="mx-auto text-center">Cash Out</Card.Title>
+                    <Card.Description className="mx-auto text-center">
                         Cash out your crypto to your bank account. Works best with popular stablecoins and other
                         commonly traded tokens.
                     </Card.Description>

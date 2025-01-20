@@ -21,7 +21,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
-                <Card.Title>Payment Receipt</Card.Title>
+                <Card.Title className="mx-auto text-center">Payment Receipt</Card.Title>
                 <Card.Description></Card.Description>
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">

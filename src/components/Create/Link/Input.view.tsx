@@ -14,9 +14,9 @@ import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import * as context from '@/context'
-import { useWallet } from '@/hooks/useWallet'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
 import { balanceByToken, ErrorHandler, floorFixed, isNativeCurrency, printableAddress, printableUsdc } from '@/utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
@@ -308,10 +308,10 @@ export const CreateLinkInputView = ({
         <>
             <FlowHeader />
             <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Header>
+                <Card.Header className="mx-auto text-center">
                     <Card.Title
                         style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
-                        className="text-center"
+                        className="mx-auto text-center"
                     >
                         {' '}
                         {createType === 'link'

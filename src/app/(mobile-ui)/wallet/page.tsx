@@ -5,22 +5,25 @@ import { ArrowIcon, Button, Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 import { HomeLink } from '@/components/Home/HomeLink'
 import { useAuth } from '@/context/authContext'
-import { useWallet } from '@/hooks/useWallet'
 import { WalletProviderType } from '@/interfaces'
+import { useWalletStore } from '@/redux/hooks'
 import { printableUsdc } from '@/utils'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 
 const WalletDetailsPage = () => {
-    const { selectedWallet } = useWallet()
+    const { focusedWallet, wallets } = useWalletStore()
     const { user } = useAuth()
-    const isActiveWalletPW = selectedWallet?.walletProviderType === WalletProviderType.PEANUT
-    const isActiveWalletBYOW = selectedWallet?.walletProviderType === WalletProviderType.BYOW
+
+    const walletDetails = wallets.find((wallet) => wallet.address === focusedWallet)
+
+    const isActiveWalletPW = walletDetails?.walletProviderType === WalletProviderType.PEANUT
+    const isActiveWalletBYOW = walletDetails?.walletProviderType === WalletProviderType.BYOW
 
     return (
         <div className="flex w-full flex-row justify-center gap-2">
             <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] sm:gap-2 md:w-[70%] lg:w-[35%]">
-                {selectedWallet && (
+                {focusedWallet && (
                     <Card shadowSize="4" className="w-full rounded-md py-5">
                         <Card.Content className="flex h-full flex-row items-center justify-evenly">
                             <img src={smallPeanut.src} className="h-15 w-15 object-contain" />
@@ -31,7 +34,7 @@ const WalletDetailsPage = () => {
                             )}
                             {isActiveWalletBYOW && (
                                 <p className="text-xl sm:text-2xl">
-                                    <span className="font-bold">{selectedWallet.address}</span>.peanut.wallet
+                                    <span className="font-bold">{walletDetails.address}</span>.peanut.wallet
                                 </p>
                             )}
                         </Card.Content>
@@ -40,7 +43,7 @@ const WalletDetailsPage = () => {
 
                 <Card shadowSize="4" className="w-full rounded-md py-10">
                     <Card.Content className="flex h-full flex-row items-center justify-center">
-                        <div className="text-5xl">$ {printableUsdc(selectedWallet?.balance ?? 0n)}</div>
+                        <div className="text-5xl">$ {printableUsdc(walletDetails?.balance ?? 0n)}</div>
                     </Card.Content>
                 </Card>
                 <div className="flex flex-row gap-2">

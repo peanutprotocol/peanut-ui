@@ -10,8 +10,8 @@ import { ReferenceAndAttachment } from '@/components/Request/Components/Referenc
 import * as consts from '@/constants'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import * as context from '@/context'
-import { useWallet } from '@/hooks/useWallet'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { type ITokenPriceData } from '@/interfaces'
 import {
     areEvmAddressesEqual,
@@ -359,7 +359,7 @@ export const InitialView = ({
         <div>
             <FlowHeader />
             <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Header>
+                <Card.Header className="mx-auto">
                     <Card.Title className="text-center text-h3">
                         <AddressLink address={requestLinkData.recipientAddress} /> is requesting
                     </Card.Title>

@@ -33,8 +33,8 @@ const HomeWaitlist = () => {
                 <Title text="Home" className="text-8xl" />
                 {username && (
                     <Card>
-                        <Card.Header className="border-none">
-                            <Card.Title className="border-none">Yay {username}!!!</Card.Title>
+                        <Card.Header className="mx-auto border-none">
+                            <Card.Title className="border-none text-center">Yay {username}!!!</Card.Title>
                         </Card.Header>
                     </Card>
                 )}
@@ -42,7 +42,7 @@ const HomeWaitlist = () => {
                 <div className="mt-5 w-full text-center">
                     {username && (
                         <Card>
-                            <Card.Header className="text-center">
+                            <Card.Header className="mx-auto text-center">
                                 <Card.Title className="w-full text-center">You're all set up!</Card.Title>
                                 <Card.Description className="w-full text-center">
                                     Join the group at{' '}
