@@ -38,7 +38,7 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
                     transition={{ type: 'spring', damping: 10 }}
                     className="relative mx-auto max-w-3xl rounded-md border-2 border-n-1 bg-white px-2 py-6 shadow ring-2 ring-white transition-transform duration-300 hover:rotate-0 md:-rotate-2 md:p-14"
                 >
-                    <h2 className="bg-primary-1 absolute -left-2 -top-8 rounded-full border-2 border-n-1 px-5 py-3 font-display text-[1.5rem] font-bold text-white shadow ring-2 ring-white sm:-left-6 md:text-[2rem]">
+                    <h2 className="absolute -left-2 -top-8 rounded-full border-2 border-n-1 bg-primary-1 px-5 py-3 font-display text-[1.5rem] font-bold text-white shadow ring-2 ring-white sm:-left-6 md:text-[2rem]">
                         {heading}
                     </h2>
 
