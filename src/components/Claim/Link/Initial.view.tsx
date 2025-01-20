@@ -469,7 +469,7 @@ export const InitialClaimLinkView = ({
                                             href={attachment.attachmentUrl}
                                             download
                                             target="_blank"
-                                            className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
+                                            className="text-grey-1 flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal underline "
                                         >
                                             <Icon name={'download'} />
                                             Download attachment
@@ -516,9 +516,9 @@ export const InitialClaimLinkView = ({
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                         <div className="flex w-full flex-col items-center justify-center gap-2">
                             {selectedRoute && (
-                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                                <div className="text-grey-1 flex w-full flex-row items-center justify-between px-2 text-h8">
                                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                                        <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                        <Icon name={'forward'} className="fill-grey-1 h-4" />
                                         <label className="font-bold">Route</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -533,7 +533,7 @@ export const InitialClaimLinkView = ({
                                                                 chain.chainId === selectedRoute.route.params.fromChain
                                                         )?.name
                                                     }
-                                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                                    <Icon name={'arrow-next'} className="fill-grey-1 h-4" />{' '}
                                                     {
                                                         supportedSquidChainsAndTokens[
                                                             selectedRoute.route.params.toChain
@@ -559,9 +559,9 @@ export const InitialClaimLinkView = ({
                                 </div>
                             )}
 
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="text-grey-1 flex w-full flex-row items-center justify-between px-2 text-h8">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                    <Icon name={'gas'} className="fill-grey-1 h-4" />
                                     <label className="font-bold">Fees</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -575,14 +575,14 @@ export const InitialClaimLinkView = ({
                                 </span>
                             </div>
                             {/* TODO: correct points estimation
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                                <Icon name={'plus-circle'} className="h-4 fill-grey-1" />
                                 <label className="font-bold">Points</label>
                             </div>
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                    <Icon name={'gas'} className="h-4 fill-grey-1" />
                                     <label className="font-bold">Fees</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -597,9 +597,9 @@ export const InitialClaimLinkView = ({
                             </div>
 
                             {/* TODO: correct points estimation
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                                    <Icon name={'plus-circle'} className="h-4 fill-grey-1" />
                                     <label className="font-bold">Points</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">

@@ -140,14 +140,14 @@ const chainItem = ({
         <Menu.Item
             as="button"
             onClick={setChain}
-            className="flex h-12 w-full items-center justify-between gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 dark:hover:bg-white/20"
+            className="hover:bg-grey-1/10 flex h-12 w-full items-center justify-between gap-2 px-4 text-sm font-bold transition-colors last:mb-0 dark:hover:bg-white/20"
             key={chain.name}
         >
             <div className="flex w-max flex-row items-center justify-center gap-2">
                 <img src={chain.icon.url} alt={chain.name} className="h-6 w-6" />
                 <div className="text-h8">{chain.name}</div>
             </div>
-            {valuePerChain && <div className="text-h9 text-gray-1">${formatTokenAmount(valuePerChain, 2)}</div>}
+            {valuePerChain && <div className="text-grey-1 text-h9">${formatTokenAmount(valuePerChain, 2)}</div>}
         </Menu.Item>
     )
 }

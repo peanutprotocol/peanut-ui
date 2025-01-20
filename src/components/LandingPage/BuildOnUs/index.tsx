@@ -1,12 +1,11 @@
 'use client'
 
-import Image from 'next/image'
-import { motion } from 'framer-motion'
 import { BUILD_ON_US_NOW } from '@/assets'
+import { motion } from 'framer-motion'
 
 export default function BuildOnUs() {
     return (
-        <div className="relative flex min-h-[72vh] flex-col items-center justify-center overflow-x-hidden bg-pink-1">
+        <div className="bg-primary-1 relative flex min-h-[72vh] flex-col items-center justify-center overflow-x-hidden">
             <motion.div
                 className="flex flex-col items-center gap-8"
                 initial={{ opacity: 0, translateY: 20 }}

@@ -80,7 +80,7 @@ const Modal = ({
                                 {showPrev && (
                                     <button
                                         className={twMerge(
-                                            ` absolute left-5 top-4.5 text-0 outline-none hover:fill-purple-1 dark:fill-white dark:hover:fill-purple-1 `
+                                            ` hover:fill-primary-1 dark:hover:fill-primary-1 absolute left-5 top-4.5 text-0 outline-none dark:fill-white `
                                         )}
                                         onClick={onPrev}
                                     >
@@ -102,7 +102,7 @@ const Modal = ({
 
                                 <button
                                     className={twMerge(
-                                        `absolute right-4 top-4 text-0 outline-none hover:fill-purple-1 dark:fill-white dark:hover:fill-purple-1 ${
+                                        `hover:fill-primary-1 dark:hover:fill-primary-1 absolute right-4 top-4 text-0 outline-none dark:fill-white ${
                                             video ? 'absolute right-5 top-5 h-10 w-10 fill-white' : ''
                                         } ${classButtonClose}`
                                     )}

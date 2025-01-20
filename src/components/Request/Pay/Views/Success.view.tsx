@@ -108,7 +108,7 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                     attachmentUrl={requestLinkData?.attachmentUrl}
                 />
                 <div className="flex w-full flex-col items-start justify-center gap-1.5 text-h9 font-normal">
-                    <label className="text-center text-h8 font-normal text-gray-1">Transaction details</label>
+                    <label className="text-grey-1 text-center text-h8 font-normal">Transaction details</label>
                     <div className="flex w-full flex-row items-center justify-between gap-1">
                         <label className="">Source chain:</label>
                         <Link className="cursor-pointer underline" href={sourceUrlWithTx}>

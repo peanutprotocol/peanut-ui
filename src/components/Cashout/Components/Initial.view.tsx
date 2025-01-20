@@ -332,7 +332,7 @@ export const InitialCashoutView = ({
                                                         className={twMerge(
                                                             'flex w-full items-center  justify-between text-nowrap border border-black p-2',
                                                             matchAccount(account, bankAccountNumber)
-                                                                ? 'bg-purple-1'
+                                                                ? 'bg-primary-1'
                                                                 : 'hover:bg-gray-100',
                                                             xchainAllowed && 'cursor-pointer',
                                                             !xchainAllowed && 'opacity-60'
@@ -344,7 +344,7 @@ export const InitialCashoutView = ({
                                                         <div className="flex flex-grow items-center overflow-hidden">
                                                             <Icon
                                                                 name={'bank'}
-                                                                className="mr-2 h-4 flex-shrink-0 fill-gray-1"
+                                                                className="fill-grey-1 mr-2 h-4 flex-shrink-0"
                                                             />
                                                             <label
                                                                 htmlFor={`bank-${index}`}

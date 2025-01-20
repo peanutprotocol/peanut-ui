@@ -1,6 +1,6 @@
+import { sanitizeBankAccount } from '@/utils/format.utils'
 import { useState } from 'react'
 import { UseFormRegister, UseFormSetValue } from 'react-hook-form'
-import { sanitizeBankAccount } from '@/utils/format.utils'
 
 interface IUSBankAccountInputProps {
     register: UseFormRegister<any>
@@ -97,7 +97,7 @@ export const USBankAccountInput = ({ register, setValue, errors, defaultValues }
             </div>
             <button
                 type="button"
-                className="text-h9 text-gray-1 underline"
+                className="text-grey-1 text-h9 underline"
                 onClick={() => {
                     setValue('routingNumber', '')
                     setValue('accountNumber', '')

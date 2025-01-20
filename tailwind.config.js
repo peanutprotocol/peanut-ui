@@ -4,10 +4,38 @@ const plugin = require('tailwindcss/plugin')
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     darkMode: ['class', '[data-theme="dark"]'],
-    content: ['./src/app/**/*.{js,ts,jsx,tsx}', './src/components/**/*.{js,ts,jsx,tsx}'],
+    content: [
+        './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+        './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+        './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    ],
     theme: {
         extend: {
             colors: {
+                primary: {
+                    1: '#FF90E8',
+                    2: '#CC73BA',
+                    3: '#EFE4FF',
+                },
+                secondary: {
+                    1: '#FFC900',
+                    2: '#E99898',
+                    3: '#90A8ED',
+                    4: '#FFF4CC',
+                    5: '#FBEAEA',
+                    6: '#E9EEFB',
+                },
+                grey: {
+                    1: '#5F646D',
+                    2: '#E7E8E9',
+                    3: '#FAF4F0',
+                },
+                outline: {
+                    1: '#98E9AB',
+                    2: '#AE7AFF',
+                    3: '#E99898',
+                },
+                // todo: remove these colors
                 purple: {
                     1: '#FF90E8',
                     2: '#dc78b5',
@@ -15,7 +43,7 @@ module.exports = {
                     4: '#AE7AFF',
                 },
                 yellow: {
-                    1: '#ffc900',
+                    1: '#FFC900',
                     2: '#f5ff7c',
                     3: '#fbfdd8',
                     4: '#FAE8A4',
@@ -23,11 +51,13 @@ module.exports = {
                 pink: {
                     1: '#FF90E8',
                     2: '#FCD8DB',
-                    3: '#E99898',
+                },
+                green: {
+                    1: '#98E9AB',
+                    2: '#EAFBEE',
                 },
                 teal: {
                     1: '#23A094',
-                    2: '#90A8ED',
                     3: '#00577d',
                 },
                 gray: {
@@ -54,11 +84,12 @@ module.exports = {
                 },
                 white: '#FFFFFF',
                 red: '#FF0000',
-                'kyc-red': '#C80000', // TODO: this is bad and needs to be changed
+                'kyc-red': '#C80000',
                 black: '#000000',
-                'kyc-green': '#00C800', // TODO: this is bad and needs to be changed
-                primary: 'var(--primary-color)',
-                secondary: 'var(--secondary-color)',
+                'kyc-green': '#00C800',
+
+                'primary-base': 'var(--primary-color)',
+                'secondary-base': 'var(--secondary-color)',
                 background: '#FAF4F0',
                 accent: 'var(--accent-color)',
                 error: '#B3261E',
@@ -230,35 +261,35 @@ module.exports = {
             })
             addComponents({
                 '.btn': {
-                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border border-n-1 rounded-sm text-base text-n-1 fill-n-1 font-bold transition-colors':
-                        // '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-12 px-3 border-2 ring-2 ring-white shadow-md border-n-1 rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors hover:bg-n-4/40 hover:text-n-1':
+                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-grey-1 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border border-n-1 rounded-sm text-base text-n-1 fill-n-1 font-bold transition-colors':
+                        // '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-grey-1 disabled:cursor-not-allowed inline-flex items-center justify-center h-12 px-3 border-2 ring-2 ring-white shadow-md border-n-1 rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors hover:bg-n-4/40 hover:text-n-1':
                         {},
                 },
                 '.btn svg': {
                     '@apply icon-18 fill-inherit first:mr-1.5 last:ml-1.5': {},
                 },
                 '.btn-transparent-light': {
-                    '@apply btn border-transparent text-white fill-white hover:text-purple-1 hover:fill-purple-1': {},
+                    '@apply btn border-transparent text-white fill-white hover:text-primary-1 hover:fill-primary-1': {},
                 },
                 '.btn-transparent-dark': {
-                    '@apply btn border-transparent text-n-1 fill-n-1 hover:text-purple-1 hover:fill-purple-1 dark:text-white dark:fill-white dark:hover:text-purple-1 hover:dark:fill-purple-1':
+                    '@apply btn border-transparent text-n-1 fill-n-1 hover:text-primary-1 hover:fill-primary-1 dark:text-white dark:fill-white dark:hover:text-primary-1 hover:dark:fill-primary-1':
                         {},
                 },
                 '.btn-purple': {
-                    '@apply btn bg-purple-1 text-n-1 fill-n-1 hover:bg-purple-1/90': {},
+                    '@apply btn bg-primary-1 text-n-1 fill-n-1 hover:bg-primary-1/90': {},
                 },
                 '.btn-purple-2': {
                     '@apply btn bg-purple-3 text-n-1 fill-n-1 hover:bg-purple-3/90': {},
                 },
                 '.btn-yellow': {
-                    '@apply btn bg-yellow-1 text-n-1 fill-n-1 hover:bg-yellow-1/90': {},
+                    '@apply btn bg-secondary-1 text-n-1 fill-n-1 hover:bg-secondary-1/90': {},
                 },
                 '.btn-dark': {
                     '@apply btn bg-n-1 text-white fill-white hover:bg-n-1/80 dark:bg-white/10 dark:hover:bg-white/20':
                         {},
                 },
                 '.btn-ghost': {
-                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border-2 border-transparent rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors duration-200 hover:border-n-1 hover:bg-n-4/25':
+                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-grey-1 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border-2 border-transparent rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors duration-200 hover:border-n-1 hover:bg-n-4/25':
                         {},
                 },
                 '.btn-stroke': {
@@ -312,25 +343,25 @@ module.exports = {
                     '@apply label border-n-1 dark:border-white dark:text-white': {},
                 },
                 '.label-stroke-yellow': {
-                    '@apply label border-yellow-1 text-yellow-1': {},
+                    '@apply label border-secondary-1 text-secondary-1': {},
                 },
                 '.label-stroke-pink': {
-                    '@apply label border-pink-1 text-pink-1': {},
+                    '@apply label border-primary-1 text-primary-1': {},
                 },
                 '.label-stroke-purple': {
-                    '@apply label border-purple-1 text-purple-1': {},
+                    '@apply label border-primary-1 text-primary-1': {},
                 },
                 '.label-stroke-teal': {
                     '@apply label border-teal-1 text-teal-1': {},
                 },
                 '.label-purple': {
-                    '@apply label border-purple-1 bg-purple-1': {},
+                    '@apply label border-primary-1 bg-primary-1': {},
                 },
                 '.label-teal': {
                     '@apply label border-teal-1 bg-teal-1': {},
                 },
                 '.label-yellow': {
-                    '@apply label border-yellow-1 bg-yellow-1': {},
+                    '@apply label border-secondary-1 bg-secondary-1': {},
                 },
                 '.label-black': {
                     '@apply label border-n-1 bg-n-1 text-white dark:bg-white/10': {},
@@ -412,7 +443,7 @@ module.exports = {
                     '@apply border-2 border-black': {},
                 },
                 '.custom-input': {
-                    '@apply w-full border border-n-1 transition-colors h-12 w-full rounded-none bg-transparent bg-white px-4 text-h8 font-medium outline-none placeholder:text-sm focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1':
+                    '@apply w-full border border-n-1 transition-colors h-12 w-full rounded-none bg-transparent bg-white px-4 text-h8 font-medium outline-none placeholder:text-sm focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1':
                         {},
                 },
                 '.custom-input-xs': {

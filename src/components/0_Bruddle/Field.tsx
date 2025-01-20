@@ -1,10 +1,9 @@
 'use client'
 
-import Icon, { IconNameType } from '../Global/Icon'
-import { useFormContext } from 'react-hook-form'
 import classNames from 'classnames'
-import React from 'react'
-import { DetailedHTMLProps, InputHTMLAttributes, useState } from 'react'
+import React, { DetailedHTMLProps, InputHTMLAttributes, useState } from 'react'
+import { useFormContext } from 'react-hook-form'
+import Icon, { IconNameType } from '../Global/Icon'
 import BaseInput from './BaseInput'
 
 type FieldProps = DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> & {
@@ -34,7 +33,7 @@ export const Field = React.forwardRef(
                                 {
                                     'pr-15': icon || type === 'password',
                                     '!border-green-1 pr-15': success,
-                                    '!border-pink-1 pr-15': error,
+                                    '!border-primary-1 pr-15': error,
                                 },
                                 className
                             )}
@@ -62,7 +61,7 @@ export const Field = React.forwardRef(
                         {(success || error) && (
                             <Icon
                                 className={`icon-20 pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 ${
-                                    success ? 'fill-green-1' : 'fill-pink-1'
+                                    success ? 'fill-green-1' : 'fill-primary-1'
                                 }`}
                                 name={success ? 'check-circle' : 'info-circle'}
                             />

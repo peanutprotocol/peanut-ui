@@ -1,5 +1,4 @@
 import Icon from '@/components/Global/Icon'
-import { useEffect, useRef, useState } from 'react'
 
 type SearchProps = {
     className?: string
@@ -16,8 +15,8 @@ const Search = ({ className, placeholder, value, onChange, onSubmit, large, medi
     return (
         <div className={`relative ${className} ${large ? 'shadow-primary-4 w-full' : ''}`}>
             <input
-                className={`w-full rounded-none bg-transparent text-base outline-none
-                transition-colors placeholder:text-base focus:border-purple-1 dark:border-white dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1 ${
+                className={`focus:border-primary-1 dark:focus:border-primary-1 w-full rounded-none bg-transparent
+                text-base outline-none transition-colors placeholder:text-base dark:border-white dark:text-white dark:placeholder:text-white/75 ${
                     large
                         ? 'h-16 bg-white pl-6 pr-18 text-base font-medium dark:bg-n-1'
                         : medium
@@ -32,7 +31,7 @@ const Search = ({ className, placeholder, value, onChange, onSubmit, large, medi
             <button
                 className={`absolute text-0 ${
                     large
-                        ? 'right-5 top-1/2 h-8 w-8 -translate-y-1/2 border border-n-1 bg-purple-1 transition-colors hover:bg-purple-1/90'
+                        ? 'bg-primary-1 hover:bg-primary-1/90 right-5 top-1/2 h-8 w-8 -translate-y-1/2 border border-n-1 transition-colors'
                         : 'bottom-0 left-0 top-0 w-8'
                 }`}
             >

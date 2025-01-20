@@ -67,7 +67,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                 </Card.Description>
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">
-                <label className="text-center text-h8 font-normal text-gray-1">Transaction details</label>
+                <label className="text-grey-1 text-center text-h8 font-normal">Transaction details</label>
                 {type === 'claimxchain' && (
                     <div className="flex flex-col items-start justify-center gap-1 text-h9  font-normal">
                         <div className="flex w-full flex-row items-center justify-between gap-1">
@@ -101,7 +101,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                 <Link className="w-full" target="_blank" href={`${explorerUrlWithTx}`}>
                     <Button variant="dark">
                         Transaction hash
-                        <Icon name="external" className="h-4 fill-gray-1" />
+                        <Icon name="external" className="fill-grey-1 h-4" />
                     </Button>
                 </Link>
                 <Link className="" href={'/profile'}>

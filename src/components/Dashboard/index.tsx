@@ -197,7 +197,7 @@ export const Dashboard = () => {
 
                                                 <td className="td-custom">
                                                     {!link.status ? (
-                                                        <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                        <div className="border-grey-1 text-grey-1 border px-2 py-1 text-center">
                                                             <Loading />
                                                         </div>
                                                     ) : link.status === 'claimed' ? (
@@ -209,7 +209,7 @@ export const Dashboard = () => {
                                                             sent
                                                         </div>
                                                     ) : (
-                                                        <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                        <div className="border-grey-1 text-grey-1 border px-2 py-1 text-center">
                                                             pending
                                                         </div>
                                                     )}
@@ -237,7 +237,7 @@ export const Dashboard = () => {
                     <CSVLink
                         data={legacyLinks ? legacyLinks.join('\n') : ''}
                         filename="links.csv"
-                        className="cursor-pointer self-end text-purple-1"
+                        className="text-primary-1 cursor-pointer self-end"
                     >
                         Download {legacyLinks.length} legacy links as CSV
                     </CSVLink>

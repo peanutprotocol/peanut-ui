@@ -1,8 +1,8 @@
-import { useContext, useEffect, useState } from 'react'
-import Icon from '../../Icon'
+import * as context from '@/context'
 import * as utils from '@/utils'
 import { fetchTokenSymbol } from '@/utils'
-import * as context from '@/context'
+import { useContext, useEffect, useState } from 'react'
+import Icon from '../../Icon'
 
 interface IAdvancedTokenSelectorButtonProps {
     onClick: () => void
@@ -59,7 +59,7 @@ export const AdvancedTokenSelectorButton = ({
             role="button"
             tabIndex={0}
             aria-label="Open token selector"
-            className={`flex w-full ${!isStatic && ' cursor-pointer '} h-18 flex-row items-center justify-between border border-n-1 px-4 py-2 hover:bg-n-3/10 dark:border-white ${classNameButton}`}
+            className={`flex w-full ${!isStatic && ' cursor-pointer '} hover:bg-grey-1/10 h-18 flex-row items-center justify-between border border-n-1 px-4 py-2 dark:border-white ${classNameButton}`}
             onClick={() => {
                 !isStatic && onClick()
             }}
@@ -97,12 +97,12 @@ export const AdvancedTokenSelectorButton = ({
 
                     {type === 'send' &&
                         (tokenBalance ? (
-                            <p className="text-xs text-gray-1">
+                            <p className="text-grey-1 text-xs">
                                 Balance: {utils.formatTokenAmount(tokenBalance ?? 0, 4)}
                             </p>
                         ) : null)}
                     {tokenAmount && tokenPrice && (
-                        <p className="text-xs text-gray-1">
+                        <p className="text-grey-1 text-xs">
                             ${utils.formatTokenAmount(Number(tokenAmount) * tokenPrice, 4)}
                         </p>
                     )}

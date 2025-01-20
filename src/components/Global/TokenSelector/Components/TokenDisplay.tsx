@@ -26,7 +26,7 @@ export const tokenDisplay = (
                         <div className="text-h8">{token.name}</div>
                     </div>
                     {type === 'send' && (
-                        <p className="text-xs text-gray-1 ">
+                        <p className="text-grey-1 text-xs ">
                             {utils.formatTokenAmount(
                                 balances.find(
                                     (balance) =>

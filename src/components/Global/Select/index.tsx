@@ -1,8 +1,8 @@
+import Icon from '@/components/Global/Icon'
 import { Listbox, Transition } from '@headlessui/react'
-import { Fragment, useRef } from 'react'
+import { useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { twMerge } from 'tailwind-merge'
-import Icon from '@/components/Global/Icon'
 
 type SelectProps = {
     label?: string
@@ -48,7 +48,7 @@ const Select = ({
                             className={twMerge(
                                 `border-rounded flex h-16 w-full items-center bg-white px-5 text-sm font-bold text-n-1 outline-none transition-colors tap-highlight-color dark:bg-n-1 dark:text-white ${
                                     small ? 'h-6 px-4 text-xs' : ''
-                                } ${open ? 'border-purple-1 dark:border-purple-1' : ''} ${classButton}`
+                                } ${open ? 'border-primary-1 dark:border-primary-1' : ''} ${classButton}`
                             )}
                         >
                             <span className="mr-auto truncate text-black">
@@ -73,7 +73,7 @@ const Select = ({
                                 <Transition leave="transition duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
                                     <Listbox.Options
                                         className={twMerge(
-                                            `absolute left-0 right-0 mt-1 w-full rounded-md border-2 border-n-3 bg-white p-2 shadow-lg dark:border-white dark:bg-n-1 ${
+                                            `border-grey-1 absolute left-0 right-0 mt-1 w-full rounded-md border-2 bg-white p-2 shadow-lg dark:border-white dark:bg-n-1 ${
                                                 small ? 'p-0' : ''
                                             } ${up ? 'bottom-full top-auto mb-1 mt-0' : ''} z-50 ${classOptions}`
                                         )}
@@ -87,7 +87,7 @@ const Select = ({
                                         {items.map((item: any) => (
                                             <Listbox.Option
                                                 className={twMerge(
-                                                    `flex cursor-pointer items-start rounded-sm px-3 py-2 text-start text-sm font-bold text-n-3 transition-colors tap-highlight-color ui-selected:!bg-n-3/20 ui-selected:!text-n-1 hover:text-n-1 dark:text-white/50 dark:ui-selected:!text-white dark:hover:text-white ${
+                                                    `text-grey-1 ui-selected:!bg-grey-1/20 flex cursor-pointer items-start rounded-sm px-3 py-2 text-start text-sm font-bold transition-colors tap-highlight-color ui-selected:!text-n-1 hover:text-n-1 dark:text-white/50 dark:ui-selected:!text-white dark:hover:text-white ${
                                                         small ? '!py-1 !pl-4 text-xs' : ''
                                                     } ${classOption}`
                                                 )}

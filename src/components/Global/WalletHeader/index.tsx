@@ -134,7 +134,7 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
                 className={twMerge(
                     'flex w-full cursor-pointer items-center gap-3 px-4 py-3',
                     // highlight active wallet with different background
-                    isActive ? 'bg-purple-1 hover:bg-purple-1/90' : 'bg-purple-4 bg-opacity-25 hover:bg-opacity-20'
+                    isActive ? 'bg-primary-1 hover:bg-primary-1/90' : 'bg-purple-4 bg-opacity-25 hover:bg-opacity-20'
                 )}
             >
                 {/* wallet icon */}

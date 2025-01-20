@@ -1,6 +1,6 @@
 'use client'
-import { useColorMode } from '@chakra-ui/color-mode'
 import Icon, { IconNameType } from '@/components/Global/Icon'
+import { useColorMode } from '@chakra-ui/color-mode'
 
 type ToggleThemeProps = {}
 
@@ -26,7 +26,7 @@ const ToggleTheme = ({}: ToggleThemeProps) => {
 
     return (
         <div
-            className={`relative flex h-6.5 w-14 overflow-hidden rounded-sm border border-n-1 before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1/2 before:bg-purple-1 before:transition-all dark:border-white ${
+            className={`before:bg-primary-1 relative flex h-6.5 w-14 overflow-hidden rounded-sm border border-n-1 before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1/2 before:transition-all dark:border-white ${
                 colorMode === 'dark' ? 'before:translate-x-full' : ''
             }`}
         >

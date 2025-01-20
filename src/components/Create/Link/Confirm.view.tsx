@@ -274,35 +274,35 @@ export const CreateLinkConfirmView = ({
 
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         {attachmentOptions.fileUrl && (
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="text-grey-1 flex w-full flex-row items-center justify-between gap-1 px-2 text-h8">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'paperclip'} className="h-4 fill-gray-1" />
+                                    <Icon name={'paperclip'} className="fill-grey-1 h-4" />
                                     <label className="font-bold">Attachment</label>
                                 </div>
                                 <a href={attachmentOptions.fileUrl} download target="_blank">
-                                    <Icon name={'download'} className="h-4 fill-gray-1" />
+                                    <Icon name={'download'} className="fill-grey-1 h-4" />
                                 </a>
                             </div>
                         )}
                         {attachmentOptions.message && (
                             <div className="flex w-full flex-col items-center justify-center gap-1">
                                 <div
-                                    className="flex w-full  flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1"
+                                    className="text-grey-1 flex  w-full flex-row items-center justify-between gap-1 px-2 text-h8"
                                     onClick={() => {
                                         setShowMessage(!showMessage)
                                     }}
                                 >
                                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                                        <Icon name={'paperclip'} className="h-4 fill-gray-1 " />
+                                        <Icon name={'paperclip'} className="fill-grey-1 h-4 " />
                                         <label className=" font-bold">Message</label>
                                     </div>
                                     <Icon
                                         name={'arrow-bottom'}
-                                        className={`h-4 cursor-pointer fill-gray-1 transition-transform ${showMessage && ' rotate-180'}`}
+                                        className={`fill-grey-1 h-4 cursor-pointer transition-transform ${showMessage && ' rotate-180'}`}
                                     />
                                 </div>
                                 {showMessage && (
-                                    <div className="flex w-full flex-col items-center justify-center gap-1 pl-7 text-h8 text-gray-1">
+                                    <div className="text-grey-1 flex w-full flex-col items-center justify-center gap-1 pl-7 text-h8">
                                         <label className="w-full text-start text-sm font-normal leading-4">
                                             {attachmentOptions.message}
                                         </label>
@@ -311,9 +311,9 @@ export const CreateLinkConfirmView = ({
                             </div>
                         )}
                         {transactionCostUSD !== undefined && (
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="text-grey-1 flex w-full flex-row items-center justify-between gap-1 px-2 text-h8">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                    <Icon name={'gas'} className="fill-grey-1 h-4" />
                                     <label className="font-bold">Network cost</label>
                                 </div>
                                 <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -333,9 +333,9 @@ export const CreateLinkConfirmView = ({
                             </div>
                         )}
                     </div>
-                    {/* <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                    {/* <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                        <Icon name={'plus-circle'} className="h-4 fill-grey-1" />
                         <label className="font-bold">Points</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">

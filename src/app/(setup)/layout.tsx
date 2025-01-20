@@ -5,7 +5,7 @@ import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect } from 'react'
 import { setupSteps } from '../../components/Setup/Setup.consts'
-import '../../styles/globals.bruddle.css'
+import '../../styles/globals.css'
 
 const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
     const dispatch = useAppDispatch()
