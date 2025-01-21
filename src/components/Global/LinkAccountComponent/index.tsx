@@ -1,19 +1,17 @@
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
-import { useContext, useMemo, useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
-import * as utils from '@/utils'
-import * as context from '@/context'
-import Loading from '../Loading'
-import CountryDropdown from '../CountrySelect'
-import Link from 'next/link'
-import Icon from '../Icon'
 import { useAuth } from '@/context/authContext'
-import { Divider } from '@chakra-ui/react'
-import { isIBAN } from 'validator'
 import { IBridgeAccount, IResponse } from '@/interfaces'
-import { USBankAccountInput } from '../USBankAccountInput'
-import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
+import * as utils from '@/utils'
+import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
+import { Divider } from '@chakra-ui/react'
+import Link from 'next/link'
+import { isIBAN } from 'validator'
+import CountryDropdown from '../CountrySelect'
+import Icon from '../Icon'
+import Loading from '../Loading'
 
 const steps = [{ label: '1. Bank Account' }, { label: '2. Confirm details' }]
 
@@ -404,7 +402,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                             )}
                         </button>
                         {errorState.showError && (
-                            <div className="text-center">
+                            <div className="text-start">
                                 <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                             </div>
                         )}
@@ -563,7 +561,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                             )}
                         </button>
                         {errorState.showError && (
-                            <div className="text-center">
+                            <div className="text-start">
                                 <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                             </div>
                         )}
@@ -574,7 +572,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
 
     return user?.user?.kycStatus === 'approved' ? (
         completedLinking ? (
-            <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
+            <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-start">
                 <p>You have successfully linked your account!</p>
                 <Link
                     className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
@@ -587,7 +585,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 </Link>
             </div>
         ) : (
-            <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
+            <div className="flex w-full flex-col items-center justify-center gap-6 px-2 text-start">
                 <p className="text-h8 font-normal">
                     Complete the following steps to link your bank account to your peanut profile for a smooth cashout
                     experience.
@@ -624,7 +622,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             </div>
         )
     ) : (
-        <div className="flex w-full flex-col items-center justify-center gap-6 py-2 text-center">
+        <div className="flex w-full flex-col items-center justify-center gap-6 py-2 text-start">
             <p className="text-h6">
                 Before you can link an account, please login or register & complete the kyc process.
             </p>

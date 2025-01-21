@@ -179,7 +179,7 @@ export function Testimonials({ testimonials }: TestimonialsProps) {
                             >
                                 <motion.div
                                     variants={testimonialBgVariants[index]}
-                                    className={`absolute left-0 top-0 -z-1 h-full w-full rounded-3xl bg-primary testimonial-${index}-bg`}
+                                    className={`bg-primary absolute left-0 top-0 -z-1 h-full w-full rounded-3xl testimonial-${index}-bg`}
                                 ></motion.div>
 
                                 <TestimonialBody testimonial={testimonial} />
@@ -187,7 +187,7 @@ export function Testimonials({ testimonials }: TestimonialsProps) {
                         ) : (
                             <div className={`relative z-10 p-4 md:p-8`}>
                                 <div
-                                    className={`absolute left-0 top-0 -z-1 h-full w-full rounded-3xl bg-primary testimonial-${index}-bg`}
+                                    className={`bg-primary absolute left-0 top-0 -z-1 h-full w-full rounded-3xl testimonial-${index}-bg`}
                                 ></div>
                                 <TestimonialBody testimonial={testimonial} />
                             </div>

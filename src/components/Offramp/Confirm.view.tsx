@@ -662,20 +662,20 @@ export const OfframpConfirmView = ({
             />
 
             <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Header className="mx-auto">
-                    <Card.Title className="mx-auto text-center">Confirm your details</Card.Title>
-                    <Card.Description className="mx-auto text-center">
+                <Card.Header>
+                    <Card.Title>Confirm your details</Card.Title>
+                    <Card.Description>
                         {offrampType == OfframpType.CASHOUT && (
-                            <>
-                                <label className="text-center text-h8 font-light">
+                            <div className="flex flex-col items-center justify-center gap-2">
+                                <label className="text-start text-h8 font-light">
                                     Cash out your crypto to your bank account. From any token, any chain, directly to
                                     your bank account.
                                 </label>
                                 <FAQComponent />
-                            </>
+                            </div>
                         )}
                         {offrampType == OfframpType.CLAIM && (
-                            <label className="text-center text-h8 font-light">
+                            <label className="text-start text-h8 font-light">
                                 Cash out this link's crypto to your bank account. Works best with popular stablecoins
                                 and other commonly traded tokens.
                             </label>
@@ -704,9 +704,9 @@ export const OfframpConfirmView = ({
                         <div className="my-2 flex w-full flex-col items-center justify-center gap-2">
                             <label className="self-start text-h8 font-light">Please confirm all details:</label>
                             <div className="flex w-full flex-col items-center justify-center gap-2">
-                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
                                     <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                        <Icon name={'profile'} className="h-4 fill-gray-1" />
+                                        <Icon name={'profile'} className="h-4 fill-grey-1" />
                                         <label className="font-bold">Name</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -714,9 +714,9 @@ export const OfframpConfirmView = ({
                                     </span>
                                 </div>
 
-                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
                                     <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                        <Icon name={'email'} className="h-4 fill-gray-1" />
+                                        <Icon name={'email'} className="h-4 fill-grey-1" />
                                         <label className="font-bold">Email</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -724,9 +724,9 @@ export const OfframpConfirmView = ({
                                     </span>
                                 </div>
 
-                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
                                     <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                        <Icon name={'bank'} className="h-4 fill-gray-1" />
+                                        <Icon name={'bank'} className="h-4 fill-grey-1" />
                                         <label className="font-bold">Bank account</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -735,9 +735,9 @@ export const OfframpConfirmView = ({
                                 </div>
 
                                 {offrampType == OfframpType.CLAIM && (
-                                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
                                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                            <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                            <Icon name={'forward'} className="h-4 fill-grey-1" />
                                             <label className="font-bold">Route</label>
                                         </div>
                                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -746,8 +746,8 @@ export const OfframpConfirmView = ({
                                                     (chain) => chain.chainId === claimLinkData?.chainId
                                                 )?.name
                                             }{' '}
-                                            <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Offramp{' '}
-                                            <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                            <Icon name={'arrow-next'} className="h-4 fill-grey-1" /> Offramp{' '}
+                                            <Icon name={'arrow-next'} className="h-4 fill-grey-1" />{' '}
                                             {recipientType?.toUpperCase()}{' '}
                                             <MoreInfo
                                                 text={`Wait, crypto can be converted to real money??? How cool!`}
@@ -756,9 +756,9 @@ export const OfframpConfirmView = ({
                                     </div>
                                 )}
 
-                                <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
+                                <div className="flex w-full flex-row items-center px-2 text-h8 text-grey-1">
                                     <div className="flex w-1/3 flex-row items-center gap-1">
-                                        <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                        <Icon name={'gas'} className="h-4 fill-grey-1" />
                                         <label className="font-bold">Fee</label>
                                     </div>
                                     <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
@@ -811,9 +811,9 @@ export const OfframpConfirmView = ({
                                     </div>
                                 </div>
 
-                                <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
+                                <div className="flex w-full flex-row items-center px-2 text-h8 text-grey-1">
                                     <div className="flex w-1/3 flex-row items-center gap-1">
-                                        <Icon name={'transfer'} className="h-4 fill-gray-1" />
+                                        <Icon name={'transfer'} className="h-4 fill-grey-1" />
                                         <label className="font-bold">Total</label>
                                     </div>
                                     <div className="flex flex-1 items-center justify-end gap-1 text-sm font-normal">
@@ -841,9 +841,9 @@ export const OfframpConfirmView = ({
                                     </div>
                                 </div>
 
-                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
                                     <div className="flex w-max flex-row items-center gap-1">
-                                        <Icon name={'transfer'} className="h-4 fill-gray-1" />
+                                        <Icon name={'transfer'} className="h-4 fill-grey-1" />
                                         <label className="font-bold">You will receive</label>
                                     </div>
                                     <div className="flex items-center justify-end gap-1 text-sm font-normal">
@@ -939,7 +939,7 @@ export const OfframpConfirmView = ({
                         )}
 
                         {errorState.showError && (
-                            <div className="text-center">
+                            <div className="text-start">
                                 {errorState.errorMessage === 'offramp unavailable' ? (
                                     <label className="text-h8 font-normal text-red">
                                         This token cannot be cashed out directly.{' '}

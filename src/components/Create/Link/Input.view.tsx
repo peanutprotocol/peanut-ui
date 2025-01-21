@@ -14,9 +14,9 @@ import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import * as context from '@/context'
-import { useWallet } from '@/hooks/useWallet'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
 import { balanceByToken, ErrorHandler, floorFixed, isNativeCurrency, printableAddress, printableUsdc } from '@/utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
@@ -309,10 +309,7 @@ export const CreateLinkInputView = ({
             <FlowHeader />
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
-                    <Card.Title
-                        style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
-                        className="text-center"
-                    >
+                    <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
                         {' '}
                         {createType === 'link'
                             ? 'Text Tokens'
@@ -320,7 +317,7 @@ export const CreateLinkInputView = ({
                               ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
                               : `Send to ${recipient.name}`}
                     </Card.Title>
-                    <Card.Description className="mx-auto max-w-96 text-center">
+                    <Card.Description>
                         {createType === 'link' &&
                             'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
                         {createType === 'email_link' &&
@@ -398,20 +395,20 @@ export const CreateLinkInputView = ({
                     </Button> */}
                     </div>
                     {errorState.showError && (
-                        <div className="text-center">
+                        <div className="text-start">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                         </div>
                     )}
                     {!crossChainDetails.find(
                         (chain: any) => chain.chainId.toString() === selectedChainID.toString()
                     ) && (
-                        <span className=" text-h8 font-normal ">
+                        <span className=" text-start text-h8 font-normal">
                             <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain
                             claiming.
                         </span>
                     )}
 
-                    <span className="flex  flex-row items-center justify-center gap-1 text-center text-h8">
+                    <span className="flex flex-row items-center justify-start gap-1 text-h8">
                         Learn about peanut cashout
                         <MoreInfo
                             text={

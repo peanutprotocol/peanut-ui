@@ -44,7 +44,7 @@ export const KYCComponent = () => {
     if (user && user?.user?.kycStatus === 'verified') {
         return (
             <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Header className="text-center">
+                <Card.Header>
                     <Card.Title>Welcome back, {user?.user?.username ?? user?.user?.email}</Card.Title>
                     <Card.Description>You have already completed the KYC process!</Card.Description>
                 </Card.Header>
@@ -57,7 +57,7 @@ export const KYCComponent = () => {
                         {isLoading ? loadingState : 'Logout'}
                     </Button>
                     {errorState.showError && (
-                        <div className="text-center">
+                        <div className="text-start">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                         </div>
                     )}

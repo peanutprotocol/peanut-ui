@@ -7,7 +7,7 @@ import * as utils from '@/utils'
 
 import NavHeader from '@/components/Global/NavHeader'
 import { PEANUT_API_URL } from '@/constants'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { IDashboardItem } from '@/interfaces'
 import { formatAmountWithSignificantDigits, printableAddress } from '@/utils'
 import { useInfiniteQuery } from '@tanstack/react-query'

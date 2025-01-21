@@ -5,7 +5,7 @@ import Link from 'next/link'
 import React, { useCallback, useEffect, useState } from 'react'
 
 import { HAMBURGER_LOTTIE, PEANUTMAN_LOGO } from '@/assets'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { breakpoints, emToPx } from '@/styles/theme'
 import { shortenAddress } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
@@ -150,7 +150,7 @@ const MenuLink = ({
                 {title}
             </Text>
             {isBeta && (
-                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
+                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-primary-1">
                     BETA
                 </span>
             )}

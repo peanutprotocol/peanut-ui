@@ -5,6 +5,7 @@ import { WalletUIState } from '../types/wallet.types'
 
 const initialState: WalletUIState = {
     selectedAddress: getUserPreferences()?.lastSelectedWallet?.address,
+    focusedWallet: getUserPreferences()?.lastFocusedWallet?.address,
     signInModalVisible: false,
     wallets: [],
     isConnected: false,
@@ -19,6 +20,12 @@ const walletSlice = createSlice({
             state.selectedAddress = action.payload
             updateUserPreferences({
                 lastSelectedWallet: { address: action.payload },
+            })
+        },
+        setFocusedWallet: (state, action) => {
+            state.focusedWallet = action.payload.address
+            updateUserPreferences({
+                lastFocusedWallet: { address: action.payload.address },
             })
         },
         setSignInModalVisible: (state, action) => {

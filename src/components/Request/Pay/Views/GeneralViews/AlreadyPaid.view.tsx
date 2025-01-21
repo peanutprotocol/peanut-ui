@@ -20,7 +20,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header className="text-center">
+            <Card.Header>
                 <Card.Title>Payment Receipt</Card.Title>
             </Card.Header>
             <Card.Content className="col gap-4">
@@ -29,11 +29,11 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                     attachmentUrl={requestLinkData?.attachmentUrl}
                 />
                 {dataAvailable && (
-                    <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <label className="text-h8 ">This link previously contained:</label>
+                    <div className="flex w-full flex-col items-start justify-center gap-2 py-2">
+                        <label className="text-h8">This link previously contained:</label>
                         {tokenSymbolAvailable && (
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                                <div className="flex w-max  flex-row items-center justify-center gap-1">
+                            <div className="flex w-full flex-row items-center justify-between gap-1 text-h8  text-grey-1">
+                                <div className="flex w-max flex-row items-center justify-center gap-1 px-2">
                                     <label className="font-bold">Token</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -42,7 +42,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                             </div>
                         )}
                         {tokenAmountAvailable && (
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
                                 <div className="flex w-max  flex-row items-center justify-center gap-1">
                                     <label className="font-bold">Amount</label>
                                 </div>
@@ -52,7 +52,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                             </div>
                         )}
                         {chainAvailable && (
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
                                 <div className="flex w-max  flex-row items-center justify-center gap-1">
                                     <label className="font-bold">Chain</label>
                                 </div>
@@ -70,7 +70,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                             </div>
                         )}
                         {recipientAddressAvailable && (
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
                                 <div className="flex w-max  flex-row items-center justify-center gap-1">
                                     <label className="font-bold">Requester</label>
                                 </div>
@@ -82,7 +82,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                     </div>
                 )}
                 <PaymentsFooter href={'/request/create'} text="Request a payment yourself!" icon="send" />
-                <label className="text-center text-h9 font-normal">
+                <label className="text-start text-h9 font-normal">
                     We would like to hear from your experience. Hit us up on{' '}
                     <a
                         className="cursor-pointer text-black underline dark:text-white"

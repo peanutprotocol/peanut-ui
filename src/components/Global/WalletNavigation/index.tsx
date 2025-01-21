@@ -49,14 +49,14 @@ const NavSection: React.FC<NavSectionProps> = ({ title, tabs, pathName, isLastSe
                 href={href}
                 key={name}
                 className={classNames('flex items-center gap-3 hover:cursor-pointer hover:text-white/80', {
-                    'text-purple-1': pathName === href,
+                    'text-primary-1': pathName === href,
                 })}
             >
                 <NavIcons name={icon} className="block h-4 w-4" />
                 <span className="block w-fit pt-0.5 text-center text-base font-semibold">{name}</span>
             </Link>
         ))}
-        {!isLastSection && <div className="w-full border-b border-gray-1" />}
+        {!isLastSection && <div className="w-full border-b border-grey-1" />}
     </>
 )
 
@@ -73,7 +73,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ tabs, pathName }) => (
                 key={name}
                 className={classNames(
                     'flex flex-col items-center justify-center object-contain py-2 hover:cursor-pointer',
-                    { 'text-purple-1': pathName === href }
+                    { 'text-primary-1': pathName === href }
                 )}
             >
                 <NavIcons name={icon} size={24} className="h-7 w-7" />

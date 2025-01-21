@@ -1,11 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
 import * as assets from '@/assets'
-import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 import * as utils from '@/utils'
 import Link from 'next/link'
-import Icon from '../Global/Icon'
+import { useEffect, useState } from 'react'
 import { Card } from '../0_Bruddle'
+import Icon from '../Global/Icon'
 
 export const CashoutStatus = () => {
     const [cashoutStatus, setCashoutStatus] = useState<'FOUND' | 'NOT FOUND' | undefined>(undefined)
@@ -47,7 +46,7 @@ export const CashoutStatus = () => {
                 <Card.Title></Card.Title>
             </Card.Header>
             {cashoutStatus === 'FOUND' ? (
-                <div className="mx-auto flex max-w-[96%] flex-col items-center justify-center gap-4 pb-20 text-center">
+                <div className="mx-auto flex max-w-[96%] flex-col items-center justify-center gap-4 pb-20 text-start">
                     <label className="text-h2">Cashout status</label>
                     <div className="flex flex-col justify-center gap-3">
                         <label className="text-start text-h8 font-light">

@@ -1,6 +1,6 @@
 import * as assets from '@/assets'
-import { MarqueeComp } from '../Global/MarqueeWrapper'
 import { SmileStars } from '@/assets'
+import { MarqueeComp } from '../Global/MarqueeWrapper'
 
 const listItems = [
     {
@@ -20,7 +20,7 @@ const listItems = [
             { name: 'Lens', url: 'https://lenster.xyz/u/hugo0.lens' },
             { name: 'www', url: 'https://hugomontenegro.com/' },
         ],
-        bg: 'bg-purple-1',
+        bg: 'bg-primary-1',
     },
     {
         name: 'Konrad Urban',
@@ -37,7 +37,7 @@ const listItems = [
             { name: 'Lens', url: 'https://lenster.xyz/u/kkonrad.lens' },
             { name: 'www', url: 'https://kkonrad.com/' },
         ],
-        bg: 'bg-yellow-1',
+        bg: 'bg-secondary-1',
     },
     {
         name: '______ ______',
@@ -51,7 +51,7 @@ const listItems = [
             { name: 'dm us', url: 'https://www.peanut.to/jobs' },
             { name: 'jobs', url: '/jobs' },
         ],
-        bg: 'bg-pink-1',
+        bg: 'bg-primary-1',
     },
 ]
 

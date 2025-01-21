@@ -7,7 +7,7 @@ import { useSwitchChain } from 'wagmi'
 
 import * as consts from '@/constants'
 import * as context from '@/context'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import * as utils from '@/utils'
 
 export const useClaimLink = () => {

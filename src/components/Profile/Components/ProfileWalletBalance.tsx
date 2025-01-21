@@ -1,6 +1,6 @@
 import { ARBITRUM_ICON } from '@/assets'
 import { Card } from '@/components/0_Bruddle'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { printableUsdc } from '@/utils'
 import Image from 'next/image'
 import { useMemo } from 'react'
@@ -49,7 +49,7 @@ const ProfileWalletBalance = () => {
                             $ {printableUsdc(BigInt(Math.floor(Number(getMaxBalanceToken?.value || 0) * 10 ** 6)))}
                         </div>
                         {getMaxBalanceToken?.symbol && getMaxBalanceToken?.name && (
-                            <div className="text-xs text-gray-1">
+                            <div className="text-xs text-grey-1">
                                 {getMaxBalanceToken?.symbol} on {getMaxBalanceToken?.name}
                             </div>
                         )}

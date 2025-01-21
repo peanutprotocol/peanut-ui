@@ -1,8 +1,8 @@
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAuth } from '@/context/authContext'
 import useAvatar from '@/hooks/useAvatar'
-import { useWallet } from '@/hooks/useWallet'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { Button } from '../0_Bruddle'
 
 const HomeHeader = () => {

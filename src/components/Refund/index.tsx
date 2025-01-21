@@ -5,7 +5,7 @@ import { useConfig, useSendTransaction } from 'wagmi'
 
 import * as consts from '@/constants'
 import * as context from '@/context'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import * as utils from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import { useContext, useState } from 'react'
@@ -120,9 +120,9 @@ export const Refund = () => {
     return (
         <PageContainer>
             <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Header>
-                    <Card.Title>Refund</Card.Title>
-                    <Card.Description>
+                <Card.Header className="mx-auto text-center">
+                    <Card.Title className="text-center">Refund</Card.Title>
+                    <Card.Description className="mx-auto text-center">
                         This is a page specific for refunding links that failed while creating, but the funds did leave
                         your wallet. Please provide the transaction hash and chainId, and you will be able to claim.
                         Please note that you will have to be connected with the same wallet that you tried creating the
@@ -197,14 +197,14 @@ export const Refund = () => {
                                     <a
                                         href={claimedExploredUrlWithHash ?? ''}
                                         target="_blank"
-                                        className="cursor-pointer text-center text-sm text-black underline "
+                                        className="cursor-pointer text-start text-sm text-black underline "
                                     >
                                         Your transaction hash
                                     </a>
                                 </p>
                             ) : (
                                 errorState.showError && (
-                                    <div className="text-center">
+                                    <div className="text-start">
                                         <label className="font-bold text-red ">{errorState.errorMessage}</label>
                                     </div>
                                 )

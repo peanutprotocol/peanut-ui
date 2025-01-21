@@ -1,7 +1,7 @@
+import { MAINTAINABLE_ROUTES } from '@/config/routesUnderMaintenance'
 import { usePathname } from 'next/navigation'
 import { GenericBanner } from './GenericBanner'
 import { MaintenanceBanner } from './MaintenanceBanner'
-import { MAINTAINABLE_ROUTES } from '@/config/routesUnderMaintenance'
 
 export function Banner() {
     const pathname = usePathname()
@@ -13,7 +13,7 @@ export function Banner() {
 
     // Show beta message for all request paths (create and pay) unless under maintenance
     if (pathname.startsWith(MAINTAINABLE_ROUTES.REQUEST)) {
-        return <GenericBanner message="Beta feature - share your thoughts!" backgroundColor="bg-purple-1" />
+        return <GenericBanner message="Beta feature - share your thoughts!" backgroundColor="bg-primary-1" />
     }
 
     return null

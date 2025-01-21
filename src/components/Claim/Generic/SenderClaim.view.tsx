@@ -3,7 +3,7 @@
 import { Button, Card } from '@/components/0_Bruddle'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import * as context from '@/context'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import { useContext, useState } from 'react'
@@ -68,9 +68,9 @@ export const SenderClaimLinkView = ({
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title>Hello, {utils.shortenAddress(address ?? '')}</Card.Title>
-                <Card.Description>
+            <Card.Header className="mx-auto text-center">
+                <Card.Title className="text-center">Hello, {utils.shortenAddress(address ?? '')}</Card.Title>
+                <Card.Description className="text-center">
                     This is a link that you have created. You can refund it or go to the recipient view.
                 </Card.Description>
             </Card.Header>
@@ -82,7 +82,7 @@ export const SenderClaimLinkView = ({
                     Go to recipient view
                 </Button>
                 {errorState.showError && (
-                    <div className="text-center">
+                    <div className="text-start">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                 )}

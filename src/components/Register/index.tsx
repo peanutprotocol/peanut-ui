@@ -1,12 +1,12 @@
 'use client'
-import { GlobalRegisterComponent } from '../Global/RegisterComponent'
+import * as assets from '@/assets'
+import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { Divider } from '@chakra-ui/react'
-import { useContext, useState } from 'react'
-import * as context from '@/context'
-import Loading from '../Global/Loading'
 import Link from 'next/link'
-import * as assets from '@/assets'
+import { useContext, useState } from 'react'
+import Loading from '../Global/Loading'
+import { GlobalRegisterComponent } from '../Global/RegisterComponent'
 
 const RegisterComponent = () => {
     const { user, logoutUser, isFetchingUser } = useAuth()
@@ -61,7 +61,7 @@ const RegisterComponent = () => {
                         )}
                     </button>
                     {errorState.showError && (
-                        <div className="text-center">
+                        <div className="text-start">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                         </div>
                     )}

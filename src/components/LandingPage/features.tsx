@@ -1,38 +1,13 @@
 'use client'
 
-import { useRef } from 'react'
-import { useMediaQuery } from '@chakra-ui/react'
-import { Stack, Box, Flex, SimpleGrid, GridItem } from '@chakra-ui/react'
-import { motion, useAnimation, useInView } from 'framer-motion'
-import { FeaturesImages, FeaturesBadgeImage } from './imageAssets'
-import { MarqueeComp } from '../Global/MarqueeWrapper'
-import { Testimonials } from '../Global/Testimonials'
-import { MarqueeWrapper } from '../Global/MarqueeWrapper'
-import {
-    WALLETCONNECT_LOGO,
-    CLAVE_LOGO,
-    ECO_LOGO,
-    MANTLE_ICON,
-    BLOCKSCOUT_LOGO,
-    HYPERSPHERE_LOGO_SQUARE,
-    ZEEPRIME_LOGO_SQUARE,
-    LONGHASH_LOGO_SQUARE,
-    NAZARE_LOGO_SQUARE,
-    DEREK_PERSON,
-    SHARUK_PERSON,
-    KOFIME_PERSON,
-    SBF_PERSON,
-    SmileStars,
-    PEANUTMAN_HAPPY,
-    HandThumbsUp,
-    HR,
-    Star,
-    Eyes,
-    GoodIdeaSign,
-    SmileSide,
-    PeanutGuy,
-} from '@/assets'
+import { HandThumbsUp } from '@/assets'
 import * as chain_logos from '@/assets/chains'
+import { Box, Flex, Stack, useMediaQuery } from '@chakra-ui/react'
+import { motion } from 'framer-motion'
+import { useRef } from 'react'
+import { MarqueeComp, MarqueeWrapper } from '../Global/MarqueeWrapper'
+import { Testimonials } from '../Global/Testimonials'
+import { FeaturesBadgeImage, FeaturesImages } from './imageAssets'
 
 type FeaturesProps = {
     sections: Array<{
@@ -285,7 +260,7 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
             </Stack>
 
             {marquee.visible && (
-                <MarqueeComp message={marquee.message} imageSrc={HandThumbsUp.src} backgroundColor="bg-yellow-1" />
+                <MarqueeComp message={marquee.message} imageSrc={HandThumbsUp.src} backgroundColor="bg-secondary-1" />
             )}
         </Flex>
     )

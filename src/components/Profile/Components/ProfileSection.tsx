@@ -26,11 +26,11 @@ const ProfileSection = ({}: ProfileSectionProps) => {
                         className="size-11 rounded-full border border-black object-contain"
                     />
                     <div className="text-md space-y-1 font-semibold">
-                        <div className="text-gray-1">peanut.me/</div>
+                        <div className="text-grey-1">peanut.me/</div>
                         <div className="flex items-center gap-3">
                             <div className="">{user?.user.username}</div>
                             {user?.user.kycStatus !== null && (
-                                <Badge color="purple" className="bg-white text-purple-1">
+                                <Badge color="purple" className="bg-white text-primary-1">
                                     No KYC
                                 </Badge>
                             )}
