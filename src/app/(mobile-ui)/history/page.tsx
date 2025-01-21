@@ -38,7 +38,7 @@ const HistoryPage = () => {
         const formattedData = pageData.map((data) => {
             const linkDetails = updatedData.find((item) => item.link === data.link)
             return {
-                id: (data.link ?? data.txHash ?? '') + Math.random(),
+                id: `${data.link ?? data.txHash ?? ''}-${Date.now()}`,
                 transactionType: data.type,
                 amount: `$ ${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
                 recipientAddress: data.address ? `To ${printableAddress(data.address)}` : '',

@@ -151,7 +151,8 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                         transactionDetails?.status === 'pending' && (
                             <div
                                 onClick={() => {
-                                    transactionDetails.link && window.open(transactionDetails?.link ?? '', '_blank')
+                                    transactionDetails.link &&
+                                        window.open(transactionDetails?.link ?? '', '_blank', 'noopener,noreferrer')
                                 }}
                                 className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                             >
@@ -178,7 +179,11 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                                         ?.chainId ?? ''
 
                                 const explorerUrl = getExplorerUrl(chainId)
-                                window.open(`${explorerUrl}/tx/${transactionDetails?.txHash ?? ''}`, '_blank')
+                                window.open(
+                                    `${explorerUrl}/tx/${transactionDetails?.txHash ?? ''}`,
+                                    '_blank',
+                                    'noopener,noreferrer'
+                                )
                             }}
                             className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
@@ -190,6 +195,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                             href={transactionDetails.attachmentUrl}
                             download
                             target="_blank"
+                            rel="noopener noreferrer"
                             className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             Download attachment
