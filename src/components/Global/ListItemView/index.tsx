@@ -1,12 +1,13 @@
 'use client'
 import Modal from '@/components/Global/Modal'
 import { TransactionBadge } from '@/components/Global/TransactionBadge'
-import * as consts from '@/constants'
-import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
+import { supportedPeanutChains } from '@/constants'
+import { IDashboardItem } from '@/interfaces'
+import { copyTextToClipboardWithFallback, getExplorerUrl } from '@/utils'
 import Image from 'next/image'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import Icon from '../Icon'
 
 interface TokenBalance {
     chainId: string
@@ -41,7 +42,7 @@ interface ListItemViewProps {
         recipientAddress?: string
         transactionType?: TransactionType
     }
-    details: interfaces.IDashboardItem | TokenBalance
+    details: IDashboardItem | TokenBalance
 }
 
 const getTransactionStatus = (type: TransactionType | undefined, status: string | undefined): string => {
@@ -66,7 +67,7 @@ const getTransactionStatus = (type: TransactionType | undefined, status: string 
 export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata, details }: ListItemViewProps) => {
     const [modalVisible, setModalVisible] = useState(false)
     const isHistory = variant === 'history'
-    const transactionDetails = isHistory ? (details as interfaces.IDashboardItem) : null
+    const transactionDetails = isHistory ? (details as IDashboardItem) : null
     const balanceDetails = !isHistory ? (details as TokenBalance) : null
 
     // get the transaction status for history variant
@@ -85,8 +86,10 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
             onClick={() => isHistory && setModalVisible(true)}
         >
             <div className="relative mr-2 min-w-fit">
-                {metadata.tokenLogo && (
-                    <Image src={metadata.tokenLogo} alt="token logo" width={30} height={30} className="rounded-full" />
+                {!!metadata.tokenLogo ? (
+                    <Image src={metadata.tokenLogo} alt="token logo" width={32} height={32} className="rounded-full" />
+                ) : (
+                    <Icon name="token_placeholder" className="h-8 w-8" fill="#999" />
                 )}
 
                 {metadata.chainLogo && (
@@ -105,9 +108,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                     <div className="flex w-full max-w-48 items-center gap-2">
                         <div className="flex items-center gap-2">
                             <label className="font-bold">{primaryInfo.title}</label>
-                            {primaryInfo.subtitle && (
-                                <label className="text-xs text-grey-1">{primaryInfo.subtitle}</label>
-                            )}
+                            {primaryInfo.subtitle && <label className="text-xs text-n-3">{primaryInfo.subtitle}</label>}
                         </div>
                         {isHistory && transactionStatus && (
                             <div className="flex flex-col items-end justify-end gap-2 text-end">
@@ -121,10 +122,10 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                     <div className="flex w-full flex-row items-center justify-between">
                         <div className="flex flex-col items-start justify-end gap-2 text-start">
                             {metadata.recipientAddress && (
-                                <label className="text-xs font-normal text-grey-1">{metadata.recipientAddress}</label>
+                                <label className="text-xs font-normal text-n-3">{metadata.recipientAddress}</label>
                             )}
                             {secondaryInfo.subText && (
-                                <label className="text-xs font-normal text-grey-1">{secondaryInfo.subText}</label>
+                                <label className="text-xs font-normal text-n-3">{secondaryInfo.subText}</label>
                             )}
                         </div>
                         {metadata.subText && (
@@ -150,9 +151,10 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                         transactionDetails?.status === 'pending' && (
                             <div
                                 onClick={() => {
-                                    transactionDetails.link && window.open(transactionDetails?.link ?? '', '_blank')
+                                    transactionDetails.link &&
+                                        window.open(transactionDetails?.link ?? '', '_blank', 'noopener,noreferrer')
                                 }}
-                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                             >
                                 Refund
                             </div>
@@ -162,9 +164,9 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                         transactionDetails?.type === 'Request Link') && (
                         <div
                             onClick={() => {
-                                utils.copyTextToClipboardWithFallback(transactionDetails?.link ?? '')
+                                copyTextToClipboardWithFallback(transactionDetails?.link ?? '')
                             }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             Copy link
                         </div>
@@ -173,14 +175,17 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                         <div
                             onClick={() => {
                                 const chainId =
-                                    consts.supportedPeanutChains.find(
-                                        (chain) => chain.name === transactionDetails?.chain
-                                    )?.chainId ?? ''
+                                    supportedPeanutChains.find((chain) => chain.name === transactionDetails?.chain)
+                                        ?.chainId ?? ''
 
-                                const explorerUrl = utils.getExplorerUrl(chainId)
-                                window.open(`${explorerUrl}/tx/${transactionDetails?.txHash ?? ''}`, '_blank')
+                                const explorerUrl = getExplorerUrl(chainId)
+                                window.open(
+                                    `${explorerUrl}/tx/${transactionDetails?.txHash ?? ''}`,
+                                    '_blank',
+                                    'noopener,noreferrer'
+                                )
                             }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             Show in explorer
                         </div>
@@ -190,7 +195,8 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                             href={transactionDetails.attachmentUrl}
                             download
                             target="_blank"
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            rel="noopener noreferrer"
+                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             Download attachment
                         </a>
@@ -203,7 +209,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                                 return url.toString()
                             })()}
                             target="_blank"
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             Check Status
                         </a>

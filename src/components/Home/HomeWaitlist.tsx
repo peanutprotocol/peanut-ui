@@ -43,8 +43,8 @@ const HomeWaitlist = () => {
                     {username && (
                         <Card>
                             <Card.Header>
-                                <Card.Title className="w-full text-start">You're all set up!</Card.Title>
-                                <Card.Description className="w-full text-start">
+                                <Card.Title className="w-full text-center">You're all set up!</Card.Title>
+                                <Card.Description className="w-full text-center">
                                     Join the group at{' '}
                                     <a
                                         href="https://t.me/clubpeanut"

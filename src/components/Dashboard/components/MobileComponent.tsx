@@ -17,7 +17,7 @@ export const MobileItemComponent = ({
 
     return (
         <div
-            className=" flex flex w-full flex-col gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black"
+            className="flex w-full flex-col gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black"
             key={linkDetail?.link ?? linkDetail.txHash ?? '' + Math.random()}
             onClick={() => setModalVisible(true)}
         >
@@ -54,7 +54,7 @@ export const MobileItemComponent = ({
                         {linkDetail.status === 'claimed' ? (
                             <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">claimed</div>
                         ) : (
-                            <div className="border border-grey-1 border-n-1 px-2 py-1 text-grey-1">pending</div>
+                            <div className="border border-grey-1 px-2 py-1 text-grey-1">pending</div>
                         )}
                     </div>
                 </div>
