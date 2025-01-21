@@ -5,12 +5,15 @@ import { useDashboard } from '@/components/Dashboard/useDashboard'
 import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
 import * as utils from '@/utils'
 
+import { Button } from '@/components/0_Bruddle'
+import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { PEANUT_API_URL } from '@/constants'
 import { useWallet } from '@/hooks/useWallet'
 import { IDashboardItem } from '@/interfaces'
 import { formatAmountWithSignificantDigits, printableAddress } from '@/utils'
 import { useInfiniteQuery } from '@tanstack/react-query'
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 
 const ITEMS_PER_PAGE = 10
@@ -106,46 +109,58 @@ const HistoryPage = () => {
 
     return (
         <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
-            <NavHeader title="History" />
-            <div className="w-full">
-                {data?.pages.map((page, pageIndex) => (
-                    <div key={pageIndex}>
-                        {data?.pages.map((page, pageIndex) => (
-                            <div key={pageIndex}>
-                                {page.items.map((item) => (
-                                    <div key={item.id} className="border-b border-n-1">
-                                        <ListItemView
-                                            id={item.id}
-                                            variant="history"
-                                            primaryInfo={{
-                                                title: item.transactionType,
-                                            }}
-                                            secondaryInfo={{
-                                                mainText: item.amount,
-                                            }}
-                                            metadata={{
-                                                tokenLogo:
-                                                    item.transactionDetails.tokenSymbol === 'USDC'
-                                                        ? 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=040'
-                                                        : undefined,
-                                                chainLogo:
-                                                    item.transactionDetails.chain === 'Arbitrum One'
-                                                        ? ARBITRUM_ICON
-                                                        : undefined,
-                                                subText: item.transactionDetails.date
-                                                    ? utils.formatDate(new Date(item.transactionDetails.date))
-                                                    : '',
-                                                recipientAddress: item.recipientAddress,
-                                                transactionType: item.transactionType as TransactionType,
-                                            }}
-                                            details={item.transactionDetails}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        ))}
+            {!!data?.pages.length ? <NavHeader title="History" /> : null}
+            <div className="h-full w-full">
+                {!!data?.pages.length ? (
+                    data?.pages.map((page, pageIndex) => (
+                        <div key={pageIndex}>
+                            {page.items.map((item) => (
+                                <div key={item.id} className="border-b border-n-1">
+                                    <ListItemView
+                                        id={item.id}
+                                        variant="history"
+                                        primaryInfo={{
+                                            title: item.transactionType,
+                                        }}
+                                        secondaryInfo={{
+                                            mainText: item.amount,
+                                        }}
+                                        metadata={{
+                                            tokenLogo:
+                                                item.transactionDetails.tokenSymbol === 'USDC'
+                                                    ? 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=040'
+                                                    : undefined,
+                                            chainLogo:
+                                                item.transactionDetails.chain === 'Arbitrum One'
+                                                    ? ARBITRUM_ICON
+                                                    : undefined,
+                                            subText: item.transactionDetails.date
+                                                ? utils.formatDate(new Date(item.transactionDetails.date))
+                                                : '',
+                                            recipientAddress: item.recipientAddress,
+                                            transactionType: item.transactionType as TransactionType,
+                                        }}
+                                        details={item.transactionDetails}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    ))
+                ) : (
+                    <div className="flex h-full items-center justify-center">
+                        <NoDataEmptyState
+                            animSize="lg"
+                            message="You haven't done any transactions"
+                            cta={
+                                <Link href="/home" className="cursor-pointer">
+                                    <Button shadowSize="4" size="medium" variant={'purple'} className="cursor-pointer">
+                                        Go to Dashboard
+                                    </Button>
+                                </Link>
+                            }
+                        />
                     </div>
-                ))}
+                )}
 
                 <div ref={loaderRef} className="w-full py-4">
                     {isFetchingNextPage && <div className="w-full text-center">Loading more...</div>}

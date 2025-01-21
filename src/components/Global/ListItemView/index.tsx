@@ -7,6 +7,7 @@ import * as utils from '@/utils'
 import Image from 'next/image'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import Icon from '../Icon'
 
 interface TokenBalance {
     chainId: string
@@ -67,7 +68,6 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
     const [modalVisible, setModalVisible] = useState(false)
     const isHistory = variant === 'history'
     const transactionDetails = isHistory ? (details as interfaces.IDashboardItem) : null
-    const balanceDetails = !isHistory ? (details as TokenBalance) : null
 
     // get the transaction status for history variant
     const transactionStatus =
@@ -85,8 +85,10 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
             onClick={() => isHistory && setModalVisible(true)}
         >
             <div className="relative mr-2 min-w-fit">
-                {metadata.tokenLogo && (
-                    <Image src={metadata.tokenLogo} alt="token logo" width={30} height={30} className="rounded-full" />
+                {!!metadata.tokenLogo ? (
+                    <Image src={metadata.tokenLogo} alt="token logo" width={32} height={32} className="rounded-full" />
+                ) : (
+                    <Icon name="token_placeholder" className="h-8 w-8" fill="#999" />
                 )}
 
                 {metadata.chainLogo && (

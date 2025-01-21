@@ -9,7 +9,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { WalletCard } from '@/components/Home/WalletCard'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/useWallet'
-import { WalletProviderType } from '@/interfaces'
+import { IUserBalance, WalletProviderType } from '@/interfaces'
 import { formatAmount, getChainName, getUserPreferences, updateUserPreferences } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import { useState } from 'react'
@@ -82,7 +82,7 @@ const WalletDetailsPage = () => {
                     <div className="space-y-3">
                         <div className="text-base font-semibold">Balance</div>
                         <div>
-                            {selectedWallet.balances.map((balance) => (
+                            {selectedWallet.balances.map((balance: IUserBalance) => (
                                 <ListItemView
                                     key={`${balance.chainId}-${balance.symbol}`}
                                     id={`${balance.chainId}-${balance.symbol}`}
