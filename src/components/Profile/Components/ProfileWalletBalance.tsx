@@ -1,6 +1,6 @@
 import { ARBITRUM_ICON } from '@/assets'
 import { Card } from '@/components/0_Bruddle'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { printableUsdc } from '@/utils'
 import Image from 'next/image'
 import { useMemo } from 'react'

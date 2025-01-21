@@ -13,7 +13,7 @@ import * as utils from '@/utils'
 import * as _consts from './Dashboard.consts'
 import * as components from './components'
 
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { useDashboard } from './useDashboard'
 
 export const Dashboard = () => {

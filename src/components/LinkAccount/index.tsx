@@ -46,9 +46,13 @@ export const LinkAccountComponent = () => {
     return (
         <PageContainer>
             <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Header>
-                    <Card.Title>Welcome back, {user?.user?.username ?? user?.user?.email}</Card.Title>
-                    <Card.Description>Before linking an account, you will have to complete KYC!</Card.Description>
+                <Card.Header className="mx-auto text-center">
+                    <Card.Title className="text-center">
+                        Welcome back, {user?.user?.username ?? user?.user?.email}
+                    </Card.Title>
+                    <Card.Description className="text-center">
+                        Before linking an account, you will have to complete KYC!
+                    </Card.Description>
                 </Card.Header>
                 <Card.Content>
                     {user && user?.user?.kycStatus != 'verified' ? (

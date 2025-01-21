@@ -1,6 +1,6 @@
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import { useEffect, useRef, useState } from 'react'
-import { useWallet } from './useWallet'
+import { useWallet } from './wallet/useWallet'
 
 type Opts = {
     allowedDomains?: RegExp[]

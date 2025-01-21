@@ -2,7 +2,7 @@
 
 import { supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { IPeanutChainDetails } from '@/interfaces'
 import { calculateValuePerChain, formatTokenAmount } from '@/utils'
 import { Menu, Transition } from '@headlessui/react'

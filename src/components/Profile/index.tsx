@@ -2,7 +2,7 @@
 
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import * as utils from '@/utils'
 import { useContext, useState } from 'react'
 import { useSignMessage } from 'wagmi'

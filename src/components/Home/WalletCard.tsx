@@ -2,6 +2,7 @@ import { BG_WALLET_CARD_SVG } from '@/assets'
 import PeanutWalletIcon from '@/assets/icons/small-peanut.png'
 import { Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { IWallet, WalletProviderType } from '@/interfaces'
 import { printableUsdc, shortenAddressLong } from '@/utils'
 import { identicon } from '@dicebear/collection'
@@ -28,6 +29,9 @@ type WalletCardWallet = BaseWalletCardProps & {
     wallet: IWallet
     username: string
     selected?: boolean
+    isConnected?: boolean
+    isUsable?: boolean
+    isFocused?: boolean
     index: number
     isBalanceHidden: boolean
     onToggleBalanceVisibility: (e: React.MouseEvent<HTMLButtonElement>) => void
@@ -36,11 +40,13 @@ type WalletCardWallet = BaseWalletCardProps & {
 type WalletCardProps = WalletCardAdd | WalletCardWallet
 
 export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
+    const { isWalletConnected } = useWallet()
+
     if (type === 'add') {
         return (
             <motion.div className="h-full">
                 <Card
-                    className="h-full min-w-[300px] rounded-xl bg-purple-4/20 text-black hover:cursor-pointer"
+                    className="h-full min-w-[300px] rounded-xl bg-purple-4/25 text-black hover:cursor-pointer"
                     shadowSize="6"
                     onClick={onClick}
                 >
@@ -53,17 +59,16 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
         )
     }
 
-    const {
-        wallet,
-        username,
-        selected = false,
-        index,
-        isBalanceHidden,
-        onToggleBalanceVisibility,
-    } = props as WalletCardWallet
+    const { wallet, username, index, isBalanceHidden, onToggleBalanceVisibility, isFocused } = props as WalletCardWallet
 
-    // get color based on the wallet index, cycle through colors
-    const backgroundColor = useMemo(() => colorArray[index % colorArray.length], [index])
+    const isExternalWallet = wallet.walletProviderType !== WalletProviderType.PEANUT
+    const isConnected = isWalletConnected(wallet)
+
+    const backgroundColor = useMemo(() => {
+        if (isExternalWallet && !isConnected) return 'bg-n-4'
+        if (wallet.walletProviderType === WalletProviderType.PEANUT) return 'bg-purple-4'
+        return colorArray[index % colorArray.length]
+    }, [index, isExternalWallet, isConnected, wallet.walletProviderType])
 
     const getWalletImage = useMemo(() => {
         if (wallet.walletProviderType === WalletProviderType.PEANUT) {
@@ -78,18 +83,39 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
         )
     }, [wallet])
 
+    const cardOpacity = useMemo(() => {
+        // External wallet cases
+        if (isExternalWallet) {
+            if (!isConnected) {
+                return 'opacity-50 transition-opacity duration-300' // Disconnected external wallet
+            }
+            if (!isFocused) {
+                return 'opacity-70 transition-opacity duration-300' // Connected but not focused external wallet
+            }
+        }
+
+        // Non-external wallets or focused external wallets
+        if (!isFocused) {
+            return 'opacity-80 transition-opacity duration-300' // Not focused wallets
+        }
+
+        return 'opacity-100 transition-opacity duration-300' // Focused wallet
+    }, [isExternalWallet, isConnected, isFocused])
+
     return (
         <motion.div
-            className={classNames('mr-4 h-full', {
-                'opacity-40': !selected,
-            })}
+            className={classNames('mr-4 h-full', cardOpacity)}
             onClick={onClick}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
         >
             <Card
                 className={classNames(
-                    'relative flex h-full w-[300px] flex-col gap-4 rounded-xl text-white hover:cursor-pointer',
-                    backgroundColor
+                    'relative flex h-full w-[300px] flex-col gap-4 rounded-xl text-white',
+                    backgroundColor,
+                    {
+                        'cursor-pointer': true,
+                        'text-gray-5 text-opacity-80': isExternalWallet && !isConnected,
+                    }
                 )}
                 shadowSize="6"
             >
@@ -105,11 +131,23 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                                 height={24}
                             />
                         </div>
-                        {wallet.walletProviderType !== WalletProviderType.PEANUT && (
-                            <div className="rounded-md bg-white/75 px-2 py-1 text-xs font-bold text-grey-1">
-                                External
-                            </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {isExternalWallet && (
+                                <>
+                                    <div className="text-grey-1 rounded-sm bg-white/75 px-2 py-1 text-xs font-bold">
+                                        External
+                                    </div>
+                                    <div
+                                        className={classNames('rounded-sm bg-white/75 px-2 py-1 text-xs font-bold', {
+                                            'text-success-1': isConnected,
+                                            'text-gray-5': !isConnected,
+                                        })}
+                                    >
+                                        {isConnected ? 'Connected' : 'Disconnected'}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -123,7 +161,13 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                             )}
                         </p>
                         <button onClick={onToggleBalanceVisibility}>
-                            <Icon name={isBalanceHidden ? 'eye-slash' : 'eye'} className="h-6 w-6" fill="white" />
+                            <Icon
+                                name={isBalanceHidden ? 'eye-slash' : 'eye'}
+                                className={classNames('h-6 w-6', {
+                                    'opacity-80': isExternalWallet && !isConnected,
+                                })}
+                                fill={isExternalWallet && !isConnected ? 'bg-gray-5' : 'white'}
+                            />
                         </button>
                     </div>
 

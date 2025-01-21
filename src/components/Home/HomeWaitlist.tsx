@@ -33,8 +33,8 @@ const HomeWaitlist = () => {
                 <Title text="Home" className="text-8xl" />
                 {username && (
                     <Card>
-                        <Card.Header className="border-none">
-                            <Card.Title className="border-none">Yay {username}!!!</Card.Title>
+                        <Card.Header className="mx-auto border-none">
+                            <Card.Title className="border-none text-center">Yay {username}!!!</Card.Title>
                         </Card.Header>
                     </Card>
                 )}

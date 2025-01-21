@@ -41,6 +41,7 @@ module.exports = {
                     2: '#dc78b5',
                     3: '#fffae8',
                     4: '#AE7AFF',
+                    5: '#EDE4FD',
                 },
                 yellow: {
                     1: '#FFC900',
@@ -65,6 +66,7 @@ module.exports = {
                     2: '#9CA3AF',
                     3: '#e5e7eb',
                     4: '#d1d5db',
+                    5: '#60646C',
                 },
                 n: {
                     1: '#000000',
@@ -81,6 +83,9 @@ module.exports = {
                 },
                 gold: {
                     3: '#FFD25C',
+                },
+                success: {
+                    1: '#16B413',
                 },
                 white: '#FFFFFF',
                 red: '#FF0000',

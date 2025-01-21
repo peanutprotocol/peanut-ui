@@ -153,9 +153,9 @@ export const CreateLinkInitialView = ({
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title>Send crypto</Card.Title>
-                <Card.Description>
+            <Card.Header className="mx-auto text-center">
+                <Card.Title className="text-center">Send crypto</Card.Title>
+                <Card.Description className="text-center">
                     Transfer tokens via link or to an email, phone number, ENS, or wallet address.
                 </Card.Description>
             </Card.Header>
