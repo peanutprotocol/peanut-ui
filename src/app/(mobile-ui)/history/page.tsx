@@ -1,17 +1,15 @@
 'use client'
 
 import { ARBITRUM_ICON } from '@/assets'
-import { useDashboard } from '@/components/Dashboard/useDashboard'
-import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
-import * as utils from '@/utils'
-
 import { Button } from '@/components/0_Bruddle'
+import { useDashboard } from '@/components/Dashboard/useDashboard'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
+import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
 import NavHeader from '@/components/Global/NavHeader'
 import { PEANUT_API_URL } from '@/constants'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { IDashboardItem } from '@/interfaces'
-import { formatAmountWithSignificantDigits, printableAddress } from '@/utils'
+import { formatAmountWithSignificantDigits, formatDate, printableAddress } from '@/utils'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
@@ -135,7 +133,7 @@ const HistoryPage = () => {
                                                     ? ARBITRUM_ICON
                                                     : undefined,
                                             subText: item.transactionDetails.date
-                                                ? utils.formatDate(new Date(item.transactionDetails.date))
+                                                ? formatDate(new Date(item.transactionDetails.date))
                                                 : '',
                                             recipientAddress: item.recipientAddress,
                                             transactionType: item.transactionType as TransactionType,

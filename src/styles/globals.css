@@ -1,27 +1,29 @@
-@config "../../tailwind.config.js";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    --primary-color: theme('colors.purple.1');
-    --secondary-color: theme('colors.violet.3');
-    --background-color: theme('colors.teal.2');
-    --accent-color: theme('colors.violet.3');
+    --primary-color: #ff90e8;
+    --secondary-color: #6340df;
+    --background-color: #90a8ed;
+    --accent-color: #6340df;
 }
 
 @layer components {
     .splide__pagination.splide__pagination-cards {
         @apply static mt-2;
     }
+
     .splide__pagination.splide__pagination-crypto {
         @apply -top-10 bottom-auto left-auto right-0;
     }
+
     .splide__pagination .splide__pagination__page {
         @apply mx-1 bg-purple-3;
     }
+
     .splide__pagination .splide__pagination__page.is-active {
-        @apply scale-100 bg-purple-1;
+        @apply scale-100 bg-primary-1;
     }
 }
 
@@ -66,14 +68,17 @@ Firefox input[type='number'] {
     0% {
         top: 0;
     }
+
     25% {
         /* top: -3rem; */
         top: -100%;
     }
+
     50% {
         /* top: -6rem; */
         top: -200%;
     }
+
     75% {
         /* top: -9rem; */
         top: -300%;
@@ -95,43 +100,32 @@ Firefox input[type='number'] {
     0% {
         background-position: 0% 50%;
     }
+
     50% {
         background-position: 100% 50%;
     }
+
     100% {
         background-position: 0% 50%;
     }
 }
 
 .gradient-text {
-    font-size: 2rem; /* Adjust font size as needed */
-    font-weight: bold; /* Make the text bold */
+    font-size: 2rem;
+    /* Adjust font size as needed */
+    font-weight: bold;
+    /* Make the text bold */
     height: auto;
     width: 100%;
-    background: linear-gradient(to right, #9747ff, #ff90e8); /* Gradient direction and colors */
+    background: linear-gradient(to right, #9747ff, #ff90e8);
+    /* Gradient direction and colors */
     -webkit-background-clip: text;
     background-clip: text;
-    color: transparent; /* Make the text color transparent */
-    animation: slide 3s linear infinite; /* Animation named 'slide', adjust timing as needed */
+    color: transparent;
+    /* Make the text color transparent */
+    animation: slide 3s linear infinite;
+    /* Animation named 'slide', adjust timing as needed */
 }
-
-/* .testimonial { */
-/* position: relative; */
-/* z-index: 9; */
-/* @apply bg-white rounded-3xl shadow-lg border-2 border-n-1 ring-2 ring-white; */
-/* } */
-
-/* .testimonial:after {
-    content: '';
-    z-index: -1;
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    @apply bg-white rounded-3xl shadow-lg border-2 border-n-1 ring-2 ring-white;
-} */
 
 .testimonial-0-bg {
     top: 0.8rem;
@@ -245,6 +239,7 @@ Firefox input[type='number'] {
     0% {
         transform: rotate(0deg);
     }
+
     100% {
         transform: rotate(-360deg);
     }
@@ -259,11 +254,11 @@ Firefox input[type='number'] {
 }
 
 .text-link-decoration {
-    @apply underline decoration-neutral-400 decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-purple-1;
+    @apply underline decoration-neutral-400 decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-primary-1;
 }
 
 .text-link {
-    @apply font-black text-black underline decoration-neutral-400 decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-purple-1;
+    @apply font-black text-black underline decoration-neutral-400 decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-primary-1;
 }
 
 .text-h2 {
@@ -285,20 +280,20 @@ Firefox input[type='number'] {
 
 /* Feature styling */
 .feature {
-    @apply mx-auto flex w-auto justify-center rounded-full border-2 border-secondary bg-white px-5 py-3 text-center text-[1.375rem] font-black uppercase text-secondary shadow-md ring-2 ring-white md:mr-auto;
+    @apply mx-auto flex w-auto justify-center rounded-full border-2 border-violet-3 bg-white px-5 py-3 text-center text-[1.375rem] font-black uppercase text-violet-3 shadow-md ring-2 ring-white md:mr-auto;
 }
 
 .feature-primary {
-    @apply bg-primary text-white;
+    @apply bg-primary-1 text-white;
 }
 
 .feature-secondary {
-    @apply border-secondary bg-secondary text-white;
+    @apply border-violet-3 bg-violet-3 text-white;
 }
 
 /* Form styling */
 .input-text {
-    @apply h-12 w-full border border-n-1 bg-white px-3 font-medium outline-none ring-2 ring-white transition-colors focus:border-purple-1 dark:border-white dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1;
+    @apply h-12 w-full border border-n-1 bg-white px-3 font-medium outline-none ring-2 ring-white transition-colors focus:border-primary-1 dark:border-white dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1;
 }
 
 .input-text-inset {

@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
-import { FormProvider, useForm } from 'react-hook-form'
+import { Button, Field } from '@/components/0_Bruddle'
 import { useAuth } from '@/context/authContext'
 import crypto from 'crypto'
-import { Button, Field } from '@/components/0_Bruddle'
+import { useMemo, useState } from 'react'
+import { FormProvider, useForm } from 'react-hook-form'
 
 interface ILoginComponentProps {
     email?: string
@@ -155,7 +155,7 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
                     Login
                 </Button>
                 {errorState.showError && (
-                    <div className="text-center">
+                    <div className="text-start">
                         <label className=" text-red-500 text-h8 font-normal ">{errorState.errorMessage}</label>
                     </div>
                 )}

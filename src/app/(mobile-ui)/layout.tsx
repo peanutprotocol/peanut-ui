@@ -8,14 +8,14 @@ import HomeWaitlist from '@/components/Home/HomeWaitlist'
 import { ThemeProvider } from '@/config'
 import { peanutWalletIsInPreview } from '@/constants'
 import { useAuth } from '@/context/authContext'
-import { useWallet } from '@/hooks/useWallet'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppKit } from '@reown/appkit/react'
 import classNames from 'classnames'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import '../../styles/globals.bruddle.css'
+import '../../styles/globals.css'
 
 const publicPathRegex = /^\/(request\/pay|claim)/
 

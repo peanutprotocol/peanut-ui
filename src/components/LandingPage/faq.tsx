@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Box } from '@chakra-ui/react'
+import { Eyes, PeanutsBG } from '@/assets'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
-import { PeanutsBG, Eyes } from '@/assets'
+import { Box } from '@chakra-ui/react'
+import { useState } from 'react'
 import { FAQsPanel, FAQsProps } from '../Global/FAQs'
 
 type LocalFAQsProps = FAQsProps & {
@@ -22,7 +22,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: Local
 
     return (
         <Box
-            className="overflow-x-hidden bg-secondary"
+            className="bg-secondary overflow-x-hidden"
             style={{
                 backgroundImage: `url(${PeanutsBG.src})`,
                 backgroundSize: '10rem auto',
@@ -36,7 +36,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: Local
                     message={marquee.message}
                     imageSrc={Eyes.src}
                     imageAnimationClass="animation-rock"
-                    backgroundColor="bg-yellow-1"
+                    backgroundColor="bg-secondary-1"
                 />
             )}
         </Box>

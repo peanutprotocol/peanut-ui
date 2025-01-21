@@ -6,31 +6,29 @@ import Link from 'next/link'
 
 export const ErrorView = ({ errorMessage }: { errorMessage: string }) => {
     return (
-        <Card>
-            <Card.Header>
-                <Card.Title>Sorryyyy</Card.Title>
-                <Card.Description>{errorMessage}</Card.Description>
+        <Card className="space-y-3 shadow-none sm:shadow-primary-4">
+            <Card.Header className="mx-auto space-y-2">
+                <Card.Title className="mx-auto text-center">Sorryyy</Card.Title>
+                <Card.Description className="mx-auto text-center">{errorMessage}</Card.Description>
             </Card.Header>
-            <Card.Content className="col gap-4">
-                <label className="text-h9 font-normal">
-                    We would like to hear from your experience. Hit us up on{' '}
-                    <a
-                        className="cursor-pointer text-black underline dark:text-white"
-                        target="_blank"
-                        href="https://discord.gg/BX9Ak7AW28"
-                    >
+            <Card.Content className="mx-auto space-y-2 text-center">
+                <div className="block text-h8 font-normal">
+                    Deposit not found. Are you sure your link is correct?
+                    <a className="text-link-decoration" target="_blank" href="https://discord.gg/BX9Ak7AW28">
                         Discord!
                     </a>
-                </label>
+                </div>
 
-                <Link href={'/request/create'}>
-                    <Button variant="stroke">
-                        <div className=" border border-n-1 p-0 px-1">
-                            <Icon name="send" className="-mt-0.5" />
-                        </div>
-                        Make a request yourself!
-                    </Button>
-                </Link>
+                <div className="w-full">
+                    <Link href={'/request/create'}>
+                        <Button variant="stroke">
+                            <div className=" border border-n-1 p-0 px-1">
+                                <Icon name="send" className="-mt-0.5" />
+                            </div>
+                            Make a request yourself!
+                        </Button>
+                    </Link>
+                </div>
             </Card.Content>
         </Card>
     )

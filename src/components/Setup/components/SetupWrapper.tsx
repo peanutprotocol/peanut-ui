@@ -67,7 +67,7 @@ const Navigation = memo(
                 )}
                 {showSkipButton && (
                     <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
-                        <span className="text-gray-1">Skip</span>
+                        <span className="text-grey-1">Skip</span>
                     </Button>
                 )}
             </div>
@@ -99,7 +99,7 @@ const ImageSection = ({
             <div
                 className={twMerge(
                     containerClass,
-                    'bg-blue-1/100 relative flex w-full flex-row items-center justify-center overflow-hidden px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-secondary-3/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
                 )}
             >
                 {/* render animated star decorations */}
@@ -134,8 +134,8 @@ const ImageSection = ({
         <div
             className={classNames(
                 containerClass,
-                'bg-blue-1/100 flex w-full flex-row items-center justify-center md:h-[100dvh] md:w-7/12',
-                screenId === 'success' && 'bg-yellow-1/15'
+                'flex w-full flex-row items-center justify-center bg-secondary-3/100 md:h-[100dvh] md:w-7/12',
+                screenId === 'success' && 'bg-secondary-1/15'
             )}
         >
             <Image

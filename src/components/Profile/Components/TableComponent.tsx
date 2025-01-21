@@ -1,13 +1,13 @@
 'use client'
-import * as utils from '@/utils'
-import * as interfaces from '@/interfaces'
-import Sorting from '@/components/Global/Sorting'
-import Loading from '@/components/Global/Loading'
 import AddressLink from '@/components/Global/AddressLink'
-import { OptionsComponent } from './OptionsComponent'
+import Loading from '@/components/Global/Loading'
+import Sorting from '@/components/Global/Sorting'
 import * as consts from '@/constants'
-import { useCallback } from 'react'
+import * as interfaces from '@/interfaces'
+import * as utils from '@/utils'
 import { useRouter } from 'next/navigation'
+import { useCallback } from 'react'
+import { OptionsComponent } from './OptionsComponent'
 
 /**
  * TableComponent renders a responsive table for displaying profile-related data based on the selected tab (e.g., history, contacts, or accounts).
@@ -119,7 +119,7 @@ export const TableComponent = ({
 
                                     <td className="td-custom">
                                         {!data.dashboardItem.status ? (
-                                            <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                            <div className="border border-grey-1 px-2 py-1 text-center text-grey-1">
                                                 <Loading />
                                             </div>
                                         ) : data.dashboardItem.status === 'claimed' ? (
@@ -135,11 +135,11 @@ export const TableComponent = ({
                                                 paid
                                             </div>
                                         ) : data.dashboardItem.status ? (
-                                            <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                            <div className="border border-grey-1 px-2 py-1 text-center text-grey-1">
                                                 {data.dashboardItem.status.toLowerCase().replaceAll('_', ' ')}
                                             </div>
                                         ) : (
-                                            <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                            <div className="border border-grey-1 px-2 py-1 text-center text-grey-1">
                                                 pending
                                             </div>
                                         )}

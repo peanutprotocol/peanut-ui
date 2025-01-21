@@ -13,7 +13,7 @@ import * as utils from '@/utils'
 import * as _consts from './Dashboard.consts'
 import * as components from './components'
 
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { useDashboard } from './useDashboard'
 
 export const Dashboard = () => {
@@ -197,7 +197,7 @@ export const Dashboard = () => {
 
                                                 <td className="td-custom">
                                                     {!link.status ? (
-                                                        <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                        <div className="border border-grey-1 px-2 py-1 text-center text-grey-1">
                                                             <Loading />
                                                         </div>
                                                     ) : link.status === 'claimed' ? (
@@ -209,7 +209,7 @@ export const Dashboard = () => {
                                                             sent
                                                         </div>
                                                     ) : (
-                                                        <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                        <div className="border border-grey-1 px-2 py-1 text-center text-grey-1">
                                                             pending
                                                         </div>
                                                     )}
@@ -237,7 +237,7 @@ export const Dashboard = () => {
                     <CSVLink
                         data={legacyLinks ? legacyLinks.join('\n') : ''}
                         filename="links.csv"
-                        className="cursor-pointer self-end text-purple-1"
+                        className="cursor-pointer self-end text-primary-1"
                     >
                         Download {legacyLinks.length} legacy links as CSV
                     </CSVLink>

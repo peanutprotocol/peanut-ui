@@ -1,4 +1,4 @@
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { useCallback } from 'react'
 import { NavIcons } from '../0_Bruddle'
 

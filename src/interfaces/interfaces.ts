@@ -386,7 +386,7 @@ export type ChainIdType =
     | '7777777'
     | '1313161554'
 
-interface Account {
+export interface Account {
     account_id: string
     user_id: string
     bridge_account_id: string

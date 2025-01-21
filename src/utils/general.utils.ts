@@ -816,6 +816,9 @@ export type UserPreferences = {
     lastSelectedWallet?: {
         address: string
     }
+    lastFocusedWallet?: {
+        address: string
+    }
     balanceHidden?: boolean
 }
 

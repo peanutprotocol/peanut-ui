@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
 import Icon from '@/components/Global/Icon'
+import { useEffect, useState } from 'react'
 import { VALID_PROMO_CODES } from './Offramp.consts'
 
 interface PromoState {
@@ -82,15 +82,15 @@ const PromoCodeChecker = ({ onPromoCodeApplied, appliedPromoCode }: PromoCodeChe
             {!promoCheckerState.isApplied && (
                 <div
                     onClick={handleExpandToggle}
-                    className="flex w-full cursor-pointer flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1 transition-colors duration-200 hover:bg-gray-50"
+                    className="flex w-full cursor-pointer flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1 transition-colors duration-200 hover:bg-gray-50"
                 >
                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <Icon name="ticket" className="h-4 fill-gray-1" />
+                        <Icon name="ticket" className="h-4 fill-grey-1" />
                         <label className="font-bold">Apply Promo Code</label>
                     </div>
                     <Icon
                         name={promoCheckerState.isExpanded ? 'chevron-up' : 'arrow-bottom'}
-                        className={`h-4 fill-gray-1 transition-all duration-300`}
+                        className={`h-4 fill-grey-1 transition-all duration-300`}
                     />
                 </div>
             )}
@@ -103,7 +103,7 @@ const PromoCodeChecker = ({ onPromoCodeApplied, appliedPromoCode }: PromoCodeChe
             `}
             >
                 {promoCheckerState.isApplied ? (
-                    <p className="text-center text-sm text-green-600">
+                    <p className="text-start text-sm text-green-600">
                         Promo code {promoCheckerState.code} applied successfully!
                     </p>
                 ) : (

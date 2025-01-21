@@ -33,16 +33,16 @@ const HomeWaitlist = () => {
                 <Title text="Home" className="text-8xl" />
                 {username && (
                     <Card>
-                        <Card.Header className="border-none">
-                            <Card.Title className="border-none">Yay {username}!!!</Card.Title>
+                        <Card.Header className="mx-auto border-none">
+                            <Card.Title className="border-none text-center">Yay {username}!!!</Card.Title>
                         </Card.Header>
                     </Card>
                 )}
                 <img src={chillPeanutAnim.src} alt="peanut-club" className="w-[300px] object-cover" />
-                <div className="mt-5 w-full text-center">
+                <div className="mt-5 w-full text-start">
                     {username && (
                         <Card>
-                            <Card.Header className="text-center">
+                            <Card.Header>
                                 <Card.Title className="w-full text-center">You're all set up!</Card.Title>
                                 <Card.Description className="w-full text-center">
                                     Join the group at{' '}

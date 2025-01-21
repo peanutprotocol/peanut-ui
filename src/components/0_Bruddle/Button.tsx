@@ -24,7 +24,7 @@ const buttonVariants: Record<ButtonVariant, string> = {
     'transparent-light': 'btn-transparent-light',
     'transparent-dark': 'btn-transparent-dark',
     green: 'bg-green-1',
-    yellow: 'bg-yellow-1',
+    yellow: 'bg-secondary-1',
 }
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -64,7 +64,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref
     ) => {
         const buttonClasses = twMerge(
-            'btn w-full',
+            'btn w-full flex items-center gap-2',
             buttonVariants[variant],
             size && buttonSizes[size],
             shape === 'square' && 'btn-square',

@@ -11,8 +11,8 @@ import Search from '../Search'
 import { AdvancedTokenSelectorButton } from './Components'
 
 import { CrispButton } from '@/components/CrispChat'
-import { useWallet } from '@/hooks/useWallet'
 import { useWalletType } from '@/hooks/useWalletType'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppKit } from '@reown/appkit/react'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import Image from 'next/image'
@@ -71,10 +71,10 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
                 {balances.slice(visibleRange.start, visibleRange.end).map((balance) => (
                     <div
                         key={`${balance.address}_${balance.chainId}`}
-                        className={`flex h-14 cursor-pointer items-center transition-colors hover:bg-n-3/10 ${
+                        className={`flex h-14 cursor-pointer items-center transition-colors hover:bg-grey-1/10 ${
                             areEvmAddressesEqual(balance.address, selectedTokenAddress) &&
                             balance.chainId === selectedChainID &&
-                            'bg-n-3/10'
+                            'bg-grey-1/10'
                         }`}
                         onClick={() => setToken(balance)}
                     >
@@ -148,7 +148,7 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
 
                         <div className="w-32 py-2">
                             <div className="flex flex-row items-center justify-end gap-2 pr-1">
-                                <div className="text-h8 text-gray-1">
+                                <div className="text-h8 text-grey-1">
                                     {supportedPeanutChains.find((chain) => chain.chainId === balance.chainId)?.name ??
                                         ''}
                                 </div>

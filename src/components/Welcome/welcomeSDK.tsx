@@ -1,37 +1,37 @@
 'use client'
 import '@/styles/globals.css'
-import { useEffect, useState } from 'react'
 import { getCalApi } from '@calcom/embed-react'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 import {
-    WALLETCONNECT_LOGO,
-    CLAVE_LOGO,
-    ECO_LOGO,
-    MANTLE_ICON,
     BRUME_LOGO,
-    WOOFI_LOGO,
-    TIMESWAP_LOGO,
+    BYBIT_LOGO,
+    CLAVE_LOGO,
     CLEO_LOGO,
+    DEREK_PERSON,
+    DROPDOWN_ICON,
+    ECO_LOGO,
+    IZUMI_LOGO,
+    KOFIME_PERSON,
     KTX_LOGO,
     LENDLE_LOGO,
-    IZUMI_LOGO,
     LOGX_LOGO,
-    BYBIT_LOGO,
-    DEREK_PERSON,
-    SHARUK_PERSON,
-    KOFIME_PERSON,
-    SBF_PERSON,
-    SmileStars,
+    MANTLE_ICON,
     PEANUTMAN_HAPPY,
     REDPACKET_LOTTIE,
+    SBF_PERSON,
+    SHARUK_PERSON,
+    SmileStars,
     TEAL_MOCKUP_1,
-    DROPDOWN_ICON,
+    TIMESWAP_LOGO,
+    WALLETCONNECT_LOGO,
+    WOOFI_LOGO,
 } from '@/assets'
 
 import * as chain_logos from '@/assets/chains'
-import { MarqueeWrapper, MarqueeComp } from '../Global/MarqueeWrapper'
 import Lottie from 'lottie-react'
+import { MarqueeComp, MarqueeWrapper } from '../Global/MarqueeWrapper'
 
 const logoCloudLogos = [
     { icon: WALLETCONNECT_LOGO, link: 'https://walletconnect.com/' },
@@ -54,7 +54,7 @@ const features = [
         name: 'Brand ',
         description:
             'Your brand deserves to be front and center for new users. It’s nuts but you can completely whitelabel these links and use your own domain and branding.',
-        bg: 'bg-yellow-1',
+        bg: 'bg-secondary-1',
         primaryRedirectUrl: 'https://docs.peanut.to/integrate/sdk/branded-links',
         primaryRedirectText: 'Docs',
     },
@@ -62,7 +62,7 @@ const features = [
         name: 'Gasless',
         description:
             'Users should not have to worry about gas, being on the right chain or wallet addresses. Claim and send links solve the cold start problem.',
-        bg: 'bg-pink-1',
+        bg: 'bg-primary-1',
         primaryRedirectUrl: 'https://docs.peanut.to/integrate/sdk/claim/claim-link-gasless',
         primaryRedirectText: 'Docs',
     },
@@ -95,7 +95,7 @@ const features = [
     {
         name: 'Web2 Airdrops',
         description: 'Airdrop your web2 audience (think Discord, Mailchimp, Twitter)',
-        bg: 'bg-yellow-1',
+        bg: 'bg-secondary-1',
         calModal: true,
     },
 ]
@@ -164,7 +164,7 @@ const testimonials = [
         name: 'Kofi.me',
         detail: 'Kofi.me',
         detailRedirectUrl: 'https://www.kofime.xyz/',
-        bgColorClass: 'bg-pink-1',
+        bgColorClass: 'bg-primary-1',
     },
     {
         imageSrc: SBF_PERSON.src, // TODO: replace with actual image@
@@ -172,7 +172,7 @@ const testimonials = [
         comment: 'I have a peanut allergy. Help!',
         name: 'CEx CEO',
         detail: 'Probably FTX',
-        bgColorClass: 'bg-yellow-1',
+        bgColorClass: 'bg-secondary-1',
     },
 ]
 const defaultLottieOptions = {
@@ -269,7 +269,7 @@ export function WelcomeSDK() {
                     </div>
                 </div>
 
-                <div className="center-xy z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden border-l-2 border-black bg-purple-1 py-3 lg:flex lg:pb-16 lg:pt-16 ">
+                <div className="center-xy z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden border-l-2 border-black bg-primary-1 py-3 lg:flex lg:pb-16 lg:pt-16 ">
                     <img
                         src={PEANUTMAN_HAPPY.src}
                         className="absolute duration-200 hover:rotate-12"
@@ -279,11 +279,11 @@ export function WelcomeSDK() {
             </div>
 
             <div className="grid w-full grid-cols-1  gap-4 px-4 py-2 text-black lg:grid-cols-3">
-                <label className="flex items-center justify-center border border-n-2 bg-pink-1 px-4 py-8 text-center text-h3 font-black sm:px-16">
+                <label className="flex items-center justify-center border border-n-2 bg-primary-1 px-4 py-8 text-center text-h3 font-black sm:px-16">
                     300k+ Transactions
                 </label>
 
-                <label className="flex items-center justify-center border border-n-2 bg-yellow-1 px-4 py-8 text-center text-h3 font-black sm:px-16">
+                <label className="flex items-center justify-center border border-n-2 bg-secondary-1 px-4 py-8 text-center text-h3 font-black sm:px-16">
                     105k+ Unique wallet addresses
                 </label>
 
@@ -292,7 +292,7 @@ export function WelcomeSDK() {
                 </label>
             </div>
             <div className="w-full px-4 text-black">
-                <div className="flex w-full flex-col items-center justify-between gap-4 border border-n-2 bg-purple-1 py-8 lg:flex-row ">
+                <div className="flex w-full flex-col items-center justify-between gap-4 border border-n-2 bg-primary-1 py-8 lg:flex-row ">
                     <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
                         <a href="https://docs.peanut.to/overview/what-are-links" target="_blank">
                             <img
@@ -326,7 +326,7 @@ export function WelcomeSDK() {
                 </div>
             </div>
             <div className="w-full px-4 text-black">
-                <div className="flex w-full flex-col items-center justify-between gap-4 border border-n-2 bg-yellow-1 py-8 lg:flex-row-reverse ">
+                <div className="flex w-full flex-col items-center justify-between gap-4 border border-n-2 bg-secondary-1 py-8 lg:flex-row-reverse ">
                     <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
                         <a
                             href="https://docs.peanut.to/overview/case-studies/raffles-to-boost-uwas-and-transactions"

@@ -1,9 +1,9 @@
 'use client'
 import Modal from '@/components/Global/Modal'
 import { TransactionBadge } from '@/components/Global/TransactionBadge'
-import * as consts from '@/constants'
-import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
+import { supportedPeanutChains } from '@/constants'
+import { IDashboardItem } from '@/interfaces'
+import { copyTextToClipboardWithFallback, getExplorerUrl } from '@/utils'
 import Image from 'next/image'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -42,7 +42,7 @@ interface ListItemViewProps {
         recipientAddress?: string
         transactionType?: TransactionType
     }
-    details: interfaces.IDashboardItem | TokenBalance
+    details: IDashboardItem | TokenBalance
 }
 
 const getTransactionStatus = (type: TransactionType | undefined, status: string | undefined): string => {
@@ -67,7 +67,8 @@ const getTransactionStatus = (type: TransactionType | undefined, status: string 
 export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata, details }: ListItemViewProps) => {
     const [modalVisible, setModalVisible] = useState(false)
     const isHistory = variant === 'history'
-    const transactionDetails = isHistory ? (details as interfaces.IDashboardItem) : null
+    const transactionDetails = isHistory ? (details as IDashboardItem) : null
+    const balanceDetails = !isHistory ? (details as TokenBalance) : null
 
     // get the transaction status for history variant
     const transactionStatus =
@@ -162,7 +163,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                         transactionDetails?.type === 'Request Link') && (
                         <div
                             onClick={() => {
-                                utils.copyTextToClipboardWithFallback(transactionDetails?.link ?? '')
+                                copyTextToClipboardWithFallback(transactionDetails?.link ?? '')
                             }}
                             className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
@@ -173,11 +174,10 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                         <div
                             onClick={() => {
                                 const chainId =
-                                    consts.supportedPeanutChains.find(
-                                        (chain) => chain.name === transactionDetails?.chain
-                                    )?.chainId ?? ''
+                                    supportedPeanutChains.find((chain) => chain.name === transactionDetails?.chain)
+                                        ?.chainId ?? ''
 
-                                const explorerUrl = utils.getExplorerUrl(chainId)
+                                const explorerUrl = getExplorerUrl(chainId)
                                 window.open(`${explorerUrl}/tx/${transactionDetails?.txHash ?? ''}`, '_blank')
                             }}
                             className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"

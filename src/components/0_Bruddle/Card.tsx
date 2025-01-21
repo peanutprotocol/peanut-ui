@@ -47,13 +47,13 @@ const Header = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivE
 )
 
 const Title = ({ children, className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-    <h3 className={twMerge('text-h4 font-semibold sm:text-h3', className)} {...props}>
+    <h3 className={twMerge('pb-1 text-start text-h4 font-semibold sm:text-h3', className)} {...props}>
         {children}
     </h3>
 )
 
 const Description = ({ children, className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p className={twMerge('text-sm text-gray-600 dark:text-gray-400', className)} {...props}>
+    <p className={twMerge('text-start text-sm text-gray-600 dark:text-gray-400', className)} {...props}>
         {children}
     </p>
 )

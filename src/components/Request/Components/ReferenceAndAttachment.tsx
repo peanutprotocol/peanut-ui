@@ -21,7 +21,7 @@ export const ReferenceAndAttachment = ({
                         href={attachmentUrl}
                         download
                         target="_blank"
-                        className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
+                        className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-grey-1 underline "
                     >
                         <Icon name={'download'} />
                         Download attachment
