@@ -82,7 +82,7 @@ export const SenderClaimLinkView = ({
                     Go to recipient view
                 </Button>
                 {errorState.showError && (
-                    <div className="text-center">
+                    <div className="text-start">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                 )}

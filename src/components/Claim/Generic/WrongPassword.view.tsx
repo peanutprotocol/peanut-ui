@@ -1,12 +1,10 @@
 'use client'
 
-import * as _consts from '../Claim.consts'
-
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 
 export const WrongPasswordClaimLink = () => {
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
+        <div className="flex w-full flex-col items-center justify-center gap-6 text-start">
             <div className="space-y-2">
                 <h2 className="text-h2">Sorryyy</h2>
                 <div className="">This link is malformed. Are you sure you copied it correctly?</div>

@@ -262,13 +262,12 @@ export const InitialCashoutView = ({
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
                     <Card.Title>Cash Out</Card.Title>
-                    <Card.Description className="text-center">
+                    <Card.Description>
                         Cash out your crypto to your bank account. Works best with popular stablecoins and other
                         commonly traded tokens.
                     </Card.Description>
-                    <div className="mx-auto">
-                        <FAQComponent />
-                    </div>
+
+                    <FAQComponent />
                 </Card.Header>
                 <Card.Content className="col gap-2">
                     <TokenAmountInput
@@ -303,7 +302,10 @@ export const InitialCashoutView = ({
                         </>
                     )}
                     <div className="flex w-full flex-col justify-center gap-4">
-                        <RecipientInfoComponent />
+                        {!!user &&
+                            !!user.accounts.filter(
+                                (account) => account.account_type === 'iban' || account.account_type === 'us'
+                            ).length && <RecipientInfoComponent />}
                         <div className="space-y-4">
                             {!user && isFetchingUser ? (
                                 <div className="relative flex h-16 w-full items-center justify-center">
@@ -317,7 +319,7 @@ export const InitialCashoutView = ({
                                     {!!user.accounts.filter(
                                         (account) => account.account_type === 'iban' || account.account_type === 'us'
                                     ).length && (
-                                        <div className="flex w-full flex-col items-start justify-center gap-2 text-center">
+                                        <div className="flex w-full flex-col items-start justify-center gap-2">
                                             <label className="text-left text-h8 font-light">
                                                 Your linked bank accounts:
                                             </label>
@@ -344,7 +346,7 @@ export const InitialCashoutView = ({
                                                         <div className="flex flex-grow items-center overflow-hidden">
                                                             <Icon
                                                                 name={'bank'}
-                                                                className="mr-2 h-4 flex-shrink-0 fill-grey-1"
+                                                                className="fill-grey-1 mr-2 h-4 flex-shrink-0"
                                                             />
                                                             <label
                                                                 htmlFor={`bank-${index}`}
@@ -436,7 +438,7 @@ export const InitialCashoutView = ({
                         {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Proceed'}
                     </Button>
                     {errorState.showError && (
-                        <div className="text-center">
+                        <div className="text-start">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                         </div>
                     )}
@@ -452,7 +454,7 @@ export const InitialCashoutView = ({
                         </span>
                     )}
                     {!xchainAllowed && (
-                        <span className=" text-h8 font-normal ">
+                        <span className="text-start text-h8 font-normal">
                             <Icon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
                         </span>
                     )}

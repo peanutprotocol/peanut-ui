@@ -360,7 +360,7 @@ export const InitialView = ({
             <FlowHeader />
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
-                    <Card.Title className="text-center text-h3">
+                    <Card.Title className="text-h3">
                         <AddressLink address={requestLinkData.recipientAddress} /> is requesting
                     </Card.Title>
                 </Card.Header>
@@ -399,7 +399,7 @@ export const InitialView = ({
                             </div>
                         </div>
                         {tokenSupportsXChain ? (
-                            <label className="text-center text-h9 font-light">
+                            <label className="text-start text-h9 font-light">
                                 You can fulfill this payment request with any token on any chain. Pick the token and
                                 chain that you want to fulfill this request with.
                             </label>
@@ -415,9 +415,9 @@ export const InitialView = ({
                     )}
                     {!isFeeEstimationError && (
                         <>
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
+                            <div className="text-grey-1 flex w-full flex-row items-center justify-between gap-1 px-2 text-h8">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-grey-1" />
+                                    <Icon name={'gas'} className="fill-grey-1 h-4" />
                                     <label className="font-bold">Network cost</label>
                                 </div>
                                 <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -443,9 +443,9 @@ export const InitialView = ({
                             </div>
 
                             {null !== calculatedSlippage && (
-                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
+                                <div className="text-grey-1 flex w-full flex-row items-center justify-between gap-1 px-2 text-h8">
                                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                                        <Icon name={'money-out'} className="h-4 fill-grey-1" />
+                                        <Icon name={'money-out'} className="fill-grey-1 h-4" />
                                         <label className="font-bold">Max slippage</label>
                                     </div>
                                     <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -509,7 +509,7 @@ export const InitialView = ({
                             {!isConnected && !isPeanutWallet ? 'Connect Wallet' : 'Pay'}
                         </Button>
                         {errorState.showError && (
-                            <div className="text-center">
+                            <div className="text-start">
                                 <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                             </div>
                         )}

@@ -167,8 +167,8 @@ export const InitialView = ({
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
-                <Card.Title className="mx-auto">Request a payment</Card.Title>
-                <Card.Description className="text-center">
+                <Card.Title>Request a payment</Card.Title>
+                <Card.Description>
                     Choose the amount, token and chain. You will request a payment to your wallet. Add an invoice if you
                     want to.
                 </Card.Description>
@@ -234,7 +234,7 @@ export const InitialView = ({
                     </Button>
                 </div>
                 {errorState.showError && (
-                    <div className="text-center">
+                    <div className="text-start">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                 )}

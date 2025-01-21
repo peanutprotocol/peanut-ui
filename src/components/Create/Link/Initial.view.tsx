@@ -1,21 +1,20 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useState } from 'react'
 import validator from 'validator'
-import { useSearchParams } from 'next/navigation'
 
-import * as _consts from '../Create.consts'
-import * as _utils from '../Create.utils'
-import * as utils from '@/utils'
-import * as context from '@/context'
-import RecipientInput from '@/components/Global/RecipientInput'
-import Icon from '@/components/Global/Icon'
-import { ethers } from 'ethers'
-import Loading from '@/components/Global/Loading'
-import { validate } from 'multicoin-address-validator'
-import { CrispButton } from '@/components/CrispChat'
 import { Button, Card } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
+import { CrispButton } from '@/components/CrispChat'
+import Icon from '@/components/Global/Icon'
+import Loading from '@/components/Global/Loading'
+import RecipientInput from '@/components/Global/RecipientInput'
+import * as context from '@/context'
+import * as utils from '@/utils'
+import { ethers } from 'ethers'
+import { validate } from 'multicoin-address-validator'
+import * as _consts from '../Create.consts'
 
 export const CreateLinkInitialView = ({
     onNext,
@@ -201,7 +200,7 @@ export const CreateLinkInitialView = ({
                 )}
                 {errorState.showError && (
                     <>
-                        <div className="w-full text-center">
+                        <div className="w-full text-start">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                         </div>
                         {errorState.errorMessage.includes('We currently dont support ') && (

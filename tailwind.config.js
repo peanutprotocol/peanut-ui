@@ -166,6 +166,9 @@ module.exports = {
                         fontVariationSettings: '"wdth" 50',
                     },
                 ],
+                'knerd-outline': ['var(--font-knerd-outline)', ...fontFamily.sans],
+                'knerd-filled': ['var(--font-knerd-filled)', ...fontFamily.sans],
+                roboto: ['var(--font-roboto)', ...fontFamily.sans],
             },
             fontSize: {
                 0: ['0px', '0px'],
@@ -260,9 +263,14 @@ module.exports = {
                 },
             })
             addComponents({
+                '.row': {
+                    '@apply flex flex-row items-center gap-2': {},
+                },
+                '.col': {
+                    '@apply flex flex-col gap-2': {},
+                },
                 '.btn': {
                     '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-grey-1 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border border-n-1 rounded-sm text-base text-n-1 fill-n-1 font-bold transition-colors':
-                        // '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-grey-1 disabled:cursor-not-allowed inline-flex items-center justify-center h-12 px-3 border-2 ring-2 ring-white shadow-md border-n-1 rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors hover:bg-n-4/40 hover:text-n-1':
                         {},
                 },
                 '.btn svg': {
@@ -286,10 +294,6 @@ module.exports = {
                 },
                 '.btn-dark': {
                     '@apply btn bg-n-1 text-white fill-white hover:bg-n-1/80 dark:bg-white/10 dark:hover:bg-white/20':
-                        {},
-                },
-                '.btn-ghost': {
-                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-grey-1 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border-2 border-transparent rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors duration-200 hover:border-n-1 hover:bg-n-4/25':
                         {},
                 },
                 '.btn-stroke': {
@@ -389,12 +393,15 @@ module.exports = {
                         {},
                 },
                 '.card': {
-                    '@apply bg-white border border-n-1 dark:bg-n-1 max-w-[27rem] relative mx-auto w-11/12 items-center justify-center px-4 py-6 xl:w-1/2 lg:w-2/3 dark:border-white':
+                    '@apply bg-white border border-n-1 dark:bg-n-1 max-w-[27rem] relative mx-auto w-11/12 items-center justify-center px-4 py-6 xl:w-1/2 lg:w-2/3 dark:border-white flex flex-col relative mx-auto items-center justify-center':
                         {},
                 },
                 '.card-head': {
-                    '@apply flex justify-between items-center min-h-[4rem] px-5 py-3 border-b border-n-1 dark:border-white':
+                    '@apply flex justify-between flex-col items-start min-h-[4rem] px-3 sm:px-5 py-3 border-b border-n-1 dark:border-white':
                         {},
+                },
+                '.card-content': {
+                    '@apply px-3 sm:px-5 py-3 border-n-1 dark:border-white': {},
                 },
                 '.card-title': {
                     '@apply p-5 border-b border-n-1 text-h6 dark:border-white': {},
@@ -449,9 +456,40 @@ module.exports = {
                 '.custom-input-xs': {
                     '@apply h-8': {},
                 },
-                '.kyc-badge': {
-                    '@apply relative flex items-center justify-center text-h10 font-normal text-black h-4 w-8 rounded-full':
+                '.btn-shadow-primary-4': {
+                    '@apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)]':
                         {},
+                },
+                '.btn-shadow-primary-6': {
+                    '@apply shadow-[0.375rem_0.375rem_0_#000000] dark:shadow-[0.375rem_0.375rem_0_rgba(255,255,255,.25)]':
+                        {},
+                },
+                '.btn-shadow-primary-8': {
+                    '@apply shadow-[0.5rem_0.5rem_0_#000000] dark:shadow-[0.5rem_0.5rem_0_rgba(255,255,255,.25)]': {},
+                },
+                '.btn-shadow-secondary-4': {
+                    '@apply shadow-[0.25rem_-0.25rem_0_#000000] dark:shadow-[0.25rem_-0.25rem_0_rgba(255,255,255,.25)]':
+                        {},
+                },
+                '.btn-shadow-secondary-6': {
+                    '@apply shadow-[0.375rem_-0.375rem_0_#000000] dark:shadow-[0.375rem_-0.375rem_0_rgba(255,255,255,.25)]':
+                        {},
+                },
+                '.btn-shadow-secondary-8': {
+                    '@apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)]': {},
+                },
+                '.input': {
+                    '@apply h-16 w-full rounded-sm border border-n-1 bg-white px-5 text-sm font-bold text-n-1 outline-none transition-colors placeholder:text-n-3 focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1':
+                        {},
+                },
+                '.bg-peanut-repeat-normal': {
+                    '@apply bg-[url("../assets/bg/peanut-bg.svg")] bg-repeat bg-[length:100px_100px]': {},
+                },
+                '.bg-peanut-repeat-large': {
+                    '@apply bg-[url("../assets/bg/peanut-bg.svg")] bg-repeat bg-[length:200px_200px]': {},
+                },
+                '.bg-peanut-repeat-small': {
+                    '@apply bg-[url("../assets/bg/peanut-bg.svg")] bg-repeat bg-[length:50px_50px]': {},
                 },
             })
             addUtilities({

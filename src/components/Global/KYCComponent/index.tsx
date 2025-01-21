@@ -1,21 +1,20 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
+import { useEffect, useMemo, useState } from 'react'
 
-import * as utils from '@/utils'
-import * as interfaces from '@/interfaces'
+import { Card } from '@/components/0_Bruddle'
+import { CrispButton } from '@/components/CrispChat'
 import * as consts from '@/constants'
-import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
-import { useForm } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
+import * as interfaces from '@/interfaces'
+import * as utils from '@/utils'
+import { Divider, useToast } from '@chakra-ui/react'
+import { useForm } from 'react-hook-form'
+import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
 import Loading from '../Loading'
 import { GlobalLoginComponent } from '../LoginComponent'
 import { GlobalRegisterComponent } from '../RegisterComponent'
-import { Divider } from '@chakra-ui/react'
-import { CrispButton } from '@/components/CrispChat'
-import { Card } from '@/components/0_Bruddle'
-import { useToast } from '@chakra-ui/react'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -460,7 +459,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
 
                 <div className="flex w-full flex-col items-center justify-center gap-2">
                     {errorState.showError && errorState.errorMessage === 'KYC under review' ? (
-                        <div className="text-center">
+                        <div className="text-start">
                             <label className=" text-h8 font-normal text-red ">
                                 KYC is under manual review, we might need additional documents.{' '}
                                 <CrispButton className="text-blue-600 underline">Chat with support</CrispButton> to
@@ -468,12 +467,12 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                             </label>
                         </div>
                     ) : errorState.errorMessage === 'KYC rejected' ? (
-                        <div className="text-center">
+                        <div className="text-start">
                             <label className=" text-h8 font-normal text-red ">KYC has been rejected.</label>
                             <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                         </div>
                     ) : (
-                        <div className="text-center">
+                        <div className="text-start">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                         </div>
                     )}
