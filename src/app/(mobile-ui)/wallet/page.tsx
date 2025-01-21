@@ -1,81 +1,127 @@
 'use client'
 
-import smallPeanut from '@/assets/icons/small-peanut.png'
-import { ArrowIcon, Button, Card } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle'
+import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
+import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import Icon from '@/components/Global/Icon'
-import { HomeLink } from '@/components/Home/HomeLink'
+import { ListItemView } from '@/components/Global/ListItemView'
+import NavHeader from '@/components/Global/NavHeader'
+import { WalletCard } from '@/components/Home/WalletCard'
 import { useAuth } from '@/context/authContext'
-import { WalletProviderType } from '@/interfaces'
-import { useWalletStore } from '@/redux/hooks'
-import { printableUsdc } from '@/utils'
-import { motion } from 'framer-motion'
-import Link from 'next/link'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { IUserBalance, WalletProviderType } from '@/interfaces'
+import { formatAmount, getChainName, getUserPreferences, updateUserPreferences } from '@/utils'
+import { useAppKit, useDisconnect } from '@reown/appkit/react'
+import { useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 
 const WalletDetailsPage = () => {
-    const { focusedWallet, wallets } = useWalletStore()
-    const { user } = useAuth()
+    const { selectedWallet, isConnected } = useWallet()
+    const { open } = useAppKit()
+    const { disconnect } = useDisconnect()
+    const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
+        const prefs = getUserPreferences()
+        return prefs?.balanceHidden ?? false
+    })
 
-    const walletDetails = wallets.find((wallet) => wallet.address === focusedWallet)
+    const { username } = useAuth()
+    const isActiveWalletPW = selectedWallet?.walletProviderType === WalletProviderType.PEANUT
+    const isActiveWalletBYOW = selectedWallet?.walletProviderType === WalletProviderType.BYOW
 
-    const isActiveWalletPW = walletDetails?.walletProviderType === WalletProviderType.PEANUT
-    const isActiveWalletBYOW = walletDetails?.walletProviderType === WalletProviderType.BYOW
+    console.log('selectedWallet', selectedWallet)
+
+    const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation()
+        setIsBalanceHidden((prev: boolean) => {
+            const newValue = !prev
+            updateUserPreferences({ balanceHidden: newValue })
+            return newValue
+        })
+    }
 
     return (
-        <div className="flex w-full flex-row justify-center gap-2">
-            <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] sm:gap-2 md:w-[70%] lg:w-[35%]">
-                {focusedWallet && (
-                    <Card shadowSize="4" className="w-full rounded-md py-5">
-                        <Card.Content className="flex h-full flex-row items-center justify-evenly">
-                            <img src={smallPeanut.src} className="h-15 w-15 object-contain" />
-                            {isActiveWalletPW && (
-                                <p className="text-xl sm:text-2xl">
-                                    <span className="font-bold">{user?.user.username}</span>.peanut.wallet
-                                </p>
-                            )}
-                            {isActiveWalletBYOW && (
-                                <p className="text-xl sm:text-2xl">
-                                    <span className="font-bold">{walletDetails.address}</span>.peanut.wallet
-                                </p>
-                            )}
-                        </Card.Content>
-                    </Card>
-                )}
+        <div className="mx-auto flex w-full flex-col gap-6 md:max-w-2xl">
+            <div className="md:hidden">
+                <NavHeader title="Wallet asset" />
+            </div>
 
-                <Card shadowSize="4" className="w-full rounded-md py-10">
-                    <Card.Content className="flex h-full flex-row items-center justify-center">
-                        <div className="text-5xl">$ {printableUsdc(walletDetails?.balance ?? 0n)}</div>
-                    </Card.Content>
-                </Card>
-                <div className="flex flex-row gap-2">
-                    <Button shadowSize="4">
-                        <Link href="/cashout" className="flex flex-row items-center text-nowrap">
-                            <div>
-                                <Icon name="minus-circle" />
-                            </div>
-                            Cash out
-                        </Link>
-                    </Button>
-                    <Button shadowSize="4" className="text-nowrap" disabled>
+            <div className="mx-auto">
+                {selectedWallet && (
+                    <WalletCard
+                        key={selectedWallet.address}
+                        type="wallet"
+                        wallet={selectedWallet}
+                        username={username ?? ''}
+                        selected
+                        onClick={() => {}}
+                        index={0}
+                        isBalanceHidden={isBalanceHidden}
+                        onToggleBalanceVisibility={handleToggleBalanceVisibility}
+                    />
+                )}
+            </div>
+
+            <DirectionalActionButtons
+                leftButton={{
+                    title: 'Top up',
+                    href: '/topup',
+                    disabled: true,
+                }}
+                rightButton={{
+                    title: 'Cash out',
+                    href: '/cashout',
+                }}
+            />
+
+            <div
+                className={twMerge(
+                    selectedWallet?.balances && !!selectedWallet?.balances?.length ? 'border-b border-b-n-1' : ''
+                )}
+            >
+                {!!selectedWallet?.balances?.length ? (
+                    <div className="space-y-3">
+                        <div className="text-base font-semibold">Balance</div>
                         <div>
-                            <Icon name="plus-circle" />
+                            {selectedWallet.balances.map((balance: IUserBalance) => (
+                                <ListItemView
+                                    key={`${balance.chainId}-${balance.symbol}`}
+                                    id={`${balance.chainId}-${balance.symbol}`}
+                                    variant="balance"
+                                    primaryInfo={{
+                                        title: balance.symbol,
+                                    }}
+                                    secondaryInfo={{
+                                        mainText: `$${Number(balance.value).toFixed(2)}`,
+                                        subText: getChainName(balance.chainId),
+                                    }}
+                                    metadata={{
+                                        tokenLogo: balance.logoURI,
+                                        subText: `${formatAmount(balance.amount)} ${balance.symbol}`,
+                                    }}
+                                    details={balance}
+                                />
+                            ))}
                         </div>
-                        Top Up
-                    </Button>
-                </div>
-                <div className="flex w-full flex-grow flex-row items-center justify-center gap-4 sm:justify-evenly sm:gap-8">
-                    <motion.div className="flex flex-col items-center gap-2" whileTap={{ scale: 0.95 }}>
-                        <HomeLink href={'/send'}>
-                            <ArrowIcon />
-                        </HomeLink>
-                        <p className="text-base">Send</p>
-                    </motion.div>
-                    <motion.div className="flex flex-col items-center gap-2" whileTap={{ scale: 0.95 }}>
-                        <HomeLink href={'/request/create'}>
-                            <ArrowIcon className="rotate-180" />
-                        </HomeLink>
-                        <p>Recieve</p>
-                    </motion.div>
-                </div>
+                    </div>
+                ) : (
+                    <NoDataEmptyState message="No tokens found" />
+                )}
+            </div>
+            <div>
+                <Button
+                    onClick={() => {
+                        if (isConnected) {
+                            disconnect()
+                        } else {
+                            open()
+                        }
+                    }}
+                    variant="stroke"
+                    className="flex w-full items-center justify-center gap-2 bg-purple-4/30 hover:bg-purple-4/20"
+                >
+                    <Icon name={isConnected ? 'minus-circle' : 'plus-circle'} className="size-4" />
+                    <div>{isConnected ? 'Disconnect' : 'Connect'}</div>
+                </Button>
             </div>
         </div>
     )
