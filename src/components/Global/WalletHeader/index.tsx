@@ -154,7 +154,7 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
     // get background color
     const backgroundColor = useMemo(() => {
         if ((isPeanutWallet || isExternalWallet) && isConnected) {
-            return isActive ? 'bg-purple-1' : 'bg-purple-5'
+            return isActive ? 'bg-primary-1 hover:bg-primary-1/90' : 'bg-purple-4 bg-opacity-25 hover:bg-opacity-20'
         }
         if (isExternalWallet && !isConnected) return 'bg-n-4'
     }, [isExternalWallet, isConnected, isActive, isPeanutWallet, wallet.address])
@@ -197,7 +197,7 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
                             )}
                             <CopyToClipboard
                                 className="h-4 w-4"
-                                fill={isExternalWallet && !isConnected ? '#6B7280' : 'white'}
+                                fill={'black'}
                                 textToCopy={
                                     isPeanutWallet && username ? `https://peanut.me/${username}` : wallet.address
                                 }

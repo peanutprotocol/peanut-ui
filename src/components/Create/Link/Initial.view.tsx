@@ -200,7 +200,7 @@ export const CreateLinkInitialView = ({
                 )}
                 {errorState.showError && (
                     <>
-                        <div className="w-full text-center">
+                        <div className="w-full text-start">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                         </div>
                         {errorState.errorMessage.includes('We currently dont support ') && (

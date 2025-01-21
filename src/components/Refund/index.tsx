@@ -197,14 +197,14 @@ export const Refund = () => {
                                     <a
                                         href={claimedExploredUrlWithHash ?? ''}
                                         target="_blank"
-                                        className="cursor-pointer text-center text-sm text-black underline "
+                                        className="cursor-pointer text-start text-sm text-black underline "
                                     >
                                         Your transaction hash
                                     </a>
                                 </p>
                             ) : (
                                 errorState.showError && (
-                                    <div className="text-center">
+                                    <div className="text-start">
                                         <label className="font-bold text-red ">{errorState.errorMessage}</label>
                                     </div>
                                 )

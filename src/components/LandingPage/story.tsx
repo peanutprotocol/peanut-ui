@@ -1,6 +1,5 @@
-import { Stack, Box } from '@chakra-ui/react'
 import { Eyes, PeanutGuy } from '@/assets'
-import { StoryImages } from './imageAssets'
+import { Box, Stack } from '@chakra-ui/react'
 import { MarqueeComp } from '../Global/MarqueeWrapper'
 import { NutsDivider } from './nutsDivider'
 
@@ -41,7 +40,7 @@ export function Story({ stories, foot, marquee = { visible: false } }: StoryProp
                     message={marquee.message}
                     imageSrc={Eyes.src}
                     imageAnimationClass="animation-rock"
-                    backgroundColor="bg-yellow-1"
+                    backgroundColor="bg-secondary-1"
                 />
             )}
         </Box>

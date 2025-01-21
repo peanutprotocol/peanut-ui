@@ -1,7 +1,7 @@
-import { useContext, useEffect, useMemo, useRef } from 'react'
-import Icon from '../Icon'
 import * as context from '@/context'
 import * as utils from '@/utils'
+import { useContext, useEffect, useMemo, useRef } from 'react'
+import Icon from '../Icon'
 
 interface TokenAmountInputProps {
     className?: string
@@ -69,7 +69,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit, maxV
                         <label className="sr-only text-h1">$</label>
                     ))}
                 <input
-                    className={`h-12 w-[4ch] max-w-80 bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1`}
+                    className={`h-12 w-[4ch] max-w-80 bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                     placeholder={'0.00'}
                     onChange={(e) => {
                         const value = utils.formatAmountWithoutComma(e.target.value)
@@ -96,7 +96,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit, maxV
                 {maxValue && maxValue !== tokenValue && (
                     <button
                         onClick={handleMaxClick}
-                        className="absolute right-1 ml-1 px-2 py-1 text-h7 uppercase text-gray-1 transition-colors hover:text-black"
+                        className="absolute right-1 ml-1 px-2 py-1 text-h7 uppercase text-grey-1 transition-colors hover:text-black"
                     >
                         Max
                     </button>
@@ -104,7 +104,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit, maxV
             </div>
             {selectedTokenData?.price && !utils.estimateStableCoin(selectedTokenData.price) && (
                 <div className="flex w-full flex-row items-center justify-center gap-1">
-                    <label className="text-base text-gray-1">
+                    <label className="text-base text-grey-1">
                         {!tokenValue
                             ? '0'
                             : inputDenomination === 'USD'
@@ -118,7 +118,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit, maxV
                                 setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
                         }}
                     >
-                        <Icon name={'switch'} className="rotate-90 cursor-pointer fill-gray-1" />
+                        <Icon name={'switch'} className="rotate-90 cursor-pointer fill-grey-1" />
                     </button>
                 </div>
             )}

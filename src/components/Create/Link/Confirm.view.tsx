@@ -239,17 +239,14 @@ export const CreateLinkConfirmView = ({
 
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
-                    <Card.Title
-                        style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
-                        className="mx-auto text-center"
-                    >
+                    <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
                         {createType == 'link'
                             ? 'Text Tokens'
                             : createType == 'direct'
                               ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
                               : `Send to ${recipient.name}`}
                     </Card.Title>
-                    <Card.Description className="mx-auto text-center">
+                    <Card.Description>
                         {createType === 'link' &&
                             'Make a payment with the link. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
                         {createType === 'email_link' &&
@@ -274,35 +271,35 @@ export const CreateLinkConfirmView = ({
 
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         {attachmentOptions.fileUrl && (
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'paperclip'} className="h-4 fill-gray-1" />
+                                    <Icon name={'paperclip'} className="h-4 fill-grey-1" />
                                     <label className="font-bold">Attachment</label>
                                 </div>
                                 <a href={attachmentOptions.fileUrl} download target="_blank">
-                                    <Icon name={'download'} className="h-4 fill-gray-1" />
+                                    <Icon name={'download'} className="h-4 fill-grey-1" />
                                 </a>
                             </div>
                         )}
                         {attachmentOptions.message && (
                             <div className="flex w-full flex-col items-center justify-center gap-1">
                                 <div
-                                    className="flex w-full  flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1"
+                                    className="flex w-full  flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1"
                                     onClick={() => {
                                         setShowMessage(!showMessage)
                                     }}
                                 >
                                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                                        <Icon name={'paperclip'} className="h-4 fill-gray-1 " />
+                                        <Icon name={'paperclip'} className="h-4 fill-grey-1 " />
                                         <label className=" font-bold">Message</label>
                                     </div>
                                     <Icon
                                         name={'arrow-bottom'}
-                                        className={`h-4 cursor-pointer fill-gray-1 transition-transform ${showMessage && ' rotate-180'}`}
+                                        className={`h-4 cursor-pointer fill-grey-1 transition-transform ${showMessage && ' rotate-180'}`}
                                     />
                                 </div>
                                 {showMessage && (
-                                    <div className="flex w-full flex-col items-center justify-center gap-1 pl-7 text-h8 text-gray-1">
+                                    <div className="flex w-full flex-col items-center justify-center gap-1 pl-7 text-h8 text-grey-1">
                                         <label className="w-full text-start text-sm font-normal leading-4">
                                             {attachmentOptions.message}
                                         </label>
@@ -311,9 +308,9 @@ export const CreateLinkConfirmView = ({
                             </div>
                         )}
                         {transactionCostUSD !== undefined && (
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                    <Icon name={'gas'} className="h-4 fill-grey-1" />
                                     <label className="font-bold">Network cost</label>
                                 </div>
                                 <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -333,9 +330,9 @@ export const CreateLinkConfirmView = ({
                             </div>
                         )}
                     </div>
-                    {/* <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                    {/* <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                        <Icon name={'plus-circle'} className="h-4 fill-grey-1" />
                         <label className="font-bold">Points</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -360,14 +357,14 @@ export const CreateLinkConfirmView = ({
                         </Button>
                     </div>
                     {errorState.showError && (
-                        <div className="text-center">
+                        <div className="text-start">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                         </div>
                     )}
                     {!crossChainDetails.find(
                         (chain: any) => chain.chainId.toString() === selectedChainID.toString()
                     ) && (
-                        <span className=" text-h8 font-normal ">
+                        <span className=" text-start text-h8 font-normal">
                             <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain
                             claiming.
                         </span>

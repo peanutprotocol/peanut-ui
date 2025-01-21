@@ -60,14 +60,12 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header className="mx-auto">
-                <Card.Title className="mx-auto text-center">Yay!</Card.Title>
-                <Card.Description className="mx-auto text-center">
-                    You have successfully claimed your funds!
-                </Card.Description>
+            <Card.Header>
+                <Card.Title>Yay!</Card.Title>
+                <Card.Description>You have successfully claimed your funds!</Card.Description>
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">
-                <label className="text-center text-h8 font-normal text-gray-1">Transaction details</label>
+                <label className="text-start text-h8 font-normal text-grey-1">Transaction details</label>
                 {type === 'claimxchain' && (
                     <div className="flex flex-col items-start justify-center gap-1 text-h9  font-normal">
                         <div className="flex w-full flex-row items-center justify-between gap-1">
@@ -101,7 +99,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                 <Link className="w-full" target="_blank" href={`${explorerUrlWithTx}`}>
                     <Button variant="dark">
                         Transaction hash
-                        <Icon name="external" className="h-4 fill-gray-1" />
+                        <Icon name="external" className="h-4 fill-grey-1" />
                     </Button>
                 </Link>
                 <Link className="" href={'/profile'}>
@@ -112,7 +110,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                         See your payments.
                     </Button>
                 </Link>
-                <label className="text-center text-h9 font-normal">
+                <label className="text-start text-h9 font-normal">
                     We would like to hear from your experience. Hit us up on{' '}
                     <a
                         className="cursor-pointer text-black underline dark:text-white"

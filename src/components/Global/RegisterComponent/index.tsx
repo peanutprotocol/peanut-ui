@@ -1,11 +1,8 @@
-import { useContext, useMemo, useState } from 'react'
+import { useAuth } from '@/context/authContext'
+import crypto from 'crypto'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Loading from '../Loading'
-import crypto from 'crypto'
-import * as context from '@/context'
-import { useAuth } from '@/context/authContext'
-import Link from 'next/link'
-import * as utils from '@/utils'
 interface IRegisterComponentProps {
     userId?: string
     name?: string
@@ -112,7 +109,10 @@ export const GlobalRegisterComponent = ({
     }
 
     return (
-        <form className="flex w-full flex-col items-start justify-center gap-2" onSubmit={handleSubmit(handleOnSubmit)}>
+        <form
+            className="flex w-full flex-col items-stretch justify-center gap-2"
+            onSubmit={handleSubmit(handleOnSubmit)}
+        >
             <input
                 {...register('name', { required: 'This field is required' })}
                 className={`custom-input custom-input-xs ${errors.name ? 'border border-red' : ''}`}
@@ -138,7 +138,7 @@ export const GlobalRegisterComponent = ({
                     }
                 }}
             />
-            {errors.email && <span className="text-h9 font-normal text-red">{errors.email.message}</span>}
+            {errors.email && <span className="text-start text-h9 font-normal text-red">{errors.email.message}</span>}
 
             <input
                 {...register('password', { required: 'This field is required' })}
@@ -152,7 +152,9 @@ export const GlobalRegisterComponent = ({
                     }
                 }}
             />
-            {errors.password && <span className="text-h9 font-normal text-red">{errors.password.message}</span>}
+            {errors.password && (
+                <span className="text-start text-h9 font-normal text-red">{errors.password.message}</span>
+            )}
 
             <button type="submit" className="btn btn-purple h-8 w-full text-h8" disabled={isLoading}>
                 {isLoading ? (
@@ -164,13 +166,13 @@ export const GlobalRegisterComponent = ({
                 )}
             </button>
             {errorState.showError && errorState.errorMessage === 'User already exists' ? (
-                <div className="w-full text-center">
-                    <span className=" text-h8 font-normal ">User already exists</span>
+                <div className="w-full">
+                    <span className="text-start text-h8 font-normal">User already exists</span>
                 </div>
             ) : (
                 errorState.showError && (
-                    <div className="w-full text-center">
-                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                    <div className="w-full text-start">
+                        <label className="text-start text-h8 font-normal text-red">{errorState.errorMessage}</label>
                     </div>
                 )
             )}

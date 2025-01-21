@@ -1,8 +1,8 @@
-import { useRouter } from 'next/navigation'
-import * as utils from '@/utils'
-import * as interfaces from '@/interfaces'
 import Icon from '@/components/Global/Icon'
+import * as interfaces from '@/interfaces'
+import * as utils from '@/utils'
 import { Menu, Transition } from '@headlessui/react'
+import { useRouter } from 'next/navigation'
 export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem }) => {
     const router = useRouter()
 
@@ -26,7 +26,7 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                             onClick={() => {
                                 router.push(`/${(item.link ?? '').split('://')[1].split('/')[1]}`)
                             }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
+                            className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
                         >
                             <div className="text-h8">Refund</div>
                         </Menu.Item>
@@ -38,7 +38,7 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                                 onClick={() => {
                                     utils.copyTextToClipboardWithFallback(item.link ?? '')
                                 }}
-                                className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                                className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                             >
                                 <div className="text-h8">Copy link</div>
                             </Menu.Item>
@@ -49,7 +49,7 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                             href={item.attachmentUrl}
                             download
                             target="_blank"
-                            className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             <div className="text-h8">Download attachment</div>
                         </Menu.Item>
@@ -60,7 +60,7 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                             onClick={() => {
                                 utils.copyTextToClipboardWithFallback(item.txHash ?? '')
                             }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             <div className="text-h8">Copy transaction hash</div>
                         </Menu.Item>

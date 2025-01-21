@@ -102,7 +102,7 @@ const SignupStep = () => {
                     {error && <p className="text-sm font-bold text-error">{error}</p>}
                 </div>
                 <div>
-                    <p className="border-t border-gray-1 pt-2 text-center text-xs text-gray-1">
+                    <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
                         <span>By creating account you agree with </span>
                         <Link
                             rel="noopener noreferrer"

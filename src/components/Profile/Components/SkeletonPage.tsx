@@ -196,7 +196,7 @@ export const ProfileSkeleton = ({ onClick, showOverlay = true, errorState, isLoa
                                 'Connect Wallet'
                             )}
                             {errorState.showError && (
-                                <div className="text-center">
+                                <div className="text-start">
                                     <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                                 </div>
                             )}

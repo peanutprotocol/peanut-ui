@@ -13,7 +13,7 @@ import Image from 'next/image'
 import { useMemo } from 'react'
 import CopyToClipboard from '../Global/CopyToClipboard'
 
-const colorArray = ['bg-blue-1', 'bg-yellow-1', 'bg-pink-1']
+const colorArray = ['bg-secondary-3', 'bg-secondary-1', 'bg-primary-1']
 
 type BaseWalletCardProps = {
     onClick?: () => void
@@ -134,7 +134,7 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                         <div className="flex items-center gap-2">
                             {isExternalWallet && (
                                 <>
-                                    <div className="rounded-sm bg-white/75 px-2 py-1 text-xs font-bold text-gray-1">
+                                    <div className="rounded-sm bg-white/75 px-2 py-1 text-xs font-bold text-grey-1">
                                         External
                                     </div>
                                     <div

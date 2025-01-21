@@ -461,7 +461,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
 
                 <div className="flex w-full flex-col items-center justify-center gap-2">
                     {errorState.showError && errorState.errorMessage === 'KYC under review' ? (
-                        <div className="text-center">
+                        <div className="text-start">
                             <label className=" text-h8 font-normal text-red ">
                                 KYC is under manual review, we might need additional documents.{' '}
                                 <CrispButton className="text-blue-600 underline">Chat with support</CrispButton> to
@@ -469,12 +469,12 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                             </label>
                         </div>
                     ) : errorState.errorMessage === 'KYC rejected' ? (
-                        <div className="text-center">
+                        <div className="text-start">
                             <label className=" text-h8 font-normal text-red ">KYC has been rejected.</label>
                             <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                         </div>
                     ) : (
-                        <div className="text-center">
+                        <div className="text-start">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                         </div>
                     )}

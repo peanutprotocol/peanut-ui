@@ -77,10 +77,10 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header className="mx-auto text-center">
-                <Card.Title className="text-center">Yay!</Card.Title>
+            <Card.Header>
+                <Card.Title>Yay!</Card.Title>
             </Card.Header>
-            <Card.Content className="flex flex-col gap-4 text-center">
+            <Card.Content className="flex flex-col gap-4">
                 {link && <QRCodeWrapper url={link} />}
                 {createType === 'direct'
                     ? `You have successfully sent the funds to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}.`
@@ -125,7 +125,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
                             <Link className="w-full" target="_blank" href={`${explorerUrlWithTx}`}>
                                 <Button variant="dark">
                                     Transaction hash
-                                    <Icon name="external" className="h-4 fill-gray-1" />
+                                    <Icon name="external" className="h-4 fill-grey-1" />
                                 </Button>
                             </Link>
                             <Link className="" href={'/profile'}>

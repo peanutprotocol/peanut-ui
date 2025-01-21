@@ -5,6 +5,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import Modal from '@/components/Global/Modal'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import HomeWaitlist from '@/components/Home/HomeWaitlist'
+import { ThemeProvider } from '@/config'
 import { peanutWalletIsInPreview } from '@/constants'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
@@ -14,8 +15,7 @@ import classNames from 'classnames'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import '../../styles/globals.bruddle.css'
-import { ThemeProvider } from '@/config'
+import '../../styles/globals.css'
 
 const publicPathRegex = /^\/(request\/pay|claim)/
 

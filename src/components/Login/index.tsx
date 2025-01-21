@@ -1,12 +1,12 @@
 'use client'
-import { useAuth } from '@/context/authContext'
-import { GlobalLoginComponent } from '../Global/LoginComponent'
-import { Divider } from '@chakra-ui/react'
-import { useContext, useState } from 'react'
-import * as context from '@/context'
-import Loading from '../Global/Loading'
-import Link from 'next/link'
 import * as assets from '@/assets'
+import * as context from '@/context'
+import { useAuth } from '@/context/authContext'
+import { Divider } from '@chakra-ui/react'
+import Link from 'next/link'
+import { useContext, useState } from 'react'
+import Loading from '../Global/Loading'
+import { GlobalLoginComponent } from '../Global/LoginComponent'
 const LoginComponent = () => {
     const { user, logoutUser, isFetchingUser } = useAuth()
     const [errorState, setErrorState] = useState<{
@@ -60,7 +60,7 @@ const LoginComponent = () => {
                         )}
                     </button>
                     {errorState.showError && (
-                        <div className="text-center">
+                        <div className="text-start">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                         </div>
                     )}
