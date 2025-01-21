@@ -1,5 +1,5 @@
-import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 import * as interfaces from '@/interfaces'
+import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 import { arbitrum, arbitrumSepolia } from 'viem/chains'
 
 export const peanutWalletIsInPreview = true
@@ -184,3 +184,15 @@ export const nativeCurrencyAddresses: string[] = [
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
     '0x0000000000000000000000000000000000000000',
 ]
+
+export const pathTitles: { [key: string]: string } = {
+    '/home': 'Dashboard',
+    '/send': 'Send',
+    '/wallet': 'Wallet asset',
+    '/request/create': 'Request Payment',
+    '/request/pay': 'Pay Request',
+    '/cashout': 'Cashout',
+    '/history': 'History',
+    '/support': 'Support',
+    '/claim': 'Claim Payment',
+}

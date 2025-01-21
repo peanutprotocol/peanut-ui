@@ -126,8 +126,8 @@ export default function Home() {
     }
 
     return (
-        <div className="w-full">
-            <div className="flex w-full flex-row justify-center overflow-hidden p-6">
+        <div className="h-full w-full">
+            <div className="flex h-full w-full flex-row justify-center overflow-hidden pb-6">
                 <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
                     <div className="flex items-center justify-between">
                         <WalletHeader />

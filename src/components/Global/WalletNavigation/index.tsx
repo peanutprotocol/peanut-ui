@@ -66,7 +66,7 @@ type MobileNavProps = {
 }
 
 const MobileNav: React.FC<MobileNavProps> = ({ tabs, pathName }) => (
-    <div className="z-1 grid grid-cols-3 border-t border-black p-2 md:hidden">
+    <div className="z-1 grid grid-cols-3 border-t border-black bg-background p-2 md:hidden">
         {tabs.map(({ name, href, icon }) => (
             <Link
                 href={href}

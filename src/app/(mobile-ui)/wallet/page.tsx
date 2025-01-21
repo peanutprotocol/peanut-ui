@@ -11,12 +11,14 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IUserBalance } from '@/interfaces'
 import { useWalletStore } from '@/redux/hooks'
-import { formatAmount, getChainName, getUserPreferences, updateUserPreferences } from '@/utils'
+import { formatAmount, getChainName, getHeaderTitle, getUserPreferences, updateUserPreferences } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
+import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 const WalletDetailsPage = () => {
+    const pathname = usePathname()
     const { open } = useAppKit()
     const { disconnect } = useDisconnect()
     const { focusedWallet, wallets } = useWalletStore()
@@ -41,7 +43,7 @@ const WalletDetailsPage = () => {
     return (
         <div className="mx-auto flex w-full flex-col gap-6 md:max-w-2xl">
             <div className="md:hidden">
-                <NavHeader title="Wallet asset" />
+                <NavHeader title={getHeaderTitle(pathname)} />
             </div>
 
             <div className="mx-auto">
