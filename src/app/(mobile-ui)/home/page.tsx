@@ -43,13 +43,15 @@ export default function Home() {
     const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
     const [focusedIndex, setFocusedIndex] = useState(selectedWalletIndex)
 
-    // update focusedIndex when selectedWallet changes
+    // update focusedIndex and focused wallet when selectedWallet changes
     useEffect(() => {
         const index = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
         if (index !== -1) {
             setFocusedIndex(index)
+            // also update the focused wallet when selected wallet changes
+            dispatch(walletActions.setFocusedWallet(wallets[index]))
         }
-    }, [selectedWallet, wallets])
+    }, [selectedWallet, wallets, dispatch])
 
     const hasWallets = wallets.length > 0
     const { handleLogin, isLoggingIn } = useZeroDev()

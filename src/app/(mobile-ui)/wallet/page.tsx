@@ -9,26 +9,25 @@ import NavHeader from '@/components/Global/NavHeader'
 import { WalletCard } from '@/components/Home/WalletCard'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { IUserBalance, WalletProviderType } from '@/interfaces'
+import { IUserBalance } from '@/interfaces'
+import { useWalletStore } from '@/redux/hooks'
 import { formatAmount, getChainName, getUserPreferences, updateUserPreferences } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 const WalletDetailsPage = () => {
-    const { selectedWallet, isConnected } = useWallet()
     const { open } = useAppKit()
     const { disconnect } = useDisconnect()
+    const { focusedWallet, wallets } = useWalletStore()
+    const { isConnected } = useWallet()
+    const { username } = useAuth()
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
         return prefs?.balanceHidden ?? false
     })
 
-    const { username } = useAuth()
-    const isActiveWalletPW = selectedWallet?.walletProviderType === WalletProviderType.PEANUT
-    const isActiveWalletBYOW = selectedWallet?.walletProviderType === WalletProviderType.BYOW
-
-    console.log('selectedWallet', selectedWallet)
+    const walletDetails = wallets.find((wallet) => wallet.address === focusedWallet)
 
     const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation()
@@ -46,11 +45,11 @@ const WalletDetailsPage = () => {
             </div>
 
             <div className="mx-auto">
-                {selectedWallet && (
+                {focusedWallet && walletDetails && (
                     <WalletCard
-                        key={selectedWallet.address}
+                        key={walletDetails.address}
                         type="wallet"
-                        wallet={selectedWallet}
+                        wallet={walletDetails}
                         username={username ?? ''}
                         selected
                         onClick={() => {}}
@@ -75,14 +74,14 @@ const WalletDetailsPage = () => {
 
             <div
                 className={twMerge(
-                    selectedWallet?.balances && !!selectedWallet?.balances?.length ? 'border-b border-b-n-1' : ''
+                    walletDetails?.balances && !!walletDetails?.balances?.length ? 'border-b border-b-n-1' : ''
                 )}
             >
-                {!!selectedWallet?.balances?.length ? (
+                {!!walletDetails?.balances?.length ? (
                     <div className="space-y-3">
                         <div className="text-base font-semibold">Balance</div>
                         <div>
-                            {selectedWallet.balances.map((balance: IUserBalance) => (
+                            {walletDetails.balances.map((balance: IUserBalance) => (
                                 <ListItemView
                                     key={`${balance.chainId}-${balance.symbol}`}
                                     id={`${balance.chainId}-${balance.symbol}`}
