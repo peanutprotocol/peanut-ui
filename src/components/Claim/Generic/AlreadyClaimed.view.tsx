@@ -29,7 +29,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                     <div className="flex w-full flex-col items-start justify-center gap-2 py-2">
                         <label className="text-h8">This link previously contained:</label>
                         {tokenSymbolAvailable && (
-                            <div className="text-grey-1 flex w-full flex-row items-center justify-between gap-1  text-h8">
+                            <div className="flex w-full flex-row items-center justify-between gap-1 text-h8  text-grey-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1 px-2">
                                     <label className="font-bold">Token</label>
                                 </div>
@@ -39,7 +39,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                             </div>
                         )}
                         {tokenAmountAvailable && (
-                            <div className="text-grey-1 flex w-full flex-row items-center justify-between gap-1 px-2  text-h8">
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8  text-grey-1">
                                 <div className="flex w-max  flex-row items-center justify-center gap-1">
                                     <label className="font-bold">Amount</label>
                                 </div>
@@ -49,7 +49,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                             </div>
                         )}
                         {chainAvailable && (
-                            <div className="text-grey-1 flex w-full flex-row items-center justify-between gap-1 px-2  text-h8">
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8  text-grey-1">
                                 <div className="flex w-max  flex-row items-center justify-center gap-1">
                                     <label className="font-bold">Chain</label>
                                 </div>
@@ -67,7 +67,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                             </div>
                         )}
                         {senderAddressAvailable && (
-                            <div className="text-grey-1 flex w-full flex-row items-center justify-between gap-1 px-2  text-h8">
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8  text-grey-1">
                                 <div className="flex w-max  flex-row items-center justify-center gap-1">
                                     <label className="font-bold">Sender</label>
                                 </div>

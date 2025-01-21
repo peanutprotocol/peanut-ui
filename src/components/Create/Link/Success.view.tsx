@@ -125,7 +125,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
                             <Link className="w-full" target="_blank" href={`${explorerUrlWithTx}`}>
                                 <Button variant="dark">
                                     Transaction hash
-                                    <Icon name="external" className="fill-grey-1 h-4" />
+                                    <Icon name="external" className="h-4 fill-grey-1" />
                                 </Button>
                             </Link>
                             <Link className="" href={'/profile'}>

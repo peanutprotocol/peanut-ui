@@ -235,7 +235,7 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
 // add new wallet component, triggers web3modal
 const AddNewWallet = ({ onClick }: { onClick: () => void }) => (
     <Card onClick={onClick}>
-        <Card.Content className="bg-purple-5 flex min-h-16 w-full cursor-pointer items-center justify-center gap-3 px-4 py-3 hover:bg-opacity-90">
+        <Card.Content className="flex min-h-16 w-full cursor-pointer items-center justify-center gap-3 bg-purple-5 px-4 py-3 hover:bg-opacity-90">
             <div className="flex size-7 items-center justify-center rounded-full border border-n-1">
                 <Icon name="plus" fill="black" className="h-7 w-7" />
             </div>

@@ -57,9 +57,9 @@ export const OfframpSuccessView = ({
                     Your funds are on the way. A confirmation email will be sent to {offrampForm.email} shortly. Please
                     keep in mind that it may take up to 2 days for the funds to arrive.
                 </label>
-                <div className="text-grey-1 flex w-full flex-row items-center px-2 text-h8">
+                <div className="flex w-full flex-row items-center px-2 text-h8 text-grey-1">
                     <div className="flex w-1/3 flex-row items-center gap-1">
-                        <Icon name={'gas'} className="fill-grey-1 h-4" />
+                        <Icon name={'gas'} className="h-4 fill-grey-1" />
                         <label className="font-bold">Fee</label>
                     </div>
                     <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
@@ -79,9 +79,9 @@ export const OfframpSuccessView = ({
                 </div>
 
                 {/* You will receive section */}
-                <div className="text-grey-1 flex w-full flex-row items-center justify-between px-2 text-h8">
+                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
                     <div className="flex w-max flex-row items-center gap-1">
-                        <Icon name={'transfer'} className="fill-grey-1 h-4" />
+                        <Icon name={'transfer'} className="h-4 fill-grey-1" />
                         <label className="font-bold">You will receive</label>
                     </div>
                     <div className="flex items-center justify-end gap-1 text-sm font-normal">

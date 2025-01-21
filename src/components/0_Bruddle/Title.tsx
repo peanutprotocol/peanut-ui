@@ -10,10 +10,10 @@ const Title = ({
 } & React.HTMLAttributes<HTMLParagraphElement>) => {
     return (
         <div className="relative inline-block">
-            <p className={twMerge('font-knerd-filled relative text-white', offset && 'translate-x-[3px]', className)}>
+            <p className={twMerge('relative font-knerd-filled text-white', offset && 'translate-x-[3px]', className)}>
                 {text}
             </p>
-            <p className={twMerge('font-knerd-outline absolute left-0 top-0', className)}>{text}</p>
+            <p className={twMerge('absolute left-0 top-0 font-knerd-outline', className)}>{text}</p>
         </div>
     )
 }

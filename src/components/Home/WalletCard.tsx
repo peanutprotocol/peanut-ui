@@ -134,7 +134,7 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                         <div className="flex items-center gap-2">
                             {isExternalWallet && (
                                 <>
-                                    <div className="text-grey-1 rounded-sm bg-white/75 px-2 py-1 text-xs font-bold">
+                                    <div className="rounded-sm bg-white/75 px-2 py-1 text-xs font-bold text-grey-1">
                                         External
                                     </div>
                                     <div
