@@ -274,6 +274,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             if (response.ok) {
                 localStorage.removeItem(LOCAL_STORAGE_WEB_AUTHN_KEY)
+
+                // clear JWT cookie by setting it to expire
+                document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
                 await fetchUser()
                 router.push('/setup')
 

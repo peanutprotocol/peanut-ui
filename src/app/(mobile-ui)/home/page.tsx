@@ -3,6 +3,7 @@
 import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
+import LogoutButton from '@/components/Global/LogoutButton'
 import WalletHeader from '@/components/Global/WalletHeader'
 import { WalletCard } from '@/components/Home/WalletCard'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
@@ -134,7 +135,7 @@ export default function Home() {
                         {/* todo: temp sign in button, remove it once auth state is fixed */}
                         <div>
                             {hasWallets && (isPeanutWallet || isConnected) && (
-                                <div>
+                                <div className="hidden md:block">
                                     <Button
                                         loading={isLoggingIn}
                                         disabled={isLoggingIn}
@@ -152,6 +153,9 @@ export default function Home() {
                                     </Button>
                                 </div>
                             )}
+                            <div className="md:hidden">
+                                <LogoutButton />
+                            </div>
                         </div>
                     </div>
                     <ProfileSection />
