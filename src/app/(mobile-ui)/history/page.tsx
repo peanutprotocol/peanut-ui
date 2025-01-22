@@ -9,14 +9,16 @@ import NavHeader from '@/components/Global/NavHeader'
 import { PEANUT_API_URL } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IDashboardItem } from '@/interfaces'
-import { formatAmountWithSignificantDigits, formatDate, printableAddress } from '@/utils'
+import { formatAmountWithSignificantDigits, formatDate, getHeaderTitle, printableAddress } from '@/utils'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 const ITEMS_PER_PAGE = 10
 
 const HistoryPage = () => {
+    const pathname = usePathname()
     const { address } = useWallet()
     const { composeLinkDataArray, fetchLinkDetailsAsync, removeRequestLinkFromLocalStorage } = useDashboard()
     const [dashboardData, setDashboardData] = useState<IDashboardItem[]>([])
@@ -105,15 +107,33 @@ const HistoryPage = () => {
         return <div className="w-full py-4 text-center">Error loading history</div>
     }
 
+    if (!data?.pages.length) {
+        return (
+            <div className="flex h-[80dvh] items-center justify-center">
+                <NoDataEmptyState
+                    animSize="lg"
+                    message="You haven't done any transactions"
+                    cta={
+                        <Link href="/home" className="cursor-pointer">
+                            <Button shadowSize="4" size="medium" variant={'purple'} className="cursor-pointer">
+                                Go to Dashboard
+                            </Button>
+                        </Link>
+                    }
+                />
+            </div>
+        )
+    }
+
     return (
         <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
-            {!!data?.pages.length ? <NavHeader title="History" /> : null}
+            {!!data?.pages.length ? <NavHeader title={getHeaderTitle(pathname)} /> : null}
             <div className="h-full w-full">
-                {!!data?.pages.length ? (
+                {!!data?.pages.length &&
                     data?.pages.map((page, pageIndex) => (
-                        <div key={pageIndex}>
+                        <div key={pageIndex} className="border-b border-n-1">
                             {page.items.map((item) => (
-                                <div key={item.id} className="border-b border-n-1">
+                                <div key={item.id}>
                                     <ListItemView
                                         id={item.id}
                                         variant="history"
@@ -143,22 +163,7 @@ const HistoryPage = () => {
                                 </div>
                             ))}
                         </div>
-                    ))
-                ) : (
-                    <div className="flex h-full items-center justify-center">
-                        <NoDataEmptyState
-                            animSize="lg"
-                            message="You haven't done any transactions"
-                            cta={
-                                <Link href="/home" className="cursor-pointer">
-                                    <Button shadowSize="4" size="medium" variant={'purple'} className="cursor-pointer">
-                                        Go to Dashboard
-                                    </Button>
-                                </Link>
-                            }
-                        />
-                    </div>
-                )}
+                    ))}
 
                 <div ref={loaderRef} className="w-full py-4">
                     {isFetchingNextPage && <div className="w-full text-center">Loading more...</div>}

@@ -6,7 +6,8 @@ import { hitUserMetric } from '@/utils/metrics.utils'
 import { ToastId, useToast } from '@chakra-ui/react'
 import { useAppKit } from '@reown/appkit/react'
 import { useQuery } from '@tanstack/react-query'
-import { createContext, ReactNode, useContext, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { createContext, ReactNode, useContext, useRef, useState } from 'react'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -33,6 +34,7 @@ interface AuthContextType {
     }) => Promise<void>
     isFetchingUser: boolean
     logoutUser: () => Promise<void>
+    isLoggingOut: boolean
 }
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
@@ -42,6 +44,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const router = useRouter()
     const { open: web3modalOpen } = useAppKit()
     const isPwa = usePWAStatus()
     const {
@@ -80,6 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         icon: '🥜',
     })
     const toastIdRef = useRef<ToastId | undefined>(undefined)
+    const [isLoggingOut, setIsLoggingOut] = useState(false)
 
     const updateUserName = async (username: string) => {
         if (!user) return
@@ -255,6 +259,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const logoutUser = async () => {
+        const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
+
+        if (isLoggingOut) return
+
+        setIsLoggingOut(true)
         try {
             const response = await fetch('/api/peanut/user/logout-user', {
                 method: 'GET',
@@ -264,12 +273,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             })
 
             if (response.ok) {
-                fetchUser()
+                localStorage.removeItem(LOCAL_STORAGE_WEB_AUTHN_KEY)
+
+                // clear JWT cookie by setting it to expire
+                document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
+                await fetchUser()
+                router.push('/setup')
+
+                toast({
+                    status: 'success',
+                    title: 'Logged out successfully',
+                    duration: 3000,
+                })
             } else {
                 console.error('Failed to log out user')
+                toast({
+                    status: 'error',
+                    title: 'Failed to log out',
+                    description: 'Please try again',
+                    duration: 5000,
+                })
             }
         } catch (error) {
-            console.error('Error updating user', error)
+            console.error('Error logging out user', error)
+            toast({
+                status: 'error',
+                title: 'Error logging out',
+                description: 'Please try again',
+                duration: 5000,
+            })
+        } finally {
+            setIsLoggingOut(false)
         }
     }
 
@@ -289,6 +324,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 addAccount,
                 isFetchingUser,
                 logoutUser,
+                isLoggingOut,
             }}
         >
             {children}

@@ -3,6 +3,7 @@
 import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
+import LogoutButton from '@/components/Global/LogoutButton'
 import WalletHeader from '@/components/Global/WalletHeader'
 import { WalletCard } from '@/components/Home/WalletCard'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
@@ -126,15 +127,15 @@ export default function Home() {
     }
 
     return (
-        <div className="w-full">
-            <div className="flex w-full flex-row justify-center overflow-hidden p-6">
+        <div className="h-full w-full">
+            <div className="flex h-full w-full flex-row justify-center overflow-hidden pb-6">
                 <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
                     <div className="flex items-center justify-between">
                         <WalletHeader />
                         {/* todo: temp sign in button, remove it once auth state is fixed */}
                         <div>
                             {hasWallets && (isPeanutWallet || isConnected) && (
-                                <div>
+                                <div className="hidden md:block">
                                     <Button
                                         loading={isLoggingIn}
                                         disabled={isLoggingIn}
@@ -152,6 +153,9 @@ export default function Home() {
                                     </Button>
                                 </div>
                             )}
+                            <div className="md:hidden">
+                                <LogoutButton />
+                            </div>
                         </div>
                     </div>
                     <ProfileSection />

@@ -1070,3 +1070,7 @@ export function getChainName(chainId: string): string | undefined {
     const chain = Object.entries(wagmiChains).find(([, chain]) => chain.id === Number(chainId))?.[1]
     return chain?.name ?? undefined
 }
+
+export const getHeaderTitle = (pathname: string) => {
+    return consts.pathTitles[pathname] || 'Peanut Protocol' // default title if path not found
+}

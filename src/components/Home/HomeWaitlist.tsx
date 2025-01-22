@@ -1,17 +1,14 @@
+import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { Card } from '../0_Bruddle'
-
-import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import { useZeroDev } from '@/hooks/useZeroDev'
 import RollingNumber from '../0_Bruddle/RollingNumber'
 import Title from '../0_Bruddle/Title'
 
 const HomeWaitlist = () => {
     const { push } = useRouter()
     const { username, isFetchingUser, user } = useAuth()
-    const { handleLogin, isLoggingIn } = useZeroDev()
 
     useEffect(() => {
         if (!isFetchingUser && !username) {
