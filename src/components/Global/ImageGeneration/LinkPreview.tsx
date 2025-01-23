@@ -35,7 +35,12 @@ export function LinkPreviewImg({
         ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, tokenAddress))?.logoURI
     const chainImage = consts.supportedPeanutChains.find((chain) => chain.chainId === chainId)?.icon.url
 
-    const previewBg = `${process.env.NEXT_PUBLIC_BASE_URL}/preview-bg.png`
+    const previewBg = `${
+        process.env.NEXT_PUBLIC_VERCEL_URL
+            ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+            : process.env.NEXT_PUBLIC_BASE_URL
+    }/social-preview-bg.png`
+
     return (
         <div
             style={{
@@ -129,7 +134,6 @@ export function LinkPreviewImg({
                         style={{
                             fontSize: '49px',
                             fontWeight: 'bold',
-                            textShadow: '1px 1px 1px rgba(0,0,0,0.3)',
                             color: 'black',
                         }}
                     >
