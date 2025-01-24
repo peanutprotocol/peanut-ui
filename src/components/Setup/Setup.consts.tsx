@@ -1,8 +1,7 @@
 import passkeyPeanut from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_02/PNGS_konradurban_02_17.png'
 import successPeanut from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_03/PNGS_konradurban_03_46.png'
-import notificationPeanut from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_06/PNGS_konradurban_06_11.png'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import { PEANUTMAN_MOBILE, PEANUTMAN_WALLET, ThumbsUp } from '@/assets'
+import { PEANUTMAN_MOBILE, PEANUTMAN_THINKING, PEANUTMAN_WALLET, ThumbsUp } from '@/assets'
 import { ISetupStep } from '@/components/Setup/Setup.types'
 import {
     AddWallets,
@@ -62,11 +61,11 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'standard',
         title: 'Enable notification',
         description: 'Get notified about incoming and outgoing of payments.',
-        image: notificationPeanut.src,
+        image: PEANUTMAN_THINKING,
         component: NotificationPermission,
         showBackButton: true,
         showSkipButton: true,
-        imageClassName: 'w-[65%] md:w-[40%] h-auto mt-14 md:mt-0',
+        imageClassName: 'w-[45%] md:w-[30%] h-auto mt-12 md:mt-0',
     },
     {
         screenId: 'pwa-install',
