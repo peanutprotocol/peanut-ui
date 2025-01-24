@@ -32,7 +32,7 @@ export const KYCComponent = () => {
                         <Button>Go to Cashout</Button>
                     </Link>
                     <Divider text="OR" />
-                    <Link href={'/cashout'} className="w-full">
+                    <Link href={'/home'} className="w-full">
                         <Button variant="stroke">Go to Dashboard</Button>
                     </Link>
                 </Card.Content>
