@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import * as assets from '@/assets'
 import Layout from '@/components/Global/Layout'
-import { Hero, FAQs, Features, Mike, Story, BuildOnUs } from '@/components/LandingPage'
+import { BuildOnUs, FAQs, Features, Hero, Mike, Story } from '@/components/LandingPage'
 import { useFooterVisibility } from '@/context/footerVisibility'
+import { useEffect, useState } from 'react'
 
 export default function LandingPage() {
     const hero = {
@@ -15,7 +15,7 @@ export default function LandingPage() {
         },
         cta: {
             label: 'TRY NOW',
-            href: '/send',
+            href: '/pay',
         },
     }
     const story = {
