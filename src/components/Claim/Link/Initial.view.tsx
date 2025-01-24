@@ -453,7 +453,7 @@ export const InitialClaimLinkView = ({
                             )}
                         </div>
                     </Card.Title>
-                    <Card.Description>
+                    <Card.Description className="mx-auto">
                         {(attachment.message || attachment.attachmentUrl) && (
                             <>
                                 <div
