@@ -2,11 +2,11 @@ import { Step, Steps, useSteps } from 'chakra-ui-steps'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
+import { KYCComponent } from '@/components/Kyc'
 import { useAuth } from '@/context/authContext'
 import { IBridgeAccount, IResponse } from '@/interfaces'
 import * as utils from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
-import { Divider } from '@chakra-ui/react'
 import Link from 'next/link'
 import { isIBAN } from 'validator'
 import CountryDropdown from '../CountrySelect'
@@ -109,7 +109,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
     useEffect(() => {
         // Check if we need to show address input fields
         if (getAccountDetailsValue('type') === 'us') {
-            if (!user?.user?.kycStatus || user.user.kycStatus !== 'verified') {
+            if (!user?.user?.kycStatus || user.user.kycStatus !== 'approved') {
                 // Always show address fields for unverified users
                 setNeedsAddressInput(true)
             } else {
@@ -622,23 +622,6 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             </div>
         )
     ) : (
-        <div className="flex w-full flex-col items-center justify-center gap-6 py-2 text-start">
-            <p className="text-h6">
-                Before you can link an account, please login or register & complete the kyc process.
-            </p>
-            <div className="flex w-full flex-col items-center justify-center gap-2">
-                <Link className="btn btn-xl h-8" href={'/login'}>
-                    Login
-                </Link>
-                <span className="flex w-full flex-row items-center justify-center gap-2">
-                    <Divider borderColor={'black'} />
-                    <p>or</p>
-                    <Divider borderColor={'black'} />
-                </span>
-                <Link className="btn btn-xl h-8" href={'/register'}>
-                    Register
-                </Link>
-            </div>
-        </div>
+        <KYCComponent />
     )
 }

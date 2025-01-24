@@ -41,7 +41,7 @@ export const useWallet = () => {
             if (isPeanut(wallet) && kernelClientAddress) {
                 return isKernelClientReady && areEvmAddressesEqual(kernelClientAddress, wallet.address)
             }
-            if (wagmiAddress) {
+            if (wagmiAddress && wallet) {
                 return isWagmiConnected && wagmiAddress.some((addr) => areEvmAddressesEqual(addr, wallet.address))
             }
             return false

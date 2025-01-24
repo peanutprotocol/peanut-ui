@@ -10,10 +10,11 @@ type UserPayload = {
     telegramUsername?: string
     email?: string
     pushSubscriptionId?: string
+    fullName?: string
 }
 
 export async function POST(request: NextRequest) {
-    const { userId, username, bridge_customer_id, kycStatus, telegram, email, pushSubscriptionId } =
+    const { userId, username, bridge_customer_id, kycStatus, telegram, email, pushSubscriptionId, fullName } =
         await request.json()
     const apiKey = process.env.PEANUT_API_KEY
     const cookieStore = cookies()
@@ -41,6 +42,10 @@ export async function POST(request: NextRequest) {
 
         if (pushSubscriptionId) {
             payload.pushSubscriptionId = pushSubscriptionId
+        }
+
+        if (fullName) {
+            payload.fullName = fullName
         }
 
         const response = await fetch(`${consts.PEANUT_API_URL}/update-user`, {

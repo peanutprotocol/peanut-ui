@@ -1,6 +1,7 @@
+import { KYCStatus } from '@/utils'
+import { useToast } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
 import Modal from '../Modal'
-import { useToast } from '@chakra-ui/react'
 
 export type IFrameWrapperProps = {
     src: string
@@ -51,7 +52,7 @@ const IframeWrapper = ({
                 if (!response.ok) return
 
                 const data = await response.json()
-                const kycStatus = data.kyc_status
+                const kycStatus: KYCStatus = data.kyc_status
                 console.log('📊 Current KYC status:', kycStatus)
 
                 if (kycStatus === 'not_started') {

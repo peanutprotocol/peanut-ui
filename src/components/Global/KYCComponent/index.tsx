@@ -14,7 +14,7 @@ import { useForm } from 'react-hook-form'
 import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
 import Loading from '../Loading'
 import { GlobalLoginComponent } from '../LoginComponent'
-import { GlobalRegisterComponent } from '../RegisterComponent'
+import { UpdateUserComponent } from '../UpdateUserComponent'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -323,7 +323,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             case 0:
                 return userState === 'register' ? (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <GlobalRegisterComponent
+                        <UpdateUserComponent
                             onSubmit={({ status, message }) => {
                                 if (status === 'success') {
                                     handleEmail(watchOfframp())
@@ -335,19 +335,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                                 }
                             }}
                         />
-                        <span className="flex w-full flex-row items-center justify-center gap-2">
-                            <Divider borderColor={'black'} />
-                            <p>or</p>
-                            <Divider borderColor={'black'} />
-                        </span>
-                        <button
-                            className="btn btn-xl h-8 text-h8"
-                            onClick={() => {
-                                setUserState('login')
-                            }}
-                        >
-                            Login
-                        </button>
                     </div>
                 ) : (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
@@ -401,7 +388,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
 
             case 2:
                 return (
-                    <div className="mb-2 flex flex-col items-center justify-center gap-2">
+                    <div className="flex flex-col items-center justify-center gap-2">
                         <button
                             onClick={() => {
                                 handleKYCStatus()
@@ -422,12 +409,10 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     }
 
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header className="mx-auto text-center">
-                <Card.Title className="text-center">KYC Process</Card.Title>
-                <Card.Description className="text-center">
-                    Regulations require us to verify your identity.
-                </Card.Description>
+        <Card className="shadow-none">
+            <Card.Header>
+                <Card.Title>KYC Process</Card.Title>
+                <Card.Description>Regulations require us to verify your identity.</Card.Description>
             </Card.Header>
             <Card.Content>
                 <Steps
@@ -452,7 +437,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 >
                     {steps.map(({ label }, index) => (
                         <Step label={label} key={label}>
-                            <div className="relative z-10 flex w-full items-center justify-center pr-[40px]">
+                            <div className="relative z-10 flex w-full items-center justify-start px-3">
                                 {renderComponent()}
                             </div>
                         </Step>
