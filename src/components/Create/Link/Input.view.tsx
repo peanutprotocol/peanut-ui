@@ -175,6 +175,18 @@ export const CreateLinkInputView = ({
                             preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
                         })
 
+                        // if the total amount (tokenValue + estimated gas fees) exceeds the wallet balance set error
+                        const totalAmount = parseFloat(tokenValue ?? '0') + (transactionCostUSD ?? 0)
+                        const walletBalance = parseFloat(maxValue ?? '0')
+                        if (totalAmount > walletBalance) {
+                            setErrorState({
+                                showError: true,
+                                errorMessage:
+                                    'You do not have enough balance to cover the transaction fees, try again with a lower amount',
+                            })
+                            return
+                        }
+
                         _feeOptions = feeOptions
                         setFeeOptions(feeOptions)
                         setTransactionCostUSD(transactionCostUSD)
@@ -200,7 +212,7 @@ export const CreateLinkInputView = ({
                             setErrorState({
                                 showError: true,
                                 errorMessage:
-                                    'You do not have enough balance to cover the transaction fees, try again with suggested amount',
+                                    'You do not have enough balance to cover the transaction fees, try again with a lower amount',
                             })
                             return
                         }
