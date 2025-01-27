@@ -97,6 +97,8 @@ export const ErrorHandler = (error: any) => {
             return 'Error sending the transaction.'
         } else if (error.toString().includes('Error getting the link with transactionHash')) {
             return error.message
+        } else if (error.toString().includes('transfer amount exceeds balance')) {
+            return 'You do not have enough balance to cover the transaction fees, try again with a lower amount'
         } else {
             return 'Something failed. Please try again.'
         }
