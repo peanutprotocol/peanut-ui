@@ -1,7 +1,7 @@
 import * as assets from '@/assets'
 import Loading from '@/components/Global/Loading'
 import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
-import { GlobalRegisterComponent } from '@/components/Global/RegisterComponent'
+import { UpdateUserComponent } from '@/components/Global/UpdateUserComponent'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useState } from 'react'
 
@@ -158,7 +158,7 @@ export const ProfileSkeleton = ({ onClick, showOverlay = true, errorState, isLoa
                             </>
                         ) : (
                             <>
-                                <GlobalRegisterComponent />
+                                <UpdateUserComponent />
                                 <span className="text-h8 font-normal">
                                     Click{' '}
                                     <span

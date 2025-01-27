@@ -1,45 +1,35 @@
 import { useAuth } from '@/context/authContext'
-import crypto from 'crypto'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Loading from '../Loading'
-interface IRegisterComponentProps {
+
+interface IUpdateUserComponentProps {
     userId?: string
     name?: string
     email?: string
     password?: string
     onSubmit?: ({ status, message }: { status: 'success' | 'error' | 'login'; message: string }) => void
-    redirectUrl?: string
 }
 
-interface IRegisterForm {
+interface IForm {
     name: string
     email: string
-    password: string
 }
 
-export const GlobalRegisterComponent = ({
-    userId,
-    name,
-    email,
-    password,
-    onSubmit,
-    redirectUrl,
-}: IRegisterComponentProps) => {
+export const UpdateUserComponent = ({ name, email, onSubmit }: IUpdateUserComponentProps) => {
     const [loadingState, setLoadingState] = useState<string>('Idle')
     const isLoading = useMemo(() => loadingState !== 'Idle', [loadingState])
-    const { fetchUser } = useAuth()
+    const { fetchUser, user } = useAuth()
     const {
         register,
         watch,
         formState: { errors },
         handleSubmit,
-    } = useForm<IRegisterForm>({
+    } = useForm<IForm>({
         mode: 'onBlur',
         defaultValues: {
             name: name,
             email: email,
-            password: password,
         },
     })
     const [errorState, setErrorState] = useState<{
@@ -47,60 +37,45 @@ export const GlobalRegisterComponent = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
 
-    const hashPassword = (
-        password: string
-    ): {
-        salt: string
-        hash: string
-    } => {
-        const salt = crypto.randomBytes(16).toString('hex')
-
-        const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex')
-
-        return { salt, hash }
-    }
-
-    const handleOnSubmit = async (data: IRegisterForm) => {
+    const handleOnSubmit = async (data: IForm) => {
         try {
-            setLoadingState('Registering')
-            const { salt, hash } = hashPassword(data.password)
-            const registerResponse = await fetch('/api/peanut/user/register-user', {
+            setLoadingState('Submitting details')
+            const response = await fetch('/api/peanut/user/update-user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     email: data.email,
-                    salt,
-                    hash,
+                    userId: user?.user.userId,
+                    bridgeCustomerId: user?.user.bridge_customer_id,
                     fullName: data.name,
                 }),
             })
 
-            await registerResponse.json()
+            await response.json()
 
-            // If user already exists, login
-            if (registerResponse.status === 409) {
-                throw new Error('User already exists')
-            } else if (registerResponse.status !== 200) {
-                throw new Error('Error registering user')
+            // if email already exists, login
+            if (response.status === 409) {
+                throw new Error('Email already exists')
+            } else if (response.status !== 200) {
+                throw new Error('Error submitting details')
             }
 
             await fetchUser()
-            onSubmit?.({ status: 'success', message: 'User registered successfully' })
-            redirectUrl ?? window.location.href == redirectUrl
+            onSubmit?.({ status: 'success', message: 'Details submitted successfully' })
         } catch (error) {
             console.error(error)
 
-            if (error?.toString().includes('User already exists')) {
+            if (error?.toString().includes('Email already exists')) {
                 setErrorState({
                     showError: true,
-                    errorMessage: 'User already exists',
+                    errorMessage: 'Email already exists',
                 })
             } else {
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Error registering user',
+                    errorMessage: 'Error submitting details, please try again',
                 })
             }
         } finally {
@@ -140,29 +115,13 @@ export const GlobalRegisterComponent = ({
             />
             {errors.email && <span className="text-start text-h9 font-normal text-red">{errors.email.message}</span>}
 
-            <input
-                {...register('password', { required: 'This field is required' })}
-                className={`custom-input custom-input-xs ${errors.password ? 'border border-red' : ''}`}
-                placeholder="Password"
-                type="password"
-                autoComplete="new-password"
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                        handleOnSubmit(watch())
-                    }
-                }}
-            />
-            {errors.password && (
-                <span className="text-start text-h9 font-normal text-red">{errors.password.message}</span>
-            )}
-
             <button type="submit" className="btn btn-purple h-8 w-full text-h8" disabled={isLoading}>
                 {isLoading ? (
                     <div className="flex w-full flex-row items-center justify-center gap-2 ">
                         <Loading /> {loadingState}
                     </div>
                 ) : (
-                    'Register'
+                    'Submit details'
                 )}
             </button>
             {errorState.showError && errorState.errorMessage === 'User already exists' ? (

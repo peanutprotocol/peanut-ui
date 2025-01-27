@@ -683,7 +683,7 @@ export const OfframpConfirmView = ({
                     </Card.Description>
                 </Card.Header>
 
-                <Card.Content className="col gap-4">
+                <Card.Content className="col gap-4 p-6">
                     {activeStep < 3 ? (
                         <GlobalKYCComponent
                             intialStep={initialKYCStep}

@@ -1,3 +1,4 @@
+import { KYCStatus } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us'
@@ -348,7 +349,7 @@ interface User {
     email: string
     profile_picture: string | null
     username: string | null
-    kycStatus: string
+    kycStatus: KYCStatus
     bridge_customer_id: string | null
     full_name: string
     telegram: string | null

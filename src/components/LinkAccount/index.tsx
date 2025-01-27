@@ -55,7 +55,7 @@ export const LinkAccountComponent = () => {
                     </Card.Description>
                 </Card.Header>
                 <Card.Content>
-                    {user && user?.user?.kycStatus != 'verified' ? (
+                    {user && user?.user?.kycStatus != 'approved' ? (
                         <div className="flex flex-col items-center justify-center gap-4">
                             <Link href={'/profile'} className="w-full">
                                 <Button>Complete KYC</Button>

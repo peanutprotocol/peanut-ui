@@ -1,34 +1,13 @@
 'use client'
 import * as assets from '@/assets'
-import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
-import { useContext, useState } from 'react'
 import { Button, Card } from '../0_Bruddle'
 import Divider from '../0_Bruddle/Divider'
 import { GlobalKYCComponent } from '../Global/KYCComponent'
 
 export const KYCComponent = () => {
-    const { user, logoutUser, isFetchingUser } = useAuth()
-    const [errorState, setErrorState] = useState<{
-        showError: boolean
-        errorMessage: string
-    }>({ showError: false, errorMessage: '' })
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const handleLogout = async () => {
-        try {
-            setLoadingState('Logging out')
-            await logoutUser()
-        } catch (error) {
-            console.error('Error logging out', error)
-            setErrorState({
-                showError: true,
-                errorMessage: 'Error logging out',
-            })
-        } finally {
-            setLoadingState('Idle')
-        }
-    }
+    const { user, isFetchingUser } = useAuth()
 
     if (!user && isFetchingUser) {
         return (
@@ -41,7 +20,7 @@ export const KYCComponent = () => {
         )
     }
 
-    if (user && user?.user?.kycStatus === 'verified') {
+    if (user && user?.user?.kycStatus === 'approved') {
         return (
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
@@ -49,18 +28,13 @@ export const KYCComponent = () => {
                     <Card.Description>You have already completed the KYC process!</Card.Description>
                 </Card.Header>
                 <Card.Content className="col gap-4 py-4">
-                    <Link href={'/profile'} className="w-full">
-                        <Button>Go to profile</Button>
+                    <Link href={'/cashout'} className="w-full">
+                        <Button>Go to Cashout</Button>
                     </Link>
                     <Divider text="OR" />
-                    <Button variant="stroke" loading={isLoading} onClick={handleLogout}>
-                        {isLoading ? loadingState : 'Logout'}
-                    </Button>
-                    {errorState.showError && (
-                        <div className="text-start">
-                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                        </div>
-                    )}
+                    <Link href={'/home'} className="w-full">
+                        <Button variant="stroke">Go to Dashboard</Button>
+                    </Link>
                 </Card.Content>
             </Card>
         )

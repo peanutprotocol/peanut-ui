@@ -79,7 +79,7 @@ export const InitialCashoutView = ({
     const { prepareCreateLinkWrapper } = useCreateLink()
 
     const { isConnected, signInModal, selectedWallet, isExternalWallet, isPeanutWallet } = useWallet()
-    const { open: web3modalOpen } = useAppKit()
+    const { open: appkitModal } = useAppKit()
 
     const isBelowMinLimit = useMemo(() => {
         if (!usdValue) return false
@@ -276,7 +276,7 @@ export const InitialCashoutView = ({
                         setTokenValue={_setTokenValue}
                         maxValue={maxValue}
                         onSubmit={() => {
-                            if (!isConnected) signInModal.open()
+                            if (!isConnected) appkitModal()
                             else handleOnNext()
                         }}
                     />
@@ -292,7 +292,7 @@ export const InitialCashoutView = ({
                             {selectedWallet!.balances!.length === 0 && (
                                 <div
                                     onClick={() => {
-                                        web3modalOpen()
+                                        appkitModal()
                                     }}
                                     className="cursor-pointer text-h9 underline"
                                 >
@@ -425,7 +425,7 @@ export const InitialCashoutView = ({
                                             setLoadingState('Idle')
                                         })
                                 } else {
-                                    signInModal.open()
+                                    appkitModal()
                                 }
                             } else {
                                 handleOnNext()
