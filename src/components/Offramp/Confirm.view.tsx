@@ -111,10 +111,12 @@ export const OfframpConfirmView = ({
     // TODO: they need to be refactored to a separate file
     // TODO: this function is a clusterfuck
     const fetchNecessaryDetails = useCallback(async () => {
+        // check if user and token information is available
         if (!user || !selectedChainID || !selectedTokenAddress) {
             throw new Error('Missing user or token information')
         }
 
+        // determine token type: 0 for native currency, 1 for others
         const tokenType = utils.isNativeCurrency(selectedTokenAddress) ? 0 : 1
         const contractVersion = await getLatestContractVersion({
             chainId: selectedChainID,
@@ -122,6 +124,7 @@ export const OfframpConfirmView = ({
             experimental: false,
         })
 
+        // fetch cross-chain details based on chain ID, token type, and contract version
         const crossChainDetails = await getCrossChainDetails({
             chainId: selectedChainID,
             tokenType,
@@ -137,11 +140,12 @@ export const OfframpConfirmView = ({
         const bridgeCustomerId = user?.user?.bridge_customer_id
         const bridgeExternalAccountId = peanutAccount?.bridge_account_id
 
+        // ensure all necessary account information is available
         if (!peanutAccount || !bridgeCustomerId || !bridgeExternalAccountId) {
             throw new Error('Missing account information')
         }
 
-        // Fetch all liquidation addresses for the user
+        // fetch all liquidation addresses for the user
         const allLiquidationAddresses = await utils.getLiquidationAddresses(bridgeCustomerId)
 
         return {
@@ -256,11 +260,12 @@ export const OfframpConfirmView = ({
         bridgeExternalAccountId: string,
         accountType: string
     ) => {
+        // get token and chain names from claim link data
         let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
         let chainName = utils.getBridgeChainName(claimLinkData.chainId)
         let xchainNeeded = false
 
-        // if we don't have a token and chain name (meaning bridge supports it), we do x-chain transfer to optimism usdc
+        // if token and chain names are not available, set up cross-chain transfer to optimism usdc
         if (!tokenName || !chainName) {
             xchainNeeded = true
             const result = await handleCrossChainScenario(claimLinkData)
@@ -271,6 +276,7 @@ export const OfframpConfirmView = ({
             chainName = result.chainName
         }
 
+        // find or create a liquidation address for the user
         let liquidationAddress = allLiquidationAddresses.find(
             (address) =>
                 address.chain === chainName &&
@@ -660,18 +666,24 @@ export const OfframpConfirmView = ({
         accountType: string | undefined,
         hasCrossChain: boolean
     ): number => {
+        // base gas cost for the transaction
         const baseGasCost = parseFloat(estimatedGasCost ?? '0')
         if (hasPromoCode) return baseGasCost
 
+        // additional fees based on account type and cross-chain transfer
         const accountFee = accountType === 'iban' ? 1 : 0.5
         const crossChainFee = hasCrossChain ? baseGasCost * 0.1 : 0
+
+        // total estimated fee
         return baseGasCost + accountFee + crossChainFee
     }
 
     // check if fee exceeds withdraw amount and update error state
     useEffect(() => {
+        // calculate total fees
         const totalFees = calculateEstimatedFee(estimatedGasCost, !!appliedPromoCode, accountType, !!crossChainDetails)
 
+        // determine the amount based on offramp type
         const amount =
             offrampType == OfframpType.CASHOUT
                 ? parseFloat(usdValue ?? '0')
@@ -679,6 +691,7 @@ export const OfframpConfirmView = ({
                   ? tokenPrice * parseFloat(claimLinkData.tokenAmount)
                   : 0
 
+        // update error state if fees exceed the amount
         if (!isNaN(amount) && !isNaN(totalFees) && amount <= totalFees) {
             setErrorState({
                 showError: true,
@@ -798,10 +811,13 @@ export const OfframpConfirmView = ({
                                 iconName="money-in"
                                 label="Expected receive"
                                 value={(() => {
+                                    // calculate banking fee based on promo code and account type
                                     const bankingFee = appliedPromoCode ? 0 : accountType === 'iban' ? 1 : 0.5
+                                    // calculate slippage for cross-chain transfers
                                     const slippage = crossChainDetails ? parseFloat(estimatedGasCost ?? '0') * 0.1 : 0
                                     const totalFees = bankingFee + slippage
 
+                                    // determine the amount based on offramp type
                                     const amount =
                                         offrampType == OfframpType.CASHOUT
                                             ? parseFloat(usdValue ?? '0')
@@ -809,7 +825,7 @@ export const OfframpConfirmView = ({
                                               ? tokenPrice * parseFloat(claimLinkData.tokenAmount)
                                               : 0
 
-                                    // return 0 if fees exceed amount
+                                    // return 0 if fees exceed amount, otherwise calculate expected receive
                                     return amount <= totalFees
                                         ? '$ 0'
                                         : `$ ${utils.formatTokenAmount(amount - totalFees)}` || '$ 0'
@@ -826,12 +842,14 @@ export const OfframpConfirmView = ({
                                 ).toString()}
                                 networkFee={estimatedGasCost ?? '0'}
                                 minReceive={(() => {
+                                    // calculate banking fee based on promo code and account type
                                     const bankingFee = appliedPromoCode ? 0 : accountType === 'iban' ? 1 : 0.5
+                                    // calculate slippage for cross-chain transfers
                                     const slippage = crossChainDetails ? parseFloat(estimatedGasCost ?? '0') * 0.1 : 0
                                     const totalFees = bankingFee + slippage
                                     const amount = parseFloat(usdValue ?? '0')
 
-                                    // return 0 if fees exceed amount
+                                    // return 0 if fees exceed amount, otherwise calculate minimum receive
                                     return amount <= totalFees ? '0' : utils.formatTokenAmount(amount - totalFees)
                                 })()}
                                 maxSlippage={
