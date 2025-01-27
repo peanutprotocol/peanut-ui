@@ -89,9 +89,10 @@ const FeeDescription = ({
                     toggleDetailedView.isExpanded ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
                 }`}
             >
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 border-t py-2">
                     {!!minReceive && (
                         <InfoRow
+                            smallFont
                             iconName="money-in"
                             label="Min receive"
                             value={`$ ${minReceive}`}
@@ -101,6 +102,7 @@ const FeeDescription = ({
                     )}
 
                     <InfoRow
+                        smallFont
                         iconName="gas"
                         label="Network cost"
                         value={parseFloat(networkFee.toString()) < 0.01 ? '< $ 0.01' : `$ ${networkFee}`}
@@ -110,7 +112,8 @@ const FeeDescription = ({
 
                     {!!slippageRange && (
                         <InfoRow
-                            iconName="money-out"
+                            smallFont
+                            iconName="chart"
                             label="Slippage"
                             value={`~ $ ${slippageRange.min} (max $ ${slippageRange.max})`}
                             moreInfoText="Maximum slippage range set to ensure the transaction goes through. Actual slippage is likely to be lower."
@@ -120,7 +123,8 @@ const FeeDescription = ({
 
                     {!!maxSlippage && parseFloat(maxSlippage) > 0 && (
                         <InfoRow
-                            iconName="money-out"
+                            smallFont
+                            iconName="chart-fill"
                             label="Max slippage"
                             value={`$ ${maxSlippage}`}
                             moreInfoText="Maximum slippage value to ensure the transaction goes through. Actual slippage is likely to be lower."
@@ -130,7 +134,8 @@ const FeeDescription = ({
 
                     {!!accountTypeFee && (
                         <InfoRow
-                            iconName="transfer"
+                            smallFont
+                            iconName="bank"
                             label="Banking fee"
                             value={`$ ${accountTypeFee}`}
                             moreInfoText={

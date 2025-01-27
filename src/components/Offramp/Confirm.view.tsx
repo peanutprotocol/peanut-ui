@@ -702,7 +702,7 @@ export const OfframpConfirmView = ({
     ])
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-4 px-2  text-center">
+        <div className="flex w-full flex-col items-center justify-center gap-4 px-2 text-center">
             <label className="text-h4">Confirm your details</label>
             <div className="flex flex-col justify-center gap-3">
                 {offrampType == OfframpType.CASHOUT && (
@@ -740,7 +740,7 @@ export const OfframpConfirmView = ({
             ) : (
                 <div className="flex w-full flex-col items-center justify-center gap-2">
                     <label className="self-start text-h8 font-light">Please confirm all details:</label>
-                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                    <div className="flex w-full flex-col items-center justify-center gap-3">
                         <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
                                 <Icon name={'profile'} className="h-4 fill-gray-1" />
@@ -814,7 +814,7 @@ export const OfframpConfirmView = ({
                                         ? '$ 0'
                                         : `$ ${utils.formatTokenAmount(amount - totalFees)}` || '$ 0'
                                 })()}
-                                moreInfoText="Expected amount you will receive in your bank after all fees are deducted"
+                                moreInfoText="Expected amount you will receive in your bank account. You'll receive funds in your local currency."
                             />
 
                             <FeeDescription
