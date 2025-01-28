@@ -1,7 +1,7 @@
 import * as assets from '@/assets'
-import { Button, Card } from '@/components/0_Bruddle'
+import { Card } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
-import Icon from '@/components/Global/Icon'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
@@ -149,14 +149,7 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                         Discord!
                     </a>
                 </label>
-                <Link href={'/profile'}>
-                    <Button variant="stroke">
-                        <div className=" border border-n-1 p-0 px-1">
-                            <Icon name="profile" className="-mt-0.5" />
-                        </div>
-                        See your payments.
-                    </Button>
-                </Link>
+                <PaymentsFooter />
             </Card.Content>
         </Card>
     )

@@ -112,10 +112,10 @@ export const ConfirmClaimLinkView = ({
 
     return (
         <div>
-            <FlowHeader onPrev={onPrev} disableBackBtn={isLoading} />
+            <FlowHeader onPrev={onPrev} disableBackBtn={isLoading} disableWalletHeader />
             <Card>
                 <Card.Header>
-                    <Card.Title>
+                    <Card.Title className="mx-auto text-center">
                         <AddressLink address={claimLinkData.senderAddress} /> <br /> sent you{' '}
                         <label className="text-start text-h2">
                             {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol} <br /> on{' '}
@@ -148,7 +148,7 @@ export const ConfirmClaimLinkView = ({
                         </>
                     )}
                     {selectedRoute ? (
-                        <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
+                        <div className="flex w-full flex-row items-start justify-start gap-1 text-h7">
                             You are claiming{' '}
                             {utils.formatTokenAmount(
                                 utils.formatAmountWithDecimals({
@@ -160,7 +160,7 @@ export const ConfirmClaimLinkView = ({
                             {supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]?.axelarChainName}
                         </div>
                     ) : (
-                        <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
+                        <div className="flex w-full flex-row items-center justify-start gap-1 text-h7">
                             {utils.formatTokenAmount(Number(claimLinkData.tokenAmount))} {claimLinkData.tokenSymbol} on{' '}
                             {
                                 consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
@@ -168,7 +168,7 @@ export const ConfirmClaimLinkView = ({
                             }
                         </div>
                     )}
-                    <div className="flex w-full flex-row items-center justify-center gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-start gap-1">
                         <label className="text-h7 font-normal">Claiming to:</label>
                         <span className="flex items-center gap-1 ">
                             <label className="text-h7">
@@ -180,7 +180,7 @@ export const ConfirmClaimLinkView = ({
 
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         {selectedRoute && (
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
+                            <div className="flex w-full flex-row items-center justify-between text-h8 text-grey-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
                                     <Icon name={'forward'} className="h-4 fill-grey-1" />
                                     <label className="font-bold">Route</label>
@@ -215,7 +215,7 @@ export const ConfirmClaimLinkView = ({
                             </div>
                         )}
 
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
+                        <div className="flex w-full flex-row items-center justify-between text-h8 text-grey-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'gas'} className="h-4 fill-grey-1" />
                                 <label className="font-bold">Fees</label>
