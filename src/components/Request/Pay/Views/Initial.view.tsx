@@ -100,6 +100,8 @@ export const InitialView = ({
 
     const calculatedSlippage = useMemo(() => {
         if (!selectedTokenData?.price || !slippagePercentage) return null
+
+        // calculate the slippage based on the token price and the slippage percentage
         return ((slippagePercentage / 100) * selectedTokenData.price * Number(estimatedFromValue)).toFixed(2)
     }, [slippagePercentage, selectedTokenData, estimatedFromValue])
 

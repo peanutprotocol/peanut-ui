@@ -19,7 +19,7 @@ import { getSquidTokenAddress } from '@/utils/token.utils'
 import peanut, { getLatestContractVersion, getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import { useSteps } from 'chakra-ui-steps'
 import Link from 'next/link'
-import { useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 import {
     CrossChainDetails,
@@ -75,11 +75,12 @@ export const OfframpConfirmView = ({
 
     //////////////////////
     // state and context vars for cashout offramp
-    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, selectedTokenData } = useContext(context.tokenSelectorContext)
     const [showRefund, setShowRefund] = useState(false)
     const { createLinkWrapper } = useCreateLink()
     const [createdLink, setCreatedLink] = useState<string | undefined>(undefined)
-
+    const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
+    const [isFetchingRoute, setIsFetchingRoute] = useState(false)
     //////////////////////
     // state and context vars for claim link offramp
 
@@ -297,6 +298,52 @@ export const OfframpConfirmView = ({
 
         return { tokenName, chainName, xchainNeeded, liquidationAddress }
     }
+
+    const getRouteDetails = async () => {
+        setIsFetchingRoute(true)
+        try {
+            // fetch route details using link details to calculate slippage
+            const { route } = await utils.fetchRouteRaw(
+                preparedCreateLinkWrapperResponse?.linkDetails.tokenAddress ?? '',
+                preparedCreateLinkWrapperResponse?.linkDetails.chainId ?? '',
+                usdcAddressOptimism,
+                optimismChainId,
+                preparedCreateLinkWrapperResponse?.linkDetails.tokenDecimals ?? 0,
+                String(preparedCreateLinkWrapperResponse?.linkDetails.tokenAmount ?? '0')
+            )
+
+            // get slippage percentage from route details
+            if (route.params && route.params.slippage) {
+                setSlippagePercentage(route.params.slippage)
+            } else {
+                // default to 1% slippage if not available
+                setSlippagePercentage(1)
+            }
+        } catch (error) {
+            console.error('Error fetching route details:', error)
+        } finally {
+            setIsFetchingRoute(false)
+        }
+    }
+
+    useEffect(() => {
+        getRouteDetails()
+    }, [])
+
+    const calculatedSlippage = useMemo(() => {
+        if (!selectedTokenData?.price || !slippagePercentage) return null
+
+        // percentage of maximum slippage to use as expected slippage (10%)
+        const EXPECTED_SLIPPAGE_MULTIPLIER = 0.1
+
+        // calculate the slippage based on the token price and the slippage percentage
+        const slippage = ((slippagePercentage / 100) * selectedTokenData?.price * Number(tokenValue)).toFixed(2) || 0
+
+        return {
+            expected: Number(slippage) * EXPECTED_SLIPPAGE_MULTIPLIER,
+            max: Number(slippage),
+        }
+    }, [slippagePercentage, tokenPrice, tokenValue])
 
     // TODO: fix type
     const handleCrossChainScenario = async (
@@ -664,18 +711,18 @@ export const OfframpConfirmView = ({
         estimatedGasCost: string | undefined,
         hasPromoCode: boolean,
         accountType: string | undefined,
-        hasCrossChain: boolean
+        isCrossChainTx: boolean
     ): number => {
-        // base gas cost for the transaction
-        const baseGasCost = parseFloat(estimatedGasCost ?? '0')
-        if (hasPromoCode) return baseGasCost
+        // estimated network cost for the transaction
+        const estimatedNetworkFee = parseFloat(estimatedGasCost ?? '0')
+        if (hasPromoCode) return estimatedNetworkFee
 
         // additional fees based on account type and cross-chain transfer
         const accountFee = accountType === 'iban' ? 1 : 0.5
-        const crossChainFee = hasCrossChain ? baseGasCost * 0.1 : 0
+        const crossChainFee = isCrossChainTx ? (calculatedSlippage?.expected ?? 0) : 0
 
         // total estimated fee
-        return baseGasCost + accountFee + crossChainFee
+        return estimatedNetworkFee + accountFee + crossChainFee
     }
 
     // check if fee exceeds withdraw amount and update error state
@@ -807,15 +854,15 @@ export const OfframpConfirmView = ({
                         )}
 
                         <div className="flex w-full flex-col items-center justify-center">
+                            {/* note: the Expected receive amount is the amount that the user will receive after banking fees and slippage is deduducted, users need to pay for gas separately, and gas is not included in the expected receive amount */}
                             <InfoRow
                                 iconName="money-in"
                                 label="Expected receive"
                                 value={(() => {
                                     // calculate banking fee based on promo code and account type
                                     const bankingFee = appliedPromoCode ? 0 : accountType === 'iban' ? 1 : 0.5
-                                    // calculate slippage for cross-chain transfers
-                                    const slippage = crossChainDetails ? parseFloat(estimatedGasCost ?? '0') * 0.1 : 0
-                                    const totalFees = bankingFee + slippage
+
+                                    const totalFees = bankingFee + (calculatedSlippage?.expected ?? 0)
 
                                     // determine the amount based on offramp type
                                     const amount =
@@ -844,23 +891,21 @@ export const OfframpConfirmView = ({
                                 minReceive={(() => {
                                     // calculate banking fee based on promo code and account type
                                     const bankingFee = appliedPromoCode ? 0 : accountType === 'iban' ? 1 : 0.5
-                                    // calculate slippage for cross-chain transfers
-                                    const slippage = crossChainDetails ? parseFloat(estimatedGasCost ?? '0') * 0.1 : 0
-                                    const totalFees = bankingFee + slippage
+
+                                    const totalFees = bankingFee + (calculatedSlippage?.expected ?? 0)
                                     const amount = parseFloat(usdValue ?? '0')
 
                                     // return 0 if fees exceed amount, otherwise calculate minimum receive
                                     return amount <= totalFees ? '0' : utils.formatTokenAmount(amount - totalFees)
                                 })()}
-                                maxSlippage={
-                                    crossChainDetails
-                                        ? utils.formatTokenAmount(parseFloat(estimatedGasCost ?? '0') * 0.1)
-                                        : undefined
-                                }
+                                slippageRange={{
+                                    max: calculatedSlippage?.max.toString() ?? '0',
+                                    min: calculatedSlippage?.expected.toString() ?? '0',
+                                }}
                                 accountType={accountType}
                                 accountTypeFee={appliedPromoCode ? '0' : accountType === 'iban' ? '1' : '0.50'}
                                 isPromoApplied={!!appliedPromoCode}
-                                loading={isLoading}
+                                loading={isFetchingRoute}
                             />
 
                             <PromoCodeChecker
