@@ -1,5 +1,6 @@
 import { Button, Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -102,14 +103,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                         <Icon name="external" className="h-4 fill-grey-1" />
                     </Button>
                 </Link>
-                <Link className="" href={'/profile'}>
-                    <Button variant="stroke" className="text-nowrap">
-                        <div className="border border-n-1 p-0 px-1">
-                            <Icon name="profile" className="-mt-0.5" />
-                        </div>
-                        See your payments.
-                    </Button>
-                </Link>
+                <PaymentsFooter />
                 <label className="text-start text-h9 font-normal">
                     We would like to hear from your experience. Hit us up on{' '}
                     <a

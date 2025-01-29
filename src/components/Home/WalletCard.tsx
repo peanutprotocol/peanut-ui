@@ -4,7 +4,7 @@ import { Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IWallet, WalletProviderType } from '@/interfaces'
-import { printableUsdc, shortenAddressLong } from '@/utils'
+import { formatExtendedNumber, printableUsdc, shortenAddressLong } from '@/utils'
 import { identicon } from '@dicebear/collection'
 import { createAvatar } from '@dicebear/core'
 import classNames from 'classnames'
@@ -151,13 +151,13 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <p className="min-w-28 text-4xl font-black leading-none sm:text-5xl">
+                        <p className="min-w-28 text-4xl font-black leading-none sm:text-[2.5rem]">
                             {isBalanceHidden ? (
                                 <span className="inline-flex items-center">
                                     <span className="relative top-1">* * * *</span>
                                 </span>
                             ) : (
-                                `$ ${printableUsdc(wallet.balance)}`
+                                `$ ${formatExtendedNumber(printableUsdc(wallet.balance))}`
                             )}
                         </p>
                         <button onClick={onToggleBalanceVisibility}>
