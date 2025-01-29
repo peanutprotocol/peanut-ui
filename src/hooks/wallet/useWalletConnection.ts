@@ -3,7 +3,10 @@
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAuth } from '@/context/authContext'
 import * as interfaces from '@/interfaces'
+import { useAppDispatch } from '@/redux/hooks'
+import { walletActions } from '@/redux/slices/wallet-slice'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 export const useWalletConnection = () => {
@@ -12,9 +15,12 @@ export const useWalletConnection = () => {
     const { status, address: connectedAddress } = useAppKitAccount()
     const { user, addAccount, fetchUser } = useAuth()
     const toast = useToast()
+    const dispatch = useAppDispatch()
+    const queryClient = useQueryClient()
 
     const processedAddresses = useRef(new Set<string>())
     const isProcessing = useRef(false)
+    const isAddingWallet = useRef(false)
 
     // helper function to check if an address already exists in user accounts
     const isAddressInUserAccounts = useCallback(
@@ -51,21 +57,47 @@ export const useWalletConnection = () => {
                 toast.success('Wallet added successfully')
                 return true
             } catch (error) {
-                console.error('Error adding wallet:', error)
-                toast.error('Failed to add wallet')
-                return false
+                // queryClient.invalidateQueries({ queryKey: ['wallets'] })
+                if (error?.toString().includes('Account already exists')) {
+                    // remove the wallet from the store
+                    dispatch(walletActions.removeWallet(lowerAddress))
+                    // revalidate wallets query
+                    toast.error('This wallet is already associated with another account.')
+                    processedAddresses.current.add(lowerAddress)
+                    return false
+                } else if (error?.toString().includes('Internal Server Error')) {
+                    console.error('Internal Server Error: ', error)
+                    return false
+                } else {
+                    console.error('Error adding wallet:', error)
+                    // todo: not showing error toast for now as it throws 500 error sometimes without proper error handling from backend, need to fix this later
+                    // toast.error('Failed to add wallet')
+                    return false
+                }
             } finally {
                 isProcessing.current = false
             }
         },
-        [user, addAccount, fetchUser, toast, isAddressInUserAccounts]
+        [user, addAccount, fetchUser, toast, isAddressInUserAccounts, dispatch, queryClient]
     )
 
     // automatically add connected wallet to backend if not already present
     useEffect(() => {
-        if (connectedAddress && !userAddresses.includes(connectedAddress.toLowerCase())) {
-            addWalletToBackend(connectedAddress)
+        const addWallets = async () => {
+            if (!connectedAddress || !user || isAddingWallet.current) return
+
+            const connectedWalletAddress = connectedAddress.toLowerCase()
+            if (
+                !userAddresses.includes(connectedWalletAddress) &&
+                !processedAddresses.current.has(connectedWalletAddress)
+            ) {
+                isAddingWallet.current = true
+                await addWalletToBackend(connectedAddress)
+                isAddingWallet.current = false
+            }
         }
+
+        addWallets()
     }, [connectedAddress, userAddresses])
 
     // connect wallet and add it to backend
@@ -77,14 +109,8 @@ export const useWalletConnection = () => {
 
             await openWalletModal({ view: 'Connect' })
 
-            // todo: not a very elegant solution, but it works, need to refine this later
-            // wait for connection and attempt to add wallet
-            for (let attempt = 0; attempt < 10 && !isProcessing.current; attempt++) {
-                if (status === 'connected' && connectedAddress) {
-                    await addWalletToBackend(connectedAddress)
-                    break
-                }
-                await new Promise((resolve) => setTimeout(resolve, 500))
+            if (status === 'connected' && connectedAddress) {
+                await addWalletToBackend(connectedAddress)
             }
         } catch (error) {
             // todo: add-account throughs 500 error sometimes without proper error handling from backend, need to fix this later
@@ -95,7 +121,7 @@ export const useWalletConnection = () => {
                 toast.error('Failed to connect wallet')
             }
         }
-    }, [openWalletModal, status, connectedAddress, addWalletToBackend, toast])
+    }, [openWalletModal, status, connectedAddress, addWalletToBackend, toast, disconnectWallet])
 
     return {
         connectWallet,
