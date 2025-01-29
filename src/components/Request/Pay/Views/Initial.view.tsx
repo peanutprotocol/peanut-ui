@@ -147,11 +147,11 @@ export const InitialView = ({
             },
             slippage: slippage
                 ? {
-                      expected: formatNumberSafely(slippage.expected || 0),
-                      max: formatNumberSafely(slippage.max || 0),
+                      expected: slippage.expected || 0,
+                      max: slippage.max || 0,
                   }
                 : undefined,
-            estimatedFee: formatNumberSafely(networkFee.expected + (slippage?.expected || 0) || 0),
+            estimatedFee: formatNumberSafely(networkFee.expected + (slippage?.max || 0) || 0),
             totalMax: formatNumberSafely(totalMax || 0),
         }
     }, [isXChain, txFee, estimatedGasCost, calculatedSlippage, tokenPriceData, requestLinkData.tokenAmount])
@@ -464,7 +464,7 @@ export const InitialView = ({
                             value={`$ ${feeCalculations.totalMax}`}
                             moreInfoText={
                                 feeCalculations.slippage
-                                    ? 'Maximum amount you will pay including requested amount, fees, and maximum slippage.'
+                                    ? 'Maximum amount you will pay including requested amount, network fees, and maximum slippage.'
                                     : 'Maximum amount you will pay including requested amount and network fees.'
                             }
                         />
