@@ -126,7 +126,7 @@ const WalletDetailsPage = () => {
 
             <DirectionalActionButtons
                 leftButton={{ title: 'Top up', href: '/topup', disabled: true }}
-                rightButton={{ title: 'Cash out', href: '/cashout' }}
+                rightButton={{ title: 'Cashout', href: '/cashout' }}
             />
 
             {renderTokenDetails()}
