@@ -3,8 +3,8 @@ import { useContext, useMemo, useState } from 'react'
 
 import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import Icon from '@/components/Global/Icon'
+import InfoRow from '@/components/Global/InfoRow'
 import Loading from '@/components/Global/Loading'
-import MoreInfo from '@/components/Global/MoreInfo'
 import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import { useBalance } from '@/hooks/useBalance'
@@ -293,26 +293,24 @@ export const CreateLinkConfirmView = ({
                     </div>
                 )}
                 {transactionCostUSD !== undefined && (
-                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                        <div className="flex w-max flex-row items-center justify-center gap-1">
-                            <Icon name={'gas'} className="h-4 fill-gray-1" />
-                            <label className="font-bold">Network cost</label>
-                        </div>
-                        <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            {transactionCostUSD === 0
+                    <InfoRow
+                        iconName="gas"
+                        label="Estimated Fee"
+                        value={
+                            transactionCostUSD === 0
                                 ? '$0'
                                 : transactionCostUSD < 0.01
-                                  ? '$<0.01'
-                                  : `$${formatTokenAmount(transactionCostUSD, 3) ?? 0}`}
-                            <MoreInfo
-                                text={
-                                    transactionCostUSD > 0
-                                        ? `This transaction will cost you $${formatTokenAmount(transactionCostUSD, 3)} in network fees.`
-                                        : 'This transaction is sponsored by peanut! Enjoy!'
-                                }
-                            />
-                        </label>
-                    </div>
+                                  ? '< $0.01'
+                                  : `~ $${formatTokenAmount(transactionCostUSD, 3) ?? 0}`
+                        }
+                        moreInfoText={
+                            transactionCostUSD === 0
+                                ? 'This transaction is sponsored by peanut! Enjoy!'
+                                : transactionCostUSD < 0.01
+                                  ? 'This transaction will cost you < $0.01 in network fees.'
+                                  : 'This transaction will cost you the displayed amount in network fees.'
+                        }
+                    />
                 )}
                 {/* TODO: correct points estimation
                 <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
