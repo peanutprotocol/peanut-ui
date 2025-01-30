@@ -42,7 +42,7 @@ interface ListItemViewProps {
         recipientAddress?: string
         transactionType?: TransactionType
     }
-    details: IDashboardItem | TokenBalance
+    details?: IDashboardItem | TokenBalance
 }
 
 const getTransactionStatus = (type: TransactionType | undefined, status: string | undefined): string => {
