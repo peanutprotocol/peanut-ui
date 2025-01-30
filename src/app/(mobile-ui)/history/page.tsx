@@ -42,7 +42,7 @@ const HistoryPage = () => {
             return {
                 id: `${data.link ?? data.txHash ?? ''}-${Date.now()}`,
                 transactionType: data.type,
-                amount: `$ ${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
+                amount: `$${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
                 recipientAddress: data.address ? `To ${printableAddress(data.address)}` : '',
                 status: linkDetails?.status ?? data.status ?? '',
                 transactionDetails: {

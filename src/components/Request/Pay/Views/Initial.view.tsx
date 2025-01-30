@@ -129,7 +129,7 @@ export const InitialView = ({
             : Number(requestLinkData.tokenAmount)
 
         if (tokenPriceData) {
-            return `$ ${formatAmount(amount)}`
+            return `$${formatAmount(amount)}`
         } else {
             return `${formatAmount(amount)} ${tokenRequestedSymbol}`
         }
@@ -422,7 +422,7 @@ export const InitialView = ({
                                 </div>
                                 <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     {calculatedFee ? (
-                                        `$ ${calculatedFee}`
+                                        `$${calculatedFee}`
                                     ) : (
                                         <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
                                     )}
@@ -430,13 +430,13 @@ export const InitialView = ({
                                         <MoreInfo
                                             text={
                                                 estimatedGasCost && estimatedGasCost > 0
-                                                    ? `This transaction will cost you $ ${formatTokenAmount(estimatedGasCost, 3)} in network fees.`
+                                                    ? `This transaction will cost you $${formatTokenAmount(estimatedGasCost, 3)} in network fees.`
                                                     : 'This transaction is sponsored by peanut! Enjoy!'
                                             }
                                         />
                                     ) : (
                                         <MoreInfo
-                                            text={`This transaction will cost you $ ${formatTokenAmount(Number(txFee), 3)} in network fees.`}
+                                            text={`This transaction will cost you $${formatTokenAmount(Number(txFee), 3)} in network fees.`}
                                         />
                                     )}
                                 </label>

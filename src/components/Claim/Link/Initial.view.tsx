@@ -444,7 +444,7 @@ export const InitialClaimLinkView = ({
                             <AddressLink address={claimLinkData.senderAddress} /> sent you
                             {tokenPrice ? (
                                 <label className="text-h2">
-                                    $ {formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
+                                    ${formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
                                 </label>
                             ) : (
                                 <label className="text-h2 ">

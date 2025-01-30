@@ -183,7 +183,7 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
                                     : wallet?.connector?.name || shortenAddressLong(wallet.address)}
                             </p>
                         </div>
-                        <p className="text-base font-bold">$ {printableUsdc(wallet.balance)}</p>
+                        <p className="text-base font-bold">${printableUsdc(wallet.balance)}</p>
                     </div>
 
                     <div className="flex items-center justify-between gap-2">

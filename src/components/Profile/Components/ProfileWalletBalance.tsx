@@ -46,7 +46,7 @@ const ProfileWalletBalance = () => {
                     </div>
                     <div>
                         <div className="text-right text-sm font-bold text-black">
-                            $ {printableUsdc(BigInt(Math.floor(Number(getMaxBalanceToken?.value || 0) * 10 ** 6)))}
+                            ${printableUsdc(BigInt(Math.floor(Number(getMaxBalanceToken?.value || 0) * 10 ** 6)))}
                         </div>
                         {getMaxBalanceToken?.symbol && getMaxBalanceToken?.name && (
                             <div className="text-xs text-grey-1">
