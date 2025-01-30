@@ -74,14 +74,14 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
         if (wallet.walletProviderType === WalletProviderType.PEANUT) {
             return PeanutWalletIcon
         }
-        return (
-            wallet.connector?.iconUrl ||
-            createAvatar(identicon, {
-                seed: wallet.address,
-                size: 128,
-            }).toDataUri()
-        )
-    }, [wallet])
+
+        const avatar = createAvatar(identicon, {
+            seed: wallet.address,
+            size: 128,
+        }).toDataUri()
+
+        return isConnected ? wallet.connector?.iconUrl || avatar : avatar
+    }, [wallet, isConnected])
 
     const cardOpacity = useMemo(() => {
         // External wallet cases

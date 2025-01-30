@@ -164,8 +164,11 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
 
     // get wallet icon to display
     const walletImage = useMemo(() => {
-        return isPeanutWallet ? PeanutWalletIcon : wallet?.connector?.iconUrl || PeanutWalletIcon
-    }, [isPeanutWallet, wallet])
+        if (wallet.walletProviderType === WalletProviderType.PEANUT) {
+            return PeanutWalletIcon
+        }
+        return isConnected ? wallet.connector?.iconUrl || PeanutWalletIcon : PeanutWalletIcon
+    }, [wallet, isConnected])
 
     // get background color
     const backgroundColor = useMemo(() => {
