@@ -51,7 +51,7 @@ const WalletDetailsPage = () => {
             return walletDetails.balance && Number(walletDetails.balance) > 0 ? (
                 <div className="space-y-3">
                     <div className="text-base font-semibold">Balance</div>
-                    <div className="border border-b-n-1">
+                    <div className="border border-b-black">
                         <ListItemView
                             key={`peanut-${walletDetails.address}`}
                             id={`${PEANUT_WALLET_CHAIN.id}-${PEANUT_WALLET_CHAIN.name}`}
@@ -73,7 +73,7 @@ const WalletDetailsPage = () => {
             )
         } else {
             return walletDetails.balances?.length ? (
-                <div className="space-y-3 border-b border-b-n-1">
+                <div className="space-y-3 border-b border-b-black">
                     <div className="text-base font-semibold">Balance</div>
                     <div>
                         {walletDetails.balances.map((balance) => (
