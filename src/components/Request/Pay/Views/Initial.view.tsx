@@ -97,6 +97,7 @@ export const InitialView = ({
     const [xChainUnsignedTxs, setXChainUnsignedTxs] = useState<interfaces.IPeanutUnsignedTransaction[] | undefined>(
         undefined
     )
+    const [isPayInitiatedByUser, setIsPayInitiatedByUser] = useState<boolean>(false)
 
     const calculatedSlippage = useMemo(() => {
         if (!selectedTokenData?.price || !slippagePercentage) return null
@@ -324,6 +325,7 @@ export const InitialView = ({
     }
 
     const handleOnNext = async () => {
+        setIsPayInitiatedByUser(true)
         const amountUsd = (Number(requestLinkData.tokenAmount) * (tokenPriceData?.price ?? 0)).toFixed(2)
         try {
             clearError()
@@ -385,6 +387,8 @@ export const InitialView = ({
                 errorMessage: errorString,
             })
             console.error('Error while submitting request link fulfillment:', error)
+        } finally {
+            setIsPayInitiatedByUser(false)
         }
     }
 
@@ -443,22 +447,15 @@ export const InitialView = ({
                             loading={
                                 Number(feeCalculations.estimatedFee) === 0 ||
                                 Number(feeCalculations.networkFee.expected) === 0 ||
-                                isLoading
+                                (!isPayInitiatedByUser && isLoading)
                             }
                             estimatedFee={feeCalculations.estimatedFee}
                             networkFee={feeCalculations.networkFee.max}
-                            slippageRange={
-                                feeCalculations.slippage
-                                    ? {
-                                          min: feeCalculations.slippage.expected,
-                                          max: feeCalculations.slippage.max,
-                                      }
-                                    : undefined
-                            }
+                            maxSlippage={feeCalculations.slippage ? feeCalculations.slippage.max.toString() : undefined}
                         />
 
                         <InfoRow
-                            loading={Number(feeCalculations.totalMax) === 0 || isLoading}
+                            loading={Number(feeCalculations.totalMax) === 0 || (!isPayInitiatedByUser && isLoading)}
                             iconName="transfer"
                             label="Total Max"
                             value={`$ ${feeCalculations.totalMax}`}
