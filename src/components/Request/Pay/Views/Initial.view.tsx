@@ -129,7 +129,7 @@ export const InitialView = ({
             : Number(requestLinkData.tokenAmount)
 
         if (tokenPriceData) {
-            return `$ ${formatAmount(amount)}`
+            return `$${formatAmount(amount)}`
         } else {
             return `${formatAmount(amount)} ${tokenRequestedSymbol}`
         }

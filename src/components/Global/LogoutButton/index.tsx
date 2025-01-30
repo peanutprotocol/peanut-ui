@@ -5,10 +5,13 @@ import Image from '../Image'
 import Loading from '../Loading'
 
 const LogoutButton = () => {
-    const { logoutUser, isLoggingOut } = useAuth()
+    const { logoutUser, isLoggingOut, user } = useAuth()
 
     const logout = async () => {
         await logoutUser()
+    }
+    if (!user) {
+        return null
     }
 
     return (

@@ -14,7 +14,7 @@ import { useWalletStore } from '@/redux/hooks'
 import { formatAmount, getChainName, getHeaderTitle, getUserPreferences, updateUserPreferences } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 const WalletDetailsPage = () => {
@@ -22,14 +22,17 @@ const WalletDetailsPage = () => {
     const { open } = useAppKit()
     const { disconnect } = useDisconnect()
     const { focusedWallet, wallets } = useWalletStore()
-    const { isConnected } = useWallet()
+    const { isConnected, address } = useWallet()
     const { username } = useAuth()
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
         return prefs?.balanceHidden ?? false
     })
 
-    const walletDetails = wallets.find((wallet) => wallet.address === focusedWallet)
+    const walletDetails = useMemo(
+        () => wallets.find((wallet) => wallet.address === focusedWallet),
+        [focusedWallet, wallets]
+    )
 
     const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation()
@@ -111,17 +114,23 @@ const WalletDetailsPage = () => {
             <div>
                 <Button
                     onClick={() => {
-                        if (isConnected) {
+                        if (isConnected && walletDetails?.address === address) {
                             disconnect()
                         } else {
                             open()
                         }
                     }}
-                    variant="stroke"
-                    className="flex w-full items-center justify-center gap-2 bg-purple-4/30 hover:bg-purple-4/20"
+                    variant="transparent-light"
+                    className="flex w-full items-center justify-center gap-2 border border-black bg-purple-5 hover:bg-purple-5"
                 >
-                    <Icon name={isConnected ? 'minus-circle' : 'plus-circle'} className="size-4" />
-                    <div>{isConnected ? 'Disconnect' : 'Connect'}</div>
+                    <Icon
+                        name={isConnected && walletDetails?.address === address ? 'minus-circle' : 'plus-circle'}
+                        fill="black"
+                        className="size-4"
+                    />
+                    <div className="text-black">
+                        {isConnected && walletDetails?.address === address ? 'Disconnect' : 'Connect'}
+                    </div>
                 </Button>
             </div>
         </div>

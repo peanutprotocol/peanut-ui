@@ -118,39 +118,41 @@ export const ConfirmClaimLinkView = ({
                     <Card.Title className="mx-auto text-center">
                         <AddressLink address={claimLinkData.senderAddress} /> <br /> sent you{' '}
                         <label className="text-start text-h2">
-                            {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol} <br /> on{' '}
+                            {utils.formatAmount(claimLinkData.tokenAmount)} {claimLinkData.tokenSymbol} <br /> on{' '}
                             {supportedSquidChainsAndTokens[claimLinkData.chainId]?.axelarChainName}
                         </label>
                     </Card.Title>
+                    <Card.Description className="mx-auto">
+                        {(attachment.message || attachment.attachmentUrl) && (
+                            <>
+                                <div
+                                    className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
+                                >
+                                    {attachment.message && <label className="text-h8 ">{attachment.message}</label>}
+                                    {attachment.attachmentUrl && utils.checkifImageType(fileType) ? (
+                                        <img src={attachment.attachmentUrl} className="h-18 w-18" alt="attachment" />
+                                    ) : (
+                                        <a
+                                            href={attachment.attachmentUrl}
+                                            download
+                                            target="_blank"
+                                            className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-grey-1 underline "
+                                        >
+                                            <Icon name={'download'} />
+                                            Download attachment
+                                        </a>
+                                    )}
+                                </div>
+                                <div className="flex w-full border-t border-dotted border-black" />
+                            </>
+                        )}
+                    </Card.Description>
                 </Card.Header>
                 <Card.Content className="flex flex-col gap-2">
-                    {(attachment.message || attachment.attachmentUrl) && (
-                        <>
-                            <div
-                                className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
-                            >
-                                {attachment.message && <label className="text-h8 ">{attachment.message}</label>}
-                                {attachment.attachmentUrl && utils.checkifImageType(fileType) ? (
-                                    <img src={attachment.attachmentUrl} className="h-18 w-18" alt="attachment" />
-                                ) : (
-                                    <a
-                                        href={attachment.attachmentUrl}
-                                        download
-                                        target="_blank"
-                                        className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-grey-1 underline "
-                                    >
-                                        <Icon name={'download'} />
-                                        Download attachment
-                                    </a>
-                                )}
-                            </div>
-                            <div className="flex w-full border-t border-dotted border-black" />
-                        </>
-                    )}
                     {selectedRoute ? (
-                        <div className="flex w-full flex-row items-start justify-start gap-1 text-h7">
+                        <div className="flex w-full flex-row items-start justify-start gap-1 px-2 text-h7">
                             You are claiming{' '}
-                            {utils.formatTokenAmount(
+                            {utils.formatAmount(
                                 utils.formatAmountWithDecimals({
                                     amount: selectedRoute.route.estimate.toAmountMin,
                                     decimals: selectedRoute.route.estimate.toToken.decimals,
@@ -168,7 +170,7 @@ export const ConfirmClaimLinkView = ({
                             }
                         </div>
                     )}
-                    <div className="flex w-full flex-row items-center justify-start gap-1">
+                    <div className="flex w-full flex-row items-center justify-start gap-1 px-2">
                         <label className="text-h7 font-normal">Claiming to:</label>
                         <span className="flex items-center gap-1 ">
                             <label className="text-h7">
@@ -180,7 +182,7 @@ export const ConfirmClaimLinkView = ({
 
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         {selectedRoute && (
-                            <div className="flex w-full flex-row items-center justify-between text-h8 text-grey-1">
+                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
                                     <Icon name={'forward'} className="h-4 fill-grey-1" />
                                     <label className="font-bold">Route</label>
@@ -215,7 +217,7 @@ export const ConfirmClaimLinkView = ({
                             </div>
                         )}
 
-                        <div className="flex w-full flex-row items-center justify-between text-h8 text-grey-1">
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'gas'} className="h-4 fill-grey-1" />
                                 <label className="font-bold">Fees</label>

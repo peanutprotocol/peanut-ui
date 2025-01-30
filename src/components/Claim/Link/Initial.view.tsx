@@ -436,7 +436,7 @@ export const InitialClaimLinkView = ({
 
     return (
         <div>
-            <FlowHeader />
+            {!!user && <FlowHeader />}
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
                     <Card.Title className="mx-auto">
@@ -444,7 +444,7 @@ export const InitialClaimLinkView = ({
                             <AddressLink address={claimLinkData.senderAddress} /> sent you
                             {tokenPrice ? (
                                 <label className="text-h2">
-                                    $ {formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
+                                    ${formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
                                 </label>
                             ) : (
                                 <label className="text-h2 ">
@@ -453,7 +453,7 @@ export const InitialClaimLinkView = ({
                             )}
                         </div>
                     </Card.Title>
-                    <Card.Description>
+                    <Card.Description className="mx-auto">
                         {(attachment.message || attachment.attachmentUrl) && (
                             <>
                                 <div

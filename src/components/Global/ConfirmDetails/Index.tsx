@@ -1,4 +1,4 @@
-import { formatTokenAmount } from '@/utils'
+import { formatAmount } from '@/utils'
 import Icon from '../Icon'
 
 interface IConfirmDetailsProps {
@@ -31,12 +31,12 @@ const ConfirmDetails = ({
                         <Icon name="token_placeholder" className="h-6 w-6" fill="#999" />
                     )}
                     <label className="text-h5 sm:text-h3">
-                        {formatTokenAmount(Number(tokenAmount))} {tokenSymbol}
+                        {formatAmount(Number(tokenAmount))} {tokenSymbol}
                     </label>
                 </div>
                 {tokenPrice && (
                     <label className="text-h7 font-bold text-grey-1">
-                        $ {formatTokenAmount(Number(tokenAmount) * tokenPrice)}
+                        ${formatAmount(Number(tokenAmount) * tokenPrice)}
                     </label>
                 )}
             </div>
