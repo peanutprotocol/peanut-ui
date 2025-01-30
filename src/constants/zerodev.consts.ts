@@ -1,5 +1,5 @@
-import { arbitrum } from 'viem/chains'
 import { getEntryPoint } from '@zerodev/sdk/constants'
+import { arbitrum } from 'viem/chains'
 
 // consts needed to define low level SDK kernel
 // as per: https://docs.zerodev.app/sdk/getting-started/tutorial-passkeys
@@ -13,7 +13,8 @@ export const ZERO_DEV_PROJECT_ID = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJ
 
 export const PEANUT_WALLET_CHAIN = arbitrum
 //USDC Arbitrum address
+export const PEANUT_WALLET_TOKEN_DECIMALS = 6 // USDC decimals
 export const PEANUT_WALLET_TOKEN = '0xaf88d065e77c8cc2239327c5edb3a432268e5831'
-export const PEANUT_WALLET_TOKEN_DECIMALS = 6 //USDC decimals
+export const PEANUT_WALLET_TOKEN_NAME = 'USDC'
 
 export const USER_OP_ENTRY_POINT = getEntryPoint('0.7')
