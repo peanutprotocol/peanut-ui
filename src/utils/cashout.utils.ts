@@ -1,9 +1,8 @@
-import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
+import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
+import { generateKeysFromString, getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import countries from 'i18n-iso-countries'
-import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
-import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 
 const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
 
@@ -132,6 +131,8 @@ async function fetchApi(url: string, method: string, body?: any): Promise<any> {
     return await response.json()
 }
 
+export type KYCStatus = 'not_started' | 'under_review' | 'approved' | 'rejected'
+
 export type GetUserLinksResponse = {
     id: string
     full_name: string
@@ -139,7 +140,7 @@ export type GetUserLinksResponse = {
     type: string
     kyc_link: string
     tos_link: string
-    kyc_status: 'not_started' | 'under_review' | 'approved' | 'rejected'
+    kyc_status: KYCStatus
     rejection_reasons: string[]
     tos_status: string
     created_at: string

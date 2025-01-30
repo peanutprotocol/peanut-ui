@@ -5,7 +5,7 @@ import { Button, Card } from '@/components/0_Bruddle'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
-import { IWallet, WalletProviderType } from '@/interfaces'
+import { IDBWallet, IWallet, WalletProviderType } from '@/interfaces'
 import { printableUsdc, shortenAddressLong } from '@/utils'
 import classNames from 'classnames'
 import Image from 'next/image'
@@ -40,22 +40,38 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
 
     // handle wallet selection and close modal
     const handleWalletSelection = (wallet: IWallet) => {
-        setSelectedWallet(wallet)
+        // only set selected wallet if it's a Peanut wallet or a connected external wallet
+        if (wallet && (wallet.walletProviderType === WalletProviderType.PEANUT || isWalletConnected(wallet))) {
+            setSelectedWallet(wallet)
+        }
     }
 
-    // set selected wallet to peanut wallet if no external wallet is connected
+    // set selected wallet to peanut wallet if no external wallet is connected or selected
     useEffect(() => {
-        if (
-            !sortedWallets.some(
-                (wallet) => wallet.walletProviderType !== WalletProviderType.PEANUT && isWalletConnected(wallet)
-            )
-        ) {
-            const peanutWallet = sortedWallets.find((wallet) => wallet.walletProviderType === WalletProviderType.PEANUT)
-            if (peanutWallet) {
-                setSelectedWallet(peanutWallet)
+        const connectedExternalWallet = sortedWallets.find(
+            (wallet) => wallet.walletProviderType !== WalletProviderType.PEANUT && isWalletConnected(wallet)
+        )
+
+        const isPeanutWalletSelected = selectedWallet?.walletProviderType === WalletProviderType.PEANUT
+        const isExternalWalletSelectedAndConnected =
+            selectedWallet?.walletProviderType !== WalletProviderType.PEANUT &&
+            isWalletConnected(selectedWallet as IDBWallet)
+
+        // if no wallet is selected or current selection is invalid
+        if (!selectedWallet || (!isPeanutWalletSelected && !isExternalWalletSelectedAndConnected)) {
+            if (connectedExternalWallet) {
+                setSelectedWallet(connectedExternalWallet as IWallet)
+            } else {
+                // fallback to Peanut wallet
+                const peanutWallet = sortedWallets.find(
+                    (wallet) => wallet.walletProviderType === WalletProviderType.PEANUT
+                )
+                if (peanutWallet) {
+                    setSelectedWallet(peanutWallet as IWallet)
+                }
             }
         }
-    }, [sortedWallets, isWalletConnected, setSelectedWallet])
+    }, [sortedWallets, isWalletConnected, setSelectedWallet, selectedWallet])
 
     return (
         <div className={className}>

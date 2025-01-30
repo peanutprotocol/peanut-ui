@@ -162,8 +162,8 @@ export const ConfirmClaimLinkView = ({
                             {supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]?.axelarChainName}
                         </div>
                     ) : (
-                        <div className="flex w-full flex-row items-start justify-start gap-1 px-2 text-h7">
-                            {utils.formatAmount(Number(claimLinkData.tokenAmount))} {claimLinkData.tokenSymbol} on{' '}
+                        <div className="flex w-full flex-row items-center justify-start gap-1 text-h7">
+                            {utils.formatTokenAmount(Number(claimLinkData.tokenAmount))} {claimLinkData.tokenSymbol} on{' '}
                             {
                                 consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
                                     ?.name

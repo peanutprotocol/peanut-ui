@@ -41,7 +41,7 @@ export const useWallet = () => {
             if (isPeanut(wallet) && kernelClientAddress) {
                 return isKernelClientReady && areEvmAddressesEqual(kernelClientAddress, wallet.address)
             }
-            if (wagmiAddress) {
+            if (wagmiAddress && wallet) {
                 return isWagmiConnected && wagmiAddress.some((addr) => areEvmAddressesEqual(addr, wallet.address))
             }
             return false
@@ -112,7 +112,10 @@ export const useWallet = () => {
         )
 
         const processedExternalWallets = await Promise.all(
-            wagmiAddressesList.map((address) => fetchWalletDetails(address, interfaces.WalletProviderType.BYOW))
+            wagmiAddressesList
+                // only process external wallets that are in user accounts
+                .filter((address) => userAccounts.some((acc) => areEvmAddressesEqual(acc.account_identifier, address)))
+                .map((address) => fetchWalletDetails(address, interfaces.WalletProviderType.BYOW))
         )
 
         const mergedWallets = [...processedAccounts, ...processedExternalWallets].reduce((unique, wallet) => {

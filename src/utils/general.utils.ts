@@ -1,8 +1,10 @@
+import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
 import peanut from '@squirrel-labs/peanut-sdk'
 import chroma from 'chroma-js'
 import { ethers } from 'ethers'
+import { SiweMessage } from 'siwe'
 import * as wagmiChains from 'wagmi/chains'
 
 export function urlBase64ToUint8Array(base64String: string) {
@@ -24,6 +26,7 @@ export const colorMap = {
     green: '#98E9AB',
     yellow: '#FFC900',
 }
+
 export const backgroundColorFromAddress = (address: string): string => {
     // Hash the Ethereum address to a number
     const hash = Array.from(address).reduce((acc, char) => acc + char.charCodeAt(0), 0)
@@ -56,32 +59,6 @@ export const shortenAddressLong = (address?: string, chars?: number): string => 
 export const printableAddress = (address: string): string => {
     if (address.endsWith('.eth')) return address
     return shortenAddressLong(address)
-}
-
-const shortenHash = (address: string) => {
-    if (!address) return
-    const firstBit = address.substring(0, 8)
-    const endingBit = address.substring(address.length - 6, address.length)
-
-    return firstBit + '...' + endingBit
-}
-
-function waitForPromise<T>(promise: Promise<T>, timeoutTime: number = 30000): Promise<T> {
-    return new Promise((resolve, reject) => {
-        let timeoutId = setTimeout(() => {
-            reject('Timeout: 30 seconds have passed without a response from the promise')
-        }, timeoutTime)
-
-        promise
-            .then((result) => {
-                clearTimeout(timeoutId)
-                resolve(result)
-            })
-            .catch((error) => {
-                clearTimeout(timeoutId)
-                reject(error)
-            })
-    })
 }
 
 export const saveToLocalStorage = (key: string, data: any) => {
@@ -122,16 +99,6 @@ export const getFromLocalStorage = (key: string) => {
         return parsedData
     } catch (error) {
         console.error('Error getting data from localStorage:', error)
-    }
-}
-
-const delteFromLocalStorage = (key: string) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-        localStorage.removeItem(key)
-        console.log(`Removed ${key} from localStorage`)
-    } catch (error) {
-        console.error('Error removing from localStorage:', error)
     }
 }
 
@@ -246,34 +213,6 @@ export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string
     }
 }
 
-const getAllGigalinksFromLocalstorage = ({ address }: { address: string }) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        const localStorageData: interfaces.ILocalStorageItem[] = []
-
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i)
-
-            if (key !== null && key?.includes('saving giga-link for address: ' + address)) {
-                const value = localStorage.getItem(key)
-                if (value !== null) {
-                    const x = {
-                        address: key.split('-')[0].trim(),
-                        hash: key.split('-')[1]?.trim() ?? '',
-                        idx: key.split('-')[2]?.trim() ?? '',
-                        link: value.replaceAll('"', ''),
-                    }
-                    localStorageData.push(x)
-                }
-            }
-        }
-        return localStorageData
-    } catch (error) {
-        console.error('Error getting data from localStorage:', error)
-    }
-}
-
 export function formatAmountWithDecimals({ amount, decimals }: { amount: number; decimals: number }) {
     const divider = 10 ** decimals
     const formattedAmount = amount / divider
@@ -367,31 +306,11 @@ export const formatAmountWithoutComma = (input: string) => {
     } else return ''
 }
 
-function formatMessage(message: string) {
-    return message
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => !!line)
-        .join('\n')
-}
-
-const isMantleInUrl = (): boolean => {
-    if (typeof window !== 'undefined') {
-        return window.location.origin.includes('mantle') ? true : false
-    } else {
-        return false
-    }
-}
-
 export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
     const provider = await peanut.getDefaultProvider('1')
     const x = await provider.resolveName(ensName)
 
     return x ? x : undefined
-}
-
-function generateSafeUrl({ currentUrl, chainId }: { currentUrl: string; chainId: number }) {
-    return `https://app.safe.global/share/safe-app?appUrl=${encodeURIComponent(currentUrl)}&chain=${chainId}`
 }
 
 export async function copyTextToClipboardWithFallback(text: string) {
@@ -499,34 +418,6 @@ export const saveOfframpLinkToLocalstorage = ({ data }: { data: interfaces.IExte
         console.error('Error adding data to localStorage:', error)
     }
 }
-
-// export const updateOfframpLinkInLocalstorage = (
-//     id: string,
-//     updateData: Partial<interfaces.IExtendedLinkDetailsOfframp>
-// ) => {
-//     try {
-//         if (typeof localStorage === 'undefined') return
-
-//         const key = `offramped links`
-
-//         const storedData = localStorage.getItem(key)
-
-//         if (storedData) {
-//             let dataArr: interfaces.IExtendedLinkDetailsOfframp[] = JSON.parse(storedData)
-//             const index = dataArr.findIndex((item) => item.id === id)
-
-//             if (index !== -1) {
-//                 dataArr[index] = { ...dataArr[index], ...updateData }
-//                 localStorage.setItem(key, JSON.stringify(dataArr))
-//                 console.log('Updated offramp link in localStorage:', dataArr[index])
-//             } else {
-//                 console.error('Offramp link not found in localStorage')
-//             }
-//         }
-//     } catch (error) {
-//         console.error('Error updating data in localStorage:', error)
-//     }
-// }
 
 export const getClaimedLinksFromLocalStorage = ({ address = undefined }: { address?: string }) => {
     try {
@@ -890,6 +781,7 @@ export const shareToEmail = (email: string, link: string, usdAmount?: string) =>
         window.location.href = mailtoUrl
     }
 }
+
 export const shareToSms = (phone: string, link: string, usdAmount?: string) => {
     if (usdAmount) usdAmount = formatTokenAmount(parseFloat(usdAmount), 2)
     const message = encodeURIComponent(
@@ -956,24 +848,6 @@ export function formatDate(date: Date): string {
 
     return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`
 }
-
-function getIconName(type: string) {
-    switch (type) {
-        case 'Link Sent':
-            return 'send'
-        case 'Direct Sent':
-            return 'send'
-        case 'Link Received':
-            return 'receive'
-        case 'Offramp Claim':
-            return 'send'
-        default:
-            return undefined
-    }
-}
-
-import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
-import { SiweMessage } from 'siwe'
 
 export const createSiweMessage = ({ address, statement }: { address: string; statement: string }) => {
     const message = new SiweMessage({
@@ -1073,4 +947,68 @@ export function getChainName(chainId: string): string | undefined {
 
 export const getHeaderTitle = (pathname: string) => {
     return consts.pathTitles[pathname] || 'Peanut Protocol' // default title if path not found
+}
+
+/**
+ * Formats a number to use K, M, B, T suffixes if it exceeds 6 characters in length.
+ * Uses the formatAmount function to format the number before adding a suffix.
+ *
+ * @param amount - The number or string to format.
+ * @returns A formatted string with appropriate suffix.
+ */
+/**
+ * Formats a number to use K, M, B, T suffixes if it exceeds 6 digits in length.
+ * Uses the formatAmount function to format the number before adding a suffix.
+ *
+ * @param amount - The number or string to format.
+ * @returns A formatted string with appropriate suffix.
+ */
+export const formatExtendedNumber = (amount: string | number): string => {
+    // Handle null/undefined/invalid inputs
+    if (!amount && amount !== 0) return '0'
+
+    // Validate input type and convert to number
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount
+
+    // Check for NaN values
+    if (isNaN(num)) return '0'
+
+    // Count total digits by removing decimal point and negative sign
+    const totalDigits = amount.toString().replace(/[.-]/g, '').length
+
+    // If 6 or fewer digits, just use formatAmount
+    if (totalDigits <= 6) {
+        return formatAmount(num)
+    }
+
+    // Get absolute value for comparison
+    const absNum = Math.abs(num)
+
+    const suffixes: [number, string][] = [
+        [1e12, 'T'],
+        [1e9, 'B'],
+        [1e6, 'M'],
+        [1e3, 'K'],
+    ]
+
+    for (const [divisor, suffix] of suffixes) {
+        if (absNum >= divisor) {
+            const scaled = absNum / divisor
+            const roundedScaled = Math.round(scaled * 100) / 100
+
+            // Handle boundary cases (e.g., 999999 -> 1M)
+            if (roundedScaled === 1000 && suffix !== 'T') {
+                const nextSuffixIndex = suffixes.findIndex(([d]) => d === divisor) - 1
+                if (nextSuffixIndex >= 0) {
+                    const [nextDivisor, nextSuffix] = suffixes[nextSuffixIndex]
+                    const nextScaled = absNum / nextDivisor
+                    return `${num < 0 ? '-' : ''}${formatAmount(nextScaled)}${nextSuffix}`
+                }
+            }
+
+            return `${num < 0 ? '-' : ''}${formatAmount(scaled)}${suffix}`
+        }
+    }
+
+    return formatAmount(num)
 }

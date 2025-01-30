@@ -6,5 +6,6 @@ export { default as PEANUTMAN_LOGO } from './peanutman-logo.svg'
 export { default as PEANUTMAN_PRESENTING } from './peanutman-presenting.svg'
 export { default as PEANUTMAN_REDPACKET } from './peanutman-redpacket.svg'
 export { default as PEANUTMAN_SAD } from './peanutman-sad.svg'
+export { default as PEANUTMAN_THINKING } from './peanutman-thinking.svg'
 export { default as PEANUTMAN_WALLET } from './peanutman-wallets.svg'
 

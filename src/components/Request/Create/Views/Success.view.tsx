@@ -1,8 +1,7 @@
-import { Button, Card } from '@/components/0_Bruddle'
+import { Card } from '@/components/0_Bruddle'
 import CopyField from '@/components/Global/CopyField'
-import Icon from '@/components/Global/Icon'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import Link from 'next/link'
 import * as _consts from '../Create.consts'
 
 export const SuccessView = ({ link }: _consts.ICreateScreenProps) => {
@@ -17,14 +16,7 @@ export const SuccessView = ({ link }: _consts.ICreateScreenProps) => {
                     Share this link or QR with anyone. They will be able to pay you from any chain in any token.
                 </label>
                 <CopyField text={link} />
-                <Link className="" href={'/profile'}>
-                    <Button variant="stroke" className="flex flex-row justify-center text-nowrap">
-                        <div className="border border-n-1 p-0 px-1">
-                            <Icon name="profile" className="-mt-0.5" />
-                        </div>
-                        See your payments.
-                    </Button>
-                </Link>
+                <PaymentsFooter />
             </Card.Content>
         </Card>
     )

@@ -3,6 +3,7 @@
 import { Button, Card } from '@/components/0_Bruddle'
 import CopyField from '@/components/Global/CopyField'
 import Icon from '@/components/Global/Icon'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { tokenSelectorContext } from '@/context'
 import { copyTextToClipboardWithFallback, getExplorerUrl, printableAddress, shareToEmail, shareToSms } from '@/utils'
@@ -128,14 +129,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
                                     <Icon name="external" className="h-4 fill-grey-1" />
                                 </Button>
                             </Link>
-                            <Link className="" href={'/profile'}>
-                                <Button variant="stroke" className="text-nowrap">
-                                    <div className="border border-n-1 p-0 px-1">
-                                        <Icon name="profile" className="-mt-0.5" />
-                                    </div>
-                                    See your payments.
-                                </Button>
-                            </Link>
+                            <PaymentsFooter />
                         </div>
                     </div>
                 )}
