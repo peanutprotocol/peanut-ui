@@ -151,8 +151,8 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
     const { isWalletConnected } = useWallet()
     const { connectWallet, connectionStatus } = useWalletConnection()
 
-    const isExternalWallet = wallet.walletProviderType !== WalletProviderType.PEANUT
-    const isPeanutWallet = wallet.walletProviderType === WalletProviderType.PEANUT
+    const isExternalWallet = useMemo(() => wallet.walletProviderType !== WalletProviderType.PEANUT, [wallet])
+    const isPeanutWallet = useMemo(() => wallet.walletProviderType === WalletProviderType.PEANUT, [wallet])
     const isConnected = isWalletConnected(wallet)
 
     const handleAction = async (e: React.MouseEvent) => {
@@ -164,8 +164,11 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
 
     // get wallet icon to display
     const walletImage = useMemo(() => {
-        return isPeanutWallet ? PeanutWalletIcon : wallet?.connector?.iconUrl || PeanutWalletIcon
-    }, [isPeanutWallet, wallet])
+        if (isPeanutWallet) {
+            return PeanutWalletIcon
+        }
+        return isConnected ? wallet.connector?.iconUrl || PeanutWalletIcon : PeanutWalletIcon
+    }, [wallet, isConnected])
 
     // get background color
     const backgroundColor = useMemo(() => {

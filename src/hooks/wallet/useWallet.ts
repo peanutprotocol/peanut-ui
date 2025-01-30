@@ -21,10 +21,19 @@ const isPeanut = (wallet?: interfaces.IDBWallet): boolean =>
 const isExternalWallet = (wallet?: interfaces.IDBWallet): boolean =>
     wallet?.walletProviderType === interfaces.WalletProviderType.BYOW
 
-const createDefaultDBWallet = (address: string): interfaces.IDBWallet => ({
-    walletProviderType: interfaces.WalletProviderType.BYOW,
-    protocolType: interfaces.WalletProtocolType.EVM,
+const createDefaultDBWallet = (
+    address: string,
+    walletProviderType: interfaces.WalletProviderType,
+    protocolType: interfaces.WalletProtocolType,
+    connector: { iconUrl: string; name: string }
+): interfaces.IDBWallet => ({
+    walletProviderType,
+    protocolType,
     address,
+    connector: {
+        iconUrl: connector.iconUrl,
+        name: connector.name,
+    },
 })
 
 export const useWallet = () => {
@@ -35,6 +44,12 @@ export const useWallet = () => {
     const { isConnected: isWagmiConnected } = useAppKitAccount()
 
     const { selectedAddress, wallets, signInModalVisible, walletColor } = useWalletStore()
+
+    const getUserAccount = useCallback(
+        (user: interfaces.IUserProfile, address: string) =>
+            user?.accounts.find((acc: any) => acc.account_identifier.toLowerCase() === address.toLowerCase()),
+        [user]
+    )
 
     const isWalletConnected = useCallback(
         (wallet: interfaces.IDBWallet): boolean => {
@@ -51,15 +66,18 @@ export const useWallet = () => {
 
     const fetchWalletDetails = useCallback(
         async (address: string, walletProviderType: interfaces.WalletProviderType) => {
-            const dbWallet: interfaces.IDBWallet = {
-                walletProviderType,
-                protocolType: interfaces.WalletProtocolType.EVM,
+            // get connector details from user accounts
+            const userAccount = user ? getUserAccount(user, address) : null
+
+            const dbWallet: interfaces.IDBWallet = createDefaultDBWallet(
                 address,
-                connector: {
+                walletProviderType,
+                interfaces.WalletProtocolType.EVM,
+                userAccount?.connector || {
                     iconUrl: connector?.icon || '',
                     name: connector?.name || 'External Wallet',
-                },
-            }
+                }
+            )
 
             let balance = BigInt(0)
             let balances: interfaces.IUserBalance[] | undefined
@@ -79,7 +97,7 @@ export const useWallet = () => {
 
             return { ...dbWallet, balance, balances, connected: isWalletConnected(dbWallet) }
         },
-        [connector, isWalletConnected]
+        [connector, isWalletConnected, user?.accounts]
     )
 
     const mergeAndProcessWallets = useCallback(async () => {

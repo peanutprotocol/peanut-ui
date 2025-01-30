@@ -6,17 +6,17 @@ import * as interfaces from '@/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
-import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useAccount } from 'wagmi'
 
 export const useWalletConnection = () => {
     const { open: openWalletModal } = useAppKit()
     const { disconnect: disconnectWallet } = useDisconnect()
     const { status, address: connectedAddress } = useAppKitAccount()
+    const { connector } = useAccount()
     const { user, addAccount, fetchUser } = useAuth()
     const toast = useToast()
     const dispatch = useAppDispatch()
-    const queryClient = useQueryClient()
 
     const processedAddresses = useRef(new Set<string>())
     const isProcessing = useRef(false)
@@ -51,17 +51,19 @@ export const useWalletConnection = () => {
                     accountIdentifier: address,
                     accountType: interfaces.WalletProviderType.BYOW,
                     userId: user.user.userId,
+                    connector: connector && {
+                        iconUrl: connector.icon || '',
+                        name: connector.name,
+                    },
                 })
                 await fetchUser()
                 processedAddresses.current.add(lowerAddress)
                 toast.success('Wallet added successfully')
                 return true
             } catch (error) {
-                // queryClient.invalidateQueries({ queryKey: ['wallets'] })
                 if (error?.toString().includes('Account already exists')) {
                     // remove the wallet from the store
                     dispatch(walletActions.removeWallet(lowerAddress))
-                    // revalidate wallets query
                     toast.error('This wallet is already associated with another account.')
                     processedAddresses.current.add(lowerAddress)
                     return false
@@ -78,7 +80,7 @@ export const useWalletConnection = () => {
                 isProcessing.current = false
             }
         },
-        [user, addAccount, fetchUser, toast, isAddressInUserAccounts, dispatch, queryClient]
+        [user, addAccount, fetchUser, toast, isAddressInUserAccounts, dispatch, connector]
     )
 
     // automatically add connected wallet to backend if not already present
