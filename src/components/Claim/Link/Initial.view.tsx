@@ -424,7 +424,7 @@ export const InitialClaimLinkView = ({
                     </label>
                     {tokenPrice ? (
                         <label className="text-h2">
-                            $ {formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
+                            ${formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
                         </label>
                     ) : (
                         <label className="text-h2 ">
@@ -512,7 +512,7 @@ export const InitialClaimLinkView = ({
                             <InfoRow
                                 iconName="gas"
                                 label="Fees"
-                                value={`$ 0`}
+                                value={`$0`}
                                 moreInfoText={'This transaction is sponsored by peanut! Enjoy!'}
                                 loading={isXchainLoading}
                             />

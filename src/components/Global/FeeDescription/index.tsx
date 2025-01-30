@@ -47,7 +47,7 @@ const FeeDescription = ({
                 <InfoRow
                     iconName="gas"
                     label="Network cost"
-                    value={`~ $ ${networkFee}`}
+                    value={`~ $${networkFee}`}
                     moreInfoText="This transaction will cost you the displayed amount in network fees."
                     loading={loading}
                 />
@@ -72,8 +72,8 @@ const FeeDescription = ({
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-normal">
                             {parseFloat(estimatedFee.toString()) < 0.01
-                                ? '< $ 0.01'
-                                : `~ $ ${formatAmount(estimatedFee)}`}
+                                ? '< $0.01'
+                                : `~ $${formatAmount(estimatedFee)}`}
                         </span>
                         <Icon
                             name={toggleDetailedView.isExpanded ? 'chevron-up' : 'arrow-bottom'}
@@ -95,7 +95,7 @@ const FeeDescription = ({
                             smallFont
                             iconName="money-in"
                             label="Min receive"
-                            value={`$ ${minReceive}`}
+                            value={`$${minReceive}`}
                             moreInfoText="Minimum amount you will receive after paying all fees and slippage"
                             loading={loading}
                         />
@@ -105,7 +105,7 @@ const FeeDescription = ({
                         smallFont
                         iconName="gas"
                         label="Network cost"
-                        value={parseFloat(networkFee.toString()) < 0.01 ? '< $ 0.01' : `$ ${networkFee}`}
+                        value={parseFloat(networkFee.toString()) < 0.01 ? '< $0.01' : `$${networkFee}`}
                         moreInfoText="This transaction will cost you the displayed amount in network fees."
                         loading={loading}
                     />
@@ -115,7 +115,7 @@ const FeeDescription = ({
                             smallFont
                             iconName="chart"
                             label="Slippage"
-                            value={`~ $ ${slippageRange.min} (max $ ${slippageRange.max})`}
+                            value={`~ $${slippageRange.min} (max $${slippageRange.max})`}
                             moreInfoText="Maximum slippage range set to ensure the transaction goes through. Actual slippage is likely to be lower."
                             loading={loading}
                         />
@@ -126,7 +126,7 @@ const FeeDescription = ({
                             smallFont
                             iconName="chart-fill"
                             label="Max slippage"
-                            value={`$ ${maxSlippage}`}
+                            value={`$${maxSlippage}`}
                             moreInfoText="Maximum slippage value to ensure the transaction goes through. Actual slippage is likely to be lower."
                             loading={loading}
                         />
@@ -137,7 +137,7 @@ const FeeDescription = ({
                             smallFont
                             iconName="bank"
                             label="Banking fee"
-                            value={`$ ${accountTypeFee}`}
+                            value={`$${accountTypeFee}`}
                             moreInfoText={
                                 isPromoApplied
                                     ? 'Fees waived with promo code!'

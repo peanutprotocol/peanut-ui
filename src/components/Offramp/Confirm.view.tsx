@@ -874,8 +874,8 @@ export const OfframpConfirmView = ({
 
                                     // return 0 if fees exceed amount, otherwise calculate expected receive
                                     return amount <= totalFees
-                                        ? '$ 0'
-                                        : `$ ${utils.formatTokenAmount(amount - totalFees)}` || '$ 0'
+                                        ? '$0'
+                                        : `$${utils.formatTokenAmount(amount - totalFees)}` || '$0'
                                 })()}
                                 moreInfoText="Expected amount you will receive in your bank account. You'll receive funds in your local currency."
                             />

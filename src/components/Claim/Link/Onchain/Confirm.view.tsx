@@ -212,7 +212,7 @@ export const ConfirmClaimLinkView = ({
                 <InfoRow
                     iconName="gas"
                     label="Fees"
-                    value={`$ 0`}
+                    value={`$0`}
                     moreInfoText={'This transaction is sponsored by peanut! Enjoy!'}
                 />
 

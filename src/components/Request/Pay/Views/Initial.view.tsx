@@ -171,7 +171,7 @@ export const InitialView = ({
             : Number(requestLinkData.tokenAmount)
 
         if (tokenPriceData) {
-            return `$ ${formatAmount(amount)}`
+            return `$${formatAmount(amount)}`
         } else {
             return `${formatAmount(amount)} ${tokenRequestedSymbol}`
         }
@@ -458,7 +458,7 @@ export const InitialView = ({
                             loading={Number(feeCalculations.totalMax) === 0 || (!isPayInitiatedByUser && isLoading)}
                             iconName="transfer"
                             label="Total Max"
-                            value={`$ ${feeCalculations.totalMax}`}
+                            value={`$${feeCalculations.totalMax}`}
                             moreInfoText={
                                 feeCalculations.slippage
                                     ? 'Maximum amount you will pay including requested amount, network fees, and maximum slippage.'

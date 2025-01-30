@@ -36,7 +36,7 @@ const ConfirmDetails = ({
                 </div>
                 {tokenPrice && (
                     <label className="text-h7 font-bold text-gray-1">
-                        $ {formatTokenAmount(Number(tokenAmount) * tokenPrice)}
+                        ${formatTokenAmount(Number(tokenAmount) * tokenPrice)}
                     </label>
                 )}
             </div>
