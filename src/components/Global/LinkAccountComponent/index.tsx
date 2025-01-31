@@ -386,7 +386,6 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                 })
                             }}
                         />
-
                         {ibanErrors.accountNumber && (
                             <span className="text-h9 font-normal text-red">{ibanErrors.accountNumber.message}</span>
                         )}
