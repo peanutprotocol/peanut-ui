@@ -65,9 +65,9 @@ export const ErrorHandler = (error: any) => {
             error.toString().includes('fee cap (`maxFeePerGas`)') ||
             error.toString().includes('max fee per gas less than block base fee')
         ) {
-            return 'Transaction failed, please make sure you have enough funds to cover gas fees.'
+            return 'Transaction failed, please make sure you have native token for this network to cover gas fees.'
         } else if (error.toString().includes('EstimateGasExecutionError')) {
-            return 'Unable to estimate gas. Try switching networks.'
+            return 'Unable to estimate gas. Try switching network.'
         } else if (
             error
                 .toString()
