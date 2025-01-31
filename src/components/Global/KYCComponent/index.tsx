@@ -289,8 +289,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         }
     }
 
-    const [userState, setUserState] = useState<'login' | 'register'>('register')
-
     useEffect(() => {
         // Listen for messages from the iframe
         const handleMessage = (event: MessageEvent) => {
