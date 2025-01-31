@@ -7,8 +7,13 @@ import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
-import * as consts from '@/constants'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    PEANUT_WALLET_TOKEN_NAME,
+    peanutTokenDetails,
+    supportedPeanutChains,
+} from '@/constants'
 import * as context from '@/context'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -20,14 +25,17 @@ import {
     formatAmountWithSignificantDigits,
     formatTokenAmount,
     isAddressZero,
-    saveRequestLinkFulfillmentToLocalStorage,
 } from '@/utils'
-import { formatAmount, switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
+import {
+    formatAmount,
+    saveRequestLinkFulfillmentToLocalStorage,
+    switchNetwork as switchNetworkUtil,
+} from '@/utils/general.utils'
 import { checkTokenSupportsXChain } from '@/utils/token.utils'
 import { useAppKit } from '@reown/appkit/react'
 import { interfaces, peanut } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { useSwitchChain } from 'wagmi'
+import { useAccount, useSwitchChain } from 'wagmi'
 import * as _consts from '../Pay.consts'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
@@ -73,9 +81,12 @@ export const InitialView = ({
     estimatedPoints,
 }: _consts.IPayScreenProps) => {
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
-    const { address, signInModal, isConnected, chain: currentChain, isExternalWallet, isPeanutWallet } = useWallet()
+    const { address, signInModal, selectedWallet, chain: currentChain, isPeanutWallet } = useWallet()
+    const { isConnected: isExternalWalletConnected } = useAccount()
     const { handleLogin } = useZeroDev()
     const toast = useToast()
+
+    const isConnected = isExternalWalletConnected || isPeanutWallet
 
     const { switchChainAsync } = useSwitchChain()
     const { open } = useAppKit()
@@ -212,7 +223,7 @@ export const InitialView = ({
     // Fetch token symbol and logo
     useEffect(() => {
         let isMounted = true
-        const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
+        const chainDetails = peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
         const logoURI =
             chainDetails?.tokens.find((token) => areEvmAddressesEqual(token.address, requestLinkData.tokenAddress))
                 ?.logoURI ?? tokenPriceData?.logoURI
@@ -260,7 +271,7 @@ export const InitialView = ({
         setIsFeeEstimationError(false)
     }
 
-    const switchNetwork = async (chainId: string) => {
+    const switchNetwork = async (chainId: string): Promise<boolean> => {
         try {
             await switchNetworkUtil({
                 chainId,
@@ -271,8 +282,10 @@ export const InitialView = ({
                 },
             })
             console.log(`Switched to chain ${chainId}`)
+            return true
         } catch (error) {
             console.error('Failed to switch network:', error)
+            throw new Error(`Failed to switch to network ${chainId}`)
         }
     }
 
@@ -280,8 +293,15 @@ export const InitialView = ({
         const amountUsd = (Number(requestLinkData.tokenAmount) * (tokenPriceData?.price ?? 0)).toFixed(2)
         try {
             clearError()
-            if (!unsignedTx) return
+            if (!address) {
+                throw new Error('No wallet address available')
+            }
+
             if (!isXChain) {
+                if (!unsignedTx) {
+                    throw new Error('Transaction data not ready')
+                }
+
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
                 if (requestLinkData.chainId !== String(currentChain?.id)) {
                     await switchNetwork(requestLinkData.chainId)
@@ -297,7 +317,7 @@ export const InitialView = ({
                 await peanut.submitRequestLinkFulfillment({
                     chainId: requestLinkData.chainId,
                     hash: hash ?? '',
-                    payerAddress: address ?? '',
+                    payerAddress: address,
                     link: requestLinkData.link,
                     apiUrl: '/api/proxy/patch/',
                     amountUsd,
@@ -316,7 +336,14 @@ export const InitialView = ({
                 setTransactionHash(hash ?? '')
                 onNext()
             } else {
-                if (!xChainUnsignedTxs) return
+                if (!xChainUnsignedTxs) {
+                    throw new Error('Cross-chain transaction data not ready')
+                }
+
+                if (!selectedTokenData) {
+                    throw new Error('Selected token data not available')
+                }
+
                 await checkUserHasEnoughBalance({ tokenValue: estimatedFromValue })
                 if (selectedTokenData!.chainId !== String(currentChain?.id)) {
                     await switchNetwork(selectedTokenData!.chainId)
@@ -338,6 +365,7 @@ export const InitialView = ({
                 errorMessage: errorString,
             })
             console.error('Error while submitting request link fulfillment:', error)
+            throw error
         }
     }
 
@@ -350,6 +378,54 @@ export const InitialView = ({
             setSelectedTokenAddress(requestLinkData.tokenAddress)
         }
     }, [requestLinkData, isPeanutWallet])
+
+    const handleSubmit = async () => {
+        if (!isConnected) {
+            if (isPeanutWallet) {
+                handleLogin()
+                    .catch((_error) => {
+                        toast.error('Error logging in')
+                    })
+                    .finally(() => {
+                        setLoadingState('Idle')
+                    })
+            } else {
+                signInModal.open()
+            }
+            return
+        }
+
+        if (!address) {
+            return
+        }
+
+        try {
+            setLoadingState('Preparing transaction')
+
+            if (ViewState.READY_TO_PAY === viewState) {
+                if (!unsignedTx && !isXChain) {
+                    throw new Error('Transaction data not ready')
+                }
+
+                if (isXChain && !xChainUnsignedTxs) {
+                    throw new Error('Cross-chain transaction data not ready')
+                }
+
+                await handleOnNext()
+                setLoadingState('Loading')
+            }
+        } catch (error) {
+            console.error('Transaction error:', error)
+            setLoadingState('Idle')
+        }
+    }
+
+    const getButtonTitle = () => {
+        if (!isConnected) {
+            return 'Connect Wallet'
+        }
+        return 'Pay'
+    }
 
     useEffect(() => {
         if (isPeanutWallet) resetTokenAndChain()
@@ -381,7 +457,7 @@ export const InitialView = ({
                                     />
                                     <img
                                         src={
-                                            consts.supportedPeanutChains.find(
+                                            supportedPeanutChains.find(
                                                 (chain) => chain.chainId === requestLinkData.chainId
                                             )?.icon.url
                                         }
@@ -391,18 +467,22 @@ export const InitialView = ({
                                 </div>
                                 {formatAmountWithSignificantDigits(Number(requestLinkData.tokenAmount), 3)}{' '}
                                 {tokenRequestedSymbol} on{' '}
-                                {
-                                    consts.supportedPeanutChains.find(
-                                        (chain) => chain.chainId === requestLinkData.chainId
-                                    )?.name
-                                }
+                                {supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
                             </div>
                         </div>
                         {tokenSupportsXChain ? (
-                            <label className="text-start text-h9 font-light">
-                                You can fulfill this payment request with any token on any chain. Pick the token and
-                                chain that you want to fulfill this request with.
-                            </label>
+                            isPeanutWallet ? (
+                                <label className="text-start text-h9 font-light">
+                                    You can only fulfill this payment request with {PEANUT_WALLET_TOKEN_NAME} on{' '}
+                                    {PEANUT_WALLET_CHAIN.name}. If you wish to use a different token or chain, please
+                                    switch to an external wallet.
+                                </label>
+                            ) : (
+                                <label className="text-start text-h9 font-light">
+                                    You can fulfill this payment request with any token on any chain. Pick the token and
+                                    chain that you want to fulfill this request with.
+                                </label>
+                            )
                         ) : (
                             <label className="text-h9 font-light">
                                 This token does not support cross-chain transfers. You can only fulfill this payment
@@ -410,7 +490,7 @@ export const InitialView = ({
                             </label>
                         )}
                     </div>
-                    {isExternalWallet && tokenSupportsXChain && (
+                    {isExternalWalletConnected && !isPeanutWallet && tokenSupportsXChain && (
                         <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
                     )}
                     {!isFeeEstimationError && (
@@ -486,30 +566,13 @@ export const InitialView = ({
                     <div className="flex w-full flex-col items-center justify-center gap-3">
                         <Button
                             disabled={isButtonDisabled}
-                            onClick={() => {
-                                if (!isConnected) {
-                                    if (isPeanutWallet) {
-                                        setLoadingState('Logging in')
-                                        handleLogin()
-                                            .catch((_error) => {
-                                                toast.error('Error logging in')
-                                            })
-                                            .finally(() => {
-                                                setLoadingState('Idle')
-                                            })
-                                    } else {
-                                        signInModal.open()
-                                    }
-                                } else if (ViewState.READY_TO_PAY === viewState) {
-                                    handleOnNext()
-                                }
-                            }}
+                            onClick={handleSubmit}
                             loading={viewState === ViewState.LOADING}
                         >
-                            {!isConnected && !isPeanutWallet ? 'Connect Wallet' : 'Pay'}
+                            {getButtonTitle()}
                         </Button>
                         {errorState.showError && (
-                            <div className="text-start">
+                            <div className="self-start text-start">
                                 <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                             </div>
                         )}
