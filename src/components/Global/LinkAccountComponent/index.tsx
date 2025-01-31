@@ -386,6 +386,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                 })
                             }}
                         />
+
                         {ibanErrors.accountNumber && (
                             <span className="text-h9 font-normal text-red">{ibanErrors.accountNumber.message}</span>
                         )}
@@ -497,7 +498,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                             </div>
                                         </div>
 
-                                        <div className="flex gap-2">
+                                        <div className="flex w-full flex-col gap-2 md:flex-row">
                                             <div className="flex-1">
                                                 <input
                                                     {...registerAccountDetails('postalCode', {
@@ -612,7 +613,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 >
                     {steps.map(({ label }, index) => (
                         <Step label={label} key={label}>
-                            <div className="relative z-10 flex w-full items-center justify-center pr-[40px]">
+                            <div className="relative z-10 flex w-full items-center justify-center md:pr-[40px]">
                                 {renderComponent()}
                             </div>
                         </Step>
