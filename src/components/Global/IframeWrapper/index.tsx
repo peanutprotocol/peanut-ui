@@ -104,8 +104,8 @@ const IframeWrapper = ({
             setIsPolling(true)
             // Initial check
             pollKycStatus()
-            // Then poll every 3 seconds
-            pollInterval = setInterval(pollKycStatus, 3000)
+            // Then poll every 1.5 seconds
+            pollInterval = setInterval(pollKycStatus, 1500)
         }
 
         return () => {
@@ -140,7 +140,7 @@ const IframeWrapper = ({
             <div className="flex h-full flex-col gap-2 p-0">
                 <div className="w-full flex-shrink-0">
                     {enableConfirmationPrompt && showCloseConfirmMessage ? (
-                        <div className="flex h-14 w-full flex-row items-center justify-between border-b border-n-1 px-4">
+                        <div className="flex w-full flex-col justify-between gap-3 border-b border-n-1 p-4 md:h-14 md:flex-row md:items-center">
                             <p className="text-sm">{closeConfirmMessage}</p>
                             <div className="flex flex-row items-center gap-2">
                                 <button
@@ -173,7 +173,7 @@ const IframeWrapper = ({
                         </button>
                     )}
                 </div>
-                <div className="h-full w-full flex-grow overflow-hidden">
+                <div className="h-full w-full flex-grow overflow-scroll">
                     <iframe
                         src={src}
                         allow="camera;"
