@@ -1,3 +1,4 @@
+import { Button } from '@/components/0_Bruddle'
 import { useAuth } from '@/context/authContext'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -115,7 +116,7 @@ export const UpdateUserComponent = ({ name, email, onSubmit }: IUpdateUserCompon
             />
             {errors.email && <span className="text-start text-h9 font-normal text-red">{errors.email.message}</span>}
 
-            <button type="submit" className="btn btn-purple h-8 w-full text-h8" disabled={isLoading}>
+            <Button type="submit" variant="purple" size="small" disabled={isLoading}>
                 {isLoading ? (
                     <div className="flex w-full flex-row items-center justify-center gap-2 ">
                         <Loading /> {loadingState}
@@ -123,7 +124,7 @@ export const UpdateUserComponent = ({ name, email, onSubmit }: IUpdateUserCompon
                 ) : (
                     'Submit details'
                 )}
-            </button>
+            </Button>
             {errorState.showError && errorState.errorMessage === 'User already exists' ? (
                 <div className="w-full">
                     <span className="text-start text-h8 font-normal">User already exists</span>
