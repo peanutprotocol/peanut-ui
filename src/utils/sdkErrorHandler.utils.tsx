@@ -62,6 +62,13 @@ export const ErrorHandler = (error: any) => {
         } else if (error.toString().includes('gas required exceeds allowance')) {
             return 'Gas required exceeds balance. Please confirm you have enough funds.'
         } else if (
+            error.toString().includes('fee cap (`maxFeePerGas`)') ||
+            error.toString().includes('max fee per gas less than block base fee')
+        ) {
+            return 'Transaction failed, please make sure you have native token for this network to cover gas fees.'
+        } else if (error.toString().includes('EstimateGasExecutionError')) {
+            return 'Unable to estimate gas. Try switching network.'
+        } else if (
             error
                 .toString()
                 .includes(
