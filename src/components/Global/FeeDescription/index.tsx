@@ -141,9 +141,10 @@ const FeeDescription = ({
                             moreInfoText={
                                 isPromoApplied
                                     ? 'Fees waived with promo code!'
-                                    : accountType === 'iban'
-                                      ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
-                                      : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
+                                    : (accountType === 'iban'
+                                          ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
+                                          : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.') +
+                                      ' Peanut fees are 0.25% of the cashout amount.'
                             }
                             loading={loading}
                         />
