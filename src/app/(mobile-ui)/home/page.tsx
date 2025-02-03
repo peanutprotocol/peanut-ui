@@ -1,6 +1,5 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import LogoutButton from '@/components/Global/LogoutButton'
@@ -132,30 +131,9 @@ export default function Home() {
                 <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
                     <div className="flex items-center justify-between">
                         <WalletHeader />
-                        {/* todo: temp sign in button, remove it once auth state is fixed */}
-                        <div>
-                            {hasWallets && (isPeanutWallet || isConnected) && (
-                                <div className="hidden md:block">
-                                    <Button
-                                        loading={isLoggingIn}
-                                        disabled={isLoggingIn}
-                                        shadowSize={!isConnected ? '4' : undefined}
-                                        variant={isConnected ? 'green' : 'purple'}
-                                        size="small"
-                                        onClick={() => {
-                                            if (isConnected) return
-                                            handleLogin().catch((_error) => {
-                                                toast.error('Error logging in')
-                                            })
-                                        }}
-                                    >
-                                        {isConnected ? 'Connected' : 'Sign In'}
-                                    </Button>
-                                </div>
-                            )}
-                            <div className="md:hidden">
-                                <LogoutButton />
-                            </div>
+
+                        <div className="md:hidden">
+                            <LogoutButton />
                         </div>
                     </div>
                     <ProfileSection />

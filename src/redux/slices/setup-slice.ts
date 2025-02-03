@@ -18,6 +18,13 @@ const setupSlice = createSlice({
         setHandle: (state, action: PayloadAction<string>) => {
             state.handle = action.payload
         },
+        resetSetup: (state) => {
+            state.handle = ''
+            state.currentStep = 1
+            state.direction = 0
+            state.isLoading = false
+            state.steps = []
+        },
         nextStep: (state) => {
             state.direction = 1
             state.currentStep = Math.min(state.steps.length, state.currentStep + 1)
