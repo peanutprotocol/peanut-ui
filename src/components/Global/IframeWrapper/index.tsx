@@ -32,6 +32,18 @@ const IframeWrapper = ({
         }
     }, [visible, src])
 
+    // track completed event from iframe and close the modal
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data?.name === 'complete' && event.data?.metadata?.status === 'completed') {
+                onClose()
+            }
+        }
+
+        window.addEventListener('message', handleMessage)
+        return () => window.removeEventListener('message', handleMessage)
+    }, [onClose])
+
     useEffect(() => {
         if (!visible || !customerId) return
 
