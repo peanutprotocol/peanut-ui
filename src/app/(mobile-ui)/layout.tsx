@@ -47,7 +47,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     if (!isReady) return null
     return (
-        <div className="flex h-screen w-full bg-background">
+        <div className="flex h-[100dvh] w-full bg-background">
             {/* Wrapper div for desktop layout */}
             <div className="flex w-full">
                 {/* Sidebar - Fixed on desktop */}
@@ -73,7 +73,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         className={classNames(
                             twMerge(
                                 'flex-1 overflow-y-auto bg-background p-6 pb-24 md:pb-6',
-                                !!isSupport && 'p-0 pb-20 md:p-6'
+                                !!isSupport && 'p-0 pb-20 md:p-6',
+                                !!isHome && 'p-0 md:p-6'
                             )
                         )}
                     >
@@ -127,7 +128,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         Sign In
                     </Button>
                     <Link href={'/setup'} className="text-h8 underline">
-                        Don't have a peanut wallet? Get one now.
+                        Don't have a Peanut wallet? Get one now.
                     </Link>
                     <div className="my-2 flex w-full items-center gap-4">
                         <div className="h-px flex-1 bg-gray-200" />

@@ -30,10 +30,10 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                 />
                 {dataAvailable && (
                     <div className="flex w-full flex-col items-start justify-center gap-2 py-2">
-                        <label className="text-h8">This link previously contained:</label>
+                        <label className="px-2 text-h8">This link previously contained:</label>
                         {tokenSymbolAvailable && (
-                            <div className="flex w-full flex-row items-center justify-between gap-1 text-h8  text-grey-1">
-                                <div className="flex w-max flex-row items-center justify-center gap-1 px-2">
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2  text-h8 text-grey-1">
+                                <div className="flex w-max flex-row items-center justify-center gap-1">
                                     <label className="font-bold">Token</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
