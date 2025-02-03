@@ -1255,7 +1255,7 @@ export function RaffleInitialView({
                                             className="mt-2 block w-[90%] cursor-pointer bg-white p-2 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
                                             id="cta-btn-2"
                                             onClick={() => {
-                                                if (enteredEmail === '') {
+                                                if (enteredEmail !== '') {
                                                     setSentEmail(true)
                                                     const message = ` 🐿️ Someone has entered their email when creating a raffle link, 
                                                 tagging <@480931245107445760> <@833795975080181810>
