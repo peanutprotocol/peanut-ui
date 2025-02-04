@@ -7,7 +7,6 @@ import * as interfaces from '@/interfaces'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, backgroundColorFromAddress, fetchWalletBalances } from '@/utils'
-import { useAppKitAccount } from '@reown/appkit/react'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo } from 'react'
 import { erc20Abi, getAddress, parseUnits } from 'viem'
@@ -40,8 +39,12 @@ export const useWallet = () => {
     const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
-    const { addresses: wagmiAddress, connector } = useAccount()
-    const { isConnected: isWagmiConnected } = useAppKitAccount()
+    const {
+        addresses: wagmiAddress,
+        connector,
+        isConnected: isWagmiConnected,
+        address: externalWalletAddress,
+    } = useAccount()
 
     const { selectedAddress, wallets, signInModalVisible, walletColor } = useWalletStore()
 
@@ -104,6 +107,7 @@ export const useWallet = () => {
         const userAccounts = user?.accounts || []
         const wagmiAddressesList = wagmiAddress || []
 
+        // process user accounts
         const processedAccounts = await Promise.all(
             userAccounts
                 .filter((account) =>
@@ -129,10 +133,16 @@ export const useWallet = () => {
                 )
         )
 
+        // process external wallets - based on user login status
         const processedExternalWallets = await Promise.all(
             wagmiAddressesList
-                // only process external wallets that are in user accounts
-                .filter((address) => userAccounts.some((acc) => areEvmAddressesEqual(acc.account_identifier, address)))
+                .filter((address) => {
+                    // if user is logged in, only process wallets from userAccounts
+                    // if user is not logged in, process all connected wallets
+                    return user
+                        ? userAccounts.some((acc) => areEvmAddressesEqual(acc.account_identifier, address))
+                        : true
+                })
                 .map((address) => fetchWalletDetails(address, interfaces.WalletProviderType.BYOW))
         )
 
@@ -145,12 +155,12 @@ export const useWallet = () => {
 
         dispatch(walletActions.setWallets(mergedWallets))
         return mergedWallets
-    }, [fetchWalletDetails, wagmiAddress, user?.accounts, dispatch])
+    }, [fetchWalletDetails, wagmiAddress, user, user?.accounts, dispatch])
 
     useQuery({
         queryKey: ['wallets', user?.accounts, wagmiAddress],
         queryFn: mergeAndProcessWallets,
-        enabled: !!user || !!wagmiAddress,
+        enabled: !!wagmiAddress || !!user,
         staleTime: 30 * 1000, // 30 seconds
         gcTime: 1 * 60 * 1000, // 1 minute
     })
@@ -219,9 +229,9 @@ export const useWallet = () => {
         setSelectedWallet: (wallet: interfaces.IWallet) => {
             dispatch(walletActions.setSelectedAddress(wallet.address))
         },
-        address: selectedWallet?.address,
+        address: selectedWallet?.address || externalWalletAddress,
         chain: PEANUT_WALLET_CHAIN,
-        isConnected: !!selectedWallet?.connected,
+        isConnected: !!selectedWallet?.connected || !!isWagmiConnected,
         signInModal: {
             visible: signInModalVisible,
             open: () => dispatch(walletActions.setSignInModalVisible(true)),
