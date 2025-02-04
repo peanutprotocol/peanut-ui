@@ -451,7 +451,9 @@ export const InitialView = ({
                             }
                             estimatedFee={feeCalculations.estimatedFee}
                             networkFee={feeCalculations.networkFee.max}
-                            maxSlippage={feeCalculations.slippage ? feeCalculations.slippage.max.toString() : undefined}
+                            maxSlippage={
+                                feeCalculations.slippage ? formatAmount(feeCalculations.slippage.max) : undefined
+                            }
                         />
 
                         <InfoRow

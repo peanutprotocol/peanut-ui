@@ -707,6 +707,22 @@ export const OfframpConfirmView = ({
         }
     }
 
+    const calculateBankingFee = useCallback(
+        (accountType: string) => {
+            if (!!appliedPromoCode) return 0
+
+            const amount = parseFloat(usdValue ?? '0')
+
+            // peanut fee is 0.25% of the amount
+            const PEANUT_FEE_PERCENTAGE = 0.0025
+            const peanutFee = amount * PEANUT_FEE_PERCENTAGE
+            const bankingFee = (accountType === 'iban' ? 1 : 0.5) + peanutFee
+
+            return bankingFee
+        },
+        [appliedPromoCode, usdValue]
+    )
+
     const calculateEstimatedFee = (
         estimatedGasCost: string | undefined,
         hasPromoCode: boolean,
@@ -717,12 +733,12 @@ export const OfframpConfirmView = ({
         const estimatedNetworkFee = parseFloat(estimatedGasCost ?? '0')
         if (hasPromoCode) return estimatedNetworkFee
 
-        // additional fees based on account type and cross-chain transfer
-        const accountFee = accountType === 'iban' ? 1 : 0.5
+        // additional fees based on bank account type and cross-chain transfer
+        const bankingFee = calculateBankingFee(accountType ?? 'iban')
         const crossChainFee = isCrossChainTx ? (calculatedSlippage?.expected ?? 0) : 0
 
         // total estimated fee
-        return estimatedNetworkFee + accountFee + crossChainFee
+        return estimatedNetworkFee + bankingFee + crossChainFee
     }
 
     // check if fee exceeds withdraw amount and update error state
@@ -860,7 +876,7 @@ export const OfframpConfirmView = ({
                                 label="Expected receive"
                                 value={(() => {
                                     // calculate banking fee based on promo code and account type
-                                    const bankingFee = appliedPromoCode ? 0 : accountType === 'iban' ? 1 : 0.5
+                                    const bankingFee = calculateBankingFee(accountType ?? 'iban')
 
                                     const totalFees = bankingFee + (calculatedSlippage?.expected ?? 0)
 
@@ -889,21 +905,27 @@ export const OfframpConfirmView = ({
                                 ).toString()}
                                 networkFee={estimatedGasCost ?? '0'}
                                 minReceive={(() => {
+                                    const amount = parseFloat(usdValue ?? '0')
+
                                     // calculate banking fee based on promo code and account type
-                                    const bankingFee = appliedPromoCode ? 0 : accountType === 'iban' ? 1 : 0.5
+                                    const bankingFee = calculateBankingFee(accountType ?? 'iban')
 
                                     const totalFees = bankingFee + (calculatedSlippage?.expected ?? 0)
-                                    const amount = parseFloat(usdValue ?? '0')
 
                                     // return 0 if fees exceed amount, otherwise calculate minimum receive
                                     return amount <= totalFees ? '0' : utils.formatTokenAmount(amount - totalFees)
                                 })()}
                                 slippageRange={{
-                                    max: calculatedSlippage?.max.toString() ?? '0',
-                                    min: calculatedSlippage?.expected.toString() ?? '0',
+                                    max: utils.formatAmount(calculatedSlippage?.max || '0').toString() ?? '0',
+                                    min: utils.formatAmount(calculatedSlippage?.expected || '0').toString() ?? '0',
                                 }}
                                 accountType={accountType}
-                                accountTypeFee={appliedPromoCode ? '0' : accountType === 'iban' ? '1' : '0.50'}
+                                accountTypeFee={(() => {
+                                    // calculate banking fee based on promo code and account type
+                                    const bankingFee = calculateBankingFee(accountType ?? 'iban')
+
+                                    return utils.formatAmount(bankingFee)
+                                })()}
                                 isPromoApplied={!!appliedPromoCode}
                                 loading={isFetchingRoute}
                             />
