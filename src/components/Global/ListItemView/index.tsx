@@ -105,7 +105,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
 
             <div className="flex w-full flex-col gap-2">
                 <div className="flex w-full flex-row items-center justify-between">
-                    <div className="flex w-full max-w-48 items-center gap-2">
+                    <div className="flex w-full items-center gap-2">
                         <div className="flex items-center gap-2">
                             <label className="font-bold">{primaryInfo.title}</label>
                             {primaryInfo.subtitle && <label className="text-xs text-n-3">{primaryInfo.subtitle}</label>}
