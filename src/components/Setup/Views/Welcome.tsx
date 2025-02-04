@@ -1,5 +1,6 @@
 import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRouter } from 'next/navigation'
@@ -8,14 +9,15 @@ import { useEffect } from 'react'
 const WelcomeStep = () => {
     const { handleNext } = useSetupFlow()
     const { handleLogin, isLoggingIn, isKernelClientReady } = useZeroDev()
+    const { user } = useAuth()
     const { push } = useRouter()
     const toast = useToast()
 
     useEffect(() => {
-        if (isKernelClientReady) {
+        if (!!user && isKernelClientReady) {
             push('/home')
         }
-    }, [isKernelClientReady])
+    }, [isKernelClientReady, user])
 
     return (
         <Card className="border-0">
