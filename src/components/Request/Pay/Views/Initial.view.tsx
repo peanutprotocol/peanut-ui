@@ -81,7 +81,7 @@ export const InitialView = ({
     estimatedPoints,
 }: _consts.IPayScreenProps) => {
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
-    const { address, signInModal, selectedWallet, chain: currentChain, isPeanutWallet } = useWallet()
+    const { address, signInModal, chain: currentChain, isPeanutWallet } = useWallet()
     const { isConnected: isExternalWalletConnected } = useAccount()
     const { handleLogin } = useZeroDev()
     const toast = useToast()
