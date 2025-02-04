@@ -44,6 +44,7 @@ export const useWallet = () => {
         connector,
         isConnected: isWagmiConnected,
         address: externalWalletAddress,
+        chain: wagmiChain,
     } = useAccount()
 
     const { selectedAddress, wallets, signInModalVisible, walletColor } = useWalletStore()
@@ -230,7 +231,7 @@ export const useWallet = () => {
             dispatch(walletActions.setSelectedAddress(wallet.address))
         },
         address: selectedWallet?.address || externalWalletAddress,
-        chain: PEANUT_WALLET_CHAIN,
+        chain: isPeanut(selectedWallet) ? PEANUT_WALLET_CHAIN : wagmiChain,
         isConnected: !!selectedWallet?.connected || !!isWagmiConnected,
         signInModal: {
             visible: signInModalVisible,
