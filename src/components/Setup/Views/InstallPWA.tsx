@@ -1,3 +1,4 @@
+import peanutPointing from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_06/PNGS_konradurban_06_11.png'
 import { Button } from '@/components/0_Bruddle'
 import Modal from '@/components/Global/Modal'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -181,18 +182,16 @@ const InstallPWA = () => {
             <Modal
                 visible={showModal}
                 onClose={() => setShowModal(false)}
-                className="items-center"
+                className="items-center rounded-none"
                 classWrap="sm:m-auto sm:self-center self-center bg-background m-4 rounded-none border-0"
             >
                 {/* todo: replace with images from design */}
                 <img
-                    className="w-full"
-                    width={300}
-                    height={300}
-                    src={
-                        'https://images.unsplash.com/photo-1494253109108-2e30c049369b?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTZ8fHJhbmRvbXxlbnwwfHwwfHx8MA%3D%3D'
-                    }
-                    alt=""
+                    className="mx-auto pt-6 md:w-6/12"
+                    width={200}
+                    height={200}
+                    src={peanutPointing.src}
+                    alt="Peanut pointing"
                 />
                 <div className="space-y-4 p-6">
                     {getInstructions()}
