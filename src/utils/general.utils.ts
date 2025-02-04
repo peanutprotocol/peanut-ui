@@ -6,6 +6,7 @@ import chroma from 'chroma-js'
 import { ethers } from 'ethers'
 import { SiweMessage } from 'siwe'
 import * as wagmiChains from 'wagmi/chains'
+import { JustaName } from '@justaname.id/sdk'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -57,8 +58,12 @@ export const shortenAddressLong = (address?: string, chars?: number): string => 
 }
 
 export const printableAddress = (address: string): string => {
-    if (address.endsWith('.eth')) return address
+    if (validateEnsName(address)) return address
     return shortenAddressLong(address)
+}
+
+export const validateEnsName = (ensName: string): boolean => {
+    return /(?:^|[^a-zA-Z0-9-_.])(([^\s.]{1,63}\.)+[^\s.]{2,63})/.test(ensName)
 }
 
 export const saveToLocalStorage = (key: string, data: any) => {
@@ -307,10 +312,13 @@ export const formatAmountWithoutComma = (input: string) => {
 }
 
 export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
-    const provider = await peanut.getDefaultProvider('1')
-    const x = await provider.resolveName(ensName)
+    const records = await JustaName.init().subnames.getRecords({
+        ens: ensName,
+        chainId: 1,
+        providerUrl: 'https://mainnet.infura.io/v3/' + process.env['NEXT_PUBLIC_INFURA_API_KEY'],
+    })
 
-    return x ? x : undefined
+    return records?.records?.coins?.find((coin) => coin.id === 60)?.value
 }
 
 export async function copyTextToClipboardWithFallback(text: string) {

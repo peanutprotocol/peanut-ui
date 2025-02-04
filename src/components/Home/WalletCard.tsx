@@ -12,7 +12,7 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useMemo } from 'react'
 import CopyToClipboard from '../Global/CopyToClipboard'
-
+import { usePrimaryName } from "@justaname.id/react"
 const colorArray = ['bg-secondary-3', 'bg-secondary-1', 'bg-primary-1']
 
 type BaseWalletCardProps = {
@@ -63,6 +63,9 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
 
     const isExternalWallet = wallet.walletProviderType !== WalletProviderType.PEANUT
     const isConnected = isWalletConnected(wallet)
+    const { primaryName } = usePrimaryName({
+        address: wallet.address,
+    })
 
     const backgroundColor = useMemo(() => {
         if (isExternalWallet && !isConnected) return 'bg-n-4'
@@ -177,7 +180,7 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                                 peanut.me/<span className="font-bold">{username}</span>
                             </p>
                         ) : (
-                            <p className="text-xl font-black sm:text-2xl">{shortenAddressLong(wallet.address)}</p>
+                            <p className="text-xl font-black sm:text-2xl">{primaryName || shortenAddressLong(wallet.address)}</p>
                         )}
 
                         <div onClick={(e) => e.stopPropagation()}>
@@ -185,7 +188,7 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                                 textToCopy={
                                     wallet.walletProviderType === WalletProviderType.PEANUT
                                         ? `peanut.me/${username}`
-                                        : wallet.address
+                                        : (primaryName || wallet.address)
                                 }
                             />
                         </div>
