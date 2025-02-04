@@ -11,7 +11,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import * as utils from '@/utils'
 
 export const useClaimLink = () => {
-    const { chain: currentChain } = useWallet()
+    const { chain: currentChain, refetchBalances } = useWallet()
     const { switchChainAsync } = useSwitchChain()
 
     const { setLoadingState } = useContext(context.loadingStateContext)
@@ -25,6 +25,9 @@ export const useClaimLink = () => {
                 baseUrl: `${consts.next_proxy_url}/claim-v2`,
                 APIKey: 'doesnt-matter',
             })
+
+            // refetch wallet balance after successful claim
+            await refetchBalances(address)
 
             return claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''
         } catch (error) {

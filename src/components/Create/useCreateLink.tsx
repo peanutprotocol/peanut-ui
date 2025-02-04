@@ -761,7 +761,8 @@ export const useCreateLink = () => {
                 transaction: type === 'deposit' ? response && response.unsignedTxs[0] : undefined,
             })
 
-            await refetchBalances(address ?? '')
+            // refetch wallet balance after successful link creation
+            await refetchBalances(selectedWallet?.address || '')
 
             return link[0]
         } catch (error) {
