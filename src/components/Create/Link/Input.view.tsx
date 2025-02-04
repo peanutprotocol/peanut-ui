@@ -181,8 +181,7 @@ export const CreateLinkInputView = ({
                         if (totalAmount > walletBalance) {
                             setErrorState({
                                 showError: true,
-                                errorMessage:
-                                    'You do not have enough balance to cover the transaction fees, try again with a lower amount',
+                                errorMessage: 'You do not have enough balance to complete the transaction.',
                             })
                             return
                         }
@@ -211,8 +210,7 @@ export const CreateLinkInputView = ({
                             _setTokenValue((Number(tokenValue) - maxGasAmount * 1.3).toFixed(6))
                             setErrorState({
                                 showError: true,
-                                errorMessage:
-                                    'You do not have enough balance to cover the transaction fees, try again with a lower amount',
+                                errorMessage: 'You do not have enough balance to complete the transaction.',
                             })
                             return
                         }

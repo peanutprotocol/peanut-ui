@@ -63,11 +63,10 @@ export const ErrorHandler = (error: any) => {
             return 'Gas required exceeds balance. Please confirm you have enough funds.'
         } else if (
             error.toString().includes('fee cap (`maxFeePerGas`)') ||
-            error.toString().includes('max fee per gas less than block base fee')
+            error.toString().includes('max fee per gas less than block base fee') ||
+            error.toString().includes('EstimateGasExecutionError')
         ) {
-            return 'Transaction failed, please make sure you have native token for this network to cover gas fees.'
-        } else if (error.toString().includes('EstimateGasExecutionError')) {
-            return 'Unable to estimate gas. Try switching network.'
+            return 'Transaction failed, please make sure you have enough native token on this network to cover gas fees.'
         } else if (
             error
                 .toString()
@@ -105,7 +104,9 @@ export const ErrorHandler = (error: any) => {
         } else if (error.toString().includes('Error getting the link with transactionHash')) {
             return error.message
         } else if (error.toString().includes('transfer amount exceeds balance')) {
-            return 'You do not have enough balance to cover the transaction fees, try again with a lower amount'
+            return 'You do not have enough balance to complete the transaction.'
+        } else if (error.toString().includes('does not match the target chain for the transaction')) {
+            return 'Failed to switch network. Try switching to the correct network manually.'
         } else {
             return 'Something failed. Please try again.'
         }
