@@ -1,4 +1,3 @@
-import * as assets from '@/assets'
 import { Card } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
@@ -79,20 +78,22 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
             fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
     }, [])
-    if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center gap-4">
-                <div className="animate-spin">
-                    <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
-                    <span className="sr-only">{loadingState}</span>
-                </div>
 
-                <label className="text-h8 font-bold ">
-                    Funds are on their way to <AddressLink address={requestLinkData.recipientAddress} />!
-                </label>
-            </div>
-        )
-    }
+    // todo: manage loading state properly, currently it keeps loading forever
+    // if (isLoading) {
+    //     return (
+    //         <div className="flex flex-col items-center justify-center gap-4">
+    //             <div className="animate-spin">
+    //                 <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
+    //                 <span className="sr-only">{loadingState}</span>
+    //             </div>
+
+    //             <label className="text-h8 font-bold ">
+    //                 Funds are on their way to <AddressLink address={requestLinkData.recipientAddress} />!
+    //             </label>
+    //         </div>
+    //     )
+    // }
 
     return (
         <Card className="w-full shadow-none sm:shadow-primary-4">
