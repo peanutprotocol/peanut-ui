@@ -1,6 +1,5 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import LogoutButton from '@/components/Global/LogoutButton'
@@ -133,30 +132,9 @@ export default function Home() {
                     <div className="space-y-4 px-6">
                         <div className="flex items-center justify-between">
                             <WalletHeader />
-                            {/* todo: temp sign in button, remove it once auth state is fixed */}
-                            <div>
-                                {hasWallets && (isPeanutWallet || isConnected) && (
-                                    <div className="hidden md:block">
-                                        <Button
-                                            loading={isLoggingIn}
-                                            disabled={isLoggingIn}
-                                            shadowSize={!isConnected ? '4' : undefined}
-                                            variant={isConnected ? 'green' : 'purple'}
-                                            size="small"
-                                            onClick={() => {
-                                                if (isConnected) return
-                                                handleLogin().catch((_error) => {
-                                                    toast.error('Error logging in')
-                                                })
-                                            }}
-                                        >
-                                            {isConnected ? 'Connected' : 'Sign In'}
-                                        </Button>
-                                    </div>
-                                )}
-                                <div className="md:hidden">
-                                    <LogoutButton />
-                                </div>
+
+                            <div className="md:hidden">
+                                <LogoutButton />
                             </div>
                         </div>
                         <ProfileSection />
@@ -210,7 +188,7 @@ export default function Home() {
                         </div>
                     </div>
 
-                    <div className="px-6">
+                    <div className="px-6 md:pb-6">
                         <DirectionalActionButtons
                             leftButton={{
                                 title: 'Send',

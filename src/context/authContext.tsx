@@ -1,6 +1,8 @@
 'use client'
 import { usePWAStatus } from '@/hooks/usePWAStatus'
 import * as interfaces from '@/interfaces'
+import { useAppDispatch } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
 import { type GetUserLinksResponse } from '@/utils'
 import { hitUserMetric } from '@/utils/metrics.utils'
 import { ToastId, useToast } from '@chakra-ui/react'
@@ -47,6 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const router = useRouter()
     const { open: web3modalOpen } = useAppKit()
     const isPwa = usePWAStatus()
+    const dispatch = useAppDispatch()
     const {
         data: user,
         isFetching: isFetchingUser,
@@ -279,7 +282,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 
                 await fetchUser()
-                router.push('/setup')
+                dispatch(setupActions.resetSetup())
+                router.replace('/setup')
 
                 toast({
                     status: 'success',
