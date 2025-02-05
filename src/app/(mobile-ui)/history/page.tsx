@@ -6,6 +6,7 @@ import { useDashboard } from '@/components/Dashboard/useDashboard'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
 import NavHeader from '@/components/Global/NavHeader'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import { PEANUT_API_URL } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IDashboardItem } from '@/interfaces'
@@ -58,7 +59,7 @@ const HistoryPage = () => {
         }
     }
 
-    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery({
+    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, isLoading } = useInfiniteQuery({
         queryKey: ['history', address],
         queryFn: fetchHistoryPage,
         getNextPageParam: (lastPage) => lastPage.nextPage,
@@ -101,6 +102,10 @@ const HistoryPage = () => {
                 apiKey: process.env.PEANUT_API_KEY,
             }),
         })
+    }
+
+    if (isLoading) {
+        return <PeanutLoading />
     }
 
     if (status === 'error') {
