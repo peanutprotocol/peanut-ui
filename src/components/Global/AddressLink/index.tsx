@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react'
 import { useEnsName } from 'wagmi'
 import { isAddress } from 'viem'
 import * as utils from '@/utils'
+import {usePrimaryName} from "@justaname.id/react";
 
 const AddressLink = ({ address }: { address: string }) => {
     const [url, setUrl] = useState<string>('')
     const [displayAddress, setDisplayAddress] = useState<string>(utils.printableAddress(address))
 
     // Look up ENS name for any valid Ethereum address
-    const { data: ensName } = useEnsName({
+    const { primaryName: ensName } = usePrimaryName({
         address: isAddress(address) ? (address as `0x${string}`) : undefined,
         chainId: 1, // Mainnet for ENS lookups
     })
