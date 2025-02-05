@@ -762,7 +762,7 @@ export const useCreateLink = () => {
             })
 
             // refetch wallet balance after successful link creation
-            await refetchBalances(selectedWallet?.address || '')
+            refetchBalances(selectedWallet?.address || '')
 
             return link[0]
         } catch (error) {

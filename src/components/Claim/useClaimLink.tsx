@@ -27,7 +27,7 @@ export const useClaimLink = () => {
             })
 
             // refetch wallet balance after successful claim
-            await refetchBalances(address)
+            refetchBalances(address)
 
             return claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''
         } catch (error) {

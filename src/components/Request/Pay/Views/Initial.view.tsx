@@ -335,7 +335,7 @@ export const InitialView = ({
                 onNext()
 
                 // update wallet balance after successful req payment
-                await refetchBalances(address)
+                refetchBalances(address)
             } else {
                 if (!xChainUnsignedTxs) {
                     throw new Error('Cross-chain transaction data not ready')
