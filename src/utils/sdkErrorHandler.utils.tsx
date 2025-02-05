@@ -82,7 +82,7 @@ export const ErrorHandler = (error: any) => {
                 .toString()
                 .includes('Please ensure that you have sufficient balance of the token you are trying to send')
         ) {
-            return 'Please ensure that you have sufficient balance of requested token.'
+            return 'Please ensure that you have sufficient balance of the token you are trying to send including gas fees.'
         } else if (error.toString().includes('The minimum amount to send is 0.0001')) {
             return 'The minimum amount to send is 0.0001.'
         } else if (error.toString().includes('Error getting the linkDetails')) {
