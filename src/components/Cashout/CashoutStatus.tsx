@@ -1,10 +1,12 @@
 'use client'
-import * as assets from '@/assets'
+import PEANUTMAN_CRY from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif'
 import * as utils from '@/utils'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Card } from '../0_Bruddle'
 import Icon from '../Global/Icon'
+import PeanutLoading from '../Global/PeanutLoading'
 
 export const CashoutStatus = () => {
     const [cashoutStatus, setCashoutStatus] = useState<'FOUND' | 'NOT FOUND' | undefined>(undefined)
@@ -26,45 +28,49 @@ export const CashoutStatus = () => {
     }, [])
 
     if (!cashoutStatus) {
-        return (
-            <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Content>
-                    <div className="relative flex w-full items-center justify-center">
-                        <div className="animate-spin">
-                            <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
-                            <span className="sr-only">Loading...</span>
-                        </div>
-                    </div>
-                </Card.Content>
-            </Card>
-        )
+        return <PeanutLoading />
     }
 
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title></Card.Title>
-            </Card.Header>
-            {cashoutStatus === 'FOUND' ? (
-                <div className="mx-auto flex max-w-[96%] flex-col items-center justify-center gap-4 pb-20 text-start">
-                    <label className="text-h2">Cashout status</label>
-                    <div className="flex flex-col justify-center gap-3">
-                        <label className="text-start text-h8 font-light">
-                            {cashoutStatusData && utils.CashoutStatusDescriptions[cashoutStatusData?.status]}{' '}
-                        </label>
+        <Card className="shadow-primary-4 w-full pt-6 md:w-5/12">
+            {cashoutStatus == 'FOUND' ? (
+                <div className="flex flex-col items-stretch justify-center gap-4 text-start">
+                    <div className="space-y-3 px-6">
+                        <label className="text-h2">Cashout status</label>
+                        <div className="flex flex-col justify-center gap-3">
+                            <label className="text-start text-h8 font-light">
+                                {cashoutStatusData && utils.CashoutStatusDescriptions[cashoutStatusData?.status]} gm
+                            </label>
+                        </div>
                     </div>
                     <Link
-                        className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
-                        href={`/profile`}
+                        className="flex h-20 w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
+                        href={`/history`}
                     >
                         <div className=" border border-n-1 p-0 px-1">
                             <Icon name="dashboard" className="-mt-0.5" />
                         </div>
-                        Go to profile
+                        Go to history
                     </Link>
                 </div>
             ) : (
-                cashoutStatus === 'NOT FOUND' && 'Cashout Not Found'
+                cashoutStatus === 'NOT FOUND' && (
+                    <div>
+                        <div className="flex flex-col items-center justify-center gap-3 px-6 pb-6">
+                            <Image src={PEANUTMAN_CRY.src} alt="Peanutman crying 😭" width={96} height={96} />
+                            <div>Cashout Not Found</div>
+                        </div>
+                        <Link
+                            className="flex h-16 w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
+                            href={`/home`}
+                        >
+                            <div className=" border border-n-1 p-0 px-1">
+                                <Icon name="dashboard" className="-mt-0.5" />
+                            </div>
+                            Go to Home
+                        </Link>
+                    </div>
+                )
             )}
         </Card>
     )
