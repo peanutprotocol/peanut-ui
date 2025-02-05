@@ -525,12 +525,13 @@ export const OfframpConfirmView = ({
     }
 
     const handleError = (error: unknown) => {
+        const errorString = utils.ErrorHandler(error)
         console.error('Error in handleCashoutConfirm:', error)
         setErrorState({
             showError: true,
             errorMessage:
                 error instanceof Error
-                    ? error.message
+                    ? errorString
                     : "We've encountered an error. Your funds are SAFU, please reach out to support",
         })
         setShowRefund(true)
@@ -994,7 +995,7 @@ export const OfframpConfirmView = ({
                         )}
                     </div>
                 )}
-                {showRefund && (
+                {showRefund && createdLink && (
                     <Link href={createdLink ?? ''} className=" text-h8 font-normal ">
                         <Icon name="warning" className="-mt-0.5" /> Something went wrong while trying to cashout. Click{' '}
                         <Link href={createdLink ?? ''} className="underline">
