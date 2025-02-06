@@ -1,12 +1,12 @@
-import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
+import {IRequestLinkData} from '@/components/Request/Pay/Pay.consts'
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
 import peanut from '@squirrel-labs/peanut-sdk'
 import chroma from 'chroma-js'
-import { ethers } from 'ethers'
-import { SiweMessage } from 'siwe'
+import {ethers} from 'ethers'
+import {SiweMessage} from 'siwe'
 import * as wagmiChains from 'wagmi/chains'
-import { JustaName } from '@justaname.id/sdk'
+import {JustaName} from '@justaname.id/sdk'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -107,7 +107,7 @@ export const getFromLocalStorage = (key: string) => {
     }
 }
 
-export const getAllLinksFromLocalStorage = ({ address }: { address: string }) => {
+export const getAllLinksFromLocalStorage = ({address}: { address: string }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
@@ -142,7 +142,7 @@ export const getAllLinksFromLocalStorage = ({ address }: { address: string }) =>
     }
 }
 
-export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string }) => {
+export const getAllRaffleLinksFromLocalstorage = ({address}: { address: string }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
@@ -218,7 +218,7 @@ export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string
     }
 }
 
-export function formatAmountWithDecimals({ amount, decimals }: { amount: number; decimals: number }) {
+export function formatAmountWithDecimals({amount, decimals}: { amount: number; decimals: number }) {
     const divider = 10 ** decimals
     const formattedAmount = amount / divider
     return formattedAmount
@@ -312,13 +312,18 @@ export const formatAmountWithoutComma = (input: string) => {
 }
 
 export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
-    const records = await JustaName.init().subnames.getRecords({
-        ens: ensName,
-        chainId: 1,
-        providerUrl: 'https://mainnet.infura.io/v3/' + process.env['NEXT_PUBLIC_INFURA_API_KEY'],
-    })
+    try {
+        const records = await JustaName.init().subnames.getRecords({
+            ens: ensName,
+            chainId: 1,
+            providerUrl: 'https://mainnet.infura.io/v3/' + process.env['NEXT_PUBLIC_INFURA_API_KEY'],
+        })
 
-    return records?.records?.coins?.find((coin) => coin.id === 60)?.value
+        return records?.records?.coins?.find((coin) => coin.id === 60)?.value
+    } catch (error) {
+        console.error('Error resolving ENS name:', error)
+        return undefined
+    }
 }
 
 export async function copyTextToClipboardWithFallback(text: string) {
@@ -376,9 +381,9 @@ export const isNativeCurrency = (address: string) => {
 }
 
 export const saveClaimedLinkToLocalStorage = ({
-    address,
-    data,
-}: {
+                                                  address,
+                                                  data,
+                                              }: {
     address: string
     data: interfaces.IExtendedLinkDetails
 }) => {
@@ -404,7 +409,7 @@ export const saveClaimedLinkToLocalStorage = ({
     }
 }
 
-export const saveOfframpLinkToLocalstorage = ({ data }: { data: interfaces.IExtendedLinkDetailsOfframp }) => {
+export const saveOfframpLinkToLocalstorage = ({data}: { data: interfaces.IExtendedLinkDetailsOfframp }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
@@ -427,7 +432,7 @@ export const saveOfframpLinkToLocalstorage = ({ data }: { data: interfaces.IExte
     }
 }
 
-export const getClaimedLinksFromLocalStorage = ({ address = undefined }: { address?: string }) => {
+export const getClaimedLinksFromLocalStorage = ({address = undefined}: { address?: string }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
@@ -463,9 +468,9 @@ export const getClaimedLinksFromLocalStorage = ({ address = undefined }: { addre
 }
 
 export const saveCreatedLinkToLocalStorage = ({
-    address,
-    data,
-}: {
+                                                  address,
+                                                  data,
+                                              }: {
     address: string
     data: interfaces.IExtendedPeanutLinkDetails
 }) => {
@@ -491,7 +496,7 @@ export const saveCreatedLinkToLocalStorage = ({
     }
 }
 
-export const getCreatedLinksFromLocalStorage = ({ address = undefined }: { address?: string }) => {
+export const getCreatedLinksFromLocalStorage = ({address = undefined}: { address?: string }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
@@ -527,9 +532,9 @@ export const getCreatedLinksFromLocalStorage = ({ address = undefined }: { addre
 }
 
 export const saveDirectSendToLocalStorage = ({
-    address,
-    data,
-}: {
+                                                 address,
+                                                 data,
+                                             }: {
     address: string
     data: interfaces.IDirectSendDetails
 }) => {
@@ -555,7 +560,7 @@ export const saveDirectSendToLocalStorage = ({
     }
 }
 
-export const getDirectSendFromLocalStorage = ({ address = undefined }: { address?: string }) => {
+export const getDirectSendFromLocalStorage = ({address = undefined}: { address?: string }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
@@ -610,7 +615,7 @@ export const getOfframpClaimsFromLocalStorage = () => {
     }
 }
 
-export const saveRequestLinkToLocalStorage = ({ details }: { details: IRequestLinkData }) => {
+export const saveRequestLinkToLocalStorage = ({details}: { details: IRequestLinkData }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
@@ -662,7 +667,7 @@ export const setRequestLinksToLocalStorage = (updatedRequestLinks: IRequestLinkD
     console.log('Updated request links in localStorage:', updatedRequestLinks)
 }
 
-export const saveRequestLinkFulfillmentToLocalStorage = ({ details }: { details: IRequestLinkData; link: string }) => {
+export const saveRequestLinkFulfillmentToLocalStorage = ({details}: { details: IRequestLinkData; link: string }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
@@ -826,11 +831,11 @@ export async function rankAddressesByInteractions(portfolios: Portfolio[]) {
 
     portfolios.forEach((portfolio) => {
         portfolio.assetActivities.forEach((activity) => {
-            const { to, from, type } = activity.details
-            const { timestamp } = activity
+            const {to, from, type} = activity.details
+            const {timestamp} = activity
 
             if (!addressInteractions[to]) {
-                addressInteractions[to] = { count: 0, mostRecentInteraction: timestamp }
+                addressInteractions[to] = {count: 0, mostRecentInteraction: timestamp}
             }
             addressInteractions[to].count += 1
             if (timestamp > addressInteractions[to].mostRecentInteraction) {
@@ -840,7 +845,7 @@ export async function rankAddressesByInteractions(portfolios: Portfolio[]) {
     })
 
     const rankedAddresses = Object.entries(addressInteractions) //@ts-ignore
-        .map(([address, { count, mostRecentInteraction }]) => ({ address, count, mostRecentInteraction }))
+        .map(([address, {count, mostRecentInteraction}]) => ({address, count, mostRecentInteraction}))
         .sort((a, b) => b.mostRecentInteraction - a.mostRecentInteraction)
 
     return rankedAddresses
@@ -857,7 +862,7 @@ export function formatDate(date: Date): string {
     return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`
 }
 
-export const createSiweMessage = ({ address, statement }: { address: string; statement: string }) => {
+export const createSiweMessage = ({address, statement}: { address: string; statement: string }) => {
     const message = new SiweMessage({
         domain: window.location.host,
         address,
@@ -881,20 +886,20 @@ export const formatIban = (iban: string) => {
 }
 
 export const switchNetwork = async ({
-    chainId,
-    currentChainId,
-    setLoadingState,
-    switchChainAsync,
-}: {
+                                        chainId,
+                                        currentChainId,
+                                        setLoadingState,
+                                        switchChainAsync,
+                                    }: {
     chainId: string
     currentChainId: string | undefined
     setLoadingState: (state: consts.LoadingStates) => void
-    switchChainAsync: ({ chainId }: { chainId: number }) => Promise<void>
+    switchChainAsync: ({chainId}: { chainId: number }) => Promise<void>
 }) => {
     if (currentChainId !== chainId) {
         setLoadingState('Allow network switch')
         try {
-            await switchChainAsync({ chainId: Number(chainId) })
+            await switchChainAsync({chainId: Number(chainId)})
             setLoadingState('Switching network')
             await new Promise((resolve) => setTimeout(resolve, 2000))
             setLoadingState('Loading')

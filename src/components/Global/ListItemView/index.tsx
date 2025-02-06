@@ -75,7 +75,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
         address: metadata.recipientAddress,
     })
     const primaryNameOrAddress = useMemo(() => {
-        return primaryName ?? metadata.recipientAddress
+        return primaryName && primaryName !=="" ? primaryName : metadata.recipientAddress
     }, [primaryName, metadata.recipientAddress])
 
     // get the transaction status for history variant
