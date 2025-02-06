@@ -180,7 +180,7 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                                 peanut.me/<span className="font-bold">{username}</span>
                             </p>
                         ) : (
-                            <p className="text-xl font-black sm:text-2xl">{primaryName || shortenAddressLong(wallet.address)}</p>
+                            <p className="text-xl font-black sm:text-2xl truncate">{primaryName || shortenAddressLong(wallet.address)}</p>
                         )}
 
                         <div onClick={(e) => e.stopPropagation()}>
