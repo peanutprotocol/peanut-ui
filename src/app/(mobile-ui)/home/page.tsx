@@ -128,94 +128,100 @@ export default function Home() {
 
     return (
         <div className="h-full w-full">
-            <div className="flex h-full w-full flex-row justify-center overflow-hidden pb-6">
+            <div className="flex h-full w-full flex-row justify-center overflow-hidden py-6 md:py-0">
                 <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
-                    <div className="flex items-center justify-between">
-                        <WalletHeader />
-                        {/* todo: temp sign in button, remove it once auth state is fixed */}
-                        <div>
-                            {hasWallets && (isPeanutWallet || isConnected) && (
-                                <div className="hidden md:block">
-                                    <Button
-                                        loading={isLoggingIn}
-                                        disabled={isLoggingIn}
-                                        shadowSize={!isConnected ? '4' : undefined}
-                                        variant={isConnected ? 'green' : 'purple'}
-                                        size="small"
-                                        onClick={() => {
-                                            if (isConnected) return
-                                            handleLogin().catch((_error) => {
-                                                toast.error('Error logging in')
-                                            })
-                                        }}
-                                    >
-                                        {isConnected ? 'Connected' : 'Sign In'}
-                                    </Button>
+                    <div className="space-y-4 px-6">
+                        <div className="flex items-center justify-between">
+                            <WalletHeader />
+                            {/* todo: temp sign in button, remove it once auth state is fixed */}
+                            <div>
+                                {hasWallets && (isPeanutWallet || isConnected) && (
+                                    <div className="hidden md:block">
+                                        <Button
+                                            loading={isLoggingIn}
+                                            disabled={isLoggingIn}
+                                            shadowSize={!isConnected ? '4' : undefined}
+                                            variant={isConnected ? 'green' : 'purple'}
+                                            size="small"
+                                            onClick={() => {
+                                                if (isConnected) return
+                                                handleLogin().catch((_error) => {
+                                                    toast.error('Error logging in')
+                                                })
+                                            }}
+                                        >
+                                            {isConnected ? 'Connected' : 'Sign In'}
+                                        </Button>
+                                    </div>
+                                )}
+                                <div className="md:hidden">
+                                    <LogoutButton />
                                 </div>
-                            )}
-                            <div className="md:hidden">
-                                <LogoutButton />
                             </div>
                         </div>
+                        <ProfileSection />
                     </div>
-                    <ProfileSection />
-                    <div
-                        className={classNames('relative h-[200px] p-4 sm:overflow-visible', {
-                            'overflow-hidden': wallets.length > 0,
-                        })}
-                        style={{
-                            marginRight: -cardMargin,
-                            marginLeft: -cardMargin,
-                        }}
-                    >
-                        {hasWallets ? (
-                            <motion.div
-                                ref={carouselRef}
-                                className="absolute flex h-[calc(100%-32px)]"
-                                animate={controls}
-                                drag="x"
-                                dragConstraints={{
-                                    left: -((totalCards - 1) * (cardWidth + cardMargin)),
-                                    right: 0,
-                                }}
-                                dragElastic={0.2}
-                                onDragEnd={handleDragEnd}
-                            >
-                                {!!wallets.length &&
-                                    wallets.map((wallet, index) => (
-                                        <WalletCard
-                                            key={wallet.address}
-                                            type="wallet"
-                                            wallet={wallet}
-                                            username={username ?? ''}
-                                            selected={selectedWalletIndex === index}
-                                            onClick={() => handleCardClick(index)}
-                                            index={index}
-                                            isBalanceHidden={isBalanceHidden}
-                                            onToggleBalanceVisibility={handleToggleBalanceVisibility}
-                                            isFocused={focusedIndex === index}
-                                        />
-                                    ))}
+                    <div className="pl-6">
+                        <div
+                            className={classNames('relative h-[200px] p-4 sm:overflow-visible', {
+                                'overflow-hidden': wallets.length > 0,
+                            })}
+                            style={{
+                                marginRight: -cardMargin,
+                                marginLeft: -cardMargin,
+                            }}
+                        >
+                            {hasWallets ? (
+                                <motion.div
+                                    ref={carouselRef}
+                                    className="absolute flex h-[calc(100%-32px)]"
+                                    animate={controls}
+                                    drag="x"
+                                    dragConstraints={{
+                                        left: -((totalCards - 1) * (cardWidth + cardMargin)),
+                                        right: 0,
+                                    }}
+                                    dragElastic={0.2}
+                                    onDragEnd={handleDragEnd}
+                                >
+                                    {!!wallets.length &&
+                                        wallets.map((wallet, index) => (
+                                            <WalletCard
+                                                key={wallet.address}
+                                                type="wallet"
+                                                wallet={wallet}
+                                                username={username ?? ''}
+                                                selected={selectedWalletIndex === index}
+                                                onClick={() => handleCardClick(index)}
+                                                index={index}
+                                                isBalanceHidden={isBalanceHidden}
+                                                onToggleBalanceVisibility={handleToggleBalanceVisibility}
+                                                isFocused={focusedIndex === index}
+                                            />
+                                        ))}
 
-                                <WalletCard type="add" onClick={connectWallet} />
-                            </motion.div>
-                        ) : (
-                            <div className="flex h-full w-full flex-grow flex-col justify-center">
-                                <WalletCard type="add" onClick={connectWallet} />
-                            </div>
-                        )}
+                                    <WalletCard type="add" onClick={connectWallet} />
+                                </motion.div>
+                            ) : (
+                                <div className="flex h-full w-full flex-grow flex-col justify-center">
+                                    <WalletCard type="add" onClick={connectWallet} />
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    <DirectionalActionButtons
-                        leftButton={{
-                            title: 'Send',
-                            href: '/send',
-                        }}
-                        rightButton={{
-                            title: 'Receive',
-                            href: '/request/create',
-                        }}
-                    />
+                    <div className="px-6">
+                        <DirectionalActionButtons
+                            leftButton={{
+                                title: 'Send',
+                                href: '/send',
+                            }}
+                            rightButton={{
+                                title: 'Receive',
+                                href: '/request/create',
+                            }}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
