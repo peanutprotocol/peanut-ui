@@ -1,10 +1,10 @@
 'use client'
 import Icon from '@/components/Global/Icon'
-import Link from 'next/link'
-import * as _consts from './Offramp.consts'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useAuth } from '@/context/authContext'
 import * as utils from '@/utils'
+import Link from 'next/link'
+import * as _consts from './Offramp.consts'
 
 export const OfframpSuccessView = ({
     offrampForm, // available on all offramps
@@ -61,7 +61,7 @@ export const OfframpSuccessView = ({
                                 text={
                                     appliedPromoCode
                                         ? `Fees waived with promo code ${appliedPromoCode}`
-                                        : `For ${accountType === 'iban' ? 'SEPA' : 'ACH'} transactions a fee of ${
+                                        : `For ${accountType === 'iban' ? 'SEPA' : 'ACH'} transactions a flat fee of ${
                                               accountType === 'iban' ? '$1' : '$0.50'
                                           } is charged.`
                                 }

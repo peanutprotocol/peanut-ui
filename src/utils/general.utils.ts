@@ -818,8 +818,8 @@ export const checkifImageType = (type: string) => {
 }
 
 export const estimateStableCoin = (tokenPrice: number) => {
-    // if the tokenprice is between .995 and 1.005, return 1
-    if (tokenPrice >= 0.995 && tokenPrice <= 1.005) {
+    // if price of a coin within 2% of 1, then assume it's 1. This is particularly useful for stablecoins.
+    if (tokenPrice >= 0.98 && tokenPrice <= 1.02) {
         return true
     } else {
         return false
