@@ -444,11 +444,7 @@ export const InitialView = ({
                 {!isFeeEstimationError && (
                     <>
                         <FeeDescription
-                            loading={
-                                Number(feeCalculations.estimatedFee) === 0 ||
-                                Number(feeCalculations.networkFee.expected) === 0 ||
-                                (!isPayInitiatedByUser && isLoading)
-                            }
+                            loading={Number(feeCalculations.estimatedFee) === 0 || (!isPayInitiatedByUser && isLoading)}
                             estimatedFee={feeCalculations.estimatedFee}
                             networkFee={feeCalculations.networkFee.max}
                             maxSlippage={
