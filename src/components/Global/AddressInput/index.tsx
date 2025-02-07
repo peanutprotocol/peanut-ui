@@ -1,7 +1,7 @@
 'use client'
 import { isAddress } from 'viem'
 
-import {resolveFromEnsName, validateEnsName} from '@/utils'
+import { resolveFromEnsName, validateEnsName } from '@/utils'
 import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
 
 type AddressInputProps = {

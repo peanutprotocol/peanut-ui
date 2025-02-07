@@ -15,7 +15,7 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import {isAddress} from "viem";
+import { isAddress } from 'viem'
 
 const ITEMS_PER_PAGE = 10
 
@@ -47,7 +47,7 @@ const HistoryPage = () => {
                 amount: `$${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
                 recipientAddress: data.address ?? '',
                 recipientAddressFormatter: (address: string) => {
-                    const sanitizedAddressOrName =   isAddress(address) ? printableAddress(address) : address
+                    const sanitizedAddressOrName = isAddress(address) ? printableAddress(address) : address
                     return `To ${sanitizedAddressOrName}`
                 },
                 status: linkDetails?.status ?? data.status ?? '',

@@ -20,7 +20,8 @@ import {
     saveDirectSendToLocalStorage,
     shareToEmail,
     shareToSms,
-    updateUserPreferences, validateEnsName,
+    updateUserPreferences,
+    validateEnsName,
 } from '@/utils'
 import * as _consts from '../Create.consts'
 import { useCreateLink } from '../useCreateLink'

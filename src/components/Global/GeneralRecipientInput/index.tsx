@@ -7,7 +7,7 @@ import { isAddress } from 'viem'
 import * as interfaces from '@/interfaces'
 import { useRecentRecipients } from '@/hooks/useRecentRecipients'
 import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
-import {validateEnsName} from "@/utils";
+import { validateEnsName } from '@/utils'
 
 type GeneralRecipientInputProps = {
     className?: string

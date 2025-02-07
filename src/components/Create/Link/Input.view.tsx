@@ -25,7 +25,7 @@ import {
     isNativeCurrency,
     printableAddress,
     printableUsdc,
-    validateEnsName
+    validateEnsName,
 } from '@/utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { formatEther } from 'viem'
