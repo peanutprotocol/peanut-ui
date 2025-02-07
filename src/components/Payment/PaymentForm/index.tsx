@@ -14,7 +14,7 @@ interface PaymentFormProps {
     recipient: string
     amount?: string | null
     token?: string | null
-    chain?: string | null
+    chain?: string | number | null
 }
 
 export const PaymentForm = ({ recipient, amount, token, chain }: PaymentFormProps) => {

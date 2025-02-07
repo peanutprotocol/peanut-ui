@@ -4,6 +4,7 @@ type ChainNameMapping = {
 
 // mapping of normalized chain identifiers to their variations
 export const CHAIN_NAME_VARIANTS: ChainNameMapping = {
+    eth: ['ethereum', 'ethereum mainnet', 'eth', 'eth mainnet'],
     optimism: ['optimism', 'op', 'op mainnet', 'optimism mainnet'],
     arbitrum: ['arbitrum', 'arbitrum one', 'arbitrum mainnet'],
     polygon: ['polygon', 'polygon pos', 'matic', 'polygon mainnet'],
