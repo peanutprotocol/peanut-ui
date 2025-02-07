@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { mainnet } from 'viem/chains'
 import { CreateConnectorFn, WagmiProvider, http } from 'wagmi'
 import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
-import {JustaNameContext} from "@/config/justaname.config";
+import { JustaNameContext } from '@/config/justaname.config'
 
 // 0. Setup queryClient
 const queryClient = new QueryClient()
@@ -74,9 +74,7 @@ export function ContextProvider({ children }: { children: React.ReactNode }) {
     return (
         <WagmiProvider config={wagmiAdapter.wagmiConfig}>
             <QueryClientProvider client={queryClient}>
-                <JustaNameContext>
-                    {children}
-                </JustaNameContext>
+                <JustaNameContext>{children}</JustaNameContext>
             </QueryClientProvider>
         </WagmiProvider>
     )

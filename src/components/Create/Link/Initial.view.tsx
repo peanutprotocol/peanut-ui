@@ -15,7 +15,7 @@ import * as utils from '@/utils'
 import { ethers } from 'ethers'
 import { validate } from 'multicoin-address-validator'
 import * as _consts from '../Create.consts'
-import {validateEnsName} from "@/utils";
+import { validateEnsName } from '@/utils'
 
 export const CreateLinkInitialView = ({
     onNext,

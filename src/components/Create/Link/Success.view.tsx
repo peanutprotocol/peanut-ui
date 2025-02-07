@@ -12,7 +12,7 @@ import {
     printableAddress,
     shareToEmail,
     shareToSms,
-    validateEnsName
+    validateEnsName,
 } from '@/utils'
 import { useToast } from '@chakra-ui/react'
 import Link from 'next/link'

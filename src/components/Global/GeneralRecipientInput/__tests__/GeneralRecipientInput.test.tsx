@@ -3,7 +3,7 @@ import GeneralRecipientInput from '../index'
 import * as utils from '@/utils'
 import { useRecentRecipients } from '@/hooks/useRecentRecipients'
 import type { RecipientType } from '@/interfaces'
-import {validateEnsName} from "@/utils";
+import { validateEnsName } from '@/utils'
 
 // Test case type definition for better maintainability
 type TestCase = {

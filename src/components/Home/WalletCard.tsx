@@ -12,7 +12,7 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useMemo } from 'react'
 import CopyToClipboard from '../Global/CopyToClipboard'
-import { usePrimaryName } from "@justaname.id/react"
+import { usePrimaryName } from '@justaname.id/react'
 const colorArray = ['bg-secondary-3', 'bg-secondary-1', 'bg-primary-1']
 
 type BaseWalletCardProps = {
@@ -180,7 +180,9 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                                 peanut.me/<span className="font-bold">{username}</span>
                             </p>
                         ) : (
-                            <p className="text-xl font-black sm:text-2xl truncate">{primaryName || shortenAddressLong(wallet.address)}</p>
+                            <p className="truncate text-xl font-black sm:text-2xl">
+                                {primaryName || shortenAddressLong(wallet.address)}
+                            </p>
                         )}
 
                         <div onClick={(e) => e.stopPropagation()}>
@@ -188,7 +190,7 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                                 textToCopy={
                                     wallet.walletProviderType === WalletProviderType.PEANUT
                                         ? `peanut.me/${username}`
-                                        : (primaryName || wallet.address)
+                                        : primaryName || wallet.address
                                 }
                             />
                         </div>
