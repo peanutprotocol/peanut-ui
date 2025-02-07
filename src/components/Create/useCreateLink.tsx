@@ -545,51 +545,49 @@ export const useCreateLink = () => {
                             console.log('error setting fee options, fallback to default')
                         }
                     }
-                    if (isActiveWalletBYOW) {
-                        // Send the transaction using wagmi
-                        // current stage is encoded but NOT signed
-                        let hash = await sendTransactionAsync({
-                            to: (tx.to ? tx.to : '') as `0x${string}`,
-                            value: tx.value ? BigInt(tx.value.toString()) : undefined,
-                            data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                            gas: feeOptions?.gas ? BigInt(feeOptions.gas.toString()) : undefined,
-                            gasPrice: feeOptions?.gasPrice ? BigInt(feeOptions.gasPrice.toString()) : undefined,
-                            maxFeePerGas: feeOptions?.maxFeePerGas
-                                ? BigInt(feeOptions?.maxFeePerGas.toString())
-                                : undefined,
-                            maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
-                                ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
-                                : undefined,
-                            chainId: Number(selectedChainID), //TODO: (mentioning) chainId as number here
-                        })
+                    // Send the transaction using wagmi
+                    // current stage is encoded but NOT signed
+                    let hash = await sendTransactionAsync({
+                        to: (tx.to ? tx.to : '') as `0x${string}`,
+                        value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                        data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                        gas: feeOptions?.gas ? BigInt(feeOptions.gas.toString()) : undefined,
+                        gasPrice: feeOptions?.gasPrice ? BigInt(feeOptions.gasPrice.toString()) : undefined,
+                        maxFeePerGas: feeOptions?.maxFeePerGas
+                            ? BigInt(feeOptions?.maxFeePerGas.toString())
+                            : undefined,
+                        maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
+                            ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
+                            : undefined,
+                        chainId: Number(selectedChainID), //TODO: (mentioning) chainId as number here
+                    })
 
-                        setLoadingState('Executing transaction')
+                    setLoadingState('Executing transaction')
 
-                        // Wait for the transaction to be mined using wagmi/actions
-                        // Only doing this for the approval transaction (the first tx)
-                        // Includes retry logic. If the hash isnt available yet, it retries after .5 seconds for 3 times
-                        if (preparedDepositTxs.unsignedTxs.length === 2 && idx === 0) {
-                            for (let attempt = 0; attempt < 3; attempt++) {
-                                try {
-                                    await waitForTransactionReceipt(config, {
-                                        confirmations: 4,
-                                        hash: hash,
-                                        chainId: Number(selectedChainID),
-                                    })
-                                    break
-                                } catch (error) {
-                                    if (attempt < 2) {
-                                        await new Promise((resolve) => setTimeout(resolve, 500))
-                                    } else {
-                                        console.error('Failed to wait for transaction receipt after 3 attempts', error)
-                                    }
+                    // Wait for the transaction to be mined using wagmi/actions
+                    // Only doing this for the approval transaction (the first tx)
+                    // Includes retry logic. If the hash isnt available yet, it retries after .5 seconds for 3 times
+                    if (preparedDepositTxs.unsignedTxs.length === 2 && idx === 0) {
+                        for (let attempt = 0; attempt < 3; attempt++) {
+                            try {
+                                await waitForTransactionReceipt(config, {
+                                    confirmations: 4,
+                                    hash: hash,
+                                    chainId: Number(selectedChainID),
+                                })
+                                break
+                            } catch (error) {
+                                if (attempt < 2) {
+                                    await new Promise((resolve) => setTimeout(resolve, 500))
+                                } else {
+                                    console.error('Failed to wait for transaction receipt after 3 attempts', error)
                                 }
                             }
                         }
-
-                        signedTxsResponse.push(hash.toString())
-                        idx++
                     }
+
+                    signedTxsResponse.push(hash.toString())
+                    idx++
                 }
                 return signedTxsResponse[signedTxsResponse.length - 1]
             } catch (error) {
