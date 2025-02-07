@@ -1,12 +1,10 @@
-'use client'
-
 import * as consts from '@/constants'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { createAppKit } from '@reown/appkit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { mainnet } from 'viem/chains'
 import { CreateConnectorFn, WagmiProvider, http } from 'wagmi'
-import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
+import { coinbaseWallet } from 'wagmi/connectors'
 
 // 0. Setup queryClient
 const queryClient = new QueryClient()
@@ -27,15 +25,6 @@ const transports = Object.fromEntries(consts.chains.map((chain) => [chain.id, ht
 
 // 4. Create connectors
 const connectors: CreateConnectorFn[] = [
-    injected({ shimDisconnect: true }),
-    safe({
-        shimDisconnect: true,
-    }),
-    walletConnect({
-        projectId,
-        metadata,
-        showQrModal: false,
-    }),
     coinbaseWallet({
         appName: metadata.name,
         appLogoUrl: metadata.icons[0],
@@ -56,6 +45,7 @@ createAppKit({
     adapters: [wagmiAdapter],
     defaultNetwork: mainnet,
     networks: consts.chains,
+    featuredWalletIds: ['225affb176778569276e484e1b92637ad061b01e13a048b35a9d280c3b58970f'],
     metadata,
     projectId,
     features: {
