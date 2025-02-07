@@ -7,6 +7,7 @@ import { isAddress } from 'viem'
 import * as interfaces from '@/interfaces'
 import { useRecentRecipients } from '@/hooks/useRecentRecipients'
 import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
+import {validateEnsName} from "@/utils";
 
 type GeneralRecipientInputProps = {
     className?: string
@@ -51,7 +52,7 @@ const GeneralRecipientInput = ({
             } else if (/^[0-9]{1,17}$/.test(sanitizedInput)) {
                 type = 'us'
                 isValid = true
-            } else if (trimmedInput.toLowerCase().endsWith('.eth')) {
+            } else if (validateEnsName(trimmedInput)) {
                 type = 'ens'
                 const address = await utils.resolveFromEnsName(trimmedInput.toLowerCase())
                 if (address) {

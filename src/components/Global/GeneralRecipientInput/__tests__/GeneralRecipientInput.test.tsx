@@ -3,6 +3,7 @@ import GeneralRecipientInput from '../index'
 import * as utils from '@/utils'
 import { useRecentRecipients } from '@/hooks/useRecentRecipients'
 import type { RecipientType } from '@/interfaces'
+import {validateEnsName} from "@/utils";
 
 // Test case type definition for better maintainability
 type TestCase = {
@@ -187,7 +188,7 @@ describe('GeneralRecipientInput Type Detection', () => {
             ({ input, expectedType, expectedValid, description, expectedAddress, expectedName, expectedError }) => {
                 it(`should handle ${description}`, async () => {
                     // Setup ENS mock if needed
-                    if (input.endsWith('.eth')) {
+                    if (validateEnsName(input)) {
                         ;(utils.resolveFromEnsName as jest.Mock).mockResolvedValue(
                             expectedValid ? expectedAddress : null
                         )
