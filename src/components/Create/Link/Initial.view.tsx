@@ -15,6 +15,7 @@ import * as utils from '@/utils'
 import { ethers } from 'ethers'
 import { validate } from 'multicoin-address-validator'
 import * as _consts from '../Create.consts'
+import { validateEnsName } from '@/utils'
 
 export const CreateLinkInitialView = ({
     onNext,
@@ -45,7 +46,7 @@ export const CreateLinkInitialView = ({
             return 'direct'
         }
         //ENS check
-        else if (value.endsWith('.eth')) {
+        else if (validateEnsName(value)) {
             return 'direct'
         } else if (validate(value, 'sol')) {
             setErrorState({
@@ -114,7 +115,7 @@ export const CreateLinkInitialView = ({
                     break
                 case 'direct':
                     setCreateType('direct')
-                    if (inputValue.endsWith('.eth')) {
+                    if (validateEnsName(inputValue)) {
                         const _address = await utils.resolveFromEnsName(inputValue)
                         if (_address) setRecipient({ name: inputValue, address: _address })
                         else {

@@ -6,6 +6,8 @@ import chroma from 'chroma-js'
 import { ethers } from 'ethers'
 import { SiweMessage } from 'siwe'
 import * as wagmiChains from 'wagmi/chains'
+import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
+import { infuraApiKey } from '@/constants'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -57,8 +59,12 @@ export const shortenAddressLong = (address?: string, chars?: number): string => 
 }
 
 export const printableAddress = (address: string): string => {
-    if (address.endsWith('.eth')) return address
+    if (validateEnsName(address)) return address
     return shortenAddressLong(address)
+}
+
+export const validateEnsName = (ensName: string = ''): boolean => {
+    return /(?:^|[^a-zA-Z0-9-_.])(([^\s.]{1,63}\.)+[^\s.]{2,63})/.test(ensName)
 }
 
 export const saveToLocalStorage = (key: string, data: any) => {
@@ -306,11 +312,36 @@ export const formatAmountWithoutComma = (input: string) => {
     } else return ''
 }
 
-export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
-    const provider = await peanut.getDefaultProvider('1')
-    const x = await provider.resolveName(ensName)
+export async function resolveFromEnsNameAndProviderUrl(
+    ensName: string,
+    providerUrl?: string
+): Promise<string | undefined> {
+    try {
+        const records = await JustaName.init().subnames.getRecords({
+            ens: ensName,
+            chainId: 1,
+            providerUrl,
+        })
 
-    return x ? x : undefined
+        return sanitizeRecords(records).ethAddress.value
+    } catch (error) {
+        return undefined
+    }
+}
+
+export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
+    let resolvedAddress: string | undefined
+
+    const providerUrl = `https://mainnet.infura.io/v3/${infuraApiKey}`
+
+    resolvedAddress = await resolveFromEnsNameAndProviderUrl(ensName, providerUrl)
+
+    if (!resolvedAddress) {
+        // add a fallback provider here, the justaname sdk will use "https://cloudflare-eth.com" as a fallback if no provider url is provided
+        resolvedAddress = await resolveFromEnsNameAndProviderUrl(ensName)
+    }
+
+    return resolvedAddress
 }
 
 export async function copyTextToClipboardWithFallback(text: string) {
