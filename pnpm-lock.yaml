@@ -47,8 +47,11 @@ importers:
         specifier: 3.9.1
         version: 3.9.1(react-hook-form@7.54.2(react@18.3.1))
       '@justaname.id/react':
-        specifier: ^0.3.174
-        version: 0.3.174(jgymnd4grmjg2q7nfi3shyygg4)
+        specifier: ^0.3.179
+        version: 0.3.179(jgymnd4grmjg2q7nfi3shyygg4)
+      '@justaname.id/sdk':
+        specifier: ^0.2.176
+        version: 0.2.176(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))(viem@2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(zod@3.24.1))
       '@reduxjs/toolkit':
         specifier: ^2.5.0
         version: 2.5.0(react-redux@9.2.0(@types/react@18.3.18)(react@18.3.1)(redux@5.0.1))(react@18.3.1)
@@ -1692,8 +1695,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
-  '@justaname.id/react@0.3.174':
-    resolution: {integrity: sha512-5wexiEjFV8XDeu2Rn65ua3Y+EPV1AXDsDaSwTAe24d56OUAUcIzeyb1ulbfURpEFdQsHwdbwi5n6SsOTJR04ig==}
+  '@justaname.id/react@0.3.179':
+    resolution: {integrity: sha512-NH/ifqfZ5fIHX0KNo0B6DfaXxv2TCk/+kfOcQd0rF+oJYNXLb+7t9m7+gaSFVuN3KbTMKwatLobzTze7cr/3LQ==}
     peerDependencies:
       '@tanstack/react-query': ^5.x
       ethers: ^5.6.8 || ^6.0.8
@@ -1701,15 +1704,15 @@ packages:
       viem: ^2.21.48
       wagmi: 2.8.6
 
-  '@justaname.id/sdk@0.2.171':
-    resolution: {integrity: sha512-yV3v0OLab1bD4mubRolmLaxUGX0an1JMZDLcLgoBPl8l7InqynOq1gMnkNRk1Jtm3FIPJV3kwyvy/cXjisJBNg==}
+  '@justaname.id/sdk@0.2.176':
+    resolution: {integrity: sha512-nncgxTyHEh4JTck1VFbnkJE7APldpDv78/CQqaaoK+Mi0PzL5Px68OT8wuBzAuB1izTH5HShse/VDqrJ3LOfAg==}
     peerDependencies:
       ethers: ^5.6.8 || ^6.0.8
       siwe: '>=2.0.0'
       viem: ^2.21.48
 
-  '@justaname.id/siwens@0.0.104':
-    resolution: {integrity: sha512-XUeajxGF44wUstW8QNpeKpmiRqr3DtcY5s3/kjjjqQi6ixdPrjrJ7FiwdW50n/MuORpjf1zNmSremSHZRRIGyw==}
+  '@justaname.id/siwens@0.0.109':
+    resolution: {integrity: sha512-LoIKq0Y4E3VHXisiXEFgBJtSdht3QDUub67oy/P8XrsX2W25+ppGvVJJGmVET9fZiFg+OXRH7h3R2IVmR2cqaA==}
     peerDependencies:
       ethers: ^5.6.8 || ^6.0.8
       siwe: '>=2.0.0'
@@ -8891,10 +8894,10 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@justaname.id/react@0.3.174(jgymnd4grmjg2q7nfi3shyygg4)':
+  '@justaname.id/react@0.3.179(jgymnd4grmjg2q7nfi3shyygg4)':
     dependencies:
       '@ensdomains/ensjs': 4.0.2(typescript@5.7.3)(viem@2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(zod@3.24.1))(zod@3.24.1)
-      '@justaname.id/sdk': 0.2.171(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))(viem@2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(zod@3.24.1))
+      '@justaname.id/sdk': 0.2.176(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))(viem@2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(zod@3.24.1))
       '@tanstack/react-query': 5.8.4(react-dom@18.3.1(react@18.3.1))(react-native@0.77.0(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@types/react@18.3.18)(bufferutil@4.0.9)(react@18.3.1))(react@18.3.1)
       axios: 1.7.9
       ethers: 5.7.2(bufferutil@4.0.9)
@@ -8909,9 +8912,9 @@ snapshots:
       - typescript
       - zod
 
-  '@justaname.id/sdk@0.2.171(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))(viem@2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(zod@3.24.1))':
+  '@justaname.id/sdk@0.2.176(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))(viem@2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(zod@3.24.1))':
     dependencies:
-      '@justaname.id/siwens': 0.0.104(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))
+      '@justaname.id/siwens': 0.0.109(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))
       axios: 1.7.9
       ethers: 5.7.2(bufferutil@4.0.9)
       qs: 6.14.0
@@ -8920,7 +8923,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@justaname.id/siwens@0.0.104(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))':
+  '@justaname.id/siwens@0.0.109(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))':
     dependencies:
       ethers: 5.7.2(bufferutil@4.0.9)
       siwe: 2.3.2(ethers@5.7.2(bufferutil@4.0.9))
