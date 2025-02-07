@@ -30,7 +30,10 @@ export const SUPPORTED_TOKENS: Record<string, TokenInfo> = {
         symbol: 'ETH',
         name: 'Ether',
         decimals: 18,
-        addresses: {}, // no addresses needed for native tokens
+        addresses: {
+            1: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+            // todo: add more chain addresses
+        },
         minAmount: '0.0001',
         maxAmount: '1000',
     },
