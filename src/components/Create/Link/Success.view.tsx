@@ -6,7 +6,14 @@ import Icon from '@/components/Global/Icon'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { tokenSelectorContext } from '@/context'
-import { copyTextToClipboardWithFallback, getExplorerUrl, printableAddress, shareToEmail, shareToSms } from '@/utils'
+import {
+    copyTextToClipboardWithFallback,
+    getExplorerUrl,
+    printableAddress,
+    shareToEmail,
+    shareToSms,
+    validateEnsName
+} from '@/utils'
 import { useToast } from '@chakra-ui/react'
 import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
@@ -84,7 +91,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
             <Card.Content className="flex flex-col gap-4">
                 {link && <QRCodeWrapper url={link} />}
                 {createType === 'direct'
-                    ? `You have successfully sent the funds to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}.`
+                    ? `You have successfully sent the funds to ${validateEnsName(recipient.name) ? recipient.name : printableAddress(recipient.address ?? '')}.`
                     : 'Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any token.'}
                 {link && (
                     <div className="flex w-full flex-col items-center justify-center gap-2 ">

@@ -18,7 +18,15 @@ import { useWalletType } from '@/hooks/useWalletType'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
-import { balanceByToken, ErrorHandler, floorFixed, isNativeCurrency, printableAddress, printableUsdc } from '@/utils'
+import {
+    balanceByToken,
+    ErrorHandler,
+    floorFixed,
+    isNativeCurrency,
+    printableAddress,
+    printableUsdc,
+    validateEnsName
+} from '@/utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { formatEther } from 'viem'
 import * as _consts from '../Create.consts'
@@ -324,7 +332,7 @@ export const CreateLinkInputView = ({
                         {createType === 'link'
                             ? 'Text Tokens'
                             : createType === 'direct'
-                              ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
+                              ? `Send to ${validateEnsName(recipient.name) ? recipient.name : printableAddress(recipient.address ?? '')}`
                               : `Send to ${recipient.name}`}
                     </Card.Title>
                     <Card.Description>

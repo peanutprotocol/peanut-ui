@@ -1,7 +1,7 @@
 'use client'
 import { isAddress } from 'viem'
 
-import { resolveFromEnsName } from '@/utils'
+import {resolveFromEnsName, validateEnsName} from '@/utils'
 import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
 
 type AddressInputProps = {
@@ -14,7 +14,7 @@ type AddressInputProps = {
 const AddressInput = ({ placeholder = 'Enter a valid address', value, onUpdate, className }: AddressInputProps) => {
     async function checkAddress(recipient: string): Promise<boolean> {
         try {
-            if (recipient.toLowerCase().endsWith('.eth')) {
+            if (validateEnsName(recipient)) {
                 const resolvedAddress = await resolveFromEnsName(recipient.toLowerCase())
                 return !!resolvedAddress
             } else {
