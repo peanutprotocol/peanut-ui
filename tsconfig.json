@@ -23,7 +23,7 @@
             "@/*": ["./src/*"],
             "@/animations/*": ["./src/assets/animations/*"]
         },
-        "types": ["@serwist/next/typings"]
+        "types": ["@serwist/next/typings", "jest"]
     },
     "include": [
         "next-env.d.ts",
