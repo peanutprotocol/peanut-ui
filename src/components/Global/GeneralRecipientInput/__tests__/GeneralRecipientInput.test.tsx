@@ -17,11 +17,15 @@ type TestCase = {
 }
 
 // Mock dependencies
-jest.mock('@/utils', () => ({
-    validateBankAccount: jest.fn(),
-    resolveFromEnsName: jest.fn(),
-    sanitizeBankAccount: (input: string) => input.toLowerCase().replace(/\s/g, ''),
-}))
+jest.mock('@/utils', () => {
+    const actualUtils = jest.requireActual('@/utils')
+    return {
+        validateBankAccount: jest.fn(),
+        resolveFromEnsName: jest.fn(),
+        sanitizeBankAccount: (input: string) => input.toLowerCase().replace(/\s/g, ''),
+        validateEnsName: actualUtils.validateEnsName, // Use the actual implementation
+    }
+})
 
 jest.mock('@/hooks/useRecentRecipients', () => ({
     useRecentRecipients: jest.fn(() => ({
