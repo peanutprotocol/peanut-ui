@@ -1,8 +1,22 @@
 import { isAddress } from 'viem'
 
+import { next_proxy_url } from '@/constants'
 import { resolveFromEnsName } from '@/utils'
 import { RecipientValidationError } from '../url-parser/errors'
 import { RecipientType } from '../url-parser/types/payment'
+
+// utility function to check if a handle is a valid peanut username
+const verifyPeanutUsername = async (handle: string): Promise<boolean> => {
+    try {
+        const res = await fetch(`${next_proxy_url}/get/users/username/${handle}`, {
+            method: 'HEAD',
+        })
+        const isValidPeanutUsername = res.status === 200
+        return isValidPeanutUsername
+    } catch (err) {
+        return false
+    }
+}
 
 export async function validateRecipient(recipient: string, type: RecipientType): Promise<string> {
     switch (type) {
@@ -26,7 +40,14 @@ export async function validateRecipient(recipient: string, type: RecipientType):
             }
             return recipient
 
-        // todo: implement peanut username resolution
+        case 'USERNAME':
+            const isValidPeanutUsername = await verifyPeanutUsername(recipient)
+
+            if (!isValidPeanutUsername) {
+                throw new RecipientValidationError('Invalid Peanut username')
+            }
+
+            return recipient
 
         default:
             throw new RecipientValidationError('Invalid recipient type')
