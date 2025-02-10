@@ -43,6 +43,7 @@ export async function validateRecipient(recipient: string, type: RecipientType):
         case 'USERNAME':
             const isValidPeanutUsername = await verifyPeanutUsername(recipient)
 
+            // check if the recipient is a valid peanut username
             if (!isValidPeanutUsername) {
                 throw new RecipientValidationError('Invalid Peanut username')
             }
