@@ -33,16 +33,16 @@ export default async function PaymentPage({ params }: { params: { recipient: str
 
         return (
             <Suspense fallback={<div>Loading...</div>}>
-                <div className="space-y-10">
+                <div className="w-full space-y-10">
                     {/* todo: remove this */}
-                    <div>
+                    <div className="mx-auto w-full space-y-8 md:w-6/12 ">
                         <h1>Payment Page</h1>
                         <pre>{JSON.stringify(parsedURL, null, 2)}</pre>
                         <hr />
                         {/* <pre>{JSON.stringify(serializablePayment, null, 2)}</pre> */}
                     </div>
 
-                    <div className="mx-auto w-full space-y-8 md:w-6/12">
+                    <div className="mx-auto w-full space-y-8 md:w-6/12 ">
                         <div>
                             {currentView === 1 && <InitialPaymentView {...parsedURL} />}
                             {currentView === 2 && <ConfirmPaymentView />}

@@ -2,6 +2,7 @@ import { Chain } from 'viem'
 import { SUPPORTED_TOKENS } from '../url-parser/constants/tokens'
 import { TokenValidationError } from '../url-parser/errors'
 import { TokenInfo } from '../url-parser/types/token'
+import { normalizeChainName, supportsNativeEth } from './chain-resolver'
 
 export interface ValidatedToken {
     info: TokenInfo
@@ -17,9 +18,9 @@ export function validateToken(tokenSymbol: string, chain?: Chain): ValidatedToke
         throw new TokenValidationError(`Unsupported token: ${tokenSymbol}`)
     }
 
-    // if chain is specified, verify token exists on that chain
     if (chain) {
-        const isNative = normalizedSymbol === 'ETH' && ['mainnet', 'optimism', 'arbitrum', 'base'].includes(chain.name)
+        const normalizedChainName = normalizeChainName(chain.name)
+        const isNative = normalizedSymbol === 'ETH' && supportsNativeEth(normalizedChainName)
 
         if (!isNative && !tokenInfo.addresses[chain.id]) {
             throw new TokenValidationError(`${tokenSymbol} is not supported on ${chain.name}`)
@@ -31,8 +32,7 @@ export function validateToken(tokenSymbol: string, chain?: Chain): ValidatedToke
             isNative,
         }
     }
-
-    // iff no chain specified, just return token info
+    // if no chain specified, just return token info
     return {
         info: tokenInfo,
         isNative: tokenSymbol === 'ETH',
