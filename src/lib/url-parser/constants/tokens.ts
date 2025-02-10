@@ -11,7 +11,7 @@ export const SUPPORTED_TOKENS: Record<string, TokenInfo> = {
             [optimism.id]: '0x0b2c639c533813f4aa9d7837caf62653d097ff85', // optimism
             [polygon.id]: '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359', // polygon
             [arbitrum.id]: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // arbitrum
-            [base.id]: '	0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // base
+            [base.id]: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // base
             // todo: add more chain addresses
         },
         minAmount: '0.01',

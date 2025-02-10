@@ -5,10 +5,14 @@ import FileUploadInput from '@/components/Global/FileUploadInput'
 import FlowHeader from '@/components/Global/FlowHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
+import { supportedPeanutChains } from '@/constants'
+import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { SUPPORTED_TOKENS } from '@/lib/url-parser/constants/tokens'
+import { normalizeChainName } from '@/lib/validation/chain-resolver'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
-import { useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 
 interface PaymentFormProps {
     recipient: string
@@ -21,18 +25,59 @@ export const PaymentForm = ({ recipient, amount, token, chain }: PaymentFormProp
     const dispatch = useAppDispatch()
     const [tokenValue, setTokenValue] = useState<string>(amount || '')
     const { selectedWallet, isWalletConnected } = useWallet()
+    const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
+
+    // Effect to set initial chain and token from URL params
+    useEffect(() => {
+        if (chain) {
+            // Handle chain setting
+            if (typeof chain === 'number') {
+                // If it's already a number, use it directly
+                setSelectedChainID(chain.toString())
+            } else {
+                // If it's a string, normalize it and find matching chain
+                const normalizedChainName = normalizeChainName(chain)
+                const matchedChain = supportedPeanutChains.find(
+                    (c) => normalizeChainName(c.name.toLowerCase()) === normalizedChainName
+                )
+
+                if (matchedChain) {
+                    setSelectedChainID(matchedChain.chainId.toString())
+                }
+            }
+        }
+
+        if (token) {
+            // Look up the token info
+            const tokenInfo = SUPPORTED_TOKENS[token.toUpperCase()]
+            if (tokenInfo) {
+                let chainId: number | undefined
+
+                // Determine chainId based on chain parameter type
+                if (typeof chain === 'number') {
+                    chainId = chain
+                } else if (typeof chain === 'string') {
+                    const normalizedChainName = normalizeChainName(chain)
+                    const matchedChain = supportedPeanutChains.find(
+                        (c) => normalizeChainName(c.name.toLowerCase()) === normalizedChainName
+                    )
+                    if (matchedChain) {
+                        chainId = Number(matchedChain.chainId)
+                    }
+                }
+
+                // If we have a valid chainId, try to set the token address
+                if (chainId && tokenInfo.addresses[chainId]) {
+                    setSelectedTokenAddress(tokenInfo.addresses[chainId])
+                }
+            }
+        }
+    }, [chain, token, setSelectedChainID, setSelectedTokenAddress])
 
     return (
         <div className="space-y-4">
             <FlowHeader />
             <div className="text-h6 font-bold">Sending to {recipient}</div>
-            {/* <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Header>
-                    <Card.Title>Send Payment</Card.Title>
-                    <Card.Description>Send payment to {recipient}</Card.Description>
-                </Card.Header>
-                <Card.Content className="flex flex-col gap-4"> */}
-            {/* todo: prefill if amount present in url */}
 
             <TokenAmountInput
                 tokenValue={tokenValue}
@@ -40,7 +85,6 @@ export const PaymentForm = ({ recipient, amount, token, chain }: PaymentFormProp
                 className="w-full"
             />
 
-            {/* todo: render based on token value from url */}
             <TokenSelector />
 
             <FileUploadInput
@@ -48,8 +92,8 @@ export const PaymentForm = ({ recipient, amount, token, chain }: PaymentFormProp
                     fileUrl: '',
                     message: '',
                     rawFile: undefined,
-                }} // Provide a valid object or state
-                setAttachmentOptions={() => {}} // Provide a valid function or state setter
+                }}
+                setAttachmentOptions={() => {}}
             />
 
             <Button
@@ -62,8 +106,6 @@ export const PaymentForm = ({ recipient, amount, token, chain }: PaymentFormProp
             >
                 {!isWalletConnected ? 'Connect Wallet' : 'Pay'}
             </Button>
-            {/* </Card.Content>
-            </Card> */}
         </div>
     )
 }

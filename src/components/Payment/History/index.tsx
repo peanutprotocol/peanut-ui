@@ -1,11 +1,17 @@
 import { ListItemView } from '@/components/Global/ListItemView'
 import { formatAmount, getChainName } from '@/utils'
 
-export default function PaymentHistory() {
+interface PaymentHistoryProps {
+    recipient: string
+}
+
+export default function PaymentHistory({ recipient }: PaymentHistoryProps) {
+    if (!recipient) return null
+
     return (
         <div className="space-y-3 border-b border-b-black">
             <div className="text-base font-semibold">
-                Payment history to <span className="underline">kushagrasarathe.eth</span>
+                Payment history to <span className="underline">{recipient}</span>
             </div>
             <div>
                 {walletDetails.balances.map((balance) => (
@@ -28,6 +34,8 @@ export default function PaymentHistory() {
         </div>
     )
 }
+
+// todo: remove this, temporary to render the component
 const walletDetails = {
     balances: [
         {
