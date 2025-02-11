@@ -1,14 +1,16 @@
 // middleware.ts
-import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { peanutWalletIsInPreview } from './constants'
+import { NextResponse } from 'next/server'
 
 export function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     const promoList: { [key: string]: string } = JSON.parse(process.env.PROMO_LIST ?? '{}')
 
-    // Handle root path redirect when enabled
-    if (peanutWalletIsInPreview && url.pathname === '/') {
+    // get jwt token from cookies
+    const isAuthenticated = request.cookies.get('jwt-token')
+
+    // if user is authenticated, redirect to home page
+    if (isAuthenticated && request.nextUrl.pathname === '/') {
         return NextResponse.redirect(new URL('/home', request.url))
     }
 
