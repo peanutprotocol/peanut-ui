@@ -15,9 +15,11 @@ jobs:
                   version: 9
             - name: Install Vercel CLI
               run: pnpm add --global vercel@latest
+            - name: Link to Project
+              run: vercel link --yes --project=peanut-wallet --token=${{ secrets.VERCEL_TOKEN }}
             - name: Pull Vercel Environment Information
               run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
             - name: Build Project Artifacts
               run: vercel build --target=preview --token=${{ secrets.VERCEL_TOKEN }}
             - name: Deploy Project Artifacts to Vercel
-              run: vercel deploy --prebuilt --target=preview --name=peanut-wallet --token=${{ secrets.VERCEL_TOKEN }}
+              run: vercel deploy --prebuilt --target=preview --token=${{ secrets.VERCEL_TOKEN }}
