@@ -50,8 +50,8 @@ importers:
         specifier: ^0.3.179
         version: 0.3.179(jgymnd4grmjg2q7nfi3shyygg4)
       '@justaname.id/sdk':
-        specifier: ^0.2.176
-        version: 0.2.176(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))(viem@2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(zod@3.24.1))
+        specifier: 0.2.177
+        version: 0.2.177(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))(viem@2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(zod@3.24.1))
       '@reduxjs/toolkit':
         specifier: ^2.5.0
         version: 2.5.0(react-redux@9.2.0(@types/react@18.3.18)(react@18.3.1)(redux@5.0.1))(react@18.3.1)
@@ -1711,8 +1711,21 @@ packages:
       siwe: '>=2.0.0'
       viem: ^2.21.48
 
+  '@justaname.id/sdk@0.2.177':
+    resolution: {integrity: sha512-bKHaN5coZ6Gy4uybrCXA3msHgcXGmTRG0ZyD3N6I9NJyfPq0bkHUOgSi4VFE8UItbV6Vy2E1KKsQcN/ywMvifg==}
+    peerDependencies:
+      ethers: ^5.6.8 || ^6.0.8
+      siwe: '>=2.0.0'
+      viem: ^2.21.48
+
   '@justaname.id/siwens@0.0.109':
     resolution: {integrity: sha512-LoIKq0Y4E3VHXisiXEFgBJtSdht3QDUub67oy/P8XrsX2W25+ppGvVJJGmVET9fZiFg+OXRH7h3R2IVmR2cqaA==}
+    peerDependencies:
+      ethers: ^5.6.8 || ^6.0.8
+      siwe: '>=2.0.0'
+
+  '@justaname.id/siwens@0.0.110':
+    resolution: {integrity: sha512-ou4k9C+oUl9AzNmWexCeqKba/6xi4giKmMp4HAz45foJHELiGL5JdqaUoUv/t5FMo9ZoaLjRfsmz3IJ+j+CC5Q==}
     peerDependencies:
       ethers: ^5.6.8 || ^6.0.8
       siwe: '>=2.0.0'
@@ -8923,7 +8936,23 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
+  '@justaname.id/sdk@0.2.177(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))(viem@2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(zod@3.24.1))':
+    dependencies:
+      '@justaname.id/siwens': 0.0.110(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))
+      axios: 1.7.9
+      ethers: 5.7.2(bufferutil@4.0.9)
+      qs: 6.14.0
+      siwe: 2.3.2(ethers@5.7.2(bufferutil@4.0.9))
+      viem: 2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(zod@3.24.1)
+    transitivePeerDependencies:
+      - debug
+
   '@justaname.id/siwens@0.0.109(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))':
+    dependencies:
+      ethers: 5.7.2(bufferutil@4.0.9)
+      siwe: 2.3.2(ethers@5.7.2(bufferutil@4.0.9))
+
+  '@justaname.id/siwens@0.0.110(ethers@5.7.2(bufferutil@4.0.9))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)))':
     dependencies:
       ethers: 5.7.2(bufferutil@4.0.9)
       siwe: 2.3.2(ethers@5.7.2(bufferutil@4.0.9))
