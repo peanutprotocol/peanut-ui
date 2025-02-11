@@ -7,7 +7,13 @@ import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, peanutTokenDetails, supportedPeanutChains } from '@/constants'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    PEANUT_WALLET_TOKEN_NAME,
+    peanutTokenDetails,
+    supportedPeanutChains,
+} from '@/constants'
 import * as context from '@/context'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -469,18 +475,19 @@ export const InitialView = ({
                         </div>
                         {tokenSupportsXChain ? (
                             isPeanutWallet ? (
-                                <label className="text-center text-h9 font-light">
-                                    Cross-chain payments are not supported with Peanut Wallet at the moment. Please
-                                    switch to an external wallet to pay this request across different chains.
+                                <label className="py-1 text-center text-h9 font-light">
+                                    You can only fulfill payment requests with {PEANUT_WALLET_TOKEN_NAME} on{' '}
+                                    {PEANUT_WALLET_CHAIN.name}. If you wish to use a different token or chain, please
+                                    switch to an external wallet.
                                 </label>
                             ) : (
-                                <label className="text-center text-h9 font-light">
+                                <label className="py-1 text-center text-h9 font-light">
                                     You can fulfill this payment request with any token on any chain. Pick the token and
                                     chain that you want to fulfill this request with.
                                 </label>
                             )
                         ) : (
-                            <label className="text-center text-h9 font-light">
+                            <label className="py-1 text-center text-h9 font-light">
                                 This token does not support cross-chain transfers. You can only fulfill this payment
                                 request with the selected token on the selected chain.
                             </label>
@@ -571,6 +578,15 @@ export const InitialView = ({
                         {errorState.showError && (
                             <div className="self-start text-start">
                                 <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                            </div>
+                        )}
+
+                        {isPeanutWallet && isXChain && (
+                            <div className="self-start text-start">
+                                <label className=" text-h8 font-normal text-red">
+                                    Cross-chain payments are not supported with Peanut Wallet yet. Switch to an external
+                                    wallet to pay this request.
+                                </label>
                             </div>
                         )}
                     </div>
