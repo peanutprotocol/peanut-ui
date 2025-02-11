@@ -6,6 +6,7 @@ import { useDashboard } from '@/components/Dashboard/useDashboard'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
 import NavHeader from '@/components/Global/NavHeader'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import { PEANUT_API_URL } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IDashboardItem } from '@/interfaces'
@@ -14,6 +15,7 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { isAddress } from 'viem'
 
 const ITEMS_PER_PAGE = 10
 
@@ -43,7 +45,11 @@ const HistoryPage = () => {
                 id: `${data.link ?? data.txHash ?? ''}-${Date.now()}`,
                 transactionType: data.type,
                 amount: `$${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
-                recipientAddress: data.address ? `To ${printableAddress(data.address)}` : '',
+                recipientAddress: data.address ?? '',
+                recipientAddressFormatter: (address: string) => {
+                    const sanitizedAddressOrName = isAddress(address) ? printableAddress(address) : address
+                    return `To ${sanitizedAddressOrName}`
+                },
                 status: linkDetails?.status ?? data.status ?? '',
                 transactionDetails: {
                     ...data,
@@ -58,7 +64,7 @@ const HistoryPage = () => {
         }
     }
 
-    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery({
+    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, isLoading } = useInfiniteQuery({
         queryKey: ['history', address],
         queryFn: fetchHistoryPage,
         getNextPageParam: (lastPage) => lastPage.nextPage,
@@ -101,6 +107,10 @@ const HistoryPage = () => {
                 apiKey: process.env.PEANUT_API_KEY,
             }),
         })
+    }
+
+    if (isLoading) {
+        return <PeanutLoading />
     }
 
     if (status === 'error') {
@@ -156,6 +166,7 @@ const HistoryPage = () => {
                                                 ? formatDate(new Date(item.transactionDetails.date))
                                                 : '',
                                             recipientAddress: item.recipientAddress,
+                                            recipientAddressFormatter: item.recipientAddressFormatter,
                                             transactionType: item.transactionType as TransactionType,
                                         }}
                                         details={item.transactionDetails}

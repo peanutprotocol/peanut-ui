@@ -14,6 +14,7 @@ import { twMerge } from 'tailwind-merge'
 import CopyToClipboard from '../CopyToClipboard'
 import Icon from '../Icon'
 import Modal from '../Modal'
+import { usePrimaryName } from '@justaname.id/react'
 
 interface WalletHeaderProps {
     className?: HTMLDivElement['className']
@@ -178,6 +179,10 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
         if (isExternalWallet && !isConnected) return 'bg-n-4'
     }, [isExternalWallet, isConnected, isActive, isPeanutWallet, wallet.address])
 
+    const { primaryName } = usePrimaryName({
+        address: wallet.address,
+    })
+
     return (
         <Card onClick={onClick}>
             <Card.Content
@@ -212,13 +217,17 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
                                     peanut.me/<span className="font-black">{username}</span>
                                 </p>
                             ) : (
-                                <p className="text-xs font-medium">{shortenAddressLong(wallet.address)}</p>
+                                <p className="text-xs font-medium">
+                                    {primaryName || shortenAddressLong(wallet.address)}
+                                </p>
                             )}
                             <CopyToClipboard
                                 className="h-4 w-4"
                                 fill={'black'}
                                 textToCopy={
-                                    isPeanutWallet && username ? `https://peanut.me/${username}` : wallet.address
+                                    isPeanutWallet && username
+                                        ? `https://peanut.me/${username}`
+                                        : primaryName || wallet.address
                                 }
                             />
                         </div>

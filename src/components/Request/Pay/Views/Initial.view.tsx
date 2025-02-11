@@ -32,7 +32,6 @@ import {
     switchNetwork as switchNetworkUtil,
 } from '@/utils/general.utils'
 import { checkTokenSupportsXChain } from '@/utils/token.utils'
-import { useAppKit } from '@reown/appkit/react'
 import { interfaces, peanut } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
@@ -81,7 +80,7 @@ export const InitialView = ({
     estimatedPoints,
 }: _consts.IPayScreenProps) => {
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
-    const { address, signInModal, chain: currentChain, isPeanutWallet } = useWallet()
+    const { address, signInModal, selectedWallet, chain: currentChain, isPeanutWallet, refetchBalances } = useWallet()
     const { isConnected: isExternalWalletConnected } = useAccount()
     const { handleLogin } = useZeroDev()
     const toast = useToast()
@@ -89,8 +88,7 @@ export const InitialView = ({
     const isConnected = isExternalWalletConnected || isPeanutWallet
 
     const { switchChainAsync } = useSwitchChain()
-    const { open } = useAppKit()
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
     const {
         selectedTokenData,
         selectedChainID,
@@ -335,6 +333,9 @@ export const InitialView = ({
 
                 setTransactionHash(hash ?? '')
                 onNext()
+
+                // update wallet balance after successful req payment
+                refetchBalances(address)
             } else {
                 if (!xChainUnsignedTxs) {
                     throw new Error('Cross-chain transaction data not ready')

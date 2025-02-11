@@ -3,17 +3,16 @@
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
 import { useEffect, useMemo, useState } from 'react'
 
-import { Card } from '@/components/0_Bruddle'
+import { Button, Card } from '@/components/0_Bruddle'
 import { CrispButton } from '@/components/CrispChat'
 import * as consts from '@/constants'
 import { useAuth } from '@/context/authContext'
 import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
-import { Divider, useToast } from '@chakra-ui/react'
+import { useToast } from '@chakra-ui/react'
 import { useForm } from 'react-hook-form'
 import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
 import Loading from '../Loading'
-import { GlobalLoginComponent } from '../LoginComponent'
 import { UpdateUserComponent } from '../UpdateUserComponent'
 
 const steps = [
@@ -226,7 +225,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     ...iframeOptions,
                     src: kyclink,
                     visible: true,
-                    closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
+                    closeConfirmMessage: 'Are you sure? Your KYC progress might be lost.',
                     onClose: () => {
                         setIframeOptions((prev) => ({ ...prev, visible: false }))
                     },
@@ -290,8 +289,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         }
     }
 
-    const [userState, setUserState] = useState<'login' | 'register'>('register')
-
     useEffect(() => {
         // Listen for messages from the iframe
         const handleMessage = (event: MessageEvent) => {
@@ -321,7 +318,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     const renderComponent = () => {
         switch (activeStep) {
             case 0:
-                return userState === 'register' ? (
+                return (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         <UpdateUserComponent
                             onSubmit={({ status, message }) => {
@@ -336,47 +333,20 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                             }}
                         />
                     </div>
-                ) : (
-                    <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <GlobalLoginComponent
-                            onSubmit={({ status, message }) => {
-                                if (status === 'success') {
-                                    handleEmail(watchOfframp())
-                                } else {
-                                    setErrorState({
-                                        showError: true,
-                                        errorMessage: message,
-                                    })
-                                }
-                            }}
-                        />{' '}
-                        <span className="flex w-full flex-row items-center justify-center gap-2">
-                            <Divider borderColor={'black'} />
-                            <p>or</p>
-                            <Divider borderColor={'black'} />
-                        </span>
-                        <button
-                            className="btn btn-xl h-8 text-h8"
-                            onClick={() => {
-                                setUserState('register')
-                            }}
-                        >
-                            Register
-                        </button>
-                    </div>
                 )
 
             case 1:
                 return (
                     <div className="mb-2 flex flex-col items-center justify-center gap-2">
-                        <button
+                        <Button
+                            variant="purple"
+                            size="small"
                             onClick={() => {
                                 handleTOSStatus()
                             }}
-                            className="btn btn-purple h-8 w-full"
                         >
                             {isLoading ? 'Reopen TOS' : 'Open TOS'}
-                        </button>
+                        </Button>
                         {isLoading && (
                             <span className="flex flex-row items-center justify-center gap-1">
                                 <Loading />
@@ -389,14 +359,15 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             case 2:
                 return (
                     <div className="flex flex-col items-center justify-center gap-2">
-                        <button
+                        <Button
                             onClick={() => {
                                 handleKYCStatus()
                             }}
-                            className="btn btn-purple h-8 w-full"
+                            variant="purple"
+                            size="small"
                         >
                             {isLoading ? 'Reopen KYC' : 'Open KYC'}
-                        </button>
+                        </Button>
                         {isLoading && (
                             <span className="flex flex-row items-center justify-center gap-1">
                                 <Loading />
@@ -409,12 +380,12 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     }
 
     return (
-        <Card className="shadow-none">
-            <Card.Header>
-                <Card.Title>KYC Process</Card.Title>
+        <Card className="border-0 shadow-none">
+            <Card.Header className="p-0 pb-2">
+                <Card.Title className="text-h4">KYC Process</Card.Title>
                 <Card.Description>Regulations require us to verify your identity.</Card.Description>
             </Card.Header>
-            <Card.Content>
+            <Card.Content className="px-0 pb-0">
                 <Steps
                     variant={'circles'}
                     orientation="vertical"
@@ -435,9 +406,9 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     }}
                     className="w-full"
                 >
-                    {steps.map(({ label }, index) => (
-                        <Step label={label} key={label}>
-                            <div className="relative z-10 flex w-full items-center justify-start px-3">
+                    {steps.map(({ label }) => (
+                        <Step label={<label className="flex text-start">{label}</label>} key={label}>
+                            <div className="relative z-10 flex w-full items-center justify-start px-3 text-start">
                                 {renderComponent()}
                             </div>
                         </Step>
