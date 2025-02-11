@@ -45,12 +45,12 @@ createAppKit({
     adapters: [wagmiAdapter],
     defaultNetwork: mainnet,
     networks: consts.chains,
-    featuredWalletIds: ['225affb176778569276e484e1b92637ad061b01e13a048b35a9d280c3b58970f'],
     metadata,
     projectId,
     features: {
         analytics: true,
-        connectMethodsOrder: ['wallet', 'email', 'social'],
+        email: false,
+        socials: false,
         onramp: true,
     },
     themeVariables: {
