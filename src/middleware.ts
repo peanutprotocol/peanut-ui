@@ -14,6 +14,10 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/home', request.url))
     }
 
+    if (isAuthenticated && request.nextUrl.pathname === '/setup') {
+        return NextResponse.redirect(new URL('/home', request.url))
+    }
+
     // Handle promo link redirection
     if (isPromoLink(url)) {
         const fragment = url.searchParams.toString()
