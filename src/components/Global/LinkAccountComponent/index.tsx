@@ -46,6 +46,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    const [reKYCUrl, setReKYCUrl] = useState<string | undefined>(undefined)
     const [completedLinking, setCompletedLinking] = useState(false)
     const {
         register: registerAccountDetails,
@@ -184,6 +185,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 showError: false,
                 errorMessage: '',
             })
+            setReKYCUrl(undefined)
 
             console.log('Starting form submission with user data:', {
                 user,
@@ -304,14 +306,30 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 customerId,
                 formData.type as 'iban' | 'us',
                 accountDetails,
-                // Only include address for US accounts
                 formData.type === 'us' ? address : undefined,
                 accountOwnerName
             )
 
             console.log('Create external account response:', response)
 
+            // handle verification requirement first
             if (!response.success) {
+                // check for verification URL
+                if (response.details?.code === 'endorsement_requirements_not_met') {
+                    const verificationUrl = response.details.requirements?.kyc_with_proof_of_address
+
+                    setErrorState({
+                        showError: true,
+                        errorMessage: response.message || 'Please complete the verification process to continue.',
+                    })
+
+                    if (verificationUrl) {
+                        setReKYCUrl(utils.convertPersonaUrl(verificationUrl))
+                    }
+                    return
+                }
+
+                // handle other errors
                 setErrorState({
                     showError: true,
                     errorMessage: response.message || 'Failed to create external account',
@@ -340,7 +358,6 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             let errorMessage = 'Failed to link bank account'
 
             if (error instanceof Error) {
-                // Clean up error message by removing redundant "Error:" prefixes
                 errorMessage = error.message.replace(/^Error:\s+/g, '')
             }
 
@@ -403,7 +420,23 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                         </button>
                         {errorState.showError && (
                             <div className="text-start">
-                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                                {reKYCUrl ? (
+                                    <div className="flex flex-col gap-2">
+                                        <label className="whitespace-normal text-h8 font-normal text-red">
+                                            {errorState.errorMessage}{' '}
+                                            <a
+                                                href={reKYCUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="underline"
+                                            >
+                                                Click here to complete additional KYC verification.
+                                            </a>
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
+                                )}
                             </div>
                         )}
                     </form>
@@ -562,7 +595,23 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                         </button>
                         {errorState.showError && (
                             <div className="text-start">
-                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                                {reKYCUrl ? (
+                                    <div className="flex flex-col gap-2">
+                                        <label className="whitespace-normal text-h8 font-normal text-red">
+                                            {errorState.errorMessage}{' '}
+                                            <a
+                                                href={reKYCUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="underline"
+                                            >
+                                                Click here to complete additional KYC verification.
+                                            </a>
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
+                                )}
                             </div>
                         )}
                     </form>

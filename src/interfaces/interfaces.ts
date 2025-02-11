@@ -7,6 +7,13 @@ export interface IResponse {
     success: boolean
     data?: any
     message?: string
+    details?: {
+        code?: string
+        message?: string
+        requirements?: {
+            [key: string]: string
+        }
+    }
 }
 
 export interface IUserBalance {
