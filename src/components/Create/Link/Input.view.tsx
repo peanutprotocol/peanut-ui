@@ -130,7 +130,7 @@ export const CreateLinkInputView = ({
                     setLoadingState('Loading')
                     await checkUserHasEnoughBalance({
                         tokenValue: tokenValue,
-                        gasAmount: maxGasAmount * 1.1, // Add 10% buffer for gas price fluctuations
+                        gasAmount: maxGasAmount,
                     })
                 }
             } else {
