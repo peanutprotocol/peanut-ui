@@ -101,21 +101,39 @@ export const InitialView = ({
                 const tokenType = isNativeCurrency(tokenData.address)
                     ? peanutInterfaces.EPeanutLinkType.native
                     : peanutInterfaces.EPeanutLinkType.erc20
-                const { link } = await peanut.createRequestLink({
-                    chainId: tokenData.chainId,
-                    recipientAddress,
-                    tokenAddress: tokenData.address,
-                    tokenAmount: inputValue,
-                    tokenDecimals: tokenData.decimals.toString(),
-                    tokenType,
-                    tokenSymbol: tokenData.symbol,
-                    apiUrl: '/api/proxy/withFormData',
-                    baseUrl: `${window.location.origin}/request/pay`,
-                    attachment: attachmentOptions?.rawFile || undefined,
-                    reference: attachmentOptions?.message || undefined,
+                const createFormData = new FormData()
+                createFormData.append('chainId', tokenData.chainId)
+                createFormData.append('recipientAddress', recipientAddress)
+                createFormData.append('tokenAddress', tokenData.address)
+                createFormData.append('tokenAmount', inputValue)
+                createFormData.append('tokenDecimals', tokenData.decimals.toString())
+                createFormData.append('tokenType', tokenType.valueOf().toString())
+                createFormData.append('tokenSymbol', tokenData.symbol)
+                if (attachmentOptions?.rawFile) {
+                    createFormData.append('attachment', attachmentOptions.rawFile)
+                }
+                if (attachmentOptions?.message) {
+                    createFormData.append('reference', attachmentOptions.message)
+                }
+                const requestResponse = await fetch('/api/proxy/withFormData/requests', {
+                    method: 'POST',
+                    body: createFormData,
                 })
+                const requestLinkDetails = await requestResponse.json()
 
-                const requestLinkDetails: any = await peanut.getRequestLinkDetails({ link, apiUrl: '/api/proxy/get' })
+                //TODO: create util function to generate link
+                //TODO: use human readeable instead of address
+                let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${requestLinkDetails.recipientAddress}/`
+                if (requestLinkDetails.tokenAmount) {
+                    link += `${requestLinkDetails.tokenAmount}`
+                }
+                if (requestLinkDetails.tokenSymbol) {
+                    link += `${requestLinkDetails.tokenSymbol}`
+                }
+                link += `?id=${requestLinkDetails.uuid}`
+
+                //TODO: remove after history implementation.
+                requestLinkDetails.link = link
                 saveRequestLinkToLocalStorage({ details: requestLinkDetails })
 
                 setLink(link)
