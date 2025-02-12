@@ -324,7 +324,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                     })
 
                     if (verificationUrl) {
-                        setReKYCUrl(utils.convertPersonaUrl(verificationUrl))
+                        setReKYCUrl(verificationUrl)
                     }
                     return
                 }
