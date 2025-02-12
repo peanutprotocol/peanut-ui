@@ -11,12 +11,11 @@ export const SOCIALS = [
         url: 'https://discord.gg/BX9Ak7AW28',
         logoSrc: icons.DISCORD_ICON.src,
     },
-    // note: temporarily removed docs link from fotter, as it points to old docs
-    // {
-    //     name: 'gitbook',
-    //     url: 'https://docs.peanut.to',
-    //     logoSrc: icons.GITBOOK_ICON.src,
-    // },
+    {
+        name: 'gitbook',
+        url: 'https://docs.peanut.to',
+        logoSrc: icons.GITBOOK_ICON.src,
+    },
     {
         name: 'github',
         url: 'https://github.com/peanutprotocol/',
