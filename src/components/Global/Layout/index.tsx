@@ -1,15 +1,13 @@
 'use client'
 
-import React, { useRef } from 'react'
-import Header from '@/components/Global/Header'
-import Footer from '@/components/Global/Footer'
 import { Banner } from '@/components/Global/Banner'
-import { useState, useEffect } from 'react'
-import { Roboto_Flex } from 'next/font/google'
-import Modal from '../Modal'
-import { Widget } from '@typeform/embed-react'
+import Footer from '@/components/Global/Footer'
 import { ThemeProvider } from '@/config'
-import { FooterVisibilityProvider, useFooterVisibility } from '@/context/footerVisibility'
+import { useFooterVisibility } from '@/context/footerVisibility'
+import { Widget } from '@typeform/embed-react'
+import { Roboto_Flex } from 'next/font/google'
+import React, { useEffect, useRef, useState } from 'react'
+import Modal from '../Modal'
 type LayoutProps = {
     children: React.ReactNode
     className?: string
@@ -41,7 +39,6 @@ const Layout = ({ children, className }: LayoutProps) => {
                 <ThemeProvider>
                     <div className="relative">
                         <div className="flex min-h-screen flex-col ">
-                            <Header />
                             <Banner />
                             <div className="flex grow justify-center">
                                 <div
