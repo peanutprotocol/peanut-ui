@@ -30,9 +30,9 @@ export async function POST(request: NextRequest) {
         if (accountType === 'iban') {
             body = {
                 iban: {
-                    account_number: accountDetails.accountNumber.replace(/\s+/g, '').toUpperCase(),
-                    bic: accountDetails.bic.toUpperCase(),
-                    country: accountDetails.country.toUpperCase(),
+                    account_number: accountDetails.accountNumber.replace(/\s+/g, ''),
+                    bic: accountDetails.bic,
+                    country: accountDetails.country,
                 },
                 currency: 'eur',
                 account_owner_name: accountOwnerName,

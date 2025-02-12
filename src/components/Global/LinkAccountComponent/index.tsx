@@ -46,7 +46,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const [reKYCUrl, setReKYCUrl] = useState<string | undefined>(undefined)
+    const [reKYCUrl, setReKYCUrl] = useState<string | undefined>(undefined) // state to set KYC url, if re-kyc verification is required
     const [completedLinking, setCompletedLinking] = useState(false)
     const {
         register: registerAccountDetails,
