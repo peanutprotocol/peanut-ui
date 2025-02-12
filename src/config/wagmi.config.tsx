@@ -1,5 +1,4 @@
 'use client'
-
 import { JustaNameContext } from '@/config/justaname.config'
 import * as consts from '@/constants'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
@@ -7,7 +6,7 @@ import { createAppKit } from '@reown/appkit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { mainnet } from 'viem/chains'
 import { CreateConnectorFn, WagmiProvider, http } from 'wagmi'
-import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
+import { coinbaseWallet } from 'wagmi/connectors'
 
 // 0. Setup queryClient
 const queryClient = new QueryClient()
@@ -28,15 +27,6 @@ const transports = Object.fromEntries(consts.chains.map((chain) => [chain.id, ht
 
 // 4. Create connectors
 const connectors: CreateConnectorFn[] = [
-    injected({ shimDisconnect: true }),
-    safe({
-        shimDisconnect: true,
-    }),
-    walletConnect({
-        projectId,
-        metadata,
-        showQrModal: false,
-    }),
     coinbaseWallet({
         appName: metadata.name,
         appLogoUrl: metadata.icons[0],
@@ -61,7 +51,8 @@ createAppKit({
     projectId,
     features: {
         analytics: true,
-        connectMethodsOrder: ['wallet', 'email', 'social'],
+        socials: false,
+        email: false,
         onramp: true,
     },
     themeVariables: {
