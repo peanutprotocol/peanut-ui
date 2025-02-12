@@ -2,6 +2,7 @@
 import { JustaNameContext } from '@/config/justaname.config'
 import * as consts from '@/constants'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
+import { AppKitNetwork } from '@reown/appkit/networks'
 import { createAppKit } from '@reown/appkit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { mainnet } from 'viem/chains'
@@ -33,12 +34,14 @@ const connectors: CreateConnectorFn[] = [
     }),
 ]
 
+export const networks = consts.chains as [AppKitNetwork, ...AppKitNetwork[]]
+
 // 5. Create WagmiAdapter with required properties
 const wagmiAdapter = new WagmiAdapter({
-    networks: consts.chains,
+    networks,
     projectId,
-    transports,
-    connectors,
+    // transports,
+    // connectors,
     ssr: true,
 })
 
@@ -46,7 +49,7 @@ const wagmiAdapter = new WagmiAdapter({
 createAppKit({
     adapters: [wagmiAdapter],
     defaultNetwork: mainnet,
-    networks: consts.chains,
+    networks,
     metadata,
     projectId,
     features: {
