@@ -128,9 +128,10 @@ export const InitialView = ({
         return (
             viewState === ViewState.LOADING ||
             viewState === ViewState.ERROR ||
-            (viewState === ViewState.READY_TO_PAY && !calculatedFee)
+            (viewState === ViewState.READY_TO_PAY && !calculatedFee) ||
+            (isPeanutWallet && isXChain) // disabled for peanut wallet xchain txs
         )
-    }, [viewState, isLoading, calculatedFee])
+    }, [viewState, isLoading, calculatedFee, isPeanutWallet, isXChain])
 
     const requestedAmount = useMemo(() => {
         const amount = tokenPriceData
@@ -155,7 +156,8 @@ export const InitialView = ({
     // Get route
     useEffect(() => {
         const estimateTxFee = async () => {
-            if (!isXChain) {
+            // skip route fetching for peanut wallet cross-chain txs
+            if (!isXChain || (isPeanutWallet && isXChain)) {
                 clearError()
                 setViewState(ViewState.READY_TO_PAY)
                 return
@@ -437,7 +439,7 @@ export const InitialView = ({
             <FlowHeader />
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
-                    <Card.Title className="text-h3">
+                    <Card.Title className="text-center text-h3">
                         <AddressLink address={requestLinkData.recipientAddress} /> is requesting
                     </Card.Title>
                 </Card.Header>
@@ -473,19 +475,19 @@ export const InitialView = ({
                         </div>
                         {tokenSupportsXChain ? (
                             isPeanutWallet ? (
-                                <label className="text-start text-h9 font-light">
-                                    You can only fulfill this payment request with {PEANUT_WALLET_TOKEN_NAME} on{' '}
+                                <label className="py-1 text-center text-h9 font-light">
+                                    You can only fulfill payment requests with {PEANUT_WALLET_TOKEN_NAME} on{' '}
                                     {PEANUT_WALLET_CHAIN.name}. If you wish to use a different token or chain, please
                                     switch to an external wallet.
                                 </label>
                             ) : (
-                                <label className="text-start text-h9 font-light">
+                                <label className="py-1 text-center text-h9 font-light">
                                     You can fulfill this payment request with any token on any chain. Pick the token and
                                     chain that you want to fulfill this request with.
                                 </label>
                             )
                         ) : (
-                            <label className="text-h9 font-light">
+                            <label className="py-1 text-center text-h9 font-light">
                                 This token does not support cross-chain transfers. You can only fulfill this payment
                                 request with the selected token on the selected chain.
                             </label>
@@ -494,7 +496,8 @@ export const InitialView = ({
                     {isExternalWalletConnected && !isPeanutWallet && tokenSupportsXChain && (
                         <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
                     )}
-                    {!isFeeEstimationError && (
+                    {/* dont show network/slippage details if its a xchain peanut wallet tx */}
+                    {!isFeeEstimationError && !(isPeanutWallet && isXChain) && (
                         <>
                             <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
@@ -575,6 +578,15 @@ export const InitialView = ({
                         {errorState.showError && (
                             <div className="self-start text-start">
                                 <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                            </div>
+                        )}
+
+                        {isPeanutWallet && isXChain && (
+                            <div className="self-start text-start">
+                                <label className=" text-h8 font-normal text-red">
+                                    Cross-chain payments are not supported with Peanut Wallet yet. Switch to an external
+                                    wallet to pay this request.
+                                </label>
                             </div>
                         )}
                     </div>

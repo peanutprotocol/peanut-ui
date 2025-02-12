@@ -1,5 +1,6 @@
 'use client'
 
+import { JustaNameContext } from '@/config/justaname.config'
 import * as consts from '@/constants'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { createAppKit } from '@reown/appkit/react'
@@ -7,7 +8,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { mainnet } from 'viem/chains'
 import { CreateConnectorFn, WagmiProvider, http } from 'wagmi'
 import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
-import { JustaNameContext } from '@/config/justaname.config'
 
 // 0. Setup queryClient
 const queryClient = new QueryClient()

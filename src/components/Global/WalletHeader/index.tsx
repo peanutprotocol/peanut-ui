@@ -7,6 +7,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { IDBWallet, IWallet, WalletProviderType } from '@/interfaces'
 import { printableUsdc, shortenAddressLong } from '@/utils'
+import { usePrimaryName } from '@justaname.id/react'
 import classNames from 'classnames'
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
@@ -14,7 +15,6 @@ import { twMerge } from 'tailwind-merge'
 import CopyToClipboard from '../CopyToClipboard'
 import Icon from '../Icon'
 import Modal from '../Modal'
-import { usePrimaryName } from '@justaname.id/react'
 
 interface WalletHeaderProps {
     className?: HTMLDivElement['className']
@@ -32,7 +32,7 @@ interface WalletEntryCardProps {
 
 const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
     const [showModal, setShowModal] = useState(false)
-    const { wallets, setSelectedWallet, selectedWallet, isConnected, isWalletConnected } = useWallet()
+    const { wallets, setSelectedWallet, selectedWallet, isConnected, isWalletConnected, isPeanutWallet } = useWallet()
     const { connectWallet } = useWalletConnection()
 
     const sortedWallets = useMemo(() => {
@@ -89,7 +89,7 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
                 {/* wallet icon container */}
                 <div className="flex size-7 items-center justify-center rounded-full border border-n-1 bg-white p-2">
                     <Image
-                        src={selectedWallet?.connector?.iconUrl || PeanutWalletIcon}
+                        src={isPeanutWallet ? PeanutWalletIcon : selectedWallet?.connector?.iconUrl || PeanutWalletIcon}
                         alt=""
                         width={24}
                         height={24}
