@@ -407,14 +407,23 @@ export const InitialClaimLinkView = ({
             return
         }
 
-        // reset recipient when wallet type changes or when selected wallet changes
+        // reset recipient and chain selection when wallet type changes or when selected wallet changes
         if (selectedWallet) {
-            // reset recipient
+            // reset states
             setRecipient({ name: undefined, address: '' })
             setIsValidRecipient(false)
+            setSelectedRoute(null)
+            setHasFetchedRoute(false)
 
-            // set it to the current address after a short delay
-            // to ensure the ui updates properly
+            if (isPeanutWallet) {
+                setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+                setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+            } else {
+                setSelectedChainID(claimLinkData.chainId)
+                setSelectedTokenAddress(claimLinkData.tokenAddress)
+            }
+
+            // set new recipient address after a short delay to ensure proper UI update
             setTimeout(() => {
                 if (address) {
                     setRecipient({ name: undefined, address: address })
@@ -422,17 +431,7 @@ export const InitialClaimLinkView = ({
                 }
             }, 100)
         }
-    }, [selectedWallet, isConnected, address])
-
-    useEffect(() => {
-        if (recipient.address) return
-        if (isConnected && address) {
-            setRecipient({ name: undefined, address })
-        } else {
-            setRecipient({ name: undefined, address: '' })
-            setIsValidRecipient(false)
-        }
-    }, [address])
+    }, [selectedWallet, isConnected, isPeanutWallet, address])
 
     return (
         <div>
@@ -626,12 +625,12 @@ export const InitialClaimLinkView = ({
                                 // imperative to ensure address here is fetched by useWallet
                                 if (!isConnected && recipient.address.length === 0) {
                                     handleConnectWallet()
-                                } else if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
-                                    if (recipientType === 'iban' || recipientType === 'us') {
-                                        handleIbanRecipient()
-                                    } else {
-                                        onNext()
-                                    }
+                                } else if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+                                    // force cross-chain route for Peanut Wallet if chain doesn't match
+                                    setRefetchXchainRoute(true)
+                                    onNext()
+                                } else if (hasFetchedRoute && selectedRoute) {
+                                    onNext()
                                 } else {
                                     handleClaimLink()
                                 }
@@ -647,9 +646,11 @@ export const InitialClaimLinkView = ({
                         >
                             {!isConnected && recipient.address.length === 0
                                 ? 'Connect Wallet'
-                                : (hasFetchedRoute && selectedRoute) || recipient.address !== address
+                                : isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id
                                   ? 'Proceed'
-                                  : 'Claim now'}
+                                  : hasFetchedRoute && selectedRoute
+                                    ? 'Proceed'
+                                    : 'Claim Now'}
                         </Button>
                         {address && recipient.address.length < 0 && recipientType === 'address' && (
                             <div
