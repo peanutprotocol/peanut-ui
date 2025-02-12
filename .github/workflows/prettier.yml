@@ -14,23 +14,15 @@ jobs:
               with:
                   node-version: '21.1.0'
 
-            - uses: pnpm/action-setup@v2
+            - uses: pnpm/action-setup@v4
               with:
-                  version: 8
+                  version: 9
 
             - name: Install Dependencies
-              run: pnpm install
+              run: pnpm install --frozen-lockfile
 
-            - name: List files to be checked
-              run: |
-                  echo "Files to be checked:"
-                  find . -type f \( -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.md" -o -name "*.json" -o -name "*.css" -o -name "*.scss" -o -name "*.yaml" -o -name "*.yml" \) -not -path "./node_modules/*" -not -path "./.next/*"
-
-            - name: Check Formatting
-              run: |
-                  echo "Running Prettier check..."
-                  pnpm exec prettier --config prettier.config.js --check "**/*.{js,jsx,ts,tsx,md,json,css,scss,yaml,yml}" || (
-                    echo "❌ Prettier found style issues in the above files"
-                    echo "To fix these issues, run: pnpm format"
-                    exit 1
-                  )
+            - run: pnpm format
+            - uses: stefanzweifel/git-auto-commit-action@v5
+              with:
+                  commit_message: 'style: Apply prettier formatting'
+                  branch: ${{ github.head_ref }}

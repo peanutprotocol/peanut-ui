@@ -21,6 +21,7 @@ import {
     shareToEmail,
     shareToSms,
     updateUserPreferences,
+    validateEnsName,
 } from '@/utils'
 import * as _consts from '../Create.consts'
 import { useCreateLink } from '../useCreateLink'
@@ -243,7 +244,7 @@ export const CreateLinkConfirmView = ({
                         {createType == 'link'
                             ? 'Text Tokens'
                             : createType == 'direct'
-                              ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
+                              ? `Send to ${validateEnsName(recipient.name) ? recipient.name : printableAddress(recipient.address ?? '')}`
                               : `Send to ${recipient.name}`}
                     </Card.Title>
                     <Card.Description>
