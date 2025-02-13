@@ -5,7 +5,6 @@ import FileUploadInput from '@/components/Global/FileUploadInput'
 import FlowHeader from '@/components/Global/FlowHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
 import { supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -13,8 +12,10 @@ import { SUPPORTED_TOKENS } from '@/lib/url-parser/constants/tokens'
 import { normalizeChainName } from '@/lib/validation/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
-import { isNativeCurrency, saveRequestLinkToLocalStorage } from '@/utils'
-import { interfaces, peanut } from '@squirrel-labs/peanut-sdk'
+import { chargesApi } from '@/services/charges'
+import { requestsApi } from '@/services/requests'
+import { isNativeCurrency } from '@/utils'
+import { resolveRecipientToAddress } from '@/utils/recipient-resolver'
 import { useContext, useEffect, useState } from 'react'
 
 interface PaymentFormProps {
@@ -38,8 +39,11 @@ export const PaymentForm = ({ recipient, amount, token, chain }: PaymentFormProp
         setSelectedTokenAddress,
     } = useContext(context.tokenSelectorContext)
     const [initialSetupDone, setInitialSetupDone] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [destinationChain] = useState(chain)
+    const [destinationToken] = useState(token)
 
-    // Effect to set initial chain and token from URL params only once
+    // effect to set initial chain and token from URL params only once
     useEffect(() => {
         if (initialSetupDone) return
 
@@ -91,34 +95,52 @@ export const PaymentForm = ({ recipient, amount, token, chain }: PaymentFormProp
     }, [chain, token, setSelectedChainID, setSelectedTokenAddress, initialSetupDone])
 
     const handleCreateRequest = async () => {
+        if (!tokenValue || isSubmitting) return
+
+        setIsSubmitting(true)
         try {
-            const { link } = await peanut.createRequestLink({
-                chainId: selectedChainID,
-                recipientAddress: recipient,
-                tokenAddress: selectedTokenAddress,
+            // resolve recipient to address first
+            const resolvedAddress = await resolveRecipientToAddress(recipient)
+
+            // create request
+            const request = await requestsApi.create({
+                chainId: selectedChainID.toString(),
                 tokenAmount: tokenValue,
-                tokenDecimals: selectedTokenDecimals?.toString() || '18',
-                tokenType: isNativeCurrency(selectedTokenAddress)
-                    ? interfaces.EPeanutLinkType.native
-                    : interfaces.EPeanutLinkType.erc20,
+                recipientAddress: resolvedAddress,
+                tokenType: isNativeCurrency(selectedTokenAddress) ? 'native' : 'erc20',
+                tokenAddress: selectedTokenAddress,
+                tokenDecimals: (selectedTokenDecimals || 18).toString(),
                 tokenSymbol: selectedTokenData?.symbol || '',
-                apiUrl: '/api/proxy/withFormData',
-                baseUrl: `${window.location.origin}/request/pay`,
-                attachment: attachmentOptions?.rawFile,
                 reference: attachmentOptions?.message,
+                attachment: attachmentOptions?.rawFile,
             })
 
-            const requestLinkDetails = await peanut.getRequestLinkDetails({
-                link,
-                apiUrl: '/api/proxy/get',
+            const charge = await chargesApi.create({
+                pricing_type: 'fixed_price',
+                local_price: {
+                    amount: tokenValue,
+                    currency: 'USD',
+                },
+                baseUrl: window.location.origin,
+                requestId: request.id,
+                requestProps: {
+                    chainId: selectedChainID.toString(),
+                    tokenAddress: selectedTokenAddress,
+                    tokenType: isNativeCurrency(selectedTokenAddress) ? 'native' : 'erc20',
+                    tokenSymbol: selectedTokenData?.symbol || '',
+                    tokenDecimals: selectedTokenDecimals || 18,
+                    recipientAddress: resolvedAddress,
+                },
             })
 
-            // Save to localStorage and redux
-            saveRequestLinkToLocalStorage({ details: requestLinkDetails as IRequestLinkData })
-            dispatch(paymentActions.setRequestDetails(requestLinkDetails))
+            window.history.replaceState(null, '', `${window.location.pathname}?chargeId=${charge.data.id}`)
+            dispatch(paymentActions.setRequestDetails({ ...charge.data, request }))
             dispatch(paymentActions.setView(2))
         } catch (error) {
-            console.error('Failed to create request:', error)
+            console.error('Failed to create request/charge:', error)
+            // todo: handle error better for users
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -140,8 +162,19 @@ export const PaymentForm = ({ recipient, amount, token, chain }: PaymentFormProp
                 setAttachmentOptions={(options) => dispatch(paymentActions.setAttachmentOptions(options))}
             />
 
-            <Button onClick={handleCreateRequest} disabled={!isWalletConnected || !tokenValue} className="w-full">
-                {!isWalletConnected ? 'Connect Wallet' : 'Create Request'}
+            {destinationChain && (
+                <div className="text-sm text-gray-600">
+                    Recipient will receive <span className="uppercase">{destinationToken}</span> on{' '}
+                    <span className="capitalize">{destinationChain}</span>{' '}
+                </div>
+            )}
+
+            <Button
+                onClick={handleCreateRequest}
+                disabled={!isWalletConnected || !tokenValue || isSubmitting}
+                className="w-full"
+            >
+                {!isWalletConnected ? 'Connect Wallet' : isSubmitting ? 'Creating Request...' : 'Create Request'}
             </Button>
         </div>
     )

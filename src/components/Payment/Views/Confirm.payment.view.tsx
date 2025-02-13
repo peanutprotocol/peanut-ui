@@ -1,192 +1,76 @@
+'use client'
+
 import { Button } from '@/components/0_Bruddle'
-import { useCreateLink } from '@/components/Create/useCreateLink'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
-import { IRequestLinkData, IRequestLinkState } from '@/components/Request/Pay/Pay.consts'
 import { supportedPeanutChains } from '@/constants'
-import { loadingStateContext, tokenSelectorContext } from '@/context'
+import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { ITokenPriceData } from '@/interfaces'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
-import {
-    fetchTokenPrice,
-    resolveFromEnsName,
-    saveRequestLinkFulfillmentToLocalStorage,
-    switchNetwork as switchNetworkUtil,
-} from '@/utils'
-import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useContext, useEffect, useState } from 'react'
-import { useSwitchChain } from 'wagmi'
-interface PaymentDetails {
-    recipient: string
-    amount?: string
-    token?: string
-    chain?: string | number
-}
+import { chargesApi } from '@/services/charges'
+import { RequestCharge } from '@/services/services.types'
+import { fetchTokenPrice, getChainName } from '@/utils'
+import { useSearchParams } from 'next/navigation'
+import { useContext, useEffect, useMemo, useState } from 'react'
 
 export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
-    const { chain: currentChain } = useWallet()
-    const { attachmentOptions, urlParams, requestDetails } = usePaymentStore()
+    const { isConnected } = useWallet()
+    const { attachmentOptions, urlParams } = usePaymentStore()
     const { selectedChainID, selectedTokenData } = useContext(tokenSelectorContext)
-    const { setLoadingState, isLoading } = useContext(loadingStateContext)
-    const { address, isConnected } = useWallet()
-    const { switchChainAsync } = useSwitchChain()
-    // const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState<string>('')
-    const { sendTransactions, checkUserHasEnoughBalance, estimateGasFee } = useCreateLink()
-
-    // states
-    const [linkState, setLinkState] = useState<IRequestLinkState>(IRequestLinkState.LOADING)
+    const searchParams = useSearchParams()
+    const chargeId = searchParams.get('chargeId')
+    const [charge, setCharge] = useState<RequestCharge | null>(null)
     const [tokenPriceData, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
-    const [requestLinkData, setRequestLinkData] = useState<IRequestLinkData | undefined>(undefined)
-    const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
-    const [transactionHash, setTransactionHash] = useState<string>('')
-    const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>(undefined)
-    const [errorMessage, setErrorMessage] = useState<string>('')
+    const [error, setError] = useState<string>('')
+    const [isLoading, setIsLoading] = useState<boolean>(false)
+
+    // determine if all params are present in the URL
+    const isDirectUrlAccess = useMemo(() => {
+        return urlParams && urlParams.recipient && urlParams.amount && urlParams.token && urlParams.chain
+    }, [urlParams])
 
     // Get selected chain details
     const selectedChain = supportedPeanutChains.find((chain) => chain.chainId.toString() === selectedChainID)
 
-    const fetchRecipientAddress = async (address: string): Promise<string> => {
-        if (!address.endsWith('eth')) {
-            return address
+    // call charges service to get charge details
+    useEffect(() => {
+        if (chargeId) {
+            chargesApi
+                .get(chargeId)
+                .then((charge) => {
+                    setCharge(charge)
+                    dispatch(paymentActions.setRequestDetails(charge))
+                })
+                .catch((error) => {
+                    setError(error.message)
+                })
         }
-        const resolvedAddress = await resolveFromEnsName(address.toLowerCase())
-        if (!resolvedAddress) {
-            throw new Error('Failed to resolve ENS name')
-        }
-        // todo: resolve peanut username to wallet address
-        return resolvedAddress
-    }
-
-    const switchNetwork = async (chainId: string): Promise<boolean> => {
-        try {
-            await switchNetworkUtil({
-                chainId,
-                currentChainId: String(currentChain?.id),
-                setLoadingState,
-                switchChainAsync: async ({ chainId }) => {
-                    await switchChainAsync({ chainId: chainId as number })
-                },
-            })
-            console.log(`Switched to chain ${chainId}`)
-            return true
-        } catch (error) {
-            console.error('Failed to switch network:', error)
-            throw new Error(`Failed to switch to network ${chainId}`)
-        }
-    }
-
-    const handlePayment = async () => {
-        if (!isConnected || !address || !requestDetails) return
-        const amountUsd = (Number(requestDetails.tokenAmount) * (tokenPriceData?.price ?? 0)).toFixed(2)
-
-        try {
-            setError('')
-
-            console.log('requestDetails', requestDetails)
-
-            if (!unsignedTx) {
-                throw new Error('Transaction data not ready')
-            }
-
-            await checkUserHasEnoughBalance({ tokenValue: requestDetails.tokenAmount })
-            if (requestDetails.chainId !== String(currentChain?.id)) {
-                await switchNetwork(requestDetails.chainId)
-            }
-            setLoadingState('Sign in wallet')
-            const hash = await sendTransactions({
-                preparedDepositTxs: { unsignedTxs: [unsignedTx] },
-                feeOptions: undefined,
-            })
-
-            setLoadingState('Executing transaction')
-
-            await peanut.submitRequestLinkFulfillment({
-                chainId: requestDetails.chainId,
-                hash: hash ?? '',
-                payerAddress: address,
-                link: requestDetails.link,
-                apiUrl: '/api/proxy/patch/',
-                amountUsd,
-            })
-
-            const currentDate = new Date().toISOString()
-            saveRequestLinkFulfillmentToLocalStorage({
-                details: {
-                    ...requestDetails,
-                    destinationChainFulfillmentHash: hash ?? '',
-                    createdAt: currentDate,
-                },
-                link: requestDetails.link,
-            })
-
-            setTransactionHash(hash ?? '')
-
-            dispatch(paymentActions.setView(3))
-        } catch (error) {
-            setError((error as Error).message)
-        } finally {
-            // todo: add loading state
-        }
-    }
+    }, [chargeId, dispatch])
 
     useEffect(() => {
-        if (!requestDetails) return
+        if (!charge) return
 
-        // Fetch token price
-        fetchTokenPrice(requestDetails.tokenAddress.toLowerCase(), requestDetails.chainId).then((tokenPriceData) => {
+        fetchTokenPrice(charge.tokenAddress.toLowerCase(), charge.chainId).then((tokenPriceData) => {
             if (tokenPriceData) {
                 setTokenPriceData(tokenPriceData)
             } else {
-                setErrorMessage('Failed to fetch token price, please try again later')
-                setLinkState(IRequestLinkState.ERROR)
+                setError('Failed to fetch token price')
             }
         })
+    }, [charge])
 
-        fetchRecipientAddress(requestDetails.recipientAddress)
-            .then((recipientAddress) => {
-                const tokenType = Number(requestDetails.tokenType)
-                const { unsignedTx } = peanut.prepareRequestLinkFulfillmentTransaction({
-                    recipientAddress: recipientAddress,
-                    tokenAddress: requestDetails.tokenAddress,
-                    tokenAmount: requestDetails.tokenAmount,
-                    tokenDecimals: requestDetails.tokenDecimals,
-                    tokenType: tokenType,
-                })
-                console.log('unsignedTx', unsignedTx)
-                setUnsignedTx(unsignedTx)
-            })
-            .catch((error) => {
-                console.log('error fetching recipient address:', error)
-                setErrorMessage('Failed to fetch recipient address, please try again later')
-                setLinkState(IRequestLinkState.ERROR)
-            })
-
-        // Prepare request link fulfillment transaction
-    }, [requestDetails])
-
-    useEffect(() => {
-        if (!requestDetails || !unsignedTx) return
-
-        // Estimate gas fee
-        estimateGasFee({ chainId: requestDetails.chainId, preparedTx: unsignedTx })
-            .then(({ transactionCostUSD }) => {
-                if (transactionCostUSD) setEstimatedGasCost(transactionCostUSD)
-            })
-            .catch((error) => {
-                console.log('error calculating transaction cost:', error)
-                setErrorMessage('Failed to estimate gas fee, please try again later')
-                setLinkState(IRequestLinkState.ERROR)
-            })
-    }, [unsignedTx, requestDetails])
+    // todo: add better loading state
+    if (!charge) return <div>Loading...</div>
 
     return (
         <div className="space-y-4">
-            <FlowHeader onPrev={() => dispatch(paymentActions.setView(1))} disableWalletHeader />
+            {!isDirectUrlAccess && (
+                <FlowHeader onPrev={() => dispatch(paymentActions.setView(1))} disableWalletHeader />
+            )}
 
             <div className="pb-1 text-start text-h4 font-bold">Confirm Details</div>
             <div className="space-y-4">
@@ -194,57 +78,43 @@ export default function ConfirmPaymentView() {
                     <div className="flex w-max flex-row items-center justify-center gap-1">
                         <div className="text-sm font-semibold text-grey-1">Recipient</div>
                     </div>
-                    <div className="font-semibold">{urlParams?.recipient}</div>
+                    <div className="font-semibold">{urlParams?.recipient || charge?.requestLink?.recipientAddress}</div>
                 </div>
                 <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
                         <div className="text-sm font-semibold text-grey-1">Amount</div>
                     </div>
-                    {urlParams?.amount && <div className="font-semibold">{urlParams?.amount}</div>}
+                    <div className="font-semibold">{urlParams?.amount || charge?.tokenAmount}</div>
                 </div>
 
                 {/* URL Parameters Section */}
                 {urlParams?.chain && (
                     <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
-                        <div className="text-sm font-semibold text-grey-1">URL Chain</div>
+                        <div className="text-sm font-semibold text-grey-1">Destination Chain</div>
                         <div className="font-semibold capitalize">{urlParams.chain}</div>
                     </div>
                 )}
 
                 {urlParams?.token && (
                     <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
-                        <div className="text-sm font-semibold text-grey-1">URL Token</div>
-
+                        <div className="text-sm font-semibold text-grey-1">Destination Token</div>
                         <div className="font-semibold uppercase">{urlParams.token}</div>
                     </div>
                 )}
 
-                {/* Selected Values Section */}
-                {selectedChain && (
-                    <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
-                        <div className="text-sm font-semibold text-grey-1">Selected Chain</div>
-                        <div className="flex items-center gap-1">
-                            <div className="font-semibold">{selectedChain.name}</div>
+                {/* only show if the user is not accessing the payment directly via URL */}
+                {!isDirectUrlAccess && selectedChainID && selectedTokenData && (
+                    <>
+                        <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
+                            <div className="text-sm font-semibold text-grey-1">Payment Chain</div>
+                            <div className="font-semibold capitalize">{getChainName(selectedChainID)}</div>
                         </div>
-                    </div>
-                )}
 
-                {selectedTokenData && (
-                    <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
-                        <div className="text-sm font-semibold text-grey-1">Selected Token</div>
-                        <div className="flex items-center gap-1">
-                            {/* {selectedToken.logoURI && (
-                                <Image
-                                    src={selectedToken.logoURI}
-                                    alt={selectedToken.symbol}
-                                    width={20}
-                                    height={20}
-                                    unoptimized
-                                />
-                            )} */}
-                            <div className="font-semibold">{selectedTokenData.symbol}</div>
+                        <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
+                            <div className="text-sm font-semibold text-grey-1">Payment Token</div>
+                            <div className="font-semibold uppercase">{selectedTokenData.symbol}</div>
                         </div>
-                    </div>
+                    </>
                 )}
 
                 {attachmentOptions.fileUrl && (
@@ -300,8 +170,8 @@ export default function ConfirmPaymentView() {
             </div>
 
             <div className="mb-4 flex flex-col gap-2 sm:flex-row-reverse">
-                <Button onClick={handlePayment} disabled={!isConnected || isLoading} className="w-full">
-                    {!isConnected ? 'Connect Wallet' : isLoading ? 'Processing...' : 'Pay'}
+                <Button onClick={() => {}} disabled={!isConnected || isLoading} className="w-full">
+                    {!isConnected ? 'Connect Wallet' : 'Confirm'}
                 </Button>
             </div>
 
