@@ -13,6 +13,7 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
+import { Payment, RequestCharge } from '@/services/services.types'
 import { resolveRecipientToAddress } from '@/utils/recipient-resolver'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -58,6 +59,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     const searchParams = useSearchParams()
     const router = useRouter()
     const chargeId = searchParams.get('chargeId')
+    const [charge, setCharge] = useState<RequestCharge | null>(null)
 
     // avoid re-parsing the URL on every render
     const parsedURL = useMemo(() => {
@@ -98,8 +100,24 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                 if (chargeId) {
                     try {
                         const charge = await chargesApi.get(chargeId)
-                        dispatch(paymentActions.setRequestDetails(charge))
-                        dispatch(paymentActions.setView(2))
+
+                        // check if theres an existing active payment
+                        const hasActivePayment = charge.payments.some(
+                            (payment: Payment) => !['NEW', 'FAILED'].includes(payment.status)
+                        )
+
+                        if (hasActivePayment) {
+                            // show timeline view for active payments
+                            setCharge(charge)
+                            dispatch(paymentActions.setRequestDetails(charge))
+                            // todo: rethink approach
+                            // dispatch(paymentActions.setView(4))
+                        } else {
+                            // show confirm view for new/failed payments
+                            setCharge(charge)
+                            dispatch(paymentActions.setRequestDetails(charge))
+                            dispatch(paymentActions.setView(2))
+                        }
                         setIsLoading(false)
                     } catch (error) {
                         console.error('Failed to fetch charge:', error)
@@ -141,7 +159,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                     tokenAmount: params.amount,
                     recipientAddress: resolvedAddress,
                     tokenType: 'erc20',
-                    tokenAddress: tokenAddress, // Use resolved token address
+                    tokenAddress: tokenAddress,
                     tokenDecimals: '18',
                     tokenSymbol: params?.token ?? '',
                     reference: attachmentOptions?.message,
@@ -159,7 +177,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                     requestId: request.id,
                     requestProps: {
                         chainId: params?.chain?.toString() ?? '',
-                        tokenAddress: tokenAddress, // Use resolved token address
+                        tokenAddress: tokenAddress,
                         tokenType: 'erc20',
                         tokenSymbol: params?.token ?? '',
                         tokenDecimals: 18,
@@ -189,14 +207,16 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     }
 
     return (
-        <div className="mx-auto w-full space-y-8 md:w-6/12 ">
+        <div className="mx-auto w-full space-y-8 md:w-6/12">
             <div>
                 {currentView === 1 && <InitialPaymentView {...(parsedURL as ParsedURL)} />}
                 {currentView === 2 && <ConfirmPaymentView />}
                 {currentView === 3 && <SuccessPaymentView />}
+                {/* todo: add timeline view? */}
+                {/* {currentView === 4 && charge && <PaymentTimeline charge={charge} />} */}
             </div>
             <div>
-                <PaymentHistory recipient={parsedURL.recipient} />
+                <PaymentHistory recipient={parsedURL?.recipient} />
             </div>
         </div>
     )

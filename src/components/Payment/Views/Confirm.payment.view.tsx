@@ -1,24 +1,27 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
+import { useCreateLink } from '@/components/Create/useCreateLink'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import { supportedPeanutChains } from '@/constants'
-import { tokenSelectorContext } from '@/context'
+import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { ITokenPriceData } from '@/interfaces'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { RequestCharge } from '@/services/services.types'
-import { fetchTokenPrice, getChainName } from '@/utils'
+import { fetchTokenPrice, getChainName, isAddressZero, switchNetwork as switchNetworkUtil } from '@/utils'
+import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
+import { useSwitchChain } from 'wagmi'
 
 export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
-    const { isConnected } = useWallet()
+    const { isConnected, chain: currentChain, address } = useWallet()
     const { attachmentOptions, urlParams } = usePaymentStore()
     const { selectedChainID, selectedTokenData } = useContext(tokenSelectorContext)
     const searchParams = useSearchParams()
@@ -27,6 +30,17 @@ export default function ConfirmPaymentView() {
     const [tokenPriceData, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
     const [error, setError] = useState<string>('')
     const [isLoading, setIsLoading] = useState<boolean>(false)
+    const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
+    // todo: use redux store for this
+    const [transactionHash, setTransactionHash] = useState<string>('')
+    const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>()
+    const [xChainUnsignedTxs, setXChainUnsignedTxs] = useState<
+        peanutInterfaces.IPeanutUnsignedTransaction[] | undefined
+    >()
+    const [isXChain, setIsXChain] = useState(false)
+    const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
+    const { switchChainAsync } = useSwitchChain()
+    const { setLoadingState } = useContext(loadingStateContext)
 
     // determine if all params are present in the URL
     const isDirectUrlAccess = useMemo(() => {
@@ -62,6 +76,180 @@ export default function ConfirmPaymentView() {
             }
         })
     }, [charge])
+
+    // helper function to prepare cross-chain tx
+    const createXChainUnsignedTx = async (tokenData: any, requestLink: any, senderAddress: string) => {
+        console.log('Creating cross-chain tx with:', { tokenData, requestLink, senderAddress })
+
+        // ensure required data
+        if (!tokenData?.address || !tokenData?.chainId || !tokenData?.decimals) {
+            throw new Error('Invalid token data for cross-chain transaction')
+        }
+
+        // prepare link details
+        const linkDetails = {
+            recipientAddress: requestLink.recipientAddress,
+            chainId: requestLink.chainId.toString(),
+            tokenAmount: requestLink.tokenAmount,
+            tokenAddress: requestLink.tokenAddress,
+            tokenDecimals: requestLink.tokenDecimals,
+            tokenType: Number(requestLink.tokenType),
+        }
+
+        // prepare unsigned tx
+        const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
+            fromToken: tokenData.address,
+            fromChainId: tokenData.chainId,
+            senderAddress,
+            squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+            provider: await peanut.getDefaultProvider(tokenData.chainId.toString()),
+            tokenType: isAddressZero(tokenData.address)
+                ? peanutInterfaces.EPeanutLinkType.native
+                : peanutInterfaces.EPeanutLinkType.erc20,
+            fromTokenDecimals: tokenData.decimals,
+            linkDetails,
+        })
+        return xchainUnsignedTxs
+    }
+
+    // prepare transaction when charge is ready
+    useEffect(() => {
+        if (!charge || !address) return
+
+        const prepareTransaction = async () => {
+            try {
+                setIsLoading(true)
+                console.log('Preparing transaction with charge:', {
+                    recipientAddress: charge.requestLink?.recipientAddress,
+                    tokenAddress: charge.tokenAddress,
+                    tokenAmount: charge.tokenAmount,
+                    tokenDecimals: charge.tokenDecimals,
+                    tokenType: charge.tokenType,
+                })
+
+                // check if its a cross-chain tx
+                const isXChainTx = charge.chainId !== selectedChainID
+
+                if (isXChainTx) {
+                    setIsXChain(true)
+                    if (!selectedTokenData) {
+                        throw new Error('Selected token data not available')
+                    }
+
+                    // prepare cross-chain tx
+                    const txData = await createXChainUnsignedTx(
+                        selectedTokenData,
+                        {
+                            recipientAddress: charge.requestLink.recipientAddress,
+                            chainId: charge.chainId,
+                            tokenAmount: charge.tokenAmount,
+                            tokenAddress: charge.tokenAddress,
+                            tokenDecimals: charge.tokenDecimals,
+                            tokenType: charge.tokenType,
+                        },
+                        address
+                    )
+                    const { unsignedTxs, estimatedFromAmount } = txData
+                    setXChainUnsignedTxs(unsignedTxs)
+                    setEstimatedFromValue(estimatedFromAmount)
+                } else {
+                    // prepare same-chain tx
+                    if (!charge.tokenType || !charge.requestLink?.recipientAddress) {
+                        throw new Error('Missing required charge data')
+                    }
+
+                    const tokenType = Number(charge.tokenType)
+                    const tx = peanut.prepareRequestLinkFulfillmentTransaction({
+                        recipientAddress: charge.requestLink.recipientAddress,
+                        tokenAddress: charge.tokenAddress || '',
+                        tokenAmount: charge.tokenAmount || '0',
+                        tokenDecimals: charge.tokenDecimals || 18,
+                        tokenType: tokenType,
+                    })
+
+                    if (!tx?.unsignedTx) {
+                        throw new Error('Failed to prepare transaction')
+                    }
+
+                    setUnsignedTx(tx.unsignedTx)
+                }
+            } catch (error) {
+                console.error('Failed to prepare transaction:', error)
+                setError(error instanceof Error ? error.message : 'Failed to prepare transaction')
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        prepareTransaction()
+    }, [charge, address, selectedChainID, selectedTokenData])
+
+    // handle payment
+    const handlePayment = async () => {
+        if (!isConnected || !address || !charge) return
+        if (isXChain && !xChainUnsignedTxs) {
+            setError('Cross-chain transaction not ready')
+            return
+        }
+        if (!isXChain && !unsignedTx) {
+            setError('Transaction not ready')
+            return
+        }
+
+        setIsLoading(true)
+        try {
+            // check balance and switch network
+            await checkUserHasEnoughBalance({
+                tokenValue: isXChain ? estimatedFromValue : charge.tokenAmount,
+            })
+
+            const targetChainId = isXChain ? selectedChainID : charge.chainId
+            if (targetChainId !== String(currentChain?.id)) {
+                await switchNetworkUtil({
+                    chainId: targetChainId,
+                    currentChainId: String(currentChain?.id),
+                    setLoadingState,
+                    switchChainAsync: async ({ chainId }) => {
+                        await switchChainAsync({ chainId: Number(targetChainId) })
+                    },
+                })
+            }
+
+            // sign and send transaction
+            const hash = await sendTransactions({
+                preparedDepositTxs: {
+                    unsignedTxs: isXChain
+                        ? (xChainUnsignedTxs as peanutInterfaces.IPeanutUnsignedTransaction[])
+                        : [unsignedTx as peanutInterfaces.IPeanutUnsignedTransaction],
+                },
+                feeOptions: undefined,
+            })
+            setTransactionHash(hash ?? '')
+
+            // update payment details in backend
+            const response = await fetch(`/api/proxy/charges/${charge.uuid}/payments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chainId: currentChain?.id,
+                    hash: hash,
+                    tokenAddress: isXChain ? selectedTokenData?.address : charge.tokenAddress,
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error('Failed to record payment')
+            }
+
+            const paymentDetails = await response.json()
+            dispatch(paymentActions.setPaymentDetails(paymentDetails))
+            dispatch(paymentActions.setView(3))
+        } catch (error) {
+            setError((error as Error).message)
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
     // todo: add better loading state
     if (!charge) return <div>Loading...</div>
@@ -170,8 +358,8 @@ export default function ConfirmPaymentView() {
             </div>
 
             <div className="mb-4 flex flex-col gap-2 sm:flex-row-reverse">
-                <Button onClick={() => {}} disabled={!isConnected || isLoading} className="w-full">
-                    {!isConnected ? 'Connect Wallet' : 'Confirm'}
+                <Button onClick={handlePayment} disabled={!isConnected || isLoading} className="w-full">
+                    {!isConnected ? 'Connect Wallet' : isLoading ? 'Processing Payment...' : 'Pay Now'}
                 </Button>
             </div>
 

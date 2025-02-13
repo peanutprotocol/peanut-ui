@@ -1,5 +1,6 @@
 import { IAttachmentOptions } from '@/components/Create/Create.consts'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
+import { PaymentCreationResponse } from '@/services/services.types'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { PAYMENT_SLICE } from '../constants'
 import { IPaymentState } from '../types/payment.types'
@@ -14,6 +15,7 @@ const initialState: IPaymentState = {
     urlParams: null,
     requestDetails: null,
     transactionHash: null,
+    paymentDetails: null,
 }
 
 const paymentSlice = createSlice({
@@ -34,6 +36,9 @@ const paymentSlice = createSlice({
         },
         setTransactionHash: (state, action) => {
             state.transactionHash = action.payload
+        },
+        setPaymentDetails: (state, action: PayloadAction<PaymentCreationResponse>) => {
+            state.paymentDetails = action.payload
         },
     },
 })

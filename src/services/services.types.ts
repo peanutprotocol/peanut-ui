@@ -1,5 +1,5 @@
 // common types
-interface TimelineEntry {
+export interface TimelineEntry {
     status: 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED'
     time: string
 }
@@ -83,6 +83,41 @@ export interface ChargeResponse {
     warnings: string[]
 }
 
+// Payment object in charge details
+export interface Payment {
+    uuid: string
+    chargeUuid: string
+    payerTransactionHash: string
+    payerChainId: string
+    paidTokenAddress: string
+    paidAmountInRequestedToken: string | null
+    payerAddress: string | null
+    fulfillmentTransactionHash: string | null
+    status: 'NEW' | 'PENDING' | 'COMPLETED' | 'FAILED' | 'SIGNED'
+    reason: string | null
+    createdAt: string
+    verifiedAt: string | null
+}
+
+// Payment creation response
+export interface PaymentCreationResponse {
+    uuid: string
+    paidTokenAddress: string
+    payerChainId: string
+    payerTransactionHash: string
+    requestCharge: {
+        uuid: string
+        chainId: string
+        createdAt: string
+        tokenAddress: string
+        tokenAmount: string
+        tokenDecimals: number
+        requestLink: {
+            recipientAddress: string
+        }
+    }
+}
+
 export interface RequestCharge {
     uuid: string
     createdAt: string
@@ -94,13 +129,34 @@ export interface RequestCharge {
     tokenType: string
     tokenSymbol: string
     updatedAt: string
-    payments: unknown[]
-    fulfillmentPayment: FulfillmentPayment
+    payments: Payment[]
+    fulfillmentPayment: FulfillmentPayment | null
     timeline: TimelineEntry[]
     requestLink: {
         recipientAddress: string
         reference?: string
-        attachmentUrl?: string
-        trackId?: string
+        attachmentUrl?: string | null
+        trackId?: string | null
+    }
+}
+
+// create payment response
+export interface PaymentResponse {
+    uuid: string
+    paidTokenAddress: string
+    payerChainId: string
+    payerTransactionHash: string
+    requestCharge: {
+        uuid: string
+        chainId: string
+        createdAt: string
+        tokenAddress: string
+        tokenAmount: string
+        tokenDecimals: number
+        requestLink: {
+            recipientAddress: string
+            reference?: string
+            attachmentUrl?: string
+        }
     }
 }
