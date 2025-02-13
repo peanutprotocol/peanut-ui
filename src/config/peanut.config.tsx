@@ -1,19 +1,19 @@
 'use client'
 import * as config from '@/config'
-import { Analytics } from '@vercel/analytics/react'
-import { useEffect } from 'react'
 import peanut from '@squirrel-labs/peanut-sdk'
-import ReactGA from 'react-ga4'
+import { Analytics } from '@vercel/analytics/react'
 import countries from 'i18n-iso-countries'
 import enLocale from 'i18n-iso-countries/langs/en.json'
+import { useEffect } from 'react'
+import ReactGA from 'react-ga4'
 
-import '../../sentry.client.config'
-import '../../sentry.server.config'
-import '../../sentry.edge.config'
 import 'react-tooltip/dist/react-tooltip.css'
+import '../../sentry.client.config'
+import '../../sentry.edge.config'
+import '../../sentry.server.config'
 // import LogRocket from 'logrocket'
-import { ChakraProvider } from '@chakra-ui/react'
 import * as styles from '@/styles/theme'
+import { ChakraProvider } from '@chakra-ui/react'
 
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
@@ -26,7 +26,7 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
     console.log('NODE_ENV:', process.env.NODE_ENV)
 
     return (
-        <config.ContextProvider>
+        <config.ContextProvider cookies={null}>
             <ChakraProvider theme={styles.theme}> {children}</ChakraProvider>
             <Analytics />
         </config.ContextProvider>
