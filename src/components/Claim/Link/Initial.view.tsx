@@ -629,9 +629,14 @@ export const InitialClaimLinkView = ({
                                     // force cross-chain route for Peanut Wallet if chain doesn't match
                                     setRefetchXchainRoute(true)
                                     onNext()
+                                } else if (recipientType === 'iban' || recipientType === 'us') {
+                                    // handle IBAN/US bank account claims
+                                    handleIbanRecipient()
                                 } else if (hasFetchedRoute && selectedRoute) {
+                                    // handle  cross-chain claims
                                     onNext()
                                 } else {
+                                    // handle direct claims
                                     handleClaimLink()
                                 }
                             }}
