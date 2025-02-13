@@ -67,19 +67,32 @@ export const validateEnsName = (ensName: string = ''): boolean => {
     return /(?:^|[^a-zA-Z0-9-_.])(([^\s.]{1,63}\.)+[^\s.]{2,63})/.test(ensName)
 }
 
+export function jsonStringify(data: any): string {
+    return JSON.stringify(data, (_key, value) => {
+        if ('bigint' === typeof value) {
+            return {
+                '@type': 'BigInt',
+                value: value.toString(),
+            }
+        }
+        return value
+    })
+}
+
+export function jsonParse<T = any>(data: string): T {
+    return JSON.parse(data, (_key, value) => {
+        if (value && typeof value === 'object' && value['@type'] === 'BigInt') {
+            return BigInt(value.value)
+        }
+        return value
+    })
+}
+
 export const saveToLocalStorage = (key: string, data: any) => {
     if (typeof localStorage === 'undefined') return
     try {
         // Convert the data to a string before storing it in localStorage
-        const serializedData = JSON.stringify(data, (_key, value) => {
-            if ('bigint' === typeof value) {
-                return {
-                    '@type': 'BigInt',
-                    value: value.toString(),
-                }
-            }
-            return value
-        })
+        const serializedData = jsonStringify(data)
         localStorage.setItem(key, serializedData)
         console.log(`Saved ${key} to localStorage:`, data)
     } catch (error) {
@@ -95,12 +108,7 @@ export const getFromLocalStorage = (key: string) => {
             console.log(`No data found in localStorage for ${key}`)
             return null
         }
-        const parsedData = JSON.parse(data, (_key, value) => {
-            if (value && typeof value === 'object' && value['@type'] === 'BigInt') {
-                return BigInt(value.value)
-            }
-            return value
-        })
+        const parsedData = jsonParse(data)
         console.log(`Retrieved ${key} from localStorage:`, parsedData)
         return parsedData
     } catch (error) {

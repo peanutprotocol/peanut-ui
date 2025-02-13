@@ -5,7 +5,6 @@ import { ReferenceAndAttachment } from '@/components/Request/Components/Referenc
 import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
 import * as utils from '@/utils'
-import { peanut } from '@squirrel-labs/peanut-sdk'
 import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
@@ -30,14 +29,7 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
 
     useEffect(() => {
         if (explorerUrlDestChainWithTxHash) {
-            peanut.submitRequestLinkFulfillment({
-                chainId: requestLinkData.chainId,
-                hash: explorerUrlDestChainWithTxHash.transactionId,
-                payerAddress: address ?? '',
-                link: requestLinkData.link,
-                apiUrl: '/api/proxy/patch/',
-                amountUsd: (Number(requestLinkData.tokenAmount) * (tokenPriceData?.price ?? 0)).toFixed(2),
-            })
+            //TODO: remove after history implementation.
             utils.saveRequestLinkFulfillmentToLocalStorage({
                 details: {
                     ...requestLinkData,
@@ -48,19 +40,12 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
             })
             setLoadingState('Idle')
         }
-    }, [explorerUrlDestChainWithTxHash, requestLinkData, address])
+    }, [explorerUrlDestChainWithTxHash, requestLinkData, address, selectedChainID, selectedTokenAddress])
 
     useEffect(() => {
         // is swap on same chain
         if (!isXChain && !utils.areEvmAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)) {
-            peanut.submitRequestLinkFulfillment({
-                chainId: requestLinkData.chainId,
-                hash: transactionHash,
-                payerAddress: address ?? '',
-                link: requestLinkData.link,
-                apiUrl: '/api/proxy/patch/',
-                amountUsd: (Number(requestLinkData.tokenAmount) * (tokenPriceData?.price ?? 0)).toFixed(2),
-            })
+            //TODO: remove after history implementation.
             utils.saveRequestLinkFulfillmentToLocalStorage({
                 details: {
                     ...requestLinkData,
@@ -70,9 +55,20 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                 link: requestLinkData.link,
             })
         }
-    }, [isXChain, requestLinkData, transactionHash, address, selectedTokenAddress])
+    }, [isXChain, requestLinkData, transactionHash, address, selectedTokenAddress, selectedChainID])
 
     useEffect(() => {
+        fetch(`/api/proxy/charges/${requestLinkData.uuid}/payments`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                chainId: selectedChainID,
+                hash: transactionHash,
+                tokenAddress: selectedTokenAddress,
+            }),
+        })
         if (isXChain) {
             setLoadingState('Awaiting route fulfillment')
             fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
