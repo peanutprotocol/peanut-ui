@@ -65,29 +65,6 @@ const HomeWaitlist = () => {
                             </Card.Content>
                         </Card>
                     )}
-                    {/* removed regiser/login components. Should be in diff page. */}
-                    {/* : (
-                        <div className="flex flex-col items-center justify-center">
-                            <Button
-                                onClick={() => {
-                                    push('/setup')
-                                }}
-                                shadowSize="4"
-                            >
-                                Register
-                            </Button>
-                            <Divider text="or" />
-                            <Button
-                                loading={isLoggingIn}
-                                disabled={isLoggingIn}
-                                onClick={() => {
-                                    handleLogin()
-                                }}
-                                variant="stroke"
-                            >
-                                Login
-                            </Button>
-                        </div> */}
                 </div>
             </div>
         </div>

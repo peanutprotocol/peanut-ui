@@ -12,7 +12,7 @@ import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken, IUserBalance } from '@/interfaces'
 import { fetchTokenSymbol, isNativeCurrency, saveRequestLinkToLocalStorage } from '@/utils'
-import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Create.consts'
 
@@ -29,7 +29,7 @@ export const InitialView = ({
     recipientAddress,
     setRecipientAddress,
 }: _consts.ICreateScreenProps) => {
-    const { selectedWallet, isExternalWallet, isPeanutWallet } = useWallet()
+    const { address, selectedWallet, isExternalWallet, isPeanutWallet, isConnected } = useWallet()
     const {
         selectedTokenPrice,
         inputDenomination,
@@ -44,6 +44,8 @@ export const InitialView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    const [isValidRecipient, setIsValidRecipient] = useState(false)
+    const [inputChanging, setInputChanging] = useState(false)
 
     const [_tokenValue, _setTokenValue] = useState<string>(
         (inputDenomination === 'TOKEN' ? tokenValue : usdValue) ?? ''
@@ -101,21 +103,39 @@ export const InitialView = ({
                 const tokenType = isNativeCurrency(tokenData.address)
                     ? peanutInterfaces.EPeanutLinkType.native
                     : peanutInterfaces.EPeanutLinkType.erc20
-                const { link } = await peanut.createRequestLink({
-                    chainId: tokenData.chainId,
-                    recipientAddress,
-                    tokenAddress: tokenData.address,
-                    tokenAmount: inputValue,
-                    tokenDecimals: tokenData.decimals.toString(),
-                    tokenType,
-                    tokenSymbol: tokenData.symbol,
-                    apiUrl: '/api/proxy/withFormData',
-                    baseUrl: `${window.location.origin}/request/pay`,
-                    attachment: attachmentOptions?.rawFile || undefined,
-                    reference: attachmentOptions?.message || undefined,
+                const createFormData = new FormData()
+                createFormData.append('chainId', tokenData.chainId)
+                createFormData.append('recipientAddress', recipientAddress)
+                createFormData.append('tokenAddress', tokenData.address)
+                createFormData.append('tokenAmount', inputValue)
+                createFormData.append('tokenDecimals', tokenData.decimals.toString())
+                createFormData.append('tokenType', tokenType.valueOf().toString())
+                createFormData.append('tokenSymbol', tokenData.symbol)
+                if (attachmentOptions?.rawFile) {
+                    createFormData.append('attachment', attachmentOptions.rawFile)
+                }
+                if (attachmentOptions?.message) {
+                    createFormData.append('reference', attachmentOptions.message)
+                }
+                const requestResponse = await fetch('/api/proxy/withFormData/requests', {
+                    method: 'POST',
+                    body: createFormData,
                 })
+                const requestLinkDetails = await requestResponse.json()
 
-                const requestLinkDetails: any = await peanut.getRequestLinkDetails({ link, apiUrl: '/api/proxy/get' })
+                //TODO: create util function to generate link
+                //TODO: use human readeable instead of address
+                let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${requestLinkDetails.recipientAddress}/`
+                if (requestLinkDetails.tokenAmount) {
+                    link += `${requestLinkDetails.tokenAmount}`
+                }
+                if (requestLinkDetails.tokenSymbol) {
+                    link += `${requestLinkDetails.tokenSymbol}`
+                }
+                link += `?id=${requestLinkDetails.uuid}`
+
+                //TODO: remove after history implementation.
+                requestLinkDetails.link = link
                 saveRequestLinkToLocalStorage({ details: requestLinkDetails })
 
                 setLink(link)
@@ -148,22 +168,36 @@ export const InitialView = ({
         }
     }, [_tokenValue, inputDenomination])
 
-    const [isValidRecipient, setIsValidRecipient] = useState(false)
-    const [inputChanging, setInputChanging] = useState(false)
-
     useEffect(() => {
-        if (isPeanutWallet) {
-            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+        if (!isConnected) {
+            setRecipientAddress('')
+            setIsValidRecipient(false)
+            return
         }
-    }, [isPeanutWallet])
 
-    useEffect(() => {
-        if (isPeanutWallet && selectedWallet) {
-            setRecipientAddress(selectedWallet.address)
-            setIsValidRecipient(true)
+        // reset recipient when wallet type changes or when selected wallet changes
+        if (address) {
+            // reset states first
+            setRecipientAddress('')
+            setIsValidRecipient(false)
+
+            // set recipient to connected wallet address with a delay
+            setTimeout(() => {
+                setRecipientAddress(address)
+                setIsValidRecipient(true)
+            }, 100)
+
+            // set chain and token for Peanut Wallet
+            if (isPeanutWallet) {
+                setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+                setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+            } else {
+                // set chain and token for external wallet
+                setSelectedChainID(selectedChainID)
+                setSelectedTokenAddress(selectedTokenAddress)
+            }
         }
-    }, [isPeanutWallet, selectedWallet?.address])
+    }, [isConnected, isPeanutWallet, address])
 
     return (
         <div>

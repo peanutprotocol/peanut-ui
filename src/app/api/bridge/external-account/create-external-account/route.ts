@@ -1,29 +1,27 @@
+import * as interfaces from '@/interfaces'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
-import * as interfaces from '@/interfaces'
 
 export async function POST(request: NextRequest) {
     try {
         const url = new URL(request.url)
         const customerId = url.searchParams.get('customerId')
         if (!customerId) {
-            throw new Error('Customer ID is required')
+            return new NextResponse(JSON.stringify({ success: false, message: 'Customer ID is required' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            })
         }
 
         const requestData = await request.json()
         const { accountType, accountDetails, address, accountOwnerName } = requestData
 
-        console.log('Creating external account with:', {
-            customerId,
-            accountType,
-            accountDetails,
-            address,
-            accountOwnerName,
-        })
-
         if (!process.env.BRIDGE_API_KEY) {
-            throw new Error('BRIDGE_API_KEY is not defined')
+            return new NextResponse(JSON.stringify({ success: false, message: 'BRIDGE_API_KEY is not defined' }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+            })
         }
 
         const idempotencyKey = uuidv4()
@@ -61,20 +59,11 @@ export async function POST(request: NextRequest) {
                 account_owner_type: 'individual',
             }
         } else {
-            throw new Error('Invalid account type')
+            return new NextResponse(JSON.stringify({ success: false, message: 'Invalid account type' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            })
         }
-
-        console.log('Sending request to Bridge API:', {
-            url: `https://api.bridge.xyz/v0/customers/${customerId}/external_accounts`,
-            method: 'POST',
-            headers: {
-                'Idempotency-Key': idempotencyKey,
-                'Api-Key': '[REDACTED]',
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body),
-        })
 
         const response = await fetch(`https://api.bridge.xyz/v0/customers/${customerId}/external_accounts`, {
             method: 'POST',
@@ -87,131 +76,109 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify(body),
         })
 
-        const responseText = await response.text()
-        console.log('Bridge API Response:', {
-            status: response.status,
-            statusText: response.statusText,
-            headers: Object.fromEntries(response.headers.entries()),
-            body: responseText,
-        })
+        // Parse response as JSON directly
+        const responseData = await response.json()
 
         if (!response.ok) {
-            const responseText = await response.text()
-            console.log('Error response text:', responseText)
+            console.error('Bridge API request failed:', response.status, response.statusText, responseData)
 
-            try {
-                const errorData = JSON.parse(responseText)
-                console.error('Bridge API error:', errorData)
-
-                if (errorData.code === 'invalid_parameters') {
-                    const missingParams = Object.keys(errorData.source?.key || {})
-                    const errorMessage =
-                        missingParams.length > 0
-                            ? `Missing required fields: ${missingParams.map((p) => p.split('.').pop()).join(', ')}`
-                            : errorData.message
-                    return new NextResponse(
-                        JSON.stringify({
-                            success: false,
-                            message: errorMessage,
-                        }),
-                        {
-                            status: 400,
-                            headers: { 'Content-Type': 'application/json' },
-                        }
-                    )
-                }
-
-                if (errorData.code === 'duplicate_external_account') {
-                    console.log('Duplicate account detected, fetching existing accounts')
-                    const allAccounts = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
+            if (responseData?.details?.code === 'endorsement_requirements_not_met') {
+                return new NextResponse(
+                    JSON.stringify({
+                        success: false,
+                        message: 'Additional verification required',
+                        details: {
+                            code: responseData.details.code,
+                            message: responseData.message,
+                            verificationUrl: responseData.requirements?.kyc_with_proof_of_address,
                         },
-                        body: JSON.stringify({
-                            customerId,
-                        }),
-                    })
-
-                    if (!allAccounts.ok) {
-                        throw new Error('Failed to fetch existing accounts')
-                    }
-
-                    const accounts = await allAccounts.json()
-                    console.log('Found existing accounts:', accounts)
-
-                    const existingAccount = accounts.find((account: interfaces.IBridgeAccount) => {
-                        if (accountType === 'iban') {
-                            return (
-                                account.account_details.type === 'iban' &&
-                                account.account_details.last_4 === accountDetails.accountNumber.slice(-4)
-                            )
-                        } else {
-                            return (
-                                account.account_details.type === 'us' &&
-                                account.account_details.last_4 === accountDetails.accountNumber.slice(-4) &&
-                                account.account_details.routing_number === accountDetails.routingNumber
-                            )
-                        }
-                    })
-
-                    if (!existingAccount) {
-                        throw new Error('Could not find matching existing account')
-                    }
-
-                    console.log('Found matching existing account:', existingAccount)
-                    return new NextResponse(
-                        JSON.stringify({
-                            success: true,
-                            data: existingAccount,
-                        }),
-                        {
-                            status: 200,
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                        }
-                    )
-                }
-
-                return new NextResponse(
-                    JSON.stringify({
-                        success: false,
-                        message: errorData.message || 'Failed to create external account',
-                        details: errorData,
                     }),
-                    {
-                        status: response.status,
-                        headers: { 'Content-Type': 'application/json' },
-                    }
-                )
-            } catch (e) {
-                console.error('Error parsing Bridge API error response:', e)
-                return new NextResponse(
-                    JSON.stringify({
-                        success: false,
-                        message: 'Failed to process Bridge API response',
-                        details: responseText,
-                    }),
-                    {
-                        status: response.status,
-                        headers: { 'Content-Type': 'application/json' },
-                    }
+                    { status: 403, headers: { 'Content-Type': 'application/json' } }
                 )
             }
+
+            if (responseData?.code === 'invalid_parameters') {
+                const missingParams = Object.keys(responseData.source?.key || {})
+                const errorMessage =
+                    missingParams.length > 0
+                        ? `Missing required fields: ${missingParams.map((p) => p.split('.').pop()).join(', ')}`
+                        : responseData.message
+                return new NextResponse(JSON.stringify({ success: false, message: errorMessage }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            }
+
+            if (responseData?.code === 'duplicate_external_account') {
+                console.log('Duplicate account detected, fetching existing accounts')
+
+                const allAccounts = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customerId }),
+                })
+
+                if (!allAccounts.ok) {
+                    return new NextResponse(
+                        JSON.stringify({ success: false, message: 'Failed to fetch existing accounts' }),
+                        { status: 500, headers: { 'Content-Type': 'application/json' } }
+                    )
+                }
+
+                const accounts = await allAccounts.json()
+                console.log('Found existing accounts:', accounts)
+
+                const existingAccount = accounts.find((account: interfaces.IBridgeAccount) => {
+                    if (accountType === 'iban') {
+                        return (
+                            account.account_details.type === 'iban' &&
+                            account.account_details.last_4 === accountDetails.accountNumber.slice(-4)
+                        )
+                    } else {
+                        return (
+                            account.account_details.type === 'us' &&
+                            account.account_details.last_4 === accountDetails.accountNumber.slice(-4) &&
+                            account.account_details.routing_number === accountDetails.routingNumber
+                        )
+                    }
+                })
+
+                if (!existingAccount) {
+                    return new NextResponse(
+                        JSON.stringify({ success: false, message: 'Could not find matching existing account' }),
+                        { status: 404, headers: { 'Content-Type': 'application/json' } }
+                    )
+                }
+
+                return new NextResponse(JSON.stringify({ success: true, data: existingAccount }), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            }
+
+            return new NextResponse(
+                JSON.stringify({
+                    success: false,
+                    message: responseData?.message || 'Failed to create external account',
+                    details: responseData,
+                }),
+                { status: response.status, headers: { 'Content-Type': 'application/json' } }
+            )
         }
 
-        const data = JSON.parse(responseText)
-        console.log('Successfully created external account:', data)
-
-        return new NextResponse(JSON.stringify(data), {
+        return new NextResponse(JSON.stringify({ success: true, data: responseData }), {
             status: 200,
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
         })
     } catch (error) {
         console.error('Failed to create external account:', error)
-        return new NextResponse('Internal Server Error', { status: 500 })
+        return new NextResponse(
+            JSON.stringify({
+                success: false,
+                message: 'Internal Server Error',
+                error: error instanceof Error ? error.message : 'Unknown error',
+            }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
+        )
     }
 }

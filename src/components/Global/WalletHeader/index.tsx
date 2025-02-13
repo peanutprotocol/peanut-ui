@@ -7,6 +7,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { IDBWallet, IWallet, WalletProviderType } from '@/interfaces'
 import { printableUsdc, shortenAddressLong } from '@/utils'
+import { usePrimaryName } from '@justaname.id/react'
 import classNames from 'classnames'
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
@@ -31,7 +32,7 @@ interface WalletEntryCardProps {
 
 const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
     const [showModal, setShowModal] = useState(false)
-    const { wallets, setSelectedWallet, selectedWallet, isConnected, isWalletConnected } = useWallet()
+    const { wallets, setSelectedWallet, selectedWallet, isConnected, isWalletConnected, isPeanutWallet } = useWallet()
     const { connectWallet } = useWalletConnection()
 
     const sortedWallets = useMemo(() => {
@@ -88,7 +89,7 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
                 {/* wallet icon container */}
                 <div className="flex size-7 items-center justify-center rounded-full border border-n-1 bg-white p-2">
                     <Image
-                        src={selectedWallet?.connector?.iconUrl || PeanutWalletIcon}
+                        src={isPeanutWallet ? PeanutWalletIcon : selectedWallet?.connector?.iconUrl || PeanutWalletIcon}
                         alt=""
                         width={24}
                         height={24}
@@ -178,6 +179,10 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
         if (isExternalWallet && !isConnected) return 'bg-n-4'
     }, [isExternalWallet, isConnected, isActive, isPeanutWallet, wallet.address])
 
+    const { primaryName } = usePrimaryName({
+        address: wallet.address,
+    })
+
     return (
         <Card onClick={onClick}>
             <Card.Content
@@ -212,13 +217,17 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
                                     peanut.me/<span className="font-black">{username}</span>
                                 </p>
                             ) : (
-                                <p className="text-xs font-medium">{shortenAddressLong(wallet.address)}</p>
+                                <p className="text-xs font-medium">
+                                    {primaryName || shortenAddressLong(wallet.address)}
+                                </p>
                             )}
                             <CopyToClipboard
                                 className="h-4 w-4"
                                 fill={'black'}
                                 textToCopy={
-                                    isPeanutWallet && username ? `https://peanut.me/${username}` : wallet.address
+                                    isPeanutWallet && username
+                                        ? `https://peanut.me/${username}`
+                                        : primaryName || wallet.address
                                 }
                             />
                         </div>
