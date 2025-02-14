@@ -1,4 +1,7 @@
 import { isAddress } from 'viem'
+import { arbitrum } from 'viem/chains'
+import { resolveChainId } from '../validation/resolvers/chain-resolver'
+import { parseChainSpecificAddress } from './parsers/address.parser'
 import { ParsedURL, RecipientType } from './types/payment'
 
 export function detectRecipientType(recipient: string): RecipientType {
@@ -21,9 +24,10 @@ function parseAmountAndToken(amountString: string): { amount?: string; token?: s
     }
 
     const [_, amount, token] = match
+    // normalize token to uppercase for consistency
     return {
         amount: amount || undefined,
-        token: token || undefined,
+        token: token ? token.toUpperCase() : undefined,
     }
 }
 
@@ -35,36 +39,60 @@ export function parsePaymentURL(segments: string[]): ParsedURL {
     // decode the first segment to handle URL encoding
     const firstSegment = decodeURIComponent(segments[0])
 
-    // if the first segment contains @, it's a recipient with chain
-    if (firstSegment.includes('@')) {
-        const [recipient, chain] = firstSegment.split('@')
+    // parse chain-specific address if present
+    const chainSpecificAddress = parseChainSpecificAddress(firstSegment)
+    if (chainSpecificAddress) {
         const remainingSegments = segments.slice(1)
+        try {
+            // resolve chain ID from chain-specific address
+            const chainId = resolveChainId(chainSpecificAddress.chain)
 
-        // if there's an amount segment, parse it for both amount and token
-        if (remainingSegments.length > 0) {
-            const { amount, token } = parseAmountAndToken(remainingSegments[0])
-            return {
-                recipient,
-                recipientType: detectRecipientType(recipient),
-                chain,
-                ...(amount && { amount }),
-                ...(token && { token }),
+            const baseResult: ParsedURL = {
+                recipient: chainSpecificAddress.user,
+                recipientType: detectRecipientType(chainSpecificAddress.user),
+                chain: chainId,
             }
-        }
 
-        return {
-            recipient,
-            recipientType: detectRecipientType(recipient),
-            chain,
+            // if there's an amount segment, parse it for both amount and token
+            if (remainingSegments.length > 0) {
+                const { amount, token } = parseAmountAndToken(remainingSegments[0])
+                return {
+                    ...baseResult,
+                    ...(amount && { amount }),
+                    ...(token && { token }),
+                }
+            }
+
+            return baseResult
+        } catch (error) {
+            // if chain resolution fails, still parse the address but without chain
+            const baseResult: ParsedURL = {
+                recipient: chainSpecificAddress.user,
+                recipientType: detectRecipientType(chainSpecificAddress.user),
+            }
+
+            // if there's an amount segment, parse it for both amount and token
+            if (remainingSegments.length > 0) {
+                const { amount, token } = parseAmountAndToken(remainingSegments[0])
+                return {
+                    ...baseResult,
+                    ...(amount && { amount }),
+                    ...(token && { token }),
+                }
+            }
+
+            return baseResult
         }
     }
 
+    // handle non-chain-specific addresses
     // if there's a second segment, parse it for both amount and token
     if (segments.length > 1) {
         const { amount, token } = parseAmountAndToken(segments[1])
         return {
             recipient: firstSegment,
             recipientType: detectRecipientType(firstSegment),
+            chain: arbitrum.id.toString(), // default to arbitrum
             ...(amount && { amount }),
             ...(token && { token }),
         }
@@ -74,5 +102,6 @@ export function parsePaymentURL(segments: string[]): ParsedURL {
     return {
         recipient: firstSegment,
         recipientType: detectRecipientType(firstSegment),
+        chain: arbitrum.id.toString(), // default to arbitrum
     }
 }

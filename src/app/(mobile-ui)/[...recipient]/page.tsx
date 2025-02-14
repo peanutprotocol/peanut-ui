@@ -8,48 +8,16 @@ import { supportedPeanutChains } from '@/constants'
 import { SUPPORTED_TOKENS } from '@/lib/url-parser/constants/tokens'
 import { parsePaymentURL } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
-import { normalizeChainName } from '@/lib/validation/chain-resolver'
+import { normalizeChainName } from '@/lib/validation/resolvers/chain-resolver'
+import { resolveRecipientToAddress } from '@/lib/validation/resolvers/recipient-resolver'
+import { getTokenAddressForChain } from '@/lib/validation/resolvers/token-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { Payment, RequestCharge } from '@/services/services.types'
-import { resolveRecipientToAddress } from '@/utils/recipient-resolver'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-
-// todo: move this to a utils file
-function getTokenAddressForChain(tokenSymbol: string, chainId: string | number): string {
-    const token = SUPPORTED_TOKENS[tokenSymbol.toUpperCase()]
-
-    if (!token) {
-        throw new Error(`Unsupported token: ${tokenSymbol}`)
-    }
-
-    // Convert chain name to chain ID if needed
-    let resolvedChainId: number
-    if (typeof chainId === 'string' && isNaN(Number(chainId))) {
-        // resolve chain name to chain id
-        const normalizedChainName = normalizeChainName(chainId)
-        const matchedChain = supportedPeanutChains.find(
-            (c) => normalizeChainName(c.name.toLowerCase()) === normalizedChainName
-        )
-        if (!matchedChain) {
-            throw new Error(`Unsupported chain: ${chainId}`)
-        }
-        resolvedChainId = Number(matchedChain.chainId)
-    } else {
-        resolvedChainId = Number(chainId)
-    }
-
-    const address = token.addresses[resolvedChainId]
-
-    if (!address) {
-        throw new Error(`Token ${tokenSymbol} not available on chain ${chainId}`)
-    }
-
-    return address
-}
 
 export default function PaymentPage({ params }: { params: { recipient: string[] } }) {
     const dispatch = useAppDispatch()
@@ -96,6 +64,8 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
 
         async function initializePayment() {
             try {
+                if (!parsedURL) return
+
                 // if chargeId exists, fetch existing charge
                 if (chargeId) {
                     try {
@@ -128,12 +98,28 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                 }
 
                 // check if all required parameters are present
-                const hasAllParams =
-                    parsedURL && parsedURL.recipient && parsedURL.amount && parsedURL.token && parsedURL.chain
+                const hasAllParams = parsedURL.recipient && parsedURL.amount && parsedURL.token
 
                 if (hasAllParams) {
-                    // create request and charge directly
-                    await createRequestAndCharge(parsedURL as ParsedURL)
+                    try {
+                        // get resolved chain ID from parsee URL
+                        const chainId = parsedURL.chain
+
+                        if (!chainId) {
+                            throw new Error('No chain specified')
+                        }
+
+                        // create request and charge with resolved chain ID
+                        await createRequestAndCharge({
+                            ...parsedURL,
+                            chain: chainId,
+                        })
+                    } catch (error) {
+                        console.error('Chain validation failed:', error)
+                        setError(error instanceof Error ? error : new Error('Invalid chain'))
+                        setIsLoading(false)
+                        return
+                    }
                 } else {
                     // show initial view with form
                     setIsLoading(false)
@@ -145,23 +131,24 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
             }
         }
 
-        // helper function to create request and charge
+        // helper function to create request and charge using validated chain
         async function createRequestAndCharge(params: ParsedURL) {
             try {
                 const resolvedAddress = await resolveRecipientToAddress(params.recipient)
 
-                // get token address for the chain
+                // get token address for the validated chain
                 const tokenAddress = getTokenAddressForChain(params.token ?? '', params.chain ?? '')
 
                 // create request
                 const request = await requestsApi.create({
-                    chainId: params?.chain?.toString() ?? '',
+                    chainId: params.chain ?? '',
                     tokenAmount: params.amount,
                     recipientAddress: resolvedAddress,
-                    tokenType: 'erc20',
+                    // tokenType: 'erc20',
+                    tokenType: params.token?.toUpperCase() === 'ETH' ? 'native' : 'erc20',
                     tokenAddress: tokenAddress,
                     tokenDecimals: '18',
-                    tokenSymbol: params?.token ?? '',
+                    tokenSymbol: params.token ?? '',
                     reference: attachmentOptions?.message,
                     attachment: attachmentOptions?.rawFile,
                 })
@@ -176,7 +163,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                     baseUrl: window.location.origin,
                     requestId: request.id,
                     requestProps: {
-                        chainId: params?.chain?.toString() ?? '',
+                        chainId: params?.chain ?? '',
                         tokenAddress: tokenAddress,
                         tokenType: 'erc20',
                         tokenSymbol: params?.token ?? '',

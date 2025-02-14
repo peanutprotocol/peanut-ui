@@ -8,11 +8,12 @@ import { supportedPeanutChains } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { ITokenPriceData } from '@/interfaces'
+import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { RequestCharge } from '@/services/services.types'
-import { fetchTokenPrice, getChainName, isAddressZero, switchNetwork as switchNetworkUtil } from '@/utils'
+import { fetchTokenPrice, isAddressZero, switchNetwork as switchNetworkUtil } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
@@ -279,7 +280,7 @@ export default function ConfirmPaymentView() {
                 {urlParams?.chain && (
                     <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
                         <div className="text-sm font-semibold text-grey-1">Destination Chain</div>
-                        <div className="font-semibold capitalize">{urlParams.chain}</div>
+                        <div className="font-semibold capitalize">{getReadableChainName(urlParams.chain)}</div>
                     </div>
                 )}
 
@@ -295,7 +296,7 @@ export default function ConfirmPaymentView() {
                     <>
                         <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
                             <div className="text-sm font-semibold text-grey-1">Payment Chain</div>
-                            <div className="font-semibold capitalize">{getChainName(selectedChainID)}</div>
+                            <div className="font-semibold capitalize">{getReadableChainName(selectedChainID)}</div>
                         </div>
 
                         <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
