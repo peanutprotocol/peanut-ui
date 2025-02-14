@@ -15,6 +15,7 @@ import { fetchTokenSymbol, isNativeCurrency, saveRequestLinkToLocalStorage } fro
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Create.consts'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 export const InitialView = ({
     onNext,
@@ -29,6 +30,7 @@ export const InitialView = ({
     recipientAddress,
     setRecipientAddress,
 }: _consts.ICreateScreenProps) => {
+    const toast = useToast()
     const { address, selectedWallet, isExternalWallet, isPeanutWallet, isConnected } = useWallet()
     const {
         selectedTokenPrice,
@@ -121,6 +123,9 @@ export const InitialView = ({
                     method: 'POST',
                     body: createFormData,
                 })
+                if (!requestResponse.ok) {
+                    throw new Error(`Request failed: ${requestResponse.status}`)
+                }
                 const requestLinkDetails = await requestResponse.json()
 
                 //TODO: create util function to generate link
