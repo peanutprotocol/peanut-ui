@@ -10,4 +10,5 @@ export interface IPaymentState {
     requestDetails: IRequestLinkData | null
     transactionHash: string | null
     paymentDetails: PaymentCreationResponse | null
+    existingRequestId: string | null
 }

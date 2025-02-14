@@ -26,7 +26,7 @@ export interface CreateRequestRequest {
     tokenSymbol: string
 }
 
-export interface PaymentRequest {
+export interface TRequest {
     uuid: string
     chainId: string
     recipientAddress: string

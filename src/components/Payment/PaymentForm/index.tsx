@@ -14,7 +14,6 @@ import { resolveRecipientToAddress } from '@/lib/validation/resolvers/recipient-
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
-import { requestsApi } from '@/services/requests'
 import { isNativeCurrency } from '@/utils'
 import { useContext, useEffect, useState } from 'react'
 
@@ -27,7 +26,7 @@ interface PaymentFormProps {
 
 export const PaymentForm = ({ recipient, amount, token, chain }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
-    const { attachmentOptions } = usePaymentStore()
+    const { attachmentOptions, existingRequestId } = usePaymentStore()
     const [tokenValue, setTokenValue] = useState<string>(amount || '')
     const { selectedWallet, isWalletConnected } = useWallet()
     const {
@@ -99,45 +98,40 @@ export const PaymentForm = ({ recipient, amount, token, chain }: PaymentFormProp
 
         setIsSubmitting(true)
         try {
-            // resolve recipient to address first
             const resolvedAddress = await resolveRecipientToAddress(recipient)
 
-            // create request
-            const request = await requestsApi.create({
-                chainId: selectedChainID.toString(),
-                tokenAmount: tokenValue,
-                recipientAddress: resolvedAddress,
-                tokenType: isNativeCurrency(selectedTokenAddress) ? 'native' : 'erc20',
-                tokenAddress: selectedTokenAddress,
-                tokenDecimals: (selectedTokenDecimals || 18).toString(),
-                tokenSymbol: selectedTokenData?.symbol || '',
-                reference: attachmentOptions?.message,
-                attachment: attachmentOptions?.rawFile,
-            })
+            if (existingRequestId) {
+                // create charge using existing request ID
 
-            const charge = await chargesApi.create({
-                pricing_type: 'fixed_price',
-                local_price: {
-                    amount: tokenValue,
-                    currency: 'USD',
-                },
-                baseUrl: window.location.origin,
-                requestId: request.id,
-                requestProps: {
-                    chainId: selectedChainID.toString(),
-                    tokenAddress: selectedTokenAddress,
-                    tokenType: isNativeCurrency(selectedTokenAddress) ? 'native' : 'erc20',
-                    tokenSymbol: selectedTokenData?.symbol || '',
-                    tokenDecimals: selectedTokenDecimals || 18,
-                    recipientAddress: resolvedAddress,
-                },
-            })
+                const tokenSymbol = selectedTokenData?.symbol || token
 
-            window.history.replaceState(null, '', `${window.location.pathname}?chargeId=${charge.data.id}`)
-            dispatch(paymentActions.setRequestDetails({ ...charge.data, request }))
-            dispatch(paymentActions.setView(2))
+                if (!tokenSymbol) {
+                    throw new Error('Token symbol not found')
+                }
+                const charge = await chargesApi.create({
+                    pricing_type: 'fixed_price',
+                    local_price: {
+                        amount: tokenValue,
+                        currency: 'USD',
+                    },
+                    baseUrl: window.location.origin,
+                    requestId: existingRequestId || '',
+                    requestProps: {
+                        chainId: selectedChainID.toString(),
+                        tokenAddress: selectedTokenAddress,
+                        tokenType: isNativeCurrency(selectedTokenAddress) ? 'native' : 'erc20',
+                        tokenSymbol,
+                        tokenDecimals: selectedTokenDecimals || 18,
+                        recipientAddress: resolvedAddress,
+                    },
+                })
+
+                window.history.replaceState(null, '', `${window.location.pathname}?chargeId=${charge.data.id}`)
+                dispatch(paymentActions.setRequestDetails({ ...charge.data }))
+                dispatch(paymentActions.setView(2))
+            }
         } catch (error) {
-            console.error('Failed to create request/charge:', error)
+            console.error('Failed to create charge:', error)
             // todo: handle error better for users
         } finally {
             setIsSubmitting(false)

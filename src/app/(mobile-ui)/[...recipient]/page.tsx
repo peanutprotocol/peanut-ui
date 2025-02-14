@@ -15,7 +15,7 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { Payment, RequestCharge } from '@/services/services.types'
+import { Payment, RequestCharge, TRequest } from '@/services/services.types'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -28,6 +28,8 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     const router = useRouter()
     const chargeId = searchParams.get('chargeId')
     const [charge, setCharge] = useState<RequestCharge | null>(null)
+    const [request, setRequest] = useState<TRequest | null>(null)
+    const [isLoadingRequests, setIsLoadingRequests] = useState(false)
 
     // avoid re-parsing the URL on every render
     const parsedURL = useMemo(() => {
@@ -121,9 +123,23 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                         return
                     }
                 } else {
-                    // show initial view with form
+                    // Show initial view with form and fetch existing requests
                     setIsLoading(false)
                     dispatch(paymentActions.setView(1))
+
+                    try {
+                        const resolvedAddress = await resolveRecipientToAddress(parsedURL.recipient)
+                        const existingRequest: TRequest | null = await requestsApi.search({
+                            recipient: resolvedAddress,
+                        })
+
+                        if (existingRequest) {
+                            // store request ID in redux
+                            dispatch(paymentActions.setExistingRequestId(existingRequest.uuid))
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch existing requests:', error)
+                    }
                 }
             } catch (err) {
                 setError(err instanceof Error ? err : new Error('Failed to initialize payment'))
@@ -161,7 +177,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                         currency: 'USD',
                     },
                     baseUrl: window.location.origin,
-                    requestId: request.id,
+                    requestId: request.uuid,
                     requestProps: {
                         chainId: params?.chain ?? '',
                         tokenAddress: tokenAddress,
@@ -184,6 +200,32 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
 
         initializePayment()
     }, [parsedURL, chargeId, dispatch, router, attachmentOptions])
+
+    // fetch requests for the recipient
+    useEffect(() => {
+        async function fetchRequests() {
+            if (!parsedURL?.recipient) return
+
+            setIsLoadingRequests(true)
+            try {
+                // fetch requests for the recipient
+                if (parsedURL.recipient) {
+                    const fetchedRequest = await requestsApi.search({
+                        recipient: parsedURL.recipient,
+                        // todo: add other filters here
+                    })
+                    console.log('Fetched requests:', fetchedRequest)
+                    setRequest(fetchedRequest)
+                }
+            } catch (error) {
+                console.error('Failed to fetch requests:', error)
+            } finally {
+                setIsLoadingRequests(false)
+            }
+        }
+
+        fetchRequests()
+    }, [parsedURL?.recipient, parsedURL?.chain, parsedURL?.token, parsedURL?.amount])
 
     if (error) {
         return <div>Error: {error.message}</div>

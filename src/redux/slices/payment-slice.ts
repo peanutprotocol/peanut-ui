@@ -16,6 +16,7 @@ const initialState: IPaymentState = {
     requestDetails: null,
     transactionHash: null,
     paymentDetails: null,
+    existingRequestId: null,
 }
 
 const paymentSlice = createSlice({
@@ -39,6 +40,9 @@ const paymentSlice = createSlice({
         },
         setPaymentDetails: (state, action: PayloadAction<PaymentCreationResponse>) => {
             state.paymentDetails = action.payload
+        },
+        setExistingRequestId: (state, action: PayloadAction<string>) => {
+            state.existingRequestId = action.payload
         },
     },
 })
