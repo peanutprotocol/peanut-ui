@@ -7,7 +7,7 @@ export type ChainId = Chain['id']
 export interface ParsedURL {
     recipient: string
     recipientType: RecipientType
-    chain?: string | number // accept both chain ID and name
+    chain?: string
     amount?: string
     token?: string
 }

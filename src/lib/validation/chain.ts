@@ -1,24 +1,24 @@
 import { chains } from '@/constants'
 import { Chain } from 'viem'
 import { ChainValidationError } from '../url-parser/errors'
-import { normalizeChainName } from './chain-resolver'
+import { resolveChain } from './resolvers/chain-resolver'
 
 export function validateChain(chainIdentifier: string | number): Chain {
-    // find chain by ID
-    if (typeof chainIdentifier === 'number') {
-        const chain = chains.find((c) => c.id === chainIdentifier)
-        if (chain) return chain
+    try {
+        // convert number to hex string
+        const identifier = typeof chainIdentifier === 'number' ? `0x${chainIdentifier.toString(16)}` : chainIdentifier
+
+        // resolve chain
+        const resolvedChain = resolveChain(identifier)
+
+        // find matching chain from supported chains
+        const chain = chains.find((c) => c.id.toString() === resolvedChain.id)
+        if (!chain) {
+            throw new ChainValidationError(`Chain not supported in current context: ${identifier}`)
+        }
+
+        return chain
+    } catch (error) {
+        throw new ChainValidationError(error instanceof Error ? error.message : `Invalid chain: ${chainIdentifier}`)
     }
-
-    // find chain using normalized name
-    if (typeof chainIdentifier === 'string') {
-        const normalizedName = normalizeChainName(chainIdentifier)
-        const chain = chains.find(
-            (c) => normalizeChainName(c.name) === normalizedName || normalizeChainName(c.name) === normalizedName
-        )
-
-        if (chain) return chain
-    }
-
-    throw new ChainValidationError(`Unsupported chain: ${chainIdentifier}`)
 }

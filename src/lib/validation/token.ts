@@ -2,7 +2,7 @@ import { Chain } from 'viem'
 import { SUPPORTED_TOKENS } from '../url-parser/constants/tokens'
 import { TokenValidationError } from '../url-parser/errors'
 import { TokenInfo } from '../url-parser/types/token'
-import { normalizeChainName, supportsNativeEth } from './chain-resolver'
+import { normalizeChainName, supportsNativeEth } from './resolvers/chain-resolver'
 
 export interface ValidatedToken {
     info: TokenInfo
