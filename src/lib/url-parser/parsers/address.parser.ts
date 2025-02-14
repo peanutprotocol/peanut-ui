@@ -15,6 +15,14 @@ export function parseChainSpecificAddress(input: string): ChainSpecificAddress |
 
     const [user, chain] = parts
 
+    // for chain IDs, check if it's a valid number
+    if (!isNaN(Number(chain))) {
+        return {
+            user,
+            chain: chain,
+        }
+    }
+
     // validate user (must be valid address or ENS)
     if (!isValidUser(user)) {
         return null

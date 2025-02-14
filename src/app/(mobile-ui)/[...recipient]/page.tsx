@@ -110,6 +110,11 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                     try {
                         let nameToResolve = parsedURL.recipient
 
+                        // remove chain part if present (after @)
+                        if (nameToResolve.includes('@')) {
+                            nameToResolve = nameToResolve.split('@')[0]
+                        }
+
                         // if username has no dots, treat as native peanut username
                         if (!nameToResolve.includes('.')) {
                             // todo: move to env

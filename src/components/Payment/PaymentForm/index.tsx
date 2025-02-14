@@ -28,8 +28,7 @@ interface PaymentFormProps {
 
 export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
-    const { attachmentOptions, chargeDetails, requestDetails, createdChargeDetails, resolvedAddress } =
-        usePaymentStore()
+    const { attachmentOptions, requestDetails, resolvedAddress } = usePaymentStore()
     const [tokenValue, setTokenValue] = useState<string>(amount || '')
     const { selectedWallet, isWalletConnected } = useWallet()
     const {
@@ -56,52 +55,58 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
     useEffect(() => {
         if (initialSetupDone) return
 
+        // Set chain from URL if present
         if (chain) {
-            // Handle chain setting
+            let chainId: string | undefined
+
             if (typeof chain === 'number') {
-                // If it's already a number, use it directly
-                setSelectedChainID(chain.toString())
-            } else {
-                // If it's a string, normalize it and find matching chain
-                const normalizedChainName = normalizeChainName(chain)
-                const matchedChain = supportedPeanutChains.find(
-                    (c) => normalizeChainName(c.name.toLowerCase()) === normalizedChainName
-                )
-
-                if (matchedChain) {
-                    setSelectedChainID(matchedChain.chainId.toString())
-                }
-            }
-        }
-
-        if (token) {
-            // Look up the token info
-            // const tokenInfo = SUPPORTED_TOKENS[token.toUpperCase()]
-            if (tokenInfo) {
-                let chainId: number | undefined
-
-                // Determine chainId based on chain parameter type
-                if (typeof chain === 'number') {
-                    chainId = chain
-                } else if (typeof chain === 'string') {
+                // Direct number from URL parsing
+                chainId = chain.toString()
+            } else if (typeof chain === 'string') {
+                // try to parse as number
+                const numericChainId = parseInt(chain)
+                if (!isNaN(numericChainId)) {
+                    const matchedChain = supportedPeanutChains.find((c) => Number(c.chainId) === numericChainId)
+                    if (matchedChain) {
+                        chainId = matchedChain.chainId.toString()
+                    }
+                } else {
+                    // if not a number, try to match chain name
                     const normalizedChainName = normalizeChainName(chain)
                     const matchedChain = supportedPeanutChains.find(
                         (c) => normalizeChainName(c.name.toLowerCase()) === normalizedChainName
                     )
                     if (matchedChain) {
-                        chainId = Number(matchedChain.chainId)
+                        chainId = matchedChain.chainId.toString()
                     }
                 }
+            }
 
-                // If we have a valid chainId, try to set the token address
-                if (chainId && tokenInfo.addresses[chainId]) {
+            if (chainId) {
+                setSelectedChainID(chainId)
+            }
+        }
+
+        // set token from URL if present
+        if (token) {
+            const upperToken = token.toUpperCase()
+            const chainId = Number(selectedChainID)
+
+            // handle native ETH
+            if (upperToken === 'ETH') {
+                // Set native token address
+                setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
+            } else {
+                // handle other tokens
+                const tokenInfo = SUPPORTED_TOKENS[upperToken]
+                if (tokenInfo && tokenInfo.addresses[chainId]) {
                     setSelectedTokenAddress(tokenInfo.addresses[chainId])
                 }
             }
         }
 
         setInitialSetupDone(true)
-    }, [chain, token, setSelectedChainID, setSelectedTokenAddress, initialSetupDone])
+    }, [chain, token, setSelectedChainID, setSelectedTokenAddress, selectedChainID, initialSetupDone])
 
     const handleCreateRequest = async () => {
         if (!tokenValue || isSubmitting) return
