@@ -28,7 +28,7 @@ interface PaymentFormProps {
 
 export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
-    const { attachmentOptions, requestDetails, resolvedAddress } = usePaymentStore()
+    const { attachmentOptions, requestDetails, resolvedAddress, error } = usePaymentStore()
     const [tokenValue, setTokenValue] = useState<string>(amount || '')
     const { selectedWallet, isWalletConnected } = useWallet()
     const {
@@ -108,12 +108,19 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
         setInitialSetupDone(true)
     }, [chain, token, setSelectedChainID, setSelectedTokenAddress, selectedChainID, initialSetupDone])
 
+    // reset error when component mounts or recipient changes
+    useEffect(() => {
+        dispatch(paymentActions.setError(null))
+    }, [dispatch, recipient])
+
     const handleCreateRequest = async () => {
         if (!tokenValue || isSubmitting) return
 
         setIsSubmitting(true)
+        dispatch(paymentActions.setError(null))
+
         try {
-            // Use already resolved address from redux or the original address if it's already an address
+            // use already resolved address from redux or the original address if it's already an address
             const recipientAddress = isAddress(recipient) ? recipient : resolvedAddress
 
             if (!recipientAddress) {
@@ -148,10 +155,38 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
             dispatch(paymentActions.setView('CONFIRM'))
         } catch (error) {
             console.error('Failed to create charge:', error)
-            // todo: handle error better for users
+            dispatch(paymentActions.setError(error instanceof Error ? error.message : 'Failed to create charge'))
         } finally {
             setIsSubmitting(false)
         }
+    }
+
+    // check if all required fields are present
+    const canCreateRequest = useMemo(() => {
+        return Boolean(recipient && tokenValue && selectedTokenAddress && selectedChainID)
+    }, [recipient, tokenValue, selectedTokenAddress, selectedChainID])
+
+    // get descriptive error messages
+    const getValidationMessage = () => {
+        if (!recipient) return 'Recipient address is required'
+        if (!tokenValue) return 'Please enter an amount'
+        if (!selectedTokenAddress) return 'Please select a token'
+        if (!selectedChainID) return 'Please select a chain'
+        return ''
+    }
+
+    // Get button text based on state
+    const getButtonText = () => {
+        if (!isWalletConnected) return 'Connect Wallet'
+        if (isSubmitting) {
+            return (
+                <div className="flex items-center justify-center gap-2">
+                    <span className="animate-spin">🥜</span>
+                    <span>Processing...</span>
+                </div>
+            )
+        }
+        return 'Pay'
     }
 
     return (
@@ -205,13 +240,31 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
                 </div>
             )} */}
 
-            <Button
-                onClick={handleCreateRequest}
-                disabled={!isWalletConnected || !tokenValue || isSubmitting}
-                className="w-full"
-            >
-                {!isWalletConnected ? 'Connect Wallet' : isSubmitting ? 'Creating Request...' : 'Create Request'}
-            </Button>
+            <div className="space-y-2">
+                <Button
+                    onClick={handleCreateRequest}
+                    disabled={!isWalletConnected || !canCreateRequest || isSubmitting}
+                    className="w-full"
+                >
+                    {getButtonText()}
+                </Button>
+
+                {!canCreateRequest && !error && (
+                    <div className="text-start text-sm text-red">{getValidationMessage()}</div>
+                )}
+
+                {error && (
+                    <div className="bg-red-50 rounded-md p-4">
+                        <div className="flex">
+                            <div className="flex-shrink-0">⚠️</div>
+                            <div className="ml-3">
+                                <h3 className="text-red-800 text-sm font-medium">Error</h3>
+                                <div className="text-red-700 mt-2 text-sm">{error}</div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

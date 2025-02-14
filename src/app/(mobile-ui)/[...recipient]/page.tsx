@@ -168,7 +168,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     }
 
     return (
-        <div className="mx-auto w-full space-y-8 md:w-6/12">
+        <div className="mx-auto w-full space-y-8 self-start py-6 md:w-6/12">
             <div>
                 {currentView === 'INITIAL' && <InitialPaymentView {...(parsedURL as ParsedURL)} />}
                 {currentView === 'CONFIRM' && (

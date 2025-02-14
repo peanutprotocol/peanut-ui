@@ -14,4 +14,5 @@ export interface IPaymentState {
     chargeDetails: TRequestChargeResponse | null
     createdChargeDetails: TCharge | null
     resolvedAddress: string | null
+    error: string | null
 }

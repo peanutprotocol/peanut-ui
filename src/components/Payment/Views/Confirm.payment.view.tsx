@@ -2,7 +2,9 @@
 
 import { Button } from '@/components/0_Bruddle'
 import { useCreateLink } from '@/components/Create/useCreateLink'
+import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import { supportedPeanutChains } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -22,13 +24,12 @@ export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
     const { isConnected, chain: currentChain, address } = useWallet()
-    const { attachmentOptions, urlParams } = usePaymentStore()
+    const { attachmentOptions, urlParams, error } = usePaymentStore()
     const { selectedChainID, selectedTokenData } = useContext(tokenSelectorContext)
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
     const [charge, setCharge] = useState<TRequestChargeResponse | null>(null)
     const [tokenPriceData, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
-    const [error, setError] = useState<string>('')
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
     // todo: use redux store for this
@@ -60,7 +61,7 @@ export default function ConfirmPaymentView() {
                     dispatch(paymentActions.setChargeDetails(charge))
                 })
                 .catch((error) => {
-                    setError(error.message)
+                    dispatch(paymentActions.setError(error instanceof Error ? error.message : error.toString()))
                 })
         }
     }, [chargeId, dispatch])
@@ -72,10 +73,10 @@ export default function ConfirmPaymentView() {
             if (tokenPriceData) {
                 setTokenPriceData(tokenPriceData)
             } else {
-                setError('Failed to fetch token price')
+                dispatch(paymentActions.setError('Failed to fetch token price'))
             }
         })
-    }, [charge])
+    }, [charge, dispatch])
 
     // helper function to prepare cross-chain tx
     const createXChainUnsignedTx = async (tokenData: any, requestLink: any, senderAddress: string) => {
@@ -86,117 +87,145 @@ export default function ConfirmPaymentView() {
             throw new Error('Invalid token data for cross-chain transaction')
         }
 
-        // prepare link details
-        const linkDetails = {
-            recipientAddress: requestLink.recipientAddress,
-            chainId: requestLink.chainId.toString(),
-            tokenAmount: requestLink.tokenAmount,
-            tokenAddress: requestLink.tokenAddress,
-            tokenDecimals: requestLink.tokenDecimals,
-            tokenType: Number(requestLink.tokenType),
-        }
+        try {
+            // prepare link details
+            const linkDetails = {
+                recipientAddress: requestLink.recipientAddress,
+                chainId: requestLink.chainId.toString(),
+                tokenAmount: requestLink.tokenAmount,
+                tokenAddress: requestLink.tokenAddress,
+                tokenDecimals: requestLink.tokenDecimals,
+                tokenType: Number(requestLink.tokenType),
+            }
 
-        // prepare unsigned tx
-        const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
-            fromToken: tokenData.address,
-            fromChainId: tokenData.chainId,
-            senderAddress,
-            squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
-            provider: await peanut.getDefaultProvider(tokenData.chainId.toString()),
-            tokenType: isAddressZero(tokenData.address)
-                ? peanutInterfaces.EPeanutLinkType.native
-                : peanutInterfaces.EPeanutLinkType.erc20,
-            fromTokenDecimals: tokenData.decimals,
-            linkDetails,
-        })
-        return xchainUnsignedTxs
+            // prepare unsigned tx
+            const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
+                fromToken: tokenData.address,
+                fromChainId: tokenData.chainId,
+                senderAddress,
+                squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+                provider: await peanut.getDefaultProvider(tokenData.chainId),
+                tokenType: isAddressZero(tokenData.address)
+                    ? peanutInterfaces.EPeanutLinkType.native
+                    : peanutInterfaces.EPeanutLinkType.erc20,
+                fromTokenDecimals: tokenData.decimals,
+                linkDetails,
+            })
+
+            if (!xchainUnsignedTxs) {
+                throw new Error('Failed to prepare cross-chain transaction')
+            }
+
+            return {
+                unsignedTxs: xchainUnsignedTxs.unsignedTxs,
+                estimatedFromAmount: xchainUnsignedTxs.estimatedFromAmount,
+            }
+        } catch (error) {
+            console.error('Cross-chain preparation error:', error)
+            throw new Error(error instanceof Error ? error.message : 'Failed to estimate from amount')
+        }
+    }
+
+    // prepare transaction
+    const prepareTransaction = async () => {
+        if (!charge || !address) return
+
+        setIsLoading(true)
+        dispatch(paymentActions.setError(null))
+
+        try {
+            // check if cross-chain transaction is needed
+            const isSourceChainDifferent = selectedChainID !== charge.chainId
+            setIsXChain(isSourceChainDifferent)
+
+            if (isSourceChainDifferent) {
+                // prepare cross-chain tx
+                if (!selectedTokenData) {
+                    throw new Error('Token data not found')
+                }
+
+                console.log('Selected token data:', selectedTokenData)
+                console.log('Charge request link:', charge.requestLink)
+
+                const txData = await createXChainUnsignedTx(
+                    {
+                        address: selectedTokenData.address,
+                        chainId: selectedChainID,
+                        decimals: selectedTokenData.decimals,
+                    },
+                    {
+                        recipientAddress: charge.requestLink.recipientAddress,
+                        chainId: charge.chainId,
+                        tokenAmount: charge.tokenAmount,
+                        tokenAddress: charge.tokenAddress,
+                        tokenDecimals: charge.tokenDecimals,
+                        tokenType: charge.tokenType,
+                    },
+                    address
+                )
+
+                if (!txData?.unsignedTxs) {
+                    throw new Error('Failed to prepare cross-chain transaction')
+                }
+
+                setXChainUnsignedTxs(txData.unsignedTxs)
+                setEstimatedFromValue(txData.estimatedFromAmount)
+            } else {
+                // Prepare same-chain tx
+                if (!charge.tokenType || !charge.requestLink?.recipientAddress) {
+                    throw new Error('Missing required charge data')
+                }
+
+                const tokenType = Number(charge.tokenType)
+                const { unsignedTx } = peanut.prepareRequestLinkFulfillmentTransaction({
+                    recipientAddress: charge.requestLink.recipientAddress,
+                    tokenAddress: charge.tokenAddress || '',
+                    tokenAmount: charge.tokenAmount || '0',
+                    tokenDecimals: charge.tokenDecimals || 18,
+                    tokenType: tokenType,
+                })
+
+                if (!unsignedTx) {
+                    throw new Error('Failed to prepare transaction')
+                }
+
+                setUnsignedTx(unsignedTx)
+            }
+        } catch (error) {
+            console.error('Failed to prepare transaction:', error)
+            dispatch(paymentActions.setError(error instanceof Error ? error.message : 'Failed to prepare transaction'))
+            return false
+        } finally {
+            setIsLoading(false)
+        }
+        return true
     }
 
     // prepare transaction when charge is ready
     useEffect(() => {
-        if (!charge || !address) return
-
-        const prepareTransaction = async () => {
-            try {
-                setIsLoading(true)
-                console.log('Preparing transaction with charge:', {
-                    recipientAddress: charge.requestLink?.recipientAddress,
-                    tokenAddress: charge.tokenAddress,
-                    tokenAmount: charge.tokenAmount,
-                    tokenDecimals: charge.tokenDecimals,
-                    tokenType: charge.tokenType,
-                })
-
-                // check if its a cross-chain tx
-                const isXChainTx = charge.chainId !== selectedChainID
-
-                if (isXChainTx) {
-                    setIsXChain(true)
-                    if (!selectedTokenData) {
-                        throw new Error('Selected token data not available')
-                    }
-
-                    // prepare cross-chain tx
-                    const txData = await createXChainUnsignedTx(
-                        selectedTokenData,
-                        {
-                            recipientAddress: charge.requestLink.recipientAddress,
-                            chainId: charge.chainId,
-                            tokenAmount: charge.tokenAmount,
-                            tokenAddress: charge.tokenAddress,
-                            tokenDecimals: charge.tokenDecimals,
-                            tokenType: charge.tokenType,
-                        },
-                        address
-                    )
-                    const { unsignedTxs, estimatedFromAmount } = txData
-                    setXChainUnsignedTxs(unsignedTxs)
-                    setEstimatedFromValue(estimatedFromAmount)
-                } else {
-                    // prepare same-chain tx
-                    if (!charge.tokenType || !charge.requestLink?.recipientAddress) {
-                        throw new Error('Missing required charge data')
-                    }
-
-                    const tokenType = Number(charge.tokenType)
-                    const tx = peanut.prepareRequestLinkFulfillmentTransaction({
-                        recipientAddress: charge.requestLink.recipientAddress,
-                        tokenAddress: charge.tokenAddress || '',
-                        tokenAmount: charge.tokenAmount || '0',
-                        tokenDecimals: charge.tokenDecimals || 18,
-                        tokenType: tokenType,
-                    })
-
-                    if (!tx?.unsignedTx) {
-                        throw new Error('Failed to prepare transaction')
-                    }
-
-                    setUnsignedTx(tx.unsignedTx)
-                }
-            } catch (error) {
-                console.error('Failed to prepare transaction:', error)
-                setError(error instanceof Error ? error.message : 'Failed to prepare transaction')
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
         prepareTransaction()
     }, [charge, address, selectedChainID, selectedTokenData])
+
+    // reset error when component mounts
+    useEffect(() => {
+        dispatch(paymentActions.setError(null))
+    }, [dispatch])
 
     // handle payment
     const handlePayment = async () => {
         if (!isConnected || !address || !charge) return
         if (isXChain && !xChainUnsignedTxs) {
-            setError('Cross-chain transaction not ready')
+            dispatch(paymentActions.setError('Cross-chain transaction not ready'))
             return
         }
         if (!isXChain && !unsignedTx) {
-            setError('Transaction not ready')
+            dispatch(paymentActions.setError('Transaction not ready'))
             return
         }
 
         setIsLoading(true)
+        dispatch(paymentActions.setError(null))
+
         try {
             // check balance and switch network
             await checkUserHasEnoughBalance({
@@ -245,64 +274,94 @@ export default function ConfirmPaymentView() {
             dispatch(paymentActions.setPaymentDetails(paymentDetails))
             dispatch(paymentActions.setView('SUCCESS'))
         } catch (error) {
-            setError((error as Error).message)
+            dispatch(paymentActions.setError(error instanceof Error ? error.message : 'Payment failed'))
         } finally {
             setIsLoading(false)
         }
     }
 
-    // todo: add better loading state
-    if (!charge) return <div>Loading...</div>
+    // Get button text based on state
+    const getButtonText = () => {
+        if (!isConnected) return 'Connect Wallet'
+        if (isLoading) {
+            return (
+                <div className="flex items-center justify-center gap-2">
+                    <span className="animate-spin">🥜</span>
+                    <span>{isXChain ? 'Fetching Best Quote For You...' : 'Preparing Transaction...'}</span>
+                </div>
+            )
+        }
+        return 'Confirm Payment'
+    }
 
+    if (!charge) return <PeanutLoading />
+
+    // todo: render values from charge data and not url
     return (
         <div className="space-y-4">
-            <div className="pb-1 text-start text-h4 font-bold">Confirm Details</div>
-            <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
+            <FlowHeader
+                onPrev={() => {
+                    dispatch(paymentActions.setView('INITIAL'))
+                    window.history.replaceState(null, '', `${window.location.pathname}`)
+                    dispatch(paymentActions.setChargeDetails(null))
+                }}
+                disableWalletHeader
+            />
+            <div className="text-start text-h4 font-bold">Confirm Details</div>
+            <div className="">
+                <div className="flex items-center justify-between border-b border-dashed border-black py-3">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
                         <div className="text-sm font-semibold text-grey-1">Recipient</div>
                     </div>
                     <div className="font-semibold">{urlParams?.recipient || charge?.requestLink?.recipientAddress}</div>
                 </div>
-                <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
+                <div className="flex items-center justify-between border-b border-dashed border-black py-3">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <div className="text-sm font-semibold text-grey-1">Amount</div>
+                        <div className="text-sm font-semibold text-grey-1">You are paying</div>
                     </div>
-                    <div className="font-semibold">{urlParams?.amount || charge?.tokenAmount}</div>
+                    <div className="font-semibold">
+                        {urlParams?.amount || charge?.tokenAmount} {selectedTokenData?.symbol} on{' '}
+                        {getReadableChainName(charge?.chainId)}
+                    </div>
                 </div>
 
                 {/* URL Parameters Section */}
-                {urlParams?.chain && (
-                    <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
-                        <div className="text-sm font-semibold text-grey-1">Destination Chain</div>
-                        <div className="font-semibold capitalize">{getReadableChainName(urlParams.chain)}</div>
+                {/* {urlParams?.chain && ( */}
+                <div className="flex items-center justify-between border-b border-dashed border-black py-3">
+                    <div className="text-sm font-semibold text-grey-1">{urlParams?.recipient} will receive</div>
+                    <div className="font-semibold capitalize">
+                        {urlParams?.amount || charge?.tokenAmount} {urlParams?.token || selectedTokenData?.symbol} on{' '}
+                        {urlParams?.chain
+                            ? getReadableChainName(urlParams.chain)
+                            : getReadableChainName(selectedChainID)}
                     </div>
-                )}
+                </div>
+                {/* // )} */}
 
-                {urlParams?.token && (
-                    <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
+                {/* {urlParams?.token && (
+                    <div className="flex items-center justify-between border-b border-dashed border-black py-3">
                         <div className="text-sm font-semibold text-grey-1">Destination Token</div>
                         <div className="font-semibold uppercase">{urlParams.token}</div>
                     </div>
-                )}
+                )} */}
 
                 {/* only show if the user is not accessing the payment directly via URL */}
-                {!isDirectUrlAccess && selectedChainID && selectedTokenData && (
+                {/* {!isDirectUrlAccess && selectedChainID && selectedTokenData && (
                     <>
-                        <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
+                        <div className="flex items-center justify-between border-b border-dashed border-black py-3">
                             <div className="text-sm font-semibold text-grey-1">Payment Chain</div>
                             <div className="font-semibold capitalize">{getReadableChainName(selectedChainID)}</div>
                         </div>
 
-                        <div className="flex items-center justify-between border-b border-dashed border-black pb-2">
+                        <div className="flex items-center justify-between border-b border-dashed border-black py-3">
                             <div className="text-sm font-semibold text-grey-1">Payment Token</div>
                             <div className="font-semibold uppercase">{selectedTokenData.symbol}</div>
                         </div>
                     </>
-                )}
+                )} */}
 
                 {attachmentOptions.fileUrl && (
-                    <div className="flex w-full flex-col items-center justify-center gap-1 border-b border-dashed border-black pb-2">
+                    <div className="flex w-full flex-col items-center justify-center gap-1 border-b border-dashed border-black py-3">
                         <div className="flex w-full cursor-pointer flex-row items-center justify-between gap-1 text-h8 text-grey-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'paperclip'} className="h-4 fill-grey-1" />
@@ -324,7 +383,7 @@ export default function ConfirmPaymentView() {
                 {attachmentOptions?.message && (
                     <div
                         onClick={() => setShowMessage(!showMessage)}
-                        className="flex w-full flex-col items-center justify-center gap-1 border-b border-dashed border-black pb-2"
+                        className="flex w-full flex-col items-center justify-center gap-1 border-b border-dashed border-black py-3"
                     >
                         <div className="flex w-full cursor-pointer flex-row items-center justify-between gap-1 text-h8 text-grey-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
@@ -349,19 +408,49 @@ export default function ConfirmPaymentView() {
             </div>
 
             <div className="text-xs">
-                Please confirm all the details before sending the payment, you can edit the details by clicking on the
-                back button on the top left corner.
+                Please confirm all the details before sending the payment, you can edit the details by clicking the back
+                button on the top left corner.
             </div>
 
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row-reverse">
-                <Button onClick={handlePayment} disabled={!isConnected || isLoading} className="w-full">
-                    {!isConnected ? 'Connect Wallet' : isLoading ? 'Processing Payment...' : 'Pay Now'}
+            <div className="flex flex-col gap-2">
+                {error && (
+                    <div className="space-y-2">
+                        <div className="border border-red/30 bg-red/10 px-2 py-1">
+                            <div className="flex">
+                                <div className="flex-shrink-0">⚠️</div>
+                                <div className="ml-3 flex items-center justify-start gap-2">
+                                    <div className="text-sm font-normal text-red">Error :</div>
+                                    <div className="text-sm font-medium text-red">{error}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <Button
+                            onClick={prepareTransaction}
+                            disabled={isLoading}
+                            variant="transparent-dark"
+                            className="w-full"
+                        >
+                            {isLoading ? (
+                                <div className="flex items-center justify-center gap-2">
+                                    <span className="animate-spin">🥜</span>
+                                    <span>Retrying...</span>
+                                </div>
+                            ) : (
+                                'Retry'
+                            )}
+                        </Button>
+                    </div>
+                )}
+                <Button
+                    onClick={handlePayment}
+                    disabled={!isConnected || isLoading || !!error}
+                    shadowSize="4"
+                    className="w-full"
+                >
+                    {getButtonText()}
                 </Button>
             </div>
-
-            {error && <div className="text-red-500">{error}</div>}
-
-            {/* todo: add error state */}
         </div>
     )
 }

@@ -14,7 +14,7 @@ type ChainNameMapping = {
 
 // mapping of normalized chain identifiers to their variations
 export const CHAIN_NAME_VARIANTS: ChainNameMapping = {
-    eth: {
+    ethereum: {
         variants: ['ethereum', 'ethereum mainnet', 'eth', 'eth mainnet'],
         supportsNativeEth: true,
         chainId: mainnet.id.toString(),

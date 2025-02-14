@@ -1,3 +1,5 @@
+import PeanutLoading from '@/components/Global/PeanutLoading'
+
 export default function Loading() {
-    return <div>Loading...</div>
+    return <PeanutLoading />
 }

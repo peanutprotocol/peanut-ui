@@ -19,6 +19,7 @@ const initialState: IPaymentState = {
     transactionHash: null,
     paymentDetails: null,
     resolvedAddress: null,
+    error: null,
 }
 
 const paymentSlice = createSlice({
@@ -51,6 +52,9 @@ const paymentSlice = createSlice({
         },
         setResolvedAddress: (state, action: PayloadAction<string | null>) => {
             state.resolvedAddress = action.payload
+        },
+        setError: (state, action: PayloadAction<string | null>) => {
+            state.error = action.payload
         },
     },
 })
