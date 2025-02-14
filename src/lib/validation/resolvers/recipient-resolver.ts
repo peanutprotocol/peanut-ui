@@ -1,5 +1,5 @@
 import { isAddress } from 'viem'
-import { resolveFromEnsName } from './general.utils'
+import { resolveFromEnsName } from '../../../utils/general.utils'
 
 export type RecipientType = 'ENS' | 'ADDRESS' | 'USERNAME'
 
