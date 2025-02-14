@@ -2,11 +2,11 @@ import { Card } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
-import { Payment, RequestCharge, TimelineEntry } from '@/services/services.types'
+import { Payment, TRequestChargeResponse, TimelineEntry } from '@/services/services.types'
 import { formatDate, getChainName, getExplorerUrl, printableAddress } from '@/utils'
 
 interface PaymentTimelineProps {
-    charge: RequestCharge
+    charge: TRequestChargeResponse
 }
 
 // todo: rethink this, could be a lot of payments + timeline entries, better show in a modal when clicked on the payment history

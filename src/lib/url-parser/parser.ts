@@ -1,5 +1,5 @@
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_NAME } from '@/constants'
 import { isAddress } from 'viem'
-import { arbitrum } from 'viem/chains'
 import { resolveChainId } from '../validation/resolvers/chain-resolver'
 import { parseChainSpecificAddress } from './parsers/address.parser'
 import { ParsedURL, RecipientType } from './types/payment'
@@ -85,14 +85,37 @@ export function parsePaymentURL(segments: string[]): ParsedURL {
         }
     }
 
+    // if not chain-specific, validate eth addresses
+    if (firstSegment.startsWith('0x')) {
+        if (!isAddress(firstSegment)) {
+            throw new Error('Invalid Ethereum address format')
+        }
+    }
+
+    // check if its peanut native username (no .eth suffix)
+    if (!firstSegment.includes('.eth') && !isAddress(firstSegment)) {
+        // if its peanut native username, extract just the username part if @ is present in segment
+        const username = firstSegment.split('@')[0]
+
+        // parse amount from remaining segments
+        const { amount } = segments.length > 1 ? parseAmountAndToken(segments[1]) : { amount: undefined }
+
+        // for peanut native usernames, always force Arbitrum and USDC
+        return {
+            recipient: username,
+            recipientType: 'USERNAME',
+            chain: PEANUT_WALLET_CHAIN.id.toString(),
+            token: PEANUT_WALLET_TOKEN_NAME,
+            ...(amount && { amount }),
+        }
+    }
+
     // handle non-chain-specific addresses
-    // if there's a second segment, parse it for both amount and token
     if (segments.length > 1) {
         const { amount, token } = parseAmountAndToken(segments[1])
         return {
             recipient: firstSegment,
             recipientType: detectRecipientType(firstSegment),
-            chain: arbitrum.id.toString(), // default to arbitrum
             ...(amount && { amount }),
             ...(token && { token }),
         }
@@ -102,6 +125,5 @@ export function parsePaymentURL(segments: string[]): ParsedURL {
     return {
         recipient: firstSegment,
         recipientType: detectRecipientType(firstSegment),
-        chain: arbitrum.id.toString(), // default to arbitrum
     }
 }

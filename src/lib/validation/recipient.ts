@@ -6,7 +6,7 @@ import { RecipientValidationError } from '../url-parser/errors'
 import { RecipientType } from '../url-parser/types/payment'
 
 // utility function to check if a handle is a valid peanut username
-const verifyPeanutUsername = async (handle: string): Promise<boolean> => {
+export const verifyPeanutUsername = async (handle: string): Promise<boolean> => {
     try {
         const res = await fetch(`${next_proxy_url}/get/users/username/${handle}`, {
             method: 'HEAD',

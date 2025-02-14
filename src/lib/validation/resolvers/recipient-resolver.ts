@@ -1,7 +1,6 @@
+import { resolveFromEnsName } from '@/utils'
 import { isAddress } from 'viem'
-import { resolveFromEnsName } from '../../../utils/general.utils'
-
-export type RecipientType = 'ENS' | 'ADDRESS' | 'USERNAME'
+import { verifyPeanutUsername } from '../recipient'
 
 export async function resolveRecipientToAddress(recipient: string): Promise<string> {
     // if already an address, return it
@@ -9,8 +8,8 @@ export async function resolveRecipientToAddress(recipient: string): Promise<stri
         return recipient
     }
 
-    // check if its ENS
-    // TODO: add support for other ENS domains
+    // todo: add support for other ENS TLDs
+    // if its an ENS name (ends with .eth)
     if (recipient.endsWith('.eth')) {
         const resolved = await resolveFromEnsName(recipient)
         if (!resolved) {
@@ -19,8 +18,19 @@ export async function resolveRecipientToAddress(recipient: string): Promise<stri
         return resolved
     }
 
-    // try resolving as peanut username
-    // todo: add support for peanut username and justaname domains
+    // check if its a Peanut username
+    const isPeanutUsername = await verifyPeanutUsername(recipient)
+    if (isPeanutUsername) {
+        // todo: move to env or constants
+        // append .testvc.eth to resolve Peanut username
+        const peanutEns = `${recipient}.testvc.eth`
+        const resolved = await resolveFromEnsName(peanutEns)
+        if (!resolved) {
+            throw new Error('Could not resolve Peanut username')
+        }
+        return resolved
+    }
 
-    return recipient
+    // throw error for other cases
+    throw new Error('Invalid recipient')
 }

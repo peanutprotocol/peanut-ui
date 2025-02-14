@@ -15,8 +15,7 @@ export function parseChainSpecificAddress(input: string): ChainSpecificAddress |
 
     const [user, chain] = parts
 
-    // todo: add peanut/justaname usernmae validation
-    // validate user (address or ENS subdomain)
+    // validate user (must be valid address or ENS)
     if (!isValidUser(user)) {
         return null
     }
@@ -31,7 +30,13 @@ export function parseChainSpecificAddress(input: string): ChainSpecificAddress |
 
 // helper function to validate user
 function isValidUser(user: string): boolean {
-    return isAddress(user) || ENS_REGEX.test(user)
+    // for addresses, must be a valid Ethereum address
+    if (user.startsWith('0x')) {
+        return isAddress(user)
+    }
+
+    // for ens names, must match regex
+    return ENS_REGEX.test(user)
 }
 
 // helper function to validate chain

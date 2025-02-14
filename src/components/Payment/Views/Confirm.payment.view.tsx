@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/0_Bruddle'
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import { supportedPeanutChains } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
@@ -12,7 +11,7 @@ import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
-import { RequestCharge } from '@/services/services.types'
+import { TRequestChargeResponse } from '@/services/services.types'
 import { fetchTokenPrice, isAddressZero, switchNetwork as switchNetworkUtil } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
@@ -27,7 +26,7 @@ export default function ConfirmPaymentView() {
     const { selectedChainID, selectedTokenData } = useContext(tokenSelectorContext)
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
-    const [charge, setCharge] = useState<RequestCharge | null>(null)
+    const [charge, setCharge] = useState<TRequestChargeResponse | null>(null)
     const [tokenPriceData, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
     const [error, setError] = useState<string>('')
     const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -58,7 +57,7 @@ export default function ConfirmPaymentView() {
                 .get(chargeId)
                 .then((charge) => {
                     setCharge(charge)
-                    dispatch(paymentActions.setRequestDetails(charge))
+                    dispatch(paymentActions.setChargeDetails(charge))
                 })
                 .catch((error) => {
                     setError(error.message)
@@ -244,7 +243,7 @@ export default function ConfirmPaymentView() {
 
             const paymentDetails = await response.json()
             dispatch(paymentActions.setPaymentDetails(paymentDetails))
-            dispatch(paymentActions.setView(3))
+            dispatch(paymentActions.setView('SUCCESS'))
         } catch (error) {
             setError((error as Error).message)
         } finally {
@@ -257,10 +256,6 @@ export default function ConfirmPaymentView() {
 
     return (
         <div className="space-y-4">
-            {!isDirectUrlAccess && (
-                <FlowHeader onPrev={() => dispatch(paymentActions.setView(1))} disableWalletHeader />
-            )}
-
             <div className="pb-1 text-start text-h4 font-bold">Confirm Details</div>
             <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-dashed border-black pb-2">

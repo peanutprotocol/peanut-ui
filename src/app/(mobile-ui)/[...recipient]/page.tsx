@@ -1,5 +1,6 @@
 'use client'
 
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import PaymentHistory from '@/components/Payment/History'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
@@ -9,27 +10,23 @@ import { SUPPORTED_TOKENS } from '@/lib/url-parser/constants/tokens'
 import { parsePaymentURL } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { normalizeChainName } from '@/lib/validation/resolvers/chain-resolver'
-import { resolveRecipientToAddress } from '@/lib/validation/resolvers/recipient-resolver'
-import { getTokenAddressForChain } from '@/lib/validation/resolvers/token-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { Payment, RequestCharge, TRequest } from '@/services/services.types'
+import { resolveFromEnsName } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { isAddress } from 'viem'
 
 export default function PaymentPage({ params }: { params: { recipient: string[] } }) {
     const dispatch = useAppDispatch()
-    const { currentView, attachmentOptions } = usePaymentStore()
+    const { currentView, attachmentOptions, resolvedAddress } = usePaymentStore()
     const [error, setError] = useState<Error | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const searchParams = useSearchParams()
     const router = useRouter()
     const chargeId = searchParams.get('chargeId')
-    const [charge, setCharge] = useState<RequestCharge | null>(null)
-    const [request, setRequest] = useState<TRequest | null>(null)
-    const [isLoadingRequests, setIsLoadingRequests] = useState(false)
 
     // avoid re-parsing the URL on every render
     const parsedURL = useMemo(() => {
@@ -73,23 +70,11 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                     try {
                         const charge = await chargesApi.get(chargeId)
 
-                        // check if theres an existing active payment
-                        const hasActivePayment = charge.payments.some(
-                            (payment: Payment) => !['NEW', 'FAILED'].includes(payment.status)
-                        )
-
-                        if (hasActivePayment) {
-                            // show timeline view for active payments
-                            setCharge(charge)
-                            dispatch(paymentActions.setRequestDetails(charge))
-                            // todo: rethink approach
-                            // dispatch(paymentActions.setView(4))
-                        } else {
-                            // show confirm view for new/failed payments
-                            setCharge(charge)
-                            dispatch(paymentActions.setRequestDetails(charge))
-                            dispatch(paymentActions.setView(2))
+                        if (charge) {
+                            dispatch(paymentActions.setChargeDetails(charge))
+                            dispatch(paymentActions.setView('CONFIRM'))
                         }
+
                         setIsLoading(false)
                     } catch (error) {
                         console.error('Failed to fetch charge:', error)
@@ -99,102 +84,12 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                     return
                 }
 
-                // check if all required parameters are present
-                const hasAllParams = parsedURL.recipient && parsedURL.amount && parsedURL.token
-
-                if (hasAllParams) {
-                    try {
-                        // get resolved chain ID from parsee URL
-                        const chainId = parsedURL.chain
-
-                        if (!chainId) {
-                            throw new Error('No chain specified')
-                        }
-
-                        // create request and charge with resolved chain ID
-                        await createRequestAndCharge({
-                            ...parsedURL,
-                            chain: chainId,
-                        })
-                    } catch (error) {
-                        console.error('Chain validation failed:', error)
-                        setError(error instanceof Error ? error : new Error('Invalid chain'))
-                        setIsLoading(false)
-                        return
-                    }
-                } else {
-                    // Show initial view with form and fetch existing requests
-                    setIsLoading(false)
-                    dispatch(paymentActions.setView(1))
-
-                    try {
-                        const resolvedAddress = await resolveRecipientToAddress(parsedURL.recipient)
-                        const existingRequest: TRequest | null = await requestsApi.search({
-                            recipient: resolvedAddress,
-                        })
-
-                        if (existingRequest) {
-                            // store request ID in redux
-                            dispatch(paymentActions.setExistingRequestId(existingRequest.uuid))
-                        }
-                    } catch (error) {
-                        console.error('Failed to fetch existing requests:', error)
-                    }
-                }
+                // show payment form with pre-filled values from URL
+                setIsLoading(false)
+                dispatch(paymentActions.setView('INITIAL'))
             } catch (err) {
                 setError(err instanceof Error ? err : new Error('Failed to initialize payment'))
                 setIsLoading(false)
-            }
-        }
-
-        // helper function to create request and charge using validated chain
-        async function createRequestAndCharge(params: ParsedURL) {
-            try {
-                const resolvedAddress = await resolveRecipientToAddress(params.recipient)
-
-                // get token address for the validated chain
-                const tokenAddress = getTokenAddressForChain(params.token ?? '', params.chain ?? '')
-
-                // create request
-                const request = await requestsApi.create({
-                    chainId: params.chain ?? '',
-                    tokenAmount: params.amount,
-                    recipientAddress: resolvedAddress,
-                    // tokenType: 'erc20',
-                    tokenType: params.token?.toUpperCase() === 'ETH' ? 'native' : 'erc20',
-                    tokenAddress: tokenAddress,
-                    tokenDecimals: '18',
-                    tokenSymbol: params.token ?? '',
-                    reference: attachmentOptions?.message,
-                    attachment: attachmentOptions?.rawFile,
-                })
-
-                // create charge
-                const charge = await chargesApi.create({
-                    pricing_type: 'fixed_price',
-                    local_price: {
-                        amount: params?.amount ?? '',
-                        currency: 'USD',
-                    },
-                    baseUrl: window.location.origin,
-                    requestId: request.uuid,
-                    requestProps: {
-                        chainId: params?.chain ?? '',
-                        tokenAddress: tokenAddress,
-                        tokenType: 'erc20',
-                        tokenSymbol: params?.token ?? '',
-                        tokenDecimals: 18,
-                        recipientAddress: resolvedAddress,
-                    },
-                })
-
-                // update URL and redirect to confirmation view
-                router.push(`${window.location.pathname}?chargeId=${charge.data.id}`)
-                dispatch(paymentActions.setRequestDetails({ ...charge.data, request }))
-                dispatch(paymentActions.setView(2))
-            } catch (error) {
-                console.error('Failed to create request/charge:', error)
-                throw error
             }
         }
 
@@ -206,47 +101,75 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         async function fetchRequests() {
             if (!parsedURL?.recipient) return
 
-            setIsLoadingRequests(true)
+            setIsLoading(true)
             try {
-                // fetch requests for the recipient
-                if (parsedURL.recipient) {
-                    const fetchedRequest = await requestsApi.search({
-                        recipient: parsedURL.recipient,
-                        // todo: add other filters here
-                    })
-                    console.log('Fetched requests:', fetchedRequest)
-                    setRequest(fetchedRequest)
+                let recipientAddress: string | null = null
+
+                // resolve the recipient if its not an address
+                if (!isAddress(parsedURL.recipient)) {
+                    try {
+                        const resolved = await resolveFromEnsName(parsedURL.recipient)
+                        if (!resolved) {
+                            throw new Error('Could not resolve recipient name')
+                        }
+                        recipientAddress = resolved
+                        // store resolved address in redux
+                        dispatch(paymentActions.setResolvedAddress(resolved))
+                    } catch (error) {
+                        console.error('Failed to resolve recipient:', error)
+                        setError(new Error('Invalid recipient name'))
+                        return
+                    }
+                } else {
+                    recipientAddress = parsedURL.recipient
                 }
+
+                if (!recipientAddress) {
+                    throw new Error('No valid recipient address')
+                }
+
+                // fetch requests using the resolved address
+                const fetchedRequest = await requestsApi.search({
+                    recipient: recipientAddress,
+                    // todo: add other filters here
+                })
+
+                dispatch(paymentActions.setRequestDetails(fetchedRequest))
             } catch (error) {
                 console.error('Failed to fetch requests:', error)
+                setError(error instanceof Error ? error : new Error('Failed to fetch requests'))
             } finally {
-                setIsLoadingRequests(false)
+                setIsLoading(false)
             }
         }
 
         fetchRequests()
-    }, [parsedURL?.recipient, parsedURL?.chain, parsedURL?.token, parsedURL?.amount])
+    }, [parsedURL?.recipient, parsedURL?.chain, parsedURL?.token, parsedURL?.amount, dispatch])
 
     if (error) {
         return <div>Error: {error.message}</div>
     }
 
     if (isLoading || !parsedURL) {
-        return <div>Loading...</div>
+        return <PeanutLoading />
     }
 
     return (
         <div className="mx-auto w-full space-y-8 md:w-6/12">
             <div>
-                {currentView === 1 && <InitialPaymentView {...(parsedURL as ParsedURL)} />}
-                {currentView === 2 && <ConfirmPaymentView />}
-                {currentView === 3 && <SuccessPaymentView />}
-                {/* todo: add timeline view? */}
-                {/* {currentView === 4 && charge && <PaymentTimeline charge={charge} />} */}
+                {currentView === 'INITIAL' && <InitialPaymentView {...(parsedURL as ParsedURL)} />}
+                {currentView === 'CONFIRM' && (
+                    <div className="self-start">
+                        <ConfirmPaymentView />
+                    </div>
+                )}
+                {currentView === 'SUCCESS' && <SuccessPaymentView />}
             </div>
-            <div>
-                <PaymentHistory recipient={parsedURL?.recipient} />
-            </div>
+            {currentView === 'INITIAL' && (
+                <div>
+                    <PaymentHistory recipient={parsedURL?.recipient} />
+                </div>
+            )}
         </div>
     )
 }

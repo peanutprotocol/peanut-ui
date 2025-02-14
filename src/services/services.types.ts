@@ -26,7 +26,7 @@ export interface CreateRequestRequest {
     tokenSymbol: string
 }
 
-export interface TRequest {
+export interface TRequestResponse {
     uuid: string
     chainId: string
     recipientAddress: string
@@ -72,7 +72,7 @@ export interface CreateChargeRequest {
     requestProps: RequestProps
 }
 
-export interface ChargeResponse {
+export interface TCharge {
     data: {
         id: string
         code: string
@@ -118,7 +118,7 @@ export interface PaymentCreationResponse {
     }
 }
 
-export interface RequestCharge {
+export interface TRequestChargeResponse {
     uuid: string
     createdAt: string
     link: string

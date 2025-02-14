@@ -1,8 +1,8 @@
 import { PEANUT_API_URL } from '@/constants'
-import { ChargeResponse, CreateChargeRequest, RequestCharge } from './services.types'
+import { CreateChargeRequest, TCharge, TRequestChargeResponse } from './services.types'
 
 export const chargesApi = {
-    create: async (data: CreateChargeRequest): Promise<ChargeResponse> => {
+    create: async (data: CreateChargeRequest): Promise<TCharge> => {
         const response = await fetch(`/api/proxy/charges`, {
             method: 'POST',
             headers: {
@@ -18,7 +18,7 @@ export const chargesApi = {
         return response.json()
     },
 
-    get: async (id: string): Promise<RequestCharge> => {
+    get: async (id: string): Promise<TRequestChargeResponse> => {
         const response = await fetch(`${PEANUT_API_URL}/request-charges/${id}`, {
             method: 'GET',
             headers: {

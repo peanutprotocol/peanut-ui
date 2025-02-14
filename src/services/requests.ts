@@ -1,8 +1,8 @@
 import { PEANUT_API_URL } from '@/constants'
-import { CreateRequestRequest, TRequest } from './services.types'
+import { CreateRequestRequest, TRequestResponse } from './services.types'
 
 export const requestsApi = {
-    create: async (data: CreateRequestRequest): Promise<TRequest> => {
+    create: async (data: CreateRequestRequest): Promise<TRequestResponse> => {
         const formData = new FormData()
 
         Object.entries(data).forEach(([key, value]) => {
@@ -23,7 +23,7 @@ export const requestsApi = {
         return response.json()
     },
 
-    get: async (id: string): Promise<TRequest> => {
+    get: async (id: string): Promise<TRequestResponse> => {
         const response = await fetch(`/api/proxy/requests/${id}`)
         if (!response.ok) {
             throw new Error(`Failed to fetch request: ${response.statusText}`)
@@ -36,7 +36,7 @@ export const requestsApi = {
         tokenAmount?: string
         tokenAddress?: string
         chainId?: string
-    }): Promise<TRequest | null> => {
+    }): Promise<TRequestResponse | null> => {
         const queryParams = new URLSearchParams()
         Object.entries(params).forEach(([key, value]) => {
             if (value) queryParams.append(key, value)
