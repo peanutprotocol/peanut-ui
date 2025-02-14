@@ -108,7 +108,15 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                 // resolve the recipient if its not an address
                 if (!isAddress(parsedURL.recipient)) {
                     try {
-                        const resolved = await resolveFromEnsName(parsedURL.recipient)
+                        let nameToResolve = parsedURL.recipient
+
+                        // if username has no dots, treat as native peanut username
+                        if (!nameToResolve.includes('.')) {
+                            // todo: move to env
+                            nameToResolve = `${nameToResolve}.testvc.eth`
+                        }
+
+                        const resolved = await resolveFromEnsName(nameToResolve)
                         if (!resolved) {
                             throw new Error('Could not resolve recipient name')
                         }
