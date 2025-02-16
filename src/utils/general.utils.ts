@@ -338,18 +338,31 @@ export async function resolveFromEnsNameAndProviderUrl(
 }
 
 export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
+    const mainProviderUrl = 'https://mainnet.infura.io/v3/' + infuraApiKey
+    const fallbackProviderUrl = 'https://rpc.ankr.com/eth'
+
     try {
         const records = await JustaName.init().subnames.getRecords({
             ens: ensName,
             chainId: 1,
-            // todo: add fallback provider url
-            providerUrl: 'https://mainnet.infura.io/v3/' + infuraApiKey,
+            providerUrl: mainProviderUrl,
         })
 
         return records?.records?.coins?.find((coin) => coin.id === 60)?.value
     } catch (error) {
-        console.error('Error resolving ENS name:', error)
-        return undefined
+        console.error('Error resolving ENS name with main provider:', error)
+        try {
+            const records = await JustaName.init().subnames.getRecords({
+                ens: ensName,
+                chainId: 1,
+                providerUrl: fallbackProviderUrl,
+            })
+
+            return records?.records?.coins?.find((coin) => coin.id === 60)?.value
+        } catch (fallbackError) {
+            console.error('Error resolving ENS name with fallback provider:', fallbackError)
+            return undefined
+        }
     }
 }
 

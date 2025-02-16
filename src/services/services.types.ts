@@ -1,6 +1,9 @@
 // common types
+
+export type TRequestStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED'
+
 export interface TimelineEntry {
-    status: 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED'
+    status: TRequestStatus
     time: string
 }
 
@@ -41,6 +44,7 @@ export interface TRequestResponse {
     createdAt: string
     updatedAt: string
     charges: ChargeEntry[]
+    history: TRequestHistory[]
 }
 
 interface ChargeEntry {
@@ -159,4 +163,41 @@ export interface PaymentResponse {
             attachmentUrl?: string
         }
     }
+}
+
+enum EHistoryEntryType {
+    CLAIM = 'CLAIM',
+    REQUEST = 'REQUEST',
+    CASHOUT = 'CASHOUT',
+}
+
+enum EHistoryUserRole {
+    SENDER = 'SENDER',
+    RECIPIENT = 'RECIPIENT',
+    BOTH = 'BOTH',
+}
+
+export type HistoryEntryType = `${EHistoryEntryType}`
+export type HistoryUserRole = `${EHistoryUserRole}`
+
+export type Account = {
+    identifier: string
+    type: string
+    isUser: boolean
+    username?: string
+}
+
+export type TRequestHistory = {
+    uuid: string
+    type: HistoryEntryType
+    timestamp: Date
+    amount: string
+    txHash: string
+    chainId: string
+    tokenSymbol: string
+    tokenAddress: string
+    status: string
+    userRole: HistoryUserRole
+    senderAccount?: Account
+    recipientAccount: Account
 }

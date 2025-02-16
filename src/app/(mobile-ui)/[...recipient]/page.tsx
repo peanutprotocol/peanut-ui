@@ -21,7 +21,7 @@ import { isAddress } from 'viem'
 
 export default function PaymentPage({ params }: { params: { recipient: string[] } }) {
     const dispatch = useAppDispatch()
-    const { currentView, attachmentOptions, resolvedAddress } = usePaymentStore()
+    const { currentView, attachmentOptions, resolvedAddress, requestDetails } = usePaymentStore()
     const [error, setError] = useState<Error | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const searchParams = useSearchParams()
@@ -180,7 +180,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
             </div>
             {currentView === 'INITIAL' && (
                 <div>
-                    <PaymentHistory recipient={parsedURL?.recipient} />
+                    <PaymentHistory history={requestDetails?.history || []} recipient={parsedURL?.recipient} />
                 </div>
             )}
         </div>

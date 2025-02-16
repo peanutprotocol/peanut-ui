@@ -4,11 +4,11 @@ import { TransactionBadge } from '@/components/Global/TransactionBadge'
 import { supportedPeanutChains } from '@/constants'
 import { IDashboardItem } from '@/interfaces'
 import { copyTextToClipboardWithFallback, getExplorerUrl } from '@/utils'
+import { usePrimaryName } from '@justaname.id/react'
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Icon from '../Icon'
-import { usePrimaryName } from '@justaname.id/react'
 
 interface TokenBalance {
     chainId: string
