@@ -4,7 +4,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import PaymentHistory from '@/components/Payment/History'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
-import SuccessPaymentView from '@/components/Payment/Views/Success.payment.view'
+import PaymentStatusView from '@/components/Payment/Views/Status.payment.view'
 import { supportedPeanutChains } from '@/constants'
 import { SUPPORTED_TOKENS } from '@/lib/url-parser/constants/tokens'
 import { parsePaymentURL } from '@/lib/url-parser/parser'
@@ -17,13 +17,15 @@ import { requestsApi } from '@/services/requests'
 import { resolveFromEnsName } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
 
 export default function PaymentPage({ params }: { params: { recipient: string[] } }) {
     const dispatch = useAppDispatch()
     const { currentView, attachmentOptions, resolvedAddress, requestDetails } = usePaymentStore()
     const [error, setError] = useState<Error | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoadingCharge, setIsLoadingCharge] = useState(true)
+    const [isLoadingRequests, setIsLoadingRequests] = useState(true)
     const searchParams = useSearchParams()
     const router = useRouter()
     const chargeId = searchParams.get('chargeId')
@@ -61,21 +63,30 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     useEffect(() => {
         // always show initial view, to let payer select token/chain of choice
         if (chargeId) {
+            setIsLoadingCharge(true)
             chargesApi
                 .get(chargeId)
                 .then((charge) => {
                     dispatch(paymentActions.setChargeDetails(charge))
 
-                    // dispatch(paymentActions.setView('CONFIRM'))
+                    // check latest payment status if payments exist
+                    if (charge.payments && charge.payments.length > 0) {
+                        const latestPayment = charge.payments[charge.payments.length - 1]
+
+                        // show success view for any payment attempt (including failed ones)
+                        if (latestPayment.status !== 'NEW') {
+                            dispatch(paymentActions.setView('SUCCESS'))
+                        }
+                    }
                 })
                 .catch((err) => {
                     setError(err instanceof Error ? err : new Error('Failed to fetch charge'))
                 })
                 .finally(() => {
-                    setIsLoading(false)
+                    setIsLoadingCharge(false)
                 })
         } else {
-            setIsLoading(false)
+            setIsLoadingCharge(false)
         }
     }, [chargeId, dispatch])
 
@@ -84,7 +95,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         async function fetchRequests() {
             if (!parsedURL?.recipient) return
 
-            setIsLoading(true)
+            setIsLoadingRequests(true)
             try {
                 let recipientAddress: string | null = null
 
@@ -135,7 +146,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                 console.error('Failed to fetch requests:', error)
                 setError(error instanceof Error ? error : new Error('Failed to fetch requests'))
             } finally {
-                setIsLoading(false)
+                setIsLoadingRequests(false)
             }
         }
 
@@ -146,12 +157,23 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         return <div>Error: {error.message}</div>
     }
 
-    if (isLoading || !parsedURL) {
+    if (isLoadingCharge || (chargeId && !currentView)) {
         return <PeanutLoading />
     }
 
+    if (isLoadingRequests && !chargeId) {
+        return <PeanutLoading />
+    }
+
+    console.log('parsedURL', parsedURL)
+
     return (
-        <div className="mx-auto w-full space-y-8 self-start py-6 md:w-6/12">
+        <div
+            className={twMerge(
+                'mx-auto w-full space-y-8 self-start py-6 md:w-6/12',
+                currentView !== 'INITIAL' && 'self-center'
+            )}
+        >
             <div>
                 {currentView === 'INITIAL' && <InitialPaymentView {...(parsedURL as ParsedURL)} />}
                 {currentView === 'CONFIRM' && (
@@ -159,11 +181,11 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                         <ConfirmPaymentView />
                     </div>
                 )}
-                {currentView === 'SUCCESS' && <SuccessPaymentView />}
+                {currentView === 'SUCCESS' && <PaymentStatusView />}
             </div>
             {currentView === 'INITIAL' && (
                 <div>
-                    <PaymentHistory history={requestDetails?.history || []} recipient={parsedURL?.recipient} />
+                    <PaymentHistory history={requestDetails?.history || []} recipient={parsedURL?.recipient || ''} />
                 </div>
             )}
         </div>

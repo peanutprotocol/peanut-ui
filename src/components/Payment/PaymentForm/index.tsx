@@ -31,7 +31,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
     const dispatch = useAppDispatch()
     const { attachmentOptions, requestDetails, resolvedAddress, error } = usePaymentStore()
     const [tokenValue, setTokenValue] = useState<string>(amount || '')
-    const { selectedWallet, isWalletConnected } = useWallet()
+    const { selectedWallet, isWalletConnected, isPeanutWallet } = useWallet()
     const {
         selectedChainID,
         selectedTokenDecimals,
@@ -214,10 +214,12 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
             />
 
             {/* Always show token selector for payment options */}
-            <div>
-                <div className="mb-2 text-sm font-medium">Choose your payment method:</div>
-                <TokenSelector />
-            </div>
+            {!isPeanutWallet && (
+                <div>
+                    <div className="mb-2 text-sm font-medium">Choose your payment method:</div>
+                    <TokenSelector />
+                </div>
+            )}
 
             <FileUploadInput
                 attachmentOptions={attachmentOptions}

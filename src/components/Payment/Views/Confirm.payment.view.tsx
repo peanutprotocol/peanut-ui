@@ -249,7 +249,9 @@ export default function ConfirmPaymentView() {
                 },
                 feeOptions: undefined,
             })
-            setTransactionHash(hash ?? '')
+
+            // set the transaction hash
+            dispatch(paymentActions.setTransactionHash(hash ?? ''))
 
             // update payment details in backend
             const response = await fetch(`/api/proxy/charges/${chargeDetails.uuid}/payments`, {
@@ -270,7 +272,8 @@ export default function ConfirmPaymentView() {
             dispatch(paymentActions.setPaymentDetails(paymentDetails))
             dispatch(paymentActions.setView('SUCCESS'))
         } catch (error) {
-            dispatch(paymentActions.setError(error instanceof Error ? error.message : 'Payment failed'))
+            console.error('Error processing payment:', error)
+            dispatch(paymentActions.setError(error instanceof Error ? error.message : 'Failed to process payment'))
         } finally {
             setIsLoading(false)
         }

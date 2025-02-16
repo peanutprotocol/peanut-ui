@@ -1,18 +1,25 @@
 // common types
 
-export type TRequestStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED'
+export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL'
 
 export interface TimelineEntry {
-    status: TRequestStatus
+    status: TStatus
     time: string
 }
 
 interface FulfillmentPayment {
+    uuid: string
     payerTransactionHash: string
     payerChainId: string
     paidTokenAddress: string
     payerAddress: string
     fulfillmentTransactionHash: string
+    chargeUuid: string
+    paidAmountInRequestedToken: string
+    status: string
+    reason: string | null
+    createdAt: string
+    verifiedAt: string | null
 }
 
 // requests service types
@@ -99,7 +106,7 @@ export interface Payment {
     paidAmountInRequestedToken: string | null
     payerAddress: string | null
     fulfillmentTransactionHash: string | null
-    status: 'NEW' | 'PENDING' | 'COMPLETED' | 'FAILED' | 'SIGNED'
+    status: TStatus
     reason: string | null
     createdAt: string
     verifiedAt: string | null

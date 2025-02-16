@@ -71,6 +71,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
     const isHistory = variant === 'history'
     const transactionDetails = isHistory ? (details as IDashboardItem) : null
     const balanceDetails = !isHistory ? (details as TokenBalance) : null
+    // todo: for payment history, unnecessary api calls are being made with incorrect address value, fix it
     const { primaryName } = usePrimaryName({
         address: metadata.recipientAddress,
     })

@@ -44,7 +44,7 @@ const paymentSlice = createSlice({
         setCreatedChargeDetails: (state, action: PayloadAction<TCharge | null>) => {
             state.createdChargeDetails = action.payload
         },
-        setTransactionHash: (state, action) => {
+        setTransactionHash: (state, action: PayloadAction<string | null>) => {
             state.transactionHash = action.payload
         },
         setPaymentDetails: (state, action: PayloadAction<PaymentCreationResponse>) => {
