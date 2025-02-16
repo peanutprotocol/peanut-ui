@@ -59,42 +59,25 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
 
     // handle validation and charge creation
     useEffect(() => {
-        if (!parsedURL) return
+        // always show initial view, to let payer select token/chain of choice
+        if (chargeId) {
+            chargesApi
+                .get(chargeId)
+                .then((charge) => {
+                    dispatch(paymentActions.setChargeDetails(charge))
 
-        async function initializePayment() {
-            try {
-                if (!parsedURL) return
-
-                // if chargeId exists, fetch existing charge
-                if (chargeId) {
-                    try {
-                        const charge = await chargesApi.get(chargeId)
-
-                        if (charge) {
-                            dispatch(paymentActions.setChargeDetails(charge))
-                            dispatch(paymentActions.setView('CONFIRM'))
-                        }
-
-                        setIsLoading(false)
-                    } catch (error) {
-                        console.error('Failed to fetch charge:', error)
-                        setError(new Error('Failed to fetch charge details'))
-                        setIsLoading(false)
-                    }
-                    return
-                }
-
-                // show payment form with pre-filled values from URL
-                setIsLoading(false)
-                dispatch(paymentActions.setView('INITIAL'))
-            } catch (err) {
-                setError(err instanceof Error ? err : new Error('Failed to initialize payment'))
-                setIsLoading(false)
-            }
+                    // dispatch(paymentActions.setView('CONFIRM'))
+                })
+                .catch((err) => {
+                    setError(err instanceof Error ? err : new Error('Failed to fetch charge'))
+                })
+                .finally(() => {
+                    setIsLoading(false)
+                })
+        } else {
+            setIsLoading(false)
         }
-
-        initializePayment()
-    }, [parsedURL, chargeId, dispatch, router, attachmentOptions])
+    }, [chargeId, dispatch])
 
     // fetch requests for the recipient
     useEffect(() => {

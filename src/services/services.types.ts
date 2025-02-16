@@ -74,6 +74,8 @@ export interface CreateChargeRequest {
     baseUrl: string
     requestId?: string
     requestProps: RequestProps
+    attachment?: File
+    reference?: string
 }
 
 export interface TCharge {

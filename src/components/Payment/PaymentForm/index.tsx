@@ -14,6 +14,7 @@ import { getReadableChainName, normalizeChainName } from '@/lib/validation/resol
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
+import { CreateChargeRequest } from '@/services/services.types'
 import { isNativeCurrency } from '@/utils'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { isAddress } from 'viem'
@@ -131,8 +132,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
                 throw new Error('Request details not found')
             }
 
-            // Create charge using existing request ID and resolved address
-            const charge = await chargesApi.create({
+            const createChargeRequestPayload: CreateChargeRequest = {
                 pricing_type: 'fixed_price',
                 local_price: {
                     amount: tokenValue,
@@ -148,7 +148,18 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
                     tokenDecimals: selectedTokenDecimals || 18,
                     recipientAddress: recipientAddress,
                 },
-            })
+            }
+
+            // add attachment if present
+            if (attachmentOptions?.rawFile) {
+                createChargeRequestPayload.attachment = attachmentOptions.rawFile
+            }
+            if (attachmentOptions?.message) {
+                createChargeRequestPayload.reference = attachmentOptions.message
+            }
+
+            // create charge using existing request ID and resolved address
+            const charge = await chargesApi.create(createChargeRequestPayload)
 
             window.history.replaceState(null, '', `${window.location.pathname}?chargeId=${charge.data.id}`)
             dispatch(paymentActions.setCreatedChargeDetails(charge))
@@ -199,6 +210,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
                 tokenValue={tokenValue}
                 setTokenValue={(value: string | undefined) => setTokenValue(value || '')}
                 className="w-full"
+                disabled={!!amount}
             />
 
             {/* Always show token selector for payment options */}

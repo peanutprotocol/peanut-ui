@@ -2,8 +2,10 @@
 
 import { Button } from '@/components/0_Bruddle'
 import { useCreateLink } from '@/components/Create/useCreateLink'
+import FeeDescription from '@/components/Global/FeeDescription'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
+import InfoRow from '@/components/Global/InfoRow'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { supportedPeanutChains } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
@@ -13,8 +15,7 @@ import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
-import { TRequestChargeResponse } from '@/services/services.types'
-import { fetchTokenPrice, isAddressZero, switchNetwork as switchNetworkUtil } from '@/utils'
+import { fetchTokenPrice, formatDate, isAddressZero, switchNetwork as switchNetworkUtil } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
@@ -24,11 +25,10 @@ export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
     const { isConnected, chain: currentChain, address } = useWallet()
-    const { attachmentOptions, urlParams, error } = usePaymentStore()
+    const { attachmentOptions, urlParams, error, chargeDetails } = usePaymentStore()
     const { selectedChainID, selectedTokenData } = useContext(tokenSelectorContext)
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
-    const [charge, setCharge] = useState<TRequestChargeResponse | null>(null)
     const [tokenPriceData, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
@@ -42,6 +42,8 @@ export default function ConfirmPaymentView() {
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const { switchChainAsync } = useSwitchChain()
     const { setLoadingState } = useContext(loadingStateContext)
+    const [txFee, setTxFee] = useState<string>('0')
+    const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
 
     // determine if all params are present in the URL
     const isDirectUrlAccess = useMemo(() => {
@@ -51,14 +53,13 @@ export default function ConfirmPaymentView() {
     // Get selected chain details
     const selectedChain = supportedPeanutChains.find((chain) => chain.chainId.toString() === selectedChainID)
 
-    // call charges service to get charge details
+    // call charges service to get chargeDetails details
     useEffect(() => {
         if (chargeId) {
             chargesApi
                 .get(chargeId)
-                .then((charge) => {
-                    setCharge(charge)
-                    dispatch(paymentActions.setChargeDetails(charge))
+                .then((chargeDetails) => {
+                    dispatch(paymentActions.setChargeDetails(chargeDetails))
                 })
                 .catch((error) => {
                     dispatch(paymentActions.setError(error instanceof Error ? error.message : error.toString()))
@@ -67,16 +68,22 @@ export default function ConfirmPaymentView() {
     }, [chargeId, dispatch])
 
     useEffect(() => {
-        if (!charge) return
+        if (!chargeDetails) return
 
-        fetchTokenPrice(charge.tokenAddress.toLowerCase(), charge.chainId).then((tokenPriceData) => {
+        fetchTokenPrice(chargeDetails.tokenAddress.toLowerCase(), chargeDetails.chainId).then((tokenPriceData) => {
             if (tokenPriceData) {
                 setTokenPriceData(tokenPriceData)
             } else {
                 dispatch(paymentActions.setError('Failed to fetch token price'))
             }
         })
-    }, [charge, dispatch])
+    }, [chargeDetails, dispatch])
+
+    // Check if cross-chain based on chargeDetails
+    const isXChainTx = useMemo(() => {
+        if (!chargeDetails || !selectedChainID) return false
+        return selectedChainID !== chargeDetails.chainId
+    }, [chargeDetails, selectedChainID])
 
     // helper function to prepare cross-chain tx
     const createXChainUnsignedTx = async (tokenData: any, requestLink: any, senderAddress: string) => {
@@ -128,24 +135,19 @@ export default function ConfirmPaymentView() {
 
     // prepare transaction
     const prepareTransaction = async () => {
-        if (!charge || !address) return
+        if (!chargeDetails || !address) return
 
         setIsLoading(true)
         dispatch(paymentActions.setError(null))
 
         try {
-            // check if cross-chain transaction is needed
-            const isSourceChainDifferent = selectedChainID !== charge.chainId
-            setIsXChain(isSourceChainDifferent)
+            setIsXChain(isXChainTx)
 
-            if (isSourceChainDifferent) {
-                // prepare cross-chain tx
+            // prepare cross-chain tx
+            if (isXChainTx) {
                 if (!selectedTokenData) {
                     throw new Error('Token data not found')
                 }
-
-                console.log('Selected token data:', selectedTokenData)
-                console.log('Charge request link:', charge.requestLink)
 
                 const txData = await createXChainUnsignedTx(
                     {
@@ -154,12 +156,12 @@ export default function ConfirmPaymentView() {
                         decimals: selectedTokenData.decimals,
                     },
                     {
-                        recipientAddress: charge.requestLink.recipientAddress,
-                        chainId: charge.chainId,
-                        tokenAmount: charge.tokenAmount,
-                        tokenAddress: charge.tokenAddress,
-                        tokenDecimals: charge.tokenDecimals,
-                        tokenType: charge.tokenType,
+                        recipientAddress: chargeDetails.requestLink.recipientAddress,
+                        chainId: chargeDetails.chainId,
+                        tokenAmount: chargeDetails.tokenAmount,
+                        tokenAddress: chargeDetails.tokenAddress,
+                        tokenDecimals: chargeDetails.tokenDecimals,
+                        tokenType: chargeDetails.tokenType,
                     },
                     address
                 )
@@ -171,25 +173,19 @@ export default function ConfirmPaymentView() {
                 setXChainUnsignedTxs(txData.unsignedTxs)
                 setEstimatedFromValue(txData.estimatedFromAmount)
             } else {
-                // Prepare same-chain tx
-                if (!charge.tokenType || !charge.requestLink?.recipientAddress) {
-                    throw new Error('Missing required charge data')
-                }
-
-                const tokenType = Number(charge.tokenType)
-                const { unsignedTx } = peanut.prepareRequestLinkFulfillmentTransaction({
-                    recipientAddress: charge.requestLink.recipientAddress,
-                    tokenAddress: charge.tokenAddress || '',
-                    tokenAmount: charge.tokenAmount || '0',
-                    tokenDecimals: charge.tokenDecimals || 18,
-                    tokenType: tokenType,
+                const tx = peanut.prepareRequestLinkFulfillmentTransaction({
+                    recipientAddress: chargeDetails.requestLink.recipientAddress,
+                    tokenAddress: chargeDetails.tokenAddress,
+                    tokenAmount: chargeDetails.tokenAmount,
+                    tokenDecimals: chargeDetails.tokenDecimals,
+                    tokenType: Number(chargeDetails.tokenType),
                 })
 
-                if (!unsignedTx) {
+                if (!tx?.unsignedTx) {
                     throw new Error('Failed to prepare transaction')
                 }
 
-                setUnsignedTx(unsignedTx)
+                setUnsignedTx(tx.unsignedTx)
             }
         } catch (error) {
             console.error('Failed to prepare transaction:', error)
@@ -201,10 +197,10 @@ export default function ConfirmPaymentView() {
         return true
     }
 
-    // prepare transaction when charge is ready
+    // prepare transaction when chargeDetails is ready
     useEffect(() => {
         prepareTransaction()
-    }, [charge, address, selectedChainID, selectedTokenData])
+    }, [chargeDetails, address, selectedChainID, selectedTokenData])
 
     // reset error when component mounts
     useEffect(() => {
@@ -213,7 +209,7 @@ export default function ConfirmPaymentView() {
 
     // handle payment
     const handlePayment = async () => {
-        if (!isConnected || !address || !charge) return
+        if (!isConnected || !address || !chargeDetails) return
         if (isXChain && !xChainUnsignedTxs) {
             dispatch(paymentActions.setError('Cross-chain transaction not ready'))
             return
@@ -229,10 +225,10 @@ export default function ConfirmPaymentView() {
         try {
             // check balance and switch network
             await checkUserHasEnoughBalance({
-                tokenValue: isXChain ? estimatedFromValue : charge.tokenAmount,
+                tokenValue: isXChain ? estimatedFromValue : chargeDetails.tokenAmount,
             })
 
-            const targetChainId = isXChain ? selectedChainID : charge.chainId
+            const targetChainId = isXChain ? selectedChainID : chargeDetails.chainId
             if (targetChainId !== String(currentChain?.id)) {
                 await switchNetworkUtil({
                     chainId: targetChainId,
@@ -256,13 +252,13 @@ export default function ConfirmPaymentView() {
             setTransactionHash(hash ?? '')
 
             // update payment details in backend
-            const response = await fetch(`/api/proxy/charges/${charge.uuid}/payments`, {
+            const response = await fetch(`/api/proxy/charges/${chargeDetails.uuid}/payments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chainId: currentChain?.id,
                     hash: hash,
-                    tokenAddress: isXChain ? selectedTokenData?.address : charge.tokenAddress,
+                    tokenAddress: isXChain ? selectedTokenData?.address : chargeDetails.tokenAddress,
                 }),
             })
 
@@ -287,16 +283,64 @@ export default function ConfirmPaymentView() {
             return (
                 <div className="flex items-center justify-center gap-2">
                     <span className="animate-spin">🥜</span>
-                    <span>{isXChain ? 'Fetching Best Quote For You...' : 'Preparing Transaction...'}</span>
+                    <span>{isXChainTx ? 'Fetching Best Quote For You...' : 'Preparing Transaction...'}</span>
                 </div>
             )
         }
         return 'Confirm Payment'
     }
 
-    if (!charge) return <PeanutLoading />
+    // Add this useMemo for slippage calculation
+    const calculatedSlippage = useMemo(() => {
+        if (!selectedTokenData?.price || !slippagePercentage) return null
+        return ((slippagePercentage / 100) * selectedTokenData.price * Number(estimatedFromValue)).toFixed(2)
+    }, [slippagePercentage, selectedTokenData, estimatedFromValue])
 
-    // todo: render values from charge data and not url
+    // Add this useMemo for fee calculations
+    const feeCalculations = useMemo(() => {
+        const EXPECTED_NETWORK_FEE_MULTIPLIER = 0.7
+        const EXPECTED_SLIPPAGE_MULTIPLIER = 0.1
+
+        const networkFee = {
+            expected: isXChain ? Number(txFee) * EXPECTED_NETWORK_FEE_MULTIPLIER : 0,
+            max: isXChain ? Number(txFee) : 0,
+        }
+
+        const slippage = calculatedSlippage
+            ? {
+                  expected: Number(calculatedSlippage) * EXPECTED_SLIPPAGE_MULTIPLIER,
+                  max: Number(calculatedSlippage),
+              }
+            : undefined
+
+        const requestedAmountUSD = chargeDetails?.tokenAmount
+            ? Number(chargeDetails.tokenAmount) * (selectedTokenData?.price || 0)
+            : 0
+
+        const totalMax = requestedAmountUSD + networkFee.max + (slippage?.max || 0)
+
+        const formatNumberSafely = (num: number) => {
+            return num < 0.01 && num > 0 ? '0.01' : num.toFixed(2)
+        }
+
+        return {
+            networkFee: {
+                expected: formatNumberSafely(networkFee.expected),
+                max: formatNumberSafely(networkFee.max),
+            },
+            slippage: slippage
+                ? {
+                      expected: formatNumberSafely(slippage.expected),
+                      max: formatNumberSafely(slippage.max),
+                  }
+                : undefined,
+            estimatedFee: formatNumberSafely(networkFee.expected + (slippage?.expected || 0)),
+            totalMax: formatNumberSafely(totalMax),
+        }
+    }, [isXChain, txFee, calculatedSlippage, chargeDetails, selectedTokenData])
+
+    if (!chargeDetails) return <PeanutLoading />
+
     return (
         <div className="space-y-4">
             <FlowHeader
@@ -313,15 +357,17 @@ export default function ConfirmPaymentView() {
                     <div className="flex w-max flex-row items-center justify-center gap-1">
                         <div className="text-sm font-semibold text-grey-1">Recipient</div>
                     </div>
-                    <div className="font-semibold">{urlParams?.recipient || charge?.requestLink?.recipientAddress}</div>
+                    <div className="text-sm font-semibold">
+                        {urlParams?.recipient || chargeDetails?.requestLink?.recipientAddress}
+                    </div>
                 </div>
                 <div className="flex items-center justify-between border-b border-dashed border-black py-3">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
                         <div className="text-sm font-semibold text-grey-1">You are paying</div>
                     </div>
-                    <div className="font-semibold">
-                        {urlParams?.amount || charge?.tokenAmount} {selectedTokenData?.symbol} on{' '}
-                        {getReadableChainName(charge?.chainId)}
+                    <div className="text-sm font-semibold">
+                        {urlParams?.amount || chargeDetails?.tokenAmount} {selectedTokenData?.symbol} on{' '}
+                        {getReadableChainName(chargeDetails?.chainId)}
                     </div>
                 </div>
 
@@ -329,14 +375,14 @@ export default function ConfirmPaymentView() {
                 {/* {urlParams?.chain && ( */}
                 <div className="flex items-center justify-between border-b border-dashed border-black py-3">
                     <div className="text-sm font-semibold text-grey-1">{urlParams?.recipient} will receive</div>
-                    <div className="font-semibold capitalize">
-                        {urlParams?.amount || charge?.tokenAmount} {urlParams?.token || selectedTokenData?.symbol} on{' '}
+                    <div className="text-sm font-semibold capitalize">
+                        {urlParams?.amount || chargeDetails?.tokenAmount}{' '}
+                        {urlParams?.token || selectedTokenData?.symbol} on{' '}
                         {urlParams?.chain
                             ? getReadableChainName(urlParams.chain)
                             : getReadableChainName(selectedChainID)}
                     </div>
                 </div>
-                {/* // )} */}
 
                 {/* {urlParams?.token && (
                     <div className="flex items-center justify-between border-b border-dashed border-black py-3">
@@ -405,6 +451,45 @@ export default function ConfirmPaymentView() {
                         )}
                     </div>
                 )}
+
+                {/* Status Section */}
+                <div className="flex items-center justify-between border-b border-dashed border-black py-3">
+                    <div className="text-sm font-semibold text-grey-1">Status</div>
+                    <div className="text-sm font-semibold capitalize">{chargeDetails.timeline[0].status}</div>
+                </div>
+
+                <div className="flex items-center justify-between border-b border-dashed border-black py-3">
+                    <div className="text-sm font-semibold text-grey-1">Created on</div>
+                    <div className="text-sm font-semibold capitalize">
+                        {formatDate(new Date(chargeDetails.createdAt))}
+                    </div>
+                </div>
+
+                {/* Fee Details Section */}
+                <div className="space-y-1">
+                    <div className="flex items-center justify-between border-b border-dashed border-black py-1">
+                        <FeeDescription
+                            loading={isLoading}
+                            estimatedFee={feeCalculations.estimatedFee}
+                            networkFee={feeCalculations.networkFee.max}
+                            maxSlippage={feeCalculations.slippage?.max}
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between border-b border-dashed border-black py-3">
+                        <InfoRow
+                            loading={isLoading}
+                            iconName="transfer"
+                            label="Total Max"
+                            value={`$${feeCalculations.totalMax}`}
+                            moreInfoText={
+                                feeCalculations.slippage
+                                    ? 'Maximum amount you will pay including requested amount, network fees, and maximum slippage.'
+                                    : 'Maximum amount you will pay including requested amount and network fees.'
+                            }
+                        />
+                    </div>
+                </div>
             </div>
 
             <div className="text-xs">
