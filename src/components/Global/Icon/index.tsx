@@ -215,7 +215,7 @@ type IconProps = {
     className?: string
     name: any
     fill?: string
-    onClick?: () => void
+    onClick?: (e: React.MouseEvent<SVGElement>) => void
 }
 
 const Icon = ({ className, name, fill, onClick }: IconProps) => (
