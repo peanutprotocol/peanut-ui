@@ -26,11 +26,7 @@ import {
     formatTokenAmount,
     isAddressZero,
 } from '@/utils'
-import {
-    formatAmount,
-    saveRequestLinkFulfillmentToLocalStorage,
-    switchNetwork as switchNetworkUtil,
-} from '@/utils/general.utils'
+import { formatAmount, switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { checkTokenSupportsXChain } from '@/utils/token.utils'
 import { interfaces, peanut } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -315,14 +311,6 @@ export const InitialView = ({
                 setLoadingState('Executing transaction')
 
                 const currentDate = new Date().toISOString()
-                saveRequestLinkFulfillmentToLocalStorage({
-                    details: {
-                        ...requestLinkData,
-                        destinationChainFulfillmentHash: hash ?? '',
-                        createdAt: currentDate,
-                    },
-                    link: requestLinkData.link,
-                })
 
                 setTransactionHash(hash ?? '')
                 onNext()

@@ -1,4 +1,4 @@
-import { getLinkDetails, peanut } from '@squirrel-labs/peanut-sdk'
+import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 
 import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
@@ -8,10 +8,7 @@ import {
     getCreatedLinksFromLocalStorage,
     getDirectSendFromLocalStorage,
     getOfframpClaimsFromLocalStorage,
-    getRequestLinkFulfillmentsFromLocalStorage,
-    getRequestLinksFromLocalStorage,
     getCashoutStatus,
-    setRequestLinksToLocalStorage,
 } from '@/utils'
 
 export const useDashboard = () => {
@@ -33,31 +30,11 @@ export const useDashboard = () => {
             console.error('Error fetching link details:', error)
         }
 
-        const _data2 = visibleData.filter((item) => item.type == 'Request Link')
+        const _data2 = visibleData.filter((item) => item.type == 'Offramp Claim')
 
         try {
             await Promise.all(
                 _data2.map(async (item) => {
-                    try {
-                        const linkDetails = await peanut.getRequestLinkDetails({
-                            link: item.link ?? '',
-                            apiUrl: '/api/proxy/get',
-                        })
-                        item.status = linkDetails.status === 'PAID' ? 'paid' : 'pending'
-                    } catch (error) {
-                        console.error(error)
-                    }
-                })
-            )
-        } catch (error) {
-            console.error('Error fetching link details:', error)
-        }
-
-        const _data3 = visibleData.filter((item) => item.type == 'Offramp Claim')
-
-        try {
-            await Promise.all(
-                _data3.map(async (item) => {
                     try {
                         const offrampStatus = await getCashoutStatus(item.link ?? '')
                         item.status = offrampStatus.status
@@ -71,24 +48,23 @@ export const useDashboard = () => {
             console.error('Error fetching offramp claim details:', error)
         }
 
-        const _data = [..._data1, ..._data2, ..._data3]
+        const _data = [..._data1, ..._data2]
 
         return _data
     }
 
-    const removeRequestLinkFromLocalStorage = (link: string) => {
-        const requestLinks = getRequestLinksFromLocalStorage()!
-        const updatedRequestLinks = requestLinks.filter((item) => item.link !== link)
-        setRequestLinksToLocalStorage(updatedRequestLinks)
-    }
-
-    const composeLinkDataArray = (address: string) => {
+    const composeLinkDataArray = async (address: string) => {
         const claimedLinks = getClaimedLinksFromLocalStorage({ address: address })!
         const createdLinks = getCreatedLinksFromLocalStorage({ address: address })!
         const directSends = getDirectSendFromLocalStorage({ address: address })!
         const offrampClaims = getOfframpClaimsFromLocalStorage()!
-        const requestLinks = getRequestLinksFromLocalStorage()!
-        const requestLinkFulfillments = getRequestLinkFulfillmentsFromLocalStorage()!
+        const historyResponse = await fetch(`/api/proxy/get/users/7061bf15-1840-4e41-ad02-3c268dec0f3c/history`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        const requestHistory = await historyResponse.json()
 
         let linkData: interfaces.IDashboardItem[] = []
 
@@ -160,37 +136,21 @@ export const useDashboard = () => {
             })
         })
 
-        requestLinks.forEach((link) => {
+        // TODO: use history entry typing
+        requestHistory.entries.forEach((entry: any) => {
             linkData.push({
-                link: link.link,
-                type: 'Request Link',
-                amount: link.tokenAmount.toString(),
-                tokenSymbol: getTokenSymbol(link.tokenAddress ?? '', link.chainId) ?? '',
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
-                date: link.createdAt.toString(),
-                address: link.recipientAddress,
-                status: undefined,
-                message: link.reference ?? '',
-                attachmentUrl: link.attachmentUrl ?? '',
+                link: `${process.env.NEXT_PUBLIC_BASE_URL}/request/pay?id=${entry.uuid}`,
+                type: entry.userRole === 'SENDER' ? 'Request Link Fulfillment' : 'Request Link',
+                amount: entry.amount.toString(),
+                tokenSymbol: entry.tokenSymbol,
+                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === entry.chainId)?.name ?? '',
+                date: entry.timestamp.toString(),
+                address: '',
+                status: entry.status,
+                message: '',
+                attachmentUrl: '',
                 points: 0,
-                txHash: '',
-            })
-        })
-
-        requestLinkFulfillments.forEach((link) => {
-            linkData.push({
-                link: link.link,
-                type: 'Request Link Fulfillment',
-                amount: link.tokenAmount.toString(),
-                tokenSymbol: getTokenSymbol(link.tokenAddress ?? '', link.chainId) ?? '',
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
-                date: link.createdAt.toString(),
-                address: link.recipientAddress,
-                status: 'paid',
-                message: link.reference ?? '',
-                attachmentUrl: link.attachmentUrl ?? '',
-                points: 0,
-                txHash: link.destinationChainFulfillmentHash ?? '',
+                txHash: entry.txHash,
             })
         })
 
@@ -240,12 +200,12 @@ export const useDashboard = () => {
                 })
                 break
             case 'Type: Link Sent':
-                _dashboardData.sort((a, b) => {
+                _dashboardData.sort((a, _b) => {
                     return a.type === 'Link Sent' ? -1 : 1
                 })
                 break
             case 'Type: Link Received':
-                _dashboardData.sort((a, b) => {
+                _dashboardData.sort((a, _b) => {
                     return a.type === 'Link Received' ? -1 : 1
                 })
                 break
@@ -259,7 +219,7 @@ export const useDashboard = () => {
     const filterDashboardData = (
         filterValue: string,
         dashboardData: interfaces.IDashboardItem[],
-        itemsPerPage: number
+        _itemsPerPage: number
     ) => {
         const _dashboardData = [...dashboardData]
         const filteredData = _dashboardData.filter((item) => {
@@ -276,7 +236,6 @@ export const useDashboard = () => {
         return filteredData
     }
     return {
-        removeRequestLinkFromLocalStorage,
         fetchLinkDetailsAsync,
         composeLinkDataArray,
         sortDashboardData,

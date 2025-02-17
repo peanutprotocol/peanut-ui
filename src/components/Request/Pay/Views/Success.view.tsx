@@ -28,36 +28,6 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
     const explorerUrlAxelarWithTx = 'https://axelarscan.io/gmp/' + transactionHash
 
     useEffect(() => {
-        if (explorerUrlDestChainWithTxHash) {
-            //TODO: remove after history implementation.
-            utils.saveRequestLinkFulfillmentToLocalStorage({
-                details: {
-                    ...requestLinkData,
-                    destinationChainFulfillmentHash: explorerUrlDestChainWithTxHash.transactionId,
-                    createdAt: new Date().toISOString(),
-                },
-                link: requestLinkData.link,
-            })
-            setLoadingState('Idle')
-        }
-    }, [explorerUrlDestChainWithTxHash, requestLinkData, address, selectedChainID, selectedTokenAddress])
-
-    useEffect(() => {
-        // is swap on same chain
-        if (!isXChain && !utils.areEvmAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)) {
-            //TODO: remove after history implementation.
-            utils.saveRequestLinkFulfillmentToLocalStorage({
-                details: {
-                    ...requestLinkData,
-                    destinationChainFulfillmentHash: transactionHash,
-                    createdAt: new Date().toISOString(),
-                },
-                link: requestLinkData.link,
-            })
-        }
-    }, [isXChain, requestLinkData, transactionHash, address, selectedTokenAddress, selectedChainID])
-
-    useEffect(() => {
         fetch(`/api/proxy/charges/${requestLinkData.uuid}/payments`, {
             method: 'POST',
             headers: {
