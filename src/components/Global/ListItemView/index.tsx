@@ -4,11 +4,11 @@ import { TransactionBadge } from '@/components/Global/TransactionBadge'
 import { supportedPeanutChains } from '@/constants'
 import { IDashboardItem } from '@/interfaces'
 import { copyTextToClipboardWithFallback, getExplorerUrl } from '@/utils'
+import { usePrimaryName } from '@justaname.id/react'
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Icon from '../Icon'
-import { usePrimaryName } from '@justaname.id/react'
 
 interface TokenBalance {
     chainId: string
@@ -71,6 +71,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
     const isHistory = variant === 'history'
     const transactionDetails = isHistory ? (details as IDashboardItem) : null
     const balanceDetails = !isHistory ? (details as TokenBalance) : null
+    // todo: for payment history, unnecessary api calls are being made with incorrect address value, fix it
     const { primaryName } = usePrimaryName({
         address: metadata.recipientAddress,
     })

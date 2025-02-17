@@ -1,13 +1,13 @@
 import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
 import * as consts from '@/constants'
+import { infuraApiKey } from '@/constants'
 import * as interfaces from '@/interfaces'
+import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
 import peanut from '@squirrel-labs/peanut-sdk'
 import chroma from 'chroma-js'
 import { ethers } from 'ethers'
 import { SiweMessage } from 'siwe'
 import * as wagmiChains from 'wagmi/chains'
-import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
-import { infuraApiKey } from '@/constants'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -338,18 +338,32 @@ export async function resolveFromEnsNameAndProviderUrl(
 }
 
 export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
-    let resolvedAddress: string | undefined
+    const mainProviderUrl = 'https://mainnet.infura.io/v3/' + infuraApiKey
+    const fallbackProviderUrl = 'https://rpc.ankr.com/eth'
 
-    const providerUrl = `https://mainnet.infura.io/v3/${infuraApiKey}`
+    try {
+        const records = await JustaName.init().subnames.getRecords({
+            ens: ensName,
+            chainId: 1,
+            providerUrl: mainProviderUrl,
+        })
 
-    resolvedAddress = await resolveFromEnsNameAndProviderUrl(ensName, providerUrl)
+        return records?.records?.coins?.find((coin) => coin.id === 60)?.value
+    } catch (error) {
+        console.error('Error resolving ENS name with main provider:', error)
+        try {
+            const records = await JustaName.init().subnames.getRecords({
+                ens: ensName,
+                chainId: 1,
+                providerUrl: fallbackProviderUrl,
+            })
 
-    if (!resolvedAddress) {
-        // add a fallback provider here, the justaname sdk will use "https://cloudflare-eth.com" as a fallback if no provider url is provided
-        resolvedAddress = await resolveFromEnsNameAndProviderUrl(ensName)
+            return records?.records?.coins?.find((coin) => coin.id === 60)?.value
+        } catch (fallbackError) {
+            console.error('Error resolving ENS name with fallback provider:', fallbackError)
+            return undefined
+        }
     }
-
-    return resolvedAddress
 }
 
 export async function copyTextToClipboardWithFallback(text: string) {

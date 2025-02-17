@@ -1,69 +1,54 @@
 import { ListItemView } from '@/components/Global/ListItemView'
-import { formatAmount, getChainName } from '@/utils'
+import { HistoryEntryType, HistoryUserRole, TRequestHistory } from '@/services/services.types'
+import { getChainName, printableAddress } from '@/utils'
 
-export default function PaymentHistory() {
+interface PaymentHistoryProps {
+    recipient: string
+    history: TRequestHistory[]
+}
+
+export default function PaymentHistory({ recipient, history }: PaymentHistoryProps) {
+    if (history.length === 0 || !recipient) return null
+
+    const getTransactionType = (type: HistoryEntryType, userRole: HistoryUserRole) => {
+        if (type === 'CLAIM') return 'Link Received'
+        if (type === 'REQUEST' && userRole === 'SENDER') return 'Money Requested'
+        if (type === 'REQUEST' && userRole === 'RECIPIENT') return 'Request paid'
+        if (type === 'CASHOUT') return 'Cash Out'
+        return type
+    }
+
     return (
         <div className="space-y-3 border-b border-b-black">
             <div className="text-base font-semibold">
-                Payment history to <span className="underline">kushagrasarathe.eth</span>
+                Payment history to <span className="underline">{recipient}</span>
             </div>
             <div>
-                {walletDetails.balances.map((balance) => (
-                    <ListItemView
-                        key={`${balance.chainId}-${balance.symbol}`}
-                        id={`${balance.chainId}-${balance.symbol}`}
-                        variant="balance"
-                        primaryInfo={{ title: balance.symbol }}
-                        secondaryInfo={{
-                            mainText: `$${Number(balance.value).toFixed(2)}`,
-                            subText: getChainName(balance.chainId.toString()),
-                        }}
-                        metadata={{
-                            tokenLogo: balance.logoURI,
-                            subText: `${formatAmount(balance.amount)} ${balance.symbol}`,
-                        }}
-                    />
-                ))}
+                {[...history]
+                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                    .slice(0, 5)
+                    .map((entry, idx) => (
+                        // todo: render token icons
+                        <ListItemView
+                            key={entry.uuid}
+                            id={`${entry.chainId}-${idx}`}
+                            variant="history"
+                            primaryInfo={{
+                                title: `${entry.tokenSymbol}`,
+                                subtitle: entry.chainId && `on ${getChainName(entry.chainId)}`,
+                            }}
+                            secondaryInfo={{
+                                mainText: `$${Number(entry.amount).toFixed(2)}`,
+                            }}
+                            metadata={{
+                                recipientAddress: entry.senderAccount
+                                    ? `Paid By: ${entry.senderAccount.username || printableAddress(entry.senderAccount.identifier)} | Status: ${entry.status}`
+                                    : `Status: ${entry.status}`,
+                                subText: new Date(entry.timestamp).toLocaleDateString(),
+                            }}
+                        />
+                    ))}
             </div>
         </div>
     )
-}
-const walletDetails = {
-    balances: [
-        {
-            chainId: 1,
-            symbol: 'ETH',
-            value: '123',
-            logoURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/usdc.svg',
-            amount: '0.5',
-        },
-        {
-            chainId: 56,
-            symbol: 'BNB',
-            value: '789',
-            logoURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/usdc.svg',
-            amount: '1.2',
-        },
-        {
-            chainId: 137,
-            symbol: 'MATIC',
-            value: '456',
-            logoURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/usdc.svg',
-            amount: '300',
-        },
-        {
-            chainId: 250,
-            symbol: 'FTM',
-            value: '123',
-            logoURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/usdc.svg',
-            amount: '1000',
-        },
-        {
-            chainId: 43114,
-            symbol: 'AVAX',
-            value: '678',
-            logoURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/usdc.svg',
-            amount: '50',
-        },
-    ],
 }
