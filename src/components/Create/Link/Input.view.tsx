@@ -100,8 +100,43 @@ export const CreateLinkInputView = ({
                 showError: false,
                 errorMessage: '',
             })
-            setLoadingState('Asserting values')
-            await checkUserHasEnoughBalance({ tokenValue: tokenValue })
+
+            // for native token, estimate gas first before checking balance
+            if (isNativeCurrency(selectedTokenAddress)) {
+                setLoadingState('Loading')
+                const linkDetails = generateLinkDetails({
+                    tokenValue: tokenValue,
+                    envInfo: environmentInfo,
+                    walletType: walletType,
+                })
+
+                const password = await generatePassword()
+                const prepareDepositTxsResponse = await prepareDepositTxs({
+                    _linkDetails: linkDetails,
+                    _password: password,
+                })
+
+                if (prepareDepositTxsResponse) {
+                    const { feeOptions } = await estimateGasFee({
+                        chainId: selectedChainID,
+                        preparedTx: prepareDepositTxsResponse.unsignedTxs[0],
+                    })
+
+                    // calculate gas amount in native token
+                    const gasLimit = BigInt(feeOptions.gasLimit)
+                    const gasPrice = BigInt(feeOptions.maxFeePerGas || feeOptions.gasPrice)
+                    const maxGasAmount = Number(formatEther(gasLimit * gasPrice))
+
+                    setLoadingState('Loading')
+                    await checkUserHasEnoughBalance({
+                        tokenValue: tokenValue,
+                        gasAmount: maxGasAmount,
+                    })
+                }
+            } else {
+                setLoadingState('Loading')
+                await checkUserHasEnoughBalance({ tokenValue: tokenValue })
+            }
 
             setLoadingState('Generating details')
 
@@ -183,17 +218,6 @@ export const CreateLinkInputView = ({
                             preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
                         })
 
-                        // if the total amount (tokenValue + estimated gas fees) exceeds the wallet balance set error
-                        const totalAmount = parseFloat(tokenValue ?? '0') + (transactionCostUSD ?? 0)
-                        const walletBalance = parseFloat(maxValue ?? '0')
-                        if (totalAmount > walletBalance) {
-                            setErrorState({
-                                showError: true,
-                                errorMessage: 'You do not have enough balance to complete the transaction.',
-                            })
-                            return
-                        }
-
                         _feeOptions = feeOptions
                         setFeeOptions(feeOptions)
                         setTransactionCostUSD(transactionCostUSD)
@@ -201,27 +225,6 @@ export const CreateLinkInputView = ({
                         console.error(error)
                         setFeeOptions(undefined)
                         setTransactionCostUSD(undefined)
-                    }
-                    // If the selected token is native currency, we need to check
-                    // the user's balance to ensure they have enough to cover the
-                    // gas fees.
-                    if (undefined !== _feeOptions && isNativeCurrency(selectedTokenAddress)) {
-                        const maxGasAmount = Number(
-                            formatEther(_feeOptions.gasLimit.mul(_feeOptions.maxFeePerGas || _feeOptions.gasPrice))
-                        )
-                        try {
-                            await checkUserHasEnoughBalance({
-                                tokenValue: String(Number(tokenValue) + maxGasAmount),
-                            })
-                        } catch (error) {
-                            // 6 decimal places, prettier
-                            _setTokenValue((Number(tokenValue) - maxGasAmount * 1.3).toFixed(6))
-                            setErrorState({
-                                showError: true,
-                                errorMessage: 'You do not have enough balance to complete the transaction.',
-                            })
-                            return
-                        }
                     }
                 }
 

@@ -14,6 +14,7 @@ import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
 
 interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
+    gasAmount?: number
 }
 
 import { Hex } from 'viem'
@@ -41,7 +42,7 @@ export const useCreateLink = () => {
 
     // step 1
     const checkUserHasEnoughBalance = useCallback(
-        async ({ tokenValue }: ICheckUserHasEnoughBalanceProps) => {
+        async ({ tokenValue, gasAmount }: ICheckUserHasEnoughBalanceProps) => {
             // the selectedChainID and selectedTokenAddress have to be defined
             if (!selectedChainID || !selectedTokenAddress) {
                 throw new Error('Please ensure that the correct token and chain are defined')
@@ -53,7 +54,14 @@ export const useCreateLink = () => {
                     selectedChainID,
                     selectedTokenAddress
                 )?.amount
-                if (!balanceAmount || (balanceAmount && balanceAmount < Number(tokenValue))) {
+
+                // consider gas fees in the balance check for native/non-stable tokens
+                const totalNativeTokenAmount =
+                    isNativeCurrency(selectedTokenAddress) && gasAmount
+                        ? Number(tokenValue) + gasAmount
+                        : Number(tokenValue)
+
+                if (!balanceAmount || (balanceAmount && balanceAmount < totalNativeTokenAmount)) {
                     throw new Error(
                         'Please ensure that you have sufficient balance of the token you are trying to send'
                     )
