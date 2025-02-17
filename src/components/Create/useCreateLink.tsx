@@ -56,12 +56,12 @@ export const useCreateLink = () => {
                 )?.amount
 
                 // consider gas fees in the balance check for native/non-stable tokens
-                const effectiveAmount =
+                const totalNativeTokenAmount =
                     isNativeCurrency(selectedTokenAddress) && gasAmount
                         ? Number(tokenValue) + gasAmount
                         : Number(tokenValue)
 
-                if (!balanceAmount || (balanceAmount && balanceAmount < effectiveAmount)) {
+                if (!balanceAmount || (balanceAmount && balanceAmount < totalNativeTokenAmount)) {
                     throw new Error(
                         'Please ensure that you have sufficient balance of the token you are trying to send'
                     )
