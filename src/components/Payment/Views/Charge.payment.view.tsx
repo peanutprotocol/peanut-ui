@@ -15,7 +15,7 @@ import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { base } from 'viem/chains'
 
-export default function PaymentStatusView() {
+export default function ChargeStatusView() {
     const { chargeDetails, transactionHash, resolvedAddress } = usePaymentStore()
     const dispatch = useAppDispatch()
     const [isLoading, setIsLoading] = useState(true)
@@ -57,46 +57,59 @@ export default function PaymentStatusView() {
         setIsLoading(false)
     }, [transactionHash, chargeDetails])
 
-    // polling for charge status
+    // polling for status
     useEffect(() => {
-        let intervalId: NodeJS.Timeout
+        let intervalId: NodeJS.Timeout | undefined
 
-        const pollChargeStatus = async () => {
-            if (!chargeId) {
-                return
-            }
+        const pollStatus = async () => {
+            if (!chargeId) return
 
             try {
                 const updatedCharge = await chargesApi.get(chargeId)
-
                 dispatch(paymentActions.setChargeDetails(updatedCharge))
 
                 // stop polling if payment is in final state
-                if (
-                    updatedCharge.payments?.[updatedCharge.payments.length - 1]?.status === 'SUCCESSFUL' ||
-                    updatedCharge.payments?.[updatedCharge.payments.length - 1]?.status === 'FAILED'
-                ) {
-                    clearInterval(intervalId)
+                const currentPayment = updatedCharge.payments?.sort(
+                    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                )[0] // use latest payment based on createdAt from API response
+                if (currentPayment?.status === 'SUCCESSFUL' || currentPayment?.status === 'FAILED') {
+                    if (intervalId) {
+                        clearInterval(intervalId)
+                        intervalId = undefined
+                    }
                 }
             } catch (error) {
-                console.error('Failed to fetch charge status:', error)
-                clearInterval(intervalId)
+                console.error('Failed to fetch status:', error)
+                if (intervalId) {
+                    clearInterval(intervalId)
+                    intervalId = undefined
+                }
             }
         }
 
-        // start polling if tx hash is available
-        if (transactionHash && chargeId) {
-            // poll immediately
-            pollChargeStatus()
+        // only start polling if chargeId is available and charge is not in final state
+        if (
+            chargeId &&
+            (!latestPayment || (latestPayment.status !== 'SUCCESSFUL' && latestPayment.status !== 'FAILED'))
+        ) {
+            // clear any existing interval
+            if (intervalId) {
+                clearInterval(intervalId)
+            }
+
+            // initial poll
+            pollStatus()
+
             // then after every 5 seconds
-            intervalId = setInterval(pollChargeStatus, 5000)
+            intervalId = setInterval(pollStatus, 5000)
         }
+
         return () => {
             if (intervalId) {
                 clearInterval(intervalId)
             }
         }
-    }, [chargeId, transactionHash, dispatch])
+    }, [chargeId, latestPayment?.status])
 
     const renderTransactionDetails = () => {
         return (
@@ -155,7 +168,7 @@ export default function PaymentStatusView() {
                 <>
                     <Card.Title>Payment in Progress</Card.Title>
                     <Card.Description className="flex items-center justify-normal gap-2">
-                        <div>This might take a few minutes</div>
+                        <div>This might take some time</div>
                         <div className="animate-spin">🥜</div>
                     </Card.Description>
                 </>

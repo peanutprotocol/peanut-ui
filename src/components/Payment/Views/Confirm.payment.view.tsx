@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle'
 import { useCreateLink } from '@/components/Create/useCreateLink'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import FeeDescription from '@/components/Global/FeeDescription'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
@@ -15,7 +16,14 @@ import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
-import { fetchTokenPrice, formatDate, isAddressZero, switchNetwork as switchNetworkUtil } from '@/utils'
+import {
+    ErrorHandler,
+    fetchTokenPrice,
+    formatDate,
+    isAddressZero,
+    printableAddress,
+    switchNetwork as switchNetworkUtil,
+} from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
@@ -25,7 +33,7 @@ export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
     const { isConnected, chain: currentChain, address } = useWallet()
-    const { attachmentOptions, urlParams, error, chargeDetails } = usePaymentStore()
+    const { attachmentOptions, urlParams, error, chargeDetails, resolvedAddress } = usePaymentStore()
     const { selectedChainID, selectedTokenData } = useContext(tokenSelectorContext)
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
@@ -45,11 +53,6 @@ export default function ConfirmPaymentView() {
     const [txFee, setTxFee] = useState<string>('0')
     const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
 
-    // determine if all params are present in the URL
-    const isDirectUrlAccess = useMemo(() => {
-        return urlParams && urlParams.recipient && urlParams.amount && urlParams.token && urlParams.chain
-    }, [urlParams])
-
     // Get selected chain details
     const selectedChain = supportedPeanutChains.find((chain) => chain.chainId.toString() === selectedChainID)
 
@@ -62,7 +65,8 @@ export default function ConfirmPaymentView() {
                     dispatch(paymentActions.setChargeDetails(chargeDetails))
                 })
                 .catch((error) => {
-                    dispatch(paymentActions.setError(error instanceof Error ? error.message : error.toString()))
+                    const errorString = ErrorHandler(error)
+                    dispatch(paymentActions.setError(errorString))
                 })
         }
     }, [chargeId, dispatch])
@@ -189,7 +193,8 @@ export default function ConfirmPaymentView() {
             }
         } catch (error) {
             console.error('Failed to prepare transaction:', error)
-            dispatch(paymentActions.setError(error instanceof Error ? error.message : 'Failed to prepare transaction'))
+            const errorString = ErrorHandler(error)
+            dispatch(paymentActions.setError(errorString))
             return false
         } finally {
             setIsLoading(false)
@@ -273,7 +278,8 @@ export default function ConfirmPaymentView() {
             dispatch(paymentActions.setView('SUCCESS'))
         } catch (error) {
             console.error('Error processing payment:', error)
-            dispatch(paymentActions.setError(error instanceof Error ? error.message : 'Failed to process payment'))
+            const errorString = ErrorHandler(error)
+            dispatch(paymentActions.setError(errorString))
         } finally {
             setIsLoading(false)
         }
@@ -356,66 +362,25 @@ export default function ConfirmPaymentView() {
             />
             <div className="text-start text-h4 font-bold">Confirm Details</div>
             <div className="">
-                <div className="flex items-center justify-between border-b border-dashed border-black py-3">
-                    <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <div className="text-sm font-semibold text-grey-1">Recipient</div>
-                    </div>
-                    <div className="text-sm font-semibold">
-                        {urlParams?.recipient || chargeDetails?.requestLink?.recipientAddress}
-                    </div>
-                </div>
-                <div className="flex items-center justify-between border-b border-dashed border-black py-3">
-                    <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <div className="text-sm font-semibold text-grey-1">You are paying</div>
-                    </div>
-                    <div className="text-sm font-semibold">
-                        {urlParams?.amount || chargeDetails?.tokenAmount} {selectedTokenData?.symbol} on{' '}
-                        {getReadableChainName(chargeDetails?.chainId)}
-                    </div>
-                </div>
+                <InfoRow
+                    label="Recipient"
+                    value={urlParams?.recipient || chargeDetails?.requestLink?.recipientAddress}
+                />
 
-                {/* URL Parameters Section */}
-                {/* {urlParams?.chain && ( */}
-                <div className="flex items-center justify-between border-b border-dashed border-black py-3">
-                    <div className="text-sm font-semibold text-grey-1">{urlParams?.recipient} will receive</div>
-                    <div className="text-sm font-semibold capitalize">
-                        {urlParams?.amount || chargeDetails?.tokenAmount}{' '}
-                        {urlParams?.token || selectedTokenData?.symbol} on{' '}
-                        {urlParams?.chain
-                            ? getReadableChainName(urlParams.chain)
-                            : getReadableChainName(selectedChainID)}
-                    </div>
-                </div>
+                <InfoRow
+                    label="You are paying"
+                    value={`${chargeDetails?.tokenAmount} ${selectedTokenData?.symbol || chargeDetails.tokenSymbol} on ${getReadableChainName(selectedChain?.chainId || chargeDetails?.chainId)}`}
+                />
 
-                {/* {urlParams?.token && (
-                    <div className="flex items-center justify-between border-b border-dashed border-black py-3">
-                        <div className="text-sm font-semibold text-grey-1">Destination Token</div>
-                        <div className="font-semibold uppercase">{urlParams.token}</div>
-                    </div>
-                )} */}
-
-                {/* only show if the user is not accessing the payment directly via URL */}
-                {/* {!isDirectUrlAccess && selectedChainID && selectedTokenData && (
-                    <>
-                        <div className="flex items-center justify-between border-b border-dashed border-black py-3">
-                            <div className="text-sm font-semibold text-grey-1">Payment Chain</div>
-                            <div className="font-semibold capitalize">{getReadableChainName(selectedChainID)}</div>
-                        </div>
-
-                        <div className="flex items-center justify-between border-b border-dashed border-black py-3">
-                            <div className="text-sm font-semibold text-grey-1">Payment Token</div>
-                            <div className="font-semibold uppercase">{selectedTokenData.symbol}</div>
-                        </div>
-                    </>
-                )} */}
+                <InfoRow
+                    label={`${urlParams?.recipientType === 'USERNAME' ? urlParams?.recipient : printableAddress(urlParams?.recipient || (resolvedAddress as string))} will receive`}
+                    value={`${chargeDetails?.tokenAmount} ${chargeDetails?.tokenSymbol} on ${getReadableChainName(chargeDetails.chainId || selectedChainID)}`}
+                />
 
                 {attachmentOptions.fileUrl && (
-                    <div className="flex w-full flex-col items-center justify-center gap-1 border-b border-dashed border-black py-3">
-                        <div className="flex w-full cursor-pointer flex-row items-center justify-between gap-1 text-h8 text-grey-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'paperclip'} className="h-4 fill-grey-1" />
-                                <div className="text-sm font-semibold text-grey-1">Attachment</div>
-                            </div>
+                    <InfoRow
+                        label="Attachment"
+                        value={
                             <a
                                 href={attachmentOptions.fileUrl}
                                 target="_blank"
@@ -425,8 +390,8 @@ export default function ConfirmPaymentView() {
                                 <span>Download </span>
                                 <Icon name={'download'} className="h-4 fill-grey-1" />
                             </a>
-                        </div>
-                    </div>
+                        }
+                    />
                 )}
 
                 {attachmentOptions?.message && (
@@ -455,43 +420,28 @@ export default function ConfirmPaymentView() {
                     </div>
                 )}
 
-                {/* Status Section */}
-                <div className="flex items-center justify-between border-b border-dashed border-black py-3">
-                    <div className="text-sm font-semibold text-grey-1">Status</div>
-                    <div className="text-sm font-semibold capitalize">{chargeDetails.timeline[0].status}</div>
-                </div>
-
-                <div className="flex items-center justify-between border-b border-dashed border-black py-3">
-                    <div className="text-sm font-semibold text-grey-1">Created on</div>
-                    <div className="text-sm font-semibold capitalize">
-                        {formatDate(new Date(chargeDetails.createdAt))}
-                    </div>
-                </div>
+                <InfoRow label="Date" value={formatDate(new Date(chargeDetails.createdAt))} />
 
                 {/* Fee Details Section */}
                 <div className="space-y-1">
-                    <div className="flex items-center justify-between border-b border-dashed border-black py-1">
-                        <FeeDescription
-                            loading={isLoading}
-                            estimatedFee={feeCalculations.estimatedFee}
-                            networkFee={feeCalculations.networkFee.max}
-                            maxSlippage={feeCalculations.slippage?.max}
-                        />
-                    </div>
+                    <FeeDescription
+                        loading={isLoading}
+                        estimatedFee={feeCalculations.estimatedFee}
+                        networkFee={feeCalculations.networkFee.max}
+                        maxSlippage={feeCalculations.slippage?.max}
+                    />
 
-                    <div className="flex items-center justify-between border-b border-dashed border-black py-3">
-                        <InfoRow
-                            loading={isLoading}
-                            iconName="transfer"
-                            label="Total Max"
-                            value={`$${feeCalculations.totalMax}`}
-                            moreInfoText={
-                                feeCalculations.slippage
-                                    ? 'Maximum amount you will pay including requested amount, network fees, and maximum slippage.'
-                                    : 'Maximum amount you will pay including requested amount and network fees.'
-                            }
-                        />
-                    </div>
+                    <InfoRow
+                        loading={isLoading}
+                        iconName="transfer"
+                        label="Total Max"
+                        value={`$${feeCalculations.totalMax}`}
+                        moreInfoText={
+                            feeCalculations.slippage
+                                ? 'Maximum amount you will pay including requested amount, network fees, and maximum slippage.'
+                                : 'Maximum amount you will pay including requested amount and network fees.'
+                        }
+                    />
                 </div>
             </div>
 
@@ -503,15 +453,7 @@ export default function ConfirmPaymentView() {
             <div className="flex flex-col gap-2">
                 {error && (
                     <div className="space-y-2">
-                        <div className="border border-red/30 bg-red/10 px-2 py-1">
-                            <div className="flex">
-                                <div className="flex-shrink-0">⚠️</div>
-                                <div className="ml-3 flex items-center justify-start gap-2">
-                                    <div className="text-sm font-normal text-red">Error :</div>
-                                    <div className="text-sm font-medium text-red">{error}</div>
-                                </div>
-                            </div>
-                        </div>
+                        <ErrorAlert error={error} />
 
                         <Button
                             onClick={prepareTransaction}

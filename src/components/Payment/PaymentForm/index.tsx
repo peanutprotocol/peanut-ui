@@ -1,11 +1,14 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import FlowHeader from '@/components/Global/FlowHeader'
+import Icon from '@/components/Global/Icon'
+import InfoRow from '@/components/Global/InfoRow'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_NAME, supportedPeanutChains } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { SUPPORTED_TOKENS } from '@/lib/url-parser/constants/tokens'
@@ -14,8 +17,10 @@ import { getReadableChainName, normalizeChainName } from '@/lib/validation/resol
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
+import { requestsApi } from '@/services/requests'
 import { CreateChargeRequest } from '@/services/services.types'
-import { isNativeCurrency } from '@/utils'
+import { ErrorHandler, isNativeCurrency, printableAddress } from '@/utils'
+import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { isAddress } from 'viem'
 
@@ -30,7 +35,7 @@ interface PaymentFormProps {
 export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const { attachmentOptions, requestDetails, resolvedAddress, error } = usePaymentStore()
-    const [tokenValue, setTokenValue] = useState<string>(amount || '')
+    const [tokenValue, setTokenValue] = useState<string>(amount || requestDetails?.tokenAmount || '')
     const { selectedWallet, isWalletConnected, isPeanutWallet } = useWallet()
     const {
         selectedChainID,
@@ -42,6 +47,8 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
     } = useContext(context.tokenSelectorContext)
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const searchParams = useSearchParams()
+    const requestId = searchParams.get('id')
 
     const tokenInfo = useMemo(() => SUPPORTED_TOKENS[token?.toUpperCase() || ''], [token])
 
@@ -50,7 +57,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
     const showPeanutWalletWarning =
         recipientType === 'USERNAME' &&
         ((urlChainName && urlChainName !== PEANUT_WALLET_CHAIN.name) ||
-            (tokenInfo && tokenInfo.symbol.toUpperCase() !== PEANUT_WALLET_TOKEN_NAME))
+            (tokenInfo && tokenInfo.symbol.toUpperCase() !== PEANUT_WALLET_TOKEN))
 
     // effect to set initial chain and token from URL params only once
     useEffect(() => {
@@ -128,7 +135,16 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
                 throw new Error('No valid recipient address')
             }
 
-            if (!requestDetails) {
+            // if request ID available in URL, validate it
+            let validRequestId: string | undefined = undefined
+            if (requestId) {
+                try {
+                    const request = await requestsApi.get(requestId)
+                    validRequestId = request.uuid
+                } catch (error) {
+                    throw new Error('Invalid request ID')
+                }
+            } else if (!requestDetails) {
                 throw new Error('Request details not found')
             }
 
@@ -139,7 +155,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
                     currency: 'USD',
                 },
                 baseUrl: window.location.origin,
-                requestId: requestDetails.uuid,
+                requestId: validRequestId || requestDetails!.uuid, // Use validated request ID if available
                 requestProps: {
                     chainId: selectedChainID.toString(),
                     tokenAddress: selectedTokenAddress,
@@ -161,12 +177,18 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
             // create charge using existing request ID and resolved address
             const charge = await chargesApi.create(createChargeRequestPayload)
 
-            window.history.replaceState(null, '', `${window.location.pathname}?chargeId=${charge.data.id}`)
+            // replace URL params - remove requestId and add chargeId
+            const newUrl = new URL(window.location.href)
+            newUrl.searchParams.delete('id') // reemove request ID
+            newUrl.searchParams.set('chargeId', charge.data.id) // add charge ID
+            window.history.replaceState(null, '', newUrl.toString())
+
             dispatch(paymentActions.setCreatedChargeDetails(charge))
             dispatch(paymentActions.setView('CONFIRM'))
         } catch (error) {
             console.error('Failed to create charge:', error)
-            dispatch(paymentActions.setError(error instanceof Error ? error.message : 'Failed to create charge'))
+            const errorString = ErrorHandler(error)
+            dispatch(paymentActions.setError(errorString))
         } finally {
             setIsSubmitting(false)
         }
@@ -200,6 +222,54 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
         return 'Pay'
     }
 
+    const renderRequestedPaymentDetails = () => {
+        if (!requestDetails) return null
+
+        return (
+            <div className="mb-6 border border-dashed border-black p-4">
+                <div className="text-sm font-semibold text-black">
+                    {printableAddress(requestDetails?.recipientAddress)} is requesting:
+                </div>
+                <div className="flex flex-col">
+                    <InfoRow label="Amount" value={`${requestDetails.tokenAmount} ${requestDetails.tokenSymbol}`} />
+                    <InfoRow label="Network" value={getReadableChainName(requestDetails.chainId)} />
+                    {requestDetails.reference && <InfoRow label="Message" value={requestDetails.reference} />}
+                    {requestDetails.attachmentUrl && (
+                        <InfoRow
+                            label="Attachment"
+                            value={
+                                <a
+                                    href={requestDetails.attachmentUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-0.5 text-sm font-semibold hover:underline"
+                                >
+                                    <span>Download</span>
+                                    <Icon name="download" className="h-4 fill-grey-1" />
+                                </a>
+                            }
+                        />
+                    )}
+                </div>
+                <div className="mt-4 text-xs text-grey-1">
+                    You can choose to pay with any token on any network. The payment will be automatically converted to
+                    the requested token.
+                </div>
+            </div>
+        )
+    }
+
+    // check if this is a cross-chain request for Peanut Wallet
+    const isPeanutWalletCrossChainRequest = useMemo(() => {
+        if (!requestDetails || !isPeanutWallet) return false
+
+        // check if requested chain and token match Peanut Wallet's supported chain/token
+        return (
+            requestDetails.chainId !== PEANUT_WALLET_CHAIN.id.toString() ||
+            requestDetails.tokenAddress.toLowerCase() !== PEANUT_WALLET_TOKEN.toLowerCase()
+        )
+    }, [requestDetails, isPeanutWallet])
+
     return (
         <div className="space-y-4">
             <FlowHeader />
@@ -212,6 +282,9 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
                 className="w-full"
                 disabled={!!amount}
             />
+
+            {/* Requested payment details if available */}
+            {renderRequestedPaymentDetails()}
 
             {/* Always show token selector for payment options */}
             {!isPeanutWallet && (
@@ -226,38 +299,22 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
                 setAttachmentOptions={(options) => dispatch(paymentActions.setAttachmentOptions(options))}
             />
 
-            {/* Show destination details if specified in URL */}
-            {(chain || token) && (
-                <div className="shadow-primary-4 border border-black bg-white p-4">
-                    <div className="text-sm font-medium">Recipient will receive:</div>
-                    <div className="mt-2 flex items-center justify-between">
-                        <div className="text-sm">
-                            <span className="uppercase">
-                                {token || selectedTokenData?.name} on{' '}
-                                {urlChainName || getReadableChainName(selectedChainID)}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+            {/* Show Peanut Wallet cross-chain warning */}
+            {isPeanutWalletCrossChainRequest && (
+                <ErrorAlert
+                    error={
+                        'Cross-chain payments are not supported with Peanut Wallet yet. Switch to an external wallet to pay this request.'
+                    }
+                />
             )}
-
-            {/* todo: fix conditions for this note */}
-            {/* {showPeanutWalletWarning && (
-                <div className="py-2">
-                    <div className="text-sm font-medium">
-                        <span className="font-bold">Note:</span> You are trying to send {tokenInfo.symbol}{' '}
-                        {urlChainName && `on ${urlChainName}`} to a native Peanut Wallet account, which at the moment
-                        only accepts {PEANUT_WALLET_TOKEN_NAME} on {PEANUT_WALLET_CHAIN.name}. You can pay with any
-                        ERC20 token or native token, but the {recipient} will receive {PEANUT_WALLET_TOKEN_NAME} on{' '}
-                        {PEANUT_WALLET_CHAIN.name}.
-                    </div>
-                </div>
-            )} */}
 
             <div className="space-y-2">
                 <Button
+                    shadowSize="4"
                     onClick={handleCreateRequest}
-                    disabled={!isWalletConnected || !canCreateRequest || isSubmitting}
+                    disabled={
+                        !isWalletConnected || !canCreateRequest || isSubmitting || isPeanutWalletCrossChainRequest
+                    }
                     className="w-full"
                 >
                     {getButtonText()}

@@ -2,9 +2,10 @@
 
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import PaymentHistory from '@/components/Payment/History'
+import ChargeStatusView from '@/components/Payment/Views/Charge.payment.view'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
-import PaymentStatusView from '@/components/Payment/Views/Status.payment.view'
+import RequestStatusView from '@/components/Payment/Views/Request.status.view'
 import { supportedPeanutChains } from '@/constants'
 import { SUPPORTED_TOKENS } from '@/lib/url-parser/constants/tokens'
 import { parsePaymentURL } from '@/lib/url-parser/parser'
@@ -29,6 +30,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     const searchParams = useSearchParams()
     const router = useRouter()
     const chargeId = searchParams.get('chargeId')
+    const requestId = searchParams.get('id')
 
     // avoid re-parsing the URL on every render
     const parsedURL = useMemo(() => {
@@ -153,6 +155,31 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         fetchRequests()
     }, [parsedURL?.recipient, parsedURL?.chain, parsedURL?.token, parsedURL?.amount, dispatch])
 
+    // fetch request details if request ID is available
+    useEffect(() => {
+        if (requestId) {
+            setIsLoadingRequests(true)
+            requestsApi
+                .get(requestId)
+                .then((request) => {
+                    dispatch(paymentActions.setRequestDetails(request))
+
+                    // Check if any charge has payments (including pending ones)
+                    const hasPayments = request.charges?.some((charge) => charge.payments?.length > 0)
+
+                    if (hasPayments) {
+                        dispatch(paymentActions.setView('SUCCESS'))
+                    }
+                })
+                .catch((err) => {
+                    setError(err instanceof Error ? err : new Error('Invalid request ID'))
+                })
+                .finally(() => {
+                    setIsLoadingRequests(false)
+                })
+        }
+    }, [requestId, dispatch])
+
     if (error) {
         return <div>Error: {error.message}</div>
     }
@@ -181,7 +208,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                         <ConfirmPaymentView />
                     </div>
                 )}
-                {currentView === 'SUCCESS' && <PaymentStatusView />}
+                {currentView === 'SUCCESS' && (requestId ? <RequestStatusView /> : <ChargeStatusView />)}
             </div>
             {currentView === 'INITIAL' && (
                 <div>

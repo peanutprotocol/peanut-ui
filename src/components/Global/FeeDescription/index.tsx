@@ -43,15 +43,13 @@ const FeeDescription = ({
 
     if (!slippageRange && !minReceive && !maxSlippage && !accountTypeFee) {
         return (
-            <div className="w-full py-2">
-                <InfoRow
-                    iconName="gas"
-                    label="Network cost"
-                    value={`~ $${networkFee}`}
-                    moreInfoText="This transaction will cost you the displayed amount in network fees."
-                    loading={loading}
-                />
-            </div>
+            <InfoRow
+                iconName="gas"
+                label="Network cost"
+                value={`~ $${networkFee}`}
+                moreInfoText="This transaction will cost you the displayed amount in network fees."
+                loading={loading}
+            />
         )
     }
 
@@ -60,7 +58,7 @@ const FeeDescription = ({
             {/* Header */}
             <div
                 onClick={handleExpandToggle}
-                className="flex w-full cursor-pointer items-center justify-between gap-1 p-2 text-h8 text-gray-1 transition-colors duration-200 hover:bg-gray-50"
+                className="flex w-full cursor-pointer items-center justify-between gap-1 text-h8 text-gray-1 transition-colors duration-200 hover:bg-gray-50"
             >
                 <div className="flex items-center gap-1">
                     <Icon name="puzzle" className="h-4 fill-gray-1" />
@@ -89,7 +87,7 @@ const FeeDescription = ({
                     toggleDetailedView.isExpanded ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
                 }`}
             >
-                <div className="flex flex-col gap-2 border-t py-2">
+                <div className="flex flex-col gap-2 border-t">
                     {!!minReceive && (
                         <InfoRow
                             smallFont

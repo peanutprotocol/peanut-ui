@@ -56,8 +56,32 @@ export interface TRequestResponse {
 
 interface ChargeEntry {
     createdAt: string
-    fulfillmentPayment: FulfillmentPayment
+    payments: Payment[]
+    uuid: string
+    link: string
+    chainId: string
+    tokenAmount: string
+    tokenAddress: string
+    tokenDecimals: number
+    tokenType: string
+    tokenSymbol: string
+    updatedAt: string
+    fulfillmentPayment: FulfillmentPayment | null
     timeline: TimelineEntry[]
+    requestLink: {
+        recipientAddress: string
+        recipientAccount: {
+            userId: string
+            identifier: string
+            type: string
+            user: {
+                username: string
+            }
+        }
+        reference?: string
+        attachmentUrl?: string | null
+        trackId?: string | null
+    }
 }
 
 // charges service types

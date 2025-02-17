@@ -23,8 +23,8 @@ export const requestsApi = {
         return response.json()
     },
 
-    get: async (id: string): Promise<TRequestResponse> => {
-        const response = await fetch(`/api/proxy/requests/${id}`)
+    get: async (uuid: string): Promise<TRequestResponse> => {
+        const response = await fetch(`${PEANUT_API_URL}/requests/${uuid}`)
         if (!response.ok) {
             throw new Error(`Failed to fetch request: ${response.statusText}`)
         }
