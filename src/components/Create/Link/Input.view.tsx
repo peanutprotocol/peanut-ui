@@ -122,7 +122,7 @@ export const CreateLinkInputView = ({
                         preparedTx: prepareDepositTxsResponse.unsignedTxs[0],
                     })
 
-                    // calculate gas amount in ETH
+                    // calculate gas amount in native token
                     const gasLimit = BigInt(feeOptions.gasLimit)
                     const gasPrice = BigInt(feeOptions.maxFeePerGas || feeOptions.gasPrice)
                     const maxGasAmount = Number(formatEther(gasLimit * gasPrice))
