@@ -1,3 +1,4 @@
+import { JUSTANAME_ENS } from '@/constants'
 import { resolveFromEnsName } from '@/utils'
 import { isAddress } from 'viem'
 import { verifyPeanutUsername } from '../recipient'
@@ -22,8 +23,8 @@ export async function resolveRecipientToAddress(recipient: string): Promise<stri
     const isPeanutUsername = await verifyPeanutUsername(recipient)
     if (isPeanutUsername) {
         // todo: move to env or constants
-        // append .testvc.eth to resolve Peanut username
-        const peanutEns = `${recipient}.testvc.eth`
+        // append justaname ens to resolve Peanut username
+        const peanutEns = `${recipient}.${JUSTANAME_ENS}`
         const resolved = await resolveFromEnsName(peanutEns)
         if (!resolved) {
             throw new Error('Could not resolve Peanut username')

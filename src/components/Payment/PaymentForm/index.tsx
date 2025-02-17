@@ -23,6 +23,7 @@ import { ErrorHandler, isNativeCurrency, printableAddress } from '@/utils'
 import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { isAddress } from 'viem'
+import { useAccount } from 'wagmi'
 
 interface PaymentFormProps {
     recipient: string
@@ -36,7 +37,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
     const dispatch = useAppDispatch()
     const { attachmentOptions, requestDetails, resolvedAddress, error } = usePaymentStore()
     const [tokenValue, setTokenValue] = useState<string>(amount || requestDetails?.tokenAmount || '')
-    const { selectedWallet, isWalletConnected, isPeanutWallet } = useWallet()
+    const { signInModal, isPeanutWallet } = useWallet()
     const {
         selectedChainID,
         selectedTokenDecimals,
@@ -49,6 +50,8 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
     const [isSubmitting, setIsSubmitting] = useState(false)
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
+    const { isConnected: isExternalWalletConnected } = useAccount()
+    const isConnected = isExternalWalletConnected || isPeanutWallet
 
     const tokenInfo = useMemo(() => SUPPORTED_TOKENS[token?.toUpperCase() || ''], [token])
 
@@ -122,6 +125,12 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
     }, [dispatch, recipient])
 
     const handleCreateRequest = async () => {
+        if (!isConnected) {
+            signInModal.open()
+
+            return
+        }
+
         if (!tokenValue || isSubmitting) return
 
         setIsSubmitting(true)
@@ -160,7 +169,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
                     chainId: selectedChainID.toString(),
                     tokenAddress: selectedTokenAddress,
                     tokenType: isNativeCurrency(selectedTokenAddress) ? 'native' : 'erc20',
-                    tokenSymbol: selectedTokenData?.symbol || '',
+                    tokenSymbol: selectedTokenData?.symbol || token?.toUpperCase() || '',
                     tokenDecimals: selectedTokenDecimals || 18,
                     recipientAddress: recipientAddress,
                 },
@@ -210,7 +219,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
 
     // Get button text based on state
     const getButtonText = () => {
-        if (!isWalletConnected) return 'Connect Wallet'
+        if (!isConnected) return 'Connect Wallet'
         if (isSubmitting) {
             return (
                 <div className="flex items-center justify-center gap-2">
@@ -231,8 +240,13 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
                     {printableAddress(requestDetails?.recipientAddress)} is requesting:
                 </div>
                 <div className="flex flex-col">
-                    <InfoRow label="Amount" value={`${requestDetails.tokenAmount} ${requestDetails.tokenSymbol}`} />
-                    <InfoRow label="Network" value={getReadableChainName(requestDetails.chainId)} />
+                    <InfoRow
+                        label="Amount"
+                        value={`${requestDetails.tokenAmount} ${requestDetails.tokenSymbol || token}`}
+                    />
+                    {requestDetails.chainId && (
+                        <InfoRow label="Network" value={getReadableChainName(requestDetails.chainId)} />
+                    )}
                     {requestDetails.reference && <InfoRow label="Message" value={requestDetails.reference} />}
                     {requestDetails.attachmentUrl && (
                         <InfoRow
@@ -312,9 +326,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
                 <Button
                     shadowSize="4"
                     onClick={handleCreateRequest}
-                    disabled={
-                        !isWalletConnected || !canCreateRequest || isSubmitting || isPeanutWalletCrossChainRequest
-                    }
+                    disabled={!canCreateRequest || isSubmitting || isPeanutWalletCrossChainRequest}
                     className="w-full"
                 >
                     {getButtonText()}

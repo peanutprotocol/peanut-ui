@@ -12,7 +12,8 @@ interface FlowHeaderProps {
 const FlowHeader = ({ onPrev, disableBackBtn, disableWalletHeader = false }: FlowHeaderProps) => {
     const { user } = useAuth()
 
-    if (!user) return null
+    // todo: check if this condition removal is affecting other flows
+    // if (!user) return null
 
     return (
         <div className="flex w-full flex-row items-center justify-between pb-3">
@@ -21,7 +22,7 @@ const FlowHeader = ({ onPrev, disableBackBtn, disableWalletHeader = false }: Flo
                     <Icon name="arrow-prev" />
                 </Button>
             )}
-            <WalletHeader disabled={disableWalletHeader} className={onPrev ? 'w-fit' : 'w-full'} />
+            {!!user && <WalletHeader disabled={disableWalletHeader} className={onPrev ? 'w-fit' : 'w-full'} />}
         </div>
     )
 }

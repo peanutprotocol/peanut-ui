@@ -213,7 +213,7 @@ const icons: IconsType = {
 
 type IconProps = {
     className?: string
-    name: any
+    name: string
     fill?: string
     onClick?: (e: React.MouseEvent<SVGElement>) => void
 }

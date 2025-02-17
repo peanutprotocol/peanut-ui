@@ -2,11 +2,11 @@
 
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import PaymentHistory from '@/components/Payment/History'
-import ChargeStatusView from '@/components/Payment/Views/Charge.payment.view'
+import ChargeStatusView from '@/components/Payment/Views/Charge.status.view'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import RequestStatusView from '@/components/Payment/Views/Request.status.view'
-import { supportedPeanutChains } from '@/constants'
+import { JUSTANAME_ENS, supportedPeanutChains } from '@/constants'
 import { SUPPORTED_TOKENS } from '@/lib/url-parser/constants/tokens'
 import { parsePaymentURL } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
@@ -113,8 +113,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
 
                         // if username has no dots, treat as native peanut username
                         if (!nameToResolve.includes('.')) {
-                            // todo: move to env
-                            nameToResolve = `${nameToResolve}.testvc.eth`
+                            nameToResolve = `${nameToResolve}.${JUSTANAME_ENS}`
                         }
 
                         const resolved = await resolveFromEnsName(nameToResolve)
@@ -137,10 +136,25 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                     throw new Error('No valid recipient address')
                 }
 
+                const tokenAddress =
+                    parsedURL.token &&
+                    parsedURL.chain &&
+                    SUPPORTED_TOKENS[parsedURL.token.toUpperCase()]?.addresses[Number(parsedURL.chain)]
+
                 // fetch requests using the resolved address
                 const fetchedRequest = await requestsApi.search({
                     recipient: recipientAddress,
-                    // todo: add other filters here
+                    tokenAmount: parsedURL.amount,
+                    chainId: parsedURL.chain
+                        ? parsedURL.chain
+                        : supportedPeanutChains
+                              .find(
+                                  (c) =>
+                                      normalizeChainName(c.name.toLowerCase()) ===
+                                      normalizeChainName(parsedURL.chain as string)
+                              )
+                              ?.chainId?.toString(),
+                    tokenAddress,
                 })
 
                 dispatch(paymentActions.setRequestDetails(fetchedRequest))
@@ -164,7 +178,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                 .then((request) => {
                     dispatch(paymentActions.setRequestDetails(request))
 
-                    // Check if any charge has payments (including pending ones)
+                    // check if any charge has payments (including pending ones)
                     const hasPayments = request.charges?.some((charge) => charge.payments?.length > 0)
 
                     if (hasPayments) {
@@ -192,12 +206,10 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         return <PeanutLoading />
     }
 
-    console.log('parsedURL', parsedURL)
-
     return (
         <div
             className={twMerge(
-                'mx-auto w-full space-y-8 self-start py-6 md:w-6/12',
+                'mx-auto h-full w-full space-y-8 self-start md:w-6/12',
                 currentView !== 'INITIAL' && 'self-center'
             )}
         >

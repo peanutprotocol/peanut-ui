@@ -3,7 +3,7 @@
 import { Button, Card } from '@/components/0_Bruddle'
 import { useEffect } from 'react'
 
-export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function PaymentError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     useEffect(() => {
         console.error(error)
     }, [error])
