@@ -1,8 +1,11 @@
-import { useState, useEffect, ChangeEvent, useRef } from 'react'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
+import { ChangeEvent, useEffect, useRef, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
+import Loading from '../Loading'
+
 type ValidatedInputProps = {
-    label: string
+    label?: string
     value: string
     placeholder?: string
     debounceTime?: number
@@ -15,11 +18,13 @@ type ValidatedInputProps = {
     infoText?: string
     formatDisplayValue?: (value: string) => string
 }
+
 export type InputUpdate = {
     value: string
     isValid: boolean
     isChanging: boolean
 }
+
 const ValidatedInput = ({
     label,
     placeholder = '',
@@ -99,14 +104,18 @@ const ValidatedInput = ({
                     </div>
                 )}
             </div>
-            <div className="relative w-full">
+
+            <div className="flex w-full items-center">
                 <input
                     type="text"
                     value={formatDisplayValue ? formatDisplayValue(value) : value}
                     onChange={handleChange}
-                    className="h-12 w-full bg-white pl-8 pr-2 text-h8 font-medium 
-                        outline-none focus:outline-none active:bg-white
-                        dark:bg-n-1 dark:text-white dark:placeholder:text-white/75"
+                    className={twMerge(
+                        `h-12 w-full border-0 bg-white pr-1 text-h8 
+                        font-medium outline-none focus:outline-none
+                        active:bg-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75`,
+                        !!infoText ? 'pl-8' : 'pl-4'
+                    )}
                     placeholder={placeholder}
                     spellCheck="false"
                     autoComplete={autoComplete || 'off'}
@@ -119,41 +128,41 @@ const ValidatedInput = ({
                         WebkitTextFillColor: 'inherit',
                     }}
                 />
+                {suggestions && (
+                    <datalist id={listId.current}>
+                        {suggestions.map((suggestion, index) => (
+                            <option key={index} value={suggestion} />
+                        ))}
+                    </datalist>
+                )}
+                {value && (
+                    <div
+                        className={`h-full ${
+                            isValidating
+                                ? 'opacity-100'
+                                : 'opacity-100 transition-opacity hover:opacity-100 md:opacity-0'
+                        }`}
+                    >
+                        {isValidating ? (
+                            <div className="flex h-full w-12 items-center justify-center dark:bg-n-1">
+                                <Loading />
+                            </div>
+                        ) : (
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    onUpdate({ value: '', isValid: false, isChanging: false })
+                                }}
+                                className="flex h-full w-6 items-center justify-center pr-2 dark:bg-n-1 md:w-8 md:pr-0"
+                            >
+                                <Icon className="h-6 w-6 dark:fill-white" name="close" />
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
-            {suggestions && (
-                <datalist id={listId.current}>
-                    {suggestions.map((suggestion, index) => (
-                        <option key={index} value={suggestion} />
-                    ))}
-                </datalist>
-            )}
-            {value && (
-                <div
-                    className={`absolute right-0 top-0 h-full ${
-                        isValidating ? 'opacity-100' : 'opacity-0 transition-opacity hover:opacity-100'
-                    }`}
-                >
-                    {isValidating ? (
-                        <div className="flex h-full w-12 items-center justify-center bg-white dark:bg-n-1">
-                            <div
-                                className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent motion-reduce:animate-none"
-                                role="status"
-                            />
-                        </div>
-                    ) : (
-                        <button
-                            onClick={(e) => {
-                                e.preventDefault()
-                                onUpdate({ value: '', isValid: false, isChanging: false })
-                            }}
-                            className="flex h-full w-12 items-center justify-center bg-white dark:bg-n-1"
-                        >
-                            <Icon className="h-6 w-6 dark:fill-white" name="close" />
-                        </button>
-                    )}
-                </div>
-            )}
         </div>
     )
 }
+
 export default ValidatedInput
