@@ -25,6 +25,8 @@ export const ConfirmClaimLinkView = ({
     estimatedPoints,
     attachment,
     selectedRoute,
+    setSelectedRoute,
+    setHasFetchedRoute,
 }: _consts.IClaimScreenProps) => {
     const { address } = useAccount()
     const { claimLinkXchain, claimLink } = useClaimLink()
@@ -95,6 +97,14 @@ export const ConfirmClaimLinkView = ({
         } finally {
             setLoadingState('Idle')
         }
+    }
+
+    const handleGoBack = () => {
+        if (selectedRoute) {
+            setSelectedRoute(null)
+            setHasFetchedRoute(false)
+        }
+        onPrev()
     }
 
     // useEffect(() => {
@@ -248,7 +258,11 @@ export const ConfirmClaimLinkView = ({
                         'Claim'
                     )}
                 </button>
-                <button className="btn btn-xl dark:border-white dark:text-white" onClick={onPrev} disabled={isLoading}>
+                <button
+                    className="btn btn-xl dark:border-white dark:text-white"
+                    onClick={handleGoBack}
+                    disabled={isLoading}
+                >
                     Go Back
                 </button>
 
