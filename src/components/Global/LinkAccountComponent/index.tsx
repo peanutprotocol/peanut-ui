@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 
 import { KYCComponent } from '@/components/Kyc'
 import { useAuth } from '@/context/authContext'
-import { IBridgeAccount, IResponse } from '@/interfaces'
+import { IResponse } from '@/interfaces'
 import * as utils from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import Link from 'next/link'
@@ -187,13 +187,24 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             })
             setReKYCUrl(undefined)
 
-            console.log('Starting form submission with user data:', {
-                user,
-                kycStatus: user?.user?.kycStatus,
-                accounts: user?.accounts,
-            })
+            // verify if user and bridge_customer_id exists
+            if (!user?.user) {
+                throw new Error('User not found. Please log in again.')
+            }
 
-            // Only need address for US accounts
+            const customerId = user.user.bridge_customer_id
+            if (!customerId) {
+                console.error('Missing bridge_customer_id:', user.user)
+                throw new Error('Please complete KYC before linking a bank account.')
+            }
+
+            // get customer ID and name
+            let accountOwnerName = user.user.full_name
+            if (!accountOwnerName) {
+                const bridgeCustomer = await utils.getCustomer(customerId)
+                accountOwnerName = `${bridgeCustomer.first_name} ${bridgeCustomer.last_name}`
+            }
+
             let address
             if (formData.type === 'us') {
                 if (user?.user?.kycStatus === 'approved') {
@@ -289,24 +300,12 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                           routingNumber: formData.routingNumber,
                       }
 
-            // Get customer ID and name
-            const customerId = user?.user?.bridge_customer_id
-            if (!customerId) {
-                throw new Error('Customer ID is missing')
-            }
-
-            let accountOwnerName = user?.user?.full_name
-            if (!accountOwnerName) {
-                const bridgeCustomer = await utils.getCustomer(customerId)
-                accountOwnerName = `${bridgeCustomer.first_name} ${bridgeCustomer.last_name}`
-            }
-
             // Create the external account
             const response: IResponse = await utils.createExternalAccount(
                 customerId,
                 formData.type as 'iban' | 'us',
                 accountDetails,
-                formData.type === 'us' ? address : undefined,
+                address,
                 accountOwnerName
             )
 
@@ -337,20 +336,15 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 return
             }
 
-            const data: IBridgeAccount = response.data
-
-            console.log('Creating account in database')
+            // add account to database
             await utils.createAccount(
-                user?.user?.userId ?? '',
+                user.user.userId,
                 customerId,
-                data.id,
+                response.data.id,
                 formData.type,
-                getIbanFormValue('accountNumber')?.replaceAll(/\s/g, '') ?? '',
-                address
+                accountDetails.accountNumber,
+                response.data
             )
-
-            console.log('Fetching updated user data')
-            await fetchUser()
 
             onCompleted ? onCompleted() : setCompletedLinking(true)
         } catch (error) {
@@ -360,10 +354,9 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             if (error instanceof Error) {
                 errorMessage = error.message.replace(/^Error:\s+/g, '')
             }
-
             setErrorState({
                 showError: true,
-                errorMessage,
+                errorMessage: errorMessage || 'Failed to link bank account. Please try again.',
             })
         } finally {
             setLoadingState('idle')

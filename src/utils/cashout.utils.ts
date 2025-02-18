@@ -116,19 +116,35 @@ export const createAccount = async (
 }
 
 async function fetchApi(url: string, method: string, body?: any): Promise<any> {
-    const response = await fetch(url, {
-        method,
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: body ? JSON.stringify(body) : undefined,
-    })
+    try {
+        const response = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: body ? JSON.stringify(body) : undefined,
+        })
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch data from ${url}`)
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }))
+            console.error('API Error:', {
+                url,
+                status: response.status,
+                errorData,
+            })
+            throw new Error(errorData.message || errorData.error || 'API request failed')
+        }
+
+        const data = await response.json()
+        return data
+    } catch (error) {
+        console.error('fetchApi error:', {
+            url,
+            method,
+            error,
+        })
+        throw error
     }
-
-    return await response.json()
 }
 
 export type KYCStatus = 'not_started' | 'under_review' | 'approved' | 'rejected'
@@ -148,12 +164,39 @@ export type GetUserLinksResponse = {
     persona_inquiry_type: string
 }
 
-export async function getUserLinks(formData: consts.IOfframpForm): Promise<GetUserLinksResponse> {
-    return await fetchApi('/api/bridge/user/new/get-links', 'POST', {
+export async function getUserLinks({
+    full_name,
+    email,
+}: {
+    full_name: string
+    email: string
+}): Promise<GetUserLinksResponse> {
+    console.log('getUserLinks input:', { full_name, email })
+
+    if (!full_name?.trim() || !email?.trim()) {
+        console.error('Invalid input:', { full_name, email })
+        throw new Error('Name and email are required')
+    }
+
+    const response = await fetchApi('/api/bridge/user/new/get-links', 'POST', {
         type: 'individual',
-        full_name: formData.name,
-        email: formData.email,
+        full_name: full_name.trim(),
+        email: email.trim(),
     })
+
+    console.log('getUserLinks response:', response)
+
+    if (!response.id) {
+        throw new Error('Failed to create Bridge customer')
+    }
+
+    // ensure we have a customer_id
+    if (!response.customer_id) {
+        console.error('No customer_id in response:', response)
+        throw new Error('Failed to get customer ID')
+    }
+
+    return response
 }
 
 export async function getStatus(userId: string, type: string) {
@@ -204,45 +247,33 @@ export async function createExternalAccount(
     customerId: string,
     accountType: 'iban' | 'us',
     accountDetails: any,
-    address: any,
-    accountOwnerName: string
-): Promise<interfaces.IResponse> {
+    address?: any,
+    accountOwnerName?: string
+): Promise<any> {
     try {
-        const response = await fetch(`/api/bridge/external-account/create-external-account?customerId=${customerId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                accountType,
-                accountDetails,
-                address: address ? address : {},
-                accountOwnerName,
-            }),
+        if (!customerId) {
+            throw new Error('Customer ID is required')
+        }
+
+        // create new account
+        const response = await fetchApi(`/api/bridge/external-account/create-external-account`, 'POST', {
+            customerId,
+            accountType,
+            accountDetails,
+            address,
+            accountOwnerName,
         })
 
-        const responseData = await response.json()
-
-        if (!response.ok) {
-            if (responseData.code === 'duplicate_external_account') {
+        // response is already parsed by fetchApi
+        if (!response.success) {
+            if (response.code === 'duplicate_external_account') {
                 // If bridge account already exists, let's fetch it
-                const allAccounts = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        customerId,
-                    }),
+                const allAccounts = await fetchApi('/api/bridge/external-account/get-all-for-customerId', 'POST', {
+                    customerId,
                 })
 
-                if (!allAccounts.ok) {
-                    throw new Error('Failed to fetch existing accounts')
-                }
-
-                const accounts = await allAccounts.json()
                 // Find the matching account based on account details
-                const existingAccount = accounts.find((account: interfaces.IBridgeAccount) => {
+                const existingAccount = allAccounts.find((account: interfaces.IBridgeAccount) => {
                     if (accountType === 'iban') {
                         return (
                             account.account_details.type === 'iban' &&
@@ -264,24 +295,25 @@ export async function createExternalAccount(
                 return {
                     success: true,
                     data: existingAccount,
-                } as interfaces.IResponse
+                }
             }
 
             // handle other error cases
             return {
                 success: false,
-                message: responseData.message || 'Failed to create external account',
-                details: responseData.details || {},
-            } as interfaces.IResponse
+                message: response.message || 'Failed to create external account',
+                details: response.details || {},
+            }
         }
 
-        return {
-            success: true,
-            data: responseData,
-        } as interfaces.IResponse
+        return response
     } catch (error) {
-        console.error('Error:', error)
-        throw new Error(`Failed to create external account. Error: ${error}`)
+        console.error('Error in createExternalAccount:', {
+            error,
+            customerId,
+            accountType,
+        })
+        throw error
     }
 }
 

@@ -1,5 +1,4 @@
 'use client'
-import { sortCrossChainDetails } from '@/components/Claim/Claim.utils'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { CrispButton } from '@/components/CrispChat'
@@ -30,6 +29,7 @@ import {
 } from '@/components/Offramp/Offramp.consts'
 import { Card } from '../0_Bruddle'
 import { FAQComponent } from '../Cashout/Components/Faq.comp'
+import { sortCrossChainDetails } from '../Claim/Claim.utils'
 import FlowHeader from '../Global/FlowHeader'
 import PromoCodeChecker from './PromoCodeChecker'
 
@@ -130,8 +130,17 @@ export const OfframpConfirmView = ({
         const bridgeCustomerId = user?.user?.bridge_customer_id
         const bridgeExternalAccountId = peanutAccount?.bridge_account_id
 
-        if (!peanutAccount || !bridgeCustomerId || !bridgeExternalAccountId) {
-            throw new Error('Missing account information')
+        if (!peanutAccount) {
+            throw new Error('Bank account not found. Please ensure you have linked your bank account.')
+        }
+
+        if (!bridgeCustomerId) {
+            throw new Error('Bridge customer ID not found. Please complete KYC first.')
+        }
+
+        if (!bridgeExternalAccountId) {
+            console.error('Missing bridge_account_id for account:', peanutAccount)
+            throw new Error('Bank account needs to be re-linked. Please remove and add your bank account again.')
         }
 
         // Fetch all liquidation addresses for the user
@@ -152,26 +161,22 @@ export const OfframpConfirmView = ({
         setErrorState({ showError: false, errorMessage: '' })
 
         try {
-            if (!preparedCreateLinkWrapperResponse) return
+            if (!preparedCreateLinkWrapperResponse) {
+                throw new Error('Link preparation failed. Please try again.')
+            }
 
             // Fetch all necessary details before creating the link
-            const {
-                crossChainDetails,
-                peanutAccount,
-                bridgeCustomerId,
-                bridgeExternalAccountId,
-                allLiquidationAddresses,
-            } = await fetchNecessaryDetails()
+            const details = await fetchNecessaryDetails()
 
             // Process link details and determine if cross-chain transfer is needed
             // TODO: type safety
             const { tokenName, chainName, xchainNeeded, liquidationAddress } = await processLinkDetails(
                 preparedCreateLinkWrapperResponse.linkDetails,
-                crossChainDetails as CrossChainDetails[],
-                allLiquidationAddresses,
-                bridgeCustomerId,
-                bridgeExternalAccountId,
-                peanutAccount.account_type
+                details.crossChainDetails as CrossChainDetails[],
+                details.allLiquidationAddresses,
+                details.bridgeCustomerId,
+                details.bridgeExternalAccountId,
+                details.peanutAccount.account_type
             )
 
             if (!tokenName || !chainName) {
@@ -223,11 +228,11 @@ export const OfframpConfirmView = ({
                 claimLinkData,
                 destinationTxHash,
                 liquidationAddress,
-                bridgeCustomerId,
-                bridgeExternalAccountId,
+                details.bridgeCustomerId,
+                details.bridgeExternalAccountId,
                 chainId,
                 tokenName,
-                peanutAccount
+                details.peanutAccount
             )
 
             setTransactionHash(destinationTxHash)
@@ -235,7 +240,18 @@ export const OfframpConfirmView = ({
 
             onNext()
         } catch (error) {
-            handleError(error)
+            console.error('Error in handleCashoutConfirm:', error)
+            // Improve error message handling
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : "We've encountered an error. Your funds are SAFU, please reach out to support"
+
+            setErrorState({
+                showError: true,
+                errorMessage,
+            })
+            setShowRefund(true)
         } finally {
             setLoadingState('Idle')
         }
