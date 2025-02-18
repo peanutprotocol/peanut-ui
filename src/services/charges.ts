@@ -1,5 +1,5 @@
 import { PEANUT_API_URL } from '@/constants'
-import { CreateChargeRequest, TCharge, TRequestChargeResponse } from './services.types'
+import { CreateChargeRequest, PaymentCreationResponse, TCharge, TRequestChargeResponse } from './services.types'
 
 export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {
@@ -33,12 +33,27 @@ export const chargesApi = {
         return response.json()
     },
 
-    createPayment: async (chargeId: string): Promise<unknown> => {
+    createPayment: async ({
+        chargeId,
+        chainId,
+        hash,
+        tokenAddress,
+    }: {
+        chargeId: string
+        chainId: string
+        hash: string
+        tokenAddress: string
+    }): Promise<PaymentCreationResponse> => {
         const response = await fetch(`/api/proxy/charges/${chargeId}/payments`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
+            body: JSON.stringify({
+                chainId,
+                hash,
+                tokenAddress,
+            }),
         })
 
         if (!response.ok) {

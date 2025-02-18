@@ -1,5 +1,6 @@
 'use client'
 
+import { PEANUTMAN_LOGO } from '@/assets'
 import { Button, Card } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import Icon from '@/components/Global/Icon'
@@ -116,7 +117,9 @@ export default function RequestStatusView() {
                     <Card.Title>Payment in Progress</Card.Title>
                     <Card.Description className="flex items-center justify-normal gap-2">
                         <div>This might take a some time</div>
-                        <div className="animate-spin">🥜</div>
+                        <div className="animate-spin">
+                            <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4 w-4" />
+                        </div>
                     </Card.Description>
                 </>
             )
@@ -248,7 +251,7 @@ export default function RequestStatusView() {
             ) : (
                 <PaymentsFooter
                     variant="transparent-dark"
-                    className="mt-3 rounded-none border-x-0 border-t border-black text-black"
+                    className="mt-3 rounded-none border-x-0 border-t border-black text-black hover:text-black"
                 />
             )}
         </Card>

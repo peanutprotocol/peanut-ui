@@ -10,7 +10,7 @@ import { JUSTANAME_ENS, supportedPeanutChains } from '@/constants'
 import { SUPPORTED_TOKENS } from '@/lib/url-parser/constants/tokens'
 import { parsePaymentURL } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
-import { normalizeChainName } from '@/lib/validation/resolvers/chain-resolver'
+import { normalizeChainName, resolveChainId } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
@@ -141,21 +141,20 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                     parsedURL.chain &&
                     SUPPORTED_TOKENS[parsedURL.token.toUpperCase()]?.addresses[Number(parsedURL.chain)]
 
-                // fetch requests using the resolved address
-                const fetchedRequest = await requestsApi.search({
-                    recipient: recipientAddress,
-                    tokenAmount: parsedURL.amount,
-                    chainId: parsedURL.chain
+                const chainId = parsedURL?.chain
+                    ? typeof parsedURL.chain === 'number'
                         ? parsedURL.chain
-                        : supportedPeanutChains
-                              .find(
-                                  (c) =>
-                                      normalizeChainName(c.name.toLowerCase()) ===
-                                      normalizeChainName(parsedURL.chain as string)
-                              )
-                              ?.chainId?.toString(),
-                    tokenAddress,
-                })
+                        : resolveChainId(parsedURL.chain)
+                    : undefined
+
+                //  conditional request params
+                const requestParams: any = { recipient: recipientAddress }
+                if (parsedURL.amount) requestParams.tokenAmount = parsedURL.amount
+                if (chainId) requestParams.chainId = chainId
+                if (tokenAddress) requestParams.tokenAddress = tokenAddress
+
+                // fetch requests using the resolved address
+                const fetchedRequest = await requestsApi.search(requestParams)
 
                 dispatch(paymentActions.setRequestDetails(fetchedRequest))
             } catch (error) {

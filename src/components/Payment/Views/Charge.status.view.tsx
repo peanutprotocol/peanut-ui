@@ -1,5 +1,6 @@
 'use client'
 
+import { PEANUTMAN_LOGO } from '@/assets'
 import { Button, Card } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import Icon from '@/components/Global/Icon'
@@ -13,7 +14,6 @@ import { formatDate, getExplorerUrl, shortenAddressLong } from '@/utils'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { base } from 'viem/chains'
 
 export default function ChargeStatusView() {
     const { chargeDetails, transactionHash, resolvedAddress } = usePaymentStore()
@@ -45,8 +45,9 @@ export default function ChargeStatusView() {
         // return URL if both chainId and txHash are available
         if (!chainId || !txHash) return null
 
-        const isBaseExplorer = Number(chainId) === base.id
-        return `${getExplorerUrl(chainId)}${isBaseExplorer ? '/tx' : ''}/${txHash}`
+        const exporerUrl = getExplorerUrl(chainId)
+        const isBlockscoutExplorer = exporerUrl?.includes('blockscout')
+        return `${exporerUrl}${isBlockscoutExplorer ? 'tx/' : ''}${txHash}`
     }, [transactionHash, chargeDetails, latestPayment])
 
     // fetch destination chain details for new payments
@@ -119,7 +120,7 @@ export default function ChargeStatusView() {
                     <span>Transaction Hash:</span>
                     {(transactionHash || latestPayment?.payerTransactionHash) && sourceUrlWithTx ? (
                         <Link className="cursor-pointer underline" href={sourceUrlWithTx}>
-                            {transactionHash || shortenAddressLong(latestPayment?.payerTransactionHash || '')}
+                            {shortenAddressLong(transactionHash || latestPayment?.payerTransactionHash || '')}
                         </Link>
                     ) : (
                         <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
@@ -156,7 +157,9 @@ export default function ChargeStatusView() {
                         <div>
                             Your payment to <AddressLink address={resolvedAddress || ''} /> is being processed
                         </div>
-                        <div className="animate-spin">🥜</div>
+                        <div className="animate-spin">
+                            <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4 w-4" />
+                        </div>
                     </Card.Description>
                 </>
             )
@@ -169,7 +172,9 @@ export default function ChargeStatusView() {
                     <Card.Title>Payment in Progress</Card.Title>
                     <Card.Description className="flex items-center justify-normal gap-2">
                         <div>This might take some time</div>
-                        <div className="animate-spin">🥜</div>
+                        <div className="animate-spin">
+                            <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4 w-4" />
+                        </div>
                     </Card.Description>
                 </>
             )
@@ -241,7 +246,7 @@ export default function ChargeStatusView() {
                 </div>
 
                 {/* Timeline for non-successful states */}
-                {latestPayment && latestPayment.status !== 'SUCCESSFUL' && (
+                {latestPayment && (
                     <div className="w-full space-y-2">
                         <div className="text-h8 font-semibold text-gray-1">Payment Timeline</div>
                         <div className="py-1">
@@ -279,7 +284,7 @@ export default function ChargeStatusView() {
             ) : (
                 <PaymentsFooter
                     variant="transparent-dark"
-                    className="mt-3 rounded-none border-x-0 border-t border-black text-black"
+                    className="mt-3 rounded-none border-x-0 border-t border-black text-black hover:text-black"
                 />
             )}
         </Card>

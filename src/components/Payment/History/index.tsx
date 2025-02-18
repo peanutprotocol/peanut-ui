@@ -45,6 +45,7 @@ export default function PaymentHistory({ recipient, history }: PaymentHistoryPro
                                     ? `Paid By: ${entry.senderAccount.username || printableAddress(entry.senderAccount.identifier)} | Status: ${entry.status}`
                                     : `Status: ${entry.status}`,
                                 subText: new Date(entry.timestamp).toLocaleDateString(),
+                                disableEnsResolution: true,
                             }}
                         />
                     ))}

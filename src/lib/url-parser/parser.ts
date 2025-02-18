@@ -38,6 +38,15 @@ export function parsePaymentURL(segments: string[]): ParsedURL {
 
     // decode the first segment to handle URL encoding
     const firstSegment = decodeURIComponent(segments[0])
+    let recipient = firstSegment
+    let chain = undefined
+
+    // if recipient contains @, extract chain info
+    if (firstSegment.includes('@')) {
+        const [recipientPart, chainPart] = firstSegment.split('@')
+        recipient = recipientPart
+        chain = chainPart // set the chain from the @ part
+    }
 
     // parse chain-specific address if present
     const chainSpecificAddress = parseChainSpecificAddress(firstSegment)
@@ -65,10 +74,12 @@ export function parsePaymentURL(segments: string[]): ParsedURL {
 
             return baseResult
         } catch (error) {
+            console.error('Chain resolution error:', error)
             // if chain resolution fails, still parse the address but without chain
             const baseResult: ParsedURL = {
                 recipient: chainSpecificAddress.user,
                 recipientType: detectRecipientType(chainSpecificAddress.user),
+                chain: chain, // use the chain from @ if available
             }
 
             // if there's an amount segment, parse it for both amount and token
@@ -110,20 +121,21 @@ export function parsePaymentURL(segments: string[]): ParsedURL {
         }
     }
 
-    // handle non-chain-specific addresses
+    // handle remaining segments
     if (segments.length > 1) {
         const { amount, token } = parseAmountAndToken(segments[1])
         return {
-            recipient: firstSegment,
-            recipientType: detectRecipientType(firstSegment),
+            recipient,
+            recipientType: detectRecipientType(recipient),
+            chain: chain, // include the chain from @ if it was present
             ...(amount && { amount }),
             ...(token && { token }),
         }
     }
 
-    // retirn recipient only if no amount or token is specified
     return {
-        recipient: firstSegment,
-        recipientType: detectRecipientType(firstSegment),
+        recipient,
+        recipientType: detectRecipientType(recipient),
+        chain: chain, // include the chain from @ if it was present
     }
 }

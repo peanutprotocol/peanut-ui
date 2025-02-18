@@ -19,7 +19,6 @@ import { chargesApi } from '@/services/charges'
 import {
     ErrorHandler,
     fetchTokenPrice,
-    formatDate,
     isAddressZero,
     printableAddress,
     switchNetwork as switchNetworkUtil,
@@ -35,6 +34,7 @@ export default function ConfirmPaymentView() {
     const { isConnected, chain: currentChain, address } = useWallet()
     const { attachmentOptions, urlParams, error, chargeDetails, resolvedAddress } = usePaymentStore()
     const { selectedChainID, selectedTokenData } = useContext(tokenSelectorContext)
+
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
     const [tokenPriceData, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
@@ -259,21 +259,13 @@ export default function ConfirmPaymentView() {
             dispatch(paymentActions.setTransactionHash(hash ?? ''))
 
             // update payment details in backend
-            const response = await fetch(`/api/proxy/charges/${chargeDetails.uuid}/payments`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chainId: currentChain?.id,
-                    hash: hash,
-                    tokenAddress: isXChain ? selectedTokenData?.address : chargeDetails.tokenAddress,
-                }),
+            const paymentDetails = await chargesApi.createPayment({
+                chargeId: chargeDetails.uuid,
+                chainId: selectedChainID,
+                hash: hash || '',
+                tokenAddress: isXChain ? selectedTokenData?.address || '' : chargeDetails.tokenAddress,
             })
 
-            if (!response.ok) {
-                throw new Error('Failed to record payment')
-            }
-
-            const paymentDetails = await response.json()
             dispatch(paymentActions.setPaymentDetails(paymentDetails))
             dispatch(paymentActions.setView('SUCCESS'))
         } catch (error) {
@@ -419,8 +411,6 @@ export default function ConfirmPaymentView() {
                         )}
                     </div>
                 )}
-
-                <InfoRow label="Date" value={formatDate(new Date(chargeDetails.createdAt))} />
 
                 {/* Fee Details Section */}
                 <div className="space-y-1">

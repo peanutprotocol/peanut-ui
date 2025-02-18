@@ -43,6 +43,7 @@ interface ListItemViewProps {
         recipientAddress?: string
         transactionType?: TransactionType
         recipientAddressFormatter?: (address: string) => string
+        disableEnsResolution?: boolean
     }
     details?: IDashboardItem | TokenBalance
 }
@@ -70,14 +71,17 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
     const [modalVisible, setModalVisible] = useState(false)
     const isHistory = variant === 'history'
     const transactionDetails = isHistory ? (details as IDashboardItem) : null
-    const balanceDetails = !isHistory ? (details as TokenBalance) : null
-    // todo: for payment history, unnecessary api calls are being made with incorrect address value, fix it
+    // todo: for payment history, unnecessary api calls were being made with incorrect address value, so temmporarily disabled ens resolution for payment history view
     const { primaryName } = usePrimaryName({
         address: metadata.recipientAddress,
+        enabled: !metadata.disableEnsResolution,
     })
     const primaryNameOrAddress = useMemo(() => {
+        if (metadata.disableEnsResolution) {
+            return metadata.recipientAddress
+        }
         return primaryName && primaryName !== '' ? primaryName : metadata.recipientAddress
-    }, [primaryName, metadata.recipientAddress])
+    }, [primaryName, metadata.recipientAddress, metadata.disableEnsResolution])
 
     // get the transaction status for history variant
     const transactionStatus =

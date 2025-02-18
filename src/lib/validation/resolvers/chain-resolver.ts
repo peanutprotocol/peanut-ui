@@ -2,7 +2,7 @@ import { supportedPeanutChains } from '@/constants'
 import { getChainName } from '@/utils/general.utils'
 import { arbitrum, base, mainnet, optimism, polygon } from 'viem/chains'
 import { SUPPORTED_TOKENS } from '../../url-parser/constants/tokens'
-import { CHAIN_ID_REGEX, TLD, TLDS } from '../constants'
+import { TLD, TLDS } from '../constants'
 
 type ChainNameMapping = {
     [key: string]: {
@@ -20,12 +20,12 @@ export const CHAIN_NAME_VARIANTS: ChainNameMapping = {
         chainId: mainnet.id.toString(),
     },
     optimism: {
-        variants: ['optimism', 'op', 'op mainnet', 'optimism mainnet'],
+        variants: ['optimism', 'op', 'op mainnet', 'optimism mainnet', 'optimism-mainnet'],
         supportsNativeEth: true,
         chainId: optimism.id.toString(),
     },
     arbitrum: {
-        variants: ['arbitrum', 'arbitrum one', 'arbitrum mainnet'],
+        variants: ['arbitrum', 'arbitrum one', 'arbitrum mainnet', 'arb', 'arbitrum-one'],
         supportsNativeEth: true,
         chainId: arbitrum.id.toString(),
     },
@@ -154,30 +154,27 @@ export function supportsNativeEth(chainIdentifier: string): boolean {
     return CHAIN_NAME_VARIANTS[normalized]?.supportsNativeEth ?? false
 }
 
-export function resolveChainId(chainIdentifier: string): string {
-    // case 1: direct chain ID (0x1, 0x89, etc)
-    if (CHAIN_ID_REGEX.test(chainIdentifier)) {
+export function resolveChainId(chainIdentifier: string | number): string {
+    // handle numeric chain IDs (both string and number)
+    if (typeof chainIdentifier === 'number' || !isNaN(Number(chainIdentifier))) {
+        const chainId = typeof chainIdentifier === 'number' ? chainIdentifier : Number(chainIdentifier)
+        // verify its a supported chain
+        const chain = supportedPeanutChains.find((c) => Number(c.chainId) === chainId)
+        if (chain) {
+            return chain.chainId.toString()
+        }
+        throw new Error(`Unsupported chain ID: ${chainIdentifier}`)
+    }
+
+    // case 1: hex chain ID (0x1, 0x89, etc)
+    if (chainIdentifier.startsWith('0x')) {
         return parseInt(chainIdentifier, 16).toString()
     }
 
-    // case 2: TLD (eth, arbitrum, etc)
-    if (TLDS.includes(chainIdentifier.toLowerCase() as TLD)) {
-        const chainConfig = CHAIN_NAME_VARIANTS[chainIdentifier.toLowerCase()]
-        if (!chainConfig) {
-            throw new Error(`Unsupported L1 TLD: ${chainIdentifier}`)
-        }
-        // return corresponding chain ID
-        return chainConfig.chainId
-    }
-
-    // case 3: ENS name with TLD (arbitrum.eth, etc)
-    if (chainIdentifier.endsWith('.eth')) {
-        const networkName = chainIdentifier.replace('.eth', '')
-        const normalizedName = normalizeChainName(networkName)
-        const chainConfig = CHAIN_NAME_VARIANTS[normalizedName]
-        if (!chainConfig) {
-            throw new Error(`Unsupported chain ENS: ${chainIdentifier}`)
-        }
+    // case 2: chain name/TLD (eth, arbitrum, etc)
+    const normalizedName = normalizeChainName(chainIdentifier.toLowerCase())
+    const chainConfig = CHAIN_NAME_VARIANTS[normalizedName]
+    if (chainConfig) {
         return chainConfig.chainId
     }
 
