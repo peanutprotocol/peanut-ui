@@ -1,19 +1,17 @@
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
-import { useContext, useMemo, useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
-import * as utils from '@/utils'
-import * as context from '@/context'
-import Loading from '../Loading'
-import CountryDropdown from '../CountrySelect'
-import Link from 'next/link'
-import Icon from '../Icon'
 import { useAuth } from '@/context/authContext'
-import { Divider } from '@chakra-ui/react'
-import { isIBAN } from 'validator'
 import { IBridgeAccount, IResponse } from '@/interfaces'
-import { USBankAccountInput } from '../USBankAccountInput'
-import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
+import * as utils from '@/utils'
+import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
+import { Divider } from '@chakra-ui/react'
+import Link from 'next/link'
+import { isIBAN } from 'validator'
+import CountryDropdown from '../CountrySelect'
+import Icon from '../Icon'
+import Loading from '../Loading'
 
 const steps = [{ label: '1. Bank Account' }, { label: '2. Confirm details' }]
 
@@ -48,6 +46,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    const [reKYCUrl, setReKYCUrl] = useState<string | undefined>(undefined) // state to set KYC url, if re-kyc verification is required
     const [completedLinking, setCompletedLinking] = useState(false)
     const {
         register: registerAccountDetails,
@@ -111,7 +110,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
     useEffect(() => {
         // Check if we need to show address input fields
         if (getAccountDetailsValue('type') === 'us') {
-            if (!user?.user?.kycStatus || user.user.kycStatus !== 'verified') {
+            if (!user?.user?.kycStatus || user.user.kycStatus !== 'approved') {
                 // Always show address fields for unverified users
                 setNeedsAddressInput(true)
             } else {
@@ -186,6 +185,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 showError: false,
                 errorMessage: '',
             })
+            setReKYCUrl(undefined)
 
             console.log('Starting form submission with user data:', {
                 user,
@@ -306,14 +306,30 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 customerId,
                 formData.type as 'iban' | 'us',
                 accountDetails,
-                // Only include address for US accounts
                 formData.type === 'us' ? address : undefined,
                 accountOwnerName
             )
 
             console.log('Create external account response:', response)
 
+            // handle verification requirement first
             if (!response.success) {
+                // check for verification URL
+                if (response.details?.code === 'endorsement_requirements_not_met') {
+                    const verificationUrl = response.details.requirements?.kyc_with_proof_of_address
+
+                    setErrorState({
+                        showError: true,
+                        errorMessage: response.message || 'Please complete the verification process to continue.',
+                    })
+
+                    if (verificationUrl) {
+                        setReKYCUrl(verificationUrl)
+                    }
+                    return
+                }
+
+                // handle other errors
                 setErrorState({
                     showError: true,
                     errorMessage: response.message || 'Failed to create external account',
@@ -342,7 +358,6 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             let errorMessage = 'Failed to link bank account'
 
             if (error instanceof Error) {
-                // Clean up error message by removing redundant "Error:" prefixes
                 errorMessage = error.message.replace(/^Error:\s+/g, '')
             }
 
@@ -404,8 +419,24 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                             )}
                         </button>
                         {errorState.showError && (
-                            <div className="text-center">
-                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                            <div className="text-start">
+                                {reKYCUrl ? (
+                                    <div className="flex flex-col gap-2">
+                                        <label className="whitespace-normal text-h8 font-normal text-red">
+                                            {errorState.errorMessage}{' '}
+                                            <a
+                                                href={reKYCUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="underline"
+                                            >
+                                                Click here to complete additional KYC verification.
+                                            </a>
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
+                                )}
                             </div>
                         )}
                     </form>
@@ -499,7 +530,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                             </div>
                                         </div>
 
-                                        <div className="flex gap-2">
+                                        <div className="flex w-full flex-col gap-2 md:flex-row">
                                             <div className="flex-1">
                                                 <input
                                                     {...registerAccountDetails('postalCode', {
@@ -563,8 +594,24 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                             )}
                         </button>
                         {errorState.showError && (
-                            <div className="text-center">
-                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                            <div className="text-start">
+                                {reKYCUrl ? (
+                                    <div className="flex flex-col gap-2">
+                                        <label className="whitespace-normal text-h8 font-normal text-red">
+                                            {errorState.errorMessage}{' '}
+                                            <a
+                                                href={reKYCUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="underline"
+                                            >
+                                                Click here to complete additional KYC verification.
+                                            </a>
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
+                                )}
                             </div>
                         )}
                     </form>
@@ -574,7 +621,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
 
     return user?.user?.kycStatus === 'approved' ? (
         completedLinking ? (
-            <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
+            <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-start">
                 <p>You have successfully linked your account!</p>
                 <Link
                     className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
@@ -587,7 +634,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 </Link>
             </div>
         ) : (
-            <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
+            <div className="flex w-full flex-col items-center justify-center gap-6 px-2 text-start">
                 <p className="text-h8 font-normal">
                     Complete the following steps to link your bank account to your peanut profile for a smooth cashout
                     experience.
@@ -597,7 +644,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                     orientation="vertical"
                     colorScheme="purple"
                     activeStep={activeStep}
-                    onClickStep={(step) => setActiveStep(step)}
+                    onClickStep={(step: number) => setActiveStep(step)}
                     sx={{
                         '& .cui-steps__vertical-step': {
                             '&:last-of-type': {
@@ -614,7 +661,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 >
                     {steps.map(({ label }, index) => (
                         <Step label={label} key={label}>
-                            <div className="relative z-10 flex w-full items-center justify-center pr-[40px]">
+                            <div className="relative z-10 flex w-full items-center justify-center md:pr-[40px]">
                                 {renderComponent()}
                             </div>
                         </Step>
