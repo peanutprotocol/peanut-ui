@@ -1,7 +1,8 @@
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
+import Cookies from 'js-cookie'
 
 import * as interfaces from '@/interfaces'
-import * as consts from '@/constants'
+import { PEANUT_API_URL, supportedPeanutChains } from '@/constants'
 import {
     getTokenSymbol,
     getClaimedLinksFromLocalStorage,
@@ -58,10 +59,10 @@ export const useDashboard = () => {
         const createdLinks = getCreatedLinksFromLocalStorage({ address: address })!
         const directSends = getDirectSendFromLocalStorage({ address: address })!
         const offrampClaims = getOfframpClaimsFromLocalStorage()!
-        const historyResponse = await fetch(`/api/proxy/get/users/7061bf15-1840-4e41-ad02-3c268dec0f3c/history`, {
-            method: 'GET',
+        const historyResponse = await fetch(`${PEANUT_API_URL}/users/history`, {
             headers: {
                 'Content-Type': 'application/json',
+                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
             },
         })
         const requestHistory = await historyResponse.json()
@@ -74,7 +75,7 @@ export const useDashboard = () => {
                 type: 'Link Received',
                 amount: link.tokenAmount,
                 tokenSymbol: link.tokenSymbol,
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                chain: supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.depositDate.toString(),
                 address: link.senderAddress,
                 status: 'claimed',
@@ -91,7 +92,7 @@ export const useDashboard = () => {
                 type: 'Offramp Claim',
                 amount: link.tokenAmount,
                 tokenSymbol: link.tokenSymbol,
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                chain: supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.depositDate.toString(),
                 address: link.senderAddress,
                 status: undefined,
@@ -108,7 +109,7 @@ export const useDashboard = () => {
                 type: 'Link Sent',
                 amount: link.tokenAmount.toString(),
                 tokenSymbol: getTokenSymbol(link.tokenAddress ?? '', link.chainId) ?? '',
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                chain: supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.depositDate.toString(),
                 address: undefined,
                 status: undefined,
@@ -125,7 +126,7 @@ export const useDashboard = () => {
                 type: 'Direct Sent',
                 amount: link.tokenAmount.toString(),
                 tokenSymbol: getTokenSymbol(link.tokenAddress ?? '', link.chainId) ?? '',
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                chain: supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.date.toString(),
                 address: undefined,
                 status: 'transfer',
@@ -143,7 +144,7 @@ export const useDashboard = () => {
                 type: entry.userRole === 'SENDER' ? 'Request Link Fulfillment' : 'Request Link',
                 amount: entry.amount.toString(),
                 tokenSymbol: entry.tokenSymbol,
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === entry.chainId)?.name ?? '',
+                chain: supportedPeanutChains.find((chain) => chain.chainId === entry.chainId)?.name ?? '',
                 date: entry.timestamp.toString(),
                 address: '',
                 status: entry.status,
