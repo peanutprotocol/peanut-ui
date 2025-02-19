@@ -17,7 +17,7 @@ const ProfileSection = ({}: ProfileSectionProps) => {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 py-2">
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <Image
@@ -45,7 +45,8 @@ const ProfileSection = ({}: ProfileSectionProps) => {
                     <CopyToClipboard fill="black" textToCopy={`https://peanut.me/${user?.user.username}`} />
                 </div>
             </div>
-            <div className="border-t border-dashed border-black">
+            {/* todo: revisit later, commenting out for now */}
+            {/* <div className="border-t border-dashed border-black">
                 {
                     <div className="flex justify-between py-2">
                         {Object.entries(points).map(([key, value]) => (
@@ -56,7 +57,7 @@ const ProfileSection = ({}: ProfileSectionProps) => {
                         ))}
                     </div>
                 }
-            </div>
+            </div> */}
         </div>
     )
 }
