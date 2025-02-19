@@ -93,7 +93,7 @@ const ValidatedInput = ({
 
     return (
         <div
-            className={`relative w-full max-w-96 border border-n-1 dark:border-white${
+            className={`relative w-full border border-n-1 dark:border-white ${
                 value && !isValidating && !isValid && debouncedValue === value ? ' border-red dark:border-red' : ''
             } ${className}`}
         >
@@ -138,9 +138,7 @@ const ValidatedInput = ({
                 {value && (
                     <div
                         className={`h-full ${
-                            isValidating
-                                ? 'opacity-100'
-                                : 'opacity-100 transition-opacity hover:opacity-100 md:opacity-0'
+                            isValidating ? 'opacity-100' : 'opacity-100 transition-opacity hover:opacity-100'
                         }`}
                     >
                         {isValidating ? (
@@ -153,7 +151,7 @@ const ValidatedInput = ({
                                     e.preventDefault()
                                     onUpdate({ value: '', isValid: false, isChanging: false })
                                 }}
-                                className="flex h-full w-6 items-center justify-center pr-2 dark:bg-n-1 md:w-8 md:pr-0"
+                                className="flex h-full w-6 items-center justify-center pr-2 dark:bg-n-1"
                             >
                                 <Icon className="h-6 w-6 dark:fill-white" name="close" />
                             </button>
