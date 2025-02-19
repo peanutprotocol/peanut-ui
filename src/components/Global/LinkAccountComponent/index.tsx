@@ -301,7 +301,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                       }
 
             // Create the external account
-            const response: IResponse = await utils.createExternalAccount(
+            const createExternalAccountRes: IResponse = await utils.createExternalAccount(
                 customerId,
                 formData.type as 'iban' | 'us',
                 accountDetails,
@@ -309,17 +309,16 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 accountOwnerName
             )
 
-            console.log('Create external account response:', response)
-
             // handle verification requirement first
-            if (!response.success) {
+            if (!createExternalAccountRes.success) {
                 // check for verification URL
-                if (response.details?.code === 'endorsement_requirements_not_met') {
-                    const verificationUrl = response.details.requirements?.kyc_with_proof_of_address
+                if (createExternalAccountRes.details?.code === 'endorsement_requirements_not_met') {
+                    const verificationUrl = createExternalAccountRes.details.requirements?.kyc_with_proof_of_address
 
                     setErrorState({
                         showError: true,
-                        errorMessage: response.message || 'Please complete the verification process to continue.',
+                        errorMessage:
+                            createExternalAccountRes.message || 'Please complete the verification process to continue.',
                     })
 
                     if (verificationUrl) {
@@ -331,32 +330,29 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 // handle other errors
                 setErrorState({
                     showError: true,
-                    errorMessage: response.message || 'Failed to create external account',
+                    errorMessage: createExternalAccountRes.message || 'Failed to create external account',
                 })
                 return
             }
+
+            const bridgeAccountId = createExternalAccountRes.data.data.id
 
             // add account to database
             await utils.createAccount(
                 user.user.userId,
                 customerId,
-                response.data.id,
+                bridgeAccountId,
                 formData.type,
                 accountDetails.accountNumber,
-                response.data
+                createExternalAccountRes.data.data
             )
 
             onCompleted ? onCompleted() : setCompletedLinking(true)
         } catch (error) {
             console.error('Error in handleSubmitLinkIban:', error)
-            let errorMessage = 'Failed to link bank account'
-
-            if (error instanceof Error) {
-                errorMessage = error.message.replace(/^Error:\s+/g, '')
-            }
             setErrorState({
                 showError: true,
-                errorMessage: errorMessage || 'Failed to link bank account. Please try again.',
+                errorMessage: error instanceof Error ? error.message : 'Failed to link bank account. Please try again.',
             })
         } finally {
             setLoadingState('idle')
@@ -423,7 +419,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                                 rel="noopener noreferrer"
                                                 className="underline"
                                             >
-                                                Click here to complete additional KYC verification.
+                                                Click here to complete the process.
                                             </a>
                                         </label>
                                     </div>
@@ -598,7 +594,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                                 rel="noopener noreferrer"
                                                 className="underline"
                                             >
-                                                Click here to complete additional KYC verification.
+                                                Click here to complete the process.
                                             </a>
                                         </label>
                                     </div>

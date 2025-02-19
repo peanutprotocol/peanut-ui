@@ -2,15 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json()
+        // parse request body
+        let body
+        try {
+            body = await request.json()
+        } catch (error) {
+            return new NextResponse(
+                JSON.stringify({
+                    success: false,
+                    error: 'Invalid request body',
+                    details: 'Failed to parse request body as JSON',
+                }),
+                {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' },
+                }
+            )
+        }
+
         const { customerId } = body
 
         if (!customerId) {
             return new NextResponse(
                 JSON.stringify({
                     success: false,
-                    error: 'Customer ID is required',
-                    details: 'Missing customerId in request body',
+                    error: 'Missing required parameter',
+                    details: 'customerId is required in request body',
                 }),
                 {
                     status: 400,
@@ -48,8 +65,12 @@ export async function POST(request: NextRequest) {
                 JSON.stringify({
                     success: false,
                     error: 'Bridge API error',
-                    details: data?.message || `Failed to fetch accounts: ${response.status} ${response.statusText}`,
-                    status: response.status,
+                    details: {
+                        status: response.status,
+                        message: data?.message || response.statusText,
+                        code: data?.code,
+                        additionalInfo: data?.details || data?.requirements,
+                    },
                 }),
                 {
                     status: response.status,
@@ -59,17 +80,34 @@ export async function POST(request: NextRequest) {
         }
 
         // Bridge API returns { data: Account[] }, we want to return just the array
-        return new NextResponse(JSON.stringify(data.data || []), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-        })
+        return new NextResponse(
+            JSON.stringify({
+                success: true,
+                data: data.data || [],
+            }),
+            {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            }
+        )
     } catch (error) {
-        console.error('Error in get-all-for-customerId:', error)
+        console.error('Error in get-all-for-customerId:', {
+            error,
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+        })
+
         return new NextResponse(
             JSON.stringify({
                 success: false,
                 error: 'Internal server error',
-                details: error instanceof Error ? error.message : 'Unknown error occurred',
+                details: {
+                    message: error instanceof Error ? error.message : 'Unknown error occurred',
+                    type: error instanceof Error ? error.name : typeof error,
+                    ...(process.env.NODE_ENV === 'development' && {
+                        stack: error instanceof Error ? error.stack : undefined,
+                    }),
+                },
             }),
             {
                 status: 500,

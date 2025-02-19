@@ -140,7 +140,7 @@ export const OfframpConfirmView = ({
 
         if (!bridgeExternalAccountId) {
             console.error('Missing bridge_account_id for account:', peanutAccount)
-            throw new Error('Bank account needs to be re-linked. Please remove and add your bank account again.')
+            throw new Error('There was an error creating your bridge account. Please contact support for assistance.')
         }
 
         // Fetch all liquidation addresses for the user
