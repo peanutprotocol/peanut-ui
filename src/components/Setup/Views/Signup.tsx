@@ -77,7 +77,7 @@ const SignupStep = () => {
         isChanging: boolean
         isValid: boolean
     }) => {
-        dispatch(setupActions.setHandle(value.trim().toLowerCase()))
+        dispatch(setupActions.setHandle(value.toLowerCase()))
         setIsValid(isValid)
         setIsChanging(isChanging)
 
