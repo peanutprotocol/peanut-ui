@@ -292,15 +292,19 @@ export const InitialClaimLinkView = ({
     }, [address])
 
     useEffect(() => {
-        if (
+        const isSameChainAndToken =
             selectedChainID === claimLinkData.chainId &&
             areTokenAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
-        ) {
+
+        if (isSameChainAndToken) {
             setIsXChain(false)
             setSelectedRoute(null)
             setHasFetchedRoute(false)
         } else {
             setIsXChain(true)
+            // reset route when changing chains/tokens
+            setSelectedRoute(null)
+            setHasFetchedRoute(false)
         }
     }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
 
@@ -390,6 +394,29 @@ export const InitialClaimLinkView = ({
         setHasFetchedRoute(false)
     }, [recipientType])
 
+    // determine if its a cross-chain tx
+    const isCrossChainTransaction = useMemo(() => {
+        return (
+            selectedChainID !== claimLinkData.chainId ||
+            !areTokenAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
+        )
+    }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
+
+    // handle route fetching when returning to Initial view
+    useEffect(() => {
+        if (isCrossChainTransaction && !selectedRoute && !isXchainLoading) {
+            setIsXchainLoading(true)
+            setLoadingState('Fetching route')
+            setHasFetchedRoute(true)
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
+
+            fetchRoute()
+        }
+    }, [isCrossChainTransaction])
+
     return (
         <>
             <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
@@ -465,45 +492,41 @@ export const InitialClaimLinkView = ({
                     />
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                         <div className="flex w-full flex-col items-center justify-center gap-2">
-                            {selectedRoute && (
+                            {isCrossChainTransaction && (
                                 <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                                     <div className="flex w-max flex-row items-center justify-center gap-1">
                                         <Icon name={'forward'} className="h-4 fill-gray-1" />
                                         <label className="font-bold">Route</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                        {isXchainLoading ? (
+                                        {isXchainLoading || !selectedRoute ? (
                                             <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                         ) : (
-                                            selectedRoute && (
-                                                <>
-                                                    {
+                                            <>
+                                                {
+                                                    consts.supportedPeanutChains.find(
+                                                        (chain) =>
+                                                            chain.chainId === selectedRoute.route.params.fromChain
+                                                    )?.name
+                                                }
+                                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                                {
+                                                    supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
+                                                        ?.axelarChainName
+                                                }
+                                                <MoreInfo
+                                                    text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
                                                         consts.supportedPeanutChains.find(
                                                             (chain) =>
                                                                 chain.chainId === selectedRoute.route.params.fromChain
                                                         )?.name
-                                                    }
-                                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                                    {
+                                                    } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
                                                         supportedSquidChainsAndTokens[
                                                             selectedRoute.route.params.toChain
                                                         ]?.axelarChainName
-                                                    }
-                                                    <MoreInfo
-                                                        text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
-                                                            consts.supportedPeanutChains.find(
-                                                                (chain) =>
-                                                                    chain.chainId ===
-                                                                    selectedRoute.route.params.fromChain
-                                                            )?.name
-                                                        } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                                            supportedSquidChainsAndTokens[
-                                                                selectedRoute.route.params.toChain
-                                                            ]?.axelarChainName
-                                                        }.`}
-                                                    />
-                                                </>
-                                            )
+                                                    }.`}
+                                                />
+                                            </>
                                         )}
                                     </span>
                                 </div>
@@ -546,7 +569,7 @@ export const InitialClaimLinkView = ({
                         onClick={() => {
                             if (!isConnected && recipient.address.length === 0) {
                                 handleConnectWallet()
-                            } else if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
+                            } else if (isCrossChainTransaction || recipient.address !== address) {
                                 if (recipientType === 'iban' || recipientType === 'us') {
                                     handleIbanRecipient()
                                 } else {
@@ -560,7 +583,7 @@ export const InitialClaimLinkView = ({
                             isLoading ||
                             isXchainLoading ||
                             inputChanging ||
-                            (hasFetchedRoute && !selectedRoute) ||
+                            (hasFetchedRoute && !selectedRoute && isCrossChainTransaction) ||
                             (isValidRecipient === false && recipient.address.length > 0)
                         }
                     >
@@ -570,7 +593,7 @@ export const InitialClaimLinkView = ({
                             </div>
                         ) : !isConnected && recipient.address.length === 0 ? (
                             'Connect Wallet'
-                        ) : (hasFetchedRoute && selectedRoute) || recipient.address !== address ? (
+                        ) : isCrossChainTransaction || recipient.address !== address ? (
                             'Proceed'
                         ) : (
                             'Claim now'
