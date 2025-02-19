@@ -11,7 +11,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken, IUserBalance } from '@/interfaces'
-import { fetchTokenSymbol, isNativeCurrency, saveRequestLinkToLocalStorage } from '@/utils'
+import { fetchTokenSymbol, isNativeCurrency } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Create.consts'
@@ -139,9 +139,7 @@ export const InitialView = ({
                 }
                 link += `?id=${requestLinkDetails.uuid}`
 
-                //TODO: remove after history implementation.
                 requestLinkDetails.link = link
-                saveRequestLinkToLocalStorage({ details: requestLinkDetails })
 
                 setLink(link)
                 onNext()
