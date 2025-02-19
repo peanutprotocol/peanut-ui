@@ -139,8 +139,9 @@ export const useDashboard = () => {
 
         // TODO: use history entry typing
         requestHistory.entries.forEach((entry: any) => {
+            const recipient = entry.recipientAccount.username ?? entry.recipientAccount.identifier
             linkData.push({
-                link: `${process.env.NEXT_PUBLIC_BASE_URL}/request/pay?id=${entry.uuid}`,
+                link: `${process.env.NEXT_PUBLIC_BASE_URL}/${recipient}/chargeId=${entry.uuid}`,
                 type: entry.userRole === 'SENDER' ? 'Request Link Fulfillment' : 'Request Link',
                 amount: entry.amount.toString(),
                 tokenSymbol: entry.tokenSymbol,
