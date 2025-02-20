@@ -298,7 +298,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
             />
 
             {/* Requested payment details if available */}
-            {renderRequestedPaymentDetails()}
+            {requestId && renderRequestedPaymentDetails()}
 
             {/* Always show token selector for payment options */}
             {!isPeanutWallet && (
@@ -316,10 +316,18 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
             {/* Show Peanut Wallet cross-chain warning */}
             {isPeanutWalletCrossChainRequest && (
                 <ErrorAlert
-                    error={
+                    label="Note"
+                    description={
                         'Cross-chain payments are not supported with Peanut Wallet yet. Switch to an external wallet to pay this request.'
                     }
                 />
+            )}
+
+            {!isPeanutWallet && !requestId && (
+                <div className="mt-4 text-xs text-grey-1">
+                    You can choose to pay with any token on any network. The payment will be automatically converted to
+                    the requested token.
+                </div>
             )}
 
             <div className="space-y-2">

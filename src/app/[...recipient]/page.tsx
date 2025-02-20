@@ -4,6 +4,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import PaymentHistory from '@/components/Payment/History'
 import ChargeStatusView from '@/components/Payment/Views/Charge.status.view'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
+import ValidationErrorView from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import RequestStatusView from '@/components/Payment/Views/Request.status.view'
 import { JUSTANAME_ENS, supportedPeanutChains } from '@/constants'
@@ -194,7 +195,11 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     }, [requestId, dispatch])
 
     if (error) {
-        return <div>Error: {error.message}</div>
+        return (
+            <div className="mx-auto h-full w-full space-y-8 self-center md:w-6/12">
+                <ValidationErrorView />
+            </div>
+        )
     }
 
     if (isLoadingCharge || (chargeId && !currentView)) {

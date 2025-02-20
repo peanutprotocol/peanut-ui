@@ -1,6 +1,9 @@
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_NAME } from '@/constants'
 import { isAddress } from 'viem'
+import { CHAIN_ID_REGEX } from '../validation/constants'
 import { resolveChainId } from '../validation/resolvers/chain-resolver'
+import { SUPPORTED_TOKENS } from './constants/tokens'
+import { AmountValidationError, ChainValidationError, RecipientValidationError, TokenValidationError } from './errors'
 import { parseChainSpecificAddress } from './parsers/address.parser'
 import { ParsedURL, RecipientType } from './types/payment'
 
@@ -20,10 +23,16 @@ function parseAmountAndToken(amountString: string): { amount?: string; token?: s
         if (/^\d*\.?\d*$/.test(amountString)) {
             return { amount: amountString }
         }
-        return {}
+        throw new AmountValidationError('Invalid amount format')
     }
 
     const [_, amount, token] = match
+
+    // validate token if present
+    if (token && !SUPPORTED_TOKENS[token.toUpperCase()]) {
+        throw new TokenValidationError(`Unsupported token: ${token}`)
+    }
+
     // normalize token to uppercase for consistency
     return {
         amount: amount || undefined,
@@ -33,7 +42,7 @@ function parseAmountAndToken(amountString: string): { amount?: string; token?: s
 
 export function parsePaymentURL(segments: string[]): ParsedURL {
     if (segments.length === 0) {
-        throw new Error('Invalid URL format: No recipient specified')
+        throw new RecipientValidationError('Invalid URL format: No recipient specified')
     }
 
     // decode the first segment to handle URL encoding
@@ -53,7 +62,7 @@ export function parsePaymentURL(segments: string[]): ParsedURL {
     if (chainSpecificAddress) {
         const remainingSegments = segments.slice(1)
         try {
-            // resolve chain ID from chain-specific address
+            // resolve chain ID from chain-specific address and validate chain
             const chainId = resolveChainId(chainSpecificAddress.chain)
 
             const baseResult: ParsedURL = {
@@ -73,40 +82,74 @@ export function parsePaymentURL(segments: string[]): ParsedURL {
             }
 
             return baseResult
-        } catch (error) {
-            console.error('Chain resolution error:', error)
-            // if chain resolution fails, still parse the address but without chain
-            const baseResult: ParsedURL = {
-                recipient: chainSpecificAddress.user,
-                recipientType: detectRecipientType(chainSpecificAddress.user),
-                chain: chain, // use the chain from @ if available
-            }
-
-            // if there's an amount segment, parse it for both amount and token
-            if (remainingSegments.length > 0) {
-                const { amount, token } = parseAmountAndToken(remainingSegments[0])
-                return {
-                    ...baseResult,
-                    ...(amount && { amount }),
-                    ...(token && { token }),
+        } catch (error: any) {
+            // fallback for special cases that contain dots
+            if (chainSpecificAddress.chain.includes('.')) {
+                console.warn('Chain resolution warning:', error)
+                const baseResult: ParsedURL = {
+                    recipient: chainSpecificAddress.user,
+                    recipientType: detectRecipientType(chainSpecificAddress.user),
+                    chain: chainSpecificAddress.chain,
                 }
+
+                if (remainingSegments.length > 0) {
+                    const { amount, token } = parseAmountAndToken(remainingSegments[0])
+                    return {
+                        ...baseResult,
+                        ...(amount && { amount }),
+                        ...(token && { token }),
+                    }
+                }
+
+                return baseResult
             }
 
-            return baseResult
+            // check for hex chain IDs
+            if (typeof chainSpecificAddress.chain === 'string' && CHAIN_ID_REGEX.test(chainSpecificAddress.chain)) {
+                const baseResult: ParsedURL = {
+                    recipient: chainSpecificAddress.user,
+                    recipientType: detectRecipientType(chainSpecificAddress.user),
+                    chain: parseInt(chainSpecificAddress.chain, 16).toString(),
+                }
+                return baseResult
+            }
+
+            // for all other cases, throw the chain validation error
+            throw new ChainValidationError(error.message)
         }
     }
 
-    // if not chain-specific, validate eth addresses
-    if (firstSegment.startsWith('0x')) {
-        if (!isAddress(firstSegment)) {
-            throw new Error('Invalid Ethereum address format')
+    // check for ENS names
+    if (recipient.endsWith('.eth')) {
+        // handle remaining segments
+        if (segments.length > 1) {
+            const { amount, token } = parseAmountAndToken(segments[1])
+            return {
+                recipient,
+                recipientType: 'ENS',
+                chain, // include the chain from @ if it was present
+                ...(amount && { amount }),
+                ...(token && { token }),
+            }
+        }
+        return {
+            recipient,
+            recipientType: 'ENS',
+            chain,
+        }
+    }
+
+    // validate Ethereum addresses before username check
+    if (recipient.startsWith('0x') && !recipient.endsWith('.eth')) {
+        if (!isAddress(recipient)) {
+            throw new RecipientValidationError('Invalid Ethereum address format')
         }
     }
 
     // check if its peanut native username (no .eth suffix)
-    if (!firstSegment.includes('.eth') && !isAddress(firstSegment)) {
+    if (!recipient.includes('.eth') && !isAddress(recipient)) {
         // if its peanut native username, extract just the username part if @ is present in segment
-        const username = firstSegment.split('@')[0]
+        const username = recipient.split('@')[0]
 
         // parse amount from remaining segments
         const { amount } = segments.length > 1 ? parseAmountAndToken(segments[1]) : { amount: undefined }
@@ -127,7 +170,7 @@ export function parsePaymentURL(segments: string[]): ParsedURL {
         return {
             recipient,
             recipientType: detectRecipientType(recipient),
-            chain: chain, // include the chain from @ if it was present
+            chain,
             ...(amount && { amount }),
             ...(token && { token }),
         }
@@ -136,6 +179,6 @@ export function parsePaymentURL(segments: string[]): ParsedURL {
     return {
         recipient,
         recipientType: detectRecipientType(recipient),
-        chain: chain, // include the chain from @ if it was present
+        chain, // include the chain from @ if it was present
     }
 }

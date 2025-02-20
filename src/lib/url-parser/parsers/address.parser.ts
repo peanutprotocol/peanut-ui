@@ -1,4 +1,4 @@
-import { CHAIN_ID_REGEX, ENS_REGEX, TLD, TLDS } from '@/lib/validation/constants'
+import { ENS_REGEX } from '@/lib/validation/constants'
 import { isAddress } from 'viem'
 
 interface ChainSpecificAddress {
@@ -13,14 +13,12 @@ export function parseChainSpecificAddress(input: string): ChainSpecificAddress |
         return null
     }
 
+    // split the input into user and chain parts
     const [user, chain] = parts
 
-    // for chain IDs, check if it's a valid number
-    if (!isNaN(Number(chain))) {
-        return {
-            user,
-            chain: chain,
-        }
+    // validate both parts exist
+    if (!user || !chain) {
+        return null
     }
 
     // validate user (must be valid address or ENS)
@@ -28,16 +26,20 @@ export function parseChainSpecificAddress(input: string): ChainSpecificAddress |
         return null
     }
 
-    // validate chain (chain_id | TLD | ens-name.TLD)
-    if (!isValidChain(chain)) {
-        return null
+    // return the parsed parts
+    return {
+        user,
+        chain,
     }
-
-    return { user, chain }
 }
 
 // helper function to validate user
 function isValidUser(user: string): boolean {
+    // check for ENS names first (including those starting with 0x)
+    if (user.endsWith('.eth')) {
+        return ENS_REGEX.test(user)
+    }
+
     // for addresses, must be a valid Ethereum address
     if (user.startsWith('0x')) {
         return isAddress(user)
@@ -45,28 +47,6 @@ function isValidUser(user: string): boolean {
 
     // for ens names, must match regex
     return ENS_REGEX.test(user)
-}
-
-// helper function to validate chain
-function isValidChain(chain: string): boolean {
-    // case 1: chain ID (0x[a-fA-F0-9]{1,64})
-    if (CHAIN_ID_REGEX.test(chain)) {
-        return true
-    }
-
-    // case 2: TLD (eth | arbitrum | ...)
-    if (TLDS.includes(chain.toLowerCase() as TLD)) {
-        return true
-    }
-
-    // case 3: ENS name with TLD (example.eth)
-    if (chain.includes('.')) {
-        const parts = chain.split('.')
-        const tld = parts[parts.length - 1]
-        return TLDS.includes(tld.toLowerCase() as TLD)
-    }
-
-    return false
 }
 
 // helper function to format chain-specific address

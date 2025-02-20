@@ -443,7 +443,7 @@ export default function ConfirmPaymentView() {
             <div className="flex flex-col gap-2">
                 {error && (
                     <div className="space-y-2">
-                        <ErrorAlert error={error} />
+                        <ErrorAlert description={error} />
 
                         <Button
                             onClick={prepareTransaction}

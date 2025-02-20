@@ -2,7 +2,7 @@ import { supportedPeanutChains } from '@/constants'
 import { getChainName } from '@/utils/general.utils'
 import { arbitrum, base, mainnet, optimism, polygon } from 'viem/chains'
 import { SUPPORTED_TOKENS } from '../../url-parser/constants/tokens'
-import { TLD, TLDS } from '../constants'
+import { CHAIN_ID_REGEX, TLD, TLDS } from '../constants'
 
 type ChainNameMapping = {
     [key: string]: {
@@ -155,27 +155,23 @@ export function supportsNativeEth(chainIdentifier: string): boolean {
 }
 
 export function resolveChainId(chainIdentifier: string | number): string {
-    // handle numeric chain IDs (both string and number)
-    if (typeof chainIdentifier === 'number' || !isNaN(Number(chainIdentifier))) {
-        const chainId = typeof chainIdentifier === 'number' ? chainIdentifier : Number(chainIdentifier)
-        // verify its a supported chain
-        const chain = supportedPeanutChains.find((c) => Number(c.chainId) === chainId)
-        if (chain) {
-            return chain.chainId.toString()
-        }
-        throw new Error(`Unsupported chain ID: ${chainIdentifier}`)
-    }
-
-    // case 1: hex chain ID (0x1, 0x89, etc)
-    if (chainIdentifier.startsWith('0x')) {
+    // if it's a hex string, convert to decimal
+    if (typeof chainIdentifier === 'string' && CHAIN_ID_REGEX.test(chainIdentifier)) {
         return parseInt(chainIdentifier, 16).toString()
     }
 
-    // case 2: chain name/TLD (eth, arbitrum, etc)
-    const normalizedName = normalizeChainName(chainIdentifier.toLowerCase())
-    const chainConfig = CHAIN_NAME_VARIANTS[normalizedName]
-    if (chainConfig) {
-        return chainConfig.chainId
+    // for other cases, normalize and look up
+    const normalizedChain = normalizeChainName(chainIdentifier.toString())
+    const chain = supportedPeanutChains.find((c) => normalizeChainName(c.name) === normalizedChain)
+
+    if (chain) {
+        return chain.chainId.toString()
+    }
+
+    // if its already a valid chain ID, return as is
+    const chainId = chainIdentifier.toString()
+    if (supportedPeanutChains.some((c) => c.chainId.toString() === chainId)) {
+        return chainId
     }
 
     throw new Error(`Invalid chain identifier format: ${chainIdentifier}`)
