@@ -1,3 +1,4 @@
+import { IBridgeAccount } from '@/interfaces'
 import { NextRequest, NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -76,7 +77,13 @@ export async function POST(request: NextRequest) {
                     account_number: accountDetails.accountNumber,
                     routing_number: accountDetails.routingNumber,
                 },
-                address,
+                address: {
+                    street_line_1: address.street,
+                    city: address.city,
+                    country: address.country,
+                    state: address.state,
+                    postal_code: address.postalCode,
+                },
                 account_owner_name: accountOwnerName,
                 account_type: 'us',
                 account_owner_type: 'individual',
@@ -108,6 +115,114 @@ export async function POST(request: NextRequest) {
         const data = await response.json()
 
         if (!response.ok) {
+            if (data.code === 'invalid_parameters') {
+                const missingParams = Object.keys(data.source?.key || {})
+                const errorMessage =
+                    missingParams.length > 0
+                        ? `Missing required fields: ${missingParams.map((p) => p.split('.').pop()).join(', ')}`
+                        : data.message
+
+                return new NextResponse(
+                    JSON.stringify({
+                        success: false,
+                        error: 'Bridge API error',
+                        message: errorMessage || 'Failed to create external account',
+                        details: data,
+                    }),
+                    {
+                        status: response.status,
+                        headers: { 'Content-Type': 'application/json' },
+                    }
+                )
+            }
+
+            if (data.code === 'duplicate_external_account') {
+                console.log('Duplicate account detected, fetching existing accounts')
+
+                const bridgeResponse = await fetch(
+                    `https://api.bridge.xyz/v0/customers/${customerId}/external_accounts`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Api-Key': process.env.BRIDGE_API_KEY!,
+                            Accept: 'application/json',
+                        },
+                    }
+                )
+
+                if (!bridgeResponse.ok) {
+                    console.error('Failed to fetch existing accounts:', {
+                        status: bridgeResponse.status,
+                        statusText: bridgeResponse.statusText,
+                    })
+
+                    const errorData = await bridgeResponse.json().catch(() => ({}))
+                    return new NextResponse(
+                        JSON.stringify({
+                            success: false,
+                            error: 'Failed to fetch existing accounts',
+                            details: {
+                                status: bridgeResponse.status,
+                                message: errorData.message || bridgeResponse.statusText,
+                                code: errorData.code,
+                            },
+                        }),
+                        {
+                            status: 500,
+                            headers: { 'Content-Type': 'application/json' },
+                        }
+                    )
+                }
+
+                const bridgeData = await bridgeResponse.json()
+                console.log('Found existing accounts:', bridgeData)
+
+                // Bridge API returns { data: Account[] }
+                const accounts = bridgeData.data || []
+
+                const existingAccount = accounts.find((account: IBridgeAccount) => {
+                    if (accountType === 'iban') {
+                        return (
+                            account.account_details.type === 'iban' &&
+                            account.account_details.last_4 === accountDetails.accountNumber.slice(-4)
+                        )
+                    } else {
+                        return (
+                            account.account_details.type === 'us' &&
+                            account.account_details.last_4 === accountDetails.accountNumber.slice(-4) &&
+                            account.account_details.routing_number === accountDetails.routingNumber
+                        )
+                    }
+                })
+
+                if (!existingAccount) {
+                    return new NextResponse(
+                        JSON.stringify({
+                            success: false,
+                            error: 'Account not found',
+                            details: 'Could not find matching existing account',
+                        }),
+                        {
+                            status: 404,
+                            headers: { 'Content-Type': 'application/json' },
+                        }
+                    )
+                }
+
+                console.log('Found matching existing account:', existingAccount)
+
+                return new NextResponse(
+                    JSON.stringify({
+                        success: true,
+                        data: existingAccount,
+                    }),
+                    {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' },
+                    }
+                )
+            }
+
             return new NextResponse(
                 JSON.stringify({
                     success: false,
