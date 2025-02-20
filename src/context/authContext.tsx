@@ -3,7 +3,7 @@ import { usePWAStatus } from '@/hooks/usePWAStatus'
 import * as interfaces from '@/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { type GetUserLinksResponse } from '@/utils'
+import { type GetUserLinksResponse, fetchWithSentry } from '@/utils'
 import { hitUserMetric } from '@/utils/metrics.utils'
 import { ToastId, useToast } from '@chakra-ui/react'
 import { useAppKit } from '@reown/appkit/react'
@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         queryKey: ['user'],
         initialData: null,
         queryFn: async () => {
-            const userResponse = await fetch('/api/peanut/user/get-user-from-cookie')
+            const userResponse = await fetchWithSentry('/api/peanut/user/get-user-from-cookie')
             if (userResponse.ok) {
                 const userData: interfaces.IUserProfile | null = await userResponse.json()
                 if (userData) {
@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 status: 'loading',
                 title: 'Updating username...',
             }) as ToastId
-            const response = await fetch('/api/peanut/user/update-user', {
+            const response = await fetchWithSentry('/api/peanut/user/update-user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!user) return
 
         try {
-            const response = await fetch('/api/peanut/user/update-user', {
+            const response = await fetchWithSentry('/api/peanut/user/update-user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -184,7 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const formData = new FormData()
             formData.append('file', file)
 
-            const response = await fetch('/api/peanut/user/submit-profile-photo', {
+            const response = await fetchWithSentry('/api/peanut/user/submit-profile-photo', {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer your-auth-token`,
@@ -236,7 +236,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: string
         }
     }) => {
-        const response = await fetch('/api/peanut/user/add-account', {
+        const response = await fetchWithSentry('/api/peanut/user/add-account', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -268,7 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setIsLoggingOut(true)
         try {
-            const response = await fetch('/api/peanut/user/logout-user', {
+            const response = await fetchWithSentry('/api/peanut/user/logout-user', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

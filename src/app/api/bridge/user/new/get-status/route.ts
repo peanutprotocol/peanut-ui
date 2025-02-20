@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server'
 import * as interfaces from '@/interfaces'
 import { GET as getUserFromCookie } from '@/app/api/peanut/user/get-user-from-cookie/route'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
             return new NextResponse('Forbidden', { status: 403 })
         }
 
-        const response = await fetch(`https://api.bridge.xyz/v0/kyc_links/${userId}`, {
+        const response = await fetchWithSentry(`https://api.bridge.xyz/v0/kyc_links/${userId}`, {
             method: 'GET',
             headers: {
                 'Api-Key': process.env.BRIDGE_API_KEY,

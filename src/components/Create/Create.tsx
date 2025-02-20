@@ -5,7 +5,7 @@ import { createElement, Suspense, useContext, useEffect, useState } from 'react'
 
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import * as utils from '@/utils'
+import { fetchWithSentry, rankAddressesByInteractions } from '@/utils'
 import PageContainer from '../0_Bruddle/PageContainer'
 import * as _consts from './Create.consts'
 
@@ -76,7 +76,7 @@ export const Create = () => {
     }
 
     const fetchRecentTransactions = async () => {
-        const response = await fetch('/api/recent-transactions', {
+        const response = await fetchWithSentry('/api/recent-transactions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -86,12 +86,12 @@ export const Create = () => {
             }),
         })
         const data = await response.json()
-        const recentRanked = (await utils.rankAddressesByInteractions(data.data.portfolios)).slice(0, 3)
+        const recentRanked = (await rankAddressesByInteractions(data.data.portfolios)).slice(0, 3)
         setRecentRecipients(recentRanked)
     }
 
     const fetchAndSetCrossChainDetails = async () => {
-        const response = await fetch('https://apiplus.squidrouter.com/v2/chains', {
+        const response = await fetchWithSentry('https://apiplus.squidrouter.com/v2/chains', {
             headers: {
                 'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C',
             },

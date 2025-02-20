@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants'
+import { fetchWithSentry } from '@/utils'
 
 export async function PATCH(request: NextRequest) {
     const separator = '/api/proxy/patch/'
@@ -27,7 +28,7 @@ export async function PATCH(request: NextRequest) {
         'Api-Key': process.env.PEANUT_API_KEY!,
     } as any
 
-    const apiResponse = await fetch(fullAPIUrl, {
+    const apiResponse = await fetchWithSentry(fullAPIUrl, {
         method: 'PATCH',
         headers: headersToPass,
         body: JSON.stringify(jsonToPass),

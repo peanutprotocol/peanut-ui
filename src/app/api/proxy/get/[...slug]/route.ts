@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants'
+import { fetchWithSentry } from '@/utils'
 
 export async function GET(request: NextRequest) {
     const separator = '/api/proxy/get/'
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
         'Api-Key': process.env.PEANUT_API_KEY!,
     } as any
 
-    const apiResponse = await fetch(fullAPIUrl, {
+    const apiResponse = await fetchWithSentry(fullAPIUrl, {
         method: 'GET',
         headers: headersToPass,
     })
@@ -41,7 +42,7 @@ export async function HEAD(request: NextRequest) {
         'Api-Key': process.env.PEANUT_API_KEY!,
     } as any
 
-    const apiResponse = await fetch(fullAPIUrl, {
+    const apiResponse = await fetchWithSentry(fullAPIUrl, {
         method: 'HEAD',
         headers: headersToPass,
     })

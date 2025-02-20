@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
 
         const idempotencyKey = uuidv4()
 
-        const response = await fetch('https://api.bridge.xyz/v0/transfers', {
+        const response = await fetchWithSentry('https://api.bridge.xyz/v0/transfers', {
             method: 'POST',
             headers: {
                 'Api-Key': process.env.BRIDGE_API_KEY,

@@ -3,9 +3,10 @@
 import webpush from 'web-push'
 import { PEANUT_API_URL } from '@/constants'
 import { cookies } from 'next/headers'
+import { fetchWithSentry } from '@/utils'
 
 const updateSubscription = async ({ userId, pushSubscriptionId }: { userId: string; pushSubscriptionId: string }) => {
-    return await fetch(`${PEANUT_API_URL}/update-user`, {
+    return await fetchWithSentry(`${PEANUT_API_URL}/update-user`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

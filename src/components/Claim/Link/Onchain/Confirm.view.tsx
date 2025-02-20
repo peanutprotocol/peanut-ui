@@ -97,7 +97,7 @@ export const ConfirmClaimLinkView = ({
     // useEffect(() => {
     //     if (attachment?.attachmentUrl) {
     //         try {
-    //             fetch(attachment?.attachmentUrl)
+    //             fetchWithSentry(attachment?.attachmentUrl)
     //                 .then((response) => response.blob())
     //                 .then((blob) => {
     //                     setFileType(blob.type)

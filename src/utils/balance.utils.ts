@@ -1,4 +1,4 @@
-import { isAddressZero, areEvmAddressesEqual } from '@/utils'
+import { isAddressZero, areEvmAddressesEqual, fetchWithSentry } from '@/utils'
 import { IUserBalance, ChainValue } from '@/interfaces'
 import { formatUnits } from 'viem'
 
@@ -6,7 +6,7 @@ export async function fetchWalletBalances(
     address: string
 ): Promise<{ balances: IUserBalance[]; totalBalance: number }> {
     try {
-        const apiResponse = await fetch('/api/walletconnect/fetch-wallet-balance', {
+        const apiResponse = await fetchWithSentry('/api/walletconnect/fetch-wallet-balance', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

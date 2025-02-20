@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as consts from '@/constants'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     const { email } = await request.json()
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const response = await fetch(`${consts.PEANUT_API_URL}/get-user-salt`, {
+        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/get-user-salt`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

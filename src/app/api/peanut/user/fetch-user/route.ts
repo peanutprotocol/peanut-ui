@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import * as consts from '@/constants'
+import { fetchWithSentry } from '@/utils'
 
 export const dynamic = 'force-dynamic' // Explicitly mark the route as dynamic
 
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
         }
 
         const uniqueKey = `${Date.now()}-${accountIdentifier}`
-        const response = await fetch(
+        const response = await fetchWithSentry(
             `${consts.PEANUT_API_URL}/user/fetch?accountIdentifier=${accountIdentifier}&uniqueKey=${uniqueKey}`,
             {
                 method: 'GET',

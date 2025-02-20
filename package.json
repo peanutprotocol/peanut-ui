@@ -47,7 +47,6 @@
         "@zerodev/sdk": "5.4.0",
         "auto-text-size": "^0.2.3",
         "autoprefixer": "^10.4.20",
-        "axios": "^1.7.7",
         "chakra-ui-steps": "^2.1.0",
         "chroma-js": "^3.1.2",
         "classnames": "^2.5.1",

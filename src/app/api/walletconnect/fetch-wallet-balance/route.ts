@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -7,7 +8,7 @@ export async function POST(request: NextRequest) {
 
         if (!projectID) throw new Error('API_KEY not found in env')
 
-        const apiResponse = await fetch(
+        const apiResponse = await fetchWithSentry(
             `https://rpc.walletconnect.com/v1/account/${body.address}/balance?currency=usd&projectId=${projectID}`,
             {
                 method: 'GET',

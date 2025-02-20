@@ -1,6 +1,6 @@
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
+import { fetchWithSentry, areEvmAddressesEqual } from '@/utils'
 import { generateKeysFromString, getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import countries from 'i18n-iso-countries'
 
@@ -34,7 +34,7 @@ export const convertPersonaUrl = (url: string) => {
 }
 
 const fetchUser = async (accountIdentifier: string): Promise<any> => {
-    const response = await fetch(`/api/peanut/user/fetch-user?accountIdentifier=${accountIdentifier}`, {
+    const response = await fetchWithSentry(`/api/peanut/user/fetch-user?accountIdentifier=${accountIdentifier}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ const createUser = async (
     },
     userDetails?: any
 ): Promise<any> => {
-    const response = await fetch('/api/peanut/user/create-user', {
+    const response = await fetchWithSentry('/api/peanut/user/create-user', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ export const createAccount = async (
     accountIdentifier: string,
     accountDetails: any
 ): Promise<any> => {
-    const response = await fetch('/api/peanut/user/add-account', {
+    const response = await fetchWithSentry('/api/peanut/user/add-account', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ export const createAccount = async (
 
 async function fetchApi(url: string, method: string, body?: any): Promise<any> {
     try {
-        const response = await fetch(url, {
+        const response = await fetchWithSentry(url, {
             method,
             headers: {
                 'Content-Type': 'application/json',
@@ -251,26 +251,29 @@ export async function createExternalAccount(
     accountOwnerName: string
 ): Promise<interfaces.IResponse> {
     try {
-        const response = await fetch(`/api/bridge/external-account/create-external-account?customerId=${customerId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                accountType,
-                accountDetails,
-                address: address ? address : {},
-                accountOwnerName,
-                customerId,
-            }),
-        })
+        const response = await fetchWithSentry(
+            `/api/bridge/external-account/create-external-account?customerId=${customerId}`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    accountType,
+                    accountDetails,
+                    address: address ? address : {},
+                    accountOwnerName,
+                    customerId,
+                }),
+            }
+        )
 
         const responseData = await response.json()
 
         if (!response.ok) {
             if (responseData.code === 'duplicate_external_account') {
                 // If bridge account already exists, let's fetch it
-                const allAccounts = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
+                const allAccounts = await fetchWithSentry(`/api/bridge/external-account/get-all-for-customerId`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -406,7 +409,7 @@ export async function createLiquidationAddress(
         }
 
         // If no existing address found, create a new one
-        const response = await fetch('/api/bridge/liquidation-address/create', {
+        const response = await fetchWithSentry('/api/bridge/liquidation-address/create', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -430,7 +433,7 @@ export async function createLiquidationAddress(
             if (data.error === 'external_account_mismatch') {
                 console.log('External account mismatch, fetching correct account...')
                 // We need to fetch the correct external account for this customer
-                const accountsResponse = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
+                const accountsResponse = await fetchWithSentry(`/api/bridge/external-account/get-all-for-customerId`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -486,7 +489,7 @@ export async function createLiquidationAddress(
 }
 
 export const getLiquidationAddresses = async (customerId: string): Promise<interfaces.IBridgeLiquidationAddress[]> => {
-    const response = await fetch(`/api/bridge/liquidation-address/get-all?customerId=${customerId}`, {
+    const response = await fetchWithSentry(`/api/bridge/liquidation-address/get-all?customerId=${customerId}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -521,7 +524,7 @@ export function getThreeCharCountryCodeFromIban(iban: string): string {
 export function getBridgeTokenName(chainId: string, tokenAddress: string): string | undefined {
     const token = consts.supportedBridgeTokensDictionary
         .find((chain) => chain.chainId === chainId)
-        ?.tokens.find((token) => utils.areEvmAddressesEqual(token.address, tokenAddress))
+        ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
         ?.token.toLowerCase()
 
     return token ?? undefined
@@ -546,7 +549,7 @@ export function getChainIdFromBridgeChainName(chainName: string): string | undef
 
 export async function validateBankAccount(bankAccount: string): Promise<boolean> {
     const bankAccountNumber = bankAccount.replace(/\s/g, '')
-    const response = await fetch(`/api/peanut/iban/validate-bank-account-number`, {
+    const response = await fetchWithSentry(`/api/peanut/iban/validate-bank-account-number`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -564,7 +567,7 @@ export async function validateBankAccount(bankAccount: string): Promise<boolean>
 }
 
 async function validateBic(bic: string): Promise<boolean> {
-    const response = await fetch(`/api/peanut/iban/validate-bic`, {
+    const response = await fetchWithSentry(`/api/peanut/iban/validate-bic`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -597,7 +600,7 @@ export async function submitCashoutLink(data: {
     const { address: pubKey } = generateKeysFromString(password)
 
     try {
-        const response = await fetch('/api/peanut/submit-cashout-link', {
+        const response = await fetchWithSentry('/api/peanut/submit-cashout-link', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -686,7 +689,7 @@ export async function getCashoutStatus(link: string): Promise<CashoutTransaction
         const password = new URLSearchParams(fragment).get('p')!
         const { address: pubKey } = generateKeysFromString(password)
 
-        const response = await fetch('/api/peanut/get-cashout-status', {
+        const response = await fetchWithSentry('/api/peanut/get-cashout-status', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
