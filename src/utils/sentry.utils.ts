@@ -10,7 +10,7 @@ const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
 
 export const fetchWithSentry = async (url: string, options: RequestInit = {}): Promise<Response> => {
     try {
-        const response = await fetchWithSentry(url, options)
+        const response = await fetch(url, options)
 
         if (!response.ok) {
             let errorContent: JSONValue
