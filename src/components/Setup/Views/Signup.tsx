@@ -7,6 +7,7 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import Link from 'next/link'
 import { useState } from 'react'
 import * as Sentry from '@sentry/nextjs'
+import { fetchWithSentry } from '@/utils'
 
 const SignupStep = () => {
     const dispatch = useAppDispatch()
