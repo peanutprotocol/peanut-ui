@@ -4,6 +4,7 @@ import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { claimLinkGasless, claimLinkXChainGasless, interfaces } from '@squirrel-labs/peanut-sdk'
 import { useContext } from 'react'
 import { useSwitchChain } from 'wagmi'
+import { fetchWithSentry } from '@/utils'
 
 import * as consts from '@/constants'
 import * as context from '@/context'
@@ -103,7 +104,7 @@ export const useClaimLink = () => {
 
     const getAttachmentInfo = async (link: string) => {
         try {
-            const response = await fetch('/api/peanut/get-attachment-info', {
+            const response = await fetchWithSentry('/api/peanut/get-attachment-info', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

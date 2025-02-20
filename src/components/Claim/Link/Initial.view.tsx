@@ -29,6 +29,7 @@ import {
     getBridgeChainName,
     getBridgeTokenName,
     saveClaimedLinkToLocalStorage,
+    fetchWithSentry,
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
@@ -210,7 +211,7 @@ export const InitialClaimLinkView = ({
 
             if (!user) {
                 console.log(`user not logged in, getting account status for ${recipient.address}`)
-                const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                const userIdResponse = await fetchWithSentry('/api/peanut/user/get-user-id', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

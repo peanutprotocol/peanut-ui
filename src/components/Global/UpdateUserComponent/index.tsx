@@ -4,6 +4,7 @@ import { getUserLinks } from '@/utils/cashout.utils'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Loading from '../Loading'
+import { fetchWithSentry } from '@/utils'
 
 interface IUpdateUserComponentProps {
     userId?: string
@@ -89,7 +90,7 @@ export const UpdateUserComponent = ({ name, email, onSubmit }: IUpdateUserCompon
             }
 
             setLoadingState('Saving your details')
-            const response = await fetch('/api/peanut/user/update-user', {
+            const response = await fetchWithSentry('/api/peanut/user/update-user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -1,13 +1,14 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import * as consts from '@/constants'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
         const { pubKey } = await request.json()
         const apiKey = process.env.PEANUT_API_KEY!
 
-        const response = await fetch(`${consts.PEANUT_API_URL}/cashouts/${pubKey}/status`, {
+        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/cashouts/${pubKey}/status`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

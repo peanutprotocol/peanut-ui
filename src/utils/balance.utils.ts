@@ -1,13 +1,13 @@
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { ChainValue, IUserBalance } from '@/interfaces'
-import { areEvmAddressesEqual, isAddressZero } from '@/utils'
+import { isAddressZero, areEvmAddressesEqual, fetchWithSentry } from '@/utils'
 import { formatUnits } from 'viem'
 
 export async function fetchWalletBalances(
     address: string
 ): Promise<{ balances: IUserBalance[]; totalBalance: number }> {
     try {
-        const apiResponse = await fetch('/api/walletconnect/fetch-wallet-balance', {
+        const apiResponse = await fetchWithSentry('/api/walletconnect/fetch-wallet-balance', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

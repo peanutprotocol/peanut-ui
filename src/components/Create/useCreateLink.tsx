@@ -2,7 +2,13 @@
 import { PEANUT_API_URL, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
-import { balanceByToken, fetchTokenPrice, isNativeCurrency, saveCreatedLinkToLocalStorage } from '@/utils'
+import {
+    balanceByToken,
+    fetchTokenPrice,
+    isNativeCurrency,
+    saveCreatedLinkToLocalStorage,
+    fetchWithSentry,
+} from '@/utils'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import peanut, {
     generateKeysFromString,
@@ -284,7 +290,7 @@ export const useCreateLink = () => {
         actionType: 'CREATE' | 'TRANSFER'
     }) => {
         try {
-            const response = await fetch(`${PEANUT_API_URL}/calculate-pts-for-action`, {
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/calculate-pts-for-action`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -337,7 +343,7 @@ export const useCreateLink = () => {
                 formData.append('attachmentFile', attachmentOptions.attachmentFile)
             }
 
-            const response = await fetch('/api/peanut/submit-claim-link/init', {
+            const response = await fetchWithSentry('/api/peanut/submit-claim-link/init', {
                 method: 'POST',
                 body: formData,
             })
@@ -385,7 +391,7 @@ export const useCreateLink = () => {
                   }
                 : undefined
 
-            const response = await fetch('/api/peanut/submit-claim-link/confirm', {
+            const response = await fetchWithSentry('/api/peanut/submit-claim-link/confirm', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -426,7 +432,7 @@ export const useCreateLink = () => {
         transaction?: peanutInterfaces.IPeanutUnsignedTransaction
     }) => {
         try {
-            const response = await fetch('/api/peanut/submit-direct-transfer', {
+            const response = await fetchWithSentry('/api/peanut/submit-direct-transfer', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

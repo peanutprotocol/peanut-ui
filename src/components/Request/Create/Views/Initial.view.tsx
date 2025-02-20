@@ -16,6 +16,7 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Create.consts'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { fetchWithSentry } from '@/utils'
 
 export const InitialView = ({
     onNext,
@@ -119,7 +120,7 @@ export const InitialView = ({
                 if (attachmentOptions?.message) {
                     createFormData.append('reference', attachmentOptions.message)
                 }
-                const requestResponse = await fetch('/api/proxy/withFormData/requests', {
+                const requestResponse = await fetchWithSentry('/api/proxy/withFormData/requests', {
                     method: 'POST',
                     body: createFormData,
                 })

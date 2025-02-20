@@ -2,6 +2,7 @@ import { KYCStatus } from '@/utils'
 import { useToast } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
 import Modal from '../Modal'
+import { fetchWithSentry } from '@/utils'
 
 export type IFrameWrapperProps = {
     src: string
@@ -50,7 +51,7 @@ const IframeWrapper = ({
         const pollKycStatus = async () => {
             try {
                 console.log('🔍 Polling KYC status for customer:', customerId)
-                const response = await fetch(`/api/bridge/user/new/get-status`, {
+                const response = await fetchWithSentry(`/api/bridge/user/new/get-status`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

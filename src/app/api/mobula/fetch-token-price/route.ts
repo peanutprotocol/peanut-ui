@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -7,7 +8,7 @@ export async function POST(request: NextRequest) {
 
         if (!API_KEY) throw new Error('API_KEY not found in env')
 
-        const mobulaResponse = await fetch(
+        const mobulaResponse = await fetchWithSentry(
             `https://api.mobula.io/api/1/market/data?asset=${body.tokenAddress}&blockchain=${body.chainId}`,
             {
                 method: 'GET',

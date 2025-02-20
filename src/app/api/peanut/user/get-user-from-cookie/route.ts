@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import * as consts from '@/constants'
+import { fetchWithSentry } from '@/utils'
 
 export async function GET(_request: NextRequest) {
     const cookieStore = cookies()
@@ -11,7 +12,7 @@ export async function GET(_request: NextRequest) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
     try {
-        const response = await fetch(`${consts.PEANUT_API_URL}/get-user`, {
+        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/get-user`, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token.value}`,

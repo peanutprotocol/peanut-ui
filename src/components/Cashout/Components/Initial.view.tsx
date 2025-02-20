@@ -15,7 +15,7 @@ import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { balanceByToken, floorFixed, formatIban, printableUsdc, validateBankAccount } from '@/utils'
+import { balanceByToken, floorFixed, formatIban, printableUsdc, validateBankAccount, fetchWithSentry } from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import { useAppKit } from '@reown/appkit/react'
 import { useContext, useEffect, useMemo, useState } from 'react'
@@ -153,7 +153,7 @@ export const InitialCashoutView = ({
             setPreparedCreateLinkWrapperResponse(preparedCreateLinkWrapperResponse)
 
             if (!user) {
-                const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                const userIdResponse = await fetchWithSentry('/api/peanut/user/get-user-id', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
