@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const response = await fetch(`https://api.bridge.xyz/v0/customers/${customerId}/external_accounts`, {
+        const response = await fetchWithSentry(`https://api.bridge.xyz/v0/customers/${customerId}/external_accounts`, {
             method: 'GET',
             headers: {
                 'Api-Key': process.env.BRIDGE_API_KEY,

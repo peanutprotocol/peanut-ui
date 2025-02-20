@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { generateKeysFromString } from '@squirrel-labs/peanut-sdk' // Adjust the import paths according to your project structure
 import * as consts from '@/constants'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
             apiFormData.append('file', formData.get('attachmentFile') as File)
         }
 
-        const response = await fetch(`${consts.PEANUT_API_URL}/submit-claim-link/init`, {
+        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/submit-claim-link/init`, {
             method: 'POST',
             body: apiFormData,
         })

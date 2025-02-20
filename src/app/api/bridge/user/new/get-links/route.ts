@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
         const idempotencyKey = uuidv4()
 
         // Make a POST request to create a new user
-        const response = await fetch('https://api.bridge.xyz/v0/kyc_links', {
+        const response = await fetchWithSentry('https://api.bridge.xyz/v0/kyc_links', {
             method: 'POST',
             headers: {
                 'Api-Key': process.env.BRIDGE_API_KEY,

@@ -1,6 +1,6 @@
 import Icon from '../Icon'
 import { useEffect, useState } from 'react'
-import * as utils from '@/utils'
+import { fetchWithSentry, checkifImageType } from '@/utils'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 export interface IFileUploadInputProps {
     attachmentOptions: {
@@ -29,7 +29,7 @@ const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploa
 
     useEffect(() => {
         if (attachmentOptions.fileUrl) {
-            fetch(attachmentOptions.fileUrl)
+            fetchWithSentry(attachmentOptions.fileUrl)
                 .then((response) => response.blob())
                 .then((blob) => {
                     setFileType(blob.type)
@@ -53,7 +53,7 @@ const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploa
                 />
                 <label htmlFor="file-input" className="cursor-pointer">
                     {attachmentOptions.fileUrl ? (
-                        utils.checkifImageType(fileType) ? (
+                        checkifImageType(fileType) ? (
                             <img src={attachmentOptions.fileUrl} alt="" className="h-8 w-8" />
                         ) : (
                             <Icon name="check" className="h-4 w-4" />

@@ -1,8 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import * as consts from '@/constants'
-import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
-import { url } from 'inspector'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -19,7 +18,7 @@ export async function POST(request: NextRequest) {
         } = await request.json()
 
         const apiKey = process.env.PEANUT_API_KEY!
-        const response = await fetch(`${consts.PEANUT_API_URL}/cashouts`, {
+        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/cashouts`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { IBridgeLiquidationAddress } from '@/interfaces'
 export const dynamic = 'force-dynamic' // Explicitly mark the route as dynamic
+import { fetchWithSentry } from '@/utils'
 
 export async function GET(request: NextRequest) {
     try {
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
         }
 
         const uniqueParam = `t=${new Date().getTime()}`
-        const response = await fetch(
+        const response = await fetchWithSentry(
             `https://api.bridge.xyz/v0/customers/${customerId}/liquidation_addresses?${uniqueParam}`,
             {
                 method: 'GET',

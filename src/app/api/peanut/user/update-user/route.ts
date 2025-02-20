@@ -2,6 +2,7 @@ import * as consts from '@/constants'
 import { KYCStatus } from '@/utils'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { fetchWithSentry } from '@/utils'
 
 type UserPayload = {
     userId: string
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
             payload.fullName = fullName
         }
 
-        const response = await fetch(`${consts.PEANUT_API_URL}/update-user`, {
+        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/update-user`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

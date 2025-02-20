@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     const separator = '/api/proxy/withFormData/'
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
         apiFormData.append(key, value)
     })
 
-    const response = await fetch(fullAPIUrl, {
+    const response = await fetchWithSentry(fullAPIUrl, {
         method: 'POST',
         headers: {
             // Don't set Content-Type header, let it be automatically set as multipart/form-data

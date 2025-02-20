@@ -5,6 +5,7 @@ import * as _consts from './Pay.consts'
 import * as assets from '@/assets'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
+import { fetchWithSentry } from '@/utils'
 
 import * as generalViews from './Views/GeneralViews'
 import { jsonParse, resolveFromEnsName, fetchTokenPrice } from '@/utils'
@@ -76,7 +77,7 @@ export const PayRequestLink = () => {
 
     const checkRequestLink = async (uuid: string) => {
         try {
-            const chargeResponse = await fetch(`/api/proxy/get/request-charges/${uuid}`)
+            const chargeResponse = await fetchWithSentry(`/api/proxy/get/request-charges/${uuid}`)
             const charge = jsonParse(await chargeResponse.text())
 
             const requestLinkDetails = {

@@ -10,6 +10,7 @@ import {
     getDirectSendFromLocalStorage,
     getOfframpClaimsFromLocalStorage,
     getCashoutStatus,
+    fetchWithSentry,
 } from '@/utils'
 
 export const useDashboard = () => {
@@ -59,7 +60,7 @@ export const useDashboard = () => {
         const createdLinks = getCreatedLinksFromLocalStorage({ address: address })!
         const directSends = getDirectSendFromLocalStorage({ address: address })!
         const offrampClaims = getOfframpClaimsFromLocalStorage()!
-        const historyResponse = await fetch(`${PEANUT_API_URL}/users/history`, {
+        const historyResponse = await fetchWithSentry(`${PEANUT_API_URL}/users/history`, {
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,

@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
-import { IBridgeLiquidationAddress } from '@/interfaces'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -14,22 +14,25 @@ export async function POST(request: NextRequest) {
 
         const idempotencyKey = uuidv4()
 
-        let response = await fetch(`https://api.bridge.xyz/v0/customers/${customer_id}/liquidation_addresses`, {
-            method: 'POST',
-            headers: {
-                'Api-Key': process.env.BRIDGE_API_KEY,
-                'Idempotency-Key': idempotencyKey,
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                chain,
-                currency,
-                external_account_id,
-                destination_payment_rail,
-                destination_currency,
-            }),
-        })
+        let response = await fetchWithSentry(
+            `https://api.bridge.xyz/v0/customers/${customer_id}/liquidation_addresses`,
+            {
+                method: 'POST',
+                headers: {
+                    'Api-Key': process.env.BRIDGE_API_KEY,
+                    'Idempotency-Key': idempotencyKey,
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    chain,
+                    currency,
+                    external_account_id,
+                    destination_payment_rail,
+                    destination_currency,
+                }),
+            }
+        )
 
         let data = await response.json()
 

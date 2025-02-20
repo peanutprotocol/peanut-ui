@@ -3,7 +3,7 @@
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import * as utils from '@/utils'
+import { fetchWithSentry, areEvmAddressesEqual, createSiweMessage } from '@/utils'
 import { useContext, useState } from 'react'
 import { useSignMessage } from 'wagmi'
 import { Button } from '../0_Bruddle'
@@ -37,7 +37,7 @@ export const Profile = () => {
             })
             if (!address) return
 
-            const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+            const userIdResponse = await fetchWithSentry('/api/peanut/user/get-user-id', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -49,7 +49,7 @@ export const Profile = () => {
 
             const response = await userIdResponse.json()
 
-            const siwemsg = utils.createSiweMessage({
+            const siwemsg = createSiweMessage({
                 address: address ?? '',
                 statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
             })
@@ -58,7 +58,7 @@ export const Profile = () => {
                 message: siwemsg,
             })
 
-            await fetch('/api/peanut/user/get-jwt-token', {
+            await fetchWithSentry('/api/peanut/user/get-jwt-token', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -165,7 +165,7 @@ export const Profile = () => {
                                                 <label className="w-[30%] text-right text-h8">
                                                     {Math.floor(
                                                         user.pointsPerReferral?.find((ref) =>
-                                                            utils.areEvmAddressesEqual(ref.address, referral.address)
+                                                            areEvmAddressesEqual(ref.address, referral.address)
                                                         )?.points ?? 0
                                                     )}
                                                 </label>
