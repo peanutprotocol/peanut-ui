@@ -29,13 +29,9 @@ const ProfileSection = ({}: ProfileSectionProps) => {
                         <div className="text-grey-1">peanut.me/</div>
                         <div className="flex items-center gap-3">
                             <div className="">{user?.user.username}</div>
-                            {user?.user.kycStatus === 'approved' ? (
+                            {user?.user.kycStatus === 'approved' && (
                                 <Badge color="green" className="rounded-sm border-success-1 bg-white text-success-1">
                                     KYC Done
-                                </Badge>
-                            ) : (
-                                <Badge color="purple" className="rounded-sm border-primary-1 bg-white text-primary-1">
-                                    No KYC
                                 </Badge>
                             )}
                         </div>
