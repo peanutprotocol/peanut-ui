@@ -1,13 +1,12 @@
-import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
 import * as consts from '@/constants'
+import { infuraApiKey } from '@/constants'
 import * as interfaces from '@/interfaces'
+import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
 import peanut from '@squirrel-labs/peanut-sdk'
 import chroma from 'chroma-js'
 import { ethers } from 'ethers'
 import { SiweMessage } from 'siwe'
 import * as wagmiChains from 'wagmi/chains'
-import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
-import { infuraApiKey } from '@/constants'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -297,15 +296,19 @@ export function formatTokenAmount(amount?: number, maxFractionDigits?: number) {
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
 
+    // floor the amount
+    const flooredAmount = Math.floor(amount * Math.pow(10, maxFractionDigits)) / Math.pow(10, maxFractionDigits)
+
     // Convert number to string to count significant digits
-    const amountString = amount.toFixed(maxFractionDigits)
+
+    const amountString = flooredAmount.toFixed(maxFractionDigits)
     const significantDigits = amountString.replace(/^0+\./, '').replace(/\.$/, '').replace(/0+$/, '').length
 
     // Calculate the number of fraction digits needed to have at least two significant digits
     const fractionDigits = Math.max(2 - significantDigits, 0)
 
     // Format the number with the calculated fraction digits
-    const formattedAmount = amount.toLocaleString('en-US', {
+    const formattedAmount = flooredAmount.toLocaleString('en-US', {
         minimumFractionDigits: fractionDigits,
         maximumFractionDigits: maxFractionDigits,
     })
