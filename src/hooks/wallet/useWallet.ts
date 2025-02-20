@@ -169,7 +169,12 @@ export const useWallet = () => {
     const selectedWallet = useMemo(() => {
         if (!selectedAddress || !wallets.length) return undefined
         const wallet = wallets.find((w) => w.address === selectedAddress)
-        return wallet ? { ...wallet, connected: isWalletConnected(wallet) } : undefined
+        if (!wallet) {
+            // The selected address does not correspond to any wallet
+            dispatch(walletActions.setSelectedAddress(undefined))
+            return undefined
+        }
+        return { ...wallet, connected: isWalletConnected(wallet) }
     }, [selectedAddress, wallets, isWalletConnected])
 
     useEffect(() => {
