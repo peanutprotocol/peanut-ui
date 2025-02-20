@@ -19,12 +19,13 @@ export const fetchWithSentry = async (url: string, options: RequestInit = {}): P
             } catch {
                 errorContent = await response.clone().text()
             }
+            const method = options.method || 'GET'
 
-            Sentry.captureMessage(`Fetch failed: ${response.status}`, {
+            Sentry.captureMessage(`${method} to ${url} failed with status ${response.status}`, {
                 level: getErrorLevelFromStatus(response.status),
                 extra: {
                     url,
-                    method: options.method || 'GET',
+                    method,
                     requestHeaders: options.headers || {},
                     requestBody: options.body || null,
                     status: response.status,
