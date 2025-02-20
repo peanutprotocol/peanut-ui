@@ -1,20 +1,19 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
+import { useEffect, useMemo, useState } from 'react'
 
-import * as utils from '@/utils'
-import * as interfaces from '@/interfaces'
+import { CrispButton } from '@/components/CrispChat'
 import * as consts from '@/constants'
-import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
-import { useForm } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
+import * as interfaces from '@/interfaces'
+import * as utils from '@/utils'
+import { Divider, useToast } from '@chakra-ui/react'
+import { useForm } from 'react-hook-form'
+import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
 import Loading from '../Loading'
 import { GlobalLoginComponent } from '../LoginComponent'
 import { GlobalRegisterComponent } from '../RegisterComponent'
-import { Divider } from '@chakra-ui/react'
-import { CrispButton } from '@/components/CrispChat'
-import { useToast } from '@chakra-ui/react'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -226,7 +225,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     ...iframeOptions,
                     src: kyclink,
                     visible: true,
-                    closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
+                    closeConfirmMessage: 'Are you sure? Your KYC progress might be lost.',
                     onClose: () => {
                         setIframeOptions((prev) => ({ ...prev, visible: false }))
                     },
