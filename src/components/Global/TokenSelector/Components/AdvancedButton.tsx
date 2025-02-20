@@ -12,6 +12,7 @@ interface IAdvancedTokenSelectorButtonProps {
     tokenBalance?: number
     tokenPrice?: number
     tokenAmount?: string
+    tokenValue?: string
     chainName: string
     chainIconUri?: string
     classNameButton?: string
@@ -28,6 +29,7 @@ export const AdvancedTokenSelectorButton = ({
     tokenBalance,
     tokenPrice,
     tokenAmount,
+    tokenValue,
     chainName,
     chainIconUri,
     classNameButton,
@@ -95,12 +97,16 @@ export const AdvancedTokenSelectorButton = ({
                         {_tokenSymbol} on {chainName}
                     </div>
 
-                    {type === 'send' &&
-                        (tokenBalance ? (
-                            <p className="text-xs text-grey-1">
-                                Balance: {utils.formatTokenAmount(tokenBalance ?? 0, 4)}
-                            </p>
-                        ) : null)}
+                    {type === 'send' && (
+                        <p className="text-xs text-grey-1">
+                            Balance:{' '}
+                            {tokenValue
+                                ? // usd value of token
+                                  `$${utils.formatTokenAmount(parseFloat(tokenValue), 2)}`
+                                : // format token balance with 4 decimals
+                                  `${utils.formatTokenAmount(tokenBalance ?? 0, 4)} ${tokenSymbol}`}
+                        </p>
+                    )}
                     {tokenAmount && tokenPrice && (
                         <p className="text-xs text-grey-1">
                             ${utils.formatTokenAmount(Number(tokenAmount) * tokenPrice, 4)}

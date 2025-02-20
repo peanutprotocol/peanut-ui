@@ -95,15 +95,7 @@ const ZKSyncSepolia = {
 
 //@ts-ignore
 export const chains = [
-    wagmiChains.mainnet,
-    wagmiChains.optimism,
-    wagmiChains.gnosis,
-    wagmiChains.base,
-    wagmiChains.polygon,
-    wagmiChains.scroll,
-    wagmiChains.mantle,
-    wagmiChains.arbitrum,
-    wagmiChains.bsc,
+    ...Object.values(wagmiChains),
     milkomeda,
     milkomedaTestnet,
     baseTestnet,

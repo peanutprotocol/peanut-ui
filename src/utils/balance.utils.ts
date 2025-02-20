@@ -1,5 +1,6 @@
-import { isAddressZero, areEvmAddressesEqual } from '@/utils'
-import { IUserBalance, ChainValue } from '@/interfaces'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { ChainValue, IUserBalance } from '@/interfaces'
+import { areEvmAddressesEqual, isAddressZero } from '@/utils'
 import { formatUnits } from 'viem'
 
 export async function fetchWalletBalances(
@@ -103,6 +104,10 @@ export function calculateValuePerChain(balances: IUserBalance[]): ChainValue[] {
     return result
 }
 
-export function printableUsdc(baseUnitsAmount: bigint): string {
-    return Number(formatUnits(baseUnitsAmount, 6)).toFixed(2)
+export const printableUsdc = (balance: bigint): string => {
+    const formatted = formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)
+    // floor the formatted value
+    const value = Number(formatted)
+    const flooredValue = Math.floor(value * 100) / 100
+    return flooredValue.toFixed(2)
 }
