@@ -1,12 +1,12 @@
-import type { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
 import * as consts from '@/constants'
 import { cookies } from 'next/headers'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-        const { userId, bridgeAccountId, accountType, accountIdentifier, connector } = body
+        const { userId, bridgeAccountIdentifier, accountType, accountIdentifier, connector } = body
 
         const apiKey = process.env.PEANUT_API_KEY!
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify({
                 userId,
-                bridgeAccountIdentifier: bridgeAccountId,
+                bridgeAccountIdentifier,
                 accountType,
                 accountIdentifier,
                 connector,

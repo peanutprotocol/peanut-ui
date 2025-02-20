@@ -87,7 +87,7 @@ const createUser = async (
 export const createAccount = async (
     userId: string,
     bridgeCustomerId: string,
-    bridgeAccountId: string,
+    bridgeAccountIdentifier: string,
     accountType: string,
     accountIdentifier: string,
     accountDetails: any
@@ -100,15 +100,15 @@ export const createAccount = async (
         body: JSON.stringify({
             userId,
             bridgeCustomerId,
-            bridgeAccountId,
+            bridgeAccountIdentifier,
             accountType,
             accountIdentifier,
-            accountDetails,
         }),
     })
 
     if (!response.ok) {
-        throw new Error('Failed to create account')
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to create account')
     }
 
     const data = await response.json()
@@ -116,22 +116,38 @@ export const createAccount = async (
 }
 
 async function fetchApi(url: string, method: string, body?: any): Promise<any> {
-    const response = await fetch(url, {
-        method,
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: body ? JSON.stringify(body) : undefined,
-    })
+    try {
+        const response = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: body ? JSON.stringify(body) : undefined,
+        })
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch data from ${url}`)
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }))
+            console.error('API Error:', {
+                url,
+                status: response.status,
+                errorData,
+            })
+            throw new Error(errorData.message || errorData.error || 'API request failed')
+        }
+
+        const data = await response.json()
+        return data
+    } catch (error) {
+        console.error('fetchApi error:', {
+            url,
+            method,
+            error,
+        })
+        throw error
     }
-
-    return await response.json()
 }
 
-export type KYCStatus = 'not_started' | 'under_review' | 'approved' | 'rejected'
+export type KYCStatus = 'not_started' | 'under_review' | 'approved' | 'rejected' | 'incomplete'
 
 export type GetUserLinksResponse = {
     id: string
@@ -148,12 +164,39 @@ export type GetUserLinksResponse = {
     persona_inquiry_type: string
 }
 
-export async function getUserLinks(formData: consts.IOfframpForm): Promise<GetUserLinksResponse> {
-    return await fetchApi('/api/bridge/user/new/get-links', 'POST', {
+export async function getUserLinks({
+    full_name,
+    email,
+}: {
+    full_name: string
+    email: string
+}): Promise<GetUserLinksResponse> {
+    console.log('getUserLinks input:', { full_name, email })
+
+    if (!full_name?.trim() || !email?.trim()) {
+        console.error('Invalid input:', { full_name, email })
+        throw new Error('Name and email are required')
+    }
+
+    const response = await fetchApi('/api/bridge/user/new/get-links', 'POST', {
         type: 'individual',
-        full_name: formData.name,
-        email: formData.email,
+        full_name: full_name.trim(),
+        email: email.trim(),
     })
+
+    console.log('getUserLinks response:', response)
+
+    if (!response.id) {
+        throw new Error('Failed to create Bridge customer')
+    }
+
+    // ensure we have a customer_id
+    if (!response.customer_id) {
+        console.error('No customer_id in response:', response)
+        throw new Error('Failed to get customer ID')
+    }
+
+    return response
 }
 
 export async function getStatus(userId: string, type: string) {
@@ -218,6 +261,7 @@ export async function createExternalAccount(
                 accountDetails,
                 address: address ? address : {},
                 accountOwnerName,
+                customerId,
             }),
         })
 

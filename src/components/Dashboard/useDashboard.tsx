@@ -1,15 +1,15 @@
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import Cookies from 'js-cookie'
 
-import * as interfaces from '@/interfaces'
 import { PEANUT_API_URL, supportedPeanutChains } from '@/constants'
+import * as interfaces from '@/interfaces'
 import {
-    getTokenSymbol,
+    getCashoutStatus,
     getClaimedLinksFromLocalStorage,
     getCreatedLinksFromLocalStorage,
     getDirectSendFromLocalStorage,
     getOfframpClaimsFromLocalStorage,
-    getCashoutStatus,
+    getTokenSymbol,
 } from '@/utils'
 
 export const useDashboard = () => {
@@ -139,9 +139,8 @@ export const useDashboard = () => {
 
         // TODO: use history entry typing
         requestHistory.entries.forEach((entry: any) => {
-            const recipient = entry.recipientAccount.username ?? entry.recipientAccount.identifier
             linkData.push({
-                link: `${process.env.NEXT_PUBLIC_BASE_URL}/${recipient}/chargeId=${entry.uuid}`,
+                link: `${process.env.NEXT_PUBLIC_BASE_URL}/request/pay?id=${entry.uuid}`,
                 type: entry.userRole === 'SENDER' ? 'Request Link Fulfillment' : 'Request Link',
                 amount: entry.amount.toString(),
                 tokenSymbol: entry.tokenSymbol,

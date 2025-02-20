@@ -244,7 +244,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             body: JSON.stringify({
                 userId,
                 accountIdentifier,
-                bridgeAccountId,
+                bridgeAccountIdentifier: bridgeAccountId,
                 accountType,
                 connector,
             }),
