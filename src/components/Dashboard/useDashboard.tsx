@@ -1,15 +1,15 @@
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import Cookies from 'js-cookie'
 
-import * as interfaces from '@/interfaces'
 import { PEANUT_API_URL, supportedPeanutChains } from '@/constants'
+import * as interfaces from '@/interfaces'
 import {
-    getTokenSymbol,
+    getCashoutStatus,
     getClaimedLinksFromLocalStorage,
     getCreatedLinksFromLocalStorage,
     getDirectSendFromLocalStorage,
     getOfframpClaimsFromLocalStorage,
-    getCashoutStatus,
+    getTokenSymbol,
 } from '@/utils'
 
 export const useDashboard = () => {

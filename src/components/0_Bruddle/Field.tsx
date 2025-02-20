@@ -3,13 +3,13 @@
 import classNames from 'classnames'
 import React, { DetailedHTMLProps, InputHTMLAttributes, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
-import Icon, { IconNameType } from '../Global/Icon'
+import Icon from '../Global/Icon'
 import BaseInput from './BaseInput'
 
 type FieldProps = DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> & {
     containerClassname?: HTMLDivElement['className']
     label?: string
-    icon?: IconNameType
+    icon?: string
 }
 
 export const Field = React.forwardRef(

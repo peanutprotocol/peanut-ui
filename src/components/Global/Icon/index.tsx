@@ -1,5 +1,8 @@
-import { MouseEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
+
+type IconsType = {
+    [key: string]: string
+}
 
 const customViewbox = [
     { name: 'gas', viewBox: '0 0 24 24 ' },
@@ -28,7 +31,7 @@ const customStyle = [
     },
 ]
 
-const icons = {
+const icons: IconsType = {
     'add-circle':
         'M11.35 8.663V7.35H8.663V4.663H7.35V7.35H4.663v1.313H7.35v2.688h1.313V8.663h2.688zM3.288 3.319C4.6 2.006 6.173 1.35 8.006 1.35a6.33 6.33 0 0 1 4.688 1.969 6.33 6.33 0 0 1 1.969 4.688c0 1.833-.656 3.406-1.969 4.719-1.292 1.292-2.854 1.937-4.687 1.937s-3.406-.646-4.719-1.937C1.996 11.412 1.35 9.84 1.35 8.006s.646-3.396 1.938-4.687z',
     'add-folder':
@@ -208,13 +211,11 @@ const icons = {
     wallet: 'M4.398 4.286c-.947 0-1.714.767-1.714 1.714v12c0 .947.767 1.714 1.714 1.714h10.674c.947 0 1.714-.767 1.714-1.714v-12c0-.947-.767-1.714-1.714-1.714H4.398zm8.024 4.8h3.733c.947 0 1.714.767 1.714 1.714v2.4c0 .947-.767 1.714-1.714 1.714h-3.162c-1.42 0-2.571-1.151-2.571-2.571v-.686c0-1.42 1.151-2.571 2.571-2.571z',
 }
 
-export type IconNameType = keyof typeof icons
-
 type IconProps = {
     className?: string
-    name: IconNameType
+    name: string
     fill?: string
-    onClick?: (e: MouseEvent<SVGElement>) => void
+    onClick?: (e: React.MouseEvent<SVGElement>) => void
 }
 
 const Icon = ({ className, name, fill, onClick }: IconProps) => (
