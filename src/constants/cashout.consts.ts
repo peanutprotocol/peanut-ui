@@ -5,6 +5,7 @@ export interface IOfframpForm {
     recipient: string
 }
 
+// see more here: https://apidocs.bridge.xyz/docs/blockchains
 export const supportedBridgeChainsDictionary = [
     {
         chain: 'arbitrum',
@@ -53,10 +54,11 @@ export const supportedBridgeTokensDictionary = [
                 token: 'usdc',
                 address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
             },
-            {
-                token: 'usdt',
-                address: '0xdac17f958d2ee523a2206206994597c13d831ec7',
-            },
+            // Bridge doesn't support USDT apparently :)
+            // {
+            //     token: 'usdt',
+            //     address: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+            // },
         ],
     },
     {

@@ -406,7 +406,7 @@ export async function createLiquidationAddress(
         }
 
         // If no existing address found, create a new one
-        const response = await fetch('/api/bridge/liquidation-address/create', {
+        const createLiquidationAddressResponse = await fetch('/api/bridge/liquidation-address/create', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -421,16 +421,16 @@ export async function createLiquidationAddress(
             }),
         })
 
-        const data = await response.json()
+        const data = await createLiquidationAddressResponse.json()
 
-        if (!response.ok) {
+        if (!createLiquidationAddressResponse.ok) {
             console.error('Failed to create liquidation address:', data)
 
             // Handle the case where the external account doesn't belong to this customer
             if (data.error === 'external_account_mismatch') {
                 console.log('External account mismatch, fetching correct account...')
                 // We need to fetch the correct external account for this customer
-                const accountsResponse = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
+                const response = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -440,11 +440,12 @@ export async function createLiquidationAddress(
                     }),
                 })
 
-                if (!accountsResponse.ok) {
+                if (!response.ok) {
                     throw new Error('Failed to fetch customer accounts')
                 }
 
-                const accountsData = await accountsResponse.json()
+                const accountsResponse = await response.json()
+                const accountsData = accountsResponse.data
 
                 // Ensure we have an array of accounts
                 if (!Array.isArray(accountsData)) {
@@ -475,7 +476,10 @@ export async function createLiquidationAddress(
                 )
             }
 
-            throw new Error(data.error || `Failed to create liquidation address: ${data.details || response.status}`)
+            throw new Error(
+                data.error ||
+                    `Failed to create liquidation address: ${data.details || createLiquidationAddressResponse.status}`
+            )
         }
 
         return data as interfaces.IBridgeLiquidationAddress

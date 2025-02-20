@@ -27,7 +27,7 @@ import {
     PeanutAccount,
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
-import { Card } from '../0_Bruddle'
+import { Button, Card } from '../0_Bruddle'
 import { FAQComponent } from '../Cashout/Components/Faq.comp'
 import { sortCrossChainDetails } from '../Claim/Claim.utils'
 import FlowHeader from '../Global/FlowHeader'
@@ -104,10 +104,12 @@ export const OfframpConfirmView = ({
     // TODO: they need to be refactored to a separate file
     // TODO: this function is a clusterfuck
     const fetchNecessaryDetails = useCallback(async () => {
+        // check if user and token information is available
         if (!user || !selectedChainID || !selectedTokenAddress) {
             throw new Error('Missing user or token information')
         }
 
+        // determine token type: 0 for native currency, 1 for others
         const tokenType = utils.isNativeCurrency(selectedTokenAddress) ? 0 : 1
         const contractVersion = await getLatestContractVersion({
             chainId: selectedChainID,
@@ -115,6 +117,7 @@ export const OfframpConfirmView = ({
             experimental: false,
         })
 
+        // fetch cross-chain details based on chain ID, token type, and contract version
         const crossChainDetails = await getCrossChainDetails({
             chainId: selectedChainID,
             tokenType,
@@ -130,20 +133,12 @@ export const OfframpConfirmView = ({
         const bridgeCustomerId = user?.user?.bridge_customer_id
         const bridgeExternalAccountId = peanutAccount?.bridge_account_id
 
-        if (!peanutAccount) {
-            throw new Error('Bank account not found. Please ensure you have linked your bank account.')
+        // ensure all necessary account information is available
+        if (!peanutAccount || !bridgeCustomerId || !bridgeExternalAccountId) {
+            throw new Error('Missing account information')
         }
 
-        if (!bridgeCustomerId) {
-            throw new Error('Bridge customer ID not found. Please complete KYC first.')
-        }
-
-        if (!bridgeExternalAccountId) {
-            console.error('Missing bridge_account_id for account:', peanutAccount)
-            throw new Error('There was an error creating your bridge account. Please contact support for assistance.')
-        }
-
-        // Fetch all liquidation addresses for the user
+        // fetch all liquidation addresses for the user
         const allLiquidationAddresses = await utils.getLiquidationAddresses(bridgeCustomerId)
 
         return {
@@ -244,7 +239,7 @@ export const OfframpConfirmView = ({
             // Improve error message handling
             const errorMessage =
                 error instanceof Error
-                    ? error.message
+                    ? utils.ErrorHandler(error.message)
                     : "We've encountered an error. Your funds are SAFU, please reach out to support"
 
             setErrorState({
@@ -927,9 +922,9 @@ export const OfframpConfirmView = ({
                         </div>
                     )}
 
-                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                    <div className="flex w-full flex-col items-stretch justify-center gap-2">
                         {activeStep > 3 && (
-                            <button
+                            <Button
                                 onClick={() => {
                                     switch (offrampType) {
                                         case OfframpType.CASHOUT: {
@@ -942,7 +937,7 @@ export const OfframpConfirmView = ({
                                         }
                                     }
                                 }}
-                                className="btn-purple btn-xl"
+                                className="w-full"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
@@ -952,7 +947,7 @@ export const OfframpConfirmView = ({
                                 ) : (
                                     'Cashout'
                                 )}
-                            </button>
+                            </Button>
                         )}
 
                         {errorState.showError && (
@@ -963,7 +958,9 @@ export const OfframpConfirmView = ({
                                         <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                                     </label>
                                 ) : (
-                                    <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
+                                    <label className="text-start text-h8 font-normal text-red">
+                                        {errorState.errorMessage}
+                                    </label>
                                 )}
                             </div>
                         )}
