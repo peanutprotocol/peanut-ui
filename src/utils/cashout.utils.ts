@@ -236,18 +236,21 @@ export async function createExternalAccount(
     accountOwnerName: string
 ): Promise<interfaces.IResponse> {
     try {
-        const response = await fetchWithSentry(`/api/bridge/external-account/create-external-account?customerId=${customerId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                accountType,
-                accountDetails,
-                address: address ? address : {},
-                accountOwnerName,
-            }),
-        })
+        const response = await fetchWithSentry(
+            `/api/bridge/external-account/create-external-account?customerId=${customerId}`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    accountType,
+                    accountDetails,
+                    address: address ? address : {},
+                    accountOwnerName,
+                }),
+            }
+        )
 
         const responseData = await response.json()
 
