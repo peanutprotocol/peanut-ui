@@ -425,7 +425,9 @@ export async function createLiquidationAddress(
                     throw new Error('Failed to fetch customer accounts')
                 }
 
-                const accountsData = await accountsResponse.json()
+                const accountsResponseData = await accountsResponse.json()
+
+                const accountsData = accountsResponseData.data
 
                 // Ensure we have an array of accounts
                 if (!Array.isArray(accountsData)) {
