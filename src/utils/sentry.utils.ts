@@ -9,6 +9,18 @@ const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
 }
 
 export const fetchWithSentry = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    // Sanitize URL for fingerprinting by replacing IDs with placeholders
+    const sanitizeUrl = (url: string) => {
+        return (
+            url
+                // Replace numeric IDs in path
+                .replace(/\/\d+(?=\/|$)/g, '/{id}')
+                // Replace UUIDs in path
+                .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/gi, '/{uuid}')
+                // Replace numeric IDs in query params
+                .replace(/([?&][^=&]*=)\d+/g, '$1{id}')
+        )
+    }
     try {
         const response = await fetch(url, options)
 
@@ -20,17 +32,21 @@ export const fetchWithSentry = async (url: string, options: RequestInit = {}): P
                 errorContent = await response.clone().text()
             }
             const method = options.method || 'GET'
+            Sentry.withScope((scope) => {
+                // Set fingerprint to group similar errors
+                scope.setFingerprint([method, sanitizeUrl(url), String(response.status)])
 
-            Sentry.captureMessage(`${method} to ${url} failed with status ${response.status}`, {
-                level: getErrorLevelFromStatus(response.status),
-                extra: {
-                    url,
-                    method,
-                    requestHeaders: options.headers || {},
-                    requestBody: options.body || null,
-                    status: response.status,
-                    response: errorContent,
-                },
+                Sentry.captureMessage(`${method} to ${url} failed with status ${response.status}`, {
+                    level: getErrorLevelFromStatus(response.status),
+                    extra: {
+                        url,
+                        method,
+                        requestHeaders: options.headers || {},
+                        requestBody: options.body || null,
+                        status: response.status,
+                        response: errorContent,
+                    },
+                })
             })
         }
 
@@ -49,17 +65,23 @@ export const fetchWithSentry = async (url: string, options: RequestInit = {}): P
             errorName = 'Unknown Error'
         }
 
-        Sentry.captureException(error, {
-            extra: {
-                url,
-                method: options.method || 'GET',
-                requestHeaders: options.headers || {},
-                requestBody: options.body || null,
-                errorMessage,
-                errorName,
-                errorStack,
-            },
+        Sentry.withScope((scope) => {
+            // Set fingerprint for network errors
+            scope.setFingerprint(['network-error', sanitizeUrl(url), options.method || 'GET'])
+
+            Sentry.captureException(error, {
+                extra: {
+                    url,
+                    method: options.method || 'GET',
+                    requestHeaders: options.headers || {},
+                    requestBody: options.body || null,
+                    errorMessage,
+                    errorName,
+                    errorStack,
+                },
+            })
         })
+
         throw error
     }
 }
