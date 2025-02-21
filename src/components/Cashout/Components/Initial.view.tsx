@@ -23,6 +23,7 @@ import { twMerge } from 'tailwind-merge'
 import * as _consts from '../Cashout.consts'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
+import * as Sentry from '@sentry/nextjs'
 
 export const InitialCashoutView = ({
     onNext,
@@ -216,6 +217,7 @@ export const InitialCashoutView = ({
                 showError: true,
                 errorMessage: error.message || 'An error occurred. Please try again.',
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -439,7 +441,8 @@ export const InitialCashoutView = ({
                                         .then(() => {
                                             handleOnNext()
                                         })
-                                        .catch((_error) => {
+                                        .catch((error) => {
+                                            Sentry.captureException(error)
                                             toast.error('Error logging in')
                                         })
                                         .finally(() => {

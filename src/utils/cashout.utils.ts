@@ -3,6 +3,7 @@ import * as interfaces from '@/interfaces'
 import { fetchWithSentry, areEvmAddressesEqual } from '@/utils'
 import { generateKeysFromString, getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import countries from 'i18n-iso-countries'
+import * as Sentry from '@sentry/nextjs'
 
 const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
 
@@ -302,6 +303,7 @@ export async function createExternalAccount(
         } as interfaces.IResponse
     } catch (error) {
         console.error('Error:', error)
+        Sentry.captureException(error)
         throw new Error(`Failed to create external account. Error: ${error}`)
     }
 }
@@ -460,6 +462,7 @@ export async function createLiquidationAddress(
         return data as interfaces.IBridgeLiquidationAddress
     } catch (error) {
         console.error('Error in createLiquidationAddress:', error)
+        Sentry.captureException(error)
         throw error instanceof Error ? error : new Error('Failed to create liquidation address')
     }
 }

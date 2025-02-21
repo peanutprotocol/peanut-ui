@@ -3,6 +3,7 @@ import { useToast } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
 import Modal from '../Modal'
 import { fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 export type IFrameWrapperProps = {
     src: string
@@ -107,6 +108,7 @@ const IframeWrapper = ({
             } catch (error) {
                 console.error('❌ Error polling KYC status:', error)
                 setIsPolling(false)
+                Sentry.captureException(error)
             }
         }
 

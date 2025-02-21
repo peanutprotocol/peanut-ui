@@ -37,6 +37,7 @@ import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
+import * as Sentry from '@sentry/nextjs'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -154,6 +155,7 @@ export const InitialClaimLinkView = ({
                 showError: true,
                 errorMessage: errorString,
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -267,6 +269,7 @@ export const InitialClaimLinkView = ({
                 showError: true,
                 errorMessage: 'You can not claim this link to your bank account.',
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -386,6 +389,7 @@ export const InitialClaimLinkView = ({
                 showError: true,
                 errorMessage: 'No route found for the given token pair.',
             })
+            Sentry.captureException(error)
             return undefined
         } finally {
             setIsXchainLoading(false)

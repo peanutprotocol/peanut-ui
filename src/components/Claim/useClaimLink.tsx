@@ -10,6 +10,7 @@ import * as consts from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as utils from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 export const useClaimLink = () => {
     const { chain: currentChain, refetchBalances } = useWallet()
@@ -98,6 +99,7 @@ export const useClaimLink = () => {
             console.log(`Switched to chain ${chainId}`)
         } catch (error) {
             console.error('Failed to switch network:', error)
+            Sentry.captureException(error)
         }
     }
     const checkTxStatus = async (txHash: string) => {}
@@ -122,6 +124,7 @@ export const useClaimLink = () => {
             }
         } catch (error) {
             console.error('Failed to get attachment:', error)
+            Sentry.captureException(error)
         }
     }
 

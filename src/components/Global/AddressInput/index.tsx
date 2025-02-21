@@ -3,6 +3,7 @@ import { isAddress } from 'viem'
 
 import { resolveFromEnsName, validateEnsName } from '@/utils'
 import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
+import * as Sentry from '@sentry/nextjs'
 
 type AddressInputProps = {
     placeholder: string
@@ -21,6 +22,7 @@ const AddressInput = ({ placeholder = 'Enter a valid address', value, onUpdate, 
                 return isAddress(recipient)
             }
         } catch (error) {
+            Sentry.captureException(error)
             console.error('Error while validating recipient input field:', error)
             return false
         }

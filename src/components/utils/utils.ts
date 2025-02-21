@@ -1,6 +1,7 @@
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 import { fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 type ISquidChainData = {
     id: string
@@ -149,6 +150,7 @@ export const estimatePoints = async ({
         const data = await response.json()
         return Math.round(data.points)
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Failed to estimate points:', error)
         return 0
     }

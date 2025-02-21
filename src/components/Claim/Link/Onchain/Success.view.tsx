@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useConnections, useSwitchChain } from 'wagmi'
 import * as _consts from '../../Claim.consts'
+import * as Sentry from '@sentry/nextjs'
 
 export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
     const connections = useConnections()
@@ -40,6 +41,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
             try {
                 await switchChainAsync({ chainId: Number(chainId) })
             } catch (error) {
+                Sentry.captureException(error)
                 console.error('Error switching network:', error)
             }
         }

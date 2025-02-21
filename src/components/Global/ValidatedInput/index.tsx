@@ -4,6 +4,7 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Loading from '../Loading'
+import * as Sentry from '@sentry/nextjs'
 
 type ValidatedInputProps = {
     label?: string
@@ -64,6 +65,7 @@ const ValidatedInput = ({
                 console.error('Unexpected error while validating recipient input field:', error)
                 setIsValid(false)
                 onUpdate({ value: debouncedValue, isValid: false, isChanging: false })
+                Sentry.captureException(error)
             })
             .finally(() => {
                 if (isStale) return

@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import { useMemo, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 interface ILoginComponentProps {
     email?: string
@@ -117,6 +118,7 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
         } catch (error) {
             console.error(error)
             setErrorState({ showError: true, errorMessage: 'Please make sure you are using the right credentials' })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }

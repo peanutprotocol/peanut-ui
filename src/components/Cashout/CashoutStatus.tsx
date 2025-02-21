@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { Card } from '../0_Bruddle'
 import Icon from '../Global/Icon'
 import PeanutLoading from '../Global/PeanutLoading'
+import * as Sentry from '@sentry/nextjs'
 
 export const CashoutStatus = () => {
     const [cashoutStatus, setCashoutStatus] = useState<'FOUND' | 'NOT FOUND' | undefined>(undefined)
@@ -20,6 +21,7 @@ export const CashoutStatus = () => {
         } catch (error) {
             console.error(error)
             setCashoutStatus('NOT FOUND')
+            Sentry.captureException(error)
         }
     }
 

@@ -12,6 +12,7 @@ import { isIBAN } from 'validator'
 import CountryDropdown from '../CountrySelect'
 import Icon from '../Icon'
 import Loading from '../Loading'
+import * as Sentry from '@sentry/nextjs'
 
 const steps = [{ label: '1. Bank Account' }, { label: '2. Confirm details' }]
 
@@ -172,6 +173,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
 
             goToNext()
         } catch (error) {
+            Sentry.captureException(error)
             console.error(error)
         } finally {
             setLoadingState('idle')
@@ -262,6 +264,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                             }
                             console.log('Using existing address (modified for US):', address)
                         } catch (error) {
+                            Sentry.captureException(error)
                             console.error('Failed to handle address details:', error)
                         }
                     }
@@ -354,6 +357,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 showError: true,
                 errorMessage: error instanceof Error ? error.message : 'Failed to link bank account. Please try again.',
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('idle')
         }

@@ -13,6 +13,7 @@ import Modal from '../Global/Modal'
 import ProfileHeader from './Components/ProfileHeader'
 import ProfileSection from './Components/ProfileSection'
 import ProfileWalletBalance from './Components/ProfileWalletBalance'
+import * as Sentry from '@sentry/nextjs'
 
 export const Profile = () => {
     const { address } = useWallet()
@@ -76,6 +77,7 @@ export const Profile = () => {
                 showError: true,
                 errorMessage: 'Error while authenticating. Please try again later.',
             })
+            Sentry.captureException(error)
         } finally {
             _setIsLoading(false)
         }
@@ -91,6 +93,7 @@ export const Profile = () => {
                 showError: true,
                 errorMessage: 'Error logging out',
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }

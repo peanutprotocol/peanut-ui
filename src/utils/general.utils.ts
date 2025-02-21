@@ -7,6 +7,7 @@ import chroma from 'chroma-js'
 import { ethers } from 'ethers'
 import { SiweMessage } from 'siwe'
 import * as wagmiChains from 'wagmi/chains'
+import * as Sentry from '@sentry/nextjs'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -95,6 +96,7 @@ export const saveToLocalStorage = (key: string, data: any) => {
         localStorage.setItem(key, serializedData)
         console.log(`Saved ${key} to localStorage:`, data)
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error saving to localStorage:', error)
     }
 }
@@ -111,6 +113,7 @@ export const getFromLocalStorage = (key: string) => {
         console.log(`Retrieved ${key} from localStorage:`, parsedData)
         return parsedData
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -146,6 +149,7 @@ export const getAllLinksFromLocalStorage = ({ address }: { address: string }) =>
         }
         return localStorageData
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -222,6 +226,7 @@ export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string
         }
         return localStorageData
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -336,6 +341,7 @@ export async function resolveFromEnsNameAndProviderUrl(
 
         return sanitizeRecords(records).ethAddress.value
     } catch (error) {
+        Sentry.captureException(error)
         return undefined
     }
 }
@@ -361,6 +367,7 @@ export async function copyTextToClipboardWithFallback(text: string) {
             await navigator.clipboard.writeText(text)
             return
         } catch (err) {
+            Sentry.captureException(err)
             console.error('Clipboard API failed, trying fallback method. Error:', err)
         }
     }
@@ -377,6 +384,7 @@ export async function copyTextToClipboardWithFallback(text: string) {
         const msg = successful ? 'successful' : 'unsuccessful'
         document.body.removeChild(textarea)
     } catch (err) {
+        Sentry.captureException(err)
         console.error('Fallback method failed. Error:', err)
     }
 }
@@ -434,6 +442,7 @@ export const saveClaimedLinkToLocalStorage = ({
 
         console.log('Saved claimed link to localStorage:', data)
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error adding data to localStorage:', error)
     }
 }
@@ -457,6 +466,7 @@ export const saveOfframpLinkToLocalstorage = ({ data }: { data: interfaces.IExte
 
         console.log('Saved claimed link to localStorage:', data)
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error adding data to localStorage:', error)
     }
 }
@@ -492,6 +502,7 @@ export const getClaimedLinksFromLocalStorage = ({ address = undefined }: { addre
 
         return data
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -521,6 +532,7 @@ export const saveCreatedLinkToLocalStorage = ({
 
         console.log('Saved created link to localStorage:', data)
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error adding data to localStorage:', error)
     }
 }
@@ -556,6 +568,7 @@ export const getCreatedLinksFromLocalStorage = ({ address = undefined }: { addre
 
         return data
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -585,6 +598,7 @@ export const saveDirectSendToLocalStorage = ({
 
         console.log('Saved direct send to localStorage:', data)
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error adding data to localStorage:', error)
     }
 }
@@ -620,6 +634,7 @@ export const getDirectSendFromLocalStorage = ({ address = undefined }: { address
 
         return data
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -640,6 +655,7 @@ export const getOfframpClaimsFromLocalStorage = () => {
 
         return data
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -672,6 +688,7 @@ export const updateUserPreferences = (partialPrefs: Partial<UserPreferences>): U
         localStorage.setItem('user-preferences', JSON.stringify(newPrefs))
         return newPrefs
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error updating user preferences:', error)
     }
 }
@@ -685,6 +702,7 @@ export const getUserPreferences = (): UserPreferences | undefined => {
 
         return JSON.parse(storedData) as UserPreferences
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting user preferences:', error)
     }
 }
@@ -877,6 +895,7 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
             })
             tokenSymbol = contract?.symbol?.toUpperCase()
         } catch (error) {
+            Sentry.captureException(error)
             console.error('Error fetching token symbol:', error)
         }
     }

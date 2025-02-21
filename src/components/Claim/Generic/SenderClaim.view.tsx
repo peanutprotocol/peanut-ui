@@ -9,6 +9,7 @@ import * as utils from '@/utils'
 import { useContext, useState } from 'react'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
+import * as Sentry from '@sentry/nextjs'
 
 interface ISenderClaimLinkViewProps {
     changeToRecipientView: () => void
@@ -61,6 +62,7 @@ export const SenderClaimLinkView = ({
                 showError: true,
                 errorMessage: errorString,
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }

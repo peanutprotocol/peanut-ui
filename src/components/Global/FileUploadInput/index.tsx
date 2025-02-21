@@ -2,6 +2,8 @@ import Icon from '../Icon'
 import { useEffect, useState } from 'react'
 import { fetchWithSentry, checkifImageType } from '@/utils'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
+import * as Sentry from '@sentry/nextjs'
+
 export interface IFileUploadInputProps {
     attachmentOptions: {
         fileUrl: string | undefined
@@ -36,6 +38,7 @@ const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploa
                 })
                 .catch((error) => {
                     console.log('Error fetching the blob from URL:', error)
+                    Sentry.captureException(error)
                     setFileType('') // Reset or handle the error state
                 })
         }

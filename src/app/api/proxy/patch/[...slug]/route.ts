@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest) {
     } catch (error: any) {
         console.error('Error while parsing json:', error)
         return NextResponse.json('Pass a valid json', {
-            status: 403,
+            status: 400,
         })
     }
 

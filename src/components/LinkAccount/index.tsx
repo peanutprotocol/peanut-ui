@@ -9,6 +9,7 @@ import { Button, Card } from '../0_Bruddle'
 import Divider from '../0_Bruddle/Divider'
 import PageContainer from '../0_Bruddle/PageContainer'
 import { GlobaLinkAccountComponent } from '../Global/LinkAccountComponent'
+import * as Sentry from '@sentry/nextjs'
 
 export const LinkAccountComponent = () => {
     const { user, logoutUser, isFetchingUser } = useAuth()
@@ -27,6 +28,7 @@ export const LinkAccountComponent = () => {
                 showError: true,
                 errorMessage: 'Error logging out',
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }

@@ -14,6 +14,7 @@ import { useForm } from 'react-hook-form'
 import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
 import Loading from '../Loading'
 import { UpdateUserComponent } from '../UpdateUserComponent'
+import * as Sentry from '@sentry/nextjs'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -133,11 +134,14 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             }
         } catch (error: any) {
             console.error('Error during the submission process:', error)
+            let errorMessage: string
 
-            const errorMessage =
-                error.message === 'Name and email are required'
-                    ? 'Please provide both your name and email address.'
-                    : 'An error occurred. Please try again later'
+            if (error.message === 'Name and email are required') {
+                errorMessage = 'Please provide both your name and email address.'
+            } else {
+                errorMessage = 'An error occurred. Please try again later'
+                Sentry.captureException(error)
+            }
 
             setErrorState({
                 showError: true,
@@ -215,6 +219,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             console.error('Error during the submission process:', error)
             setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
             setLoadingState('Idle')
+            Sentry.captureException(error)
         }
     }
 
@@ -337,6 +342,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             }
 
             setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+            Sentry.captureException(error)
 
             setLoadingState('Idle')
         } finally {

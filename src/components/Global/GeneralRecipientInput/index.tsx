@@ -8,6 +8,7 @@ import * as interfaces from '@/interfaces'
 import { useRecentRecipients } from '@/hooks/useRecentRecipients'
 import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
 import { validateEnsName } from '@/utils'
+import * as Senty from '@sentry/nextjs'
 
 type GeneralRecipientInputProps = {
     className?: string
@@ -71,6 +72,7 @@ const GeneralRecipientInput = ({
             return isValid
         } catch (error) {
             console.error('Error while validating recipient input field:', error)
+            Senty.captureException(error)
             return false
         }
     }, [])

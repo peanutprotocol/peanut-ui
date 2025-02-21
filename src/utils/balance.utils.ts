@@ -2,6 +2,7 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { ChainValue, IUserBalance } from '@/interfaces'
 import { isAddressZero, areEvmAddressesEqual, fetchWithSentry } from '@/utils'
 import { formatUnits } from 'viem'
+import * as Sentry from '@sentry/nextjs'
 
 export async function fetchWalletBalances(
     address: string
@@ -64,6 +65,9 @@ export async function fetchWalletBalances(
         }
     } catch (error) {
         console.error('Error fetching wallet balances:', error)
+        if (error instanceof Error && error.message !== 'API request failed') {
+            Sentry.captureException(error)
+        }
         return { balances: [], totalBalance: 0 }
     }
 }
@@ -99,6 +103,7 @@ export function calculateValuePerChain(balances: IUserBalance[]): ChainValue[] {
 
         result.sort((a, b) => b.valuePerChain - a.valuePerChain)
     } catch (error) {
+        Sentry.captureException(error)
         console.log('Error calculating value per chain: ', error)
     }
     return result
