@@ -1,5 +1,6 @@
 import { IBridgeAccount } from '@/interfaces'
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
@@ -22,7 +23,10 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const { customerId, accountType, accountDetails, address, accountOwnerName } = requestBody
+        const { accountType, accountDetails, address, accountOwnerName } = requestBody
+
+        const url = new URL(request.url)
+        const customerId = url.searchParams.get('customerId')
 
         // validate required fields
         if (!customerId) {
@@ -56,7 +60,6 @@ export async function POST(request: NextRequest) {
         const idempotencyKey = uuidv4()
         let body
 
-        // Prepare request body based on account type
         if (accountType === 'iban') {
             body = {
                 iban: {
@@ -213,7 +216,7 @@ export async function POST(request: NextRequest) {
 
                 return new NextResponse(
                     JSON.stringify({
-                        success: true,
+                        success: false,
                         data: existingAccount,
                     }),
                     {
@@ -242,23 +245,18 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        return new NextResponse(
-            JSON.stringify({
-                success: true,
-                data: data,
-            }),
-            {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-            }
-        )
+        return new NextResponse(JSON.stringify(data), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
     } catch (error) {
         console.error('Error in create-external-account:', {
             error,
             message: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,
         })
-
         return new NextResponse(
             JSON.stringify({
                 success: false,

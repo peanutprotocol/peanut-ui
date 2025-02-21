@@ -1,8 +1,11 @@
 'use client'
+import { sortCrossChainDetails } from '@/components/Claim/Claim.utils'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { CrispButton } from '@/components/CrispChat'
+import FeeDescription from '@/components/Global/FeeDescription'
 import Icon from '@/components/Global/Icon'
+import InfoRow from '@/components/Global/InfoRow'
 import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
 import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
 import Loading from '@/components/Global/Loading'
@@ -16,7 +19,7 @@ import { getSquidTokenAddress } from '@/utils/token.utils'
 import peanut, { getLatestContractVersion, getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import { useSteps } from 'chakra-ui-steps'
 import Link from 'next/link'
-import { useCallback, useContext, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 import {
     CrossChainDetails,
@@ -29,7 +32,6 @@ import {
 } from '@/components/Offramp/Offramp.consts'
 import { Button, Card } from '../0_Bruddle'
 import { FAQComponent } from '../Cashout/Components/Faq.comp'
-import { sortCrossChainDetails } from '../Claim/Claim.utils'
 import FlowHeader from '../Global/FlowHeader'
 import PromoCodeChecker from './PromoCodeChecker'
 
@@ -54,6 +56,7 @@ export const OfframpConfirmView = ({
     crossChainDetails, // available on link claim offramps
     appliedPromoCode,
     onPromoCodeApplied,
+    estimatedGasCost,
 }: IOfframpConfirmScreenProps) => {
     //////////////////////
     // state and context vars w/ shared functionality across all offramp types
@@ -66,13 +69,20 @@ export const OfframpConfirmView = ({
     const { claimLink, claimLinkXchain } = useClaimLink()
     const { fetchUser, user } = useAuth()
 
+    const accountType = user?.accounts?.find(
+        (account) =>
+            account?.account_identifier?.replaceAll(/\s/g, '').toLowerCase() ===
+            offrampForm.recipient?.replaceAll(/\s/g, '').toLowerCase()
+    )?.account_type
+
     //////////////////////
     // state and context vars for cashout offramp
-    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, selectedTokenData } = useContext(context.tokenSelectorContext)
     const [showRefund, setShowRefund] = useState(false)
     const { createLinkWrapper } = useCreateLink()
     const [createdLink, setCreatedLink] = useState<string | undefined>(undefined)
-
+    const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
+    const [isFetchingRoute, setIsFetchingRoute] = useState(false)
     //////////////////////
     // state and context vars for claim link offramp
 
@@ -156,22 +166,28 @@ export const OfframpConfirmView = ({
         setErrorState({ showError: false, errorMessage: '' })
 
         try {
-            if (!preparedCreateLinkWrapperResponse) {
-                throw new Error('Link preparation failed. Please try again.')
-            }
+            if (!preparedCreateLinkWrapperResponse) return
 
             // Fetch all necessary details before creating the link
-            const details = await fetchNecessaryDetails()
+            const {
+                crossChainDetails,
+                peanutAccount,
+                bridgeCustomerId,
+                bridgeExternalAccountId,
+                allLiquidationAddresses,
+            } = await fetchNecessaryDetails()
+
+            console.log('peanutAccount', peanutAccount)
 
             // Process link details and determine if cross-chain transfer is needed
             // TODO: type safety
             const { tokenName, chainName, xchainNeeded, liquidationAddress } = await processLinkDetails(
                 preparedCreateLinkWrapperResponse.linkDetails,
-                details.crossChainDetails as CrossChainDetails[],
-                details.allLiquidationAddresses,
-                details.bridgeCustomerId,
-                details.bridgeExternalAccountId,
-                details.peanutAccount.account_type
+                crossChainDetails as CrossChainDetails[],
+                allLiquidationAddresses,
+                bridgeCustomerId,
+                bridgeExternalAccountId,
+                peanutAccount.account_type
             )
 
             if (!tokenName || !chainName) {
@@ -223,11 +239,11 @@ export const OfframpConfirmView = ({
                 claimLinkData,
                 destinationTxHash,
                 liquidationAddress,
-                details.bridgeCustomerId,
-                details.bridgeExternalAccountId,
+                bridgeCustomerId,
+                bridgeExternalAccountId,
                 chainId,
                 tokenName,
-                details.peanutAccount
+                peanutAccount
             )
 
             setTransactionHash(destinationTxHash)
@@ -235,18 +251,7 @@ export const OfframpConfirmView = ({
 
             onNext()
         } catch (error) {
-            console.error('Error in handleCashoutConfirm:', error)
-            // Improve error message handling
-            const errorMessage =
-                error instanceof Error
-                    ? utils.ErrorHandler(error.message)
-                    : "We've encountered an error. Your funds are SAFU, please reach out to support"
-
-            setErrorState({
-                showError: true,
-                errorMessage,
-            })
-            setShowRefund(true)
+            handleError(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -260,11 +265,12 @@ export const OfframpConfirmView = ({
         bridgeExternalAccountId: string,
         accountType: string
     ) => {
+        // get token and chain names from claim link data
         let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
         let chainName = utils.getBridgeChainName(claimLinkData.chainId)
         let xchainNeeded = false
 
-        // if we don't have a token and chain name (meaning bridge supports it), we do x-chain transfer to optimism usdc
+        // if token and chain names are not available, set up cross-chain transfer to optimism usdc
         if (!tokenName || !chainName) {
             xchainNeeded = true
             const result = await handleCrossChainScenario(claimLinkData)
@@ -275,6 +281,7 @@ export const OfframpConfirmView = ({
             chainName = result.chainName
         }
 
+        // find or create a liquidation address for the user
         let liquidationAddress = allLiquidationAddresses.find(
             (address) =>
                 address.chain === chainName &&
@@ -295,6 +302,52 @@ export const OfframpConfirmView = ({
 
         return { tokenName, chainName, xchainNeeded, liquidationAddress }
     }
+
+    const getRouteDetails = async () => {
+        setIsFetchingRoute(true)
+        try {
+            // fetch route details using link details to calculate slippage
+            const { route } = await utils.fetchRouteRaw(
+                preparedCreateLinkWrapperResponse?.linkDetails.tokenAddress ?? '',
+                preparedCreateLinkWrapperResponse?.linkDetails.chainId ?? '',
+                usdcAddressOptimism,
+                optimismChainId,
+                preparedCreateLinkWrapperResponse?.linkDetails.tokenDecimals ?? 0,
+                String(preparedCreateLinkWrapperResponse?.linkDetails.tokenAmount ?? '0')
+            )
+
+            // get slippage percentage from route details
+            if (route.params && route.params.slippage) {
+                setSlippagePercentage(route.params.slippage)
+            } else {
+                // default to 1% slippage if not available
+                setSlippagePercentage(1)
+            }
+        } catch (error) {
+            console.error('Error fetching route details:', error)
+        } finally {
+            setIsFetchingRoute(false)
+        }
+    }
+
+    useEffect(() => {
+        getRouteDetails()
+    }, [])
+
+    const calculatedSlippage = useMemo(() => {
+        if (!selectedTokenData?.price || !slippagePercentage) return null
+
+        // percentage of maximum slippage to use as expected slippage (10%)
+        const EXPECTED_SLIPPAGE_MULTIPLIER = 0.1
+
+        // calculate the slippage based on the token price and the slippage percentage
+        const slippage = ((slippagePercentage / 100) * selectedTokenData?.price * Number(tokenValue)).toFixed(2) || 0
+
+        return {
+            expected: Number(slippage) * EXPECTED_SLIPPAGE_MULTIPLIER,
+            max: Number(slippage),
+        }
+    }, [slippagePercentage, tokenPrice, tokenValue])
 
     // TODO: fix type
     const handleCrossChainScenario = async (
@@ -434,7 +487,7 @@ export const OfframpConfirmView = ({
     }
 
     const saveAndSubmitCashoutLink = async (
-        claimLinkData: any, // TODO: fix type
+        claimLinkData: any,
         hash: string,
         liquidationAddress: LiquidationAddress,
         bridgeCustomerId: string,
@@ -443,36 +496,49 @@ export const OfframpConfirmView = ({
         tokenName: string,
         peanutAccount: PeanutAccount
     ) => {
-        utils.saveOfframpLinkToLocalstorage({
-            data: {
-                ...claimLinkData,
-                depositDate: new Date(),
-                USDTokenPrice: parseFloat(usdValue ?? ''),
-                points: 0,
-                txHash: hash,
-                message: undefined,
-                attachmentUrl: undefined,
-                liquidationAddress: liquidationAddress.address,
-                recipientType: 'bank',
-                accountNumber: offrampForm.recipient,
-                bridgeCustomerId: bridgeCustomerId,
-                bridgeExternalAccountId: bridgeExternalAccountId,
-                peanutCustomerId: user?.user?.userId,
-                peanutExternalAccountId: peanutAccount.account_id,
-            },
-        })
+        try {
+            setLoadingState('Submitting Offramp')
+            // save to localStorage first
+            utils.saveOfframpLinkToLocalstorage({
+                data: {
+                    ...claimLinkData,
+                    depositDate: new Date(),
+                    USDTokenPrice: parseFloat(usdValue ?? ''),
+                    points: 0,
+                    txHash: hash,
+                    message: undefined,
+                    attachmentUrl: undefined,
+                    liquidationAddress: liquidationAddress.address,
+                    recipientType: 'bank',
+                    accountNumber: offrampForm.recipient,
+                    bridgeCustomerId: bridgeCustomerId,
+                    bridgeExternalAccountId: bridgeExternalAccountId,
+                    peanutCustomerId: user?.user?.userId,
+                    peanutExternalAccountId: peanutAccount.account_id,
+                },
+            })
 
-        await utils.submitCashoutLink({
-            link: claimLinkData.link,
-            bridgeCustomerId: bridgeCustomerId,
-            liquidationAddressId: liquidationAddress.id,
-            cashoutTransactionHash: hash, // has to be destination chain transaction hash!
-            externalAccountId: bridgeExternalAccountId,
-            chainId: chainId,
-            tokenName: tokenName,
-            promoCode: appliedPromoCode || '',
-            trackParam: appliedPromoCode || '',
-        })
+            const response = await utils.submitCashoutLink({
+                link: claimLinkData.link,
+                bridgeCustomerId: bridgeCustomerId,
+                liquidationAddressId: liquidationAddress.id,
+                cashoutTransactionHash: hash,
+                externalAccountId: peanutAccount.account_id,
+                chainId: chainId,
+                tokenName: tokenName,
+                promoCode: appliedPromoCode || '',
+                trackParam: appliedPromoCode || '',
+            })
+
+            if (!response.ok) {
+                console.error('Failed to submit cashout link:', await response.json())
+                throw new Error('Failed to submit cashout link')
+            }
+            setLoadingState('Idle')
+        } catch (error) {
+            setLoadingState('Idle')
+            console.error('Error in saveAndSubmitCashoutLink:', error)
+        }
     }
 
     const handleError = (error: unknown) => {
@@ -599,7 +665,6 @@ export const OfframpConfirmView = ({
                         address.currency === tokenName &&
                         address.external_account_id === bridgeExternalAccountId
                 )
-
                 if (!liquidationAddress) {
                     liquidationAddress = await utils.createLiquidationAddress(
                         bridgeCustomerId,
@@ -660,6 +725,76 @@ export const OfframpConfirmView = ({
         }
     }
 
+    const calculateBankingFee = useCallback(
+        (accountType: string) => {
+            if (!!appliedPromoCode) return 0
+
+            const amount = parseFloat(usdValue ?? '0')
+
+            // peanut fee is 0.25% of the amount
+            const PEANUT_FEE_PERCENTAGE = 0.0025
+            const peanutFee = amount * PEANUT_FEE_PERCENTAGE
+            const bankingFee = (accountType === 'iban' ? 1 : 0.5) + peanutFee
+
+            return bankingFee
+        },
+        [appliedPromoCode, usdValue]
+    )
+
+    const calculateEstimatedFee = (
+        estimatedGasCost: string | undefined,
+        hasPromoCode: boolean,
+        accountType: string | undefined,
+        isCrossChainTx: boolean
+    ): number => {
+        // estimated network cost for the transaction
+        const estimatedNetworkFee = parseFloat(estimatedGasCost ?? '0')
+        if (hasPromoCode) return estimatedNetworkFee
+
+        // additional fees based on bank account type and cross-chain transfer
+        const bankingFee = calculateBankingFee(accountType ?? 'iban')
+        const crossChainFee = isCrossChainTx ? (calculatedSlippage?.expected ?? 0) : 0
+
+        // total estimated fee
+        return estimatedNetworkFee + bankingFee + crossChainFee
+    }
+
+    // check if fee exceeds withdraw amount and update error state
+    useEffect(() => {
+        // calculate total fees
+        const totalFees = calculateEstimatedFee(estimatedGasCost, !!appliedPromoCode, accountType, !!crossChainDetails)
+
+        // determine the amount based on offramp type
+        const amount =
+            offrampType == OfframpType.CASHOUT
+                ? parseFloat(usdValue ?? '0')
+                : tokenPrice && claimLinkData
+                  ? tokenPrice * parseFloat(claimLinkData.tokenAmount)
+                  : 0
+
+        // update error state if fees exceed the amount
+        if (!isNaN(amount) && !isNaN(totalFees) && amount <= totalFees) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Transaction fees exceed the withdrawal amount. Please try a larger amount.',
+            })
+        } else {
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
+        }
+    }, [
+        estimatedGasCost,
+        usdValue,
+        appliedPromoCode,
+        accountType,
+        crossChainDetails,
+        offrampType,
+        tokenPrice,
+        claimLinkData,
+    ])
+
     return (
         <div>
             <FlowHeader
@@ -668,6 +803,7 @@ export const OfframpConfirmView = ({
                     setActiveStep(0)
                     setErrorState({ showError: false, errorMessage: '' })
                     setOfframpForm({ email: '', name: '', recipient: '', password: '' })
+                    fetchUser()
                 }}
                 disableBackBtn={isLoading}
                 disableWalletHeader
@@ -715,10 +851,10 @@ export const OfframpConfirmView = ({
                     ) : (
                         <div className="my-2 flex w-full flex-col items-center justify-center gap-2">
                             <label className="self-start text-h8 font-light">Please confirm all details:</label>
-                            <div className="flex w-full flex-col items-center justify-center gap-2">
-                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
+                            <div className="flex w-full flex-col items-center justify-center gap-3">
+                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                                     <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                        <Icon name={'profile'} className="h-4 fill-grey-1" />
+                                        <Icon name={'profile'} className="h-4 fill-gray-1" />
                                         <label className="font-bold">Name</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -726,9 +862,9 @@ export const OfframpConfirmView = ({
                                     </span>
                                 </div>
 
-                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
+                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                                     <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                        <Icon name={'email'} className="h-4 fill-grey-1" />
+                                        <Icon name={'email'} className="h-4 fill-gray-1" />
                                         <label className="font-bold">Email</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -736,9 +872,9 @@ export const OfframpConfirmView = ({
                                     </span>
                                 </div>
 
-                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
-                                    <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                        <Icon name={'bank'} className="h-4 fill-grey-1" />
+                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                    <div className="flex w-max flex-row items-center justify-center gap-1">
+                                        <Icon name={'bank'} className="h-4 fill-gray-1" />
                                         <label className="font-bold">Bank account</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -747,171 +883,93 @@ export const OfframpConfirmView = ({
                                 </div>
 
                                 {offrampType == OfframpType.CLAIM && (
-                                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
-                                        <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                            <Icon name={'forward'} className="h-4 fill-grey-1" />
+                                    <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
+                                        <div className="flex w-1/3 flex-row items-center gap-1">
+                                            <Icon name={'forward'} className="h-4 fill-gray-1" />
                                             <label className="font-bold">Route</label>
                                         </div>
-                                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                            {
-                                                consts.supportedPeanutChains.find(
-                                                    (chain) => chain.chainId === claimLinkData?.chainId
-                                                )?.name
-                                            }{' '}
-                                            <Icon name={'arrow-next'} className="h-4 fill-grey-1" /> Offramp{' '}
-                                            <Icon name={'arrow-next'} className="h-4 fill-grey-1" />{' '}
-                                            {recipientType?.toUpperCase()}{' '}
-                                            <MoreInfo
-                                                text={`Wait, crypto can be converted to real money??? How cool!`}
-                                            />
-                                        </span>
+                                        <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
+                                            <div className="flex items-center gap-1">
+                                                {
+                                                    consts.supportedPeanutChains.find(
+                                                        (chain) => chain.chainId === claimLinkData?.chainId
+                                                    )?.name
+                                                }{' '}
+                                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Offramp{' '}
+                                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                                {recipientType?.toUpperCase()}{' '}
+                                                <MoreInfo
+                                                    text={`Wait, crypto can be converted to real money??? How cool!`}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
 
-                                <div className="flex w-full flex-row items-center px-2 text-h8 text-grey-1">
-                                    <div className="flex w-1/3 flex-row items-center gap-1">
-                                        <Icon name={'gas'} className="h-4 fill-grey-1" />
-                                        <label className="font-bold">Fee</label>
-                                    </div>
-                                    <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
-                                        <div className="flex items-center gap-1">
-                                            {appliedPromoCode
+                                <div className="flex w-full flex-col items-center justify-center">
+                                    {/* note: the Expected receive amount is the amount that the user will receive after banking fees and slippage is deduducted, users need to pay for gas separately, and gas is not included in the expected receive amount */}
+                                    <InfoRow
+                                        iconName="money-in"
+                                        label="Expected receive"
+                                        value={(() => {
+                                            // calculate banking fee based on promo code and account type
+                                            const bankingFee = calculateBankingFee(accountType ?? 'iban')
+
+                                            const totalFees = bankingFee + (calculatedSlippage?.expected ?? 0)
+
+                                            // determine the amount based on offramp type
+                                            const amount =
+                                                offrampType == OfframpType.CASHOUT
+                                                    ? parseFloat(usdValue ?? '0')
+                                                    : tokenPrice && claimLinkData
+                                                      ? tokenPrice * parseFloat(claimLinkData.tokenAmount)
+                                                      : 0
+
+                                            // return 0 if fees exceed amount, otherwise calculate expected receive
+                                            return amount <= totalFees
                                                 ? '$0'
-                                                : user?.accounts.find(
-                                                        (account) =>
-                                                            account.account_identifier
-                                                                .replaceAll(/\s/g, '')
-                                                                .toLowerCase() ===
-                                                            offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                                    )?.account_type === 'iban'
-                                                  ? '$1'
-                                                  : '$0.50'}
-                                            <span className="inline-flex items-center">
-                                                <MoreInfo
-                                                    text={
-                                                        appliedPromoCode
-                                                            ? 'Fees waived with promo code!'
-                                                            : `For ${
-                                                                  user?.accounts.find(
-                                                                      (account) =>
-                                                                          account.account_identifier
-                                                                              .replaceAll(/\s/g, '')
-                                                                              .toLowerCase() ===
-                                                                          offrampForm.recipient
-                                                                              .replaceAll(/\s/g, '')
-                                                                              .toLowerCase()
-                                                                  )?.account_type === 'iban'
-                                                                      ? 'SEPA'
-                                                                      : 'ACH'
-                                                              } transactions a fee of ${
-                                                                  user?.accounts.find(
-                                                                      (account) =>
-                                                                          account.account_identifier
-                                                                              .replaceAll(/\s/g, '')
-                                                                              .toLowerCase() ===
-                                                                          offrampForm.recipient
-                                                                              .replaceAll(/\s/g, '')
-                                                                              .toLowerCase()
-                                                                  )?.account_type === 'iban'
-                                                                      ? '$1'
-                                                                      : '$0.50'
-                                                              } is charged.`
-                                                    }
-                                                />
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
+                                                : `$${utils.formatTokenAmount(amount - totalFees)}` || '$0'
+                                        })()}
+                                        moreInfoText="Expected amount you will receive in your bank account. You'll receive funds in your local currency."
+                                    />
 
-                                <div className="flex w-full flex-row items-center px-2 text-h8 text-grey-1">
-                                    <div className="flex w-1/3 flex-row items-center gap-1">
-                                        <Icon name={'transfer'} className="h-4 fill-grey-1" />
-                                        <label className="font-bold">Total</label>
-                                    </div>
-                                    <div className="flex flex-1 items-center justify-end gap-1 text-sm font-normal">
-                                        $
-                                        {offrampType === OfframpType.CASHOUT
-                                            ? utils.formatTokenAmount(parseFloat(usdValue ?? '0'))
-                                            : tokenPrice && claimLinkData
-                                              ? utils.formatTokenAmount(
-                                                    tokenPrice * parseFloat(claimLinkData.tokenAmount)
-                                                )
-                                              : ''}{' '}
-                                        <MoreInfo
-                                            text={`This is the total amount before the ${
-                                                user?.accounts.find(
-                                                    (account) =>
-                                                        account.account_identifier
-                                                            .replaceAll(/\s/g, '')
-                                                            .toLowerCase() ===
-                                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                                )?.account_type === 'iban'
-                                                    ? '$1 SEPA'
-                                                    : '$0.50 ACH'
-                                            } fee is deducted.`}
-                                        />
-                                    </div>
-                                </div>
+                                    <FeeDescription
+                                        estimatedFee={calculateEstimatedFee(
+                                            estimatedGasCost,
+                                            !!appliedPromoCode,
+                                            accountType,
+                                            !!crossChainDetails
+                                        ).toString()}
+                                        networkFee={estimatedGasCost ?? '0'}
+                                        minReceive={(() => {
+                                            const amount = parseFloat(usdValue ?? '0')
 
-                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                                    <div className="flex w-max flex-row items-center gap-1">
-                                        <Icon name={'transfer'} className="h-4 fill-grey-1" />
-                                        <label className="font-bold">You will receive</label>
-                                    </div>
-                                    <div className="flex items-center justify-end gap-1 text-sm font-normal">
-                                        <div className="flex items-center gap-1">
-                                            ${/* if promo code is applied, show full amount without fee deduction */}
-                                            {appliedPromoCode
-                                                ? offrampType == OfframpType.CASHOUT
-                                                    ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? ''))
-                                                    : tokenPrice &&
-                                                      claimLinkData &&
-                                                      utils.formatTokenAmount(
-                                                          tokenPrice * parseFloat(claimLinkData.tokenAmount)
-                                                      )
-                                                : // if no promo code, apply fee deduction based on account type
-                                                  user?.accounts.find(
-                                                        (account) =>
-                                                            account.account_identifier
-                                                                .replaceAll(/\s/g, '')
-                                                                .toLowerCase() ===
-                                                            offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                                    )?.account_type === 'iban'
-                                                  ? offrampType == OfframpType.CASHOUT
-                                                      ? utils.formatTokenAmount(
-                                                            parseFloat(usdValue ?? tokenValue ?? '') - 1
-                                                        )
-                                                      : tokenPrice &&
-                                                        claimLinkData &&
-                                                        utils.formatTokenAmount(
-                                                            tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
-                                                        )
-                                                  : offrampType == OfframpType.CASHOUT
-                                                    ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
-                                                    : tokenPrice &&
-                                                      claimLinkData &&
-                                                      utils.formatTokenAmount(
-                                                          tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
-                                                      )}
-                                            <MoreInfo
-                                                text={
-                                                    appliedPromoCode
-                                                        ? 'Fees waived with promo code!'
-                                                        : user?.accounts.find(
-                                                                (account) =>
-                                                                    account.account_identifier
-                                                                        .replaceAll(/\s/g, '')
-                                                                        .toLowerCase() ===
-                                                                    offrampForm.recipient
-                                                                        .replaceAll(/\s/g, '')
-                                                                        .toLowerCase()
-                                                            )?.account_type === 'iban'
-                                                          ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
-                                                          : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
-                                                }
-                                            />
-                                        </div>
-                                    </div>
+                                            // calculate banking fee based on promo code and account type
+                                            const bankingFee = calculateBankingFee(accountType ?? 'iban')
+
+                                            const totalFees = bankingFee + (calculatedSlippage?.expected ?? 0)
+
+                                            // return 0 if fees exceed amount, otherwise calculate minimum receive
+                                            return amount <= totalFees
+                                                ? '0'
+                                                : utils.formatTokenAmount(amount - totalFees)
+                                        })()}
+                                        slippageRange={{
+                                            max: utils.formatAmount(calculatedSlippage?.max || '0').toString() ?? '0',
+                                            min:
+                                                utils.formatAmount(calculatedSlippage?.expected || '0').toString() ??
+                                                '0',
+                                        }}
+                                        accountType={accountType}
+                                        accountTypeFee={(() => {
+                                            // calculate banking fee based on promo code and account type
+                                            const bankingFee = calculateBankingFee(accountType ?? 'iban')
+
+                                            return utils.formatAmount(bankingFee)
+                                        })()}
+                                        isPromoApplied={!!appliedPromoCode}
+                                        loading={isFetchingRoute}
+                                    />
                                 </div>
 
                                 <PromoCodeChecker
