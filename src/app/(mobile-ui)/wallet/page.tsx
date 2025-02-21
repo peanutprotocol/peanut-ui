@@ -58,7 +58,7 @@ const WalletDetailsPage = () => {
                             variant="balance"
                             primaryInfo={{ title: PEANUT_WALLET_TOKEN_NAME }}
                             secondaryInfo={{
-                                mainText: `$ ${formatAmount(formatUnits(walletDetails.balance, PEANUT_WALLET_TOKEN_DECIMALS))}`,
+                                mainText: `$${formatAmount(formatUnits(walletDetails.balance, PEANUT_WALLET_TOKEN_DECIMALS))}`,
                                 subText: PEANUT_WALLET_CHAIN.name,
                             }}
                             metadata={{
@@ -83,7 +83,7 @@ const WalletDetailsPage = () => {
                                 variant="balance"
                                 primaryInfo={{ title: balance.symbol }}
                                 secondaryInfo={{
-                                    mainText: `$ ${Number(balance.value).toFixed(2)}`,
+                                    mainText: `$${Number(balance.value).toFixed(2)}`,
                                     subText: getChainName(balance.chainId),
                                 }}
                                 metadata={{
