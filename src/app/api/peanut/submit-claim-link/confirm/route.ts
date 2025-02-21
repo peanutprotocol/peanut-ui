@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // Ensure API key is available
+        // check if api key is available
         const apiKey = process.env.PEANUT_API_KEY
         if (!apiKey) {
             return new NextResponse(
@@ -51,7 +51,6 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // format transaction
         const formattedTransaction = transaction
             ? {
                   from: transaction.from?.toString(),

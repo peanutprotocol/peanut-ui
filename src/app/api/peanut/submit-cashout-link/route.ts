@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
             pubKey,
             bridgeCustomerId,
             liquidationAddressId,
-            cashoutTransactionHash,
+            cashoutTransactionHash, // has to be destination chain transaction hash!
             externalAccountId,
             chainId,
             tokenName,
@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
                 chainId,
                 tokenName,
                 pubKey,
-                promoCode: promoCode || '',
-                trackParam: trackParam || '',
+                promoCode,
+                trackParam,
             }),
         })
 

@@ -253,7 +253,7 @@ export async function createExternalAccount(
         if (!response.ok) {
             try {
                 if (responseData.code && responseData.code === 'duplicate_external_account') {
-                    // If bridge account already exists, let's fetch it
+                    // if bridge account already exists, fetch existing accounts
                     const allAccounts = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
                         method: 'POST',
                         headers: {
@@ -269,7 +269,7 @@ export async function createExternalAccount(
                     }
 
                     const accounts = await allAccounts.json()
-                    // Find the matching account based on account details
+                    // find matching account based on account details
                     const existingAccount = accounts.find((account: interfaces.IBridgeAccount) => {
                         if (accountType === 'iban') {
                             return (
@@ -587,6 +587,7 @@ export async function submitCashoutLink(data: {
                 liquidationAddressId: data.liquidationAddressId,
                 cashoutTransactionHash: data.cashoutTransactionHash,
                 // note: this externalAccountId is the account_id, not bridge_account_id, passing the bridge_account_id will result in a error
+                // todo: rename this field in backend
                 externalAccountId: data.externalAccountId,
                 chainId: data.chainId,
                 tokenName: data.tokenName,

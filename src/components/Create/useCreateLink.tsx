@@ -376,7 +376,6 @@ export const useCreateLink = () => {
                 throw new Error('Failed to generate pubKey from password')
             }
 
-            // format transaction acc to backend schema
             const formattedTransaction = transaction
                 ? {
                       from: transaction.from?.toString(),
