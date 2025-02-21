@@ -34,6 +34,7 @@ import { Button, Card } from '../0_Bruddle'
 import { FAQComponent } from '../Cashout/Components/Faq.comp'
 import FlowHeader from '../Global/FlowHeader'
 import PromoCodeChecker from './PromoCodeChecker'
+import * as Sentry from '@sentry/nextjs'
 
 export const OfframpConfirmView = ({
     onNext, // available on all offramps
@@ -402,6 +403,7 @@ export const OfframpConfirmView = ({
                 showError: true,
                 errorMessage,
             })
+            Sentry.captureException(error)
             return false
         }
     }
@@ -583,6 +585,7 @@ export const OfframpConfirmView = ({
             }
         } catch (error) {
             console.log('error fetching cross chain details: ' + error)
+            Sentry.captureException(error)
             return undefined
         }
     }
@@ -623,6 +626,7 @@ export const OfframpConfirmView = ({
                             showError: true,
                             errorMessage: 'offramp unavailable',
                         })
+                        Sentry.captureException(error)
                         return
                     }
 
@@ -719,6 +723,7 @@ export const OfframpConfirmView = ({
             } catch (error) {
                 console.error('Error during the submission process:', error)
                 setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+                Sentry.captureException(error)
             } finally {
                 setLoadingState('Idle')
             }

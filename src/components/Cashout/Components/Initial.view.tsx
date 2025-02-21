@@ -15,7 +15,7 @@ import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { balanceByToken, floorFixed, formatIban, printableUsdc, validateBankAccount } from '@/utils'
+import { balanceByToken, floorFixed, formatIban, printableUsdc, validateBankAccount, fetchWithSentry } from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import { useAppKit } from '@reown/appkit/react'
 import { useContext, useEffect, useMemo, useState } from 'react'
@@ -23,6 +23,7 @@ import { twMerge } from 'tailwind-merge'
 import * as _consts from '../Cashout.consts'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
+import * as Sentry from '@sentry/nextjs'
 
 export const InitialCashoutView = ({
     onNext,
@@ -153,7 +154,7 @@ export const InitialCashoutView = ({
             setPreparedCreateLinkWrapperResponse(preparedCreateLinkWrapperResponse)
 
             if (!user) {
-                const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                const userIdResponse = await fetchWithSentry('/api/peanut/user/get-user-id', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -216,6 +217,7 @@ export const InitialCashoutView = ({
                 showError: true,
                 errorMessage: error.message || 'An error occurred. Please try again.',
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -439,7 +441,8 @@ export const InitialCashoutView = ({
                                         .then(() => {
                                             handleOnNext()
                                         })
-                                        .catch((_error) => {
+                                        .catch((error) => {
+                                            Sentry.captureException(error)
                                             toast.error('Error logging in')
                                         })
                                         .finally(() => {

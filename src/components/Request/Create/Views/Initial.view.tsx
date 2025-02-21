@@ -16,6 +16,8 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Create.consts'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 export const InitialView = ({
     onNext,
@@ -119,7 +121,7 @@ export const InitialView = ({
                 if (attachmentOptions?.message) {
                     createFormData.append('reference', attachmentOptions.message)
                 }
-                const requestResponse = await fetch('/api/proxy/withFormData/requests', {
+                const requestResponse = await fetchWithSentry('/api/proxy/withFormData/requests', {
                     method: 'POST',
                     body: createFormData,
                 })
@@ -149,6 +151,7 @@ export const InitialView = ({
                     errorMessage: 'Failed to create link',
                 })
                 console.error('Failed to create link:', error)
+                Sentry.captureException(error)
             } finally {
                 setLoadingState('Idle')
             }

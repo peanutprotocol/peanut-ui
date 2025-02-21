@@ -3,6 +3,8 @@ import { useAuth } from '@/context/authContext'
 import crypto from 'crypto'
 import { useMemo, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
+import { fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 interface ILoginComponentProps {
     email?: string
@@ -44,7 +46,7 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
             setLoadingState('Loading')
             console.log(data)
 
-            const saltResponse = await fetch('/api/peanut/user/get-user-salt', {
+            const saltResponse = await fetchWithSentry('/api/peanut/user/get-user-salt', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -66,7 +68,7 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
 
             const hash = crypto.pbkdf2Sync(data.password, salt, 10000, 64, 'sha512').toString('hex')
 
-            const loginResponse = await fetch('/api/peanut/user/login-user', {
+            const loginResponse = await fetchWithSentry('/api/peanut/user/login-user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -116,6 +118,7 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
         } catch (error) {
             console.error(error)
             setErrorState({ showError: true, errorMessage: 'Please make sure you are using the right credentials' })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }

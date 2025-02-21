@@ -1,7 +1,9 @@
 import Icon from '../Icon'
 import { useEffect, useState } from 'react'
-import * as utils from '@/utils'
+import { fetchWithSentry, checkifImageType } from '@/utils'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
+import * as Sentry from '@sentry/nextjs'
+
 export interface IFileUploadInputProps {
     attachmentOptions: {
         fileUrl: string | undefined
@@ -29,13 +31,14 @@ const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploa
 
     useEffect(() => {
         if (attachmentOptions.fileUrl) {
-            fetch(attachmentOptions.fileUrl)
+            fetchWithSentry(attachmentOptions.fileUrl)
                 .then((response) => response.blob())
                 .then((blob) => {
                     setFileType(blob.type)
                 })
                 .catch((error) => {
                     console.log('Error fetching the blob from URL:', error)
+                    Sentry.captureException(error)
                     setFileType('') // Reset or handle the error state
                 })
         }
@@ -53,7 +56,7 @@ const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploa
                 />
                 <label htmlFor="file-input" className="cursor-pointer">
                     {attachmentOptions.fileUrl ? (
-                        utils.checkifImageType(fileType) ? (
+                        checkifImageType(fileType) ? (
                             <img src={attachmentOptions.fileUrl} alt="" className="h-8 w-8" />
                         ) : (
                             <Icon name="check" className="h-4 w-4" />

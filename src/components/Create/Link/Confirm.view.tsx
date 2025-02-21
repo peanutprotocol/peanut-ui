@@ -25,6 +25,7 @@ import {
 } from '@/utils'
 import * as _consts from '../Create.consts'
 import { useCreateLink } from '../useCreateLink'
+import * as Sentry from '@sentry/nextjs'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -229,6 +230,7 @@ export const CreateLinkConfirmView = ({
                 showError: true,
                 errorMessage: errorString,
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }

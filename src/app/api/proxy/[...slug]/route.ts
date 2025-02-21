@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants'
+import { fetchWithSentry } from '@/utils'
 
 export const maxDuration = 300 // vercel timeout
 
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         console.error('Error while parsing json:', error)
         return NextResponse.json('Pass a valid json', {
-            status: 403,
+            status: 400,
         })
     }
 
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
         headersToPass['x-username'] = request.headers.get('x-username')
     }
 
-    const apiResponse = await fetch(fullAPIUrl, {
+    const apiResponse = await fetchWithSentry(fullAPIUrl, {
         method: 'POST',
         headers: headersToPass,
         body: JSON.stringify(jsonToPass),

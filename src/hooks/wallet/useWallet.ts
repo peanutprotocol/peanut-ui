@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { useZeroDev } from '../useZeroDev'
+import * as Sentry from '@sentry/nextjs'
 
 // utility functions
 const isPeanut = (wallet?: interfaces.IDBWallet): boolean =>
@@ -217,6 +218,7 @@ export const useWallet = () => {
                     )
                 }
             } catch (error) {
+                Sentry.captureException(error)
                 console.error('Error refetching balance:', error)
             }
         },

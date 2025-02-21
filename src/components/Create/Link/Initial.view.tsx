@@ -16,6 +16,7 @@ import { ethers } from 'ethers'
 import { validate } from 'multicoin-address-validator'
 import * as _consts from '../Create.consts'
 import { validateEnsName } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 export const CreateLinkInitialView = ({
     onNext,
@@ -139,6 +140,7 @@ export const CreateLinkInitialView = ({
             onNext()
         } catch (error) {
             setLoadingState('Idle')
+            Sentry.captureException(error)
         }
     }
 

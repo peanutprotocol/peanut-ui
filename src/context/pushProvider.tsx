@@ -6,6 +6,7 @@ import { sendNotification, subscribeUser } from '@/app/actions'
 import { urlBase64ToUint8Array } from '@/utils'
 import webpush from 'web-push'
 import { useAuth } from './authContext'
+import * as Sentry from '@sentry/nextjs'
 
 interface PushContextType {
     subscribe: () => void
@@ -46,6 +47,7 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
                 setIsSubscribed(true)
             }
         } catch (error) {
+            Sentry.captureException(error)
             console.error('Service Worker registration failed:', error)
             toast.error('Failed to initialize notifications')
         }
@@ -63,6 +65,7 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
                 })
                 .catch((error) => {
                     console.error('Service Worker not ready:', error)
+                    Sentry.captureException(error)
                     toast.error('Failed to initialize notifications')
                 })
         } else {
@@ -108,8 +111,11 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
                     toast.error('Please allow notifications in your browser settings')
                 } else {
                     toast.error('Failed to enable notifications')
+                    Sentry.captureException(error)
                 }
                 console.error('Error subscribing to push notifications:', error.message)
+            } else {
+                throw error
             }
         }
         setIsSubscribing(false)

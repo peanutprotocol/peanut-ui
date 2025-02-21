@@ -18,6 +18,7 @@ import { useToast } from '@chakra-ui/react'
 import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { ICreateScreenProps } from '../Create.consts'
+import * as Sentry from '@sentry/nextjs'
 
 export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tokenValue }: ICreateScreenProps) => {
     const { selectedChainID, inputDenomination, selectedTokenPrice } = useContext(tokenSelectorContext)
@@ -57,6 +58,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
             if (error.name !== 'AbortError') {
                 // abortError happens when user cancels sharing
                 console.error('Sharing error:', error)
+                Sentry.captureException(error)
                 await copyTextToClipboardWithFallback(url)
                 toast({
                     title: 'Sharing failed',

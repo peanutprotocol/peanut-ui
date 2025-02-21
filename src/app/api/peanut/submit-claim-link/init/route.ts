@@ -2,6 +2,7 @@ import * as consts from '@/constants'
 import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
             signature: null,
         }
 
-        const response = await fetch(`${consts.PEANUT_API_URL}/submit-claim-link/init`, {
+        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/submit-claim-link/init`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

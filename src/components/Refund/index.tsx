@@ -15,6 +15,7 @@ import BaseInput from '../0_Bruddle/BaseInput'
 import PageContainer from '../0_Bruddle/PageContainer'
 import { useCreateLink } from '../Create/useCreateLink'
 import Select from '../Global/Select'
+import * as Sentry from '@sentry/nextjs'
 
 export const Refund = () => {
     const { isConnected, signInModal } = useWallet()
@@ -79,6 +80,7 @@ export const Refund = () => {
                 })
             } catch (error: any) {
                 console.log('error setting fee options, fallback to default')
+                Sentry.captureException(error)
             }
 
             const tx = { ...preparedRefundtx, ...txOptions }
@@ -112,6 +114,7 @@ export const Refund = () => {
                 errorMessage: 'Something went wrong while claiming',
             })
             console.error(error)
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }

@@ -1,4 +1,4 @@
-import * as utils from '@/utils'
+import { fetchWithSentry, isAddressZero, estimateStableCoin } from '@/utils'
 import { type ITokenPriceData } from '@/interfaces'
 
 type IMobulaMarketData = {
@@ -51,7 +51,7 @@ export const fetchTokenPrice = async (
 ): Promise<ITokenPriceData | undefined> => {
     try {
         // Routing mobula api call through nextjs BFF
-        const mobulaResponse = await fetch(
+        const mobulaResponse = await fetchWithSentry(
             host ? `${host}/api/mobula/fetch-token-price` : `/api/mobula/fetch-token-price`,
             {
                 method: 'POST',
@@ -59,7 +59,7 @@ export const fetchTokenPrice = async (
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    tokenAddress: utils.isAddressZero(tokenAddress)
+                    tokenAddress: isAddressZero(tokenAddress)
                         ? '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
                         : tokenAddress,
                     chainId,
@@ -82,7 +82,7 @@ export const fetchTokenPrice = async (
                 decimals,
                 logoURI: json.data.logo,
             }
-            if (utils.estimateStableCoin(json.data.price)) {
+            if (estimateStableCoin(json.data.price)) {
                 data.price = 1
             }
             return data

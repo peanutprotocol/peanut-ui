@@ -2,7 +2,13 @@
 import { PEANUT_API_URL, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
-import { balanceByToken, fetchTokenPrice, isNativeCurrency, saveCreatedLinkToLocalStorage } from '@/utils'
+import {
+    balanceByToken,
+    fetchTokenPrice,
+    isNativeCurrency,
+    saveCreatedLinkToLocalStorage,
+    fetchWithSentry,
+} from '@/utils'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import peanut, {
     generateKeysFromString,
@@ -15,6 +21,7 @@ import { formatEther, parseEther, parseUnits } from 'viem'
 import { useAccount, useConfig, useSendTransaction, useSignTypedData, useSwitchChain } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
+import * as Sentry from '@sentry/nextjs'
 
 interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
@@ -203,6 +210,7 @@ export const useCreateLink = () => {
             })
             console.log(`Switched to chain ${chainId}`)
         } catch (error) {
+            Sentry.captureException(error)
             console.error('Failed to switch network:', error)
         }
     }
@@ -284,7 +292,7 @@ export const useCreateLink = () => {
         actionType: 'CREATE' | 'TRANSFER'
     }) => {
         try {
-            const response = await fetch(`${PEANUT_API_URL}/calculate-pts-for-action`, {
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/calculate-pts-for-action`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -312,6 +320,7 @@ export const useCreateLink = () => {
             return Math.round(data.points)
         } catch (error) {
             console.error('Failed to estimate points:', error)
+            Sentry.captureException(error)
             return 0 // Returning 0 or another error handling strategy could be implemented here
         }
     }
@@ -337,7 +346,7 @@ export const useCreateLink = () => {
                 formData.append('attachmentFile', attachmentOptions.attachmentFile)
             }
 
-            const response = await fetch('/api/peanut/submit-claim-link/init', {
+            const response = await fetchWithSentry('/api/peanut/submit-claim-link/init', {
                 method: 'POST',
                 body: formData,
             })
@@ -385,7 +394,7 @@ export const useCreateLink = () => {
                   }
                 : undefined
 
-            const response = await fetch('/api/peanut/submit-claim-link/confirm', {
+            const response = await fetchWithSentry('/api/peanut/submit-claim-link/confirm', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -426,7 +435,7 @@ export const useCreateLink = () => {
         transaction?: peanutInterfaces.IPeanutUnsignedTransaction
     }) => {
         try {
-            const response = await fetch('/api/peanut/submit-direct-transfer', {
+            const response = await fetchWithSentry('/api/peanut/submit-direct-transfer', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -570,6 +579,7 @@ export const useCreateLink = () => {
                             })
                         } catch (error: any) {
                             console.log('error setting fee options, fallback to default')
+                            Sentry.captureException(error)
                         }
                     }
                     if (isActiveWalletBYOW) {
@@ -609,6 +619,7 @@ export const useCreateLink = () => {
                                         await new Promise((resolve) => setTimeout(resolve, 500))
                                     } else {
                                         console.error('Failed to wait for transaction receipt after 3 attempts', error)
+                                        Sentry.captureException(error)
                                     }
                                 }
                             }

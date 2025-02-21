@@ -1,6 +1,7 @@
-import axios from 'axios'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
+import { fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 type ISquidChainData = {
     id: string
@@ -70,11 +71,11 @@ type ISquidStatusResponse = {
 
 export async function checkTransactionStatus(txHash: string): Promise<ISquidStatusResponse> {
     try {
-        const response = await axios.get('https://apiplus.squidrouter.com/v2/status', {
-            params: { transactionId: txHash },
-            headers: { 'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C' }, // TODO: move to env lmao
+        const response = await fetchWithSentry(`https://apiplus.squidrouter.com/v2/status?transactionId=${txHash}`, {
+            headers: { 'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C' }, // TODO: request v2 removes checking squid status
         })
-        return response.data
+        const data = await response.json()
+        return data
     } catch (error) {
         console.warn('Error fetching transaction status:', error)
         throw error
@@ -124,7 +125,7 @@ export const estimatePoints = async ({
     actionType: ActionType
 }) => {
     try {
-        const response = await fetch(`${consts.PEANUT_API_URL}/calculate-pts-for-action`, {
+        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/calculate-pts-for-action`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -149,6 +150,7 @@ export const estimatePoints = async ({
         const data = await response.json()
         return Math.round(data.points)
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Failed to estimate points:', error)
         return 0
     }

@@ -6,6 +6,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import { useMutation } from '@tanstack/react-query'
 import { FormProvider, useForm } from 'react-hook-form'
 import * as yup from 'yup'
+import { fetchWithSentry } from '@/utils'
 
 const contactSchema = yup.object({
     contact: yup
@@ -30,7 +31,7 @@ const ContactInfo = () => {
         mutationFn: async ({ contact }: ContactFormData) => {
             const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)
 
-            const response = await fetch('/api/peanut/user/update-user', {
+            const response = await fetchWithSentry('/api/peanut/user/update-user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

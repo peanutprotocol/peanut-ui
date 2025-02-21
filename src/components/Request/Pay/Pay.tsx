@@ -5,6 +5,8 @@ import * as _consts from './Pay.consts'
 import * as assets from '@/assets'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
+import { fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 import * as generalViews from './Views/GeneralViews'
 import { jsonParse, resolveFromEnsName, fetchTokenPrice } from '@/utils'
@@ -76,7 +78,7 @@ export const PayRequestLink = () => {
 
     const checkRequestLink = async (uuid: string) => {
         try {
-            const chargeResponse = await fetch(`/api/proxy/get/request-charges/${uuid}`)
+            const chargeResponse = await fetchWithSentry(`/api/proxy/get/request-charges/${uuid}`)
             const charge = jsonParse(await chargeResponse.text())
 
             const requestLinkDetails = {
@@ -114,6 +116,7 @@ export const PayRequestLink = () => {
             console.error('Failed to fetch request link details:', error)
             setErrorMessage('This request could not be found. Are you sure your link is correct?')
             setLinkState(_consts.IRequestLinkState.ERROR)
+            Sentry.captureException(error)
         }
     }
 
@@ -156,6 +159,7 @@ export const PayRequestLink = () => {
                 console.log('error fetching recipient address:', error)
                 setErrorMessage('Failed to fetch recipient address, please try again later')
                 setLinkState(_consts.IRequestLinkState.ERROR)
+                Sentry.captureException(error)
             })
 
         // Prepare request link fulfillment transaction
@@ -165,6 +169,7 @@ export const PayRequestLink = () => {
         if (!requestLinkData || !tokenPriceData) return
         fetchPointsEstimation(requestLinkData, tokenPriceData).catch((error) => {
             console.log('error fetching points estimation:', error)
+            Sentry.captureException(error)
         })
     }, [tokenPriceData, requestLinkData])
 
@@ -180,6 +185,7 @@ export const PayRequestLink = () => {
                 console.log('error calculating transaction cost:', error)
                 setErrorMessage('Failed to estimate gas fee, please try again later')
                 setLinkState(_consts.IRequestLinkState.ERROR)
+                Sentry.captureException(error)
             })
     }, [unsignedTx, requestLinkData])
 

@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import * as _consts from '../Pay.consts'
+import { fetchWithSentry } from '@/utils'
 
 export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }: _consts.IPayScreenProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
@@ -28,7 +29,7 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
     const explorerUrlAxelarWithTx = 'https://axelarscan.io/gmp/' + transactionHash
 
     useEffect(() => {
-        fetch(`/api/proxy/charges/${requestLinkData.uuid}/payments`, {
+        fetchWithSentry(`/api/proxy/charges/${requestLinkData.uuid}/payments`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

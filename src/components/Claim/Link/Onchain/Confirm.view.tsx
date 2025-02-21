@@ -11,6 +11,7 @@ import * as utils from '@/utils'
 import { useContext, useState } from 'react'
 import * as _consts from '../../Claim.consts'
 import useClaimLink from '../../useClaimLink'
+import * as Sentry from '@sentry/nextjs'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -89,6 +90,7 @@ export const ConfirmClaimLinkView = ({
                 showError: true,
                 errorMessage: errorString,
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -97,7 +99,7 @@ export const ConfirmClaimLinkView = ({
     // useEffect(() => {
     //     if (attachment?.attachmentUrl) {
     //         try {
-    //             fetch(attachment?.attachmentUrl)
+    //             fetchWithSentry(attachment?.attachmentUrl)
     //                 .then((response) => response.blob())
     //                 .then((blob) => {
     //                     setFileType(blob.type)

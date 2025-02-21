@@ -5,6 +5,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
 
 const WelcomeStep = () => {
     const { handleNext } = useSetupFlow()
@@ -29,7 +30,10 @@ const WelcomeStep = () => {
                     loading={isLoggingIn}
                     variant="transparent-dark"
                     onClick={() => {
-                        handleLogin().catch((_e) => toast.error('Error logging in'))
+                        handleLogin().catch((e) => {
+                            toast.error('Error logging in')
+                            Sentry.captureException(e)
+                        })
                     }}
                 >
                     Login
