@@ -1,9 +1,9 @@
-import { CreateScreens } from '../Create/Create.consts'
-import * as views from './Components'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import * as consts from '@/constants'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { CreateScreens } from '../Create/Create.consts'
 import { OfframpConfirmView, OfframpSuccessView } from '../Offramp'
 import { OfframpType } from '../Offramp/Offramp.consts'
+import * as views from './Components'
 type CashoutScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
 
 export type CashoutType = 'bank_transfer' | undefined
@@ -68,4 +68,6 @@ export interface ICashoutScreenProps {
     appliedPromoCode?: string | null
     offrampType: OfframpType
     onPromoCodeApplied: (code: string | null) => void
+    estimatedGasCost?: string
+    setEstimatedGasCost?: (cost: string) => void
 }

@@ -87,7 +87,7 @@ const createUser = async (
 export const createAccount = async (
     userId: string,
     bridgeCustomerId: string,
-    bridgeAccountIdentifier: string,
+    bridgeAccountId: string,
     accountType: string,
     accountIdentifier: string,
     accountDetails: any
@@ -100,15 +100,15 @@ export const createAccount = async (
         body: JSON.stringify({
             userId,
             bridgeCustomerId,
-            bridgeAccountIdentifier,
+            bridgeAccountId,
             accountType,
             accountIdentifier,
+            accountDetails,
         }),
     })
 
     if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Failed to create account')
+        throw new Error('Failed to create account')
     }
 
     const data = await response.json()
@@ -116,35 +116,19 @@ export const createAccount = async (
 }
 
 async function fetchApi(url: string, method: string, body?: any): Promise<any> {
-    try {
-        const response = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: body ? JSON.stringify(body) : undefined,
-        })
+    const response = await fetch(url, {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: body ? JSON.stringify(body) : undefined,
+    })
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }))
-            console.error('API Error:', {
-                url,
-                status: response.status,
-                errorData,
-            })
-            throw new Error(errorData.message || errorData.error || 'API request failed')
-        }
-
-        const data = await response.json()
-        return data
-    } catch (error) {
-        console.error('fetchApi error:', {
-            url,
-            method,
-            error,
-        })
-        throw error
+    if (!response.ok) {
+        throw new Error(`Failed to fetch data from ${url}`)
     }
+
+    return await response.json()
 }
 
 export type KYCStatus = 'not_started' | 'under_review' | 'approved' | 'rejected' | 'incomplete'
@@ -261,62 +245,59 @@ export async function createExternalAccount(
                 accountDetails,
                 address: address ? address : {},
                 accountOwnerName,
-                customerId,
             }),
         })
 
         const responseData = await response.json()
 
         if (!response.ok) {
-            if (responseData.code === 'duplicate_external_account') {
-                // If bridge account already exists, let's fetch it
-                const allAccounts = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        customerId,
-                    }),
-                })
+            try {
+                if (responseData.code && responseData.code === 'duplicate_external_account') {
+                    // if bridge account already exists, fetch existing accounts
+                    const allAccounts = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            customerId,
+                        }),
+                    })
 
-                if (!allAccounts.ok) {
-                    throw new Error('Failed to fetch existing accounts')
-                }
-
-                const accounts = await allAccounts.json()
-                // Find the matching account based on account details
-                const existingAccount = accounts.find((account: interfaces.IBridgeAccount) => {
-                    if (accountType === 'iban') {
-                        return (
-                            account.account_details.type === 'iban' &&
-                            account.account_details.last_4 === accountDetails.accountNumber.slice(-4)
-                        )
-                    } else {
-                        return (
-                            account.account_details.type === 'us' &&
-                            account.account_details.last_4 === accountDetails.accountNumber.slice(-4) &&
-                            account.account_details.routing_number === accountDetails.routingNumber
-                        )
+                    if (!allAccounts.ok) {
+                        throw new Error('Failed to fetch existing accounts')
                     }
-                })
 
-                if (!existingAccount) {
-                    throw new Error('Could not find matching existing account')
+                    const accounts = await allAccounts.json()
+                    // find matching account based on account details
+                    const existingAccount = accounts.find((account: interfaces.IBridgeAccount) => {
+                        if (accountType === 'iban') {
+                            return (
+                                account.account_details.type === 'iban' &&
+                                account.account_details.last_4 === accountDetails.accountNumber.slice(-4)
+                            )
+                        } else {
+                            return (
+                                account.account_details.type === 'us' &&
+                                account.account_details.last_4 === accountDetails.accountNumber.slice(-4) &&
+                                account.account_details.routing_number === accountDetails.routingNumber
+                            )
+                        }
+                    })
+
+                    if (!existingAccount) {
+                        throw new Error('Could not find matching existing account')
+                    }
+
+                    return {
+                        success: true,
+                        data: existingAccount,
+                    } as interfaces.IResponse
                 }
-
-                return {
-                    success: true,
-                    data: existingAccount,
-                } as interfaces.IResponse
+            } catch (error) {
+                console.error('Error creating external account', response)
+                throw new Error('Unexpected error')
             }
-
-            // handle other error cases
-            return {
-                success: false,
-                message: responseData.message || 'Failed to create external account',
-                details: responseData.details || {},
-            } as interfaces.IResponse
         }
 
         return {
@@ -444,7 +425,9 @@ export async function createLiquidationAddress(
                     throw new Error('Failed to fetch customer accounts')
                 }
 
-                const accountsData = await accountsResponse.json()
+                const accountsResponseData = await accountsResponse.json()
+
+                const accountsData = accountsResponseData.data
 
                 // Ensure we have an array of accounts
                 if (!Array.isArray(accountsData)) {
@@ -498,8 +481,7 @@ export const getLiquidationAddresses = async (customerId: string): Promise<inter
     }
 
     const data: interfaces.IBridgeLiquidationAddress[] = await response.json()
-    console.log(`successfully fetched liquidation addresses:`)
-    console.log(data)
+    console.log(`successfully fetched liquidation addresses: ${data}`)
     return data
 }
 
@@ -606,6 +588,8 @@ export async function submitCashoutLink(data: {
                 bridgeCustomerId: data.bridgeCustomerId,
                 liquidationAddressId: data.liquidationAddressId,
                 cashoutTransactionHash: data.cashoutTransactionHash,
+                // note: this externalAccountId is the account_id, not bridge_account_id, passing the bridge_account_id will result in a error
+                // todo: rename this field in backend
                 externalAccountId: data.externalAccountId,
                 chainId: data.chainId,
                 tokenName: data.tokenName,

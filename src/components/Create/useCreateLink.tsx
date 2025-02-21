@@ -4,7 +4,11 @@ import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
 import { balanceByToken, fetchTokenPrice, isNativeCurrency, saveCreatedLinkToLocalStorage } from '@/utils'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import peanut, { getRandomString, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, {
+    generateKeysFromString,
+    getRandomString,
+    interfaces as peanutInterfaces,
+} from '@squirrel-labs/peanut-sdk'
 import { BigNumber, ethers } from 'ethers'
 import { useCallback, useContext } from 'react'
 import { formatEther, parseEther, parseUnits } from 'viem'
@@ -367,6 +371,20 @@ export const useCreateLink = () => {
         transaction?: peanutInterfaces.IPeanutUnsignedTransaction
     }) => {
         try {
+            const { address: pubKey } = generateKeysFromString(password)
+            if (!pubKey) {
+                throw new Error('Failed to generate pubKey from password')
+            }
+
+            const formattedTransaction = transaction
+                ? {
+                      from: transaction.from?.toString(),
+                      to: transaction.to?.toString(),
+                      data: transaction.data?.toString(),
+                      value: transaction.value?.toString(),
+                  }
+                : undefined
+
             const response = await fetch('/api/peanut/submit-claim-link/confirm', {
                 method: 'POST',
                 headers: {
@@ -377,20 +395,21 @@ export const useCreateLink = () => {
                     password,
                     txHash,
                     chainId,
-                    senderAddress: senderAddress,
+                    senderAddress,
                     amountUsd,
-                    transaction: transaction
-                        ? { ...transaction, value: transaction?.value && transaction.value.toString() }
-                        : undefined,
+                    pubKey,
+                    signature: '',
+                    transaction: formattedTransaction,
                 }),
             })
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
+                const errorData = await response.json()
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
             }
         } catch (error) {
             console.error('Failed to publish file (complete):', error)
-            return ''
+            throw error
         }
     }
     const submitDirectTransfer = async ({
