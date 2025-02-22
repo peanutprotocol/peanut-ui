@@ -21,7 +21,7 @@ function ValidationErrorView() {
                     if (!!user) {
                         router.push('/home')
                     } else {
-                        router.push('/signin')
+                        router.push('/setup')
                     }
                 }}
                 size="medium"

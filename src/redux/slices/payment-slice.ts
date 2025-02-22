@@ -12,7 +12,7 @@ const initialState: IPaymentState = {
         message: '',
         rawFile: undefined,
     },
-    urlParams: null,
+    parsedPaymentData: null,
     requestDetails: null,
     chargeDetails: null,
     createdChargeDetails: null,
@@ -32,8 +32,8 @@ const paymentSlice = createSlice({
         setAttachmentOptions: (state, action: PayloadAction<IAttachmentOptions>) => {
             state.attachmentOptions = action.payload
         },
-        setUrlParams: (state, action: PayloadAction<ParsedURL>) => {
-            state.urlParams = action.payload
+        setParsedPaymentData: (state, action: PayloadAction<ParsedURL>) => {
+            state.parsedPaymentData = action.payload
         },
         setRequestDetails: (state, action: PayloadAction<TRequestResponse | null>) => {
             state.requestDetails = action.payload

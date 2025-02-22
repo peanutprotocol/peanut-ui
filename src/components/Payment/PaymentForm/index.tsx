@@ -8,12 +8,11 @@ import Icon from '@/components/Global/Icon'
 import InfoRow from '@/components/Global/InfoRow'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, supportedPeanutChains } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { SUPPORTED_TOKENS } from '@/lib/url-parser/constants/tokens'
-import { RecipientType } from '@/lib/url-parser/types/payment'
-import { getReadableChainName, normalizeChainName } from '@/lib/validation/resolvers/chain-resolver'
+import { ParsedURL } from '@/lib/url-parser/types/payment'
+import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
@@ -22,18 +21,9 @@ import { CreateChargeRequest } from '@/services/services.types'
 import { ErrorHandler, isNativeCurrency, printableAddress } from '@/utils'
 import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
-import { isAddress } from 'viem'
 import { useAccount } from 'wagmi'
 
-interface PaymentFormProps {
-    recipient: string
-    amount?: string | null
-    token?: string | null
-    chain?: string | number | null
-    recipientType?: RecipientType
-}
-
-export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: PaymentFormProps) => {
+export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const dispatch = useAppDispatch()
     const { attachmentOptions, requestDetails, resolvedAddress, error } = usePaymentStore()
     const [tokenValue, setTokenValue] = useState<string>(amount || requestDetails?.tokenAmount || '')
@@ -53,71 +43,22 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
     const { isConnected: isExternalWalletConnected } = useAccount()
     const isConnected = isExternalWalletConnected || isPeanutWallet
 
-    const tokenInfo = useMemo(() => SUPPORTED_TOKENS[token?.toUpperCase() || ''], [token])
-
-    const urlChainName = chain && getReadableChainName(chain?.toString())
-
-    const showPeanutWalletWarning =
-        recipientType === 'USERNAME' &&
-        ((urlChainName && urlChainName !== PEANUT_WALLET_CHAIN.name) ||
-            (tokenInfo && tokenInfo.symbol.toUpperCase() !== PEANUT_WALLET_TOKEN))
-
     // effect to set initial chain and token from URL params only once
     useEffect(() => {
         if (initialSetupDone) return
 
-        // Set chain from URL if present
+        // set chain from URL if present
         if (chain) {
-            let chainId: string | undefined
-
-            if (typeof chain === 'number') {
-                // Direct number from URL parsing
-                chainId = chain.toString()
-            } else if (typeof chain === 'string') {
-                // try to parse as number
-                const numericChainId = parseInt(chain)
-                if (!isNaN(numericChainId)) {
-                    const matchedChain = supportedPeanutChains.find((c) => Number(c.chainId) === numericChainId)
-                    if (matchedChain) {
-                        chainId = matchedChain.chainId.toString()
-                    }
-                } else {
-                    // if not a number, try to match chain name
-                    const normalizedChainName = normalizeChainName(chain)
-                    const matchedChain = supportedPeanutChains.find(
-                        (c) => normalizeChainName(c.name.toLowerCase()) === normalizedChainName
-                    )
-                    if (matchedChain) {
-                        chainId = matchedChain.chainId.toString()
-                    }
-                }
-            }
-
-            if (chainId) {
-                setSelectedChainID(chainId)
-            }
+            setSelectedChainID(chain.chainId)
         }
 
         // set token from URL if present
         if (token) {
-            const upperToken = token.toUpperCase()
-            const chainId = Number(selectedChainID)
-
-            // handle native ETH
-            if (upperToken === 'ETH') {
-                // Set native token address
-                setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
-            } else {
-                // handle other tokens
-                const tokenInfo = SUPPORTED_TOKENS[upperToken]
-                if (tokenInfo && tokenInfo.addresses[chainId]) {
-                    setSelectedTokenAddress(tokenInfo.addresses[chainId])
-                }
-            }
+            setSelectedTokenAddress(token.address)
         }
 
         setInitialSetupDone(true)
-    }, [chain, token, setSelectedChainID, setSelectedTokenAddress, selectedChainID, initialSetupDone])
+    }, [chain?.chainId, token?.address, setSelectedChainID, setSelectedTokenAddress, selectedChainID, initialSetupDone])
 
     // reset error when component mounts or recipient changes
     useEffect(() => {
@@ -137,13 +78,6 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
         dispatch(paymentActions.setError(null))
 
         try {
-            // use already resolved address from redux or the original address if it's already an address
-            const recipientAddress = isAddress(recipient) ? recipient : resolvedAddress
-
-            if (!recipientAddress) {
-                throw new Error('No valid recipient address')
-            }
-
             // if request ID available in URL, validate it
             let validRequestId: string | undefined = undefined
             if (requestId) {
@@ -169,9 +103,9 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
                     chainId: selectedChainID.toString(),
                     tokenAddress: selectedTokenAddress,
                     tokenType: isNativeCurrency(selectedTokenAddress) ? 'native' : 'erc20',
-                    tokenSymbol: selectedTokenData?.symbol || token?.toUpperCase() || '',
+                    tokenSymbol: selectedTokenData?.symbol || token?.symbol || '',
                     tokenDecimals: selectedTokenDecimals || 18,
-                    recipientAddress: recipientAddress,
+                    recipientAddress: recipient.resolvedAddress,
                 },
             }
 
@@ -288,7 +222,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, recipientType }: 
         <div className="space-y-4">
             <FlowHeader />
 
-            <div className="text-h6 font-bold">Sending to {recipient}</div>
+            <div className="text-h6 font-bold">Sending to {recipient?.identifier}</div>
 
             <TokenAmountInput
                 tokenValue={tokenValue}

@@ -18,7 +18,7 @@ const GuestLoginModal = () => {
             onClose={() => {
                 signInModal.close()
             }}
-            title={'Sign In with your Peanut Wallet'}
+            title={'Sign in with your Peanut Wallet'}
         >
             <div className="flex flex-col items-center gap-2 p-5">
                 <Button

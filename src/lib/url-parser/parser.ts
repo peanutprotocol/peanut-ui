@@ -1,10 +1,11 @@
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_NAME } from '@/constants'
+import { getSquidChainsAndTokens } from '@/app/actions/squid'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { isAddress } from 'viem'
-import { CHAIN_ID_REGEX } from '../validation/constants'
-import { resolveChainId } from '../validation/resolvers/chain-resolver'
-import { SUPPORTED_TOKENS } from './constants/tokens'
-import { AmountValidationError, ChainValidationError, RecipientValidationError, TokenValidationError } from './errors'
-import { parseChainSpecificAddress } from './parsers/address.parser'
+import { validateAmount } from '../validation/amount'
+import { validateAndResolveRecipient } from '../validation/recipient'
+import { getChainDetails } from '../validation/token'
+import { AmountValidationError, ChainValidationError, RecipientValidationError } from './errors'
 import { ParsedURL, RecipientType } from './types/payment'
 
 export function detectRecipientType(recipient: string): RecipientType {
@@ -13,34 +14,40 @@ export function detectRecipientType(recipient: string): RecipientType {
     return 'USERNAME'
 }
 
-// helper function to split amount and token
 function parseAmountAndToken(amountString: string): { amount?: string; token?: string } {
-    // match number part (including decimals) and potential token part
-    const match = amountString.match(/^(\d*\.?\d*)([a-zA-Z]+)?$/)
+    // remove all whitespace
+    amountString = amountString.trim()
+
+    // handle empty string
+    if (!amountString) {
+        return {}
+    }
+
+    // match number part (including decimals) followed by token part
+    // this regx will match patterns like "0.1usdc", "100eth", "1.5pol"
+    const match = amountString.match(/^(\d*\.?\d*)([a-zA-Z]+)$/)
 
     if (!match) {
         // if it's just a number with no token
         if (/^\d*\.?\d*$/.test(amountString)) {
             return { amount: amountString }
         }
+        // if it's just a token with no amount
+        if (/^[a-zA-Z]+$/.test(amountString)) {
+            return { token: amountString.toLowerCase() }
+        }
         throw new AmountValidationError('Invalid amount format')
     }
 
     const [_, amount, token] = match
 
-    // validate token if present
-    if (token && !SUPPORTED_TOKENS[token.toUpperCase()]) {
-        throw new TokenValidationError(`Unsupported token: ${token}`)
-    }
-
-    // normalize token to uppercase for consistency
     return {
         amount: amount || undefined,
-        token: token ? token.toUpperCase() : undefined,
+        token: token.toLowerCase(),
     }
 }
 
-export function parsePaymentURL(segments: string[]): ParsedURL {
+export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
     if (segments.length === 0) {
         throw new RecipientValidationError('Invalid URL format: No recipient specified')
     }
@@ -48,137 +55,97 @@ export function parsePaymentURL(segments: string[]): ParsedURL {
     // decode the first segment to handle URL encoding
     const firstSegment = decodeURIComponent(segments[0])
     let recipient = firstSegment
-    let chain = undefined
+    let chain: string | undefined = undefined
+    let chainDetails: (interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }) | undefined
 
-    // if recipient contains @, extract chain info
+    // handle multiple @ symbols - take the last one as chain identifier
     if (firstSegment.includes('@')) {
-        const [recipientPart, chainPart] = firstSegment.split('@')
-        recipient = recipientPart
-        chain = chainPart // set the chain from the @ part
+        const parts = firstSegment.split('@')
+        if (parts.length > 2) {
+            // handle multiple @'s - take first part as recipient, last part as chain
+            recipient = parts.slice(0, -1).join('@')
+            chain = parts[parts.length - 1]
+        } else {
+            const [recipientPart, chainPart] = parts
+            recipient = recipientPart
+            chain = chainPart
+        }
+
+        // handle empty chain part after @
+        if (!chain || chain.trim() === '') {
+            chain = undefined
+        }
     }
 
-    // parse chain-specific address if present
-    const chainSpecificAddress = parseChainSpecificAddress(firstSegment)
-    if (chainSpecificAddress) {
-        const remainingSegments = segments.slice(1)
+    const recipientDetails = await validateAndResolveRecipient(recipient)
+
+    // get all squid chains and tokens
+    const squidChainsAndTokens = await getSquidChainsAndTokens()
+
+    // resolve chain details if chain is specified
+    if (chain) {
         try {
-            // resolve chain ID from chain-specific address and validate chain
-            const chainId = resolveChainId(chainSpecificAddress.chain)
-
-            const baseResult: ParsedURL = {
-                recipient: chainSpecificAddress.user,
-                recipientType: detectRecipientType(chainSpecificAddress.user),
-                chain: chainId,
+            chainDetails = getChainDetails(chain, squidChainsAndTokens)
+        } catch (error) {
+            if (error instanceof ChainValidationError) {
+                // If invalid chain specified, fall back to default
+                chainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
+            } else {
+                throw error
             }
-
-            // if there's an amount segment, parse it for both amount and token
-            if (remainingSegments.length > 0) {
-                const { amount, token } = parseAmountAndToken(remainingSegments[0])
-                return {
-                    ...baseResult,
-                    ...(amount && { amount }),
-                    ...(token && { token }),
-                }
-            }
-
-            return baseResult
-        } catch (error: any) {
-            // fallback for special cases that contain dots
-            if (chainSpecificAddress.chain.includes('.')) {
-                console.warn('Chain resolution warning:', error)
-                const baseResult: ParsedURL = {
-                    recipient: chainSpecificAddress.user,
-                    recipientType: detectRecipientType(chainSpecificAddress.user),
-                    chain: chainSpecificAddress.chain,
-                }
-
-                if (remainingSegments.length > 0) {
-                    const { amount, token } = parseAmountAndToken(remainingSegments[0])
-                    return {
-                        ...baseResult,
-                        ...(amount && { amount }),
-                        ...(token && { token }),
-                    }
-                }
-
-                return baseResult
-            }
-
-            // check for hex chain IDs
-            if (typeof chainSpecificAddress.chain === 'string' && CHAIN_ID_REGEX.test(chainSpecificAddress.chain)) {
-                const baseResult: ParsedURL = {
-                    recipient: chainSpecificAddress.user,
-                    recipientType: detectRecipientType(chainSpecificAddress.user),
-                    chain: parseInt(chainSpecificAddress.chain, 16).toString(),
-                }
-                return baseResult
-            }
-
-            // for all other cases, throw the chain validation error
-            throw new ChainValidationError(error.message)
         }
     }
 
-    // check for ENS names
-    if (recipient.endsWith('.eth')) {
-        // handle remaining segments
-        if (segments.length > 1) {
-            const { amount, token } = parseAmountAndToken(segments[1])
-            return {
-                recipient,
-                recipientType: 'ENS',
-                chain, // include the chain from @ if it was present
-                ...(amount && { amount }),
-                ...(token && { token }),
-            }
-        }
-        return {
-            recipient,
-            recipientType: 'ENS',
-            chain,
-        }
+    // if no chain specified or invalid chain, use peanut wallet chain
+    if (!chainDetails) {
+        chainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
     }
 
-    // validate Ethereum addresses before username check
-    if (recipient.startsWith('0x') && !recipient.endsWith('.eth')) {
-        if (!isAddress(recipient)) {
-            throw new RecipientValidationError('Invalid Ethereum address format')
-        }
-    }
-
-    // check if its peanut native username (no .eth suffix)
-    if (!recipient.includes('.eth') && !isAddress(recipient)) {
-        // if its peanut native username, extract just the username part if @ is present in segment
-        const username = recipient.split('@')[0]
-
-        // parse amount from remaining segments
-        const { amount } = segments.length > 1 ? parseAmountAndToken(segments[1]) : { amount: undefined }
-
-        // for peanut native usernames, always force Arbitrum and USDC
-        return {
-            recipient: username,
-            recipientType: 'USERNAME',
-            chain: PEANUT_WALLET_CHAIN.id.toString(),
-            token: PEANUT_WALLET_TOKEN_NAME,
-            ...(amount && { amount }),
-        }
-    }
-
-    // handle remaining segments
+    // handle amount and token parsing
     if (segments.length > 1) {
         const { amount, token } = parseAmountAndToken(segments[1])
-        return {
-            recipient,
-            recipientType: detectRecipientType(recipient),
-            chain,
-            ...(amount && { amount }),
-            ...(token && { token }),
+        const validatedAmount = amount && validateAmount(amount)
+
+        // if token is specified, resolve it
+        if (token) {
+            let tokenDetails: interfaces.ISquidToken | undefined
+
+            tokenDetails = chainDetails.tokens.find((t) => t.symbol.toLowerCase() === token.toLowerCase())
+
+            // if token not found, use default Peanut Wallet token
+            if (!tokenDetails) {
+                tokenDetails = chainDetails.tokens.find(
+                    (t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
+                )
+            }
+
+            return {
+                recipient: recipientDetails,
+                ...(validatedAmount && { amount: validatedAmount.amount }),
+                ...(tokenDetails && { token: tokenDetails }),
+                chain: chainDetails,
+            }
+        }
+
+        // if only amount specified, return with current chain
+        if (validatedAmount) {
+            return {
+                recipient: recipientDetails,
+                amount: validatedAmount.amount,
+                chain: chainDetails,
+            }
         }
     }
 
+    // base case: only recipient specified
+    // return with default chain and token
+    const defaultTokenDetails = chainDetails.tokens.find(
+        (t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
+    )
+
     return {
-        recipient,
-        recipientType: detectRecipientType(recipient),
-        chain, // include the chain from @ if it was present
+        recipient: recipientDetails,
+        chain: chainDetails,
+        ...(defaultTokenDetails && { token: defaultTokenDetails }),
     }
 }

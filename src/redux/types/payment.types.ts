@@ -2,12 +2,12 @@ import { IAttachmentOptions } from '@/components/Create/Create.consts'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { PaymentCreationResponse, TCharge, TRequestChargeResponse, TRequestResponse } from '@/services/services.types'
 
-export type TPaymentView = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
+export type TPaymentView = 'INITIAL' | 'CONFIRM' | 'STATUS'
 
 export interface IPaymentState {
-    currentView: 'INITIAL' | 'CONFIRM' | 'SUCCESS'
+    currentView: TPaymentView
     attachmentOptions: IAttachmentOptions
-    urlParams: ParsedURL | null
+    parsedPaymentData: ParsedURL | null
     requestDetails: TRequestResponse | null
     transactionHash: string | null
     paymentDetails: PaymentCreationResponse | null

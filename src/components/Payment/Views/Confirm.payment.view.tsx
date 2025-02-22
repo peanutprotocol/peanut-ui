@@ -16,13 +16,7 @@ import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
-import {
-    ErrorHandler,
-    fetchTokenPrice,
-    isAddressZero,
-    printableAddress,
-    switchNetwork as switchNetworkUtil,
-} from '@/utils'
+import { ErrorHandler, fetchTokenPrice, isAddressZero, switchNetwork as switchNetworkUtil } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
@@ -32,7 +26,7 @@ export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
     const { isConnected, chain: currentChain, address } = useWallet()
-    const { attachmentOptions, urlParams, error, chargeDetails, resolvedAddress } = usePaymentStore()
+    const { attachmentOptions, parsedPaymentData, error, chargeDetails, resolvedAddress } = usePaymentStore()
     const { selectedChainID, selectedTokenData } = useContext(tokenSelectorContext)
 
     const searchParams = useSearchParams()
@@ -40,8 +34,6 @@ export default function ConfirmPaymentView() {
     const [tokenPriceData, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
-    // todo: use redux store for this
-    const [transactionHash, setTransactionHash] = useState<string>('')
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>()
     const [xChainUnsignedTxs, setXChainUnsignedTxs] = useState<
         peanutInterfaces.IPeanutUnsignedTransaction[] | undefined
@@ -267,7 +259,7 @@ export default function ConfirmPaymentView() {
             })
 
             dispatch(paymentActions.setPaymentDetails(paymentDetails))
-            dispatch(paymentActions.setView('SUCCESS'))
+            dispatch(paymentActions.setView('STATUS'))
         } catch (error) {
             console.error('Error processing payment:', error)
             const errorString = ErrorHandler(error)
@@ -303,6 +295,7 @@ export default function ConfirmPaymentView() {
         const EXPECTED_SLIPPAGE_MULTIPLIER = 0.1
 
         const networkFee = {
+            // todo: fix txFee calculation
             expected: isXChain ? Number(txFee) * EXPECTED_NETWORK_FEE_MULTIPLIER : 0,
             max: isXChain ? Number(txFee) : 0,
         }
@@ -356,7 +349,7 @@ export default function ConfirmPaymentView() {
             <div className="">
                 <InfoRow
                     label="Recipient"
-                    value={urlParams?.recipient || chargeDetails?.requestLink?.recipientAddress}
+                    value={parsedPaymentData?.recipient?.identifier || chargeDetails?.requestLink?.recipientAddress}
                 />
 
                 <InfoRow
@@ -365,7 +358,7 @@ export default function ConfirmPaymentView() {
                 />
 
                 <InfoRow
-                    label={`${urlParams?.recipientType === 'USERNAME' ? urlParams?.recipient : printableAddress(urlParams?.recipient || (resolvedAddress as string))} will receive`}
+                    label={`${parsedPaymentData?.recipient.identifier} will receive`}
                     value={`${chargeDetails?.tokenAmount} ${chargeDetails?.tokenSymbol} on ${getReadableChainName(chargeDetails.chainId || selectedChainID)}`}
                 />
 
