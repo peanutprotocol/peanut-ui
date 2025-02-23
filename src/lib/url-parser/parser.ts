@@ -4,7 +4,7 @@ import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { isAddress } from 'viem'
 import { validateAmount } from '../validation/amount'
 import { validateAndResolveRecipient } from '../validation/recipient'
-import { getChainDetails } from '../validation/token'
+import { getChainDetails, getTokenAndChainDetails } from '../validation/token'
 import { AmountValidationError, ChainValidationError, RecipientValidationError } from './errors'
 import { ParsedURL, RecipientType } from './types/payment'
 
@@ -88,17 +88,20 @@ export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
             chainDetails = getChainDetails(chain, squidChainsAndTokens)
         } catch (error) {
             if (error instanceof ChainValidationError) {
-                // If invalid chain specified, fall back to default
-                chainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
+                chainDetails = undefined
             } else {
                 throw error
             }
         }
     }
 
-    // if no chain specified or invalid chain, use peanut wallet chain
     if (!chainDetails) {
-        chainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
+        // if no chain specified or invalid chain, use peanut wallet chain for username types
+        if (recipientDetails.recipientType === 'USERNAME') {
+            chainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
+        } else {
+            chainDetails = undefined
+        }
     }
 
     // handle amount and token parsing
@@ -108,44 +111,56 @@ export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
 
         // if token is specified, resolve it
         if (token) {
-            let tokenDetails: interfaces.ISquidToken | undefined
+            let tokenAndChainData = await getTokenAndChainDetails(token, chain)
 
-            tokenDetails = chainDetails.tokens.find((t) => t.symbol.toLowerCase() === token.toLowerCase())
+            const tokenDetails = tokenAndChainData?.token
 
-            // if token not found, use default Peanut Wallet token
-            if (!tokenDetails) {
-                tokenDetails = chainDetails.tokens.find(
-                    (t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
-                )
+            // set chain details for non USERNAME recipients
+            if (!chainDetails && recipientDetails.recipientType !== 'USERNAME' && tokenAndChainData.chain) {
+                chainDetails = tokenAndChainData.chain as interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
             }
 
             return {
                 recipient: recipientDetails,
-                ...(validatedAmount && { amount: validatedAmount.amount }),
-                ...(tokenDetails && { token: tokenDetails }),
+                amount: typeof validatedAmount === 'object' ? validatedAmount.amount : undefined,
+                token: tokenDetails ?? undefined,
                 chain: chainDetails,
+            }
+        } else if (!token && recipientDetails.recipientType === 'USERNAME') {
+            // use default Peanut Wallet token for USERNAME recipients
+            const tokenDetails = chainDetails?.tokens.find(
+                (t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
+            )
+            return {
+                recipient: recipientDetails,
+                token: tokenDetails,
+                chain: chainDetails,
+                ...(validatedAmount && { amount: validatedAmount.amount }),
             }
         }
 
         // if only amount specified, return with current chain
-        if (validatedAmount) {
+        if (validatedAmount && !token && !chain) {
             return {
                 recipient: recipientDetails,
                 amount: validatedAmount.amount,
                 chain: chainDetails,
+                token: undefined,
             }
         }
     }
 
     // base case: only recipient specified
-    // return with default chain and token
-    const defaultTokenDetails = chainDetails.tokens.find(
-        (t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
-    )
+    // return with default chain and token if recipient is a peanut user
+    const defaultTokenDetails =
+        recipientDetails.recipientType === 'USERNAME'
+            ? chainDetails?.tokens.find((t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase())
+            : undefined
 
     return {
         recipient: recipientDetails,
         chain: chainDetails,
-        ...(defaultTokenDetails && { token: defaultTokenDetails }),
+        token: defaultTokenDetails,
+        amount: undefined,
     }
 }

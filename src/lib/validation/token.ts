@@ -1,5 +1,5 @@
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, chains as wagmiChains } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { ChainValidationError } from '../url-parser/errors'
 import { POPULAR_CHAIN_NAME_VARIANTS } from '../url-parser/parser.consts'
@@ -7,30 +7,38 @@ import { POPULAR_CHAIN_NAME_VARIANTS } from '../url-parser/parser.consts'
 export async function getTokenAndChainDetails(
     tokenSymbol: string,
     chain?: string | number
-): Promise<{ chain: interfaces.ISquidChain; token?: interfaces.ISquidToken }> {
+): Promise<{ chain: interfaces.ISquidChain | null; token?: interfaces.ISquidToken }> {
     const normalizeTokenSymbol = tokenSymbol.toLowerCase()
     const squidChainsAndTokens = await getSquidChainsAndTokens()
 
     if (chain) {
-        // const chainDetails = squidChainsAndTokens[chain.chainId]
         const chainDetails = getChainDetails(chain, squidChainsAndTokens)
         const tokenDetails = chainDetails.tokens.find((token) => token.symbol.toLowerCase() === normalizeTokenSymbol)
-
-        console.log('tokenInfo', tokenDetails)
         return {
             chain: chainDetails,
             token: tokenDetails,
         }
-    } else {
-        const arbitrumChainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
-        const usdcArbTokenDetails = arbitrumChainDetails.tokens.find(
-            (token) => token.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
-        )
+    }
 
+    if (tokenSymbol) {
+        const arbitrumChainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
+        const tokenDetails = arbitrumChainDetails.tokens.find(
+            (token) => token.symbol.toLowerCase() === normalizeTokenSymbol
+        )
         return {
-            chain: arbitrumChainDetails,
-            token: usdcArbTokenDetails,
+            chain: null,
+            token: tokenDetails,
         }
+    }
+
+    const arbitrumChainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
+    const usdcArbTokenDetails = arbitrumChainDetails.tokens.find(
+        (token) => token.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
+    )
+
+    return {
+        chain: arbitrumChainDetails,
+        token: usdcArbTokenDetails,
     }
 }
 
@@ -38,42 +46,33 @@ export async function getTokenAndChainDetails(
 // utility to get human-readable chain name
 export function getChainDetails(
     chain: string | number,
-    squidChainsAndTokens: Record<
-        string,
-        interfaces.ISquidChain & {
-            tokens: interfaces.ISquidToken[]
-        }
-    >
-): interfaces.ISquidChain & {
-    tokens: interfaces.ISquidToken[]
-} {
-    let chainDetails: interfaces.ISquidChain & {
-        tokens: interfaces.ISquidToken[]
-    }
+    squidChainsAndTokens: Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>
+): interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] } {
+    let chainDetails: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
 
-    // if its a string and not a number (like "base", "eth", etc.)
+    // resolve chain by name
     if (typeof chain === 'string') {
-        // const normalizedName = chain.toLowerCase()
-
-        // check if the normalized string matches any of the variants
         for (const [_chainID, variants] of Object.entries(POPULAR_CHAIN_NAME_VARIANTS)) {
             if (variants.includes(chain.toLowerCase())) {
-                const chainId = wagmiChains.find((chain) => chain.id === Number(_chainID))?.id
-                if (chainId) {
-                    chainDetails = squidChainsAndTokens[chainId]
-                    return chainDetails
-                }
+                chainDetails = squidChainsAndTokens[_chainID]
+                if (chainDetails) return chainDetails
             }
+        }
+
+        // try hex chain IDs
+        if (chain.startsWith('0x')) {
+            const decimalChainId = parseInt(chain, 16).toString()
+            chainDetails = squidChainsAndTokens[decimalChainId]
+            if (chainDetails) return chainDetails
         }
     }
 
-    // handle numeric and hex chain IDs
-    else if (typeof Number(chain) === 'number') {
-        const chainIdentifier = Number(chain)
-        chainDetails = squidChainsAndTokens[chainIdentifier.toString()]
-        return chainDetails
+    // handle numeric chain IDs
+    const numericChainId = typeof chain === 'string' ? parseInt(chain) : chain
+    if (!isNaN(numericChainId)) {
+        chainDetails = squidChainsAndTokens[numericChainId.toString()]
+        if (chainDetails) return chainDetails
     }
 
-    console.log('chainDetails error', chain)
     throw new ChainValidationError(`Chain ${chain} is either not supported or invalid`)
 }
