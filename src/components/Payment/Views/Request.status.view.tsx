@@ -13,9 +13,11 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { requestsApi } from '@/services/requests'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
+import { useAuth } from '@/context/authContext'
 
 export default function RequestStatusView() {
     const { requestDetails, resolvedAddress } = usePaymentStore()
+    const { userId } = useAuth()
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
@@ -250,6 +252,8 @@ export default function RequestStatusView() {
                 </div>
             ) : (
                 <PaymentsFooter
+                    href={userId ? undefined : '/setup'}
+                    text={userId ? undefined : 'Sign up to see payments'}
                     variant="transparent-dark"
                     className="mt-3 rounded-none border-x-0 border-t border-black text-black hover:text-black"
                 />

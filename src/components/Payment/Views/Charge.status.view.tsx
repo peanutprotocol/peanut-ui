@@ -14,11 +14,13 @@ import { formatDate, getExplorerUrl, shortenAddressLong } from '@/utils'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '@/context/authContext'
 
 export default function ChargeStatusView() {
     const { chargeDetails, transactionHash, resolvedAddress } = usePaymentStore()
     const dispatch = useAppDispatch()
     const [isLoading, setIsLoading] = useState(true)
+    const { userId } = useAuth()
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
     const [explorerUrlDestChainWithTxHash, setExplorerUrlDestChainWithTxHash] = useState<
@@ -283,6 +285,8 @@ export default function ChargeStatusView() {
                 </div>
             ) : (
                 <PaymentsFooter
+                    href={userId ? undefined : '/setup'}
+                    text={userId ? undefined : 'Sign up to see payments'}
                     variant="transparent-dark"
                     className="mt-3 rounded-none border-x-0 border-t border-black text-black hover:text-black"
                 />
