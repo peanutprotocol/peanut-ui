@@ -130,6 +130,7 @@ export const InitialView = ({
                 }
                 const requestLinkDetails = await requestResponse.json()
 
+                /*
                 //TODO: create util function to generate link
                 //TODO: use human readeable instead of address
                 let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${requestLinkDetails.recipientAddress}/`
@@ -141,8 +142,26 @@ export const InitialView = ({
                 }
                 link += `?id=${requestLinkDetails.uuid}`
 
-                requestLinkDetails.link = link
+                */
+                //TODO: remove this after denver and merging PR
+                const chargeResponse = await fetchWithSentry(`/api/proxy/charges`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        pricing_type: 'fixed_price',
+                        local_price: {
+                            amount: requestLinkDetails.tokenAmount,
+                            currency: 'USD',
+                        },
+                        requestId: requestLinkDetails.uuid,
+                    }),
+                })
+                const chargeData = await chargeResponse.json()
+                const link = `${process.env.NEXT_PUBLIC_BASE_URL}/request/pay?id=${chargeData.data.id}`
 
+                requestLinkDetails.link = link
                 setLink(link)
                 onNext()
             } catch (error) {
