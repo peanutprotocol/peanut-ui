@@ -18,11 +18,20 @@ import { useWalletType } from '@/hooks/useWalletType'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
-import { balanceByToken, ErrorHandler, floorFixed, isNativeCurrency, printableAddress, printableUsdc } from '@/utils'
+import {
+    balanceByToken,
+    ErrorHandler,
+    floorFixed,
+    isNativeCurrency,
+    printableAddress,
+    printableUsdc,
+    validateEnsName,
+} from '@/utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { formatEther } from 'viem'
 import * as _consts from '../Create.consts'
 import { isGaslessDepositPossible } from '../Create.utils'
+import * as Sentry from '@sentry/nextjs'
 
 export const CreateLinkInputView = ({
     onNext,
@@ -92,8 +101,43 @@ export const CreateLinkInputView = ({
                 showError: false,
                 errorMessage: '',
             })
-            setLoadingState('Asserting values')
-            await checkUserHasEnoughBalance({ tokenValue: tokenValue })
+
+            // for native token, estimate gas first before checking balance
+            if (isNativeCurrency(selectedTokenAddress)) {
+                setLoadingState('Loading')
+                const linkDetails = generateLinkDetails({
+                    tokenValue: tokenValue,
+                    envInfo: environmentInfo,
+                    walletType: walletType,
+                })
+
+                const password = await generatePassword()
+                const prepareDepositTxsResponse = await prepareDepositTxs({
+                    _linkDetails: linkDetails,
+                    _password: password,
+                })
+
+                if (prepareDepositTxsResponse) {
+                    const { feeOptions } = await estimateGasFee({
+                        chainId: selectedChainID,
+                        preparedTx: prepareDepositTxsResponse.unsignedTxs[0],
+                    })
+
+                    // calculate gas amount in native token
+                    const gasLimit = BigInt(feeOptions.gasLimit)
+                    const gasPrice = BigInt(feeOptions.maxFeePerGas || feeOptions.gasPrice)
+                    const maxGasAmount = Number(formatEther(gasLimit * gasPrice))
+
+                    setLoadingState('Loading')
+                    await checkUserHasEnoughBalance({
+                        tokenValue: tokenValue,
+                        gasAmount: maxGasAmount,
+                    })
+                }
+            } else {
+                setLoadingState('Loading')
+                await checkUserHasEnoughBalance({ tokenValue: tokenValue })
+            }
 
             setLoadingState('Generating details')
 
@@ -175,17 +219,6 @@ export const CreateLinkInputView = ({
                             preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
                         })
 
-                        // if the total amount (tokenValue + estimated gas fees) exceeds the wallet balance set error
-                        const totalAmount = parseFloat(tokenValue ?? '0') + (transactionCostUSD ?? 0)
-                        const walletBalance = parseFloat(maxValue ?? '0')
-                        if (totalAmount > walletBalance) {
-                            setErrorState({
-                                showError: true,
-                                errorMessage: 'You do not have enough balance to complete the transaction.',
-                            })
-                            return
-                        }
-
                         _feeOptions = feeOptions
                         setFeeOptions(feeOptions)
                         setTransactionCostUSD(transactionCostUSD)
@@ -193,27 +226,7 @@ export const CreateLinkInputView = ({
                         console.error(error)
                         setFeeOptions(undefined)
                         setTransactionCostUSD(undefined)
-                    }
-                    // If the selected token is native currency, we need to check
-                    // the user's balance to ensure they have enough to cover the
-                    // gas fees.
-                    if (undefined !== _feeOptions && isNativeCurrency(selectedTokenAddress)) {
-                        const maxGasAmount = Number(
-                            formatEther(_feeOptions.gasLimit.mul(_feeOptions.maxFeePerGas || _feeOptions.gasPrice))
-                        )
-                        try {
-                            await checkUserHasEnoughBalance({
-                                tokenValue: String(Number(tokenValue) + maxGasAmount),
-                            })
-                        } catch (error) {
-                            // 6 decimal places, prettier
-                            _setTokenValue((Number(tokenValue) - maxGasAmount * 1.3).toFixed(6))
-                            setErrorState({
-                                showError: true,
-                                errorMessage: 'You do not have enough balance to complete the transaction.',
-                            })
-                            return
-                        }
+                        Sentry.captureException(error)
                     }
                 }
 
@@ -267,6 +280,7 @@ export const CreateLinkInputView = ({
                     console.error(error)
                     setFeeOptions(undefined)
                     setTransactionCostUSD(undefined)
+                    Sentry.captureException(error)
                 }
             }
             await switchNetwork(selectedChainID)
@@ -277,6 +291,7 @@ export const CreateLinkInputView = ({
                 showError: true,
                 errorMessage: errorString,
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -324,7 +339,7 @@ export const CreateLinkInputView = ({
                         {createType === 'link'
                             ? 'Text Tokens'
                             : createType === 'direct'
-                              ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
+                              ? `Send to ${validateEnsName(recipient.name) ? recipient.name : printableAddress(recipient.address ?? '')}`
                               : `Send to ${recipient.name}`}
                     </Card.Title>
                     <Card.Description>
@@ -382,7 +397,8 @@ export const CreateLinkInputView = ({
                                             .then(() => {
                                                 handleOnNext()
                                             })
-                                            .catch((_error) => {
+                                            .catch((error) => {
+                                                Sentry.captureException(error)
                                                 toast.error('Error logging in')
                                             })
                                             .finally(() => {

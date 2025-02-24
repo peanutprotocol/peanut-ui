@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { fetchWithSentry } from '@/utils'
 
 interface TransferDetails {
     id: string
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest, response: NextResponse) {
     const body = await request.json()
 
     try {
-        const response = await fetch('https://interface.gateway.uniswap.org/v1/graphql', {
+        const response = await fetchWithSentry('https://interface.gateway.uniswap.org/v1/graphql', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

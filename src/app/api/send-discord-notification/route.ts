@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -7,7 +8,7 @@ export async function POST(request: NextRequest) {
 
         if (!webhookUrl) throw new Error('DISCORD_WEBHOOK not found in env')
 
-        const response = await fetch(webhookUrl, {
+        const response = await fetchWithSentry(webhookUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

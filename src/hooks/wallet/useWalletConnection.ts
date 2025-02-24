@@ -67,15 +67,8 @@ export const useWalletConnection = () => {
                     toast.error('This wallet is already associated with another account.')
                     processedAddresses.current.add(lowerAddress)
                     return false
-                } else if (error?.toString().includes('Internal Server Error')) {
-                    console.error('Internal Server Error: ', error)
-                    return false
-                } else {
-                    console.error('Error adding wallet:', error)
-                    // todo: not showing error toast for now as it throws 500 error sometimes without proper error handling from backend, need to fix this later
-                    // toast.error('Failed to add wallet')
-                    return false
                 }
+                throw error
             } finally {
                 isProcessing.current = false
             }
@@ -104,24 +97,14 @@ export const useWalletConnection = () => {
 
     // connect wallet and add it to backend
     const connectWallet = useCallback(async () => {
-        try {
-            if (status === 'connected' && connectedAddress) {
-                await disconnectWallet()
-            }
+        if (status === 'connected' && connectedAddress) {
+            await disconnectWallet()
+        }
 
-            await openWalletModal({ view: 'Connect' })
+        await openWalletModal({ view: 'Connect' })
 
-            if (status === 'connected' && connectedAddress) {
-                await addWalletToBackend(connectedAddress)
-            }
-        } catch (error) {
-            // todo: add-account throughs 500 error sometimes without proper error handling from backend, need to fix this later
-            console.error('Connection error:', error)
-            if ((error as any).response?.status === 500) {
-                console.error('Server error:', error)
-            } else {
-                toast.error('Failed to connect wallet')
-            }
+        if (status === 'connected' && connectedAddress) {
+            await addWalletToBackend(connectedAddress)
         }
     }, [openWalletModal, status, connectedAddress, addWalletToBackend, toast, disconnectWallet])
 

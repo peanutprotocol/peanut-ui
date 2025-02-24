@@ -4,9 +4,12 @@ import { createElement, useEffect, useState, useContext } from 'react'
 import * as _consts from './Pay.consts'
 import * as assets from '@/assets'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { useSearchParams } from 'next/navigation'
+import { fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 import * as generalViews from './Views/GeneralViews'
-import * as utils from '@/utils'
+import { jsonParse, resolveFromEnsName, fetchTokenPrice } from '@/utils'
 import * as context from '@/context'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
@@ -26,6 +29,7 @@ export const PayRequestLink = () => {
     const { setLoadingState } = useContext(context.loadingStateContext)
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
     const [errorMessage, setErrorMessage] = useState<string>('')
+    const searchParams = useSearchParams()
 
     const fetchPointsEstimation = async (
         requestLinkDetails: { recipientAddress: any; chainId: any; tokenAmount: any },
@@ -45,7 +49,7 @@ export const PayRequestLink = () => {
         if (!address.endsWith('eth')) {
             return address
         }
-        const resolvedAddress = await utils.resolveFromEnsName(address.toLowerCase())
+        const resolvedAddress = await resolveFromEnsName(address.toLowerCase())
         if (!resolvedAddress) {
             throw new Error('Failed to resolve ENS name')
         }
@@ -72,26 +76,35 @@ export const PayRequestLink = () => {
         setLoadingState('Idle')
     }
 
-    const checkRequestLink = async (pageUrl: string) => {
+    const checkRequestLink = async (uuid: string) => {
         try {
-            // Fetch request link details
-            const requestLinkDetails: any = await peanut.getRequestLinkDetails({
-                link: pageUrl,
-                APIKey: 'YOUR_API_KEY',
-                apiUrl: '/api/proxy/get',
-            })
+            const chargeResponse = await fetchWithSentry(`/api/proxy/get/request-charges/${uuid}`)
+            const charge = jsonParse(await chargeResponse.text())
 
-            // Check if request link is not found
-            if (requestLinkDetails.error === 'Request link not found') {
-                setErrorMessage('This request could not be found. Are you sure your link is correct?')
-                setLinkState(_consts.IRequestLinkState.ERROR)
-                return
+            const requestLinkDetails = {
+                ...charge,
+                reference: charge.requestLink.reference,
+                attachmentUrl: charge.requestLink.attachmentUrl,
+                trackId: charge.requestLink.trackId,
+                recipientAddress: charge.requestLink.recipientAddress,
+            }
+            if (requestLinkDetails.timeline.some((e: any) => e.status === 'COMPLETED')) {
+                requestLinkDetails.status = 'PAID'
+                requestLinkDetails.destinationChainFulfillmentHash =
+                    charge.fulfillmentPayment.fullfillmentTransactionHash
+                requestLinkDetails.originChainFulfillmentHash = charge.fulfillmentPayment.payerTransactionHash
+            } else if (requestLinkDetails.payments.some((p: any) => p.status === 'PENDING')) {
+                //TODO: change to status page
+                requestLinkDetails.status = 'PROCESSING'
+                requestLinkDetails.originChainFulfillmentHash = charge.fulfillmentPayment.payerTransactionHash
+            } else {
+                requestLinkDetails.status = 'PENDING'
             }
 
             setRequestLinkData(requestLinkDetails)
 
             // Check if request link is already paid
-            if (requestLinkDetails.status === 'PAID') {
+            if (requestLinkDetails.status === 'PAID' || requestLinkDetails.status === 'PROCESSING') {
                 setLinkState(_consts.IRequestLinkState.ALREADY_PAID)
                 return
             }
@@ -103,30 +116,32 @@ export const PayRequestLink = () => {
             console.error('Failed to fetch request link details:', error)
             setErrorMessage('This request could not be found. Are you sure your link is correct?')
             setLinkState(_consts.IRequestLinkState.ERROR)
+            Sentry.captureException(error)
         }
     }
 
     useEffect(() => {
-        const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
-        if (pageUrl) {
-            checkRequestLink(pageUrl)
+        const id = searchParams.get('id')
+        if (!id) {
+            setErrorMessage('No id provided, check the link.')
+            setLinkState(_consts.IRequestLinkState.ERROR)
+        } else {
+            checkRequestLink(id)
         }
-    }, [])
+    }, [searchParams])
 
     useEffect(() => {
         if (!requestLinkData) return
 
         // Fetch token price
-        utils
-            .fetchTokenPrice(requestLinkData.tokenAddress.toLowerCase(), requestLinkData.chainId)
-            .then((tokenPriceData) => {
-                if (tokenPriceData) {
-                    setTokenPriceData(tokenPriceData)
-                } else {
-                    setErrorMessage('Failed to fetch token price, please try again later')
-                    setLinkState(_consts.IRequestLinkState.ERROR)
-                }
-            })
+        fetchTokenPrice(requestLinkData.tokenAddress.toLowerCase(), requestLinkData.chainId).then((tokenPriceData) => {
+            if (tokenPriceData) {
+                setTokenPriceData(tokenPriceData)
+            } else {
+                setErrorMessage('Failed to fetch token price, please try again later')
+                setLinkState(_consts.IRequestLinkState.ERROR)
+            }
+        })
 
         fetchRecipientAddress(requestLinkData.recipientAddress)
             .then((recipientAddress) => {
@@ -144,6 +159,7 @@ export const PayRequestLink = () => {
                 console.log('error fetching recipient address:', error)
                 setErrorMessage('Failed to fetch recipient address, please try again later')
                 setLinkState(_consts.IRequestLinkState.ERROR)
+                Sentry.captureException(error)
             })
 
         // Prepare request link fulfillment transaction
@@ -153,6 +169,7 @@ export const PayRequestLink = () => {
         if (!requestLinkData || !tokenPriceData) return
         fetchPointsEstimation(requestLinkData, tokenPriceData).catch((error) => {
             console.log('error fetching points estimation:', error)
+            Sentry.captureException(error)
         })
     }, [tokenPriceData, requestLinkData])
 
@@ -168,6 +185,7 @@ export const PayRequestLink = () => {
                 console.log('error calculating transaction cost:', error)
                 setErrorMessage('Failed to estimate gas fee, please try again later')
                 setLinkState(_consts.IRequestLinkState.ERROR)
+                Sentry.captureException(error)
             })
     }, [unsignedTx, requestLinkData])
 

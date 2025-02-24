@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
         const idempotencyKey = uuidv4()
 
         // Make a POST request to create a new user
-        const response = await fetch('https://api.bridge.xyz/v0/kyc_links', {
+        const response = await fetchWithSentry('https://api.bridge.xyz/v0/kyc_links', {
             method: 'POST',
             headers: {
                 'Api-Key': process.env.BRIDGE_API_KEY,
@@ -30,23 +31,30 @@ export async function POST(request: NextRequest) {
 
         const data = await response.json()
 
-        if (data.code === 'duplicate_record') {
+        // handle duplicate users
+        if (data.code === 'duplicate_record' && data.existing_kyc_link) {
             return new NextResponse(JSON.stringify(data.existing_kyc_link), {
                 status: 200,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
-        } else {
-            return new NextResponse(JSON.stringify(data), {
-                status: 200,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
             })
         }
+
+        if (!data.id) {
+            return new NextResponse(JSON.stringify({ error: 'Failed to create Bridge customer' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        }
+
+        return new NextResponse(JSON.stringify(data), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        })
     } catch (error) {
         console.error('Failed to create or retrieve KYC link:', error)
-        return new NextResponse('Internal Server Error', { status: 500 })
+        return new NextResponse(JSON.stringify({ error: 'Internal Server Error' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+        })
     }
 }

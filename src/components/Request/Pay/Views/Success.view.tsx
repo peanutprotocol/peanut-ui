@@ -5,11 +5,11 @@ import { ReferenceAndAttachment } from '@/components/Request/Components/Referenc
 import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
 import * as utils from '@/utils'
-import { peanut } from '@squirrel-labs/peanut-sdk'
 import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import * as _consts from '../Pay.consts'
+import { fetchWithSentry } from '@/utils'
 
 export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }: _consts.IPayScreenProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
@@ -29,50 +29,17 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
     const explorerUrlAxelarWithTx = 'https://axelarscan.io/gmp/' + transactionHash
 
     useEffect(() => {
-        if (explorerUrlDestChainWithTxHash) {
-            peanut.submitRequestLinkFulfillment({
-                chainId: requestLinkData.chainId,
-                hash: explorerUrlDestChainWithTxHash.transactionId,
-                payerAddress: address ?? '',
-                link: requestLinkData.link,
-                apiUrl: '/api/proxy/patch/',
-                amountUsd: (Number(requestLinkData.tokenAmount) * (tokenPriceData?.price ?? 0)).toFixed(2),
-            })
-            utils.saveRequestLinkFulfillmentToLocalStorage({
-                details: {
-                    ...requestLinkData,
-                    destinationChainFulfillmentHash: explorerUrlDestChainWithTxHash.transactionId,
-                    createdAt: new Date().toISOString(),
-                },
-                link: requestLinkData.link,
-            })
-            setLoadingState('Idle')
-        }
-    }, [explorerUrlDestChainWithTxHash, requestLinkData, address])
-
-    useEffect(() => {
-        // is swap on same chain
-        if (!isXChain && !utils.areEvmAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)) {
-            peanut.submitRequestLinkFulfillment({
-                chainId: requestLinkData.chainId,
+        fetchWithSentry(`/api/proxy/charges/${requestLinkData.uuid}/payments`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                chainId: selectedChainID,
                 hash: transactionHash,
-                payerAddress: address ?? '',
-                link: requestLinkData.link,
-                apiUrl: '/api/proxy/patch/',
-                amountUsd: (Number(requestLinkData.tokenAmount) * (tokenPriceData?.price ?? 0)).toFixed(2),
-            })
-            utils.saveRequestLinkFulfillmentToLocalStorage({
-                details: {
-                    ...requestLinkData,
-                    destinationChainFulfillmentHash: transactionHash,
-                    createdAt: new Date().toISOString(),
-                },
-                link: requestLinkData.link,
-            })
-        }
-    }, [isXChain, requestLinkData, transactionHash, address, selectedTokenAddress])
-
-    useEffect(() => {
+                tokenAddress: selectedTokenAddress,
+            }),
+        })
         if (isXChain) {
             setLoadingState('Awaiting route fulfillment')
             fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)

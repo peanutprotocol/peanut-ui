@@ -26,7 +26,7 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <ReduxProvider store={store}>
-            <config.ContextProvider>
+            <config.ContextProvider cookies={null}>
                 {children}
                 <Analytics />
             </config.ContextProvider>

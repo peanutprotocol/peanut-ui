@@ -4,11 +4,13 @@ import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { claimLinkGasless, claimLinkXChainGasless, interfaces } from '@squirrel-labs/peanut-sdk'
 import { useContext } from 'react'
 import { useSwitchChain } from 'wagmi'
+import { fetchWithSentry } from '@/utils'
 
 import * as consts from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as utils from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 export const useClaimLink = () => {
     const { chain: currentChain, refetchBalances } = useWallet()
@@ -97,13 +99,14 @@ export const useClaimLink = () => {
             console.log(`Switched to chain ${chainId}`)
         } catch (error) {
             console.error('Failed to switch network:', error)
+            Sentry.captureException(error)
         }
     }
     const checkTxStatus = async (txHash: string) => {}
 
     const getAttachmentInfo = async (link: string) => {
         try {
-            const response = await fetch('/api/peanut/get-attachment-info', {
+            const response = await fetchWithSentry('/api/peanut/get-attachment-info', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -121,6 +124,7 @@ export const useClaimLink = () => {
             }
         } catch (error) {
             console.error('Failed to get attachment:', error)
+            Sentry.captureException(error)
         }
     }
 

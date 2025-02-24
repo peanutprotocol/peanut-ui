@@ -32,38 +32,45 @@ export const Dashboard = () => {
     const { composeLinkDataArray, fetchLinkDetailsAsync, filterDashboardData, sortDashboardData } = useDashboard()
 
     useEffect(() => {
-        const linkData = composeLinkDataArray(address ?? '')
-        setTotalPages(Math.ceil(linkData.length / itemsPerPage))
-        setCurrentPage(1)
-        setDashboardData(
-            linkData.sort((a, b) => {
-                const dateA = new Date(a.date).getTime()
-                const dateB = new Date(b.date).getTime()
-                if (dateA === dateB) {
-                    return new Date(b.date).getTime() - new Date(a.date).getTime()
-                } else {
-                    return dateB - dateA
-                }
-            })
-        )
+        let stale = false
 
-        if (address) {
-            const links: string[] = []
-            const legacyLinkObject = utils.getAllLinksFromLocalStorage({ address: address })
-            if (legacyLinkObject) {
-                legacyLinkObject.forEach((obj) => {
-                    links.push(obj.link)
+        composeLinkDataArray(address ?? '').then((linkData) => {
+            if (stale) return
+            setTotalPages(Math.ceil(linkData.length / itemsPerPage))
+            setCurrentPage(1)
+            setDashboardData(
+                linkData.sort((a, b) => {
+                    const dateA = new Date(a.date).getTime()
+                    const dateB = new Date(b.date).getTime()
+                    if (dateA === dateB) {
+                        return new Date(b.date).getTime() - new Date(a.date).getTime()
+                    } else {
+                        return dateB - dateA
+                    }
                 })
+            )
+            if (address) {
+                const links: string[] = []
+                const legacyLinkObject = utils.getAllLinksFromLocalStorage({ address: address })
+                if (legacyLinkObject) {
+                    legacyLinkObject.forEach((obj) => {
+                        links.push(obj.link)
+                    })
+                }
+                const raffleLegacyLinkObject = utils.getAllRaffleLinksFromLocalstorage({ address: address })
+                if (raffleLegacyLinkObject) {
+                    raffleLegacyLinkObject.forEach((obj) => {
+                        links.push(obj.link)
+                    })
+                }
+                setLegacyLinks(links)
+            } else {
+                setLegacyLinks([])
             }
-            const raffleLegacyLinkObject = utils.getAllRaffleLinksFromLocalstorage({ address: address })
-            if (raffleLegacyLinkObject) {
-                raffleLegacyLinkObject.forEach((obj) => {
-                    links.push(obj.link)
-                })
-            }
-            setLegacyLinks(links)
-        } else {
-            setLegacyLinks([])
+        })
+
+        return () => {
+            stale = true
         }
     }, [address])
 

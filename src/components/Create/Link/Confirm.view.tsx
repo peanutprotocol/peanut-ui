@@ -21,9 +21,11 @@ import {
     shareToEmail,
     shareToSms,
     updateUserPreferences,
+    validateEnsName,
 } from '@/utils'
 import * as _consts from '../Create.consts'
 import { useCreateLink } from '../useCreateLink'
+import * as Sentry from '@sentry/nextjs'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -72,7 +74,7 @@ export const CreateLinkConfirmView = ({
     } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
-    const { address, refetchBalances } = useWallet()
+    const { address, refetchBalances, isPeanutWallet } = useWallet()
 
     const selectedChain = useMemo(() => {
         if (supportedSquidChainsAndTokens[selectedChainID]) {
@@ -228,6 +230,7 @@ export const CreateLinkConfirmView = ({
                 showError: true,
                 errorMessage: errorString,
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -243,7 +246,7 @@ export const CreateLinkConfirmView = ({
                         {createType == 'link'
                             ? 'Text Tokens'
                             : createType == 'direct'
-                              ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
+                              ? `Send to ${validateEnsName(recipient.name) ? recipient.name : printableAddress(recipient.address ?? '')}`
                               : `Send to ${recipient.name}`}
                     </Card.Title>
                     <Card.Description>
@@ -314,16 +317,20 @@ export const CreateLinkConfirmView = ({
                                     <label className="font-bold">Network cost</label>
                                 </div>
                                 <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {transactionCostUSD === 0
+                                    {isPeanutWallet
                                         ? '$0'
-                                        : transactionCostUSD < 0.01
-                                          ? '$<0.01'
-                                          : `$${formatTokenAmount(transactionCostUSD, 3) ?? 0}`}
+                                        : transactionCostUSD === 0
+                                          ? '$0'
+                                          : transactionCostUSD < 0.01
+                                            ? '$<0.01'
+                                            : `$${formatTokenAmount(transactionCostUSD, 3) ?? 0}`}
                                     <MoreInfo
                                         text={
-                                            transactionCostUSD > 0
-                                                ? `This transaction will cost you $${formatTokenAmount(transactionCostUSD, 3)} in network fees.`
-                                                : 'This transaction is sponsored by peanut! Enjoy!'
+                                            isPeanutWallet
+                                                ? 'This transaction is sponsored by peanut! Enjoy!'
+                                                : transactionCostUSD > 0
+                                                  ? `This transaction will cost you $${formatTokenAmount(transactionCostUSD, 3)} in network fees.`
+                                                  : 'This transaction is sponsored by peanut! Enjoy!'
                                         }
                                     />
                                 </label>

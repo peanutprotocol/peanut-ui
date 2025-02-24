@@ -15,7 +15,7 @@ import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { balanceByToken, floorFixed, formatIban, printableUsdc, validateBankAccount } from '@/utils'
+import { balanceByToken, floorFixed, formatIban, printableUsdc, validateBankAccount, fetchWithSentry } from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import { useAppKit } from '@reown/appkit/react'
 import { useContext, useEffect, useMemo, useState } from 'react'
@@ -23,6 +23,7 @@ import { twMerge } from 'tailwind-merge'
 import * as _consts from '../Cashout.consts'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
+import * as Sentry from '@sentry/nextjs'
 
 export const InitialCashoutView = ({
     onNext,
@@ -34,6 +35,7 @@ export const InitialCashoutView = ({
     setInitialKYCStep,
     setOfframpForm,
     crossChainDetails,
+    setEstimatedGasCost,
 }: _consts.ICashoutScreenProps) => {
     const {
         selectedTokenPrice,
@@ -73,10 +75,11 @@ export const InitialCashoutView = ({
     const [bankAccountNumber, setBankAccountNumber] = useState<string>('')
     const [isValidBankAccountNumber, setIsValidBankAccountNumber] = useState<boolean>(false)
     const [isValidatingBankAccountNumber, setIsValidatingBankAccountNumber] = useState<boolean>(false)
+
     const { handleLogin } = useZeroDev()
     const toast = useToast()
 
-    const { prepareCreateLinkWrapper } = useCreateLink()
+    const { prepareCreateLinkWrapper, estimateGasFee } = useCreateLink()
 
     const { isConnected, signInModal, selectedWallet, isExternalWallet, isPeanutWallet } = useWallet()
     const { open: appkitModal } = useAppKit()
@@ -129,10 +132,29 @@ export const InitialCashoutView = ({
             const preparedCreateLinkWrapperResponse = await prepareCreateLinkWrapper({
                 tokenValue: tokenValue ?? '',
             })
+
+            // calculate and set estimated gas cost using estimateGasFee
+            if (
+                preparedCreateLinkWrapperResponse?.response &&
+                'unsignedTxs' in preparedCreateLinkWrapperResponse.response &&
+                preparedCreateLinkWrapperResponse.response.unsignedTxs[0]
+            ) {
+                try {
+                    const { transactionCostUSD } = await estimateGasFee({
+                        chainId: selectedChainID,
+                        preparedTx: preparedCreateLinkWrapperResponse.response.unsignedTxs[0],
+                    })
+                    setEstimatedGasCost?.(transactionCostUSD.toFixed(2))
+                } catch (error) {
+                    console.error('Failed to estimate gas fee:', error)
+                    setEstimatedGasCost?.('0')
+                }
+            }
+
             setPreparedCreateLinkWrapperResponse(preparedCreateLinkWrapperResponse)
 
             if (!user) {
-                const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                const userIdResponse = await fetchWithSentry('/api/peanut/user/get-user-id', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -195,6 +217,7 @@ export const InitialCashoutView = ({
                 showError: true,
                 errorMessage: error.message || 'An error occurred. Please try again.',
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -418,7 +441,8 @@ export const InitialCashoutView = ({
                                         .then(() => {
                                             handleOnNext()
                                         })
-                                        .catch((_error) => {
+                                        .catch((error) => {
+                                            Sentry.captureException(error)
                                             toast.error('Error logging in')
                                         })
                                         .finally(() => {

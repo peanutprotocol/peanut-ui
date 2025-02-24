@@ -1,12 +1,21 @@
 'use client'
-
-import * as consts from '@/constants'
+import { JustaNameContext } from '@/config/justaname.config'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
+import {
+    AppKitNetwork,
+    arbitrum,
+    base,
+    bsc,
+    gnosis,
+    mainnet,
+    mantle,
+    optimism,
+    polygon,
+    scroll,
+} from '@reown/appkit/networks'
 import { createAppKit } from '@reown/appkit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { mainnet } from 'viem/chains'
-import { CreateConnectorFn, WagmiProvider, http } from 'wagmi'
-import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
+import { WagmiProvider, cookieToInitialState, type Config } from 'wagmi'
 
 // 0. Setup queryClient
 const queryClient = new QueryClient()
@@ -22,32 +31,15 @@ const metadata = {
     icons: [''],
 }
 
-// 3. Create transports for each chain
-const transports = Object.fromEntries(consts.chains.map((chain) => [chain.id, http(chain.rpcUrls.default.http[0])]))
-
-// 4. Create connectors
-const connectors: CreateConnectorFn[] = [
-    injected({ shimDisconnect: true }),
-    safe({
-        shimDisconnect: true,
-    }),
-    walletConnect({
-        projectId,
-        metadata,
-        showQrModal: false,
-    }),
-    coinbaseWallet({
-        appName: metadata.name,
-        appLogoUrl: metadata.icons[0],
-    }),
+export const networks = [arbitrum, mainnet, optimism, polygon, gnosis, base, scroll, mantle, bsc] as [
+    AppKitNetwork,
+    ...AppKitNetwork[],
 ]
 
 // 5. Create WagmiAdapter with required properties
 const wagmiAdapter = new WagmiAdapter({
-    networks: consts.chains,
+    networks,
     projectId,
-    transports,
-    connectors,
     ssr: true,
 })
 
@@ -55,12 +47,13 @@ const wagmiAdapter = new WagmiAdapter({
 createAppKit({
     adapters: [wagmiAdapter],
     defaultNetwork: mainnet,
-    networks: consts.chains,
+    networks,
     metadata,
     projectId,
     features: {
         analytics: true,
-        connectMethodsOrder: ['wallet', 'email', 'social'],
+        socials: false,
+        email: false,
         onramp: true,
     },
     themeVariables: {
@@ -69,10 +62,21 @@ createAppKit({
     },
 })
 
-export function ContextProvider({ children }: { children: React.ReactNode }) {
+export function ContextProvider({ children, cookies }: { children: React.ReactNode; cookies: string | null }) {
+    /**
+     * converts the provided cookies into an initial state for the application.
+     *
+     * @param {Config} wagmiConfig - The configuration object for the wagmi adapter.
+     * @param {Record<string, string>} cookies - An object representing the cookies.
+     * @returns {InitialState} The initial state derived from the cookies.
+     */
+    const initialState = cookieToInitialState(wagmiAdapter.wagmiConfig as Config, cookies)
+
     return (
-        <WagmiProvider config={wagmiAdapter.wagmiConfig}>
-            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        <WagmiProvider config={wagmiAdapter.wagmiConfig} initialState={initialState}>
+            <QueryClientProvider client={queryClient}>
+                <JustaNameContext>{children}</JustaNameContext>
+            </QueryClientProvider>
         </WagmiProvider>
     )
 }

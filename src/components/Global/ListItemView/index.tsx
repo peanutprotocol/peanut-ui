@@ -5,9 +5,10 @@ import { supportedPeanutChains } from '@/constants'
 import { IDashboardItem } from '@/interfaces'
 import { copyTextToClipboardWithFallback, getExplorerUrl } from '@/utils'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Icon from '../Icon'
+import { usePrimaryName } from '@justaname.id/react'
 
 interface TokenBalance {
     chainId: string
@@ -41,6 +42,7 @@ interface ListItemViewProps {
         subText?: string
         recipientAddress?: string
         transactionType?: TransactionType
+        recipientAddressFormatter?: (address: string) => string
     }
     details?: IDashboardItem | TokenBalance
 }
@@ -69,6 +71,12 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
     const isHistory = variant === 'history'
     const transactionDetails = isHistory ? (details as IDashboardItem) : null
     const balanceDetails = !isHistory ? (details as TokenBalance) : null
+    const { primaryName } = usePrimaryName({
+        address: metadata.recipientAddress,
+    })
+    const primaryNameOrAddress = useMemo(() => {
+        return primaryName && primaryName !== '' ? primaryName : metadata.recipientAddress
+    }, [primaryName, metadata.recipientAddress])
 
     // get the transaction status for history variant
     const transactionStatus =
@@ -118,11 +126,15 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                     </div>
                     <label className="font-bold">{secondaryInfo.mainText}</label>
                 </div>
-                {(metadata.recipientAddress || metadata.subText || secondaryInfo.subText) && (
+                {(primaryNameOrAddress || metadata.subText || secondaryInfo.subText) && (
                     <div className="flex w-full flex-row items-center justify-between">
                         <div className="flex flex-col items-start justify-end gap-2 text-start">
-                            {metadata.recipientAddress && (
-                                <label className="text-xs font-normal text-n-3">{metadata.recipientAddress}</label>
+                            {primaryNameOrAddress && (
+                                <label className="text-xs font-normal text-n-3">
+                                    {metadata?.recipientAddressFormatter
+                                        ? metadata.recipientAddressFormatter(primaryNameOrAddress)
+                                        : primaryNameOrAddress}
+                                </label>
                             )}
                             {secondaryInfo.subText && (
                                 <label className="text-xs font-normal text-n-3">{secondaryInfo.subText}</label>

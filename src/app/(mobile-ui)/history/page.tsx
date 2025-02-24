@@ -7,7 +7,6 @@ import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { PEANUT_API_URL } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IDashboardItem } from '@/interfaces'
 import { formatAmountWithSignificantDigits, formatDate, getHeaderTitle, printableAddress } from '@/utils'
@@ -15,19 +14,26 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { isAddress } from 'viem'
 
 const ITEMS_PER_PAGE = 10
 
 const HistoryPage = () => {
     const pathname = usePathname()
     const { address } = useWallet()
-    const { composeLinkDataArray, fetchLinkDetailsAsync, removeRequestLinkFromLocalStorage } = useDashboard()
+    const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
     const [dashboardData, setDashboardData] = useState<IDashboardItem[]>([])
     const loaderRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        const data = composeLinkDataArray(address ?? '')
-        setDashboardData(data)
+        let isStale = false
+        composeLinkDataArray(address ?? '').then((data) => {
+            if (isStale) return
+            setDashboardData(data)
+        })
+        return () => {
+            isStale = true
+        }
     }, [address])
 
     const fetchHistoryPage = async ({ pageParam = 0 }) => {
@@ -41,10 +47,14 @@ const HistoryPage = () => {
         const formattedData = pageData.map((data) => {
             const linkDetails = updatedData.find((item) => item.link === data.link)
             return {
-                id: `${data.link ?? data.txHash ?? ''}-${Date.now()}`,
+                id: `${data.link ?? ''}-${data.txHash ?? ''}-${data.date}`,
                 transactionType: data.type,
                 amount: `$${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
-                recipientAddress: data.address ? `To ${printableAddress(data.address)}` : '',
+                recipientAddress: data.address ?? '',
+                recipientAddressFormatter: (address: string) => {
+                    const sanitizedAddressOrName = isAddress(address) ? printableAddress(address) : address
+                    return `To ${sanitizedAddressOrName}`
+                },
                 status: linkDetails?.status ?? data.status ?? '',
                 transactionDetails: {
                     ...data,
@@ -86,23 +96,6 @@ const HistoryPage = () => {
 
         return () => observer.disconnect()
     }, [hasNextPage, isFetchingNextPage, fetchNextPage])
-
-    const handleDeleteLink = async (link: string) => {
-        const url = new URL(link ?? '')
-        const id = url.searchParams.get('id')
-
-        removeRequestLinkFromLocalStorage(link)
-
-        await fetch(`${PEANUT_API_URL}/request-links/${id}/cancel`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                apiKey: process.env.PEANUT_API_KEY,
-            }),
-        })
-    }
 
     if (isLoading) {
         return <PeanutLoading />
@@ -161,6 +154,7 @@ const HistoryPage = () => {
                                                 ? formatDate(new Date(item.transactionDetails.date))
                                                 : '',
                                             recipientAddress: item.recipientAddress,
+                                            recipientAddressFormatter: item.recipientAddressFormatter,
                                             transactionType: item.transactionType as TransactionType,
                                         }}
                                         details={item.transactionDetails}

@@ -14,6 +14,7 @@ import { useForm } from 'react-hook-form'
 import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
 import Loading from '../Loading'
 import { UpdateUserComponent } from '../UpdateUserComponent'
+import * as Sentry from '@sentry/nextjs'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -75,6 +76,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         try {
             const _user = await fetchUser()
 
+            // set form values
             setOfframpFormValue('recipient', inputFormData.recipient)
             setOfframpFormValue('name', _user?.user?.full_name ?? '')
             setOfframpFormValue('email', _user?.user?.email ?? '')
@@ -94,7 +96,26 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     setActiveStep(3)
                 }
             } else {
-                let data = await utils.getUserLinks(inputFormData)
+                const name = _user?.user?.full_name ?? ''
+                const email = _user?.user?.email ?? ''
+
+                if (!name.trim() || !email.trim()) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Please provide both your name and email address.',
+                    })
+                    return
+                }
+
+                console.log('Creating bridge customer with:', { name, email })
+
+                let data = await utils.getUserLinks({
+                    full_name: name,
+                    email: email,
+                })
+
+                console.log('Bridge customer created:', data)
+
                 await updateBridgeCustomerData(data)
                 setCustomerObject(data)
 
@@ -113,21 +134,45 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             }
         } catch (error: any) {
             console.error('Error during the submission process:', error)
-            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+            let errorMessage: string
+
+            if (error.message === 'Name and email are required') {
+                errorMessage = 'Please provide both your name and email address.'
+            } else {
+                errorMessage = 'An error occurred. Please try again later'
+                Sentry.captureException(error)
+            }
+
+            setErrorState({
+                showError: true,
+                errorMessage,
+            })
         } finally {
             setLoadingState('Idle')
         }
     }
 
     const handleTOSStatus = async () => {
+        console.log('handleTOSStatus called with form:', watchOfframp())
         try {
-            // Handle TOS status
             let _customerObject
             const _offrampForm = watchOfframp()
 
+            // validation for name and email
+            if (!_offrampForm.name?.trim() || !_offrampForm.email?.trim()) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Name and email are required to continue',
+                })
+                return
+            }
+
             // @ts-ignore
             if (!customerObject || customerObject.code === 'invalid_parameters') {
-                _customerObject = await utils.getUserLinks(_offrampForm)
+                _customerObject = await utils.getUserLinks({
+                    full_name: _offrampForm.name,
+                    email: _offrampForm.email,
+                })
                 await updateBridgeCustomerData(_customerObject)
                 setCustomerObject(_customerObject)
             } else {
@@ -174,15 +219,30 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             console.error('Error during the submission process:', error)
             setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
             setLoadingState('Idle')
+            Sentry.captureException(error)
         }
     }
 
     const handleKYCStatus = async () => {
+        console.log('handleKYCStatus called with form:', watchOfframp())
         try {
             let _customerObject
             const _offrampForm = watchOfframp()
+
+            // validation for name and email
+            if (!_offrampForm.name?.trim() || !_offrampForm.email?.trim()) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Name and email are required to continue',
+                })
+                return
+            }
+
             if (!customerObject) {
-                _customerObject = await utils.getUserLinks(_offrampForm)
+                _customerObject = await utils.getUserLinks({
+                    full_name: _offrampForm.name,
+                    email: _offrampForm.email,
+                })
                 await updateBridgeCustomerData(_customerObject)
                 setCustomerObject(_customerObject)
             } else {
@@ -282,6 +342,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             }
 
             setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+            Sentry.captureException(error)
 
             setLoadingState('Idle')
         } finally {

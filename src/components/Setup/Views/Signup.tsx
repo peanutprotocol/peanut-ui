@@ -6,6 +6,8 @@ import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import Link from 'next/link'
 import { useState } from 'react'
+import * as Sentry from '@sentry/nextjs'
+import { fetchWithSentry } from '@/utils'
 
 const SignupStep = () => {
     const dispatch = useAppDispatch()
@@ -20,7 +22,7 @@ const SignupStep = () => {
         setError('')
 
         // handle empty input
-        if (!handle.trim()) {
+        if (!handle) {
             setError('Handle is required')
             return false
         }
@@ -30,27 +32,47 @@ const SignupStep = () => {
             setError('Handle must be at least 4 characters long')
             return false
         }
+        if (handle.length > 12) {
+            setError('Handle must be at most 12 characters long')
+            return false
+        }
 
         // check character requirement
-        if (!handle.match(/^[a-zA-Z\d]*$/)) {
-            setError('Handle must contain only letters and numbers')
+        if (!handle.match(/^[a-z][a-z0-9_]{3,11}$/)) {
+            setError('Handle must contain only lowercase letters, numbers and underscores and start with a letter')
             return false
         }
 
         try {
+            // here we expect 404 or 400 so dont use the fetchWithSentry helper
             const res = await fetch(`${next_proxy_url}/get/users/username/${handle}`, {
                 method: 'HEAD',
             })
-            const isHandleTaken = res.status === 200
-
-            if (isHandleTaken) {
-                setError('Handle already taken')
-                return false
+            switch (res.status) {
+                case 200:
+                    setError('Handle already taken')
+                    return false
+                case 400:
+                    setError('Handle is invalid, please use a different one')
+                    return false
+                case 404:
+                    // handle is available
+                    setError('')
+                    return true
+                default:
+                    // we dont expect any other status code
+                    console.error('Unexpected status code when checking handle availability:', res.status)
+                    setError('Failed to check handle availability. Please try again.')
+                    Sentry.captureMessage('Unexpected status code when checking handle availability', {
+                        level: 'error',
+                        extra: {
+                            url: res.url,
+                            status: res.status,
+                            method: 'HEAD',
+                        },
+                    })
+                    return false
             }
-
-            // clear error if all validations pass
-            setError('')
-            return true
         } catch (err) {
             setError('Failed to check handle availability. Please try again.')
             return false
@@ -66,7 +88,7 @@ const SignupStep = () => {
         isChanging: boolean
         isValid: boolean
     }) => {
-        dispatch(setupActions.setHandle(value))
+        dispatch(setupActions.setHandle(value.toLowerCase()))
         setIsValid(isValid)
         setIsChanging(isChanging)
 

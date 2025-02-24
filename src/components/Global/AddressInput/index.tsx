@@ -1,8 +1,9 @@
 'use client'
 import { isAddress } from 'viem'
 
-import { resolveFromEnsName } from '@/utils'
+import { resolveFromEnsName, validateEnsName } from '@/utils'
 import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
+import * as Sentry from '@sentry/nextjs'
 
 type AddressInputProps = {
     placeholder: string
@@ -14,13 +15,14 @@ type AddressInputProps = {
 const AddressInput = ({ placeholder = 'Enter a valid address', value, onUpdate, className }: AddressInputProps) => {
     async function checkAddress(recipient: string): Promise<boolean> {
         try {
-            if (recipient.toLowerCase().endsWith('.eth')) {
+            if (validateEnsName(recipient)) {
                 const resolvedAddress = await resolveFromEnsName(recipient.toLowerCase())
                 return !!resolvedAddress
             } else {
                 return isAddress(recipient)
             }
         } catch (error) {
+            Sentry.captureException(error)
             console.error('Error while validating recipient input field:', error)
             return false
         }

@@ -6,6 +6,7 @@ import * as consts from '@/constants'
 import { type ITokenPriceData } from '@/interfaces'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
+import * as Sentry from '@sentry/nextjs'
 
 type inputDenominationType = 'USD' | 'TOKEN'
 
@@ -109,6 +110,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                     }
                 }
             } catch (error) {
+                Sentry.captureException(error)
                 console.log('error fetching tokenPrice, falling back to tokenDenomination')
             } finally {
                 setIsFetchingTokenData(false)

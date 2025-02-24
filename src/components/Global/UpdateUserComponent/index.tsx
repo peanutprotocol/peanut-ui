@@ -1,8 +1,11 @@
 import { Button } from '@/components/0_Bruddle'
 import { useAuth } from '@/context/authContext'
+import { getUserLinks } from '@/utils/cashout.utils'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Loading from '../Loading'
+import { fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 interface IUpdateUserComponentProps {
     userId?: string
@@ -29,8 +32,8 @@ export const UpdateUserComponent = ({ name, email, onSubmit }: IUpdateUserCompon
     } = useForm<IForm>({
         mode: 'onBlur',
         defaultValues: {
-            name: name,
-            email: email,
+            name: name || user?.user?.full_name || '',
+            email: email || user?.user?.email || '',
         },
     })
     const [errorState, setErrorState] = useState<{
@@ -40,45 +43,95 @@ export const UpdateUserComponent = ({ name, email, onSubmit }: IUpdateUserCompon
 
     const handleOnSubmit = async (data: IForm) => {
         try {
-            setLoadingState('Submitting details')
-            const response = await fetch('/api/peanut/user/update-user', {
+            setLoadingState('Creating your profile')
+
+            // validate form data
+            if (!data.name?.trim() || !data.email?.trim()) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Please provide both your name and email address.',
+                })
+                return
+            }
+
+            // only create bridge customer if we don't have one
+            let bridgeCustomerId = user?.user?.bridge_customer_id
+
+            if (!bridgeCustomerId) {
+                setLoadingState('Setting up your account')
+                try {
+                    console.log('Creating bridge customer with:', data)
+
+                    const bridgeCustomer = await getUserLinks({
+                        full_name: data.name.trim(),
+                        email: data.email.trim(),
+                    })
+
+                    console.log('Bridge customer created:', bridgeCustomer)
+
+                    // get the correct customer_id from the response
+
+                    bridgeCustomerId = bridgeCustomer.customer_id
+                } catch (error) {
+                    console.error('Failed to create Bridge customer:', error)
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Unable to set up your account. Please try again or contact support.',
+                    })
+                    Sentry.captureException(error)
+                    return
+                }
+            }
+
+            if (!bridgeCustomerId) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Failed to create customer ID. Please try again.',
+                })
+                return
+            }
+
+            setLoadingState('Saving your details')
+            const response = await fetchWithSentry('/api/peanut/user/update-user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    email: data.email,
+                    email: data.email.trim(),
                     userId: user?.user.userId,
-                    bridgeCustomerId: user?.user.bridge_customer_id,
-                    fullName: data.name,
+                    bridgeCustomerId,
+                    fullName: data.name.trim(),
                 }),
             })
 
             await response.json()
 
-            // if email already exists, login
             if (response.status === 409) {
-                throw new Error('Email already exists')
-            } else if (response.status !== 200) {
-                throw new Error('Error submitting details')
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'This email is already registered. Please use a different email.',
+                })
+                return
+            }
+
+            if (response.status !== 200) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Unable to save your details. Please try again.',
+                })
+                return
             }
 
             await fetchUser()
-            onSubmit?.({ status: 'success', message: 'Details submitted successfully' })
+            onSubmit?.({ status: 'success', message: 'Profile updated successfully' })
         } catch (error) {
-            console.error(error)
-
-            if (error?.toString().includes('Email already exists')) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Email already exists',
-                })
-            } else {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Error submitting details, please try again',
-                })
-            }
+            console.error('Error in profile update:', error)
+            setErrorState({
+                showError: true,
+                errorMessage: 'Something went wrong. Please try again or contact support.',
+            })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -90,7 +143,7 @@ export const UpdateUserComponent = ({ name, email, onSubmit }: IUpdateUserCompon
             onSubmit={handleSubmit(handleOnSubmit)}
         >
             <input
-                {...register('name', { required: 'This field is required' })}
+                {...register('name', { required: 'Full name is required' })}
                 className={`custom-input custom-input-xs ${errors.name ? 'border border-red' : ''}`}
                 placeholder="Full name"
                 autoComplete="name"
@@ -98,21 +151,16 @@ export const UpdateUserComponent = ({ name, email, onSubmit }: IUpdateUserCompon
             {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}
             <input
                 {...register('email', {
-                    required: 'This field is required',
+                    required: 'Email address is required',
                     pattern: {
                         value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-                        message: 'Invalid email address',
+                        message: 'Please enter a valid email address',
                     },
                 })}
                 className={`custom-input custom-input-xs ${errors.email ? 'border border-red' : ''}`}
                 placeholder="Email"
                 type="email"
                 autoComplete="email"
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                        handleOnSubmit(watch())
-                    }
-                }}
             />
             {errors.email && <span className="text-start text-h9 font-normal text-red">{errors.email.message}</span>}
 
@@ -125,16 +173,10 @@ export const UpdateUserComponent = ({ name, email, onSubmit }: IUpdateUserCompon
                     'Submit details'
                 )}
             </Button>
-            {errorState.showError && errorState.errorMessage === 'User already exists' ? (
-                <div className="w-full">
-                    <span className="text-start text-h8 font-normal">User already exists</span>
+            {errorState.showError && (
+                <div className="w-full text-start">
+                    <label className="text-start text-h8 font-normal text-red">{errorState.errorMessage}</label>
                 </div>
-            ) : (
-                errorState.showError && (
-                    <div className="w-full text-start">
-                        <label className="text-start text-h8 font-normal text-red">{errorState.errorMessage}</label>
-                    </div>
-                )
             )}
         </form>
     )

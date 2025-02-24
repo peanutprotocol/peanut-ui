@@ -1,18 +1,18 @@
-import { getLinkDetails, peanut } from '@squirrel-labs/peanut-sdk'
+import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
+import Cookies from 'js-cookie'
 
 import * as interfaces from '@/interfaces'
-import * as consts from '@/constants'
+import { PEANUT_API_URL, supportedPeanutChains } from '@/constants'
 import {
     getTokenSymbol,
     getClaimedLinksFromLocalStorage,
     getCreatedLinksFromLocalStorage,
     getDirectSendFromLocalStorage,
     getOfframpClaimsFromLocalStorage,
-    getRequestLinkFulfillmentsFromLocalStorage,
-    getRequestLinksFromLocalStorage,
     getCashoutStatus,
-    setRequestLinksToLocalStorage,
+    fetchWithSentry,
 } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 export const useDashboard = () => {
     const fetchLinkDetailsAsync = async (visibleData: interfaces.IDashboardItem[]) => {
@@ -25,70 +25,53 @@ export const useDashboard = () => {
                         const linkDetails = await getLinkDetails({ link: item.link ?? '' })
                         item.status = linkDetails.claimed ? 'claimed' : 'pending'
                     } catch (error) {
+                        Sentry.captureException(error)
                         console.error(error)
                     }
                 })
             )
         } catch (error) {
             console.error('Error fetching link details:', error)
+            Sentry.captureException(error)
         }
 
-        const _data2 = visibleData.filter((item) => item.type == 'Request Link')
+        const _data2 = visibleData.filter((item) => item.type == 'Offramp Claim')
 
         try {
             await Promise.all(
                 _data2.map(async (item) => {
-                    try {
-                        const linkDetails = await peanut.getRequestLinkDetails({
-                            link: item.link ?? '',
-                            apiUrl: '/api/proxy/get',
-                        })
-                        item.status = linkDetails.status === 'PAID' ? 'paid' : 'pending'
-                    } catch (error) {
-                        console.error(error)
-                    }
-                })
-            )
-        } catch (error) {
-            console.error('Error fetching link details:', error)
-        }
-
-        const _data3 = visibleData.filter((item) => item.type == 'Offramp Claim')
-
-        try {
-            await Promise.all(
-                _data3.map(async (item) => {
                     try {
                         const offrampStatus = await getCashoutStatus(item.link ?? '')
                         item.status = offrampStatus.status
                     } catch (error) {
                         item.status = 'claimed'
                         console.error(error)
+                        Sentry.captureException(error)
                     }
                 })
             )
         } catch (error) {
             console.error('Error fetching offramp claim details:', error)
+            Sentry.captureException(error)
         }
 
-        const _data = [..._data1, ..._data2, ..._data3]
+        const _data = [..._data1, ..._data2]
 
         return _data
     }
 
-    const removeRequestLinkFromLocalStorage = (link: string) => {
-        const requestLinks = getRequestLinksFromLocalStorage()!
-        const updatedRequestLinks = requestLinks.filter((item) => item.link !== link)
-        setRequestLinksToLocalStorage(updatedRequestLinks)
-    }
-
-    const composeLinkDataArray = (address: string) => {
+    const composeLinkDataArray = async (address: string) => {
         const claimedLinks = getClaimedLinksFromLocalStorage({ address: address })!
         const createdLinks = getCreatedLinksFromLocalStorage({ address: address })!
         const directSends = getDirectSendFromLocalStorage({ address: address })!
         const offrampClaims = getOfframpClaimsFromLocalStorage()!
-        const requestLinks = getRequestLinksFromLocalStorage()!
-        const requestLinkFulfillments = getRequestLinkFulfillmentsFromLocalStorage()!
+        const historyResponse = await fetchWithSentry(`${PEANUT_API_URL}/users/history`, {
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+            },
+        })
+        const requestHistory = await historyResponse.json()
 
         let linkData: interfaces.IDashboardItem[] = []
 
@@ -98,7 +81,7 @@ export const useDashboard = () => {
                 type: 'Link Received',
                 amount: link.tokenAmount,
                 tokenSymbol: link.tokenSymbol,
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                chain: supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.depositDate.toString(),
                 address: link.senderAddress,
                 status: 'claimed',
@@ -115,7 +98,7 @@ export const useDashboard = () => {
                 type: 'Offramp Claim',
                 amount: link.tokenAmount,
                 tokenSymbol: link.tokenSymbol,
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                chain: supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.depositDate.toString(),
                 address: link.senderAddress,
                 status: undefined,
@@ -132,7 +115,7 @@ export const useDashboard = () => {
                 type: 'Link Sent',
                 amount: link.tokenAmount.toString(),
                 tokenSymbol: getTokenSymbol(link.tokenAddress ?? '', link.chainId) ?? '',
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                chain: supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.depositDate.toString(),
                 address: undefined,
                 status: undefined,
@@ -149,7 +132,7 @@ export const useDashboard = () => {
                 type: 'Direct Sent',
                 amount: link.tokenAmount.toString(),
                 tokenSymbol: getTokenSymbol(link.tokenAddress ?? '', link.chainId) ?? '',
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                chain: supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.date.toString(),
                 address: undefined,
                 status: 'transfer',
@@ -160,37 +143,21 @@ export const useDashboard = () => {
             })
         })
 
-        requestLinks.forEach((link) => {
+        // TODO: use history entry typing
+        requestHistory.entries.forEach((entry: any) => {
             linkData.push({
-                link: link.link,
-                type: 'Request Link',
-                amount: link.tokenAmount.toString(),
-                tokenSymbol: getTokenSymbol(link.tokenAddress ?? '', link.chainId) ?? '',
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
-                date: link.createdAt.toString(),
-                address: link.recipientAddress,
-                status: undefined,
-                message: link.reference ?? '',
-                attachmentUrl: link.attachmentUrl ?? '',
+                link: `${process.env.NEXT_PUBLIC_BASE_URL}/request/pay?id=${entry.uuid}`,
+                type: entry.userRole === 'SENDER' ? 'Request Link Fulfillment' : 'Request Link',
+                amount: entry.amount.toString(),
+                tokenSymbol: entry.tokenSymbol,
+                chain: supportedPeanutChains.find((chain) => chain.chainId === entry.chainId)?.name ?? '',
+                date: entry.timestamp.toString(),
+                address: '',
+                status: entry.status,
+                message: '',
+                attachmentUrl: '',
                 points: 0,
-                txHash: '',
-            })
-        })
-
-        requestLinkFulfillments.forEach((link) => {
-            linkData.push({
-                link: link.link,
-                type: 'Request Link Fulfillment',
-                amount: link.tokenAmount.toString(),
-                tokenSymbol: getTokenSymbol(link.tokenAddress ?? '', link.chainId) ?? '',
-                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
-                date: link.createdAt.toString(),
-                address: link.recipientAddress,
-                status: 'paid',
-                message: link.reference ?? '',
-                attachmentUrl: link.attachmentUrl ?? '',
-                points: 0,
-                txHash: link.destinationChainFulfillmentHash ?? '',
+                txHash: entry.txHash,
             })
         })
 
@@ -240,12 +207,12 @@ export const useDashboard = () => {
                 })
                 break
             case 'Type: Link Sent':
-                _dashboardData.sort((a, b) => {
+                _dashboardData.sort((a, _b) => {
                     return a.type === 'Link Sent' ? -1 : 1
                 })
                 break
             case 'Type: Link Received':
-                _dashboardData.sort((a, b) => {
+                _dashboardData.sort((a, _b) => {
                     return a.type === 'Link Received' ? -1 : 1
                 })
                 break
@@ -259,7 +226,7 @@ export const useDashboard = () => {
     const filterDashboardData = (
         filterValue: string,
         dashboardData: interfaces.IDashboardItem[],
-        itemsPerPage: number
+        _itemsPerPage: number
     ) => {
         const _dashboardData = [...dashboardData]
         const filteredData = _dashboardData.filter((item) => {
@@ -276,7 +243,6 @@ export const useDashboard = () => {
         return filteredData
     }
     return {
-        removeRequestLinkFromLocalStorage,
         fetchLinkDetailsAsync,
         composeLinkDataArray,
         sortDashboardData,

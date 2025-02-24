@@ -1,6 +1,7 @@
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import { useEffect, useRef, useState } from 'react'
 import { useWallet } from './wallet/useWallet'
+import * as Sentry from '@sentry/nextjs'
 
 type Opts = {
     allowedDomains?: RegExp[]
@@ -52,6 +53,7 @@ export const useWalletType = () => {
             setWalletType(undefined)
             setEnvironmentInfo(undefined)
             setSafeInfo(undefined)
+            Sentry.captureException(error)
         }
     }
 

@@ -21,7 +21,8 @@ const Footer = () => {
                         )
                     })}
                 </div>
-                <div className="flex justify-center gap-2 ">
+                {/* note: temporarily removed links from fotter */}
+                {/* <div className="flex justify-center gap-2 ">
                     {_consts.LINKS.map((link) => {
                         return (
                             <Link
@@ -34,7 +35,7 @@ const Footer = () => {
                             </Link>
                         )
                     })}
-                </div>
+                </div> */}
             </div>
         </footer>
     )

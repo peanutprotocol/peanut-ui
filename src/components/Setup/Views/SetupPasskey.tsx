@@ -5,6 +5,7 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { WalletProviderType } from '@/interfaces'
 import { useSetupStore } from '@/redux/hooks'
 import { useEffect, useState } from 'react'
+import * as Sentry from '@sentry/nextjs'
 
 const SetupPasskey = () => {
     const { handle } = useSetupStore()
@@ -25,6 +26,7 @@ const SetupPasskey = () => {
                     handleNext()
                 })
                 .catch((e) => {
+                    Sentry.captureException(e)
                     console.error('Error adding account', e)
                     setError('Error adding account')
                 })
@@ -39,6 +41,7 @@ const SetupPasskey = () => {
                     try {
                         await handleRegister(handle)
                     } catch (e) {
+                        Sentry.captureException(e)
                         console.error('Error registering passkey:', e)
                         setError('Error registering passkey.')
                     }

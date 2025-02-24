@@ -114,12 +114,12 @@ export const OfframpSuccessView = ({
                 </div>
                 {offrampType == _consts.OfframpType.CASHOUT && (
                     <>
-                        <Link href={`/profile`}>
+                        <Link href={`/history`}>
                             <Button variant="stroke">
                                 <div className=" border border-n-1 p-0 px-1">
                                     <Icon name="dashboard" className="-mt-0.5" />
                                 </div>
-                                Go to profile
+                                Go to history
                             </Button>
                         </Link>
                     </>

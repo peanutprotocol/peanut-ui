@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 
 import { KYCComponent } from '@/components/Kyc'
 import { useAuth } from '@/context/authContext'
-import { IBridgeAccount, IResponse } from '@/interfaces'
+import { IResponse } from '@/interfaces'
 import * as utils from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import Link from 'next/link'
@@ -12,6 +12,7 @@ import { isIBAN } from 'validator'
 import CountryDropdown from '../CountrySelect'
 import Icon from '../Icon'
 import Loading from '../Loading'
+import * as Sentry from '@sentry/nextjs'
 
 const steps = [{ label: '1. Bank Account' }, { label: '2. Confirm details' }]
 
@@ -46,6 +47,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    const [reKYCUrl, setReKYCUrl] = useState<string | undefined>(undefined) // state to set KYC url, if re-kyc verification is required
     const [completedLinking, setCompletedLinking] = useState(false)
     const {
         register: registerAccountDetails,
@@ -171,6 +173,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
 
             goToNext()
         } catch (error) {
+            Sentry.captureException(error)
             console.error(error)
         } finally {
             setLoadingState('idle')
@@ -184,14 +187,26 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 showError: false,
                 errorMessage: '',
             })
+            setReKYCUrl(undefined)
 
-            console.log('Starting form submission with user data:', {
-                user,
-                kycStatus: user?.user?.kycStatus,
-                accounts: user?.accounts,
-            })
+            // verify if user and bridge_customer_id exists
+            if (!user?.user) {
+                throw new Error('User not found. Please log in again.')
+            }
 
-            // Only need address for US accounts
+            const customerId = user.user.bridge_customer_id
+            if (!customerId) {
+                console.error('Missing bridge_customer_id:', user.user)
+                throw new Error('Please complete KYC before linking a bank account.')
+            }
+
+            // get customer ID and name
+            let accountOwnerName = user.user.full_name
+            if (!accountOwnerName) {
+                const bridgeCustomer = await utils.getCustomer(customerId)
+                accountOwnerName = `${bridgeCustomer.first_name} ${bridgeCustomer.last_name}`
+            }
+
             let address
             if (formData.type === 'us') {
                 if (user?.user?.kycStatus === 'approved') {
@@ -249,6 +264,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                             }
                             console.log('Using existing address (modified for US):', address)
                         } catch (error) {
+                            Sentry.captureException(error)
                             console.error('Failed to handle address details:', error)
                         }
                     }
@@ -287,67 +303,61 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                           routingNumber: formData.routingNumber,
                       }
 
-            // Get customer ID and name
-            const customerId = user?.user?.bridge_customer_id
-            if (!customerId) {
-                throw new Error('Customer ID is missing')
-            }
-
-            let accountOwnerName = user?.user?.full_name
-            if (!accountOwnerName) {
-                const bridgeCustomer = await utils.getCustomer(customerId)
-                accountOwnerName = `${bridgeCustomer.first_name} ${bridgeCustomer.last_name}`
-            }
-
             // Create the external account
-            const response: IResponse = await utils.createExternalAccount(
+            const createExternalAccountRes: IResponse = await utils.createExternalAccount(
                 customerId,
                 formData.type as 'iban' | 'us',
                 accountDetails,
-                // Only include address for US accounts
-                formData.type === 'us' ? address : undefined,
+                address,
                 accountOwnerName
             )
 
-            console.log('Create external account response:', response)
+            // handle verification requirement first
+            if (!createExternalAccountRes.data.success) {
+                // check for verification URL
 
-            if (!response.success) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: response.message || 'Failed to create external account',
-                })
-                return
+                if (createExternalAccountRes.data.details?.code === 'endorsement_requirements_not_met') {
+                    const verificationUrl = createExternalAccountRes.data.details.requirements.kyc_with_proof_of_address
+
+                    setErrorState({
+                        showError: true,
+                        errorMessage:
+                            createExternalAccountRes.data?.message ||
+                            'Please complete the verification process to continue.',
+                    })
+
+                    if (verificationUrl) {
+                        setReKYCUrl(verificationUrl)
+                    }
+                    return
+                }
+
+                const bridgeAccountId = createExternalAccountRes.data.id
+
+                if (!!bridgeAccountId) {
+                    // add account to database
+                    await utils.createAccount(
+                        user.user.userId,
+                        customerId,
+                        bridgeAccountId,
+                        formData.type,
+                        accountDetails.accountNumber,
+                        createExternalAccountRes.data
+                    )
+
+                    // re-fetch user to get recently added accounts
+                    await fetchUser()
+
+                    onCompleted ? onCompleted() : setCompletedLinking(true)
+                }
             }
-
-            const data: IBridgeAccount = response.data
-
-            console.log('Creating account in database')
-            await utils.createAccount(
-                user?.user?.userId ?? '',
-                customerId,
-                data.id,
-                formData.type,
-                getIbanFormValue('accountNumber')?.replaceAll(/\s/g, '') ?? '',
-                address
-            )
-
-            console.log('Fetching updated user data')
-            await fetchUser()
-
-            onCompleted ? onCompleted() : setCompletedLinking(true)
         } catch (error) {
             console.error('Error in handleSubmitLinkIban:', error)
-            let errorMessage = 'Failed to link bank account'
-
-            if (error instanceof Error) {
-                // Clean up error message by removing redundant "Error:" prefixes
-                errorMessage = error.message.replace(/^Error:\s+/g, '')
-            }
-
             setErrorState({
                 showError: true,
-                errorMessage,
+                errorMessage: error instanceof Error ? error.message : 'Failed to link bank account. Please try again.',
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('idle')
         }
@@ -403,7 +413,23 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                         </button>
                         {errorState.showError && (
                             <div className="text-start">
-                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                                {reKYCUrl ? (
+                                    <div className="flex flex-col gap-2">
+                                        <label className="whitespace-normal text-h8 font-normal text-red">
+                                            {errorState.errorMessage}{' '}
+                                            <a
+                                                href={reKYCUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="underline"
+                                            >
+                                                Click here to complete the process.
+                                            </a>
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
+                                )}
                             </div>
                         )}
                     </form>
@@ -562,7 +588,23 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                         </button>
                         {errorState.showError && (
                             <div className="text-start">
-                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                                {reKYCUrl ? (
+                                    <div className="flex flex-col gap-2">
+                                        <label className="whitespace-normal text-h8 font-normal text-red">
+                                            {errorState.errorMessage}{' '}
+                                            <a
+                                                href={reKYCUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="underline"
+                                            >
+                                                Click here to complete the process.
+                                            </a>
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
+                                )}
                             </div>
                         )}
                     </form>

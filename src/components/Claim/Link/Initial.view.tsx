@@ -29,6 +29,7 @@ import {
     getBridgeChainName,
     getBridgeTokenName,
     saveClaimedLinkToLocalStorage,
+    fetchWithSentry,
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
@@ -36,6 +37,7 @@ import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
+import * as Sentry from '@sentry/nextjs'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -153,6 +155,7 @@ export const InitialClaimLinkView = ({
                 showError: true,
                 errorMessage: errorString,
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -210,7 +213,7 @@ export const InitialClaimLinkView = ({
 
             if (!user) {
                 console.log(`user not logged in, getting account status for ${recipient.address}`)
-                const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                const userIdResponse = await fetchWithSentry('/api/peanut/user/get-user-id', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -266,6 +269,7 @@ export const InitialClaimLinkView = ({
                 showError: true,
                 errorMessage: 'You can not claim this link to your bank account.',
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -385,6 +389,7 @@ export const InitialClaimLinkView = ({
                 showError: true,
                 errorMessage: 'No route found for the given token pair.',
             })
+            Sentry.captureException(error)
             return undefined
         } finally {
             setIsXchainLoading(false)
@@ -407,14 +412,23 @@ export const InitialClaimLinkView = ({
             return
         }
 
-        // reset recipient when wallet type changes or when selected wallet changes
+        // reset recipient and chain selection when wallet type changes or when selected wallet changes
         if (selectedWallet) {
-            // reset recipient
+            // reset states
             setRecipient({ name: undefined, address: '' })
             setIsValidRecipient(false)
+            setSelectedRoute(null)
+            setHasFetchedRoute(false)
 
-            // set it to the current address after a short delay
-            // to ensure the ui updates properly
+            if (isPeanutWallet) {
+                setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+                setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+            } else {
+                setSelectedChainID(claimLinkData.chainId)
+                setSelectedTokenAddress(claimLinkData.tokenAddress)
+            }
+
+            // set new recipient address after a short delay to ensure proper UI update
             setTimeout(() => {
                 if (address) {
                     setRecipient({ name: undefined, address: address })
@@ -422,17 +436,7 @@ export const InitialClaimLinkView = ({
                 }
             }, 100)
         }
-    }, [selectedWallet, isConnected, address])
-
-    useEffect(() => {
-        if (recipient.address) return
-        if (isConnected && address) {
-            setRecipient({ name: undefined, address })
-        } else {
-            setRecipient({ name: undefined, address: '' })
-            setIsValidRecipient(false)
-        }
-    }, [address])
+    }, [selectedWallet, isConnected, isPeanutWallet, address])
 
     return (
         <div>
@@ -626,13 +630,18 @@ export const InitialClaimLinkView = ({
                                 // imperative to ensure address here is fetched by useWallet
                                 if (!isConnected && recipient.address.length === 0) {
                                     handleConnectWallet()
-                                } else if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
-                                    if (recipientType === 'iban' || recipientType === 'us') {
-                                        handleIbanRecipient()
-                                    } else {
-                                        onNext()
-                                    }
+                                } else if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+                                    // force cross-chain route for Peanut Wallet if chain doesn't match
+                                    setRefetchXchainRoute(true)
+                                    onNext()
+                                } else if (recipientType === 'iban' || recipientType === 'us') {
+                                    // handle IBAN/US bank account claims
+                                    handleIbanRecipient()
+                                } else if (hasFetchedRoute && selectedRoute) {
+                                    // handle  cross-chain claims
+                                    onNext()
                                 } else {
+                                    // handle direct claims
                                     handleClaimLink()
                                 }
                             }}
@@ -647,9 +656,11 @@ export const InitialClaimLinkView = ({
                         >
                             {!isConnected && recipient.address.length === 0
                                 ? 'Connect Wallet'
-                                : (hasFetchedRoute && selectedRoute) || recipient.address !== address
+                                : isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id
                                   ? 'Proceed'
-                                  : 'Claim now'}
+                                  : hasFetchedRoute && selectedRoute
+                                    ? 'Proceed'
+                                    : 'Claim Now'}
                         </Button>
                         {address && recipient.address.length < 0 && recipientType === 'address' && (
                             <div

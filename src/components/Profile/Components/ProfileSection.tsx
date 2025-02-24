@@ -17,7 +17,7 @@ const ProfileSection = ({}: ProfileSectionProps) => {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 py-2">
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <Image
@@ -29,13 +29,9 @@ const ProfileSection = ({}: ProfileSectionProps) => {
                         <div className="text-grey-1">peanut.me/</div>
                         <div className="flex items-center gap-3">
                             <div className="">{user?.user.username}</div>
-                            {user?.user.kycStatus === 'approved' ? (
+                            {user?.user.kycStatus === 'approved' && (
                                 <Badge color="green" className="rounded-sm border-success-1 bg-white text-success-1">
                                     KYC Done
-                                </Badge>
-                            ) : (
-                                <Badge color="purple" className="rounded-sm border-primary-1 bg-white text-primary-1">
-                                    No KYC
                                 </Badge>
                             )}
                         </div>
@@ -45,7 +41,8 @@ const ProfileSection = ({}: ProfileSectionProps) => {
                     <CopyToClipboard fill="black" textToCopy={`https://peanut.me/${user?.user.username}`} />
                 </div>
             </div>
-            <div className="border-t border-dashed border-black">
+            {/* todo: revisit later, commenting out for now */}
+            {/* <div className="border-t border-dashed border-black">
                 {
                     <div className="flex justify-between py-2">
                         {Object.entries(points).map(([key, value]) => (
@@ -56,7 +53,7 @@ const ProfileSection = ({}: ProfileSectionProps) => {
                         ))}
                     </div>
                 }
-            </div>
+            </div> */}
         </div>
     )
 }

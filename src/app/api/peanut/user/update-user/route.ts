@@ -1,12 +1,14 @@
 import * as consts from '@/constants'
+import { KYCStatus } from '@/utils'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { fetchWithSentry } from '@/utils'
 
 type UserPayload = {
     userId: string
-    username: string
-    bridge_customer_id: string
-    kycStatus?: string
+    username?: string
+    bridge_customer_id?: string
+    kycStatus?: KYCStatus
     telegramUsername?: string
     email?: string
     pushSubscriptionId?: string
@@ -16,6 +18,7 @@ type UserPayload = {
 export async function POST(request: NextRequest) {
     const { userId, username, bridge_customer_id, kycStatus, telegram, email, pushSubscriptionId, fullName } =
         await request.json()
+
     const apiKey = process.env.PEANUT_API_KEY
     const cookieStore = cookies()
     const token = cookieStore.get('jwt-token')
@@ -48,7 +51,7 @@ export async function POST(request: NextRequest) {
             payload.fullName = fullName
         }
 
-        const response = await fetch(`${consts.PEANUT_API_URL}/update-user`, {
+        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/update-user`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -95,6 +98,12 @@ export async function POST(request: NextRequest) {
         })
     } catch (error) {
         console.error('Error:', error)
-        return new NextResponse('Internal Server Error', { status: 500 })
+        return new NextResponse(
+            JSON.stringify({
+                error: 'Internal Server Error',
+                details: error instanceof Error ? error.message : 'Unknown error',
+            }),
+            { status: 500 }
+        )
     }
 }
