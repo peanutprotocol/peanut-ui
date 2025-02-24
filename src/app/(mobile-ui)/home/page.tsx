@@ -3,7 +3,6 @@
 import { useToast } from '@/components/0_Bruddle/Toast'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import LogoutButton from '@/components/Global/LogoutButton'
-import WalletHeader from '@/components/Global/WalletHeader'
 import { WalletCard } from '@/components/Home/WalletCard'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
 import { useAuth } from '@/context/authContext'
@@ -131,9 +130,8 @@ export default function Home() {
                 <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
                     <div className="space-y-4 px-6">
                         <div className="flex items-center justify-between">
-                            <WalletHeader />
-
-                            <div className="md:hidden">
+                            <div className="flex w-full items-center justify-between md:hidden">
+                                <div className="font-knerd-outline text-h5 font-semibold">Peanut</div>
                                 <LogoutButton />
                             </div>
                         </div>
