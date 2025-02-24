@@ -1,5 +1,4 @@
 import { Button } from '@/components/0_Bruddle'
-import { useAuth } from '@/context/authContext'
 import Icon from '../Icon'
 import WalletHeader from '../WalletHeader'
 
@@ -10,10 +9,6 @@ interface FlowHeaderProps {
 }
 
 const FlowHeader = ({ onPrev, disableBackBtn, disableWalletHeader = false }: FlowHeaderProps) => {
-    const { user } = useAuth()
-
-    if (!user) return null
-
     return (
         <div className="flex w-full flex-row items-center justify-between pb-3">
             {onPrev && (

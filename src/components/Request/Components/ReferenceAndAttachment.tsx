@@ -10,7 +10,7 @@ export const ReferenceAndAttachment = ({
     if (!reference && !attachmentUrl) return null
     return (
         <>
-            <div className={`flex w-full flex-col items-center justify-center  gap-2`}>
+            <div className={`flex w-full flex-col items-center justify-center gap-2`}>
                 {reference && (
                     <label className="max-w-full text-h8">
                         Ref: <span className="font-normal"> {reference} </span>

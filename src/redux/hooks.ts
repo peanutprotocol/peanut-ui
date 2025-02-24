@@ -8,3 +8,4 @@ export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector
 export const useSetupStore = () => useAppSelector((state) => state.setup)
 export const useWalletStore = () => useAppSelector((state) => state.wallet)
 export const useZerodevStore = () => useAppSelector((state) => state.zeroDev)
+export const usePaymentStore = () => useAppSelector((state) => state.payment)
