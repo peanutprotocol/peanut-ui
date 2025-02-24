@@ -4,6 +4,8 @@ import { getUserLinks } from '@/utils/cashout.utils'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Loading from '../Loading'
+import { fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 interface IUpdateUserComponentProps {
     userId?: string
@@ -76,6 +78,7 @@ export const UpdateUserComponent = ({ name, email, onSubmit }: IUpdateUserCompon
                         showError: true,
                         errorMessage: 'Unable to set up your account. Please try again or contact support.',
                     })
+                    Sentry.captureException(error)
                     return
                 }
             }
@@ -89,7 +92,7 @@ export const UpdateUserComponent = ({ name, email, onSubmit }: IUpdateUserCompon
             }
 
             setLoadingState('Saving your details')
-            const response = await fetch('/api/peanut/user/update-user', {
+            const response = await fetchWithSentry('/api/peanut/user/update-user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -128,6 +131,7 @@ export const UpdateUserComponent = ({ name, email, onSubmit }: IUpdateUserCompon
                 showError: true,
                 errorMessage: 'Something went wrong. Please try again or contact support.',
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }

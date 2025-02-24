@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { useZeroDev } from '../useZeroDev'
+import * as Sentry from '@sentry/nextjs'
 
 // utility functions
 const isPeanut = (wallet?: interfaces.IDBWallet): boolean =>
@@ -169,7 +170,12 @@ export const useWallet = () => {
     const selectedWallet = useMemo(() => {
         if (!selectedAddress || !wallets.length) return undefined
         const wallet = wallets.find((w) => w.address === selectedAddress)
-        return wallet ? { ...wallet, connected: isWalletConnected(wallet) } : undefined
+        if (!wallet) {
+            // The selected address does not correspond to any wallet
+            dispatch(walletActions.setSelectedAddress(undefined))
+            return undefined
+        }
+        return { ...wallet, connected: isWalletConnected(wallet) }
     }, [selectedAddress, wallets, isWalletConnected])
 
     useEffect(() => {
@@ -212,6 +218,7 @@ export const useWallet = () => {
                     )
                 }
             } catch (error) {
+                Sentry.captureException(error)
                 console.error('Error refetching balance:', error)
             }
         },

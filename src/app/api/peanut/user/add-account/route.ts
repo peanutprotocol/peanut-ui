@@ -2,11 +2,12 @@ import * as consts from '@/constants'
 import { cookies } from 'next/headers'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-        const { userId, bridgeAccountIdentifier, accountType, accountIdentifier, connector } = body
+        const { userId, bridgeAccountId, accountType, accountIdentifier, connector } = body
 
         const apiKey = process.env.PEANUT_API_KEY!
 
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
             return new NextResponse('Bad Request: Missing required fields', { status: 400 })
         }
 
-        const response = await fetch(`${consts.PEANUT_API_URL}/add-account`, {
+        const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/add-account`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify({
                 userId,
-                bridgeAccountIdentifier,
+                bridgeAccountIdentifier: bridgeAccountId,
                 accountType,
                 accountIdentifier,
                 connector,

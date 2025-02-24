@@ -4,6 +4,7 @@ import Cookies from 'js-cookie'
 import { PEANUT_API_URL, supportedPeanutChains } from '@/constants'
 import * as interfaces from '@/interfaces'
 import {
+    fetchWithSentry,
     getCashoutStatus,
     getClaimedLinksFromLocalStorage,
     getCreatedLinksFromLocalStorage,
@@ -11,6 +12,7 @@ import {
     getOfframpClaimsFromLocalStorage,
     getTokenSymbol,
 } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 
 export const useDashboard = () => {
     const fetchLinkDetailsAsync = async (visibleData: interfaces.IDashboardItem[]) => {
@@ -23,12 +25,14 @@ export const useDashboard = () => {
                         const linkDetails = await getLinkDetails({ link: item.link ?? '' })
                         item.status = linkDetails.claimed ? 'claimed' : 'pending'
                     } catch (error) {
+                        Sentry.captureException(error)
                         console.error(error)
                     }
                 })
             )
         } catch (error) {
             console.error('Error fetching link details:', error)
+            Sentry.captureException(error)
         }
 
         const _data2 = visibleData.filter((item) => item.type == 'Offramp Claim')
@@ -42,11 +46,13 @@ export const useDashboard = () => {
                     } catch (error) {
                         item.status = 'claimed'
                         console.error(error)
+                        Sentry.captureException(error)
                     }
                 })
             )
         } catch (error) {
             console.error('Error fetching offramp claim details:', error)
+            Sentry.captureException(error)
         }
 
         const _data = [..._data1, ..._data2]
@@ -59,7 +65,7 @@ export const useDashboard = () => {
         const createdLinks = getCreatedLinksFromLocalStorage({ address: address })!
         const directSends = getDirectSendFromLocalStorage({ address: address })!
         const offrampClaims = getOfframpClaimsFromLocalStorage()!
-        const historyResponse = await fetch(`${PEANUT_API_URL}/users/history`, {
+        const historyResponse = await fetchWithSentry(`${PEANUT_API_URL}/users/history`, {
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,

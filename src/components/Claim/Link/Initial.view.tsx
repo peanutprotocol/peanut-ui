@@ -29,6 +29,7 @@ import {
     getBridgeChainName,
     getBridgeTokenName,
     saveClaimedLinkToLocalStorage,
+    fetchWithSentry,
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
@@ -36,6 +37,7 @@ import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
+import * as Sentry from '@sentry/nextjs'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -153,6 +155,7 @@ export const InitialClaimLinkView = ({
                 showError: true,
                 errorMessage: errorString,
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -210,7 +213,7 @@ export const InitialClaimLinkView = ({
 
             if (!user) {
                 console.log(`user not logged in, getting account status for ${recipient.address}`)
-                const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                const userIdResponse = await fetchWithSentry('/api/peanut/user/get-user-id', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -266,6 +269,7 @@ export const InitialClaimLinkView = ({
                 showError: true,
                 errorMessage: 'You can not claim this link to your bank account.',
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -385,6 +389,7 @@ export const InitialClaimLinkView = ({
                 showError: true,
                 errorMessage: 'No route found for the given token pair.',
             })
+            Sentry.captureException(error)
             return undefined
         } finally {
             setIsXchainLoading(false)

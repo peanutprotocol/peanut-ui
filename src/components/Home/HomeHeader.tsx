@@ -4,6 +4,7 @@ import useAvatar from '@/hooks/useAvatar'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { Button } from '../0_Bruddle'
+import * as Sentry from '@sentry/nextjs'
 
 const HomeHeader = () => {
     const { username } = useAuth()
@@ -38,7 +39,8 @@ const HomeHeader = () => {
                             size="small"
                             onClick={() => {
                                 if (isConnected) return
-                                handleLogin().catch((_error) => {
+                                handleLogin().catch((error) => {
+                                    Sentry.captureException(error)
                                     toast.error('Error logging in')
                                 })
                             }}

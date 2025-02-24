@@ -32,6 +32,7 @@ import { interfaces, peanut } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
 import * as _consts from '../Pay.consts'
+import * as Sentry from '@sentry/nextjs'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
 
@@ -184,6 +185,7 @@ export const InitialView = ({
                 setSlippagePercentage(undefined)
                 setXChainUnsignedTxs(undefined)
                 setTxFee('0')
+                Sentry.captureException(error)
             }
         }
 
@@ -366,6 +368,7 @@ export const InitialView = ({
             if (isPeanutWallet) {
                 handleLogin()
                     .catch((_error) => {
+                        Sentry.captureException(_error)
                         toast.error('Error logging in')
                     })
                     .finally(() => {
@@ -399,6 +402,7 @@ export const InitialView = ({
         } catch (error) {
             console.error('Transaction error:', error)
             setLoadingState('Idle')
+            Sentry.captureException(error)
         }
     }
 

@@ -14,6 +14,7 @@ import { ActionType, estimatePoints } from '../utils/utils'
 import * as _consts from './Claim.consts'
 import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
+import * as Sentry from '@sentry/nextjs'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -126,6 +127,7 @@ export const Claim = ({}) => {
             }
         } catch (error) {
             setLinkState(_consts.claimLinkStateType.NOT_FOUND)
+            Sentry.captureException(error)
         }
     }
 

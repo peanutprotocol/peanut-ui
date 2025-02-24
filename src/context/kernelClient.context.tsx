@@ -16,6 +16,7 @@ import {
 import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { createContext, useEffect, useState, useContext, ReactNode } from 'react'
 import { http, Transport } from 'viem'
+import * as Sentry from '@sentry/nextjs'
 
 interface KernelClientContextType {
     kernelClient: AppSmartAccountClient | undefined
@@ -111,6 +112,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                     dispatch(zerodevActions.setIsLoggingIn(false))
                 }
             } catch (error) {
+                Sentry.captureException(error)
                 console.error('Error initializing kernel client:', error)
                 dispatch(zerodevActions.setIsKernelClientReady(false))
             }

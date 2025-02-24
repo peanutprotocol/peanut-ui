@@ -6,6 +6,8 @@ import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import Link from 'next/link'
 import { useState } from 'react'
+import * as Sentry from '@sentry/nextjs'
+import { fetchWithSentry } from '@/utils'
 
 const SignupStep = () => {
     const dispatch = useAppDispatch()
@@ -42,6 +44,7 @@ const SignupStep = () => {
         }
 
         try {
+            // here we expect 404 or 400 so dont use the fetchWithSentry helper
             const res = await fetch(`${next_proxy_url}/get/users/username/${handle}`, {
                 method: 'HEAD',
             })
@@ -60,6 +63,14 @@ const SignupStep = () => {
                     // we dont expect any other status code
                     console.error('Unexpected status code when checking handle availability:', res.status)
                     setError('Failed to check handle availability. Please try again.')
+                    Sentry.captureMessage('Unexpected status code when checking handle availability', {
+                        level: 'error',
+                        extra: {
+                            url: res.url,
+                            status: res.status,
+                            method: 'HEAD',
+                        },
+                    })
                     return false
             }
         } catch (err) {

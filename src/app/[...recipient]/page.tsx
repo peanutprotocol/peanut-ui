@@ -62,7 +62,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                     if (charge.payments && charge.payments.length > 0) {
                         const latestPayment = charge.payments[charge.payments.length - 1]
 
-                        // show success view for any payment attempt (including failed ones)
+                        // show STATUS view for any payment attempt (including failed ones)
                         if (latestPayment.status !== 'NEW') {
                             dispatch(paymentActions.setView('STATUS'))
                         }

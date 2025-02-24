@@ -12,6 +12,7 @@ import { isIBAN } from 'validator'
 import CountryDropdown from '../CountrySelect'
 import Icon from '../Icon'
 import Loading from '../Loading'
+import * as Sentry from '@sentry/nextjs'
 
 const steps = [{ label: '1. Bank Account' }, { label: '2. Confirm details' }]
 
@@ -172,6 +173,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
 
             goToNext()
         } catch (error) {
+            Sentry.captureException(error)
             console.error(error)
         } finally {
             setLoadingState('idle')
@@ -262,6 +264,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                             }
                             console.log('Using existing address (modified for US):', address)
                         } catch (error) {
+                            Sentry.captureException(error)
                             console.error('Failed to handle address details:', error)
                         }
                     }
@@ -310,15 +313,17 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             )
 
             // handle verification requirement first
-            if (!createExternalAccountRes.success) {
+            if (!createExternalAccountRes.data.success) {
                 // check for verification URL
-                if (createExternalAccountRes.details?.code === 'endorsement_requirements_not_met') {
-                    const verificationUrl = createExternalAccountRes.details.requirements?.kyc_with_proof_of_address
+
+                if (createExternalAccountRes.data.details?.code === 'endorsement_requirements_not_met') {
+                    const verificationUrl = createExternalAccountRes.data.details.requirements.kyc_with_proof_of_address
 
                     setErrorState({
                         showError: true,
                         errorMessage:
-                            createExternalAccountRes.message || 'Please complete the verification process to continue.',
+                            createExternalAccountRes.data?.message ||
+                            'Please complete the verification process to continue.',
                     })
 
                     if (verificationUrl) {
@@ -327,33 +332,32 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                     return
                 }
 
-                // handle other errors
-                setErrorState({
-                    showError: true,
-                    errorMessage: createExternalAccountRes.message || 'Failed to create external account',
-                })
-                return
+                const bridgeAccountId = createExternalAccountRes.data.id
+
+                if (!!bridgeAccountId) {
+                    // add account to database
+                    await utils.createAccount(
+                        user.user.userId,
+                        customerId,
+                        bridgeAccountId,
+                        formData.type,
+                        accountDetails.accountNumber,
+                        createExternalAccountRes.data
+                    )
+
+                    // re-fetch user to get recently added accounts
+                    await fetchUser()
+
+                    onCompleted ? onCompleted() : setCompletedLinking(true)
+                }
             }
-
-            const bridgeAccountId = createExternalAccountRes.data.data.id
-
-            // add account to database
-            await utils.createAccount(
-                user.user.userId,
-                customerId,
-                bridgeAccountId,
-                formData.type,
-                accountDetails.accountNumber,
-                createExternalAccountRes.data.data
-            )
-
-            onCompleted ? onCompleted() : setCompletedLinking(true)
         } catch (error) {
             console.error('Error in handleSubmitLinkIban:', error)
             setErrorState({
                 showError: true,
                 errorMessage: error instanceof Error ? error.message : 'Failed to link bank account. Please try again.',
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('idle')
         }

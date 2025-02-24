@@ -324,6 +324,7 @@ const TokenSelector = ({
                 tokenLogoUri={selectedBalance?.logoURI}
                 tokenSymbol={selectedBalance?.symbol ?? ''}
                 tokenBalance={selectedBalance?.amount}
+                tokenUsdValue={selectedBalance?.value}
                 chainIconUri={displayedChain?.iconURI ?? ''}
                 chainName={displayedChain?.name ?? ''}
                 classNameButton={classNameButton}

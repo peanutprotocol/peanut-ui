@@ -1,8 +1,8 @@
-import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
 import * as consts from '@/constants'
 import { infuraApiKey } from '@/constants'
 import * as interfaces from '@/interfaces'
 import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
+import * as Sentry from '@sentry/nextjs'
 import peanut from '@squirrel-labs/peanut-sdk'
 import chroma from 'chroma-js'
 import { ethers } from 'ethers'
@@ -96,6 +96,7 @@ export const saveToLocalStorage = (key: string, data: any) => {
         localStorage.setItem(key, serializedData)
         console.log(`Saved ${key} to localStorage:`, data)
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error saving to localStorage:', error)
     }
 }
@@ -112,6 +113,7 @@ export const getFromLocalStorage = (key: string) => {
         console.log(`Retrieved ${key} from localStorage:`, parsedData)
         return parsedData
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -147,6 +149,7 @@ export const getAllLinksFromLocalStorage = ({ address }: { address: string }) =>
         }
         return localStorageData
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -223,6 +226,7 @@ export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string
         }
         return localStorageData
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -297,15 +301,19 @@ export function formatTokenAmount(amount?: number, maxFractionDigits?: number) {
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
 
+    // floor the amount
+    const flooredAmount = Math.floor(amount * Math.pow(10, maxFractionDigits)) / Math.pow(10, maxFractionDigits)
+
     // Convert number to string to count significant digits
-    const amountString = amount.toFixed(maxFractionDigits)
+
+    const amountString = flooredAmount.toFixed(maxFractionDigits)
     const significantDigits = amountString.replace(/^0+\./, '').replace(/\.$/, '').replace(/0+$/, '').length
 
     // Calculate the number of fraction digits needed to have at least two significant digits
     const fractionDigits = Math.max(2 - significantDigits, 0)
 
     // Format the number with the calculated fraction digits
-    const formattedAmount = amount.toLocaleString('en-US', {
+    const formattedAmount = flooredAmount.toLocaleString('en-US', {
         minimumFractionDigits: fractionDigits,
         maximumFractionDigits: maxFractionDigits,
     })
@@ -333,6 +341,7 @@ export async function resolveFromEnsNameAndProviderUrl(
 
         return sanitizeRecords(records).ethAddress.value
     } catch (error) {
+        Sentry.captureException(error)
         return undefined
     }
 }
@@ -372,6 +381,7 @@ export async function copyTextToClipboardWithFallback(text: string) {
             await navigator.clipboard.writeText(text)
             return
         } catch (err) {
+            Sentry.captureException(err)
             console.error('Clipboard API failed, trying fallback method. Error:', err)
         }
     }
@@ -388,6 +398,7 @@ export async function copyTextToClipboardWithFallback(text: string) {
         const msg = successful ? 'successful' : 'unsuccessful'
         document.body.removeChild(textarea)
     } catch (err) {
+        Sentry.captureException(err)
         console.error('Fallback method failed. Error:', err)
     }
 }
@@ -445,6 +456,7 @@ export const saveClaimedLinkToLocalStorage = ({
 
         console.log('Saved claimed link to localStorage:', data)
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error adding data to localStorage:', error)
     }
 }
@@ -468,6 +480,7 @@ export const saveOfframpLinkToLocalstorage = ({ data }: { data: interfaces.IExte
 
         console.log('Saved claimed link to localStorage:', data)
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error adding data to localStorage:', error)
     }
 }
@@ -503,6 +516,7 @@ export const getClaimedLinksFromLocalStorage = ({ address = undefined }: { addre
 
         return data
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -532,6 +546,7 @@ export const saveCreatedLinkToLocalStorage = ({
 
         console.log('Saved created link to localStorage:', data)
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error adding data to localStorage:', error)
     }
 }
@@ -567,6 +582,7 @@ export const getCreatedLinksFromLocalStorage = ({ address = undefined }: { addre
 
         return data
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -596,6 +612,7 @@ export const saveDirectSendToLocalStorage = ({
 
         console.log('Saved direct send to localStorage:', data)
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error adding data to localStorage:', error)
     }
 }
@@ -631,6 +648,7 @@ export const getDirectSendFromLocalStorage = ({ address = undefined }: { address
 
         return data
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -651,6 +669,7 @@ export const getOfframpClaimsFromLocalStorage = () => {
 
         return data
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
     }
 }
@@ -683,6 +702,7 @@ export const updateUserPreferences = (partialPrefs: Partial<UserPreferences>): U
         localStorage.setItem('user-preferences', JSON.stringify(newPrefs))
         return newPrefs
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error updating user preferences:', error)
     }
 }
@@ -696,6 +716,7 @@ export const getUserPreferences = (): UserPreferences | undefined => {
 
         return JSON.parse(storedData) as UserPreferences
     } catch (error) {
+        Sentry.captureException(error)
         console.error('Error getting user preferences:', error)
     }
 }
@@ -888,6 +909,7 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
             })
             tokenSymbol = contract?.symbol?.toUpperCase()
         } catch (error) {
+            Sentry.captureException(error)
             console.error('Error fetching token symbol:', error)
         }
     }

@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -8,7 +9,7 @@ export async function POST(request: NextRequest) {
             throw new Error('BRIDGE_API_KEY is not defined')
         }
 
-        const response = await fetch(`https://api.bridge.xyz/v0/customers/${customerId}`, {
+        const response = await fetchWithSentry(`https://api.bridge.xyz/v0/customers/${customerId}`, {
             method: 'GET',
             headers: {
                 'Api-Key': process.env.BRIDGE_API_KEY,

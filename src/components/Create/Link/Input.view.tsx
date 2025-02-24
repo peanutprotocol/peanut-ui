@@ -31,6 +31,7 @@ import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { formatEther } from 'viem'
 import * as _consts from '../Create.consts'
 import { isGaslessDepositPossible } from '../Create.utils'
+import * as Sentry from '@sentry/nextjs'
 
 export const CreateLinkInputView = ({
     onNext,
@@ -225,6 +226,7 @@ export const CreateLinkInputView = ({
                         console.error(error)
                         setFeeOptions(undefined)
                         setTransactionCostUSD(undefined)
+                        Sentry.captureException(error)
                     }
                 }
 
@@ -278,6 +280,7 @@ export const CreateLinkInputView = ({
                     console.error(error)
                     setFeeOptions(undefined)
                     setTransactionCostUSD(undefined)
+                    Sentry.captureException(error)
                 }
             }
             await switchNetwork(selectedChainID)
@@ -288,6 +291,7 @@ export const CreateLinkInputView = ({
                 showError: true,
                 errorMessage: errorString,
             })
+            Sentry.captureException(error)
         } finally {
             setLoadingState('Idle')
         }
@@ -393,7 +397,8 @@ export const CreateLinkInputView = ({
                                             .then(() => {
                                                 handleOnNext()
                                             })
-                                            .catch((_error) => {
+                                            .catch((error) => {
+                                                Sentry.captureException(error)
                                                 toast.error('Error logging in')
                                             })
                                             .finally(() => {
