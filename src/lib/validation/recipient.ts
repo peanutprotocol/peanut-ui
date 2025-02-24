@@ -1,7 +1,7 @@
 import { isAddress } from 'viem'
 
 import { JUSTANAME_ENS, next_proxy_url } from '@/constants'
-import { resolveFromEnsName } from '@/utils'
+import { resolveFromEnsName, fetchWithSentry } from '@/utils'
 import { RecipientValidationError } from '../url-parser/errors'
 import { RecipientType } from '../url-parser/types/payment'
 
@@ -73,7 +73,7 @@ export const getRecipientType = (recipient: string): RecipientType => {
 // utility function to check if a handle is a valid peanut username
 export const verifyPeanutUsername = async (handle: string): Promise<boolean> => {
     try {
-        const res = await fetch(`${next_proxy_url}/get/users/username/${handle}`, {
+        const res = await fetchWithSentry(`${next_proxy_url}/get/users/username/${handle}`, {
             method: 'HEAD',
         })
         const isValidPeanutUsername = res.status === 200

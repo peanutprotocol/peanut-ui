@@ -1,5 +1,6 @@
 import { PEANUT_API_URL } from '@/constants'
 import { CreateRequestRequest, TRequestResponse } from './services.types'
+import { fetchWithSentry } from '@/utils'
 
 export const requestsApi = {
     create: async (data: CreateRequestRequest): Promise<TRequestResponse> => {
@@ -11,7 +12,7 @@ export const requestsApi = {
             }
         })
 
-        const response = await fetch('/api/proxy/withFormData/requests', {
+        const response = await fetchWithSentry('/api/proxy/withFormData/requests', {
             method: 'POST',
             body: formData,
         })
@@ -24,7 +25,7 @@ export const requestsApi = {
     },
 
     get: async (uuid: string): Promise<TRequestResponse> => {
-        const response = await fetch(`${PEANUT_API_URL}/requests/${uuid}`)
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/requests/${uuid}`)
         if (!response.ok) {
             throw new Error(`Failed to fetch request: ${response.statusText}`)
         }
@@ -42,7 +43,7 @@ export const requestsApi = {
             if (value) queryParams.append(key, value)
         })
 
-        const response = await fetch(`${PEANUT_API_URL}/requests?${queryParams.toString()}`)
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/requests?${queryParams.toString()}`)
         if (!response.ok) {
             if (response.status === 404) {
                 return null

@@ -45,7 +45,7 @@ const SignupStep = () => {
 
         try {
             // here we expect 404 or 400 so dont use the fetchWithSentry helper
-            const res = await fetch(`${next_proxy_url}/get/users/username/${handle}`, {
+            const res = await fetchWithSentry(`${next_proxy_url}/get/users/username/${handle}`, {
                 method: 'HEAD',
             })
             switch (res.status) {

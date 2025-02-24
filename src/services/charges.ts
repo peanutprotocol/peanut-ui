@@ -1,9 +1,10 @@
 import { PEANUT_API_URL } from '@/constants'
 import { CreateChargeRequest, PaymentCreationResponse, TCharge, TRequestChargeResponse } from './services.types'
+import { fetchWithSentry } from '@/utils'
 
 export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {
-        const response = await fetch(`/api/proxy/charges`, {
+        const response = await fetchWithSentry(`/api/proxy/charges`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -19,7 +20,7 @@ export const chargesApi = {
     },
 
     get: async (id: string): Promise<TRequestChargeResponse> => {
-        const response = await fetch(`${PEANUT_API_URL}/request-charges/${id}`, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/request-charges/${id}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -44,7 +45,7 @@ export const chargesApi = {
         hash: string
         tokenAddress: string
     }): Promise<PaymentCreationResponse> => {
-        const response = await fetch(`/api/proxy/charges/${chargeId}/payments`, {
+        const response = await fetchWithSentry(`/api/proxy/charges/${chargeId}/payments`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
