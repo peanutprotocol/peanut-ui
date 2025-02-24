@@ -170,8 +170,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         if (isSubmitting) {
             return (
                 <div className="flex items-center justify-center gap-2">
-                    <span className="animate-spin">🥜</span>
-                    <span>Processing...</span>
+                    <span>Hang on...</span>
                 </div>
             )
         }
@@ -296,6 +295,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
 
             <div className="space-y-2">
                 <Button
+                    loading={isSubmitting}
                     shadowSize="4"
                     onClick={handleCreateRequest}
                     disabled={!canCreateRequest || isSubmitting || isPeanutWalletCrossChainRequest}

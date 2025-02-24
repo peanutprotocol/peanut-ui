@@ -1,6 +1,5 @@
 import React, { forwardRef } from 'react'
 import { twMerge } from 'tailwind-merge'
-import Loading from '../Global/Loading'
 
 export type ButtonVariant = 'purple' | 'dark' | 'stroke' | 'transparent-light' | 'transparent-dark' | 'green' | 'yellow'
 type ButtonSize = 'small' | 'medium' | 'large' | 'xl' | 'xl-fixed'
@@ -74,7 +73,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
         return (
             <button className={buttonClasses} ref={ref} {...props}>
-                {loading && <Loading />}
+                {loading && <span className="animate-spin">🥜</span>}
                 {children}
             </button>
         )
