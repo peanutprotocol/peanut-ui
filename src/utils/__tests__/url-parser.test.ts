@@ -28,15 +28,6 @@ jest.mock('@/lib/validation/recipient', () => {
             }
             return originalModule.validateAndResolveRecipient(recipient)
         },
-        verifyPeanutUsername: (handle: string) => {
-            const validUsernames = ['kusharc', 'satoshi']
-            return Promise.resolve(validUsernames.includes(handle))
-        },
-        getRecipientType: (recipient: string) => {
-            if (recipient.includes('.')) return 'ENS'
-            if (recipient.startsWith('0x')) return 'ADDRESS'
-            return 'USERNAME'
-        },
     }
 })
 
@@ -219,7 +210,7 @@ describe('URL Parser Tests', () => {
         })
 
         it('should parse ENS with chain and token', async () => {
-            const result = await parsePaymentURL(['vitalik.eth@ethereum', '1ETH'])
+            await parsePaymentURL(['vitalik.eth@ethereum', '1ETH'])
             expect.objectContaining({
                 recipient: expect.objectContaining({
                     identifier: 'vitalik.eth',

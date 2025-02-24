@@ -12,7 +12,7 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -22,7 +22,6 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     const [error, setError] = useState<Error | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
     const searchParams = useSearchParams()
-    const router = useRouter()
     const chargeId = searchParams.get('chargeId')
     const requestId = searchParams.get('id')
 
@@ -123,13 +122,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                 .get(requestId)
                 .then((request) => {
                     dispatch(paymentActions.setRequestDetails(request))
-
-                    // check if any charge has payments (including pending ones)
-                    const hasPayments = request.charges?.some((charge) => charge.payments?.length > 0)
-
-                    if (hasPayments) {
-                        dispatch(paymentActions.setView('STATUS'))
-                    }
+                    dispatch(paymentActions.setView('INITIAL'))
                 })
                 .catch((err) => {
                     setError(err instanceof Error ? err : new Error('Invalid request ID'))

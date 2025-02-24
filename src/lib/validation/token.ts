@@ -42,7 +42,6 @@ export async function getTokenAndChainDetails(
     }
 }
 
-// kushagra-notes: psuedo-code: utility of this fn? get chain details from squidChains using any chain_name/id/hex-chainId
 // utility to get human-readable chain name
 export function getChainDetails(
     chain: string | number,

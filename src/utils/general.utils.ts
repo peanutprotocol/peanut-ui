@@ -1,5 +1,5 @@
 import * as consts from '@/constants'
-import { infuraApiKey } from '@/constants'
+import { INFURA_API_KEY } from '@/constants'
 import * as interfaces from '@/interfaces'
 import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
 import * as Sentry from '@sentry/nextjs'
@@ -347,7 +347,7 @@ export async function resolveFromEnsNameAndProviderUrl(
 }
 
 export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
-    const mainProviderUrl = 'https://mainnet.infura.io/v3/' + infuraApiKey
+    const mainProviderUrl = 'https://mainnet.infura.io/v3/' + INFURA_API_KEY
     const fallbackProviderUrl = 'https://rpc.ankr.com/eth'
 
     try {

@@ -4,11 +4,11 @@ import { arbitrum, arbitrumSepolia } from 'viem/chains'
 
 export const peanutWalletIsInPreview = true
 
-export const infuraApiKey = process.env.NEXT_PUBLIC_INFURA_API_KEY
+export const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
 
 export const infuraRpcUrls: Record<number, string> = {
-    [arbitrum.id]: `https://arbitrum-mainnet.infura.io/v3/${infuraApiKey}`,
-    [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${infuraApiKey}`,
+    [arbitrum.id]: `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+    [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_KEY}`,
 }
 
 export const ipfsProviderArray = [

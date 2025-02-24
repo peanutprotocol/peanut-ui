@@ -27,8 +27,11 @@ import { PaymentInfoRow } from '../PaymentInfoRow'
 export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const dispatch = useAppDispatch()
     const { attachmentOptions, requestDetails, error } = usePaymentStore()
-    const [tokenValue, setTokenValue] = useState<string>(amount || requestDetails?.tokenAmount || '')
+    const { isConnected: isExternalWalletConnected } = useAccount()
     const { signInModal, isPeanutWallet } = useWallet()
+    const [initialSetupDone, setInitialSetupDone] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [tokenValue, setTokenValue] = useState<string>(amount || requestDetails?.tokenAmount || '')
     const {
         selectedChainID,
         selectedTokenDecimals,
@@ -37,11 +40,8 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         setSelectedChainID,
         setSelectedTokenAddress,
     } = useContext(context.tokenSelectorContext)
-    const [initialSetupDone, setInitialSetupDone] = useState(false)
-    const [isSubmitting, setIsSubmitting] = useState(false)
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
-    const { isConnected: isExternalWalletConnected } = useAccount()
     const isConnected = isExternalWalletConnected || isPeanutWallet
 
     // set initial values from parsedPaymentData

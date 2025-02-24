@@ -1,18 +1,11 @@
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
-import { isAddress } from 'viem'
 import { validateAmount } from '../validation/amount'
 import { validateAndResolveRecipient } from '../validation/recipient'
 import { getChainDetails, getTokenAndChainDetails } from '../validation/token'
 import { AmountValidationError, ChainValidationError, RecipientValidationError } from './errors'
-import { ParsedURL, RecipientType } from './types/payment'
-
-export function detectRecipientType(recipient: string): RecipientType {
-    if (recipient.endsWith('.eth')) return 'ENS'
-    if (isAddress(recipient)) return 'ADDRESS'
-    return 'USERNAME'
-}
+import { ParsedURL } from './types/payment'
 
 function parseAmountAndToken(amountString: string): { amount?: string; token?: string } {
     // remove all whitespace
@@ -77,10 +70,10 @@ export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
         }
     }
 
-    const recipientDetails = await validateAndResolveRecipient(recipient)
-
-    // get all squid chains and tokens
-    const squidChainsAndTokens = await getSquidChainsAndTokens()
+    const [recipientDetails, squidChainsAndTokens] = await Promise.all([
+        validateAndResolveRecipient(recipient),
+        getSquidChainsAndTokens(),
+    ])
 
     // resolve chain details if chain is specified
     if (chain) {
@@ -144,7 +137,7 @@ export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
             return {
                 recipient: recipientDetails,
                 amount: validatedAmount.amount,
-                chain: chainDetails,
+                chain: undefined,
                 token: undefined,
             }
         }
