@@ -3,10 +3,8 @@
 import { Button } from '@/components/0_Bruddle'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import FeeDescription from '@/components/Global/FeeDescription'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
-import InfoRow from '@/components/Global/InfoRow'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { supportedPeanutChains } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
@@ -21,24 +19,36 @@ import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sd
 import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useSwitchChain } from 'wagmi'
+import { PaymentInfoRow } from '../PaymentInfoRow'
 
 export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
-    const { isConnected, chain: currentChain, address } = useWallet()
-    const { attachmentOptions, parsedPaymentData, error, chargeDetails, resolvedAddress } = usePaymentStore()
-    const { selectedChainID, selectedTokenData } = useContext(tokenSelectorContext)
-
+    const { isConnected, chain: currentChain, address, isPeanutWallet } = useWallet()
+    const { attachmentOptions, parsedPaymentData, error, chargeDetails } = usePaymentStore()
+    const {
+        selectedTokenData,
+        selectedChainID,
+        setSelectedChainID,
+        selectedTokenAddress,
+        setSelectedTokenAddress,
+        isXChain,
+        setIsXChain,
+        isFetchingTokenData,
+        supportedSquidChainsAndTokens,
+    } = useContext(tokenSelectorContext)
+    const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
-    const [tokenPriceData, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
-    const [isLoading, setIsLoading] = useState<boolean>(false)
+    const [isCalculatingFees, setIsCalculatingFees] = useState(true)
+    const [, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>()
     const [xChainUnsignedTxs, setXChainUnsignedTxs] = useState<
         peanutInterfaces.IPeanutUnsignedTransaction[] | undefined
     >()
-    const [isXChain, setIsXChain] = useState(false)
+    // const [isXChain, setIsXChain] = useState(false)
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const { switchChainAsync } = useSwitchChain()
     const { setLoadingState } = useContext(loadingStateContext)
@@ -81,7 +91,6 @@ export default function ConfirmPaymentView() {
         return selectedChainID !== chargeDetails.chainId
     }, [chargeDetails, selectedChainID])
 
-    // helper function to prepare cross-chain tx
     const createXChainUnsignedTx = async (tokenData: any, requestLink: any, senderAddress: string) => {
         console.log('Creating cross-chain tx with:', { tokenData, requestLink, senderAddress })
 
@@ -133,7 +142,7 @@ export default function ConfirmPaymentView() {
     const prepareTransaction = async () => {
         if (!chargeDetails || !address) return
 
-        setIsLoading(true)
+        setIsSubmitting(true)
         dispatch(paymentActions.setError(null))
 
         try {
@@ -189,7 +198,7 @@ export default function ConfirmPaymentView() {
             dispatch(paymentActions.setError(errorString))
             return false
         } finally {
-            setIsLoading(false)
+            setIsSubmitting(false)
         }
         return true
     }
@@ -216,7 +225,7 @@ export default function ConfirmPaymentView() {
             return
         }
 
-        setIsLoading(true)
+        setIsSubmitting(true)
         dispatch(paymentActions.setError(null))
 
         try {
@@ -265,18 +274,18 @@ export default function ConfirmPaymentView() {
             const errorString = ErrorHandler(error)
             dispatch(paymentActions.setError(errorString))
         } finally {
-            setIsLoading(false)
+            setIsSubmitting(false)
         }
     }
 
     // Get button text based on state
     const getButtonText = () => {
         if (!isConnected) return 'Connect Wallet'
-        if (isLoading) {
+        if (isSubmitting) {
             return (
                 <div className="flex items-center justify-center gap-2">
-                    <span className="animate-spin">🥜</span>
                     <span>{isXChainTx ? 'Fetching Best Quote For You...' : 'Preparing Transaction...'}</span>
+                    <span className="animate-spin">🥜</span>
                 </div>
             )
         }
@@ -289,10 +298,11 @@ export default function ConfirmPaymentView() {
         return ((slippagePercentage / 100) * selectedTokenData.price * Number(estimatedFromValue)).toFixed(2)
     }, [slippagePercentage, selectedTokenData, estimatedFromValue])
 
-    // Add this useMemo for fee calculations
+    // calculate fee details
     const feeCalculations = useMemo(() => {
         const EXPECTED_NETWORK_FEE_MULTIPLIER = 0.7
         const EXPECTED_SLIPPAGE_MULTIPLIER = 0.1
+        setIsCalculatingFees(true)
 
         const networkFee = {
             // todo: fix txFee calculation
@@ -307,15 +317,15 @@ export default function ConfirmPaymentView() {
               }
             : undefined
 
-        const requestedAmountUSD = chargeDetails?.tokenAmount
-            ? Number(chargeDetails.tokenAmount) * (selectedTokenData?.price || 0)
-            : 0
+        const requestedAmountUSD = Number(chargeDetails?.tokenAmount)
 
         const totalMax = requestedAmountUSD + networkFee.max + (slippage?.max || 0)
 
         const formatNumberSafely = (num: number) => {
             return num < 0.01 && num > 0 ? '0.01' : num.toFixed(2)
         }
+
+        setIsCalculatingFees(false)
 
         return {
             networkFee: {
@@ -347,23 +357,23 @@ export default function ConfirmPaymentView() {
             />
             <div className="text-start text-h4 font-bold">Confirm Details</div>
             <div className="">
-                <InfoRow
+                <PaymentInfoRow
                     label="Recipient"
                     value={parsedPaymentData?.recipient?.identifier || chargeDetails?.requestLink?.recipientAddress}
                 />
 
-                <InfoRow
+                <PaymentInfoRow
                     label="You are paying"
                     value={`${chargeDetails?.tokenAmount} ${selectedTokenData?.symbol || chargeDetails.tokenSymbol} on ${getReadableChainName(selectedChain?.chainId || chargeDetails?.chainId)}`}
                 />
 
-                <InfoRow
+                <PaymentInfoRow
                     label={`${parsedPaymentData?.recipient.identifier} will receive`}
                     value={`${chargeDetails?.tokenAmount} ${chargeDetails?.tokenSymbol} on ${getReadableChainName(chargeDetails.chainId || selectedChainID)}`}
                 />
 
                 {attachmentOptions.fileUrl && (
-                    <InfoRow
+                    <PaymentInfoRow
                         label="Attachment"
                         value={
                             <a
@@ -406,26 +416,52 @@ export default function ConfirmPaymentView() {
                 )}
 
                 {/* Fee Details Section */}
-                <div className="space-y-1">
-                    <FeeDescription
-                        loading={isLoading}
-                        estimatedFee={feeCalculations.estimatedFee}
-                        networkFee={feeCalculations.networkFee.max}
-                        maxSlippage={feeCalculations.slippage?.max}
-                    />
+                {!isFeeEstimationError && (
+                    <div className="space-y-1">
+                        {feeCalculations.estimatedFee && (
+                            <PaymentInfoRow
+                                loading={isCalculatingFees}
+                                label="Estimated Fee"
+                                value={`$${feeCalculations.estimatedFee}`}
+                            />
+                        )}
 
-                    <InfoRow
-                        loading={isLoading}
-                        iconName="transfer"
-                        label="Total Max"
-                        value={`$${feeCalculations.totalMax}`}
-                        moreInfoText={
-                            feeCalculations.slippage
-                                ? 'Maximum amount you will pay including requested amount, network fees, and maximum slippage.'
-                                : 'Maximum amount you will pay including requested amount and network fees.'
-                        }
-                    />
-                </div>
+                        {feeCalculations.networkFee && (
+                            <PaymentInfoRow
+                                loading={isCalculatingFees}
+                                label="Network Fee"
+                                value={`$${isPeanutWallet ? 0 : feeCalculations.networkFee.max}`}
+                                moreInfoText={
+                                    isPeanutWallet
+                                        ? 'This transaction is sponsored by peanut! Enjoy!'
+                                        : 'Maximum network fee you might pay for this transaction.'
+                                }
+                            />
+                        )}
+
+                        {feeCalculations.slippage && (
+                            <PaymentInfoRow
+                                loading={isCalculatingFees}
+                                label="Max Slippage"
+                                value={`$${feeCalculations.slippage.max}`}
+                                moreInfoText={`Maximum slippage that might occur during the cross-chain swap.`}
+                            />
+                        )}
+
+                        {feeCalculations.totalMax && (
+                            <PaymentInfoRow
+                                loading={isCalculatingFees}
+                                label="Total Max"
+                                value={`$${feeCalculations.totalMax}`}
+                                moreInfoText={
+                                    isXChain
+                                        ? 'Maximum amount you will pay including requested amount, network fees, and maximum slippage.'
+                                        : 'Maximum amount you will pay including requested amount and network fees.'
+                                }
+                            />
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="text-xs">
@@ -440,11 +476,11 @@ export default function ConfirmPaymentView() {
 
                         <Button
                             onClick={prepareTransaction}
-                            disabled={isLoading}
+                            disabled={isSubmitting}
                             variant="transparent-dark"
                             className="w-full"
                         >
-                            {isLoading ? (
+                            {isSubmitting ? (
                                 <div className="flex items-center justify-center gap-2">
                                     <span className="animate-spin">🥜</span>
                                     <span>Retrying...</span>
@@ -456,8 +492,9 @@ export default function ConfirmPaymentView() {
                     </div>
                 )}
                 <Button
+                    disabled={!isConnected || isSubmitting || isCalculatingFees}
                     onClick={handlePayment}
-                    disabled={!isConnected || isLoading || !!error}
+                    loading={isSubmitting}
                     shadowSize="4"
                     className="w-full"
                 >

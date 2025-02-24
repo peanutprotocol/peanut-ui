@@ -1,11 +1,11 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
+import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
-import InfoRow from '@/components/Global/InfoRow'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
@@ -20,12 +20,13 @@ import { requestsApi } from '@/services/requests'
 import { CreateChargeRequest } from '@/services/services.types'
 import { ErrorHandler, isNativeCurrency, printableAddress } from '@/utils'
 import { useSearchParams } from 'next/navigation'
-import { useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
+import { PaymentInfoRow } from '../PaymentInfoRow'
 
 export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const dispatch = useAppDispatch()
-    const { attachmentOptions, requestDetails, resolvedAddress, error } = usePaymentStore()
+    const { attachmentOptions, requestDetails, error } = usePaymentStore()
     const [tokenValue, setTokenValue] = useState<string>(amount || requestDetails?.tokenAmount || '')
     const { signInModal, isPeanutWallet } = useWallet()
     const {
@@ -43,27 +44,39 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const { isConnected: isExternalWalletConnected } = useAccount()
     const isConnected = isExternalWalletConnected || isPeanutWallet
 
-    // effect to set initial chain and token from URL params only once
+    // set initial values from parsedPaymentData
     useEffect(() => {
         if (initialSetupDone) return
 
+        // set token amount if present
+        if (amount) {
+            setTokenValue(amount)
+        }
+
         // set chain from URL if present
         if (chain) {
-            setSelectedChainID(chain.chainId)
+            setSelectedChainID((chain.chainId || requestDetails?.chainId) ?? '')
         }
 
         // set token from URL if present
         if (token) {
-            setSelectedTokenAddress(token.address)
+            setSelectedTokenAddress((token.address || requestDetails?.tokenAddress) ?? '')
         }
 
         setInitialSetupDone(true)
-    }, [chain?.chainId, token?.address, setSelectedChainID, setSelectedTokenAddress, selectedChainID, initialSetupDone])
+    }, [chain?.chainId, token?.address, amount, setSelectedChainID, setSelectedTokenAddress, initialSetupDone])
 
     // reset error when component mounts or recipient changes
     useEffect(() => {
         dispatch(paymentActions.setError(null))
     }, [dispatch, recipient])
+
+    useEffect(() => {
+        if (isPeanutWallet) {
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+        }
+    }, [isPeanutWallet])
 
     const handleCreateRequest = async () => {
         if (!isConnected) {
@@ -103,7 +116,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                     chainId: selectedChainID.toString(),
                     tokenAddress: selectedTokenAddress,
                     tokenType: isNativeCurrency(selectedTokenAddress) ? 'native' : 'erc20',
-                    tokenSymbol: selectedTokenData?.symbol || token?.symbol || '',
+                    tokenSymbol: (token?.symbol || selectedTokenData?.symbol) ?? '',
                     tokenDecimals: selectedTokenDecimals || 18,
                     recipientAddress: recipient.resolvedAddress,
                 },
@@ -165,6 +178,16 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         return 'Pay'
     }
 
+    const resetTokenAndChain = useCallback(() => {
+        if (isPeanutWallet) {
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+        } else {
+            setSelectedChainID((requestDetails?.chainId || chain?.chainId) ?? '')
+            setSelectedTokenAddress((requestDetails?.tokenAddress || token?.address) ?? '')
+        }
+    }, [requestDetails, isPeanutWallet])
+
     const renderRequestedPaymentDetails = () => {
         if (!requestDetails) return null
 
@@ -174,16 +197,16 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                     {printableAddress(requestDetails?.recipientAddress)} is requesting:
                 </div>
                 <div className="flex flex-col">
-                    <InfoRow
+                    <PaymentInfoRow
                         label="Amount"
                         value={`${requestDetails.tokenAmount} ${requestDetails.tokenSymbol || token}`}
                     />
                     {requestDetails.chainId && (
-                        <InfoRow label="Network" value={getReadableChainName(requestDetails.chainId)} />
+                        <PaymentInfoRow label="Network" value={getReadableChainName(requestDetails.chainId)} />
                     )}
-                    {requestDetails.reference && <InfoRow label="Message" value={requestDetails.reference} />}
+                    {requestDetails.reference && <PaymentInfoRow label="Message" value={requestDetails.reference} />}
                     {requestDetails.attachmentUrl && (
-                        <InfoRow
+                        <PaymentInfoRow
                             label="Attachment"
                             value={
                                 <a
@@ -222,7 +245,15 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         <div className="space-y-4">
             <FlowHeader />
 
-            <div className="text-h6 font-bold">Sending to {recipient?.identifier}</div>
+            {/* Show recipient from parsed data */}
+            <div className="text-h6 font-bold">
+                Sending to{' '}
+                {recipient.recipientType === 'USERNAME' ? (
+                    recipient.identifier
+                ) : (
+                    <AddressLink address={recipient?.identifier} />
+                )}
+            </div>
 
             <TokenAmountInput
                 tokenValue={tokenValue}
@@ -234,11 +265,10 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             {/* Requested payment details if available */}
             {requestId && renderRequestedPaymentDetails()}
 
-            {/* Always show token selector for payment options */}
             {!isPeanutWallet && (
                 <div>
                     <div className="mb-2 text-sm font-medium">Choose your payment method:</div>
-                    <TokenSelector />
+                    <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
                 </div>
             )}
 

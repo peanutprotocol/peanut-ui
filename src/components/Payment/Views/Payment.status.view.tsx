@@ -7,75 +7,101 @@ import Icon from '@/components/Global/Icon'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import Timeline from '@/components/Global/Timeline'
 import { fetchDestinationChain } from '@/components/utils/utils'
+import { useAuth } from '@/context/authContext'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
+import { requestsApi } from '@/services/requests'
 import { formatDate, getExplorerUrl, shortenAddressLong } from '@/utils'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { useAuth } from '@/context/authContext'
 
-export default function ChargeStatusView() {
-    const { chargeDetails, transactionHash, resolvedAddress } = usePaymentStore()
+export default function PaymentStatusView() {
+    const { requestDetails, chargeDetails, transactionHash, resolvedAddress } = usePaymentStore()
     const dispatch = useAppDispatch()
-    const [isLoading, setIsLoading] = useState(true)
     const { userId } = useAuth()
     const searchParams = useSearchParams()
+    const requestId = searchParams.get('id')
     const chargeId = searchParams.get('chargeId')
     const [explorerUrlDestChainWithTxHash, setExplorerUrlDestChainWithTxHash] = useState<
         { transactionId: string; transactionUrl: string } | undefined
     >(undefined)
 
-    // get latest payment status based on createdAt
-    const latestPayment = useMemo(() => {
-        if (!chargeDetails?.payments?.length) return null
+    // get statusDetails based on requestId or chargeId
+    const statusDetails = useMemo(() => {
+        if (chargeId && chargeDetails) {
+            return {
+                charge: chargeDetails,
+                payments: chargeDetails.payments,
+                timeline: chargeDetails.timeline,
+                requestLink: chargeDetails.requestLink,
+            }
+        }
+        if (requestId && requestDetails) {
+            const latestCharge = requestDetails.charges
+                ?.filter((charge) => charge.payments?.length > 0)
+                ?.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0]
 
-        // sort payments by createdAt in descending order and get the first one
-        return [...chargeDetails.payments].sort((a, b) => {
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        })[0]
-    }, [chargeDetails])
+            return latestCharge
+                ? {
+                      charge: latestCharge,
+                      payments: latestCharge.payments,
+                      timeline: latestCharge.timeline,
+                      requestLink: latestCharge.requestLink,
+                  }
+                : null
+        }
+        return null
+    }, [chargeId, requestId, chargeDetails, requestDetails])
+
+    // get latest payment details
+    const latestPayment = useMemo(() => {
+        if (!statusDetails?.payments?.length) return null
+        return [...statusDetails.payments].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0]
+    }, [statusDetails])
 
     const sourceUrlWithTx = useMemo(() => {
         const txHash =
-            chargeDetails?.fulfillmentPayment?.payerTransactionHash ||
+            statusDetails?.charge?.fulfillmentPayment?.payerTransactionHash ||
             transactionHash ||
             latestPayment?.payerTransactionHash
-        const chainId = chargeDetails?.fulfillmentPayment?.payerChainId || chargeDetails?.chainId
+        const chainId = statusDetails?.charge?.fulfillmentPayment?.payerChainId || statusDetails?.charge?.chainId
 
-        // return URL if both chainId and txHash are available
         if (!chainId || !txHash) return null
 
         const exporerUrl = getExplorerUrl(chainId)
         const isBlockscoutExplorer = exporerUrl?.includes('blockscout')
         return `${exporerUrl}${isBlockscoutExplorer ? 'tx/' : ''}${txHash}`
-    }, [transactionHash, chargeDetails, latestPayment])
+    }, [transactionHash, statusDetails, latestPayment])
 
     // fetch destination chain details for new payments
     useEffect(() => {
-        if (!chargeDetails?.fulfillmentPayment && transactionHash) {
+        if (!statusDetails?.charge?.fulfillmentPayment && transactionHash) {
             fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
-        setIsLoading(false)
-    }, [transactionHash, chargeDetails])
+    }, [transactionHash, statusDetails])
 
-    // polling for status
+    // polling for status updates
     useEffect(() => {
         let intervalId: NodeJS.Timeout | undefined
 
         const pollStatus = async () => {
-            if (!chargeId) return
+            if (!requestId && !chargeId) return
 
             try {
-                const updatedCharge = await chargesApi.get(chargeId)
-                dispatch(paymentActions.setChargeDetails(updatedCharge))
+                if (requestId) {
+                    const updatedRequest = await requestsApi.get(requestId)
+                    dispatch(paymentActions.setRequestDetails(updatedRequest))
+                } else if (chargeId) {
+                    const updatedCharge = await chargesApi.get(chargeId)
+                    dispatch(paymentActions.setChargeDetails(updatedCharge))
+                }
 
                 // stop polling if payment is in final state
-                const currentPayment = updatedCharge.payments?.sort(
-                    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                )[0] // use latest payment based on createdAt from API response
-                if (currentPayment?.status === 'SUCCESSFUL' || currentPayment?.status === 'FAILED') {
+                if (latestPayment?.status === 'SUCCESSFUL' || latestPayment?.status === 'FAILED') {
                     if (intervalId) {
                         clearInterval(intervalId)
                         intervalId = undefined
@@ -90,20 +116,15 @@ export default function ChargeStatusView() {
             }
         }
 
-        // only start polling if chargeId is available and charge is not in final state
+        // pool status if payment is not in final state
         if (
-            chargeId &&
+            (requestId || chargeId) &&
             (!latestPayment || (latestPayment.status !== 'SUCCESSFUL' && latestPayment.status !== 'FAILED'))
         ) {
-            // clear any existing interval
-            if (intervalId) {
-                clearInterval(intervalId)
-            }
-
             // initial poll
             pollStatus()
 
-            // then after every 5 seconds
+            // poll after every 5 seconds
             intervalId = setInterval(pollStatus, 5000)
         }
 
@@ -112,7 +133,7 @@ export default function ChargeStatusView() {
                 clearInterval(intervalId)
             }
         }
-    }, [chargeId, latestPayment?.status])
+    }, [requestId, chargeId, latestPayment?.status, dispatch])
 
     const renderTransactionDetails = () => {
         return (
@@ -129,8 +150,8 @@ export default function ChargeStatusView() {
                     )}
                 </div>
 
-                {/* Show destination tx skeleton while loading for cross-chain payments */}
-                {(explorerUrlDestChainWithTxHash || isLoading) && (
+                {/* Show destination tx for cross-chain payments */}
+                {explorerUrlDestChainWithTxHash && (
                     <div className="flex w-full flex-row items-center justify-between gap-1">
                         <span>Destination Transaction:</span>
                         {explorerUrlDestChainWithTxHash?.transactionUrl ? (
@@ -150,7 +171,7 @@ export default function ChargeStatusView() {
     }
 
     const renderHeader = () => {
-        // Scenario 1: Just made payment, waiting for confirmation
+        // Case1: Just made payment, waiting for confirmation
         if (!latestPayment) {
             return (
                 <>
@@ -167,7 +188,7 @@ export default function ChargeStatusView() {
             )
         }
 
-        // Scenario 2: Payment pending
+        // Case2: Payment is pending
         if (latestPayment && latestPayment.status !== 'FAILED' && latestPayment.status !== 'SUCCESSFUL') {
             return (
                 <>
@@ -182,7 +203,7 @@ export default function ChargeStatusView() {
             )
         }
 
-        // Scenario 3: Payment failed
+        // Case3: Payment has failed
         if (latestPayment?.status === 'FAILED') {
             return (
                 <>
@@ -196,8 +217,8 @@ export default function ChargeStatusView() {
             )
         }
 
-        // Scenario 4: Payment successful (fulfillmentPayment exists)
-        if (chargeDetails?.fulfillmentPayment?.status === 'SUCCESSFUL') {
+        // Case4: Payment was successful
+        if (statusDetails?.charge?.fulfillmentPayment?.status === 'SUCCESSFUL') {
             return (
                 <>
                     <Card.Title>Yay!!</Card.Title>
@@ -211,20 +232,21 @@ export default function ChargeStatusView() {
         return null
     }
 
-    if (!chargeDetails) return null
+    if (!statusDetails) return null
+
     return (
         <Card className="w-full shadow-none sm:shadow-primary-4">
             <Card.Header className="border-0 pb-1">{renderHeader()}</Card.Header>
 
             <Card.Content className="flex w-full flex-col items-start justify-center gap-3 text-h9 font-normal">
                 {/* Attachment and Message Section */}
-                {(chargeDetails?.requestLink.attachmentUrl || chargeDetails?.requestLink.reference) && (
+                {(statusDetails.requestLink.attachmentUrl || statusDetails.requestLink.reference) && (
                     <div className="w-full space-y-2">
-                        {chargeDetails?.requestLink.attachmentUrl && (
+                        {statusDetails.requestLink.attachmentUrl && (
                             <div className="flex items-center gap-2">
                                 <Icon name="paperclip" className="h-4 w-4" />
                                 <a
-                                    href={`chargeDetails.requestLink.attachmentUrl`}
+                                    href={statusDetails.requestLink.attachmentUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-sm hover:underline"
@@ -233,27 +255,27 @@ export default function ChargeStatusView() {
                                 </a>
                             </div>
                         )}
-                        {chargeDetails.requestLink.reference && (
+                        {statusDetails.requestLink.reference && (
                             <div className="flex items-start gap-2">
                                 <Icon name="email" className="h-4 w-4 min-w-4" />
-                                <p className="text-sm">{chargeDetails.requestLink.reference}</p>
+                                <p className="text-sm">{statusDetails.requestLink.reference}</p>
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* Transaction details section with loading states */}
+                {/* Transaction details section */}
                 <div className="mb-2 w-full space-y-3 border-b border-dashed border-black pb-4">
                     {renderTransactionDetails()}
                 </div>
 
-                {/* Timeline for non-successful states */}
+                {/* Timeline */}
                 {latestPayment && (
                     <div className="w-full space-y-2">
                         <div className="text-h8 font-semibold text-gray-1">Payment Timeline</div>
                         <div className="py-1">
-                            {chargeDetails.timeline.map((entry, index) => (
-                                <div key={index} className="">
+                            {statusDetails.timeline.map((entry, index) => (
+                                <div key={index}>
                                     <Timeline value={`${entry.status}`} label={`${formatDate(new Date(entry.time))}`} />
                                 </div>
                             ))}
@@ -274,7 +296,6 @@ export default function ChargeStatusView() {
                         </a>
                     </div>
                 )}
-                {/* todo: refund failed payment */}
             </Card.Content>
 
             {latestPayment?.status === 'FAILED' ? (

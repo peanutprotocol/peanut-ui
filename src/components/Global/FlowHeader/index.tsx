@@ -1,5 +1,4 @@
 import { Button } from '@/components/0_Bruddle'
-import { useAuth } from '@/context/authContext'
 import Icon from '../Icon'
 import WalletHeader from '../WalletHeader'
 
@@ -10,11 +9,6 @@ interface FlowHeaderProps {
 }
 
 const FlowHeader = ({ onPrev, disableBackBtn, disableWalletHeader = false }: FlowHeaderProps) => {
-    const { user } = useAuth()
-
-    // todo: check if this condition removal is affecting other flows
-    // if (!user) return null
-
     return (
         <div className="flex w-full flex-row items-center justify-between pb-3">
             {onPrev && (
@@ -22,7 +16,7 @@ const FlowHeader = ({ onPrev, disableBackBtn, disableWalletHeader = false }: Flo
                     <Icon name="arrow-prev" />
                 </Button>
             )}
-            {!!user && <WalletHeader disabled={disableWalletHeader} className={onPrev ? 'w-fit' : 'w-full'} />}
+            <WalletHeader disabled={disableWalletHeader} className={onPrev ? 'w-fit' : 'w-full'} />
         </div>
     )
 }

@@ -7,21 +7,6 @@ export interface TimelineEntry {
     time: string
 }
 
-interface FulfillmentPayment {
-    uuid: string
-    payerTransactionHash: string
-    payerChainId: string
-    paidTokenAddress: string
-    payerAddress: string
-    fulfillmentTransactionHash: string
-    chargeUuid: string
-    paidAmountInRequestedToken: string
-    status: string
-    reason: string | null
-    createdAt: string
-    verifiedAt: string | null
-}
-
 // requests service types
 export interface CreateRequestRequest {
     chainId: string
@@ -45,9 +30,9 @@ export interface TRequestResponse {
     tokenDecimals: number
     tokenType: string
     tokenSymbol: string
-    trackId?: string
-    reference?: string
-    attachmentUrl?: string
+    trackId: string | null
+    reference: string | null
+    attachmentUrl: string | null
     createdAt: string
     updatedAt: string
     charges: ChargeEntry[]
@@ -55,9 +40,8 @@ export interface TRequestResponse {
 }
 
 interface ChargeEntry {
-    createdAt: string
-    payments: Payment[]
     uuid: string
+    createdAt: string
     link: string
     chainId: string
     tokenAmount: string
@@ -66,21 +50,24 @@ interface ChargeEntry {
     tokenType: string
     tokenSymbol: string
     updatedAt: string
-    fulfillmentPayment: FulfillmentPayment | null
+    payments: Payment[]
+    fulfillmentPayment: Payment | null
     timeline: TimelineEntry[]
-    requestLink: {
-        recipientAddress: string
-        recipientAccount: {
-            userId: string
-            identifier: string
-            type: string
-            user: {
-                username: string
-            }
+    requestLink: RequestLink
+}
+
+export interface RequestLink {
+    recipientAddress: string
+    reference: string | null
+    attachmentUrl: string | null
+    trackId: string | null
+    recipientAccount: {
+        userId: string
+        identifier: string
+        type: string
+        user: {
+            username: string
         }
-        reference?: string
-        attachmentUrl?: string | null
-        trackId?: string | null
     }
 }
 
@@ -127,13 +114,23 @@ export interface Payment {
     payerTransactionHash: string
     payerChainId: string
     paidTokenAddress: string
-    paidAmountInRequestedToken: string | null
+    paidAmountInRequestedToken: {
+        value: string
+    } | null
     payerAddress: string | null
     fulfillmentTransactionHash: string | null
     status: TStatus
     reason: string | null
     createdAt: string
     verifiedAt: string | null
+    payerAccount?: {
+        userId: string | null
+        identifier: string
+        type: string
+        user: {
+            username: string
+        } | null
+    }
 }
 
 // Payment creation response
@@ -167,13 +164,21 @@ export interface TRequestChargeResponse {
     tokenSymbol: string
     updatedAt: string
     payments: Payment[]
-    fulfillmentPayment: FulfillmentPayment | null
+    fulfillmentPayment: Payment | null
     timeline: TimelineEntry[]
     requestLink: {
         recipientAddress: string
-        reference?: string
-        attachmentUrl?: string | null
-        trackId?: string | null
+        reference: string | null
+        attachmentUrl: string | null
+        trackId: string | null
+        recipientAccount: {
+            userId: string
+            identifier: string
+            type: string
+            user: {
+                username: string
+            }
+        }
     }
 }
 

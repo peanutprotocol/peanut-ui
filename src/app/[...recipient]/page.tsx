@@ -2,69 +2,33 @@
 
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import PaymentHistory from '@/components/Payment/History'
-import ChargeStatusView from '@/components/Payment/Views/Charge.status.view'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import ValidationErrorView from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
-import RequestStatusView from '@/components/Payment/Views/Request.status.view'
+import PaymentStatusView from '@/components/Payment/Views/Payment.status.view'
 import { parsePaymentURL } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 export default function PaymentPage({ params }: { params: { recipient: string[] } }) {
     const dispatch = useAppDispatch()
-    const { currentView, attachmentOptions, resolvedAddress, requestDetails, parsedPaymentData } = usePaymentStore()
+    const { currentView, requestDetails, parsedPaymentData, chargeDetails } = usePaymentStore()
     const [error, setError] = useState<Error | null>(null)
-    const [isLoadingCharge, setIsLoadingCharge] = useState(true)
-    const [isLoadingRequests, setIsLoadingRequests] = useState(true)
+    const [isUrlParsed, setIsUrlParsed] = useState(false)
     const searchParams = useSearchParams()
     const router = useRouter()
     const chargeId = searchParams.get('chargeId')
     const requestId = searchParams.get('id')
-    const [supportedSquidChainsAndTokens, setSupportedSquidChainsAndTokens] = useState<
-        Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>
-    >({})
-    // const [parsedURL, setParsedURL] = useState<any>(null)
 
-    // console.log('supportedSquidChainsAndTokens', supportedSquidChainsAndTokens)
-
-    console.log('params: ', params)
     const parsedURL = useMemo(async () => {
         try {
-            const params1 = {
-                recipient: ['kushagrasarathe.eth'],
-            }
-            const params2 = {
-                recipient: ['kushagrasarathe.eth%40base'],
-            }
-            const params3 = {
-                recipient: ['kushagrasarathe.eth%40base', '0.1'],
-            }
-            const params4 = {
-                recipient: ['kushagrasarathe.eth%40base', 'usdc'],
-            }
-            const params5 = {
-                recipient: ['kushagrasarathe.eth', '0.1'],
-            }
-            const params6 = {
-                recipient: ['kushagrasarathe.eth', '0.1usdc'],
-            }
-            const params7 = {
-                recipient: ['kushagrasarathe.eth%40base', '0.1usdc'],
-            }
-
-            // const parsed = await parsePaymentURL(params7.recipient)
             const parsed = await parsePaymentURL(params.recipient)
-
-            // dispatch(paymentActions.setUrlParams(parsed))
-
             return parsed
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Failed to parse URL'))
@@ -72,7 +36,9 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         }
     }, [params.recipient])
 
-    // console.log('_paresedURL', _paresedURL)
+    useEffect(() => {
+        parsedURL.then(() => setIsUrlParsed(true))
+    }, [parsedURL])
 
     useEffect(() => {
         const fetchParsedURL = async () => {
@@ -83,13 +49,10 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         fetchParsedURL()
     }, [dispatch])
 
-    console.log('paresedURL', parsedPaymentData)
-
     // handle validation and charge creation
     useEffect(() => {
         // always show initial view, to let payer select token/chain of choice
         if (chargeId) {
-            setIsLoadingCharge(true)
             chargesApi
                 .get(chargeId)
                 .then((charge) => {
@@ -108,11 +71,6 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                 .catch((err) => {
                     setError(err instanceof Error ? err : new Error('Failed to fetch charge'))
                 })
-                .finally(() => {
-                    setIsLoadingCharge(false)
-                })
-        } else {
-            setIsLoadingCharge(false)
         }
     }, [chargeId, dispatch])
 
@@ -121,43 +79,11 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         async function fetchRequests() {
             if (!parsedPaymentData?.recipient) return
 
-            setIsLoadingRequests(true)
             try {
-                let recipientAddress: string | null = parsedPaymentData.recipient.resolvedAddress
+                let recipientIdentifier: string | null = parsedPaymentData.recipient.identifier
 
-                // resolve the recipient if its not an address
-                // if (!isAddress(parsedURL.recipient)) {
-                //     try {
-                //         // let nameToResolve = parsedURL.recipient
-
-                //         // remove chain part if present (after @)
-                //         // if (nameToResolve.includes('@')) {
-                //         //     nameToResolve = nameToResolve.split('@')[0]
-                //         // }
-
-                //         // if username has no dots, treat as native peanut username
-                //         // if (!nameToResolve.includes('.')) {
-                //         //     nameToResolve = `${nameToResolve}.${JUSTANAME_ENS}`
-                //         // }
-
-                //         // const resolved = await resolveFromEnsName(nameToResolve)
-                //         // if (!resolved) {
-                //         //     throw new Error('Could not resolve recipient name')
-                //         // }
-                //         recipientAddress = resolved
-                //         // store resolved address in redux
-                //         dispatch(paymentActions.setResolvedAddress(resolved))
-                //     } catch (error) {
-                //         console.error('Failed to resolve recipient:', error)
-                //         setError(new Error('Invalid recipient name'))
-                //         return
-                //     }
-                // } else {
-                //     recipientAddress = parsedURL.recipient
-                // }
-
-                if (!recipientAddress) {
-                    throw new Error('No valid recipient address')
+                if (!recipientIdentifier) {
+                    throw new Error('Not a valid recipient')
                 }
 
                 const tokenAddress =
@@ -166,7 +92,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                 const chainId = parsedPaymentData?.chain?.chainId ? parsedPaymentData?.chain?.chainId : undefined
 
                 //  conditional request params
-                const requestParams: any = { recipient: recipientAddress }
+                const requestParams: any = { recipient: recipientIdentifier }
                 if (parsedPaymentData.amount) requestParams.tokenAmount = parsedPaymentData.amount
                 if (chainId) requestParams.chainId = chainId
                 if (tokenAddress) requestParams.tokenAddress = tokenAddress
@@ -178,8 +104,6 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
             } catch (error) {
                 console.error('Failed to fetch requests:', error)
                 setError(error instanceof Error ? error : new Error('Failed to fetch requests'))
-            } finally {
-                setIsLoadingRequests(false)
             }
         }
 
@@ -195,7 +119,6 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     // fetch request details if request ID is available
     useEffect(() => {
         if (requestId) {
-            setIsLoadingRequests(true)
             requestsApi
                 .get(requestId)
                 .then((request) => {
@@ -211,9 +134,6 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                 .catch((err) => {
                     setError(err instanceof Error ? err : new Error('Invalid request ID'))
                 })
-                .finally(() => {
-                    setIsLoadingRequests(false)
-                })
         }
     }, [requestId, dispatch])
 
@@ -225,8 +145,9 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         )
     }
 
-    // show loading state wen reqs are being fetched or chargeId is present but currentView is not set yet
-    if (isLoadingCharge || isLoadingRequests || (chargeId && !currentView)) {
+    // show loading until URL is parsed and req/charge data is loaded
+    const isLoading = !isUrlParsed || (chargeId && !chargeDetails) || (requestId && !requestDetails)
+    if (isLoading) {
         return <PeanutLoading />
     }
 
@@ -244,7 +165,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                         <ConfirmPaymentView />
                     </div>
                 )}
-                {currentView === 'STATUS' && (requestId ? <RequestStatusView /> : <ChargeStatusView />)}
+                {currentView === 'STATUS' && <PaymentStatusView />}
             </div>
             {currentView === 'INITIAL' && (
                 <div>
