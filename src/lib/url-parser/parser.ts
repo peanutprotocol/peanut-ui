@@ -70,10 +70,21 @@ export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
         }
     }
 
-    const [recipientDetails, squidChainsAndTokens] = await Promise.all([
+    const [recipientResult, squidChainsResult] = await Promise.allSettled([
         validateAndResolveRecipient(recipient),
         getSquidChainsAndTokens(),
     ])
+    
+    if (recipientResult.status === 'rejected') {
+        throw recipientResult.reason; // Re-throw to be caught by caller
+    }
+    
+    if (squidChainsResult.status === 'rejected') {
+        throw new Error(`Failed to fetch chain and token data: ${squidChainsResult.reason.message}`);
+    }
+    
+    const recipientDetails = recipientResult.value;
+    const squidChainsAndTokens = squidChainsResult.value;
 
     // resolve chain details if chain is specified
     if (chain) {
