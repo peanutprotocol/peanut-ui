@@ -79,8 +79,6 @@ export const AdvancedTokenSelectorButton = ({
         }
     }, [tokenBalance, selectedChainID, selectedTokenAddress, address, isConnected])
 
-    console.log('_tokenBalance', _tokenBalance)
-
     useEffect(() => {
         let isMounted = true
         if (!tokenSymbol) {
