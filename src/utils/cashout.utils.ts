@@ -1,9 +1,8 @@
-import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
+import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
+import { generateKeysFromString, getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import countries from 'i18n-iso-countries'
-import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
-import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 
 const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
 
@@ -132,6 +131,8 @@ async function fetchApi(url: string, method: string, body?: any): Promise<any> {
     return await response.json()
 }
 
+export type KYCStatus = 'not_started' | 'under_review' | 'approved' | 'rejected'
+
 export type GetUserLinksResponse = {
     id: string
     full_name: string
@@ -139,7 +140,7 @@ export type GetUserLinksResponse = {
     type: string
     kyc_link: string
     tos_link: string
-    kyc_status: 'not_started' | 'under_review' | 'approved' | 'rejected'
+    kyc_status: KYCStatus
     rejection_reasons: string[]
     tos_status: string
     created_at: string
@@ -220,11 +221,12 @@ export async function createExternalAccount(
             }),
         })
 
+        const responseData = await response.json()
+
         if (!response.ok) {
             try {
-                const data = await response.json()
-                if (data.code && data.code == 'duplicate_external_account') {
-                    // If bridge account already exists, let's fetch it
+                if (responseData.code && responseData.code === 'duplicate_external_account') {
+                    // if bridge account already exists, fetch existing accounts
                     const allAccounts = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
                         method: 'POST',
                         headers: {
@@ -240,7 +242,7 @@ export async function createExternalAccount(
                     }
 
                     const accounts = await allAccounts.json()
-                    // Find the matching account based on account details
+                    // find matching account based on account details
                     const existingAccount = accounts.find((account: interfaces.IBridgeAccount) => {
                         if (accountType === 'iban') {
                             return (
@@ -270,11 +272,10 @@ export async function createExternalAccount(
                 throw new Error('Unexpected error')
             }
         }
-        const data = await response.json()
 
         return {
             success: true,
-            data: data as interfaces.IBridgeAccount,
+            data: responseData,
         } as interfaces.IResponse
     } catch (error) {
         console.error('Error:', error)
