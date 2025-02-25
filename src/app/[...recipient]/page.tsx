@@ -73,7 +73,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         }
     }, [chargeId, dispatch])
 
-    // fetch requests for the recipient
+    // fetch requests for the recipient only when id is not available in the URL
     useEffect(() => {
         async function fetchRequests() {
             if (!parsedPaymentData?.recipient) return
@@ -105,8 +105,9 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                 setError(error instanceof Error ? error : new Error('Failed to fetch requests'))
             }
         }
-
-        fetchRequests()
+        if (!requestId) {
+            fetchRequests()
+        }
     }, [
         parsedPaymentData?.recipient,
         parsedPaymentData?.chain,

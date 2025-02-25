@@ -1,3 +1,4 @@
+import { PEANUTMAN_LOGO } from '@/assets'
 import React, { forwardRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -73,7 +74,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
         return (
             <button className={buttonClasses} ref={ref} {...props}>
-                {loading && <span className="animate-spin">🥜</span>}
+                {loading && (
+                    <span className="animate-spin">
+                        <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4" />
+                    </span>
+                )}
                 {children}
             </button>
         )

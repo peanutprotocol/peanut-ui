@@ -198,7 +198,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                 <div className="flex flex-col">
                     <PaymentInfoRow
                         label="Amount"
-                        value={`${requestDetails.tokenAmount} ${requestDetails.tokenSymbol || token}`}
+                        value={`${requestDetails.tokenAmount} ${requestDetails.tokenSymbol || token?.symbol}`}
                     />
                     {requestDetails.chainId && (
                         <PaymentInfoRow label="Network" value={getReadableChainName(requestDetails.chainId)} />
