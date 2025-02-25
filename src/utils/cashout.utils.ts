@@ -224,55 +224,53 @@ export async function createExternalAccount(
         const responseData = await response.json()
 
         if (!response.ok) {
-            if (responseData.code === 'duplicate_external_account') {
-                // If bridge account already exists, let's fetch it
-                const allAccounts = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        customerId,
-                    }),
-                })
+            try {
+                if (responseData.code && responseData.code === 'duplicate_external_account') {
+                    // if bridge account already exists, fetch existing accounts
+                    const allAccounts = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            customerId,
+                        }),
+                    })
 
-                if (!allAccounts.ok) {
-                    throw new Error('Failed to fetch existing accounts')
-                }
-
-                const accounts = await allAccounts.json()
-                // Find the matching account based on account details
-                const existingAccount = accounts.find((account: interfaces.IBridgeAccount) => {
-                    if (accountType === 'iban') {
-                        return (
-                            account.account_details.type === 'iban' &&
-                            account.account_details.last_4 === accountDetails.accountNumber.slice(-4)
-                        )
-                    } else {
-                        return (
-                            account.account_details.type === 'us' &&
-                            account.account_details.last_4 === accountDetails.accountNumber.slice(-4) &&
-                            account.account_details.routing_number === accountDetails.routingNumber
-                        )
+                    if (!allAccounts.ok) {
+                        throw new Error('Failed to fetch existing accounts')
                     }
-                })
 
-                if (!existingAccount) {
-                    throw new Error('Could not find matching existing account')
+                    const accounts = await allAccounts.json()
+                    // find matching account based on account details
+                    const existingAccount = accounts.find((account: interfaces.IBridgeAccount) => {
+                        if (accountType === 'iban') {
+                            return (
+                                account.account_details.type === 'iban' &&
+                                account.account_details.last_4 === accountDetails.accountNumber.slice(-4)
+                            )
+                        } else {
+                            return (
+                                account.account_details.type === 'us' &&
+                                account.account_details.last_4 === accountDetails.accountNumber.slice(-4) &&
+                                account.account_details.routing_number === accountDetails.routingNumber
+                            )
+                        }
+                    })
+
+                    if (!existingAccount) {
+                        throw new Error('Could not find matching existing account')
+                    }
+
+                    return {
+                        success: true,
+                        data: existingAccount,
+                    } as interfaces.IResponse
                 }
-
-                return {
-                    success: true,
-                    data: existingAccount,
-                } as interfaces.IResponse
+            } catch (error) {
+                console.error('Error creating external account', response)
+                throw new Error('Unexpected error')
             }
-
-            // handle other error cases
-            return {
-                success: false,
-                message: responseData.message || 'Failed to create external account',
-                details: responseData.details || {},
-            } as interfaces.IResponse
         }
 
         return {

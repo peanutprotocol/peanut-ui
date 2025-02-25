@@ -2,11 +2,11 @@ import { Step, Steps, useSteps } from 'chakra-ui-steps'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
+import { KYCComponent } from '@/components/Kyc'
 import { useAuth } from '@/context/authContext'
-import { IBridgeAccount, IResponse } from '@/interfaces'
+import { IResponse } from '@/interfaces'
 import * as utils from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
-import { Divider } from '@chakra-ui/react'
 import Link from 'next/link'
 import { isIBAN } from 'validator'
 import CountryDropdown from '../CountrySelect'
@@ -187,13 +187,24 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             })
             setReKYCUrl(undefined)
 
-            console.log('Starting form submission with user data:', {
-                user,
-                kycStatus: user?.user?.kycStatus,
-                accounts: user?.accounts,
-            })
+            // verify if user and bridge_customer_id exists
+            if (!user?.user) {
+                throw new Error('User not found. Please log in again.')
+            }
 
-            // Only need address for US accounts
+            const customerId = user.user.bridge_customer_id
+            if (!customerId) {
+                console.error('Missing bridge_customer_id:', user.user)
+                throw new Error('Please complete KYC before linking a bank account.')
+            }
+
+            // get customer ID and name
+            let accountOwnerName = user.user.full_name
+            if (!accountOwnerName) {
+                const bridgeCustomer = await utils.getCustomer(customerId)
+                accountOwnerName = `${bridgeCustomer.first_name} ${bridgeCustomer.last_name}`
+            }
+
             let address
             if (formData.type === 'us') {
                 if (user?.user?.kycStatus === 'approved') {
@@ -289,38 +300,27 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                           routingNumber: formData.routingNumber,
                       }
 
-            // Get customer ID and name
-            const customerId = user?.user?.bridge_customer_id
-            if (!customerId) {
-                throw new Error('Customer ID is missing')
-            }
-
-            let accountOwnerName = user?.user?.full_name
-            if (!accountOwnerName) {
-                const bridgeCustomer = await utils.getCustomer(customerId)
-                accountOwnerName = `${bridgeCustomer.first_name} ${bridgeCustomer.last_name}`
-            }
-
             // Create the external account
-            const response: IResponse = await utils.createExternalAccount(
+            const createExternalAccountRes: IResponse = await utils.createExternalAccount(
                 customerId,
                 formData.type as 'iban' | 'us',
                 accountDetails,
-                formData.type === 'us' ? address : undefined,
+                address,
                 accountOwnerName
             )
 
-            console.log('Create external account response:', response)
-
             // handle verification requirement first
-            if (!response.success) {
+            if (!createExternalAccountRes.data.success) {
                 // check for verification URL
-                if (response.details?.code === 'endorsement_requirements_not_met') {
-                    const verificationUrl = response.details.requirements?.kyc_with_proof_of_address
+
+                if (createExternalAccountRes.data.details?.code === 'endorsement_requirements_not_met') {
+                    const verificationUrl = createExternalAccountRes.data.details.requirements.kyc_with_proof_of_address
 
                     setErrorState({
                         showError: true,
-                        errorMessage: response.message || 'Please complete the verification process to continue.',
+                        errorMessage:
+                            createExternalAccountRes.data?.message ||
+                            'Please complete the verification process to continue.',
                     })
 
                     if (verificationUrl) {
@@ -329,41 +329,30 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                     return
                 }
 
-                // handle other errors
-                setErrorState({
-                    showError: true,
-                    errorMessage: response.message || 'Failed to create external account',
-                })
-                return
+                const bridgeAccountId = createExternalAccountRes.data.id
+
+                if (!!bridgeAccountId) {
+                    // add account to database
+                    await utils.createAccount(
+                        user.user.userId,
+                        customerId,
+                        bridgeAccountId,
+                        formData.type,
+                        accountDetails.accountNumber,
+                        createExternalAccountRes.data
+                    )
+
+                    // re-fetch user to get recently added accounts
+                    await fetchUser()
+
+                    onCompleted ? onCompleted() : setCompletedLinking(true)
+                }
             }
-
-            const data: IBridgeAccount = response.data
-
-            console.log('Creating account in database')
-            await utils.createAccount(
-                user?.user?.userId ?? '',
-                customerId,
-                data.id,
-                formData.type,
-                getIbanFormValue('accountNumber')?.replaceAll(/\s/g, '') ?? '',
-                address
-            )
-
-            console.log('Fetching updated user data')
-            await fetchUser()
-
-            onCompleted ? onCompleted() : setCompletedLinking(true)
         } catch (error) {
             console.error('Error in handleSubmitLinkIban:', error)
-            let errorMessage = 'Failed to link bank account'
-
-            if (error instanceof Error) {
-                errorMessage = error.message.replace(/^Error:\s+/g, '')
-            }
-
             setErrorState({
                 showError: true,
-                errorMessage,
+                errorMessage: error instanceof Error ? error.message : 'Failed to link bank account. Please try again.',
             })
         } finally {
             setLoadingState('idle')
@@ -430,7 +419,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                                 rel="noopener noreferrer"
                                                 className="underline"
                                             >
-                                                Click here to complete additional KYC verification.
+                                                Click here to complete the process.
                                             </a>
                                         </label>
                                     </div>
@@ -605,7 +594,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                                 rel="noopener noreferrer"
                                                 className="underline"
                                             >
-                                                Click here to complete additional KYC verification.
+                                                Click here to complete the process.
                                             </a>
                                         </label>
                                     </div>
@@ -671,23 +660,6 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             </div>
         )
     ) : (
-        <div className="flex w-full flex-col items-center justify-center gap-6 py-2 text-center">
-            <p className="text-h6">
-                Before you can link an account, please login or register & complete the kyc process.
-            </p>
-            <div className="flex w-full flex-col items-center justify-center gap-2">
-                <Link className="btn btn-xl h-8" href={'/login'}>
-                    Login
-                </Link>
-                <span className="flex w-full flex-row items-center justify-center gap-2">
-                    <Divider borderColor={'black'} />
-                    <p>or</p>
-                    <Divider borderColor={'black'} />
-                </span>
-                <Link className="btn btn-xl h-8" href={'/register'}>
-                    Register
-                </Link>
-            </div>
-        </div>
+        <KYCComponent />
     )
 }
