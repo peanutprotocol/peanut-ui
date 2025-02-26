@@ -4,6 +4,7 @@ import { JUSTANAME_ENS, next_proxy_url } from '@/constants'
 import { resolveFromEnsName, fetchWithSentry } from '@/utils'
 import { RecipientValidationError } from '../url-parser/errors'
 import { RecipientType } from '../url-parser/types/payment'
+import * as Sentry from '@sentry/nextjs'
 
 export async function validateAndResolveRecipient(
     recipient: string
@@ -79,6 +80,8 @@ export const verifyPeanutUsername = async (handle: string): Promise<boolean> => 
         const isValidPeanutUsername = res.status === 200
         return isValidPeanutUsername
     } catch (err) {
+        console.error('Error verifying peanut username:', err)
+        Sentry.captureException(err)
         return false
     }
 }
