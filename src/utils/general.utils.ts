@@ -874,6 +874,13 @@ export const switchNetwork = async ({
     }
 }
 
+/** Gets the token decimals for a given token address and chain ID. */
+export function getTokenDecimals(tokenAddress: string, chainId: string): number | undefined {
+    return consts.peanutTokenDetails
+        .find((chain) => chain.chainId === chainId)
+        ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.decimals
+}
+
 /**
  * Gets the token symbol for a given token address and chain ID.
  *

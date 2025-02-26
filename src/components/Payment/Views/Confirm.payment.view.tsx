@@ -6,15 +6,19 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { supportedPeanutChains } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { ITokenPriceData } from '@/interfaces'
 import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
-import { ErrorHandler, fetchTokenPrice, isAddressZero, switchNetwork as switchNetworkUtil } from '@/utils'
+import {
+    ErrorHandler,
+    isAddressZero,
+    switchNetwork as switchNetworkUtil,
+    getTokenSymbol,
+    formatTokenAmount,
+} from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
@@ -26,13 +30,13 @@ export default function ConfirmPaymentView() {
     const [showMessage, setShowMessage] = useState<boolean>(false)
     const { isConnected, chain: currentChain, address, isPeanutWallet } = useWallet()
     const { attachmentOptions, parsedPaymentData, error, chargeDetails } = usePaymentStore()
-    const { selectedTokenData, selectedChainID, isXChain, setIsXChain } = useContext(tokenSelectorContext)
+    const { selectedTokenData, selectedChainID, isXChain, setIsXChain, selectedTokenAddress } =
+        useContext(tokenSelectorContext)
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
-    const [isCalculatingFees, setIsCalculatingFees] = useState(true)
+    const [isCalculatingFees, setIsCalculatingFees] = useState(false)
     const [isEstimatingGas, setIsEstimatingGas] = useState(false)
-    const [, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const { sendTransactions, checkUserHasEnoughBalance, estimateGasFee } = useCreateLink()
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>()
@@ -45,9 +49,6 @@ export default function ConfirmPaymentView() {
     const [txFee, setTxFee] = useState<string>('0')
     const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
     const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
-
-    // Get selected chain details
-    const selectedChain = supportedPeanutChains.find((chain) => chain.chainId.toString() === selectedChainID)
 
     // call charges service to get chargeDetails details
     useEffect(() => {
@@ -64,39 +65,11 @@ export default function ConfirmPaymentView() {
         }
     }, [chargeId, dispatch])
 
-    useEffect(() => {
-        if (!chargeDetails) return
-
-        fetchTokenPrice(chargeDetails.tokenAddress.toLowerCase(), chargeDetails.chainId).then((tokenPriceData) => {
-            if (tokenPriceData) {
-                setTokenPriceData(tokenPriceData)
-            } else {
-                dispatch(paymentActions.setError('Failed to fetch token price'))
-            }
-        })
-    }, [chargeDetails, dispatch])
-
     // Check if cross-chain based on chargeDetails
     const isXChainTx = useMemo(() => {
         if (!chargeDetails || !selectedChainID) return false
         return selectedChainID !== chargeDetails.chainId
     }, [chargeDetails, selectedChainID])
-
-    // set txFee and slippage for xchain tx
-    useEffect(() => {
-        if (!isXChain || !xChainUnsignedTxs) return
-
-        const firstTx = xChainUnsignedTxs[0]
-        if (!firstTx) return
-
-        if (firstTx.value) {
-            const feeInEth = Number(firstTx.value) / 1e18 // convert from wei to ETH
-            const feeInUSD = feeInEth * (selectedTokenData?.price || 0) // convert to USD using token price
-            setTxFee(feeInUSD.toString())
-        }
-
-        setSlippagePercentage(2.5) // 2.5% default slippage
-    }, [isXChain, xChainUnsignedTxs, selectedTokenData?.price])
 
     const createXChainUnsignedTx = async (tokenData: any, requestLink: any, senderAddress: string) => {
         console.log('Creating cross-chain tx with:', { tokenData, requestLink, senderAddress })
@@ -139,10 +112,7 @@ export default function ConfirmPaymentView() {
                 setEstimatedFromValue(xchainUnsignedTxs.estimatedFromAmount)
             }
 
-            return {
-                unsignedTxs: xchainUnsignedTxs.unsignedTxs,
-                estimatedFromAmount: xchainUnsignedTxs.estimatedFromAmount,
-            }
+            return xchainUnsignedTxs
         } catch (error) {
             console.error('Cross-chain preparation error:', error)
             throw new Error(error instanceof Error ? error.message : 'Failed to estimate from amount')
@@ -168,7 +138,7 @@ export default function ConfirmPaymentView() {
                 const txData = await createXChainUnsignedTx(
                     {
                         address: selectedTokenData.address,
-                        chainId: selectedChainID,
+                        chainId: selectedTokenData.chainId,
                         decimals: selectedTokenData.decimals,
                     },
                     {
@@ -190,9 +160,9 @@ export default function ConfirmPaymentView() {
                 }
 
                 setXChainUnsignedTxs(txData.unsignedTxs)
-                if (txData?.estimatedFromAmount) {
-                    setEstimatedFromValue(txData.estimatedFromAmount)
-                }
+                setEstimatedFromValue(txData.estimatedFromAmount)
+                setTxFee(txData.feeEstimation)
+                setSlippagePercentage(txData.slippagePercentage)
             } else {
                 // prepare same-chain transaction
                 const tx = peanut.prepareRequestLinkFulfillmentTransaction({
@@ -254,14 +224,13 @@ export default function ConfirmPaymentView() {
                 tokenValue: isXChain ? estimatedFromValue : chargeDetails.tokenAmount,
             })
 
-            const targetChainId = isXChain ? selectedChainID : chargeDetails.chainId
-            if (targetChainId !== String(currentChain?.id)) {
+            if (selectedChainID !== String(currentChain?.id)) {
                 await switchNetworkUtil({
-                    chainId: targetChainId,
+                    chainId: selectedChainID,
                     currentChainId: String(currentChain?.id),
                     setLoadingState,
-                    switchChainAsync: async ({ chainId }) => {
-                        await switchChainAsync({ chainId: Number(targetChainId) })
+                    switchChainAsync: async ({ chainId: _chainId }) => {
+                        await switchChainAsync({ chainId: Number(selectedChainID) })
                     },
                 })
             }
@@ -349,10 +318,18 @@ export default function ConfirmPaymentView() {
     }, [unsignedTx, chargeDetails, isXChain, selectedChainID])
 
     // calculate fee details
-    const feeCalculations = useMemo(() => {
+    const [feeCalculations, setFeeCalculations] = useState({
+        networkFee: { expected: '0.00', max: '0.00' },
+        slippage: undefined as { expected: string; max: string } | undefined,
+        estimatedFee: '0.00',
+        totalMax: '0.00',
+    })
+
+    useEffect(() => {
         const EXPECTED_NETWORK_FEE_MULTIPLIER = 0.7
         const EXPECTED_SLIPPAGE_MULTIPLIER = 0.1
         setIsCalculatingFees(true)
+        if (isSubmitting) return
 
         try {
             const networkFee = {
@@ -373,20 +350,15 @@ export default function ConfirmPaymentView() {
                       }
                     : undefined
 
-            const requestedAmountUSD = selectedTokenData?.price
-                ? Number(chargeDetails?.tokenAmount) * selectedTokenData.price
-                : Number(chargeDetails?.tokenAmount)
-
-            const totalMax = requestedAmountUSD + networkFee.max + (slippage?.max || 0)
+            const totalMax =
+                Number(estimatedFromValue) * selectedTokenData!.price + networkFee.max + (slippage?.max || 0)
 
             const formatNumberSafely = (num: number) => {
                 if (isNaN(num) || !isFinite(num)) return '0.00'
                 return num < 0.01 && num > 0 ? '0.01' : num.toFixed(2)
             }
 
-            setIsCalculatingFees(false)
-
-            return {
+            setFeeCalculations({
                 networkFee: {
                     expected: formatNumberSafely(networkFee.expected),
                     max: formatNumberSafely(networkFee.max),
@@ -399,19 +371,35 @@ export default function ConfirmPaymentView() {
                     : undefined,
                 estimatedFee: formatNumberSafely(networkFee.expected + (slippage?.expected || 0)),
                 totalMax: formatNumberSafely(totalMax),
-            }
+            })
+
+            const timer = setTimeout(() => {
+                setIsCalculatingFees(false)
+            }, 300)
+            return () => clearTimeout(timer)
         } catch (error) {
             console.error('Error calculating fees:', error)
-            setIsCalculatingFees(false)
             setIsFeeEstimationError(true)
-            return {
+            setIsCalculatingFees(false)
+            setFeeCalculations({
                 networkFee: { expected: '0.00', max: '0.00' },
                 slippage: undefined,
                 estimatedFee: '0.00',
                 totalMax: '0.00',
-            }
+            })
         }
-    }, [isXChain, txFee, calculatedSlippage, chargeDetails, selectedTokenData, isPeanutWallet, estimatedGasCost])
+    }, [
+        isXChain,
+        txFee,
+        calculatedSlippage,
+        chargeDetails,
+        selectedTokenData,
+        isPeanutWallet,
+        estimatedGasCost,
+        estimatedFromValue,
+        isSubmitting,
+        selectedTokenData,
+    ])
 
     if (!chargeDetails) return <PeanutLoading />
 
@@ -433,13 +421,15 @@ export default function ConfirmPaymentView() {
                 />
 
                 <PaymentInfoRow
+                    loading={isCalculatingFees || isEstimatingGas}
                     label="You are paying"
-                    value={`${chargeDetails?.tokenAmount} ${selectedTokenData?.symbol || chargeDetails.tokenSymbol} on ${getReadableChainName(selectedChain?.chainId || chargeDetails?.chainId)}`}
+                    value={`${formatTokenAmount(Number(estimatedFromValue))} ${getTokenSymbol(selectedTokenAddress, selectedChainID)} on ${getReadableChainName(selectedChainID)}`}
                 />
 
                 <PaymentInfoRow
+                    loading={isCalculatingFees || isEstimatingGas}
                     label={`${parsedPaymentData?.recipient.identifier} will receive`}
-                    value={`${chargeDetails?.tokenAmount} ${chargeDetails?.tokenSymbol} on ${getReadableChainName(chargeDetails.chainId || selectedChainID)}`}
+                    value={`${formatTokenAmount(Number(chargeDetails!.tokenAmount))} ${chargeDetails?.tokenSymbol} on ${getReadableChainName(chargeDetails.chainId)}`}
                 />
 
                 {attachmentOptions.fileUrl && (
