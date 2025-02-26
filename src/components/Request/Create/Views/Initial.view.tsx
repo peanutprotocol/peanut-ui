@@ -15,13 +15,13 @@ import { fetchTokenSymbol, isNativeCurrency } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Create.consts'
-import { useToast } from '@/components/0_Bruddle/Toast'
 import { fetchWithSentry } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
+import { useAuth } from '@/context/authContext'
 
 export const InitialView = ({
     onNext,
-    onPrev,
+    onPrev: _onPrev,
     setLink,
     setAttachmentOptions,
     attachmentOptions,
@@ -32,8 +32,8 @@ export const InitialView = ({
     recipientAddress,
     setRecipientAddress,
 }: _consts.ICreateScreenProps) => {
-    const toast = useToast()
     const { address, selectedWallet, isExternalWallet, isPeanutWallet, isConnected } = useWallet()
+    const { user } = useAuth()
     const {
         selectedTokenPrice,
         inputDenomination,
@@ -131,8 +131,7 @@ export const InitialView = ({
                 const requestLinkDetails = await requestResponse.json()
 
                 //TODO: create util function to generate link
-                //TODO: use human readeable instead of address
-                let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${requestLinkDetails.recipientAddress}/`
+                let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${isPeanutWallet ? user!.user.username : requestLinkDetails.recipientAddress}/`
                 if (requestLinkDetails.tokenAmount) {
                     link += `${requestLinkDetails.tokenAmount}`
                 }
