@@ -1,11 +1,11 @@
-import * as context from '@/context'
-import { useBalance } from '@/hooks/useBalance'
+import { useContext, useEffect, useState } from 'react'
+import Icon from '../../Icon'
 import * as utils from '@/utils'
 import { fetchTokenSymbol } from '@/utils'
+import * as context from '@/context'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { useContext, useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
-import Icon from '../../Icon'
+import { useBalance } from '@/hooks/useBalance'
 import Loading from '../../Loading'
 
 interface IAdvancedTokenSelectorButtonProps {
