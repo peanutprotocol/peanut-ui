@@ -44,20 +44,26 @@ export const AdvancedTokenSelectorButton = ({
     const { hasFetchedBalances } = useBalance()
     const [_tokenBalance, _setTokenBalance] = useState<number | undefined>(tokenBalance)
     const [_tokenSymbol, _setTokenSymbol] = useState<string | undefined>(tokenSymbol)
+    const [isFetchingTokenBalance, setIsFetchingTokenBalance] = useState<boolean>(false)
 
     const getTokenBalance = async () => {
-        const balance = Number(
-            await peanut.getTokenBalance({
-                chainId: selectedChainID,
-                tokenAddress: selectedTokenAddress,
-                walletAddress: address ?? '',
-            })
-        )
+        setIsFetchingTokenBalance(true)
+        try {
+            const balance = Number(
+                await peanut.getTokenBalance({
+                    chainId: selectedChainID,
+                    tokenAddress: selectedTokenAddress,
+                    walletAddress: address ?? '',
+                })
+            )
 
-        if (balance) {
-            _setTokenBalance(balance)
-        } else {
-            _setTokenBalance(tokenBalance)
+            if (balance) {
+                _setTokenBalance(balance)
+            } else {
+                _setTokenBalance(tokenBalance)
+            }
+        } finally {
+            setIsFetchingTokenBalance(false)
         }
     }
 
@@ -133,9 +139,15 @@ export const AdvancedTokenSelectorButton = ({
                     {type === 'send' &&
                         (hasFetchedBalances ? (
                             <p className="text-xs text-gray-1">
-                                Balance: {utils.formatTokenAmount(_tokenBalance ?? 0, 4)}
+                                Balance:{' '}
+                                {isFetchingTokenBalance ? (
+                                    <Loading className="h-2 w-2" />
+                                ) : (
+                                    `
+                                    ${utils.formatTokenAmount(_tokenBalance ?? 0, 4)} ${tokenSymbol}`
+                                )}
                             </p>
-                        ) : address ? (
+                        ) : address || isFetchingTokenBalance ? (
                             <div className="flex flex-row items-center justify-center gap-1 text-xs text-gray-1">
                                 Balance: <Loading className="h-2 w-2" />
                             </div>
