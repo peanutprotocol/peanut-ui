@@ -138,7 +138,6 @@ export default function PaymentStatusView() {
     const renderTransactionDetails = () => {
         return (
             <>
-                <div className="text-h8 font-normal text-gray-1">Transaction details</div>
                 <div className="flex w-full flex-row items-center justify-between gap-1">
                     <span>Transaction Hash:</span>
                     {(transactionHash || latestPayment?.payerTransactionHash) && sourceUrlWithTx ? (

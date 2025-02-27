@@ -6,9 +6,15 @@ interface FlowHeaderProps {
     onPrev?: () => void
     disableBackBtn?: boolean
     disableWalletHeader?: boolean
+    hideWalletHeader?: boolean
 }
 
-const FlowHeader = ({ onPrev, disableBackBtn, disableWalletHeader = false }: FlowHeaderProps) => {
+const FlowHeader = ({
+    onPrev,
+    disableBackBtn,
+    disableWalletHeader = false,
+    hideWalletHeader = false,
+}: FlowHeaderProps) => {
     return (
         <div className="flex w-full flex-row items-center justify-between pb-3">
             {onPrev && (
@@ -16,7 +22,9 @@ const FlowHeader = ({ onPrev, disableBackBtn, disableWalletHeader = false }: Flo
                     <Icon name="arrow-prev" />
                 </Button>
             )}
-            <WalletHeader disabled={disableWalletHeader} className={onPrev ? 'w-fit' : 'w-full'} />
+            {!hideWalletHeader && (
+                <WalletHeader disabled={disableWalletHeader} className={onPrev ? 'w-fit' : 'w-full'} />
+            )}
         </div>
     )
 }

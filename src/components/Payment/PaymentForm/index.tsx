@@ -42,7 +42,6 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         selectedTokenData,
         setSelectedChainID,
         setSelectedTokenAddress,
-        inputDenomination,
     } = useContext(context.tokenSelectorContext)
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
@@ -325,7 +324,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
 
     return (
         <div className="space-y-4">
-            <FlowHeader />
+            <FlowHeader hideWalletHeader={!isConnected} />
 
             {/* Show recipient from parsed data */}
             <div className="text-h6 font-bold">
