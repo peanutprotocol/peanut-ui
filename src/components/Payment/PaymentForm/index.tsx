@@ -263,11 +263,13 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     }, [requestDetails, isPeanutWallet])
 
     const recipientLabel = useMemo(() => {
-        if (requestDetails?.recipientAccount?.type === AccountType.PEANUT_WALLET) {
-            return requestDetails!.recipientAccount.user.username
+        if (!requestDetails) return ''
+
+        if (requestDetails.recipientAccount.type === AccountType.PEANUT_WALLET) {
+            return requestDetails.recipientAccount.user.username
         }
 
-        return printableAddress(requestDetails!.recipientAddress)
+        return printableAddress(requestDetails.recipientAddress)
     }, [requestDetails])
 
     const renderRequestedPaymentDetails = () => {
