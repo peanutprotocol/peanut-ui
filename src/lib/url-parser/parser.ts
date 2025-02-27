@@ -4,7 +4,7 @@ import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { validateAmount } from '../validation/amount'
 import { validateAndResolveRecipient } from '../validation/recipient'
 import { getChainDetails, getTokenAndChainDetails } from '../validation/token'
-import { AmountValidationError, ChainValidationError, RecipientValidationError } from './errors'
+import { AmountValidationError } from './errors'
 import { ParsedURL } from './types/payment'
 
 function parseAmountAndToken(amountString: string): { amount?: string; token?: string } {
@@ -40,9 +40,27 @@ function parseAmountAndToken(amountString: string): { amount?: string; token?: s
     }
 }
 
-export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
+export enum EParseUrlError {
+    INVALED_URL_FORMAT = 'Invalid URL format',
+    INVALID_RECIPIENT = 'Invalid recipient',
+    INVALID_CHAIN = 'Invalid chain',
+    INVALID_TOKEN = 'Invalid token',
+    INVALID_AMOUNT = 'Invalid amount',
+}
+
+export type ParseUrlError = {
+    message: `${EParseUrlError}`
+    recipient?: string
+}
+
+export async function parsePaymentURL(
+    segments: string[]
+): Promise<{ parsedUrl: ParsedURL; error: null } | { parsedUrl: null; error: ParseUrlError }> {
     if (segments.length === 0) {
-        throw new RecipientValidationError('Invalid URL format: No recipient specified')
+        return {
+            parsedUrl: null,
+            error: { message: EParseUrlError.INVALED_URL_FORMAT },
+        }
     }
 
     // decode the first segment to handle URL encoding
@@ -76,11 +94,11 @@ export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
     ])
 
     if (recipientResult.status === 'rejected') {
-        throw recipientResult.reason // Re-throw to be caught by caller
+        return { parsedUrl: null, error: { message: EParseUrlError.INVALID_RECIPIENT, recipient } }
     }
 
     if (squidChainsResult.status === 'rejected') {
-        throw new Error(`Failed to fetch chain and token data: ${squidChainsResult.reason.message}`)
+        return { parsedUrl: null, error: { message: EParseUrlError.INVALED_URL_FORMAT } }
     }
 
     const recipientDetails = recipientResult.value
@@ -91,15 +109,9 @@ export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
         try {
             chainDetails = getChainDetails(chain, squidChainsAndTokens)
         } catch (error) {
-            if (error instanceof ChainValidationError) {
-                chainDetails = undefined
-            } else {
-                throw error
-            }
+            return { parsedUrl: null, error: { message: EParseUrlError.INVALID_CHAIN, recipient } }
         }
-    }
-
-    if (!chainDetails) {
+    } else {
         // if no chain specified or invalid chain, use peanut wallet chain for username types
         if (recipientDetails.recipientType === 'USERNAME') {
             chainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
@@ -111,13 +123,23 @@ export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
     // handle amount and token parsing
     if (segments.length > 1) {
         const { amount, token } = parseAmountAndToken(segments[1])
-        const validatedAmount = amount && validateAmount(amount)
+        let validatedAmount = undefined
+        if (amount) {
+            try {
+                validatedAmount = validateAmount(amount)
+            } catch (error) {
+                return { parsedUrl: null, error: { message: EParseUrlError.INVALID_AMOUNT, recipient } }
+            }
+        }
 
         // if token is specified, resolve it
         if (token) {
             let tokenAndChainData = await getTokenAndChainDetails(token, chain)
 
             const tokenDetails = tokenAndChainData?.token
+            if (!tokenDetails) {
+                return { parsedUrl: null, error: { message: EParseUrlError.INVALID_TOKEN, recipient } }
+            }
 
             // set chain details for non USERNAME recipients
             if (!chainDetails && recipientDetails.recipientType !== 'USERNAME' && tokenAndChainData.chain) {
@@ -125,10 +147,13 @@ export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
             }
 
             return {
-                recipient: recipientDetails,
-                amount: typeof validatedAmount === 'object' ? validatedAmount.amount : undefined,
-                token: tokenDetails ?? undefined,
-                chain: chainDetails,
+                parsedUrl: {
+                    recipient: recipientDetails,
+                    amount: validatedAmount?.amount,
+                    token: tokenDetails ?? undefined,
+                    chain: chainDetails,
+                },
+                error: null,
             }
         } else if (!token && recipientDetails.recipientType === 'USERNAME') {
             // use default Peanut Wallet token for USERNAME recipients
@@ -136,20 +161,26 @@ export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
                 (t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
             )
             return {
-                recipient: recipientDetails,
-                token: tokenDetails,
-                chain: chainDetails,
-                ...(validatedAmount && { amount: validatedAmount.amount }),
+                parsedUrl: {
+                    recipient: recipientDetails,
+                    token: tokenDetails,
+                    chain: chainDetails,
+                    amount: validatedAmount?.amount,
+                },
+                error: null,
             }
         }
 
         // if only amount specified, return with current chain
         if (validatedAmount && !token && !chain) {
             return {
-                recipient: recipientDetails,
-                amount: validatedAmount.amount,
-                chain: undefined,
-                token: undefined,
+                parsedUrl: {
+                    recipient: recipientDetails,
+                    amount: validatedAmount.amount,
+                    chain: undefined,
+                    token: undefined,
+                },
+                error: null,
             }
         }
     }
@@ -162,9 +193,12 @@ export async function parsePaymentURL(segments: string[]): Promise<ParsedURL> {
             : undefined
 
     return {
-        recipient: recipientDetails,
-        chain: chainDetails,
-        token: defaultTokenDetails,
-        amount: undefined,
+        parsedUrl: {
+            recipient: recipientDetails,
+            chain: chainDetails,
+            token: defaultTokenDetails,
+            amount: undefined,
+        },
+        error: null,
     }
 }
