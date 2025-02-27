@@ -147,10 +147,7 @@ export default function ConfirmPaymentView() {
                         tokenAmount: chargeDetails.tokenAmount,
                         tokenAddress: chargeDetails.tokenAddress,
                         tokenDecimals: chargeDetails.tokenDecimals,
-                        tokenType:
-                            chargeDetails.tokenType === 'erc20'
-                                ? peanutInterfaces.EPeanutLinkType.erc20
-                                : peanutInterfaces.EPeanutLinkType.native,
+                        tokenType: chargeDetails.tokenType,
                     },
                     address
                 )
@@ -170,10 +167,7 @@ export default function ConfirmPaymentView() {
                     tokenAddress: chargeDetails.tokenAddress,
                     tokenAmount: chargeDetails.tokenAmount,
                     tokenDecimals: chargeDetails.tokenDecimals,
-                    tokenType:
-                        chargeDetails.tokenType === 'erc20'
-                            ? peanutInterfaces.EPeanutLinkType.erc20
-                            : peanutInterfaces.EPeanutLinkType.native,
+                    tokenType: Number(chargeDetails.tokenType) as peanutInterfaces.EPeanutLinkType,
                 })
 
                 if (!tx?.unsignedTx) {
@@ -245,15 +239,19 @@ export default function ConfirmPaymentView() {
                 feeOptions: undefined,
             })
 
+            if (!hash) {
+                throw new Error('Failed to send transaction')
+            }
+
             // set the transaction hash
-            dispatch(paymentActions.setTransactionHash(hash ?? ''))
+            dispatch(paymentActions.setTransactionHash(hash))
 
             // update payment details in backend
             const paymentDetails = await chargesApi.createPayment({
                 chargeId: chargeDetails.uuid,
                 chainId: selectedChainID,
-                hash: hash || '',
-                tokenAddress: isXChain ? selectedTokenData?.address || '' : chargeDetails.tokenAddress,
+                hash,
+                tokenAddress: selectedTokenData!.address,
             })
 
             dispatch(paymentActions.setPaymentDetails(paymentDetails))
