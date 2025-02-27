@@ -155,7 +155,7 @@ export const InitialView = ({
                 setLoadingState('Idle')
             }
         },
-        []
+        [isPeanutWallet, user?.user.username]
     )
 
     useEffect(() => {
