@@ -23,6 +23,7 @@ import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
+import { AccountType } from '@/interfaces'
 
 export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const dispatch = useAppDispatch()
@@ -261,14 +262,20 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         }
     }, [requestDetails, isPeanutWallet])
 
+    const recipientLabel = useMemo(() => {
+        if (requestDetails?.recipientAccount?.type === AccountType.PEANUT_WALLET) {
+            return requestDetails!.recipientAccount.user.username
+        }
+
+        return printableAddress(requestDetails!.recipientAddress)
+    }, [requestDetails])
+
     const renderRequestedPaymentDetails = () => {
         if (!requestDetails) return null
 
         return (
             <div className="mb-6 border border-dashed border-black p-4">
-                <div className="text-sm font-semibold text-black">
-                    {printableAddress(requestDetails?.recipientAddress)} is requesting:
-                </div>
+                <div className="text-sm font-semibold text-black">{recipientLabel} is requesting:</div>
                 <div className="flex flex-col">
                     <PaymentInfoRow
                         label="Amount"
@@ -335,8 +342,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                 disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
             />
 
-            {/* Requested payment details if available */}
-            {requestId && renderRequestedPaymentDetails()}
+            {requestDetails?.recipientAccount.type !== AccountType.PEANUT_WALLET && renderRequestedPaymentDetails()}
 
             {!isPeanutWallet && (
                 <div>

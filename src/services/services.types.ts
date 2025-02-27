@@ -37,6 +37,14 @@ export interface TRequestResponse {
     updatedAt: string
     charges: ChargeEntry[]
     history: TRequestHistory[]
+    recipientAccount: {
+        userId: string
+        identifier: string
+        type: string
+        user: {
+            username: string
+        }
+    }
 }
 
 interface ChargeEntry {
