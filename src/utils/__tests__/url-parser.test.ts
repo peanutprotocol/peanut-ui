@@ -239,8 +239,8 @@ describe('URL Parser Tests', () => {
                     name: 'Arbitrum',
                 },
                 token: {
-                    symbol: 'USDC'
-                }
+                    symbol: 'USDC',
+                },
             })
         })
     })
