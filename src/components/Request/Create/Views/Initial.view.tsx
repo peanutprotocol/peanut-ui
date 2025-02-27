@@ -120,6 +120,9 @@ export const InitialView = ({
                 }
                 if (attachmentOptions?.message) {
                     createFormData.append('reference', attachmentOptions.message)
+                } else {
+                    //TODO: remove this once requestv2 is merged
+                    createFormData.append('reference', `Request for ${inputValue} ${tokenData.symbol}`)
                 }
                 const requestResponse = await fetchWithSentry('/api/proxy/withFormData/requests', {
                     method: 'POST',
