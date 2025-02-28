@@ -1,4 +1,4 @@
-import { parsePaymentURL } from '@/lib/url-parser/parser'
+import { parsePaymentURL, EParseUrlError } from '@/lib/url-parser/parser'
 
 // mock ENS resolution
 jest.mock('@/utils', () => ({
@@ -175,10 +175,10 @@ describe('URL Parser Tests', () => {
     })
 
     describe('Amount and Token Tests', () => {
-        it('should parse amount with token', async () => {
+        it('token without chain should return error', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A', '0.1USDC'])
-            expect(result.parsedUrl?.amount).toBe('0.1')
-            expect(result.parsedUrl?.token?.symbol).toBe('USDC')
+            expect(result.error?.message).toEqual(EParseUrlError.INVALID_CHAIN)
+            expect(result.parsedUrl).toBeNull()
         })
 
         it('should parse amount without token', async () => {
@@ -188,13 +188,10 @@ describe('URL Parser Tests', () => {
             expect(result.parsedUrl?.token?.symbol).toBe(undefined)
         })
 
-        it('should parse token without amount', async () => {
+        it('token without chain should return error', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A', 'ETH'])
-            expect(result.parsedUrl?.token).toEqual(
-                expect.objectContaining({
-                    symbol: 'ETH',
-                })
-            )
+            expect(result.error?.message).toEqual(EParseUrlError.INVALID_CHAIN)
+            expect(result.parsedUrl).toBeNull()
         })
     })
 
@@ -282,6 +279,7 @@ describe('URL Parser Tests', () => {
 
         it('should handle token without chain for peanut username', async () => {
             const result = await parsePaymentURL(['kusharc', '5USDC'])
+            expect(result.error).toBeNull()
             expect(result.parsedUrl).toEqual(
                 expect.objectContaining({
                     recipient: {
@@ -302,20 +300,8 @@ describe('URL Parser Tests', () => {
 
         it('should handle token without chain for address', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A', '5USDC'])
-            expect(result.parsedUrl).toEqual(
-                expect.objectContaining({
-                    recipient: {
-                        identifier: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
-                        recipientType: 'ADDRESS',
-                        resolvedAddress: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
-                    },
-                    amount: '5',
-                    chain: undefined,
-                    token: expect.objectContaining({
-                        symbol: 'USDC',
-                    }),
-                })
-            )
+            expect(result.error?.message).toEqual(EParseUrlError.INVALID_CHAIN)
+            expect(result.parsedUrl).toBeNull()
         })
     })
 

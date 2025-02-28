@@ -120,15 +120,17 @@ const TokenAmountInput = ({
                               ? utils.formatTokenAmount(Number(tokenValue) / (selectedTokenData?.price ?? 0))
                               : '$' + utils.formatTokenAmount(Number(tokenValue) * (selectedTokenData?.price ?? 0))}
                     </label>
-                    <button
-                        onClick={(e) => {
-                            e.preventDefault()
-                            if (selectedTokenData?.price)
-                                setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
-                        }}
-                    >
-                        <Icon name={'switch'} className="rotate-90 cursor-pointer fill-grey-1" />
-                    </button>
+                    {!disabled && (
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault()
+                                if (selectedTokenData?.price)
+                                    setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
+                            }}
+                        >
+                            <Icon name={'switch'} className="rotate-90 cursor-pointer fill-grey-1" />
+                        </button>
+                    )}
                 </div>
             )}
         </form>

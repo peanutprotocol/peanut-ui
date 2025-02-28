@@ -1,4 +1,4 @@
-// common types
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL'
 
@@ -88,7 +88,7 @@ export interface LocalPrice {
 export interface RequestProps {
     chainId: string
     tokenAddress: string
-    tokenType: string
+    tokenType: peanutInterfaces.EPeanutLinkType
     tokenSymbol: string
     tokenDecimals: number
     recipientAddress: string

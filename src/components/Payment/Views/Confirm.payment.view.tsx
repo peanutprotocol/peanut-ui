@@ -135,6 +135,9 @@ export default function ConfirmPaymentView() {
                     throw new Error('Token data not found')
                 }
 
+                console.log('selectedTokenData', selectedTokenData)
+                console.log('chargeDetails', chargeDetails)
+
                 const txData = await createXChainUnsignedTx(
                     {
                         address: selectedTokenData.address,
@@ -175,6 +178,7 @@ export default function ConfirmPaymentView() {
                 }
 
                 setUnsignedTx(tx.unsignedTx)
+                setEstimatedFromValue(chargeDetails.tokenAmount)
             }
         } catch (error) {
             console.error('Failed to prepare transaction:', error)
@@ -400,6 +404,10 @@ export default function ConfirmPaymentView() {
     ])
 
     if (!chargeDetails) return <PeanutLoading />
+
+    useEffect(() => {
+        console.log('estimatedFromValue', estimatedFromValue)
+    }, [estimatedFromValue])
 
     return (
         <div className="space-y-4">

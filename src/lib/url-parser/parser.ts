@@ -120,10 +120,7 @@ export async function parsePaymentURL(
     let parsedAmount: { amount: string } | undefined = undefined
     let tokenDetails: interfaces.ISquidToken | undefined = undefined
     if (segments.length > 1) {
-        // Parse amount and token from second segment
         const { amount, token } = parseAmountAndToken(segments[1])
-
-        // Validate amount if present
         if (amount) {
             try {
                 parsedAmount = validateAmount(amount)
@@ -131,10 +128,10 @@ export async function parsePaymentURL(
                 return { parsedUrl: null, error: { message: EParseUrlError.INVALID_AMOUNT, recipient } }
             }
         }
-
-        // Handle token resolution based on different cases
         if (token) {
-            // Case: Token specified in URL
+            if (!chainDetails) {
+                return { parsedUrl: null, error: { message: EParseUrlError.INVALID_CHAIN, recipient } }
+            }
             const tokenAndChainData = await getTokenAndChainDetails(token, chainId)
             tokenDetails = tokenAndChainData?.token
 
@@ -147,16 +144,13 @@ export async function parsePaymentURL(
                 chainDetails = tokenAndChainData.chain as interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
             }
         } else if (isPeanutRecipient) {
-            // Case: USERNAME recipient with no token specified
             tokenDetails = chainDetails?.tokens.find(
                 (t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
             )
-        } else if (chainDetails && parsedAmount) {
-            // Case: Only amount specified, try USDC as default token
+        } else if (chainDetails) {
             tokenDetails = chainDetails.tokens.find((t) => t.symbol.toLowerCase() === 'USDC'.toLowerCase())
         }
     } else if (isPeanutRecipient) {
-        // Case: Only recipient specified and it's a USERNAME type
         tokenDetails = chainDetails?.tokens.find((t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase())
     }
 
