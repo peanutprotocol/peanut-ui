@@ -56,6 +56,7 @@ export type ParseUrlError = {
 export async function parsePaymentURL(
     segments: string[]
 ): Promise<{ parsedUrl: ParsedURL; error: null } | { parsedUrl: null; error: ParseUrlError }> {
+    // 1. Input validation - check if segments array is empty
     if (segments.length === 0) {
         return {
             parsedUrl: null,
@@ -63,141 +64,109 @@ export async function parsePaymentURL(
         }
     }
 
-    // decode the first segment to handle URL encoding
+    // 2. Extract recipient and chain from first segment
     const firstSegment = decodeURIComponent(segments[0])
     let recipient = firstSegment
-    let chain: string | undefined = undefined
-    let chainDetails: (interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }) | undefined
-
-    // handle multiple @ symbols - take the last one as chain identifier
+    let chainId: string | undefined = undefined
     if (firstSegment.includes('@')) {
         const parts = firstSegment.split('@')
         if (parts.length > 2) {
             // handle multiple @'s - take first part as recipient, last part as chain
             recipient = parts.slice(0, -1).join('@')
-            chain = parts[parts.length - 1]
+            chainId = parts[parts.length - 1]
         } else {
             const [recipientPart, chainPart] = parts
             recipient = recipientPart
-            chain = chainPart
+            chainId = chainPart
         }
-
         // handle empty chain part after @
-        if (!chain || chain.trim() === '') {
-            chain = undefined
+        if (!chainId || chainId.trim() === '') {
+            chainId = undefined
         }
     }
 
+    // 3. Fetch and validate recipient and chains/tokens data
     const [recipientResult, squidChainsResult] = await Promise.allSettled([
         validateAndResolveRecipient(recipient),
         getSquidChainsAndTokens(),
     ])
-
     if (recipientResult.status === 'rejected') {
         return { parsedUrl: null, error: { message: EParseUrlError.INVALID_RECIPIENT, recipient } }
     }
-
     if (squidChainsResult.status === 'rejected') {
         return { parsedUrl: null, error: { message: EParseUrlError.INVALED_URL_FORMAT } }
     }
-
     const recipientDetails = recipientResult.value
     const squidChainsAndTokens = squidChainsResult.value
+    const isPeanutRecipient = recipientDetails.recipientType === 'USERNAME'
 
-    // resolve chain details if chain is specified
-    if (chain) {
+    // 4. Resolve chain details
+    let chainDetails: (interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }) | undefined = undefined
+    if (chainId) {
         try {
-            chainDetails = getChainDetails(chain, squidChainsAndTokens)
+            chainDetails = getChainDetails(chainId, squidChainsAndTokens)
+            if (isPeanutRecipient && PEANUT_WALLET_CHAIN.id.toString() !== chainDetails.chainId) {
+                throw new Error('Invalid chain')
+            }
         } catch (error) {
             return { parsedUrl: null, error: { message: EParseUrlError.INVALID_CHAIN, recipient } }
         }
-    } else {
-        // if no chain specified or invalid chain, use peanut wallet chain for username types
-        if (recipientDetails.recipientType === 'USERNAME') {
-            chainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
-        } else {
-            chainDetails = undefined
-        }
+    } else if (isPeanutRecipient) {
+        // If no chain specified, use peanut wallet chain for username types
+        chainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
     }
 
-    // handle amount and token parsing
+    // 5. Handle amount and token parsing from second segment
+    let parsedAmount: { amount: string } | undefined = undefined
+    let tokenDetails: interfaces.ISquidToken | undefined = undefined
     if (segments.length > 1) {
+        // Parse amount and token from second segment
         const { amount, token } = parseAmountAndToken(segments[1])
-        let validatedAmount = undefined
+
+        // Validate amount if present
         if (amount) {
             try {
-                validatedAmount = validateAmount(amount)
+                parsedAmount = validateAmount(amount)
             } catch (error) {
                 return { parsedUrl: null, error: { message: EParseUrlError.INVALID_AMOUNT, recipient } }
             }
         }
 
-        // if token is specified, resolve it
+        // Handle token resolution based on different cases
         if (token) {
-            let tokenAndChainData = await getTokenAndChainDetails(token, chain)
+            // Case: Token specified in URL
+            const tokenAndChainData = await getTokenAndChainDetails(token, chainId)
+            tokenDetails = tokenAndChainData?.token
 
-            const tokenDetails = tokenAndChainData?.token
             if (!tokenDetails) {
                 return { parsedUrl: null, error: { message: EParseUrlError.INVALID_TOKEN, recipient } }
             }
 
-            // set chain details for non USERNAME recipients
-            if (!chainDetails && recipientDetails.recipientType !== 'USERNAME' && tokenAndChainData.chain) {
+            // Update chain details for non-USERNAME recipients if needed
+            if (!chainDetails && !isPeanutRecipient && tokenAndChainData.chain) {
                 chainDetails = tokenAndChainData.chain as interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
             }
-
-            return {
-                parsedUrl: {
-                    recipient: recipientDetails,
-                    amount: validatedAmount?.amount,
-                    token: tokenDetails ?? undefined,
-                    chain: chainDetails,
-                },
-                error: null,
-            }
-        } else if (!token && recipientDetails.recipientType === 'USERNAME') {
-            // use default Peanut Wallet token for USERNAME recipients
-            const tokenDetails = chainDetails?.tokens.find(
+        } else if (isPeanutRecipient) {
+            // Case: USERNAME recipient with no token specified
+            tokenDetails = chainDetails?.tokens.find(
                 (t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
             )
-            return {
-                parsedUrl: {
-                    recipient: recipientDetails,
-                    token: tokenDetails,
-                    chain: chainDetails,
-                    amount: validatedAmount?.amount,
-                },
-                error: null,
-            }
+        } else if (chainDetails && parsedAmount) {
+            // Case: Only amount specified, try USDC as default token
+            tokenDetails = chainDetails.tokens.find((t) => t.symbol.toLowerCase() === 'USDC'.toLowerCase())
         }
-
-        // if only amount specified, return with current chain
-        if (validatedAmount && !token && !chain) {
-            return {
-                parsedUrl: {
-                    recipient: recipientDetails,
-                    amount: validatedAmount.amount,
-                    chain: undefined,
-                    token: undefined,
-                },
-                error: null,
-            }
-        }
+    } else if (isPeanutRecipient) {
+        // Case: Only recipient specified and it's a USERNAME type
+        tokenDetails = chainDetails?.tokens.find((t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase())
     }
 
-    // base case: only recipient specified
-    // return with default chain and token if recipient is a peanut user
-    const defaultTokenDetails =
-        recipientDetails.recipientType === 'USERNAME'
-            ? chainDetails?.tokens.find((t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase())
-            : undefined
-
+    // 6. Construct and return the final result
     return {
         parsedUrl: {
             recipient: recipientDetails,
+            amount: parsedAmount?.amount,
+            token: tokenDetails,
             chain: chainDetails,
-            token: defaultTokenDetails,
-            amount: undefined,
         },
         error: null,
     }
