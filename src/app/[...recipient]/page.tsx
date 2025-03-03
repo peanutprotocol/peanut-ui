@@ -180,14 +180,14 @@ function getErrorProps({ error, isUser }: { error: ParseUrlError; isUser: boolea
         case EParseUrlError.INVALID_CHAIN:
             return {
                 title: 'Invalid Chain',
-                message: 'You can pay the recipient in their preffered chain',
+                message: 'You can pay the recipient in their preferred chain',
                 buttonText: 'Pay them in their preferred chain',
                 redirectTo: `/${error.recipient}`,
             }
         case EParseUrlError.INVALID_TOKEN:
             return {
                 title: 'Invalid Token',
-                message: 'You can pay the recipient in their preffered token',
+                message: 'You can pay the recipient in their preferred token',
                 buttonText: 'Pay them in their preferred token',
                 redirectTo: `/${error.recipient}`,
             }
@@ -198,7 +198,7 @@ function getErrorProps({ error, isUser }: { error: ParseUrlError; isUser: boolea
                 buttonText: isUser ? 'Go to home' : 'Create your Peanut Wallet',
                 redirectTo: isUser ? '/home' : '/setup',
             }
-        case EParseUrlError.INVALED_URL_FORMAT:
+        case EParseUrlError.INVALID_URL_FORMAT:
         default:
             return getDefaultError(isUser)
     }

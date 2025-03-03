@@ -41,7 +41,7 @@ function parseAmountAndToken(amountString: string): { amount?: string; token?: s
 }
 
 export enum EParseUrlError {
-    INVALED_URL_FORMAT = 'Invalid URL format',
+    INVALID_URL_FORMAT = 'Invalid URL format',
     INVALID_RECIPIENT = 'Invalid recipient',
     INVALID_CHAIN = 'Invalid chain',
     INVALID_TOKEN = 'Invalid token',
@@ -60,7 +60,7 @@ export async function parsePaymentURL(
     if (segments.length === 0) {
         return {
             parsedUrl: null,
-            error: { message: EParseUrlError.INVALED_URL_FORMAT },
+            error: { message: EParseUrlError.INVALID_URL_FORMAT },
         }
     }
 
@@ -94,7 +94,7 @@ export async function parsePaymentURL(
         return { parsedUrl: null, error: { message: EParseUrlError.INVALID_RECIPIENT, recipient } }
     }
     if (squidChainsResult.status === 'rejected') {
-        return { parsedUrl: null, error: { message: EParseUrlError.INVALED_URL_FORMAT } }
+        return { parsedUrl: null, error: { message: EParseUrlError.INVALID_URL_FORMAT } }
     }
     const recipientDetails = recipientResult.value
     const squidChainsAndTokens = squidChainsResult.value
