@@ -175,6 +175,7 @@ export default function ConfirmPaymentView() {
                 }
 
                 setUnsignedTx(tx.unsignedTx)
+                setEstimatedFromValue(chargeDetails.tokenAmount)
             }
         } catch (error) {
             console.error('Failed to prepare transaction:', error)

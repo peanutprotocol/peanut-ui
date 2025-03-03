@@ -24,6 +24,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 import { AccountType } from '@/interfaces'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const dispatch = useAppDispatch()
@@ -32,10 +33,17 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const { signInModal, isPeanutWallet } = useWallet()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [tokenValue, setTokenValue] = useState<string>(
-        chargeDetails?.tokenAmount || requestDetails?.tokenAmount || ''
+    const [displayTokenAmount, setDisplayTokenAmount] = useState<string>(
+        chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
+    )
+    const [usdValue, setUsdValue] = useState<string>('')
+    const [inputTokenAmount, setInputTokenAmount] = useState<string>(
+        chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
     )
     const {
+        inputDenomination,
+        setInputDenomination,
+        selectedTokenPrice,
         selectedChainID,
         selectedTokenDecimals,
         selectedTokenAddress,
@@ -127,27 +135,25 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         selectedTokenData?.decimals,
     ])
 
-    // set initial values from parsedPaymentData
     useEffect(() => {
         if (initialSetupDone) return
 
-        // set token amount if present
         if (amount) {
-            setTokenValue(amount)
+            setDisplayTokenAmount(amount)
+            setInputTokenAmount(amount)
+            setInputDenomination(token?.symbol ? 'TOKEN' : 'USD')
         }
 
-        // set chain from URL if present
         if (chain) {
             setSelectedChainID((chain.chainId || requestDetails?.chainId) ?? '')
         }
 
-        // set token from URL if present
         if (token) {
             setSelectedTokenAddress((token.address || requestDetails?.tokenAddress) ?? '')
         }
 
         setInitialSetupDone(true)
-    }, [chain?.chainId, token?.address, amount, setSelectedChainID, setSelectedTokenAddress, initialSetupDone])
+    }, [chain, token, amount, initialSetupDone])
 
     // reset error when component mounts or recipient changes
     useEffect(() => {
@@ -168,7 +174,12 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             return
         }
 
-        if (!tokenValue || isSubmitting) return
+        if (
+            (!inputTokenAmount && inputDenomination === 'TOKEN') ||
+            (!usdValue && inputDenomination === 'USD') ||
+            isSubmitting
+        )
+            return
 
         setIsSubmitting(true)
         dispatch(paymentActions.setError(null))
@@ -187,18 +198,22 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                 throw new Error('Request details not found')
             }
 
+            const tokenAmountToUse = inputDenomination === 'TOKEN' ? inputTokenAmount : displayTokenAmount
+
             const createChargeRequestPayload: CreateChargeRequest = {
                 pricing_type: 'fixed_price',
                 local_price: {
-                    amount: tokenValue,
-                    currency: 'USD',
+                    amount: tokenAmountToUse,
+                    currency: 'USD', // Always use USD
                 },
                 baseUrl: window.location.origin,
                 requestId: validRequestId || requestDetails!.uuid, // Use validated request ID if available
                 requestProps: {
                     chainId: recipientChainId,
                     tokenAddress: recipientTokenAddress,
-                    tokenType: isNativeCurrency(recipientTokenAddress) ? 'native' : 'erc20',
+                    tokenType: isNativeCurrency(recipientTokenAddress)
+                        ? peanutInterfaces.EPeanutLinkType.native
+                        : peanutInterfaces.EPeanutLinkType.erc20,
                     tokenSymbol: recipientTokenSymbol,
                     tokenDecimals: recipientTokenDecimals,
                     recipientAddress: recipient.resolvedAddress,
@@ -234,9 +249,9 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     }
 
     // check if all required fields are present
-    const canCreateCharge = useMemo(() => {
-        return Boolean(recipient && tokenValue && selectedTokenAddress && selectedChainID)
-    }, [recipient, tokenValue, selectedTokenAddress, selectedChainID])
+    const canCreateCharge = useMemo<boolean>(() => {
+        return !!recipient && !!inputTokenAmount && !!selectedTokenAddress && !!selectedChainID
+    }, [recipient, inputTokenAmount, selectedTokenAddress, selectedChainID])
 
     // Get button text based on state
     const getButtonText = () => {
@@ -322,6 +337,38 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         )
     }, [requestDetails, isPeanutWallet])
 
+    useEffect(() => {
+        if (!inputTokenAmount) return
+        if (inputDenomination === 'TOKEN') {
+            setDisplayTokenAmount(inputTokenAmount)
+            if (selectedTokenPrice) {
+                setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
+            }
+        } else if (inputDenomination === 'USD') {
+            setUsdValue(inputTokenAmount)
+            if (selectedTokenPrice) {
+                setDisplayTokenAmount((parseFloat(inputTokenAmount) / selectedTokenPrice).toString())
+            }
+        }
+    }, [inputTokenAmount, inputDenomination, selectedTokenPrice])
+
+    // Initialize inputTokenAmount
+    useEffect(() => {
+        if (amount && !inputTokenAmount && !initialSetupDone) {
+            setInputTokenAmount(amount)
+        }
+    }, [amount, inputTokenAmount, initialSetupDone])
+
+    useEffect(() => {
+        if (amount && selectedTokenData) {
+            if (token?.symbol && inputDenomination === 'USD') {
+                setInputDenomination('TOKEN')
+            } else if (!token?.symbol && inputDenomination === 'TOKEN') {
+                setInputDenomination('USD')
+            }
+        }
+    }, [amount, token, selectedTokenData, inputDenomination])
+
     return (
         <div className="space-y-4">
             <FlowHeader hideWalletHeader={!isConnected} />
@@ -337,8 +384,8 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             </div>
 
             <TokenAmountInput
-                tokenValue={tokenValue}
-                setTokenValue={(value: string | undefined) => setTokenValue(value || '')}
+                tokenValue={inputTokenAmount}
+                setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
                 className="w-full"
                 disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
             />

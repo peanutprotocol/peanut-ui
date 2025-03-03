@@ -1,4 +1,4 @@
-import { parsePaymentURL } from '@/lib/url-parser/parser'
+import { parsePaymentURL, EParseUrlError } from '@/lib/url-parser/parser'
 
 // mock ENS resolution
 jest.mock('@/utils', () => ({
@@ -100,7 +100,7 @@ describe('URL Parser Tests', () => {
     describe('Recipient Format Tests', () => {
         it('should parse Ethereum address', async () => {
             const result = await parsePaymentURL(['0x1234567890123456789012345678901234567890'])
-            expect(result.recipient).toEqual({
+            expect(result.parsedUrl?.recipient).toEqual({
                 identifier: '0x1234567890123456789012345678901234567890',
                 recipientType: 'ADDRESS',
                 resolvedAddress: '0x1234567890123456789012345678901234567890',
@@ -109,7 +109,7 @@ describe('URL Parser Tests', () => {
 
         it('should parse ENS name', async () => {
             const result = await parsePaymentURL(['vitalik.eth'])
-            expect(result.recipient).toEqual({
+            expect(result.parsedUrl?.recipient).toEqual({
                 identifier: 'vitalik.eth',
                 recipientType: 'ENS',
                 resolvedAddress: '0x1234567890123456789012345678901234567890',
@@ -118,7 +118,7 @@ describe('URL Parser Tests', () => {
 
         it('should parse Peanut username', async () => {
             const result = await parsePaymentURL(['kusharc'])
-            expect(result.recipient).toEqual({
+            expect(result.parsedUrl?.recipient).toEqual({
                 identifier: 'kusharc',
                 recipientType: 'USERNAME',
                 resolvedAddress: '0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271',
@@ -129,7 +129,7 @@ describe('URL Parser Tests', () => {
     describe('Chain Format Tests', () => {
         it('should parse chain by decimal ID', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A@1'])
-            expect(result.chain).toEqual(
+            expect(result.parsedUrl?.chain).toEqual(
                 expect.objectContaining({
                     chainId: 1,
                     name: 'Ethereum',
@@ -139,7 +139,7 @@ describe('URL Parser Tests', () => {
 
         it('should parse chain by hex ID', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A@0x1'])
-            expect(result.chain).toEqual(
+            expect(result.parsedUrl?.chain).toEqual(
                 expect.objectContaining({
                     chainId: 1,
                     name: 'Ethereum',
@@ -149,7 +149,7 @@ describe('URL Parser Tests', () => {
 
         it('should parse chain by name', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A@ethereum'])
-            expect(result.chain).toEqual(
+            expect(result.parsedUrl?.chain).toEqual(
                 expect.objectContaining({
                     chainId: 1,
                     name: 'Ethereum',
@@ -159,7 +159,7 @@ describe('URL Parser Tests', () => {
 
         it('should return recipient details only if other parms are not specified', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A'])
-            expect(result).toEqual(
+            expect(result.parsedUrl).toEqual(
                 expect.objectContaining({
                     recipient: {
                         identifier: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
@@ -175,33 +175,30 @@ describe('URL Parser Tests', () => {
     })
 
     describe('Amount and Token Tests', () => {
-        it('should parse amount with token', async () => {
+        it('token without chain should return error', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A', '0.1USDC'])
-            expect(result.amount).toBe('0.1')
-            expect(result.token?.symbol).toBe('USDC')
+            expect(result.error?.message).toEqual(EParseUrlError.INVALID_CHAIN)
+            expect(result.parsedUrl).toBeNull()
         })
 
         it('should parse amount without token', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A', '0.1'])
-            expect(result.amount).toBe('0.1')
+            expect(result.parsedUrl?.amount).toBe('0.1')
             // Default token should be USDC on Arbitrum
-            expect(result.token?.symbol).toBe(undefined)
+            expect(result.parsedUrl?.token?.symbol).toBe(undefined)
         })
 
-        it('should parse token without amount', async () => {
+        it('token without chain should return error', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A', 'ETH'])
-            expect(result.token).toEqual(
-                expect.objectContaining({
-                    symbol: 'ETH',
-                })
-            )
+            expect(result.error?.message).toEqual(EParseUrlError.INVALID_CHAIN)
+            expect(result.parsedUrl).toBeNull()
         })
     })
 
     describe('Combined Format Tests', () => {
         it('should parse full URL format', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A@arbitrum', '0.1USDC'])
-            expect(result).toEqual({
+            expect(result.parsedUrl).toEqual({
                 recipient: expect.any(Object),
                 chain: expect.objectContaining({ chainId: 42161 }),
                 amount: '0.1',
@@ -210,36 +207,37 @@ describe('URL Parser Tests', () => {
         })
 
         it('should parse ENS with chain and token', async () => {
-            await parsePaymentURL(['vitalik.eth@ethereum', '1ETH'])
-            expect.objectContaining({
-                recipient: expect.objectContaining({
-                    identifier: 'vitalik.eth',
-                    recipientType: 'ENS',
-                    resolvedAddress: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
-                }),
-                chain: expect.objectContaining({ chainId: 1 }),
-                amount: '1',
-                token: expect.objectContaining({ symbol: 'ETH' }),
-            })
+            const result = await parsePaymentURL(['vitalik.eth@ethereum', '1ETH'])
+            expect(result.parsedUrl).toEqual(
+                expect.objectContaining({
+                    recipient: expect.objectContaining({
+                        identifier: 'vitalik.eth',
+                        recipientType: 'ENS',
+                        resolvedAddress: expect.any(String),
+                    }),
+                    chain: expect.objectContaining({ chainId: 1 }),
+                    amount: '1',
+                    token: expect.objectContaining({ symbol: 'ETH' }),
+                })
+            )
         })
 
         it('should parse username with default chain', async () => {
-            await parsePaymentURL(['kusharc', '5'])
-            expect.objectContaining({
-                recipient: expect.objectContaining({
+            const result = await parsePaymentURL(['kusharc', '5'])
+            expect(result.parsedUrl).toMatchObject({
+                recipient: {
                     identifier: 'kusharc',
                     recipientType: 'USERNAME',
                     resolvedAddress: '0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271',
-                }),
+                },
                 amount: '5',
-                chain: expect.objectContaining({
-                    id: '42161',
-                    chainId: '42161',
-                    networkIdentifier: 'arbitrum',
-                }),
-                token: expect.objectContaining({
+                chain: {
+                    chainId: 42161,
+                    name: 'Arbitrum',
+                },
+                token: {
                     symbol: 'USDC',
-                }),
+                },
             })
         })
     })
@@ -247,7 +245,7 @@ describe('URL Parser Tests', () => {
     describe('Chain and Token Tests', () => {
         it('should handle address without chain or token', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A'])
-            expect(result).toEqual({
+            expect(result.parsedUrl).toEqual({
                 recipient: {
                     identifier: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
                     recipientType: 'ADDRESS',
@@ -255,131 +253,104 @@ describe('URL Parser Tests', () => {
                 },
                 chain: undefined,
                 token: undefined,
+                amount: undefined,
             })
         })
 
         it('should use default chain and token for username', async () => {
-            await parsePaymentURL(['kusharc'])
-            expect.objectContaining({
-                recipient: {
-                    identifier: 'kusharc',
-                    recipientType: 'USERNAME',
-                    resolvedAddress: '0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271',
-                },
-                amount: undefined,
-                chain: expect.objectContaining({
-                    id: '42161',
-                    chainId: '42161',
-                    networkIdentifier: 'arbitrum',
-                }),
-                token: expect.objectContaining({
-                    symbol: 'USDC',
-                }),
-            })
+            const result = await parsePaymentURL(['kusharc'])
+            expect(result.parsedUrl).toEqual(
+                expect.objectContaining({
+                    recipient: {
+                        identifier: 'kusharc',
+                        recipientType: 'USERNAME',
+                        resolvedAddress: '0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271',
+                    },
+                    amount: undefined,
+                    chain: expect.objectContaining({
+                        chainId: 42161,
+                    }),
+                    token: expect.objectContaining({
+                        symbol: 'USDC',
+                    }),
+                })
+            )
         })
 
         it('should handle token without chain for peanut username', async () => {
-            await parsePaymentURL(['kusharc', '5USDC'])
-            expect.objectContaining({
-                recipient: {
-                    identifier: 'kusharc',
-                    recipientType: 'USERNAME',
-                    resolvedAddress: '0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271',
-                },
-                amount: '5',
-                token: expect.objectContaining({
-                    symbol: 'USDC',
-                }),
-                chain: expect.objectContaining({
-                    id: '42161',
-                }),
-            })
+            const result = await parsePaymentURL(['kusharc', '5USDC'])
+            expect(result.error).toBeNull()
+            expect(result.parsedUrl).toEqual(
+                expect.objectContaining({
+                    recipient: {
+                        identifier: 'kusharc',
+                        recipientType: 'USERNAME',
+                        resolvedAddress: '0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271',
+                    },
+                    amount: '5',
+                    token: expect.objectContaining({
+                        symbol: 'USDC',
+                    }),
+                    chain: expect.objectContaining({
+                        chainId: 42161,
+                    }),
+                })
+            )
         })
 
         it('should handle token without chain for address', async () => {
-            await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A', '5USDC'])
-            expect.objectContaining({
-                recipient: {
-                    identifier: 'kusharc',
-                    recipientType: 'USERNAME',
-                    resolvedAddress: '0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271',
-                },
-                amount: '5',
-                chain: expect.objectContaining({ chainId: '42161' }), // default chain is arb if no chain is specified but token is specified for non peanut username recipient types
-                token: expect.objectContaining({
-                    symbol: 'USDC',
-                }),
-            })
+            const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A', '5USDC'])
+            expect(result.error?.message).toEqual(EParseUrlError.INVALID_CHAIN)
+            expect(result.parsedUrl).toBeNull()
         })
     })
 
     describe('Error Cases', () => {
-        it('should throw for invalid peanut usernames', async () => {
-            await expect(parsePaymentURL(['0xinvalid'])).rejects.toThrow('Invalid Peanut username')
+        it('should return error for invalid peanut usernames', async () => {
+            const result = await parsePaymentURL(['0xinvalid'])
+            expect(result.error).toBeTruthy()
+            expect(result.parsedUrl).toBeNull()
         })
 
-        it('should handle invalid chain by only returning recipient', async () => {
+        it('should return error for invalid chain', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A@invalidchain'])
-            expect(result).toEqual({
-                recipient: {
-                    identifier: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
-                    recipientType: 'ADDRESS',
-                    resolvedAddress: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
-                },
-                chain: undefined,
-                token: undefined,
-                amount: undefined,
-            })
+            expect(result.error).toBeTruthy()
+            expect(result.parsedUrl).toBeNull()
         })
 
-        it('should handle invalid params by returning null', async () => {
+        it('should return error for invalid amount param', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A', 'invalid'])
-            expect(result).toEqual({
-                recipient: {
-                    identifier: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
-                    recipientType: 'ADDRESS',
-                    resolvedAddress: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
-                },
-                chain: undefined,
-                token: undefined,
-                amount: undefined,
-            })
+            expect(result.error).toBeTruthy()
+            expect(result.parsedUrl).toBeNull()
         })
 
-        it('should return undefinded token for non peanut username recipient types if token is invalid', async () => {
+        it('should return error for invalid token', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A', '1UNKNOWN'])
-            expect(result).toEqual({
-                recipient: {
-                    identifier: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
-                    recipientType: 'ADDRESS',
-                    resolvedAddress: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
-                },
-                chain: undefined,
-                amount: '1',
-                token: undefined,
-            })
+            expect(result.error).toBeTruthy()
+            expect(result.parsedUrl).toBeNull()
         })
     })
 
     describe('Chain and Token Tests', () => {
         it('should correctly resolve Ethereum chain by name', async () => {
-            await parsePaymentURL(['vitalik.eth@ethereum', '5ETH'])
-            expect.objectContaining({
-                recipient: expect.objectContaining({
-                    identifier: 'vitalik.eth',
-                    recipientType: 'ENS',
-                    resolvedAddress: '0x1234567890123456789012345678901234567890',
-                }),
-                chain: expect.objectContaining({
-                    id: '1',
-                    chainId: '1',
-                    networkIdentifier: 'ethereum',
-                }),
-                amount: '5',
-                token: expect.objectContaining({
-                    symbol: 'ETH',
-                }),
-            })
+            const result = await parsePaymentURL(['vitalik.eth@ethereum', '5ETH'])
+            expect(result.parsedUrl).toEqual(
+                expect.objectContaining({
+                    recipient: expect.objectContaining({
+                        identifier: 'vitalik.eth',
+                        recipientType: 'ENS',
+                        resolvedAddress: '0x1234567890123456789012345678901234567890',
+                    }),
+                    chain: expect.objectContaining({
+                        chainId: 1,
+                        name: 'Ethereum',
+                    }),
+                    amount: '5',
+                    token: expect.objectContaining({
+                        symbol: 'ETH',
+                    }),
+                })
+            )
         })
 
         // todo: add more tests for chain and token resolution

@@ -3,50 +3,43 @@
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import PaymentHistory from '@/components/Payment/History'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
-import ValidationErrorView from '@/components/Payment/Views/Error.validation.view'
+import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import PaymentStatusView from '@/components/Payment/Views/Payment.status.view'
-import { parsePaymentURL } from '@/lib/url-parser/parser'
+import { parsePaymentURL, EParseUrlError, ParseUrlError } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { useAuth } from '@/context/authContext'
 
 export default function PaymentPage({ params }: { params: { recipient: string[] } }) {
     const dispatch = useAppDispatch()
     const { currentView, requestDetails, parsedPaymentData, chargeDetails } = usePaymentStore()
-    const [error, setError] = useState<Error | null>(null)
+    const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
+    const { user } = useAuth()
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
     const requestId = searchParams.get('id')
 
-    const parsedURL = useMemo(async () => {
-        try {
-            const parsed = await parsePaymentURL(params.recipient)
-            return parsed
-        } catch (err) {
-            setError(err instanceof Error ? err : new Error('Failed to parse URL'))
-            return null
-        }
-    }, [params.recipient])
-
-    useEffect(() => {
-        parsedURL.then(() => setIsUrlParsed(true))
-    }, [parsedURL])
-
     useEffect(() => {
         const fetchParsedURL = async () => {
-            const result = await parsedURL
-            dispatch(paymentActions.setParsedPaymentData(result as ParsedURL))
+            const { parsedUrl, error } = await parsePaymentURL(params.recipient)
+            if (parsedUrl) {
+                dispatch(paymentActions.setParsedPaymentData(parsedUrl))
+                setIsUrlParsed(true)
+            } else {
+                setError(getErrorProps({ error, isUser: !!user }))
+            }
         }
 
         fetchParsedURL()
-    }, [dispatch])
+    }, [params.recipient])
 
     // handle validation and charge creation
     useEffect(() => {
@@ -67,11 +60,11 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                         }
                     }
                 })
-                .catch((err) => {
-                    setError(err instanceof Error ? err : new Error('Failed to fetch charge'))
+                .catch((_err) => {
+                    setError(getDefaultError(!!user))
                 })
         }
-    }, [chargeId, dispatch])
+    }, [chargeId])
 
     // fetch requests for the recipient only when id is not available in the URL
     useEffect(() => {
@@ -100,21 +93,14 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                 const fetchedRequest = await requestsApi.search(requestParams)
 
                 dispatch(paymentActions.setRequestDetails(fetchedRequest))
-            } catch (error) {
-                console.error('Failed to fetch requests:', error)
-                setError(error instanceof Error ? error : new Error('Failed to fetch requests'))
+            } catch (_error) {
+                setError(getDefaultError(!!user))
             }
         }
         if (!requestId) {
             fetchRequests()
         }
-    }, [
-        parsedPaymentData?.recipient,
-        parsedPaymentData?.chain,
-        parsedPaymentData?.token,
-        parsedPaymentData?.amount,
-        dispatch,
-    ])
+    }, [parsedPaymentData?.recipient, parsedPaymentData?.chain, parsedPaymentData?.token, parsedPaymentData?.amount])
 
     // fetch request details if request ID is available
     useEffect(() => {
@@ -125,16 +111,16 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                     dispatch(paymentActions.setRequestDetails(request))
                     dispatch(paymentActions.setView('INITIAL'))
                 })
-                .catch((err) => {
-                    setError(err instanceof Error ? err : new Error('Invalid request ID'))
+                .catch((_err) => {
+                    setError(getDefaultError(!!user))
                 })
         }
-    }, [requestId, dispatch])
+    }, [requestId])
 
     if (error) {
         return (
             <div className="mx-auto h-full w-full space-y-8 self-center md:w-6/12">
-                <ValidationErrorView />
+                <ValidationErrorView {...error} />
             </div>
         )
     }
@@ -173,4 +159,47 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
             )}
         </div>
     )
+}
+
+const getDefaultError: (isUser: boolean) => ValidationErrorViewProps = (isUser) => ({
+    title: 'Invalid Payment URL!',
+    message: 'They payment you are trying to access is invalid. Please check the URL and try again.',
+    buttonText: isUser ? 'Go to home' : 'Create your Peanut Wallet',
+    redirectTo: isUser ? '/home' : '/setup',
+})
+
+function getErrorProps({ error, isUser }: { error: ParseUrlError; isUser: boolean }): ValidationErrorViewProps {
+    switch (error.message) {
+        case EParseUrlError.INVALID_RECIPIENT:
+            return {
+                title: 'Invalid Recipient',
+                message: 'The recipient you are trying to pay is invalid. Please check the URL and try again.',
+                buttonText: isUser ? 'Go to home' : 'Create your Peanut Wallet',
+                redirectTo: isUser ? '/home' : '/setup',
+            }
+        case EParseUrlError.INVALID_CHAIN:
+            return {
+                title: 'Invalid Chain',
+                message: 'You can pay the recipient in their preferred chain',
+                buttonText: 'Pay them in their preferred chain',
+                redirectTo: `/${error.recipient}`,
+            }
+        case EParseUrlError.INVALID_TOKEN:
+            return {
+                title: 'Invalid Token',
+                message: 'You can pay the recipient in their preferred token',
+                buttonText: 'Pay them in their preferred token',
+                redirectTo: `/${error.recipient}`,
+            }
+        case EParseUrlError.INVALID_AMOUNT:
+            return {
+                title: 'Invalid Amount',
+                message: 'Please check the url and try again',
+                buttonText: isUser ? 'Go to home' : 'Create your Peanut Wallet',
+                redirectTo: isUser ? '/home' : '/setup',
+            }
+        case EParseUrlError.INVALID_URL_FORMAT:
+        default:
+            return getDefaultError(isUser)
+    }
 }
