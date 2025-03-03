@@ -56,8 +56,8 @@ importers:
         specifier: ^8.39.0
         version: 8.48.0(@opentelemetry/core@1.30.0(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.56.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.0(@opentelemetry/api@1.9.0))(next@14.2.23(@babel/core@7.26.0)(@opentelemetry/api@1.9.0)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(webpack@5.97.1)
       '@squirrel-labs/peanut-sdk':
-        specifier: ^0.5.16
-        version: 0.5.16(bufferutil@4.0.9)
+        specifier: ^0.5.17
+        version: 0.5.17(bufferutil@4.0.9)
       '@tanstack/react-query':
         specifier: 5.8.4
         version: 5.8.4(react-dom@18.3.1(react@18.3.1))(react-native@0.76.6(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@types/react@18.3.18)(bufferutil@4.0.9)(react@18.3.1))(react@18.3.1)
@@ -2358,8 +2358,8 @@ packages:
   '@spruceid/siwe-parser@2.1.2':
     resolution: {integrity: sha512-d/r3S1LwJyMaRAKQ0awmo9whfXeE88Qt00vRj91q5uv5ATtWIQEGJ67Yr5eSZw5zp1/fZCXZYuEckt8lSkereQ==}
 
-  '@squirrel-labs/peanut-sdk@0.5.16':
-    resolution: {integrity: sha512-a5pD42JFc0AyaPfPLieJ28NiC6UwjOG/Zp7XV3PW9mIn9zouF0ukKDslj9Tp5CQ0Dojj9DrgtH63tqnzGLIbYQ==}
+  '@squirrel-labs/peanut-sdk@0.5.17':
+    resolution: {integrity: sha512-Rz1Ho7JlkE0QwGYQf3RrQkroA5LpwEY5tB0NNny+xWBIKwI3tEiNQ4nKuWZO36eJIYMcqvr6l2FUpoCogc7kLw==}
 
   '@stablelib/aead@1.0.1':
     resolution: {integrity: sha512-q39ik6sxGHewqtO0nP4BuSe3db5G1fEJE8ukvngS2gLkBXyy6E7pLubhbYgnkDFv6V8cWaxcE4Xn0t6LWcJkyg==}
@@ -9632,7 +9632,7 @@ snapshots:
       uri-js: 4.4.1
       valid-url: 1.0.9
 
-  '@squirrel-labs/peanut-sdk@0.5.16(bufferutil@4.0.9)':
+  '@squirrel-labs/peanut-sdk@0.5.17(bufferutil@4.0.9)':
     dependencies:
       ethersv5: ethers@5.7.2(bufferutil@4.0.9)
     transitivePeerDependencies:
