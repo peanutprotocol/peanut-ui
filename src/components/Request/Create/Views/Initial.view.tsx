@@ -131,7 +131,9 @@ export const InitialView = ({
                 const requestLinkDetails = await requestResponse.json()
 
                 //TODO: create util function to generate link
-                let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${isPeanutWallet ? user!.user.username : requestLinkDetails.recipientAddress}/`
+                const recipient = isPeanutWallet ? user!.user.username : requestLinkDetails.recipientAddress
+                const chain = requestLinkDetails.chainId ? `@${requestLinkDetails.chainId}` : ''
+                let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${recipient}${chain}/`
                 if (requestLinkDetails.tokenAmount) {
                     link += `${requestLinkDetails.tokenAmount}`
                 }
