@@ -38,7 +38,7 @@
         "@safe-global/safe-apps-sdk": "^9.1.0",
         "@sentry/nextjs": "^8.39.0",
         "@serwist/next": "^9.0.10",
-        "@squirrel-labs/peanut-sdk": "^0.5.13",
+        "@squirrel-labs/peanut-sdk": "^0.5.16",
         "@tanstack/react-query": "5.8.4",
         "@typeform/embed-react": "^3.20.0",
         "@vercel/analytics": "^1.4.1",
