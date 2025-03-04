@@ -11,6 +11,7 @@ import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { AccountType } from '@/interfaces'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
@@ -18,13 +19,12 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { CreateChargeRequest } from '@/services/services.types'
-import { ErrorHandler, isNativeCurrency, printableAddress, getTokenSymbol, getTokenDecimals } from '@/utils'
+import { ErrorHandler, getTokenDecimals, getTokenSymbol, isNativeCurrency, printableAddress } from '@/utils'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
-import { AccountType } from '@/interfaces'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const dispatch = useAppDispatch()
@@ -287,7 +287,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     }, [requestDetails])
 
     const renderRequestedPaymentDetails = () => {
-        if (!requestDetails) return null
+        if (!requestDetails || !requestDetails.tokenAmount || !requestDetails.tokenSymbol) return null
 
         return (
             <div className="mb-6 border border-dashed border-black p-4">

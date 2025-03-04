@@ -74,7 +74,7 @@ export default function PaymentStatusView() {
 
         const exporerUrl = getExplorerUrl(chainId)
         const isBlockscoutExplorer = exporerUrl?.includes('blockscout')
-        return `${exporerUrl}${isBlockscoutExplorer ? 'tx/' : ''}${txHash}`
+        return `${exporerUrl}${isBlockscoutExplorer ? '/tx/' : ''}${txHash}`
     }, [transactionHash, statusDetails, latestPayment])
 
     // fetch destination chain details for new payments
@@ -141,7 +141,12 @@ export default function PaymentStatusView() {
                 <div className="flex w-full flex-row items-center justify-between gap-1">
                     <span>Transaction Hash:</span>
                     {(transactionHash || latestPayment?.payerTransactionHash) && sourceUrlWithTx ? (
-                        <Link className="cursor-pointer underline" href={sourceUrlWithTx}>
+                        <Link
+                            className="cursor-pointer underline"
+                            href={sourceUrlWithTx}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
                             {shortenAddressLong(transactionHash || latestPayment?.payerTransactionHash || '')}
                         </Link>
                     ) : (
@@ -222,7 +227,16 @@ export default function PaymentStatusView() {
                 <>
                     <Card.Title>Yay!!</Card.Title>
                     <Card.Description>
-                        Payment to <AddressLink address={resolvedAddress || ''} /> was successful
+                        Payment to{' '}
+                        <AddressLink
+                            address={
+                                resolvedAddress ||
+                                requestDetails?.recipientAccount.identifier ||
+                                requestDetails?.recipientAddress ||
+                                ''
+                            }
+                        />{' '}
+                        was successful
                     </Card.Description>
                 </>
             )
