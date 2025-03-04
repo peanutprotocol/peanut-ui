@@ -14,10 +14,10 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import {
     ErrorHandler,
+    formatTokenAmount,
+    getTokenSymbol,
     isAddressZero,
     switchNetwork as switchNetworkUtil,
-    getTokenSymbol,
-    formatTokenAmount,
 } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
@@ -210,6 +210,8 @@ export default function ConfirmPaymentView() {
             return
         }
 
+        setIsCalculatingFees(false)
+        setIsEstimatingGas(false)
         setIsSubmitting(true)
         dispatch(paymentActions.setError(null))
 
@@ -396,7 +398,6 @@ export default function ConfirmPaymentView() {
         isPeanutWallet,
         estimatedGasCost,
         estimatedFromValue,
-        isSubmitting,
         selectedTokenData,
     ])
 
@@ -533,20 +534,22 @@ export default function ConfirmPaymentView() {
                     <div className="space-y-2">
                         <ErrorAlert description={error} />
 
-                        <Button
-                            onClick={prepareTransaction}
-                            disabled={isSubmitting}
-                            variant="transparent-dark"
-                            className="w-full"
-                        >
-                            {isSubmitting ? (
-                                <div className="flex items-center justify-center gap-2">
-                                    <span>Retrying...</span>
-                                </div>
-                            ) : (
-                                'Retry'
-                            )}
-                        </Button>
+                        {!error.includes('Please confirm the request in your wallet.') && (
+                            <Button
+                                onClick={prepareTransaction}
+                                disabled={isSubmitting}
+                                variant="transparent-dark"
+                                className="w-full"
+                            >
+                                {isSubmitting ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span>Retrying...</span>
+                                    </div>
+                                ) : (
+                                    'Retry'
+                                )}
+                            </Button>
+                        )}
                     </div>
                 )}
                 <Button
