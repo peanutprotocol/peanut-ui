@@ -1,3 +1,4 @@
+import { formatAmount } from '@/utils'
 import { AmountValidationError } from '../url-parser/errors'
 
 export function validateAmount(amount: string): {
@@ -10,6 +11,6 @@ export function validateAmount(amount: string): {
     }
 
     return {
-        amount,
+        amount: formatAmount(parsedAmount),
     }
 }

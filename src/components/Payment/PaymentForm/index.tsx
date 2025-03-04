@@ -50,6 +50,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         selectedTokenData,
         setSelectedChainID,
         setSelectedTokenAddress,
+        setSelectedTokenDecimals,
     } = useContext(context.tokenSelectorContext)
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
@@ -79,7 +80,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             case 'ADDRESS':
                 return selectedTokenAddress
             default:
-                throw new Error('Invalid recipient type')
+                return ''
         }
     }, [chargeDetails?.tokenAddress, requestDetails?.tokenAddress, recipient, selectedTokenAddress])
 
@@ -93,7 +94,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             case 'ADDRESS':
                 let tokenSymbol = selectedTokenData?.symbol ?? getTokenSymbol(recipientTokenAddress, recipientChainId)
                 if (!tokenSymbol) {
-                    throw new Error('Failed to get token symbol')
+                    return 'USDC'
                 }
                 return tokenSymbol
             default:
@@ -116,23 +117,26 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                 return 6
             case 'ENS':
             case 'ADDRESS':
-                let tokenDecimals =
-                    selectedTokenData?.decimals ?? getTokenDecimals(recipientTokenAddress, recipientChainId)
-                if (!tokenDecimals) {
-                    throw new Error('Failed to get token decimals')
+                if (selectedTokenData?.decimals !== undefined) {
+                    return selectedTokenData.decimals
                 }
-                return tokenDecimals
+                if (recipientTokenAddress) {
+                    const decimals = getTokenDecimals(recipientTokenAddress, recipientChainId)
+                    if (decimals !== undefined) {
+                        return decimals
+                    }
+                }
+                return 6
             default:
-                throw new Error('Invalid recipient type')
+                return 6
         }
     }, [
         chargeDetails?.tokenDecimals,
         requestDetails?.tokenDecimals,
         recipient,
-        selectedTokenDecimals,
+        selectedTokenData?.decimals,
         recipientTokenAddress,
         recipientChainId,
-        selectedTokenData?.decimals,
     ])
 
     useEffect(() => {
@@ -146,14 +150,26 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
 
         if (chain) {
             setSelectedChainID((chain.chainId || requestDetails?.chainId) ?? '')
+            if (!token && !requestDetails?.tokenAddress) {
+                const defaultToken = chain.tokens.find((t) => t.symbol === 'USDC')
+                if (defaultToken) {
+                    setSelectedTokenAddress(defaultToken.address)
+                    setSelectedTokenDecimals(defaultToken.decimals)
+                }
+            }
         }
 
         if (token) {
             setSelectedTokenAddress((token.address || requestDetails?.tokenAddress) ?? '')
+            if (token.decimals) {
+                setSelectedTokenDecimals(token.decimals)
+            }
         }
 
         setInitialSetupDone(true)
-    }, [chain, token, amount, initialSetupDone])
+    }, [chain, token, amount, initialSetupDone, requestDetails])
+
+    console.log('requestDetails', requestDetails)
 
     // reset error when component mounts or recipient changes
     useEffect(() => {
