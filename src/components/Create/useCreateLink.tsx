@@ -16,7 +16,7 @@ import peanut, {
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
 import { BigNumber, ethers } from 'ethers'
-import { useCallback, useContext } from 'react'
+import { useCallback, useContext, useMemo } from 'react'
 import { formatEther, parseEther, parseUnits } from 'viem'
 import { useAccount, useConfig, useSendTransaction, useSignTypedData, useSwitchChain } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
@@ -46,8 +46,16 @@ export const useCreateLink = () => {
     const config = useConfig()
     const { walletType, environmentInfo } = useWalletType()
 
-    const isActiveWalletPW = selectedWallet?.walletProviderType === WalletProviderType.PEANUT
-    const isActiveWalletBYOW = selectedWallet?.walletProviderType === WalletProviderType.BYOW
+    const isActiveWalletSmartAccount = useMemo(
+        () =>
+            selectedWallet?.walletProviderType === WalletProviderType.PEANUT ||
+            selectedWallet?.walletProviderType === WalletProviderType.REWARDS,
+        [selectedWallet]
+    )
+    const isActiveWalletBYOW = useMemo(
+        () => selectedWallet?.walletProviderType === WalletProviderType.BYOW,
+        [selectedWallet]
+    )
 
     const { handleSendUserOpEncoded } = useZeroDev()
 
@@ -556,13 +564,13 @@ export const useCreateLink = () => {
                 let idx = 0
                 const signedTxsResponse: string[] = []
 
-                if (isActiveWalletPW) {
+                if (isActiveWalletSmartAccount) {
                     const params = preparedDepositTxs.unsignedTxs.map((tx) => ({
                         to: tx.to! as Hex,
                         value: tx.value?.valueOf(),
                         data: tx.data as Hex | undefined,
                     }))
-                    let hash = await handleSendUserOpEncoded(params)
+                    let hash = await handleSendUserOpEncoded(params, selectedChainID)
                     signedTxsResponse.push(hash.toString())
                     idx++
                     return signedTxsResponse[signedTxsResponse.length - 1]
@@ -634,7 +642,14 @@ export const useCreateLink = () => {
                 throw error
             }
         },
-        [selectedChainID, sendTransactionAsync, config, isActiveWalletPW, isActiveWalletBYOW, handleSendUserOpEncoded]
+        [
+            selectedChainID,
+            sendTransactionAsync,
+            config,
+            isActiveWalletSmartAccount,
+            isActiveWalletBYOW,
+            handleSendUserOpEncoded,
+        ]
     )
     const getLinkFromHash = async ({
         hash,
@@ -679,7 +694,7 @@ export const useCreateLink = () => {
                 chainId: selectedChainID,
                 tokenAddress: selectedTokenAddress,
             })
-            if (_isGaslessDepositPossible && !isActiveWalletPW) {
+            if (_isGaslessDepositPossible && !isActiveWalletSmartAccount) {
                 // routing only gasless BYOW txs through here
                 const makeGaslessDepositResponse = await makeGaslessDepositPayload({
                     _linkDetails: linkDetails,
@@ -734,7 +749,7 @@ export const useCreateLink = () => {
             estimateGasFee,
             selectedChainID,
             selectedTokenAddress,
-            isActiveWalletPW,
+            isActiveWalletSmartAccount,
         ]
     )
 

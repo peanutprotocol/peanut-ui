@@ -31,14 +31,12 @@ import {
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 
 export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const dispatch = useAppDispatch()
     const { attachmentOptions, requestDetails, error, chargeDetails } = usePaymentStore()
-    const { isConnected: isExternalWalletConnected } = useAccount()
-    const { signInModal, isPeanutWallet } = useWallet()
+    const { signInModal, isPeanutWallet, selectedWallet, isExternalWallet, isWalletConnected } = useWallet()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [displayTokenAmount, setDisplayTokenAmount] = useState<string>(
@@ -65,9 +63,13 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     } = useContext(context.tokenSelectorContext)
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
-    const isConnected = isExternalWalletConnected || isPeanutWallet
+    const isConnected = useMemo<boolean>(() => {
+        return selectedWallet ? isWalletConnected(selectedWallet) : false
+    }, [isWalletConnected, selectedWallet])
 
     const recipientChainId = useMemo<string>(() => {
+        if (!requestDetails) return ''
+
         if (chargeDetails?.chainId) return chargeDetails.chainId
         if (requestDetails?.chainId) return requestDetails.chainId
         switch (recipient.recipientType) {
@@ -82,6 +84,8 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     }, [chargeDetails?.chainId, requestDetails?.chainId, recipient, selectedChainID])
 
     const recipientTokenAddress = useMemo<string>(() => {
+        if (!requestDetails) return ''
+
         if (chargeDetails?.tokenAddress) return chargeDetails.tokenAddress
         if (requestDetails?.tokenAddress) return requestDetails.tokenAddress
         switch (recipient.recipientType) {
@@ -96,6 +100,8 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     }, [chargeDetails?.tokenAddress, requestDetails?.tokenAddress, recipient, selectedTokenAddress])
 
     const recipientTokenSymbol = useMemo<string>(() => {
+        if (!requestDetails) return ''
+
         if (chargeDetails?.tokenSymbol) return chargeDetails.tokenSymbol
         if (requestDetails?.tokenSymbol) return requestDetails.tokenSymbol
         switch (recipient.recipientType) {
@@ -121,6 +127,8 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     ])
 
     const recipientTokenDecimals = useMemo<number>(() => {
+        if (!requestDetails) return 0
+
         if (chargeDetails?.tokenDecimals) return chargeDetails.tokenDecimals
         if (requestDetails?.tokenDecimals) return requestDetails.tokenDecimals
         switch (recipient.recipientType) {
@@ -184,13 +192,6 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     useEffect(() => {
         dispatch(paymentActions.setError(null))
     }, [dispatch, recipient])
-
-    useEffect(() => {
-        if (isPeanutWallet) {
-            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-        }
-    }, [isPeanutWallet])
 
     // fetch token price
     useEffect(() => {
@@ -356,6 +357,10 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         }
     }, [requestDetails, isPeanutWallet])
 
+    useEffect(() => {
+        if (isPeanutWallet) resetTokenAndChain()
+    }, [resetTokenAndChain, isPeanutWallet])
+
     const recipientLabel = useMemo(() => {
         if (!requestDetails) return ''
 
@@ -481,7 +486,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
 
             {requestDetails?.recipientAccount.type !== AccountType.PEANUT_WALLET && renderRequestedPaymentDetails()}
 
-            {!isPeanutWallet && (
+            {isExternalWallet && (
                 <div>
                     <div className="mb-2 text-sm font-medium">Choose your payment method:</div>
                     <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />

@@ -1,7 +1,6 @@
 import { render, act } from '@testing-library/react'
 import GeneralRecipientInput from '../index'
 import * as utils from '@/utils'
-import { useRecentRecipients } from '@/hooks/useRecentRecipients'
 import type { RecipientType } from '@/interfaces'
 import { validateEnsName } from '@/utils'
 
@@ -37,6 +36,8 @@ jest.mock('@/hooks/useRecentRecipients', () => ({
 // Mock viem's isAddress function
 jest.mock('viem', () => ({
     isAddress: (address: string) => address.startsWith('0x') && address.length === 42,
+    http: jest.fn(),
+    createPublicClient: jest.fn(),
 }))
 
 describe('GeneralRecipientInput Type Detection', () => {
