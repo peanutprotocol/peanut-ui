@@ -3,7 +3,6 @@ import { AmountValidationError } from '../url-parser/errors'
 export function validateAmount(amount: string): {
     amount: string
 } {
-    // trim whitespace
     const trimmedAmount = amount.trim()
 
     // allow empty string as valid

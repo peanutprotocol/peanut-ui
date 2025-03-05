@@ -39,11 +39,11 @@ export async function validateAndResolveRecipient(
             if (!isValidPeanutUsername) {
                 throw new RecipientValidationError('Invalid Peanut username')
             }
-            const usernameResolvedAddress = await resolveFromEnsName(`${recipient}.${JUSTANAME_ENS}`)
+            const address = await resolveFromEnsName(`${recipient}.${JUSTANAME_ENS}`)
             return {
                 identifier: recipient,
                 recipientType,
-                resolvedAddress: usernameResolvedAddress || '',
+                resolvedAddress: address || '',
             }
 
         default:
