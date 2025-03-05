@@ -5,6 +5,7 @@ import * as interfaces from '@/interfaces'
 export enum WalletProviderType {
     PEANUT = interfaces.AccountType.PEANUT_WALLET,
     BYOW = interfaces.AccountType.EVM_ADDRESS,
+    REWARDS = 'rewards',
 }
 
 export enum WalletProtocolType {
@@ -30,6 +31,7 @@ export interface IWallet extends IDBWallet {
     // this case. It will always be true if the active wallet is Peanut Wallet
     // and the user is logged in. That is because there is only one PW per user,
     // and the provider will always be connected to that.
+    id: string
     connected: boolean
     balance: bigint
     balances?: interfaces.IUserBalance[]

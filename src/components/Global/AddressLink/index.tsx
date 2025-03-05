@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { useEnsName } from 'wagmi'
 import { isAddress } from 'viem'
 import * as utils from '@/utils'
 import { usePrimaryName } from '@justaname.id/react'
