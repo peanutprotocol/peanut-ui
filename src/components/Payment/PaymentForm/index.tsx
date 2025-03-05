@@ -359,15 +359,17 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         }
     }, [amount, inputTokenAmount, initialSetupDone])
 
+    // Initialize inputDenomination
     useEffect(() => {
-        if (amount && selectedTokenData) {
-            if (token?.symbol && inputDenomination === 'USD') {
-                setInputDenomination('TOKEN')
-            } else if (!token?.symbol && inputDenomination === 'TOKEN') {
-                setInputDenomination('USD')
-            }
+        if (amount) setInputDenomination(token?.symbol ? 'TOKEN' : 'USD')
+    }, [amount, token])
+
+    // Initialize token selector
+    useEffect(() => {
+        if (!chargeDetails) {
+            resetTokenAndChain()
         }
-    }, [amount, token, selectedTokenData, inputDenomination])
+    }, [chargeDetails, resetTokenAndChain])
 
     return (
         <div className="space-y-4">

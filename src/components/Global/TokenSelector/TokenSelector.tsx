@@ -184,7 +184,6 @@ const TokenSelector = ({
         isXChain,
         supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
-    const { open } = useAppKit()
     const { safeInfo, walletType } = useWalletType()
 
     const selectedChainTokens = useMemo(() => {
@@ -280,7 +279,12 @@ const TokenSelector = ({
     }, [visible])
 
     useEffect(() => {
-        if (selectedBalance) return
+        if (
+            selectedBalance &&
+            areEvmAddressesEqual(selectedTokenAddress, selectedBalance.address) &&
+            selectedChainID === selectedBalance.chainId
+        )
+            return
 
         if (_balancesToDisplay.length > 0) {
             setSelectedBalance(
@@ -293,7 +297,7 @@ const TokenSelector = ({
         } else {
             setSelectedBalance(undefined)
         }
-    }, [_balancesToDisplay, selectedTokenAddress, selectedChainID])
+    }, [_balancesToDisplay, selectedTokenAddress, selectedChainID, selectedBalance])
 
     const displayedChain = useMemo(() => {
         if (!selectedChainID) return undefined
