@@ -6,16 +6,17 @@ import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import PaymentStatusView from '@/components/Payment/Views/Payment.status.view'
-import { parsePaymentURL, EParseUrlError, ParseUrlError } from '@/lib/url-parser/parser'
+import { useAuth } from '@/context/authContext'
+import { EParseUrlError, parsePaymentURL, ParseUrlError } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
+import { formatAmount } from '@/utils'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { useAuth } from '@/context/authContext'
 
 export default function PaymentPage({ params }: { params: { recipient: string[] } }) {
     const dispatch = useAppDispatch()
@@ -31,7 +32,12 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         const fetchParsedURL = async () => {
             const { parsedUrl, error } = await parsePaymentURL(params.recipient)
             if (parsedUrl) {
-                dispatch(paymentActions.setParsedPaymentData(parsedUrl))
+                dispatch(
+                    paymentActions.setParsedPaymentData({
+                        ...parsedUrl,
+                        amount: parsedUrl.amount ? formatAmount(parsedUrl.amount || '') : undefined,
+                    })
+                )
                 setIsUrlParsed(true)
             } else {
                 setError(getErrorProps({ error, isUser: !!user }))

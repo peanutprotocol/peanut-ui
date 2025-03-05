@@ -129,8 +129,9 @@ export async function parsePaymentURL(
             }
         }
         if (token) {
-            if (!chainDetails) {
-                return { parsedUrl: null, error: { message: EParseUrlError.INVALID_CHAIN, recipient } }
+            if (!chainDetails && !isPeanutRecipient) {
+                // default to arb even for non-USERNAME recipients if no chain is specified
+                chainDetails = squidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
             }
             const tokenAndChainData = await getTokenAndChainDetails(token, chainId)
             tokenDetails = tokenAndChainData?.token

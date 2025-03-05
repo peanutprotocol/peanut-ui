@@ -1,4 +1,3 @@
-import { formatAmount } from '@/utils'
 import { AmountValidationError } from '../url-parser/errors'
 
 export function validateAmount(amount: string): {
@@ -13,7 +12,7 @@ export function validateAmount(amount: string): {
 
     // check for valid number format using regex
     // matches: positive numbers, with optional decimal point
-    if (!/^\d*\.?\d*$/.test(trimmedAmount)) {
+    if (!/^\.?\d*\.?\d*$/.test(trimmedAmount)) {
         throw new AmountValidationError('Invalid amount')
     }
 
@@ -24,7 +23,5 @@ export function validateAmount(amount: string): {
         throw new AmountValidationError('Invalid amount')
     }
 
-    return {
-        amount: formatAmount(trimmedAmount),
-    }
+    return { amount: trimmedAmount }
 }
