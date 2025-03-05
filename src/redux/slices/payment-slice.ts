@@ -20,6 +20,8 @@ const initialState: IPaymentState = {
     paymentDetails: null,
     resolvedAddress: null,
     error: null,
+    usdValue: '',
+    tokenValue: '',
 }
 
 const paymentSlice = createSlice({
@@ -55,6 +57,10 @@ const paymentSlice = createSlice({
         },
         setError: (state, action: PayloadAction<string | null>) => {
             state.error = action.payload
+        },
+        setPaymentValues: (state, action: PayloadAction<{ usdValue: string; tokenValue: string }>) => {
+            state.usdValue = action.payload.usdValue
+            state.tokenValue = action.payload.tokenValue
         },
     },
 })

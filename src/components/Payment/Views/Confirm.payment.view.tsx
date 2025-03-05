@@ -14,9 +14,10 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import {
     ErrorHandler,
-    formatTokenAmount,
+    formatAmount,
     getTokenSymbol,
     isAddressZero,
+    shortenAddressLong,
     switchNetwork as switchNetworkUtil,
 } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
@@ -29,7 +30,7 @@ export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
     const { isConnected, chain: currentChain, address, isPeanutWallet } = useWallet()
-    const { attachmentOptions, parsedPaymentData, error, chargeDetails } = usePaymentStore()
+    const { attachmentOptions, parsedPaymentData, error, chargeDetails, usdValue, tokenValue } = usePaymentStore()
     const { selectedTokenData, selectedChainID, isXChain, setIsXChain, selectedTokenAddress } =
         useContext(tokenSelectorContext)
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
@@ -80,11 +81,13 @@ export default function ConfirmPaymentView() {
         }
 
         try {
+            const formattedTokenAmount = Number(requestLink.tokenAmount).toFixed(requestLink.tokenDecimals)
+
             // prepare link details
             const linkDetails = {
                 recipientAddress: requestLink.recipientAddress,
                 chainId: requestLink.chainId.toString(),
-                tokenAmount: requestLink.tokenAmount,
+                tokenAmount: formattedTokenAmount,
                 tokenAddress: requestLink.tokenAddress,
                 tokenDecimals: requestLink.tokenDecimals,
                 tokenType: Number(requestLink.tokenType),
@@ -135,31 +138,42 @@ export default function ConfirmPaymentView() {
                     throw new Error('Token data not found')
                 }
 
-                const txData = await createXChainUnsignedTx(
-                    {
-                        address: selectedTokenData.address,
-                        chainId: selectedTokenData.chainId,
-                        decimals: selectedTokenData.decimals,
-                    },
-                    {
-                        recipientAddress: chargeDetails.requestLink.recipientAddress,
-                        chainId: chargeDetails.chainId,
-                        tokenAmount: chargeDetails.tokenAmount,
-                        tokenAddress: chargeDetails.tokenAddress,
-                        tokenDecimals: chargeDetails.tokenDecimals,
-                        tokenType: chargeDetails.tokenType,
-                    },
-                    address
-                )
+                try {
+                    const txData = await createXChainUnsignedTx(
+                        {
+                            address: selectedTokenData.address,
+                            chainId: selectedTokenData.chainId,
+                            decimals: selectedTokenData.decimals || 18,
+                        },
+                        {
+                            recipientAddress: chargeDetails.requestLink.recipientAddress,
+                            chainId: chargeDetails.chainId,
+                            tokenAmount: chargeDetails.tokenAmount,
+                            tokenAddress: chargeDetails.tokenAddress,
+                            tokenDecimals: chargeDetails.tokenDecimals,
+                            tokenType: chargeDetails.tokenType,
+                        },
+                        address
+                    )
 
-                if (!txData?.unsignedTxs) {
+                    if (!txData?.unsignedTxs) {
+                        throw new Error('Failed to prepare cross-chain transaction')
+                    }
+
+                    setXChainUnsignedTxs(txData.unsignedTxs)
+                    if (txData.estimatedFromAmount) {
+                        setEstimatedFromValue(txData.estimatedFromAmount)
+                    }
+                    if (txData.feeEstimation) {
+                        setTxFee(txData.feeEstimation)
+                    }
+                    if (txData.slippagePercentage) {
+                        setSlippagePercentage(txData.slippagePercentage)
+                    }
+                } catch (error) {
+                    console.error('Cross-chain tx preparation failed:', error)
                     throw new Error('Failed to prepare cross-chain transaction')
                 }
-
-                setXChainUnsignedTxs(txData.unsignedTxs)
-                setEstimatedFromValue(txData.estimatedFromAmount)
-                setTxFee(txData.feeEstimation)
-                setSlippagePercentage(txData.slippagePercentage)
             } else {
                 // prepare same-chain transaction
                 const tx = peanut.prepareRequestLinkFulfillmentTransaction({
@@ -423,13 +437,13 @@ export default function ConfirmPaymentView() {
                 <PaymentInfoRow
                     loading={isCalculatingFees || isEstimatingGas}
                     label="You are paying"
-                    value={`${formatTokenAmount(Number(estimatedFromValue))} ${getTokenSymbol(selectedTokenAddress, selectedChainID)} on ${getReadableChainName(selectedChainID)}`}
+                    value={`${formatAmount(Number(estimatedFromValue))} ${getTokenSymbol(selectedTokenAddress, selectedChainID)} on ${getReadableChainName(selectedChainID)}`}
                 />
 
                 <PaymentInfoRow
                     loading={isCalculatingFees || isEstimatingGas}
-                    label={`${parsedPaymentData?.recipient.identifier} will receive`}
-                    value={`${formatTokenAmount(Number(chargeDetails!.tokenAmount))} ${chargeDetails?.tokenSymbol} on ${getReadableChainName(chargeDetails.chainId)}`}
+                    label={`${parsedPaymentData?.recipient.recipientType === 'ADDRESS' ? shortenAddressLong(parsedPaymentData?.recipient.identifier) : parsedPaymentData?.recipient.identifier} will receive`}
+                    value={`${formatAmount(Number(chargeDetails!.tokenAmount))} ${chargeDetails?.tokenSymbol} on ${getReadableChainName(chargeDetails.chainId)}`}
                 />
 
                 {attachmentOptions.fileUrl && (

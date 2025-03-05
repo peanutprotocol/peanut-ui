@@ -12,5 +12,5 @@ export interface ParsedURL {
     }
     amount?: string
     token?: interfaces.ISquidToken
-    chain?: interfaces.ISquidChain
+    chain?: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
 }

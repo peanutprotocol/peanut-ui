@@ -19,7 +19,15 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { CreateChargeRequest } from '@/services/services.types'
-import { ErrorHandler, getTokenDecimals, getTokenSymbol, isNativeCurrency, printableAddress } from '@/utils'
+import {
+    ErrorHandler,
+    formatAmount,
+    getTokenDecimals,
+    getTokenSymbol,
+    isNativeCurrency,
+    printableAddress,
+} from '@/utils'
+import { fetchTokenPrice } from '@/utils/fetch.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -36,20 +44,23 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const [displayTokenAmount, setDisplayTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
     )
-    const [usdValue, setUsdValue] = useState<string>('')
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
     )
+    const [usdValue, setUsdValue] = useState<string>('')
+    const [requestedTokenPrice, setRequestedTokenPrice] = useState<number | null>(null)
+    const [isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
+
     const {
         inputDenomination,
         setInputDenomination,
         selectedTokenPrice,
         selectedChainID,
-        selectedTokenDecimals,
         selectedTokenAddress,
         selectedTokenData,
         setSelectedChainID,
         setSelectedTokenAddress,
+        setSelectedTokenDecimals,
     } = useContext(context.tokenSelectorContext)
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
@@ -79,7 +90,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             case 'ADDRESS':
                 return selectedTokenAddress
             default:
-                throw new Error('Invalid recipient type')
+                return ''
         }
     }, [chargeDetails?.tokenAddress, requestDetails?.tokenAddress, recipient, selectedTokenAddress])
 
@@ -93,7 +104,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             case 'ADDRESS':
                 let tokenSymbol = selectedTokenData?.symbol ?? getTokenSymbol(recipientTokenAddress, recipientChainId)
                 if (!tokenSymbol) {
-                    throw new Error('Failed to get token symbol')
+                    return 'USDC'
                 }
                 return tokenSymbol
             default:
@@ -116,23 +127,26 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                 return 6
             case 'ENS':
             case 'ADDRESS':
-                let tokenDecimals =
-                    selectedTokenData?.decimals ?? getTokenDecimals(recipientTokenAddress, recipientChainId)
-                if (!tokenDecimals) {
-                    throw new Error('Failed to get token decimals')
+                if (selectedTokenData?.decimals !== undefined) {
+                    return selectedTokenData.decimals
                 }
-                return tokenDecimals
+                if (recipientTokenAddress) {
+                    const decimals = getTokenDecimals(recipientTokenAddress, recipientChainId)
+                    if (decimals !== undefined) {
+                        return decimals
+                    }
+                }
+                return 6
             default:
-                throw new Error('Invalid recipient type')
+                return 6
         }
     }, [
         chargeDetails?.tokenDecimals,
         requestDetails?.tokenDecimals,
         recipient,
-        selectedTokenDecimals,
+        selectedTokenData?.decimals,
         recipientTokenAddress,
         recipientChainId,
-        selectedTokenData?.decimals,
     ])
 
     useEffect(() => {
@@ -141,19 +155,29 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         if (amount) {
             setDisplayTokenAmount(amount)
             setInputTokenAmount(amount)
-            setInputDenomination(token?.symbol ? 'TOKEN' : 'USD')
+            setInputDenomination('TOKEN')
         }
 
         if (chain) {
             setSelectedChainID((chain.chainId || requestDetails?.chainId) ?? '')
+            if (!token && !requestDetails?.tokenAddress) {
+                const defaultToken = chain.tokens.find((t) => t.symbol === 'USDC')
+                if (defaultToken) {
+                    setSelectedTokenAddress(defaultToken.address)
+                    setSelectedTokenDecimals(defaultToken.decimals)
+                }
+            }
         }
 
         if (token) {
             setSelectedTokenAddress((token.address || requestDetails?.tokenAddress) ?? '')
+            if (token.decimals) {
+                setSelectedTokenDecimals(token.decimals)
+            }
         }
 
         setInitialSetupDone(true)
-    }, [chain, token, amount, initialSetupDone])
+    }, [chain, token, amount, initialSetupDone, requestDetails])
 
     // reset error when component mounts or recipient changes
     useEffect(() => {
@@ -166,6 +190,45 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         }
     }, [isPeanutWallet])
+
+    // fetche token price
+    useEffect(() => {
+        if (!requestDetails?.tokenAddress || !requestDetails?.chainId || !requestDetails?.tokenAmount) return
+
+        const getTokenPriceData = async () => {
+            setIsFetchingTokenPrice(true)
+            try {
+                const priceData = await fetchTokenPrice(requestDetails.tokenAddress, requestDetails.chainId)
+
+                if (priceData) {
+                    setRequestedTokenPrice(priceData.price)
+
+                    // calculate USD value
+                    const tokenAmount = parseFloat(requestDetails.tokenAmount)
+                    const usdValue = formatAmount(tokenAmount * priceData.price)
+
+                    dispatch(
+                        paymentActions.setPaymentValues({
+                            tokenValue: requestDetails.tokenAmount,
+                            usdValue,
+                        })
+                    )
+
+                    setInputDenomination('USD')
+                    setInputTokenAmount(usdValue)
+                    setUsdValue(usdValue)
+                } else {
+                    console.log('Failed to fetch token price data')
+                }
+            } catch (error) {
+                console.error('Error fetching token price:', error)
+            } finally {
+                setIsFetchingTokenPrice(false)
+            }
+        }
+
+        getTokenPriceData()
+    }, [requestDetails])
 
     const handleCreateCharge = async () => {
         if (!isConnected) {
@@ -198,16 +261,28 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                 throw new Error('Request details not found')
             }
 
-            const tokenAmountToUse = inputDenomination === 'TOKEN' ? inputTokenAmount : displayTokenAmount
+            // calculate the token amount based on denomination
+            let tokenAmountToUse: string
+            if (inputDenomination === 'TOKEN') {
+                tokenAmountToUse = inputTokenAmount
+            } else {
+                // convert to token amount using token price, if input value is in USD
+                if (!selectedTokenPrice) {
+                    throw new Error('Token price not available')
+                }
+                const usdAmount = parseFloat(inputTokenAmount)
+                const tokenAmount = usdAmount / selectedTokenPrice
+                tokenAmountToUse = tokenAmount.toString()
+            }
 
             const createChargeRequestPayload: CreateChargeRequest = {
                 pricing_type: 'fixed_price',
                 local_price: {
                     amount: tokenAmountToUse,
-                    currency: 'USD', // Always use USD
+                    currency: 'USD',
                 },
                 baseUrl: window.location.origin,
-                requestId: validRequestId || requestDetails!.uuid, // Use validated request ID if available
+                requestId: validRequestId || requestDetails!.uuid,
                 requestProps: {
                     chainId: recipientChainId,
                     tokenAddress: recipientTokenAddress,
@@ -289,14 +364,21 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const renderRequestedPaymentDetails = () => {
         if (!requestDetails || !requestDetails.tokenAmount || !requestDetails.tokenSymbol) return null
 
+        const tokenAmount = parseFloat(requestDetails.tokenAmount)
+        const tokenUsdValue =
+            requestedTokenPrice && tokenAmount > 0 ? formatAmount(tokenAmount * requestedTokenPrice) : ''
+
+        const tokenSymbol = requestDetails.tokenSymbol || token?.symbol
+
+        const dispalyAmount = tokenUsdValue
+            ? `$${tokenUsdValue} ( ${formatAmount(tokenAmount)} ${tokenSymbol} )`
+            : `${formatAmount(tokenAmount)} ${tokenSymbol}`
+
         return (
             <div className="mb-6 border border-dashed border-black p-4">
                 <div className="text-sm font-semibold text-black">{recipientLabel} is requesting:</div>
                 <div className="flex flex-col">
-                    <PaymentInfoRow
-                        label="Amount"
-                        value={`${requestDetails.tokenAmount} ${requestDetails.tokenSymbol || token?.symbol}`}
-                    />
+                    <PaymentInfoRow label="Amount" value={dispalyAmount} />
                     {requestDetails.chainId && (
                         <PaymentInfoRow label="Network" value={getReadableChainName(requestDetails.chainId)} />
                     )}
@@ -339,35 +421,18 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
 
     useEffect(() => {
         if (!inputTokenAmount) return
-        if (inputDenomination === 'TOKEN') {
-            setDisplayTokenAmount(inputTokenAmount)
-            if (selectedTokenPrice) {
-                setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
-            }
-        } else if (inputDenomination === 'USD') {
-            setUsdValue(inputTokenAmount)
-            if (selectedTokenPrice) {
-                setDisplayTokenAmount((parseFloat(inputTokenAmount) / selectedTokenPrice).toString())
-            }
-        }
-    }, [inputTokenAmount, inputDenomination, selectedTokenPrice])
 
-    // Initialize inputTokenAmount
-    useEffect(() => {
-        if (amount && !inputTokenAmount && !initialSetupDone) {
-            setInputTokenAmount(amount)
-        }
-    }, [amount, inputTokenAmount, initialSetupDone])
+        setDisplayTokenAmount(inputTokenAmount)
 
-    useEffect(() => {
-        if (amount && selectedTokenData) {
-            if (token?.symbol && inputDenomination === 'USD') {
-                setInputDenomination('TOKEN')
-            } else if (!token?.symbol && inputDenomination === 'TOKEN') {
-                setInputDenomination('USD')
-            }
+        if (selectedTokenPrice) {
+            const tokenAmount = parseFloat(inputTokenAmount)
+            const calculatedUsdValue = formatAmount(tokenAmount * selectedTokenPrice)
+
+            setUsdValue(calculatedUsdValue)
+        } else {
+            setUsdValue('')
         }
-    }, [amount, token, selectedTokenData, inputDenomination])
+    }, [inputTokenAmount, selectedTokenPrice])
 
     return (
         <div className="space-y-4">
@@ -384,8 +449,10 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             </div>
 
             <TokenAmountInput
-                tokenValue={inputTokenAmount}
-                setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
+                tokenValue={displayTokenAmount}
+                setTokenValue={(value: string | undefined) => {
+                    setInputTokenAmount(value || '')
+                }}
                 className="w-full"
                 disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
             />
@@ -423,7 +490,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
 
             <div className="space-y-2">
                 <Button
-                    loading={isSubmitting}
+                    loading={isSubmitting || isFetchingTokenPrice}
                     shadowSize="4"
                     onClick={handleCreateCharge}
                     disabled={!canCreateCharge || isSubmitting || isPeanutWalletCrossChainRequest}
