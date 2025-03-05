@@ -1,4 +1,4 @@
-import { parsePaymentURL, EParseUrlError } from '@/lib/url-parser/parser'
+import { EParseUrlError, parsePaymentURL } from '@/lib/url-parser/parser'
 
 // mock ENS resolution
 jest.mock('@/utils', () => ({
@@ -50,6 +50,33 @@ jest.mock('@/app/actions/squid', () => ({
                 { symbol: 'USDC', address: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8' },
             ],
         },
+        '8453': {
+            chainId: '8453',
+            name: 'Base',
+            networkIdentifier: 'base',
+            chainName: 'Chain 8453',
+            axelarChainName: 'base',
+            type: 'evm',
+            networkName: 'Base',
+            tokens: [
+                {
+                    symbol: 'ETH',
+                    address: 'native',
+                    chainId: '8453',
+                    name: 'ETH',
+                    decimals: 18,
+                    active: true,
+                },
+                {
+                    symbol: 'USDC',
+                    address: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+                    chainId: '8453',
+                    name: 'USDC',
+                    decimals: 6,
+                    active: true,
+                },
+            ],
+        },
     }),
 }))
 
@@ -70,6 +97,7 @@ jest.mock('@/lib/url-parser/parser.consts', () => ({
     POPULAR_CHAIN_NAME_VARIANTS: {
         '1': ['eth', 'ethereum'],
         '42161': ['arbitrum', 'arb'],
+        '8453': ['base'],
     },
 }))
 
@@ -79,8 +107,10 @@ jest.mock('@/lib/validation/resolvers/chain-resolver', () => ({
             eth: '1',
             ethereum: '1',
             arbitrum: '42161',
+            base: '8453',
             '1': '1',
             '42161': '42161',
+            '8453': '8453',
         }
         if (!chainMap[chainIdentifier.toString()]) {
             throw new Error(`Chain ${chainIdentifier} is either not supported or invalid`)
@@ -91,6 +121,7 @@ jest.mock('@/lib/validation/resolvers/chain-resolver', () => ({
         const nameMap: { [key: string]: string } = {
             '1': 'Ethereum',
             '42161': 'Arbitrum',
+            '8453': 'Base',
         }
         return nameMap[chainId.toString()] || 'Unknown Chain'
     },
@@ -303,6 +334,115 @@ describe('URL Parser Tests', () => {
             expect(result.error?.message).toEqual(EParseUrlError.INVALID_CHAIN)
             expect(result.parsedUrl).toBeNull()
         })
+
+        it('should correctly resolve Ethereum chain by name', async () => {
+            const result = await parsePaymentURL(['vitalik.eth@ethereum', '5ETH'])
+            expect(result.parsedUrl).toEqual(
+                expect.objectContaining({
+                    recipient: expect.objectContaining({
+                        identifier: 'vitalik.eth',
+                        recipientType: 'ENS',
+                        resolvedAddress: '0x1234567890123456789012345678901234567890',
+                    }),
+                    chain: expect.objectContaining({
+                        chainId: 1,
+                        name: 'Ethereum',
+                    }),
+                    amount: '5',
+                    token: expect.objectContaining({
+                        symbol: 'ETH',
+                    }),
+                })
+            )
+        })
+
+        it('should handle ETH on different chains', async () => {
+            // ETH on Ethereum
+            const ethResult = await parsePaymentURL(['vitalik.eth@ethereum', '1ETH'])
+            expect(ethResult.parsedUrl).toEqual(
+                expect.objectContaining({
+                    chain: expect.objectContaining({ chainId: 1 }),
+                    token: expect.objectContaining({ symbol: 'ETH' }),
+                })
+            )
+
+            // ETH on Arbitrum
+            const arbResult = await parsePaymentURL(['vitalik.eth@arbitrum', '0.5ETH'])
+            expect(arbResult.parsedUrl).toEqual(
+                expect.objectContaining({
+                    chain: expect.objectContaining({ chainId: 42161 }),
+                    token: expect.objectContaining({ symbol: 'ETH' }),
+                })
+            )
+        })
+
+        it('should handle USDC on different chains', async () => {
+            // USDC on Ethereum
+            const ethResult = await parsePaymentURL(['0x1234567890123456789012345678901234567890@ethereum', '100USDC'])
+            expect(ethResult.parsedUrl).toEqual(
+                expect.objectContaining({
+                    chain: expect.objectContaining({ chainId: 1 }),
+                    token: expect.objectContaining({
+                        symbol: 'USDC',
+                        address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+                    }),
+                })
+            )
+
+            // USDC on Arbitrum
+            const arbResult = await parsePaymentURL(['0x1234567890123456789012345678901234567890@arbitrum', '50USDC'])
+            expect(arbResult.parsedUrl).toEqual(
+                expect.objectContaining({
+                    chain: expect.objectContaining({ chainId: 42161 }),
+                    token: expect.objectContaining({
+                        symbol: 'USDC',
+                        address: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
+                    }),
+                })
+            )
+        })
+
+        it('should handle chain name variants', async () => {
+            const variants = ['ethereum', 'eth', '1', '0x1']
+            for (const variant of variants) {
+                const result = await parsePaymentURL([`vitalik.eth@${variant}`, '1ETH'])
+                expect(result.parsedUrl?.chain).toEqual(expect.objectContaining({ chainId: 1 }))
+            }
+
+            const arbVariants = ['arbitrum', 'arb', '42161']
+            for (const variant of arbVariants) {
+                const result = await parsePaymentURL([`vitalik.eth@${variant}`, '1ETH'])
+                expect(result.parsedUrl?.chain).toEqual(expect.objectContaining({ chainId: 42161 }))
+            }
+        })
+
+        it('should handle default tokens for different recipient types', async () => {
+            const usernameResult = await parsePaymentURL(['kusharc'])
+            expect(usernameResult.parsedUrl).toEqual(
+                expect.objectContaining({
+                    chain: expect.objectContaining({ chainId: 42161 }),
+                    token: expect.objectContaining({
+                        symbol: 'USDC',
+                        address: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
+                    }),
+                })
+            )
+
+            const addressResult = await parsePaymentURL(['0x1234567890123456789012345678901234567890'])
+            expect(addressResult.parsedUrl?.chain).toBeUndefined()
+            expect(addressResult.parsedUrl?.token).toBeUndefined()
+        })
+
+        it('should handle invalid token/chain combinations', async () => {
+            const result1 = await parsePaymentURL(['vitalik.eth@ethereum', '1DOGE'])
+            expect(result1.error?.message).toBe(EParseUrlError.INVALID_TOKEN)
+
+            const result2 = await parsePaymentURL(['vitalik.eth@solana', '1ETH'])
+            expect(result2.error?.message).toBe(EParseUrlError.INVALID_CHAIN)
+
+            const result3 = await parsePaymentURL(['vitalik.eth@invalid', '1INVALID'])
+            expect(result3.error?.message).toBe(EParseUrlError.INVALID_CHAIN)
+        })
     })
 
     describe('Error Cases', () => {
@@ -329,30 +469,5 @@ describe('URL Parser Tests', () => {
             expect(result.error).toBeTruthy()
             expect(result.parsedUrl).toBeNull()
         })
-    })
-
-    describe('Chain and Token Tests', () => {
-        it('should correctly resolve Ethereum chain by name', async () => {
-            const result = await parsePaymentURL(['vitalik.eth@ethereum', '5ETH'])
-            expect(result.parsedUrl).toEqual(
-                expect.objectContaining({
-                    recipient: expect.objectContaining({
-                        identifier: 'vitalik.eth',
-                        recipientType: 'ENS',
-                        resolvedAddress: '0x1234567890123456789012345678901234567890',
-                    }),
-                    chain: expect.objectContaining({
-                        chainId: 1,
-                        name: 'Ethereum',
-                    }),
-                    amount: '5',
-                    token: expect.objectContaining({
-                        symbol: 'ETH',
-                    }),
-                })
-            )
-        })
-
-        // todo: add more tests for chain and token resolution
     })
 })
