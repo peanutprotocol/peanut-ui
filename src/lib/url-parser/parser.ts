@@ -7,7 +7,7 @@ import { getChainDetails, getTokenAndChainDetails } from '../validation/token'
 import { AmountValidationError } from './errors'
 import { ParsedURL } from './types/payment'
 
-function parseAmountAndToken(amountString: string): { amount?: string; token?: string } {
+export function parseAmountAndToken(amountString: string): { amount?: string; token?: string } {
     // remove all whitespace
     amountString = amountString.trim()
 

@@ -1,37 +1,33 @@
 import { isAddress } from 'viem'
 
 import { JUSTANAME_ENS, PEANUT_API_URL } from '@/constants'
-import { resolveFromEnsName, fetchWithSentry } from '@/utils'
+import { fetchWithSentry, resolveFromEnsName } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import { RecipientValidationError } from '../url-parser/errors'
 import { RecipientType } from '../url-parser/types/payment'
-import * as Sentry from '@sentry/nextjs'
 
 export async function validateAndResolveRecipient(
     recipient: string
 ): Promise<{ identifier: string; recipientType: RecipientType; resolvedAddress: string }> {
     const recipientType = getRecipientType(recipient)
-    let resolvedAddress: string | undefined
 
     switch (recipientType) {
         case 'ENS':
             // resolve the ENS name to address
-            resolvedAddress = await resolveFromEnsName(recipient)
-
+            const resolvedAddress = await resolveFromEnsName(recipient)
             if (!resolvedAddress) {
                 throw new RecipientValidationError('Error resolving ENS name')
             }
-
             return {
                 identifier: recipient,
                 recipientType,
-                resolvedAddress: resolvedAddress,
+                resolvedAddress,
             }
 
         case 'ADDRESS':
             if (!isAddress(recipient)) {
                 throw new RecipientValidationError('Invalid Ethereum address')
             }
-
             return {
                 identifier: recipient,
                 recipientType,
@@ -40,18 +36,14 @@ export async function validateAndResolveRecipient(
 
         case 'USERNAME':
             const isValidPeanutUsername = await verifyPeanutUsername(recipient)
-
-            // check if the recipient is a valid peanut username
             if (!isValidPeanutUsername) {
                 throw new RecipientValidationError('Invalid Peanut username')
             }
-
-            resolvedAddress = await resolveFromEnsName(`${recipient}.${JUSTANAME_ENS}`)
-
+            const address = await resolveFromEnsName(`${recipient}.${JUSTANAME_ENS}`)
             return {
                 identifier: recipient,
                 recipientType,
-                resolvedAddress: resolvedAddress || '',
+                resolvedAddress: address || '',
             }
 
         default:
@@ -64,8 +56,11 @@ export const getRecipientType = (recipient: string): RecipientType => {
         return 'ENS'
     }
 
-    if (isAddress(recipient)) {
-        return 'ADDRESS'
+    if (recipient.startsWith('0x')) {
+        if (isAddress(recipient)) {
+            return 'ADDRESS'
+        }
+        throw new RecipientValidationError('Invalid Ethereum address')
     }
 
     return 'USERNAME'
