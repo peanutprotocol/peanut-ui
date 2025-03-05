@@ -15,4 +15,6 @@ export interface IPaymentState {
     createdChargeDetails: TCharge | null
     resolvedAddress: string | null
     error: string | null
+    usdValue: string | null
+    tokenValue: string | null
 }
