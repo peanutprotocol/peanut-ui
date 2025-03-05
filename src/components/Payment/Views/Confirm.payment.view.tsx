@@ -427,7 +427,7 @@ export default function ConfirmPaymentView() {
                 <PaymentInfoRow
                     loading={isCalculatingFees || isEstimatingGas}
                     label="You are paying"
-                    value={`${formatTokenAmount(Number(estimatedFromValue))} ${getTokenSymbol(selectedTokenAddress, selectedChainID)} on ${getReadableChainName(selectedChainID)}`}
+                    value={`${formatTokenAmount(Number(estimatedFromValue))} ${selectedTokenData?.symbol ?? getTokenSymbol(selectedTokenAddress, selectedChainID)} on ${getReadableChainName(selectedChainID)}`}
                 />
 
                 <PaymentInfoRow

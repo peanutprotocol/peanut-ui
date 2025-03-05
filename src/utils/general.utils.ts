@@ -8,6 +8,7 @@ import chroma from 'chroma-js'
 import { ethers } from 'ethers'
 import { SiweMessage } from 'siwe'
 import * as wagmiChains from 'wagmi/chains'
+import { isAddress } from 'viem'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -59,7 +60,7 @@ export const shortenAddressLong = (address?: string, chars?: number): string => 
 }
 
 export const printableAddress = (address: string): string => {
-    if (validateEnsName(address)) return address
+    if (!isAddress(address)) return address
     return shortenAddressLong(address)
 }
 
@@ -681,10 +682,10 @@ export type UserPreferences = {
         decimals: number
     }
     lastSelectedWallet?: {
-        address: string
+        id: string
     }
     lastFocusedWallet?: {
-        address: string
+        id: string
     }
     balanceHidden?: boolean
 }
@@ -869,6 +870,8 @@ export const switchNetwork = async ({
             await new Promise((resolve) => setTimeout(resolve, 2000))
             setLoadingState('Loading')
         } catch (error) {
+            console.error('Error switching network:', error)
+            Sentry.captureException(error)
             throw new Error('Error switching network.')
         }
     }
