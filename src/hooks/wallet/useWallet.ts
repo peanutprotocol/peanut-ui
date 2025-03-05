@@ -77,7 +77,7 @@ export const useWallet = () => {
     )
 
     const isWalletConnected = useCallback(
-        (wallet: IWallet): boolean => {
+        (wallet: IDBWallet): boolean => {
             if (isPeanut(wallet) && kernelClientAddress) {
                 return isKernelClientReady && areEvmAddressesEqual(kernelClientAddress, wallet.address)
             }
