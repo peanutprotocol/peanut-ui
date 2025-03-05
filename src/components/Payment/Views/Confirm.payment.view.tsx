@@ -18,6 +18,7 @@ import {
     getTokenSymbol,
     isAddressZero,
     switchNetwork as switchNetworkUtil,
+    areEvmAddressesEqual,
 } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
@@ -130,7 +131,10 @@ export default function ConfirmPaymentView() {
             setIsXChain(isXChainTx)
 
             // prepare cross-chain tx
-            if (isXChainTx) {
+            if (
+                isXChainTx ||
+                (selectedTokenData && !areEvmAddressesEqual(selectedTokenData.address, chargeDetails.tokenAddress))
+            ) {
                 if (!selectedTokenData) {
                     throw new Error('Token data not found')
                 }
