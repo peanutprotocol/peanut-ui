@@ -26,6 +26,9 @@ const isPeanut = (wallet?: IDBWallet): boolean => wallet?.walletProviderType ===
 
 const isExternalWallet = (wallet?: IDBWallet): boolean => wallet?.walletProviderType === WalletProviderType.BYOW
 
+const idForWallet = (wallet: Pick<IDBWallet, 'walletProviderType' | 'address'>) =>
+    `${wallet.walletProviderType}-${wallet.address}`
+
 const createDefaultDBWallet = (
     address: string,
     walletProviderType: WalletProviderType,
@@ -128,7 +131,7 @@ export const useWallet = () => {
                 balance,
                 balances,
                 connected: isWalletConnected(dbWallet as IWallet),
-                id: `${dbWallet.walletProviderType}-${dbWallet.address}`,
+                id: idForWallet(dbWallet),
             }
         },
         [connector, isWalletConnected, user?.accounts]
@@ -270,7 +273,11 @@ export const useWallet = () => {
 
     const selectExternalWallet = useCallback(() => {
         if (wagmiAddress?.length) {
-            dispatch(walletActions.setSelectedWalletId(wagmiAddress[0]))
+            dispatch(
+                walletActions.setSelectedWalletId(
+                    idForWallet({ address: wagmiAddress[0], walletProviderType: WalletProviderType.BYOW })
+                )
+            )
         }
     }, [wagmiAddress])
 
