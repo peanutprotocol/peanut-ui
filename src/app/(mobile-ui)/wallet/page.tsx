@@ -129,8 +129,6 @@ const WalletDetailsPage = () => {
                 rightButton={{ title: 'Cashout', href: '/cashout' }}
             />
 
-            {renderTokenDetails()}
-
             {!isPeanutWallet && (
                 <Button
                     onClick={() => (isConnected ? disconnect() : connectWallet())}
@@ -141,6 +139,8 @@ const WalletDetailsPage = () => {
                     <div className="text-black">{isConnected ? 'Disconnect Wallet' : 'Connect Wallet'}</div>
                 </Button>
             )}
+
+            {renderTokenDetails()}
         </div>
     )
 }
