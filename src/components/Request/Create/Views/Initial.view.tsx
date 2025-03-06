@@ -132,7 +132,10 @@ export const InitialView = ({
 
                 //TODO: create util function to generate link
                 const recipient = isPeanutWallet ? user!.user.username : requestLinkDetails.recipientAddress
-                const chain = requestLinkDetails.chainId ? `@${requestLinkDetails.chainId}` : ''
+                let chain: string = ''
+                if (!isPeanutWallet && requestLinkDetails.chainId) {
+                    chain = `@${requestLinkDetails.chainId}`
+                }
                 let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${recipient}${chain}/`
                 if (requestLinkDetails.tokenAmount) {
                     link += `${requestLinkDetails.tokenAmount}`

@@ -20,6 +20,7 @@ import {
     isAddressZero,
     shortenAddressLong,
     switchNetwork as switchNetworkUtil,
+    areEvmAddressesEqual,
 } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
