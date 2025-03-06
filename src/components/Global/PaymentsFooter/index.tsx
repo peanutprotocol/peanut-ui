@@ -13,7 +13,7 @@ interface PaymentsFooterProps {
 
 export const PaymentsFooter = ({
     href = '/history',
-    text = 'See your payments.',
+    text = 'See your payments',
     icon = 'profile',
     className,
     variant,
