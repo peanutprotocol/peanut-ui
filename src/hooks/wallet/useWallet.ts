@@ -26,6 +26,10 @@ const isPeanut = (wallet?: IDBWallet): boolean => wallet?.walletProviderType ===
 
 const isExternalWallet = (wallet?: IDBWallet): boolean => wallet?.walletProviderType === WalletProviderType.BYOW
 
+const isSmartAccount = (wallet?: IDBWallet): boolean =>
+    wallet?.walletProviderType === WalletProviderType.PEANUT ||
+    wallet?.walletProviderType === WalletProviderType.REWARDS
+
 const idForWallet = (wallet: Pick<IDBWallet, 'walletProviderType' | 'address'>) =>
     `${wallet.walletProviderType}-${wallet.address}`
 
@@ -299,6 +303,7 @@ export const useWallet = () => {
         refetchBalances,
         isPeanutWallet: isPeanut(selectedWallet),
         isExternalWallet: isExternalWallet(selectedWallet),
+        isSmartAccount: isSmartAccount(selectedWallet),
         selectExternalWallet,
         isWalletConnected,
         isFetchingWallets: isFetchingWallets || isWalletsQueryLoading,
