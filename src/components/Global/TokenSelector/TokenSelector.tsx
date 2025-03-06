@@ -13,7 +13,6 @@ import { AdvancedTokenSelectorButton } from './Components'
 import { CrispButton } from '@/components/CrispChat'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useAppKit } from '@reown/appkit/react'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import Image from 'next/image'
 import Icon from '../Icon'
@@ -184,7 +183,6 @@ const TokenSelector = ({
         isXChain,
         supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
-    const { open } = useAppKit()
     const { safeInfo, walletType } = useWalletType()
 
     const selectedChainTokens = useMemo(() => {
@@ -280,7 +278,12 @@ const TokenSelector = ({
     }, [visible])
 
     useEffect(() => {
-        if (selectedBalance) return
+        if (
+            selectedBalance &&
+            areEvmAddressesEqual(selectedTokenAddress, selectedBalance.address) &&
+            selectedChainID === selectedBalance.chainId
+        )
+            return
 
         if (_balancesToDisplay.length > 0) {
             setSelectedBalance(
@@ -293,7 +296,7 @@ const TokenSelector = ({
         } else {
             setSelectedBalance(undefined)
         }
-    }, [_balancesToDisplay, selectedTokenAddress, selectedChainID])
+    }, [_balancesToDisplay, selectedTokenAddress, selectedChainID, selectedBalance])
 
     const displayedChain = useMemo(() => {
         if (!selectedChainID) return undefined

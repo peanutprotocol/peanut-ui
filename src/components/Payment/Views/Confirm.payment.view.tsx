@@ -13,6 +13,7 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import {
+    areEvmAddressesEqual,
     ErrorHandler,
     formatAmount,
     getTokenSymbol,
@@ -30,7 +31,7 @@ export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
     const { isConnected, chain: currentChain, address, isPeanutWallet } = useWallet()
-    const { attachmentOptions, parsedPaymentData, error, chargeDetails, usdValue, tokenValue } = usePaymentStore()
+    const { attachmentOptions, parsedPaymentData, error, chargeDetails } = usePaymentStore()
     const { selectedTokenData, selectedChainID, isXChain, setIsXChain, selectedTokenAddress } =
         useContext(tokenSelectorContext)
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
@@ -133,7 +134,10 @@ export default function ConfirmPaymentView() {
             setIsXChain(isXChainTx)
 
             // prepare cross-chain tx
-            if (isXChainTx) {
+            if (
+                isXChainTx ||
+                (selectedTokenData && !areEvmAddressesEqual(selectedTokenData.address, chargeDetails.tokenAddress))
+            ) {
                 if (!selectedTokenData) {
                     throw new Error('Token data not found')
                 }
@@ -161,15 +165,9 @@ export default function ConfirmPaymentView() {
                     }
 
                     setXChainUnsignedTxs(txData.unsignedTxs)
-                    if (txData.estimatedFromAmount) {
-                        setEstimatedFromValue(txData.estimatedFromAmount)
-                    }
-                    if (txData.feeEstimation) {
-                        setTxFee(txData.feeEstimation)
-                    }
-                    if (txData.slippagePercentage) {
-                        setSlippagePercentage(txData.slippagePercentage)
-                    }
+                    setEstimatedFromValue(txData.estimatedFromAmount)
+                    setTxFee(txData.feeEstimation)
+                    setSlippagePercentage(txData.slippagePercentage)
                 } catch (error) {
                     console.error('Cross-chain tx preparation failed:', error)
                     throw new Error('Failed to prepare cross-chain transaction')

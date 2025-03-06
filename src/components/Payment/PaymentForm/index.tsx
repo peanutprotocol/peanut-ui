@@ -21,13 +21,13 @@ import { requestsApi } from '@/services/requests'
 import { CreateChargeRequest } from '@/services/services.types'
 import {
     ErrorHandler,
+    fetchTokenPrice,
     formatAmount,
     getTokenDecimals,
     getTokenSymbol,
     isNativeCurrency,
     printableAddress,
 } from '@/utils'
-import { fetchTokenPrice } from '@/utils/fetch.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -56,6 +56,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         setInputDenomination,
         selectedTokenPrice,
         selectedChainID,
+        selectedTokenDecimals,
         selectedTokenAddress,
         selectedTokenData,
         setSelectedChainID,
@@ -90,7 +91,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             case 'ADDRESS':
                 return selectedTokenAddress
             default:
-                return ''
+                throw new Error('Invalid recipient type')
         }
     }, [chargeDetails?.tokenAddress, requestDetails?.tokenAddress, recipient, selectedTokenAddress])
 
@@ -155,7 +156,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         if (amount) {
             setDisplayTokenAmount(amount)
             setInputTokenAmount(amount)
-            setInputDenomination('TOKEN')
+            setInputDenomination(token?.symbol ? 'TOKEN' : 'USD')
         }
 
         if (chain) {
@@ -421,18 +422,37 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
 
     useEffect(() => {
         if (!inputTokenAmount) return
-
-        setDisplayTokenAmount(inputTokenAmount)
-
-        if (selectedTokenPrice) {
-            const tokenAmount = parseFloat(inputTokenAmount)
-            const calculatedUsdValue = formatAmount(tokenAmount * selectedTokenPrice)
-
-            setUsdValue(calculatedUsdValue)
-        } else {
-            setUsdValue('')
+        if (inputDenomination === 'TOKEN') {
+            setDisplayTokenAmount(inputTokenAmount)
+            if (selectedTokenPrice) {
+                setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
+            }
+        } else if (inputDenomination === 'USD') {
+            setUsdValue(inputTokenAmount)
+            if (selectedTokenPrice) {
+                setDisplayTokenAmount((parseFloat(inputTokenAmount) / selectedTokenPrice).toString())
+            }
         }
-    }, [inputTokenAmount, selectedTokenPrice])
+    }, [inputTokenAmount, inputDenomination, selectedTokenPrice])
+
+    // Initialize inputTokenAmount
+    useEffect(() => {
+        if (amount && !inputTokenAmount && !initialSetupDone) {
+            setInputTokenAmount(amount)
+        }
+    }, [amount, inputTokenAmount, initialSetupDone])
+
+    // Initialize inputDenomination
+    useEffect(() => {
+        if (amount) setInputDenomination(token?.symbol ? 'TOKEN' : 'USD')
+    }, [amount, token])
+
+    // Initialize token selector
+    useEffect(() => {
+        if (!chargeDetails) {
+            resetTokenAndChain()
+        }
+    }, [chargeDetails, resetTokenAndChain])
 
     return (
         <div className="space-y-4">
@@ -449,10 +469,8 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             </div>
 
             <TokenAmountInput
-                tokenValue={displayTokenAmount}
-                setTokenValue={(value: string | undefined) => {
-                    setInputTokenAmount(value || '')
-                }}
+                tokenValue={inputTokenAmount}
+                setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
                 className="w-full"
                 disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
             />
@@ -490,7 +508,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
 
             <div className="space-y-2">
                 <Button
-                    loading={isSubmitting || isFetchingTokenPrice}
+                    loading={isSubmitting}
                     shadowSize="4"
                     onClick={handleCreateCharge}
                     disabled={!canCreateCharge || isSubmitting || isPeanutWalletCrossChainRequest}
