@@ -15,7 +15,7 @@ import { fetchTokenSymbol, isNativeCurrency } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Create.consts'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry, getRequestLink } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useAuth } from '@/context/authContext'
 
@@ -129,22 +129,7 @@ export const InitialView = ({
                     throw new Error(`Request failed: ${requestResponse.status}`)
                 }
                 const requestLinkDetails = await requestResponse.json()
-
-                //TODO: create util function to generate link
-                const recipient = isPeanutWallet ? user!.user.username : requestLinkDetails.recipientAddress
-                let chain: string = ''
-                if (!isPeanutWallet && requestLinkDetails.chainId) {
-                    chain = `@${requestLinkDetails.chainId}`
-                }
-                let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${recipient}${chain}/`
-                if (requestLinkDetails.tokenAmount) {
-                    link += `${requestLinkDetails.tokenAmount}`
-                }
-                if (requestLinkDetails.tokenSymbol) {
-                    link += `${requestLinkDetails.tokenSymbol}`
-                }
-                link += `?id=${requestLinkDetails.uuid}`
-
+                const link = getRequestLink(requestLinkDetails)
                 requestLinkDetails.link = link
 
                 setLink(link)
