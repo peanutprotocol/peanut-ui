@@ -4,10 +4,10 @@ import { next_proxy_url } from '@/constants'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
+import { fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { useState } from 'react'
-import * as Sentry from '@sentry/nextjs'
-import { fetchWithSentry } from '@/utils'
 
 const SignupStep = () => {
     const dispatch = useAppDispatch()
