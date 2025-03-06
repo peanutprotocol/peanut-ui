@@ -1,5 +1,10 @@
 'use client'
-import { USER_OP_ENTRY_POINT, PUBLIC_CLIENTS_BY_CHAIN, PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
+import {
+    USER_OP_ENTRY_POINT,
+    PUBLIC_CLIENTS_BY_CHAIN,
+    PEANUT_WALLET_CHAIN,
+    ZERODEV_KERNEL_VERSION,
+} from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { useAppDispatch } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
@@ -11,7 +16,6 @@ import {
     createZeroDevPaymasterClient,
     KernelAccountClient,
 } from '@zerodev/sdk'
-import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { createContext, useEffect, useState, useContext, ReactNode, useCallback } from 'react'
 import { Chain, http, PublicClient, Transport } from 'viem'
 
@@ -32,7 +36,7 @@ export const createPasskeyValidator = async (publicClient: PublicClient, webAuth
     return await toPasskeyValidator(publicClient, {
         webAuthnKey,
         entryPoint: USER_OP_ENTRY_POINT,
-        kernelVersion: KERNEL_V3_1,
+        kernelVersion: ZERODEV_KERNEL_VERSION,
         validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2,
     })
 }
@@ -46,7 +50,7 @@ export const createKernelAccountForChain = async (
             sudo: passkeyValidator,
         },
         entryPoint: USER_OP_ENTRY_POINT,
-        kernelVersion: KERNEL_V3_1,
+        kernelVersion: ZERODEV_KERNEL_VERSION,
     })
 }
 
