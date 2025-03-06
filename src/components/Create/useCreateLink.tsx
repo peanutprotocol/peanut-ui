@@ -16,7 +16,7 @@ import peanut, {
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
 import { BigNumber, ethers } from 'ethers'
-import { useCallback, useContext, useMemo } from 'react'
+import { useCallback, useContext } from 'react'
 import { formatEther, parseEther, parseUnits } from 'viem'
 import { useAccount, useConfig, useSendTransaction, useSignTypedData, useSwitchChain } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
@@ -32,31 +32,25 @@ import { Hex } from 'viem'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { WalletProviderType } from '@/interfaces'
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
     const { selectedChainID, selectedTokenData, selectedTokenAddress } = useContext(tokenSelectorContext)
 
-    const { chain: currentChain, address, selectedWallet, refetchBalances } = useWallet()
+    const {
+        chain: currentChain,
+        address,
+        selectedWallet,
+        refetchBalances,
+        isExternalWallet,
+        isSmartAccount,
+    } = useWallet()
     const { connector } = useAccount()
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
     const { walletType, environmentInfo } = useWalletType()
-
-    const isActiveWalletSmartAccount = useMemo(
-        () =>
-            selectedWallet?.walletProviderType === WalletProviderType.PEANUT ||
-            selectedWallet?.walletProviderType === WalletProviderType.REWARDS,
-        [selectedWallet]
-    )
-    const isActiveWalletBYOW = useMemo(
-        () => selectedWallet?.walletProviderType === WalletProviderType.BYOW,
-        [selectedWallet]
-    )
-
     const { handleSendUserOpEncoded } = useZeroDev()
 
     // step 1
@@ -564,7 +558,7 @@ export const useCreateLink = () => {
                 let idx = 0
                 const signedTxsResponse: string[] = []
 
-                if (isActiveWalletSmartAccount) {
+                if (isSmartAccount) {
                     const params = preparedDepositTxs.unsignedTxs.map((tx) => ({
                         to: tx.to! as Hex,
                         value: tx.value?.valueOf(),
@@ -590,7 +584,7 @@ export const useCreateLink = () => {
                             Sentry.captureException(error)
                         }
                     }
-                    if (isActiveWalletBYOW) {
+                    if (isExternalWallet) {
                         // Send the transaction using wagmi
                         // current stage is encoded but NOT signed
                         let hash = await sendTransactionAsync({
@@ -642,14 +636,7 @@ export const useCreateLink = () => {
                 throw error
             }
         },
-        [
-            selectedChainID,
-            sendTransactionAsync,
-            config,
-            isActiveWalletSmartAccount,
-            isActiveWalletBYOW,
-            handleSendUserOpEncoded,
-        ]
+        [selectedChainID, sendTransactionAsync, config, isSmartAccount, isExternalWallet, handleSendUserOpEncoded]
     )
     const getLinkFromHash = async ({
         hash,
@@ -694,7 +681,7 @@ export const useCreateLink = () => {
                 chainId: selectedChainID,
                 tokenAddress: selectedTokenAddress,
             })
-            if (_isGaslessDepositPossible && !isActiveWalletSmartAccount) {
+            if (_isGaslessDepositPossible && !isSmartAccount) {
                 // routing only gasless BYOW txs through here
                 const makeGaslessDepositResponse = await makeGaslessDepositPayload({
                     _linkDetails: linkDetails,
@@ -749,7 +736,7 @@ export const useCreateLink = () => {
             estimateGasFee,
             selectedChainID,
             selectedTokenAddress,
-            isActiveWalletSmartAccount,
+            isSmartAccount,
         ]
     )
 
