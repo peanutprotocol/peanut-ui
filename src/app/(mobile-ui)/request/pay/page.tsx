@@ -1,9 +1,8 @@
 import { Metadata } from 'next'
 import { PreviewType } from '@/components/Global/ImageGeneration/LinkPreview'
-import { formatAmount, printableAddress, fetchWithSentry, jsonParse } from '@/utils'
-import { ChargeEntry } from '@/services/services.types'
+import { formatAmount, printableAddress } from '@/utils'
 import { PayRequestLink } from '@/components/Request/Pay/Pay'
-import { PEANUT_API_URL } from '@/constants'
+import { chargesApi } from '@/services/charges'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,9 +41,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     let previewUrl = '/metadata-img.jpg'
     const uuid = searchParams.id ? (Array.isArray(searchParams.id) ? searchParams.id[0] : searchParams.id) : undefined
     if (uuid) {
-        const chargeResponse = await fetchWithSentry(`${PEANUT_API_URL}/request-charges/${uuid}`)
-        if (chargeResponse.ok) {
-            const charge = jsonParse(await chargeResponse.text()) as ChargeEntry
+        try {
+            const charge = await chargesApi.get(uuid)
             const name = charge.requestLink.recipientAddress
                 ? printableAddress(charge.requestLink.recipientAddress)
                 : 'Someone'
@@ -53,7 +51,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
                 ...charge,
                 recipientAddress: charge.requestLink.recipientAddress,
             })
-        }
+        } catch (e) {}
     }
     return {
         title,
