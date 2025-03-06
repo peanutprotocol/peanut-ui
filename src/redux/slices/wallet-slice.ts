@@ -10,6 +10,7 @@ const initialState: WalletUIState = {
     wallets: [],
     isConnected: false,
     walletColor: 'rgba(0,0,0,0)',
+    isFetchingWallets: false,
 }
 
 const walletSlice = createSlice({
@@ -74,6 +75,9 @@ const walletSlice = createSlice({
                     lastFocusedWallet: undefined,
                 })
             }
+        },
+        setIsFetchingWallets: (state, action) => {
+            state.isFetchingWallets = action.payload
         },
     },
 })

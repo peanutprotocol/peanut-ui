@@ -7,4 +7,5 @@ export interface WalletUIState {
     wallets: IWallet[]
     isConnected: boolean
     walletColor: string
+    isFetchingWallets: boolean
 }
