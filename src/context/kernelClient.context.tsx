@@ -50,9 +50,6 @@ export const createKernelAccountForChain = async (
     })
 }
 
-/**
- * Interface for kernel client configuration options
- */
 export interface KernelClientOptions {
     bundlerUrl: string
     paymasterUrl: string
