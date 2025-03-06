@@ -1,6 +1,7 @@
 import { PeanutProvider } from '@/config'
 import * as context from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
+import { Viewport } from 'next'
 import { Londrina_Solid, Roboto_Flex, Sniglet } from 'next/font/google'
 import localFont from 'next/font/local'
 import '../styles/globals.css'
@@ -45,6 +46,13 @@ export const metadata = generateMetadata({
     keywords:
         'blockchain payments, cross-chain transfers, payment infrastructure, crypto payments, stablecoin conversion, fiat offramp, web3 payments, blockchain protocol',
 })
+
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
