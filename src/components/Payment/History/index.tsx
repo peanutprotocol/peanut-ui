@@ -9,6 +9,11 @@ interface PaymentHistoryProps {
     history: TRequestHistory[]
 }
 
+// for now it works
+function getTokenLogo(tokenSymbol: string) {
+    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/${tokenSymbol.toLowerCase()}.svg`
+}
+
 export default function PaymentHistory({ recipient, history }: PaymentHistoryProps) {
     if (history.length === 0 || !recipient) return null
 
@@ -22,7 +27,6 @@ export default function PaymentHistory({ recipient, history }: PaymentHistoryPro
                     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
                     .slice(0, 5)
                     .map((entry, idx) => (
-                        // todo: render token icons
                         <ListItemView
                             key={entry.uuid}
                             id={`${entry.chainId}-${idx}`}
@@ -40,6 +44,7 @@ export default function PaymentHistory({ recipient, history }: PaymentHistoryPro
                                     : `Status: ${entry.status}`,
                                 subText: new Date(entry.timestamp).toLocaleDateString(),
                                 disableEnsResolution: true,
+                                tokenLogo: getTokenLogo(entry.tokenSymbol),
                             }}
                         />
                     ))}
