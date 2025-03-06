@@ -1,8 +1,8 @@
 import { Metadata } from 'next'
-import { peanut } from '@squirrel-labs/peanut-sdk'
-import { PayRequestLink } from '@/components'
 import { PreviewType } from '@/components/Global/ImageGeneration/LinkPreview'
 import { formatAmount, printableAddress } from '@/utils'
+import { PayRequestLink } from '@/components/Request/Pay/Pay'
+import { chargesApi } from '@/services/charges'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +11,16 @@ type Props = {
     searchParams: { [key: string]: string | string[] | undefined }
 }
 
-function getPreviewUrl(host: string, data: Awaited<ReturnType<typeof peanut.getRequestLinkDetails>>) {
+function getPreviewUrl(
+    host: string,
+    data: {
+        tokenAmount: string
+        chainId: string
+        tokenAddress: string
+        tokenSymbol: string
+        recipientAddress: string
+    }
+) {
     const url = new URL('/api/preview-image', host)
 
     const params = new URLSearchParams({
@@ -32,18 +41,17 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     let previewUrl = '/metadata-img.jpg'
     const uuid = searchParams.id ? (Array.isArray(searchParams.id) ? searchParams.id[0] : searchParams.id) : undefined
     if (uuid) {
-        const host = process.env.NEXT_PUBLIC_BASE_URL!
         try {
-            const linkDetails = await peanut.getRequestLinkDetails({
-                uuid,
-                apiUrl: `${host}/api/proxy/get`,
+            const charge = await chargesApi.get(uuid)
+            const name = charge.requestLink.recipientAddress
+                ? printableAddress(charge.requestLink.recipientAddress)
+                : 'Someone'
+            title = `${name} is requesting ${formatAmount(Number(charge.tokenAmount))} ${charge.tokenSymbol}`
+            previewUrl = getPreviewUrl(process.env.NEXT_PUBLIC_BASE_URL!, {
+                ...charge,
+                recipientAddress: charge.requestLink.recipientAddress,
             })
-            const name = linkDetails.recipientAddress ? printableAddress(linkDetails.recipientAddress) : 'Someone'
-            title = `${name} is requesting ${formatAmount(Number(linkDetails.tokenAmount))} ${linkDetails.tokenSymbol}`
-            previewUrl = getPreviewUrl(host, linkDetails)
-        } catch (e) {
-            console.error('Error fetching request link details:', e)
-        }
+        } catch (e) {}
     }
     return {
         title,
