@@ -278,41 +278,7 @@ const TokenSelector = ({
         }
     }, [visible])
 
-    // set default chain if none is selected
     useEffect(() => {
-        if (!selectedChainID && supportedSquidChainsAndTokens) {
-            // default to first available chain
-            const defaultChainId = Object.keys(supportedSquidChainsAndTokens)[0]
-            if (defaultChainId) {
-                setSelectedChainID(defaultChainId)
-            }
-        }
-    }, [selectedChainID, supportedSquidChainsAndTokens])
-
-    // set default token if none is selected
-    useEffect(() => {
-        if (!selectedTokenAddress && selectedChainID && supportedSquidChainsAndTokens[selectedChainID]) {
-            const chainTokens = supportedSquidChainsAndTokens[selectedChainID].tokens
-            // try to find USDC first
-            const defaultToken =
-                chainTokens.find((t) => t.symbol.toLowerCase() === 'usdc') ||
-                chainTokens.find((t) => t.symbol.toLowerCase() === 'eth') ||
-                chainTokens[0]
-
-            if (defaultToken) {
-                setSelectedTokenAddress(defaultToken.address)
-                setSelectedTokenDecimals(defaultToken.decimals)
-            }
-        }
-    }, [selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens])
-
-    useEffect(() => {
-        // skip if any required values are missing
-        if (!selectedTokenAddress || !selectedChainID) {
-            setSelectedBalance(undefined)
-            return
-        }
-
         if (
             selectedBalance &&
             areEvmAddressesEqual(selectedTokenAddress, selectedBalance.address) &&
