@@ -142,36 +142,31 @@ export default function ConfirmPaymentView() {
                     throw new Error('Token data not found')
                 }
 
-                try {
-                    const txData = await createXChainUnsignedTx(
-                        {
-                            address: selectedTokenData.address,
-                            chainId: selectedTokenData.chainId,
-                            decimals: selectedTokenData.decimals || 18,
-                        },
-                        {
-                            recipientAddress: chargeDetails.requestLink.recipientAddress,
-                            chainId: chargeDetails.chainId,
-                            tokenAmount: chargeDetails.tokenAmount,
-                            tokenAddress: chargeDetails.tokenAddress,
-                            tokenDecimals: chargeDetails.tokenDecimals,
-                            tokenType: chargeDetails.tokenType,
-                        },
-                        address
-                    )
+                const txData = await createXChainUnsignedTx(
+                    {
+                        address: selectedTokenData.address,
+                        chainId: selectedTokenData.chainId,
+                        decimals: selectedTokenData.decimals || 18,
+                    },
+                    {
+                        recipientAddress: chargeDetails.requestLink.recipientAddress,
+                        chainId: chargeDetails.chainId,
+                        tokenAmount: chargeDetails.tokenAmount,
+                        tokenAddress: chargeDetails.tokenAddress,
+                        tokenDecimals: chargeDetails.tokenDecimals,
+                        tokenType: chargeDetails.tokenType,
+                    },
+                    address
+                )
 
-                    if (!txData?.unsignedTxs) {
-                        throw new Error('Failed to prepare cross-chain transaction')
-                    }
-
-                    setXChainUnsignedTxs(txData.unsignedTxs)
-                    setEstimatedFromValue(txData.estimatedFromAmount)
-                    setTxFee(txData.feeEstimation)
-                    setSlippagePercentage(txData.slippagePercentage)
-                } catch (error) {
-                    console.error('Cross-chain tx preparation failed:', error)
+                if (!txData?.unsignedTxs) {
                     throw new Error('Failed to prepare cross-chain transaction')
                 }
+
+                setXChainUnsignedTxs(txData.unsignedTxs)
+                setEstimatedFromValue(txData.estimatedFromAmount)
+                setTxFee(txData.feeEstimation)
+                setSlippagePercentage(txData.slippagePercentage)
             } else {
                 // prepare same-chain transaction
                 const tx = peanut.prepareRequestLinkFulfillmentTransaction({

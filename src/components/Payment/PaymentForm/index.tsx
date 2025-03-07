@@ -162,7 +162,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         if (chain) {
             setSelectedChainID((chain.chainId || requestDetails?.chainId) ?? '')
             if (!token && !requestDetails?.tokenAddress) {
-                const defaultToken = chain.tokens.find((t) => t.symbol === 'USDC')
+                const defaultToken = chain.tokens.find((t) => t.symbol.toLowerCase() === 'usdc')
                 if (defaultToken) {
                     setSelectedTokenAddress(defaultToken.address)
                     setSelectedTokenDecimals(defaultToken.decimals)
@@ -192,7 +192,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         }
     }, [isPeanutWallet])
 
-    // fetche token price
+    // fetch token price
     useEffect(() => {
         if (!requestDetails?.tokenAddress || !requestDetails?.chainId || !requestDetails?.tokenAmount) return
 
@@ -371,7 +371,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
 
         const tokenSymbol = requestDetails.tokenSymbol || token?.symbol
 
-        const dispalyAmount = tokenUsdValue
+        const displayAmount = tokenUsdValue
             ? `$${tokenUsdValue} ( ${formatAmount(tokenAmount)} ${tokenSymbol} )`
             : `${formatAmount(tokenAmount)} ${tokenSymbol}`
 
@@ -379,7 +379,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             <div className="mb-6 border border-dashed border-black p-4">
                 <div className="text-sm font-semibold text-black">{recipientLabel} is requesting:</div>
                 <div className="flex flex-col">
-                    <PaymentInfoRow label="Amount" value={dispalyAmount} />
+                    <PaymentInfoRow label="Amount" value={displayAmount} />
                     {requestDetails.chainId && (
                         <PaymentInfoRow label="Network" value={getReadableChainName(requestDetails.chainId)} />
                     )}

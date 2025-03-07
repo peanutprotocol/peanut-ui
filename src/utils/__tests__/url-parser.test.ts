@@ -234,7 +234,7 @@ describe('URL Parser Tests', () => {
             expect(result.parsedUrl?.token?.symbol).toBe(undefined)
         })
 
-        it('token without chain should return error', async () => {
+        it('should default to Arbitrum chain when only token symbol is provided', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A', 'ETH'])
             expect(result.error).toBeNull()
             expect(result.parsedUrl).toEqual(
