@@ -278,6 +278,17 @@ const TokenSelector = ({
         }
     }, [visible])
 
+    // set default chain if none is selected
+    useEffect(() => {
+        if (!selectedChainID && supportedSquidChainsAndTokens) {
+            // default to first available chain
+            const defaultChainId = Object.keys(supportedSquidChainsAndTokens)[0]
+            if (defaultChainId) {
+                setSelectedChainID(defaultChainId)
+            }
+        }
+    }, [selectedChainID, supportedSquidChainsAndTokens])
+
     // set default token if none is selected
     useEffect(() => {
         if (!selectedTokenAddress && selectedChainID && supportedSquidChainsAndTokens[selectedChainID]) {
