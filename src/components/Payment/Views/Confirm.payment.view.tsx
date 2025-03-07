@@ -13,12 +13,13 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import {
+    areEvmAddressesEqual,
     ErrorHandler,
-    formatTokenAmount,
+    formatAmount,
     getTokenSymbol,
     isAddressZero,
+    shortenAddressLong,
     switchNetwork as switchNetworkUtil,
-    areEvmAddressesEqual,
 } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
@@ -81,11 +82,13 @@ export default function ConfirmPaymentView() {
         }
 
         try {
+            const formattedTokenAmount = Number(requestLink.tokenAmount).toFixed(requestLink.tokenDecimals)
+
             // prepare link details
             const linkDetails = {
                 recipientAddress: requestLink.recipientAddress,
                 chainId: requestLink.chainId.toString(),
-                tokenAmount: requestLink.tokenAmount,
+                tokenAmount: formattedTokenAmount,
                 tokenAddress: requestLink.tokenAddress,
                 tokenDecimals: requestLink.tokenDecimals,
                 tokenType: Number(requestLink.tokenType),
@@ -143,7 +146,7 @@ export default function ConfirmPaymentView() {
                     {
                         address: selectedTokenData.address,
                         chainId: selectedTokenData.chainId,
-                        decimals: selectedTokenData.decimals,
+                        decimals: selectedTokenData.decimals || 18,
                     },
                     {
                         recipientAddress: chargeDetails.requestLink.recipientAddress,
@@ -427,13 +430,13 @@ export default function ConfirmPaymentView() {
                 <PaymentInfoRow
                     loading={isCalculatingFees || isEstimatingGas}
                     label="You are paying"
-                    value={`${formatTokenAmount(Number(estimatedFromValue))} ${getTokenSymbol(selectedTokenAddress, selectedChainID)} on ${getReadableChainName(selectedChainID)}`}
+                    value={`${formatAmount(Number(estimatedFromValue))} ${getTokenSymbol(selectedTokenAddress, selectedChainID)} on ${getReadableChainName(selectedChainID)}`}
                 />
 
                 <PaymentInfoRow
                     loading={isCalculatingFees || isEstimatingGas}
-                    label={`${parsedPaymentData?.recipient.identifier} will receive`}
-                    value={`${formatTokenAmount(Number(chargeDetails!.tokenAmount))} ${chargeDetails?.tokenSymbol} on ${getReadableChainName(chargeDetails.chainId)}`}
+                    label={`${parsedPaymentData?.recipient.recipientType === 'ADDRESS' ? shortenAddressLong(parsedPaymentData?.recipient.identifier) : parsedPaymentData?.recipient.identifier} will receive`}
+                    value={`${formatAmount(Number(chargeDetails!.tokenAmount))} ${chargeDetails?.tokenSymbol} on ${getReadableChainName(chargeDetails.chainId)}`}
                 />
 
                 {attachmentOptions.fileUrl && (

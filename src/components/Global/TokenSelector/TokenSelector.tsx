@@ -13,7 +13,6 @@ import { AdvancedTokenSelectorButton } from './Components'
 import { CrispButton } from '@/components/CrispChat'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useAppKit } from '@reown/appkit/react'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import Image from 'next/image'
 import Icon from '../Icon'
@@ -183,6 +182,7 @@ const TokenSelector = ({
         setSelectedChainID,
         isXChain,
         supportedSquidChainsAndTokens,
+        setSelectedTokenDecimals,
     } = useContext(context.tokenSelectorContext)
     const { safeInfo, walletType } = useWalletType()
 

@@ -1,14 +1,14 @@
 import * as consts from '@/constants'
 import { INFURA_API_KEY } from '@/constants'
 import * as interfaces from '@/interfaces'
+import { AccountType } from '@/interfaces'
 import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
 import * as Sentry from '@sentry/nextjs'
 import peanut from '@squirrel-labs/peanut-sdk'
 import chroma from 'chroma-js'
 import { SiweMessage } from 'siwe'
-import * as wagmiChains from 'wagmi/chains'
-import { AccountType } from '@/interfaces'
 import { getAddress, isAddress } from 'viem'
+import * as wagmiChains from 'wagmi/chains'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -891,11 +891,13 @@ export function getTokenDecimals(tokenAddress: string, chainId: string): number 
  *
  * @returns The token symbol, or undefined if not found.
  */
-export function getTokenSymbol(tokenAddress: string, chainId: string): string | undefined {
-    return consts.peanutTokenDetails
-        .find((chain) => chain.chainId === chainId)
-        ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
-        ?.symbol?.toUpperCase()
+export function getTokenSymbol(tokenAddress: string | undefined, chainId: string | undefined): string | undefined {
+    if (!tokenAddress || !chainId) return undefined
+
+    const chainTokens = consts.peanutTokenDetails.find((chain) => chain.chainId === chainId)?.tokens
+    if (!chainTokens) return undefined
+
+    return chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.symbol
 }
 
 /**

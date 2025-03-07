@@ -51,6 +51,11 @@ const NavSection: React.FC<NavSectionProps> = ({ title, tabs, pathName, isLastSe
                 className={classNames('flex items-center gap-3 hover:cursor-pointer hover:text-white/80', {
                     'text-primary-1': pathName === href,
                 })}
+                onClick={() => {
+                    if (pathName === href) {
+                        window.location.reload()
+                    }
+                }}
             >
                 <NavIcons name={icon} className="block h-4 w-4" />
                 <span className="block w-fit pt-0.5 text-center text-base font-semibold">{name}</span>
