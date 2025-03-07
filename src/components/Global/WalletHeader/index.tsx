@@ -8,8 +8,7 @@ import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { IDBWallet, IWallet, WalletProviderType } from '@/interfaces'
 import { printableUsdc, shortenAddressLong } from '@/utils'
 import { usePrimaryName } from '@justaname.id/react'
-import classNames from 'classnames'
-import Image from 'next/image'
+import Image, { StaticImageData } from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import CopyToClipboard from '../CopyToClipboard'
@@ -22,6 +21,7 @@ interface WalletHeaderProps {
     isConnected?: boolean
     isUsable?: boolean
 }
+
 interface WalletEntryCardProps {
     wallet: IWallet
     isActive?: boolean
@@ -29,6 +29,86 @@ interface WalletEntryCardProps {
     isConnected?: boolean
     isUsable?: boolean
 }
+
+interface WalletIconContainerProps {
+    src: string | StaticImageData
+    size?: number
+    containerSize?: number
+    className?: string
+}
+
+interface ModalHeaderProps {
+    title: string
+    description: string
+}
+
+interface ModalActionsProps {
+    onCancel: () => void
+    onAccept: () => void
+    isConnecting: boolean
+}
+
+interface ConfirmationModalProps {
+    wallet: IWallet
+    showModal: boolean
+    setShowModal: (showModal: boolean) => void
+    onAccept: () => void
+}
+
+// common Components
+const WalletIconContainer: React.FC<WalletIconContainerProps> = ({
+    src,
+    size = 6,
+    containerSize = 7,
+    className = '',
+}) => (
+    <div
+        className={twMerge(
+            `flex size-${containerSize} items-center justify-center rounded-full border border-n-1 bg-white p-2`,
+            className
+        )}
+    >
+        <Image src={src} alt="" width={24} height={24} className={`size-${size} object-contain`} />
+    </div>
+)
+
+const ConnectionStatusDot: React.FC<{ isConnected: boolean }> = ({ isConnected }) => (
+    <div className={twMerge(isConnected ? 'bg-success-1' : 'bg-gray-2', 'size-2 rounded-full')} />
+)
+
+// modal components
+const ModalHeader: React.FC<ModalHeaderProps> = ({ title, description }) => (
+    <div className="flex items-start gap-2">
+        <WalletIconContainer src={PeanutWalletIcon} />
+        <div className="space-y-1">
+            <h1 className="text-lg font-bold">{title}</h1>
+            <p className="text-sm font-medium">{description}</p>
+        </div>
+    </div>
+)
+
+const InfoBox: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <div className="flex w-full items-start justify-center gap-2 border border-black bg-purple-5 p-4">
+        <Icon name="info" fill="black" className="h-4 w-4" />
+        <div className="text-xs">{children}</div>
+    </div>
+)
+
+const ModalActions: React.FC<ModalActionsProps> = ({ onCancel, onAccept, isConnecting }) => (
+    <div className="flex items-center justify-between gap-6">
+        <Button
+            size="medium"
+            onClick={onCancel}
+            variant="stroke"
+            className="bg-purple-5 text-black hover:bg-purple-5/80 hover:text-black active:bg-purple-5/80"
+        >
+            Cancel
+        </Button>
+        <Button size="medium" onClick={onAccept} variant="purple" disabled={isConnecting}>
+            {isConnecting ? 'Connecting...' : 'Accept'}
+        </Button>
+    </div>
+)
 
 const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
     const [showModal, setShowModal] = useState(false)
@@ -86,16 +166,9 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
                 )}
                 onClick={() => setShowModal(true)}
             >
-                {/* wallet icon container */}
-                <div className="flex size-7 items-center justify-center rounded-full border border-n-1 bg-white p-2">
-                    <Image
-                        src={isPeanutWallet ? PeanutWalletIcon : selectedWallet?.connector?.iconUrl || PeanutWalletIcon}
-                        alt=""
-                        width={24}
-                        height={24}
-                        className="size-6 object-contain"
-                    />
-                </div>
+                <WalletIconContainer
+                    src={isPeanutWallet ? PeanutWalletIcon : selectedWallet?.connector?.iconUrl || PeanutWalletIcon}
+                />
 
                 {isConnected ? (
                     <span>
@@ -122,11 +195,6 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
                     {/* modal header */}
                     <div className="absolute top-3 flex items-center justify-between">
                         <div className="text-2xl font-black">Wallets</div>
-                        {/* todo: re-add this when wallet management is implemented */}
-                        {/* <Button size="small" variant="yellow" className="w-fit bg-yellow-4/80 bg-opacity-20">
-                            <Image src={Wallet_ICON} alt="" width={24} height={24} className="size-6 object-contain" />
-                            <span>Manage wallet</span>
-                        </Button> */}
                     </div>
                     {/* list connected wallets */}
                     <div className="space-y-2.5 pt-4">
@@ -147,21 +215,14 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
 }
 
 // individual wallet card component
-const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) => {
+const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onClick }) => {
     const { username } = useAuth()
     const { isWalletConnected } = useWallet()
-    const { connectWallet, connectionStatus } = useWalletConnection()
+    const [showConfirmationModal, setShowConfirmationModal] = useState(false)
 
     const isExternalWallet = useMemo(() => wallet.walletProviderType !== WalletProviderType.PEANUT, [wallet])
     const isPeanutWallet = useMemo(() => wallet.walletProviderType === WalletProviderType.PEANUT, [wallet])
     const isConnected = isWalletConnected(wallet)
-
-    const handleAction = async (e: React.MouseEvent) => {
-        e.stopPropagation()
-        if (isExternalWallet && !isConnected) {
-            await connectWallet()
-        }
-    }
 
     // get wallet icon to display
     const walletImage = useMemo(() => {
@@ -183,8 +244,29 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
         address: wallet.address,
     })
 
+    const handleCardClick = () => {
+        if (isExternalWallet && !isConnected) {
+            setShowConfirmationModal(true)
+        } else {
+            onClick()
+        }
+    }
+
+    const WalletStatus: React.FC = () => (
+        <div className="flex items-center gap-2">
+            <ConnectionStatusDot isConnected={isConnected} />
+            <p className="text-xs font-medium">
+                {isPeanutWallet
+                    ? 'Always ready to use'
+                    : isExternalWallet && isConnected
+                      ? 'Connected & Ready to sign'
+                      : 'Not connected'}
+            </p>
+        </div>
+    )
+
     return (
-        <Card onClick={onClick}>
+        <Card onClick={handleCardClick}>
             <Card.Content
                 className={twMerge(
                     'flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-black transition-all duration-300',
@@ -192,70 +274,43 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
                     isExternalWallet && !isConnected && 'text-gray-5'
                 )}
             >
-                {/* wallet icon */}
-                <div className="flex size-12 min-w-12 items-center justify-center rounded-full border border-n-1 bg-white p-2">
-                    <Image src={walletImage} alt="" width={32} height={32} className="size-7 object-contain" />
-                </div>
-
+                <WalletIconContainer src={walletImage} size={7} containerSize={12} className="min-w-12" />
                 {/* wallet details section */}
                 <div className="flex w-full flex-col gap-1">
                     <div className="flex w-full items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <p className="text-base font-bold">
-                                {isPeanutWallet
-                                    ? 'Peanut'
-                                    : wallet?.connector?.name || shortenAddressLong(wallet.address)}
-                            </p>
-                        </div>
-                        <p className="text-base font-bold">${printableUsdc(wallet.balance)}</p>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                            {isPeanutWallet && username ? (
-                                <p className="text-xs font-medium">
-                                    peanut.me/<span className="font-black">{username}</span>
-                                </p>
-                            ) : (
-                                <p className="text-xs font-medium">
-                                    {primaryName || shortenAddressLong(wallet.address)}
-                                </p>
-                            )}
-                            <CopyToClipboard
-                                className="h-4 w-4"
-                                fill={'black'}
-                                textToCopy={
-                                    isPeanutWallet && username
-                                        ? `https://peanut.me/${username}`
-                                        : primaryName || wallet.address
-                                }
-                            />
-                        </div>
-                        {isConnected && (
-                            <div
-                                className={classNames('w-20 rounded-sm bg-white/75 px-2 py-1 text-xs font-bold', {
-                                    'text-success-1': isConnected,
-                                })}
-                            >
-                                Connected
-                            </div>
-                        )}
-
-                        {isExternalWallet && !isConnected && (
-                            <button
-                                onClick={handleAction}
-                                disabled={connectionStatus === 'connecting'}
-                                className={classNames(
-                                    'minw w-20 rounded-sm px-2 py-1 text-xs font-bold text-black',
-                                    connectionStatus === 'connecting' ? 'bg-purple-1/50' : 'bg-purple-1'
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                {isPeanutWallet && username ? (
+                                    <p className="text-base font-bold">Peanut Wallet</p>
+                                ) : (
+                                    <p className="text-base font-bold">
+                                        {primaryName || shortenAddressLong(wallet.address)}
+                                    </p>
                                 )}
-                            >
-                                {connectionStatus === 'connecting' ? 'Connecting...' : 'Connect'}
-                            </button>
-                        )}
+                                <CopyToClipboard
+                                    className="h-4 w-4"
+                                    fill={'black'}
+                                    textToCopy={
+                                        isPeanutWallet && username
+                                            ? `https://peanut.me/${username}`
+                                            : primaryName || wallet.address
+                                    }
+                                />
+                            </div>
+                            <WalletStatus />
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                            <p className="text-base font-bold">${printableUsdc(wallet.balance)}</p>
+                        </div>
                     </div>
                 </div>
             </Card.Content>
+            <ConfirmationModal
+                wallet={wallet}
+                showModal={showConfirmationModal}
+                setShowModal={setShowConfirmationModal}
+                onAccept={onClick}
+            />
         </Card>
     )
 }
@@ -271,5 +326,42 @@ const AddNewWallet = ({ onClick }: { onClick: () => void }) => (
         </Card.Content>
     </Card>
 )
+
+const ConfirmationModal = ({ wallet, showModal, setShowModal, onAccept }: ConfirmationModalProps) => {
+    const { connectWallet, connectionStatus } = useWalletConnection()
+
+    const handleAccept = async () => {
+        await connectWallet()
+        onAccept()
+        setShowModal(false)
+    }
+
+    return (
+        <Modal
+            visible={showModal}
+            onClose={() => setShowModal(false)}
+            className="w-full items-center"
+            classWrap="bg-background rounded-none border-0 p-6 w-full max-h-[65vh] md:max-h-full overflow-y-auto"
+        >
+            <div className="space-y-4">
+                <div className="space-y-3">
+                    <ModalHeader
+                        title={`Connect to ${shortenAddressLong(wallet.address)}?`}
+                        description="This will disconnect any other external wallet currently connected."
+                    />
+                    <InfoBox>
+                        <span className="font-bold">Important:</span> Make sure the account you want to connect is
+                        selected in your external wallet.
+                    </InfoBox>
+                </div>
+                <ModalActions
+                    onCancel={() => setShowModal(false)}
+                    onAccept={handleAccept}
+                    isConnecting={connectionStatus === 'connecting'}
+                />
+            </div>
+        </Modal>
+    )
+}
 
 export default WalletHeader
