@@ -208,13 +208,6 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                     const tokenAmount = parseFloat(requestDetails.tokenAmount)
                     const usdValue = formatAmount(tokenAmount * priceData.price)
 
-                    dispatch(
-                        paymentActions.setPaymentValues({
-                            tokenValue: requestDetails.tokenAmount,
-                            usdValue,
-                        })
-                    )
-
                     setInputDenomination('USD')
                     setInputTokenAmount(usdValue)
                     setUsdValue(usdValue)
