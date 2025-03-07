@@ -6,7 +6,8 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { IDBWallet, IWallet, WalletProviderType } from '@/interfaces'
-import { printableUsdc, shortenAddress, shortenAddressLong } from '@/utils'
+import { printableUsdc, shortenAddressLong } from '@/utils'
+import { truncateString } from '@/utils/format.utils'
 import { identicon } from '@dicebear/collection'
 import { createAvatar } from '@dicebear/core'
 import { usePrimaryName } from '@justaname.id/react'
@@ -305,9 +306,8 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onC
                                     <p className="text-base font-bold">Peanut Wallet</p>
                                 ) : (
                                     <p className="text-base font-bold">
-                                        {primaryName && primaryName?.length > 15
-                                            ? shortenAddress(primaryName)
-                                            : primaryName || shortenAddressLong(wallet.address)}
+                                        {(primaryName && truncateString(primaryName, 18)) ||
+                                            shortenAddressLong(wallet.address)}
                                     </p>
                                 )}
                                 <CopyToClipboard
