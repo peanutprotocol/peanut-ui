@@ -8,6 +8,7 @@ import chroma from 'chroma-js'
 import { ethers } from 'ethers'
 import { SiweMessage } from 'siwe'
 import * as wagmiChains from 'wagmi/chains'
+import { AccountType } from '@/interfaces'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -997,4 +998,40 @@ export const formatExtendedNumber = (amount: string | number): string => {
     }
 
     return formatAmount(num)
+}
+
+export function getRequestLink(
+    requestData: {
+        recipientAccount: {
+            type: string
+            user?: {
+                username: string
+            }
+        }
+        recipientAddress: string
+        chainId?: string
+        tokenAmount?: string
+        tokenSymbol?: string
+    } & ({ uuid: string; chargeId?: never } | { uuid?: never; chargeId: string })
+): string {
+    const { recipientAccount, recipientAddress, chainId, tokenAmount, tokenSymbol, uuid, chargeId } = requestData
+    const isPeanutWallet = recipientAccount.type === AccountType.PEANUT_WALLET
+    const recipient = isPeanutWallet ? recipientAccount.user!.username : recipientAddress
+    let chain: string = ''
+    if (!isPeanutWallet && chainId) {
+        chain = `@${chainId}`
+    }
+    let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${recipient}${chain}/`
+    if (tokenAmount) {
+        link += `${tokenAmount}`
+    }
+    if (tokenSymbol) {
+        link += `${tokenSymbol}`
+    }
+    if (uuid) {
+        link += `?id=${uuid}`
+    } else if (chargeId) {
+        link += `?chargeId=${chargeId}`
+    }
+    return link
 }

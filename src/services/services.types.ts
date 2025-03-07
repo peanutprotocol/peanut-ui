@@ -47,7 +47,7 @@ export interface TRequestResponse {
     }
 }
 
-interface ChargeEntry {
+export interface ChargeEntry {
     uuid: string
     createdAt: string
     link: string
