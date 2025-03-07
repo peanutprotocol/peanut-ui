@@ -6,8 +6,8 @@ import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
 import * as Sentry from '@sentry/nextjs'
 import peanut from '@squirrel-labs/peanut-sdk'
 import chroma from 'chroma-js'
-import { ethers } from 'ethers'
 import { SiweMessage } from 'siwe'
+import { getAddress, isAddress } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
 
 export function urlBase64ToUint8Array(base64String: string) {
@@ -413,17 +413,18 @@ export const isTestnetChain = (chainId: string) => {
 }
 
 export const areEvmAddressesEqual = (address1: string, address2: string): boolean => {
+    if (!isAddress(address1) || !isAddress(address2)) return false
     if (address1.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
-        address1 = ethers.constants.AddressZero
+        address1 = '0x0000000000000000000000000000000000000000'
     if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
-        address2 = ethers.constants.AddressZero
-    // By using ethers.getAddress we are safe from different cases
+        address2 = '0x0000000000000000000000000000000000000000'
+    // By using getAddress we are safe from different cases
     // and other address formatting
-    return ethers.utils.getAddress(address1) === ethers.utils.getAddress(address2)
+    return getAddress(address1) === getAddress(address2)
 }
 
 export const isAddressZero = (address: string): boolean => {
-    return areEvmAddressesEqual(address, ethers.constants.AddressZero)
+    return areEvmAddressesEqual(address, '0x0000000000000000000000000000000000000000')
 }
 
 export const isNativeCurrency = (address: string) => {
