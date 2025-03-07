@@ -1,12 +1,11 @@
 'use client'
 
-import { useToast } from '@/components/0_Bruddle/Toast'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import LogoutButton from '@/components/Global/LogoutButton'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import { WalletCard } from '@/components/Home/WalletCard'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
 import { useAuth } from '@/context/authContext'
-import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { WalletProviderType } from '@/interfaces'
@@ -35,7 +34,7 @@ export default function Home() {
 
     const { username } = useAuth()
 
-    const { selectedWallet, wallets, isPeanutWallet, isConnected, setSelectedWallet, isWalletConnected } = useWallet()
+    const { selectedWallet, wallets, setSelectedWallet, isWalletConnected, isFetchingWallets } = useWallet()
 
     // initialize focusedIndex to match selectedWalletIndex
     const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
@@ -53,8 +52,6 @@ export default function Home() {
     }, [selectedWallet, wallets, dispatch])
 
     const hasWallets = wallets.length > 0
-    const { handleLogin, isLoggingIn } = useZeroDev()
-    const toast = useToast()
     const totalCards = hasWallets ? wallets.length + 1 : 1
 
     const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -122,6 +119,10 @@ export default function Home() {
             x: -(targetIndex * (cardWidth + cardMargin)),
             transition: { type: 'spring', stiffness: 300, damping: 30 },
         })
+    }
+
+    if (isFetchingWallets) {
+        return <PeanutLoading />
     }
 
     return (

@@ -7,12 +7,12 @@ import * as interfaces from '@/interfaces'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, backgroundColorFromAddress, fetchWalletBalances } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo } from 'react'
 import { erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { useZeroDev } from '../useZeroDev'
-import * as Sentry from '@sentry/nextjs'
 
 // utility functions
 const isPeanut = (wallet?: interfaces.IDBWallet): boolean =>
@@ -48,7 +48,7 @@ export const useWallet = () => {
         chain: wagmiChain,
     } = useAccount()
 
-    const { selectedAddress, wallets, signInModalVisible, walletColor } = useWalletStore()
+    const { selectedAddress, wallets, signInModalVisible, walletColor, isFetchingWallets } = useWalletStore()
 
     const getUserAccount = useCallback(
         (user: interfaces.IUserProfile, address: string) =>
@@ -106,6 +106,7 @@ export const useWallet = () => {
     )
 
     const mergeAndProcessWallets = useCallback(async () => {
+        dispatch(walletActions.setIsFetchingWallets(true))
         const userAccounts = user?.accounts || []
         const wagmiAddressesList = wagmiAddress || []
 
@@ -156,16 +157,23 @@ export const useWallet = () => {
         }, [] as interfaces.IDBWallet[])
 
         dispatch(walletActions.setWallets(mergedWallets))
+        dispatch(walletActions.setIsFetchingWallets(false))
         return mergedWallets
     }, [fetchWalletDetails, wagmiAddress, user, user?.accounts, dispatch])
 
-    useQuery({
+    const { isLoading: isWalletsQueryLoading } = useQuery({
         queryKey: ['wallets', user?.accounts, wagmiAddress],
         queryFn: mergeAndProcessWallets,
         enabled: !!wagmiAddress || !!user,
         staleTime: 30 * 1000, // 30 seconds
         gcTime: 1 * 60 * 1000, // 1 minute
     })
+
+    useEffect(() => {
+        if (isWalletsQueryLoading) {
+            dispatch(walletActions.setIsFetchingWallets(true))
+        }
+    }, [isWalletsQueryLoading, dispatch])
 
     const selectedWallet = useMemo(() => {
         if (!selectedAddress || !wallets.length) return undefined
@@ -251,5 +259,6 @@ export const useWallet = () => {
         isExternalWallet: isExternalWallet(selectedWallet),
         selectExternalWallet,
         isWalletConnected,
+        isFetchingWallets: isFetchingWallets || isWalletsQueryLoading,
     }
 }

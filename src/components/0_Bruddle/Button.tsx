@@ -64,7 +64,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref
     ) => {
         const buttonClasses = twMerge(
-            'btn w-full flex items-center gap-2',
+            'btn w-full flex items-center gap-2 transform transition-transform active:scale-90 ease-in-out',
             buttonVariants[variant],
             size && buttonSizes[size],
             shape === 'square' && 'btn-square',

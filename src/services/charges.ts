@@ -1,6 +1,6 @@
 import { PEANUT_API_URL } from '@/constants'
 import { CreateChargeRequest, PaymentCreationResponse, TCharge, TRequestChargeResponse } from './services.types'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry, jsonParse } from '@/utils'
 
 export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {
@@ -31,7 +31,7 @@ export const chargesApi = {
             throw new Error(`Failed to fetch charge: ${response.statusText}`)
         }
 
-        return response.json()
+        return jsonParse(await response.text()) as TRequestChargeResponse
     },
 
     createPayment: async ({
