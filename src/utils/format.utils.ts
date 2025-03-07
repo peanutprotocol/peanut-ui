@@ -28,3 +28,9 @@ export const formatBankAccountDisplay = (value: string | undefined, type?: 'iban
 
     return sanitized.toUpperCase()
 }
+
+export const truncateString = (str: string, maxLength: number = 14): string => {
+    if (str.length <= 14) return str
+
+    return str.slice(0, maxLength - 3) + '...'
+}
