@@ -6,7 +6,9 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { IDBWallet, IWallet, WalletProviderType } from '@/interfaces'
-import { printableUsdc, shortenAddressLong } from '@/utils'
+import { printableUsdc, shortenAddress, shortenAddressLong } from '@/utils'
+import { identicon } from '@dicebear/collection'
+import { createAvatar } from '@dicebear/core'
 import { usePrimaryName } from '@justaname.id/react'
 import Image, { StaticImageData } from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
@@ -40,6 +42,7 @@ interface WalletIconContainerProps {
 interface ModalHeaderProps {
     title: string
     description: string
+    wallet: IWallet | null
 }
 
 interface ModalActionsProps {
@@ -49,10 +52,16 @@ interface ModalActionsProps {
 }
 
 interface ConfirmationModalProps {
-    wallet: IWallet
+    wallet: IWallet | null
     showModal: boolean
     setShowModal: (showModal: boolean) => void
     onAccept: () => void
+    isAddWallet?: boolean
+}
+
+interface AddNewWalletProps {
+    onClick: () => void
+    hasExternalWallets: boolean
 }
 
 // common Components
@@ -77,9 +86,9 @@ const ConnectionStatusDot: React.FC<{ isConnected: boolean }> = ({ isConnected }
 )
 
 // modal components
-const ModalHeader: React.FC<ModalHeaderProps> = ({ title, description }) => (
+const ModalHeader: React.FC<ModalHeaderProps> = ({ title, description, wallet }) => (
     <div className="flex items-start gap-2">
-        <WalletIconContainer src={PeanutWalletIcon} />
+        <WalletIconContainer src={getWalletIcon(wallet, false)} />
         <div className="space-y-1">
             <h1 className="text-lg font-bold">{title}</h1>
             <p className="text-sm font-medium">{description}</p>
@@ -110,6 +119,21 @@ const ModalActions: React.FC<ModalActionsProps> = ({ onCancel, onAccept, isConne
     </div>
 )
 
+const getWalletIcon = (wallet: IWallet | null, isPeanutWallet: boolean) => {
+    if (isPeanutWallet || !wallet) {
+        return PeanutWalletIcon
+    }
+
+    if (wallet.connector?.iconUrl) {
+        return wallet.connector.iconUrl
+    }
+
+    return createAvatar(identicon, {
+        seed: wallet.address,
+        size: 128,
+    }).toDataUri()
+}
+
 const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
     const [showModal, setShowModal] = useState(false)
     const { wallets, setSelectedWallet, selectedWallet, isConnected, isWalletConnected, isPeanutWallet } = useWallet()
@@ -118,6 +142,10 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
     const sortedWallets = useMemo(() => {
         return [...wallets].filter((account) => Object.values(WalletProviderType).includes(account.walletProviderType))
     }, [wallets, selectedWallet])
+
+    const hasExternalWallets = useMemo(() => {
+        return sortedWallets.some((wallet) => wallet.walletProviderType !== WalletProviderType.PEANUT)
+    }, [sortedWallets])
 
     // handle wallet selection and close modal
     const handleWalletSelection = (wallet: IWallet) => {
@@ -166,9 +194,7 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
                 )}
                 onClick={() => setShowModal(true)}
             >
-                <WalletIconContainer
-                    src={isPeanutWallet ? PeanutWalletIcon : selectedWallet?.connector?.iconUrl || PeanutWalletIcon}
-                />
+                <WalletIconContainer src={getWalletIcon(selectedWallet || null, isPeanutWallet)} />
 
                 {isConnected ? (
                     <span>
@@ -206,7 +232,7 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
                                 onClick={() => handleWalletSelection(wallet)}
                             />
                         ))}
-                        <AddNewWallet onClick={connectWallet} />
+                        <AddNewWallet onClick={connectWallet} hasExternalWallets={hasExternalWallets} />
                     </div>
                 </div>
             </Modal>
@@ -225,12 +251,7 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onC
     const isConnected = isWalletConnected(wallet)
 
     // get wallet icon to display
-    const walletImage = useMemo(() => {
-        if (isPeanutWallet) {
-            return PeanutWalletIcon
-        }
-        return isConnected ? wallet.connector?.iconUrl || PeanutWalletIcon : PeanutWalletIcon
-    }, [wallet, isConnected])
+    const walletImage = useMemo(() => getWalletIcon(wallet, isPeanutWallet), [wallet, isPeanutWallet])
 
     // get background color
     const backgroundColor = useMemo(() => {
@@ -284,7 +305,9 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onC
                                     <p className="text-base font-bold">Peanut Wallet</p>
                                 ) : (
                                     <p className="text-base font-bold">
-                                        {primaryName || shortenAddressLong(wallet.address)}
+                                        {primaryName && primaryName?.length > 15
+                                            ? shortenAddress(primaryName)
+                                            : primaryName || shortenAddressLong(wallet.address)}
                                     </p>
                                 )}
                                 <CopyToClipboard
@@ -316,18 +339,40 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onC
 }
 
 // add new wallet component, triggers web3modal
-const AddNewWallet = ({ onClick }: { onClick: () => void }) => (
-    <Card onClick={onClick}>
-        <Card.Content className="flex min-h-16 w-full cursor-pointer items-center justify-center gap-3 bg-purple-5 px-4 py-3 hover:bg-opacity-90">
-            <div className="flex size-7 items-center justify-center rounded-full border border-n-1">
-                <Icon name="plus" fill="black" className="h-7 w-7" />
-            </div>
-            <span className="font-bold">Add wallet</span>
-        </Card.Content>
-    </Card>
-)
+const AddNewWallet = ({ onClick, hasExternalWallets }: AddNewWalletProps) => {
+    const [showConfirmationModal, setShowConfirmationModal] = useState(false)
 
-const ConfirmationModal = ({ wallet, showModal, setShowModal, onAccept }: ConfirmationModalProps) => {
+    const handleClick = () => {
+        if (hasExternalWallets) {
+            setShowConfirmationModal(true)
+        } else {
+            onClick()
+        }
+    }
+
+    return (
+        <>
+            <Card onClick={handleClick}>
+                <Card.Content className="flex min-h-16 w-full cursor-pointer items-center justify-center gap-3 bg-purple-5 px-4 py-3 hover:bg-opacity-90">
+                    <div className="flex size-7 items-center justify-center rounded-full border border-n-1">
+                        <Icon name="plus" fill="black" className="h-7 w-7" />
+                    </div>
+                    <span className="font-bold">Add wallet</span>
+                </Card.Content>
+            </Card>
+
+            <ConfirmationModal
+                wallet={null}
+                showModal={showConfirmationModal}
+                setShowModal={setShowConfirmationModal}
+                onAccept={onClick}
+                isAddWallet
+            />
+        </>
+    )
+}
+
+const ConfirmationModal = ({ wallet, showModal, setShowModal, onAccept, isAddWallet }: ConfirmationModalProps) => {
     const { connectWallet, connectionStatus } = useWalletConnection()
 
     const handleAccept = async () => {
@@ -335,6 +380,16 @@ const ConfirmationModal = ({ wallet, showModal, setShowModal, onAccept }: Confir
         onAccept()
         setShowModal(false)
     }
+
+    const modalContent = isAddWallet
+        ? {
+              title: 'Add a new wallet?',
+              description: 'This will disconnect your currently connected external wallet.',
+          }
+        : {
+              title: `Connect to ${shortenAddressLong(wallet?.address)}?`,
+              description: 'This will disconnect any other external wallet currently connected.',
+          }
 
     return (
         <Modal
@@ -345,10 +400,7 @@ const ConfirmationModal = ({ wallet, showModal, setShowModal, onAccept }: Confir
         >
             <div className="space-y-4">
                 <div className="space-y-3">
-                    <ModalHeader
-                        title={`Connect to ${shortenAddressLong(wallet.address)}?`}
-                        description="This will disconnect any other external wallet currently connected."
-                    />
+                    <ModalHeader title={modalContent.title} description={modalContent.description} wallet={wallet} />
                     <InfoBox>
                         <span className="font-bold">Important:</span> Make sure the account you want to connect is
                         selected in your external wallet.
