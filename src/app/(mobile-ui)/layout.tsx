@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
+import { GenericBanner } from '@/components/Global/Banner/GenericBanner'
 
 const publicPathRegex = /^\/(request\/pay|claim)/
 
@@ -51,6 +52,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                 {/* Main content area */}
                 <div className="flex w-full flex-1 flex-col">
+                    <GenericBanner
+                        message="PRE-ALPHA: Use with caution. Small amounts only."
+                        icon="⚠️"
+                        backgroundColor="bg-primary-1"
+                    />
                     {/* Fixed top navbar */}
                     {showFullPeanutWallet && (
                         <div className="sticky top-0 z-10 w-full">
