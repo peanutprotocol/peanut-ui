@@ -257,7 +257,9 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
 
             // calculate the token amount based on denomination
             let tokenAmountToUse: string
-            if (inputDenomination === 'TOKEN') {
+            if (token?.symbol.toLowerCase() === 'usdc') {
+                tokenAmountToUse = usdValue ?? inputTokenAmount
+            } else if (inputDenomination === 'TOKEN') {
                 tokenAmountToUse = inputTokenAmount
             } else {
                 // convert to token amount using token price, if input value is in USD

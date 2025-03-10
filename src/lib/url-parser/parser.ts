@@ -155,6 +155,8 @@ export async function parsePaymentURL(
         }
     } else if (isPeanutRecipient) {
         tokenDetails = chainDetails?.tokens.find((t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase())
+    } else if (chainDetails) {
+        tokenDetails = chainDetails.tokens.find((t) => t.symbol.toLowerCase() === 'USDC'.toLowerCase())
     }
 
     // 6. Construct and return the final result
