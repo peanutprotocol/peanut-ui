@@ -2,16 +2,11 @@ import AddressLink from '@/components/Global/AddressLink'
 import { ListItemView } from '@/components/Global/ListItemView'
 import { RecipientType } from '@/lib/url-parser/types/payment'
 import { TRequestHistory } from '@/services/services.types'
-import { getChainName, printableAddress } from '@/utils'
+import { getChainName, printableAddress, getTokenLogo } from '@/utils'
 
 interface PaymentHistoryProps {
     recipient: { identifier: string; recipientType: RecipientType; resolvedAddress: string }
     history: TRequestHistory[]
-}
-
-// for now it works
-function getTokenLogo(tokenSymbol: string) {
-    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/${tokenSymbol.toLowerCase()}.svg`
 }
 
 export default function PaymentHistory({ recipient, history }: PaymentHistoryProps) {

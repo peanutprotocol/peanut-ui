@@ -1038,3 +1038,12 @@ export function getRequestLink(
     }
     return link
 }
+
+// for now it works
+export function getTokenLogo(tokenSymbol: string): string {
+    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/${tokenSymbol.toLowerCase()}.svg`
+}
+
+export function getChainLogo(chainName: string): string {
+    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${chainName.toLowerCase()}.webp`
+}

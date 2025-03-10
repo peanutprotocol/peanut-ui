@@ -9,7 +9,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IDashboardItem } from '@/interfaces'
-import { formatAmountWithSignificantDigits, formatDate, getHeaderTitle, printableAddress } from '@/utils'
+import { formatAmountWithSignificantDigits, formatDate, getHeaderTitle, printableAddress, getTokenLogo, getChainLogo } from '@/utils'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -142,14 +142,11 @@ const HistoryPage = () => {
                                             mainText: item.amount,
                                         }}
                                         metadata={{
-                                            tokenLogo:
-                                                item.transactionDetails.tokenSymbol === 'USDC'
-                                                    ? 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=040'
-                                                    : undefined,
+                                            tokenLogo: getTokenLogo(item.transactionDetails.tokenSymbol),
                                             chainLogo:
                                                 item.transactionDetails.chain === 'Arbitrum One'
                                                     ? ARBITRUM_ICON
-                                                    : undefined,
+                                                    : getChainLogo(item.transactionDetails.chain),
                                             subText: item.transactionDetails.date
                                                 ? formatDate(new Date(item.transactionDetails.date))
                                                 : '',
