@@ -27,7 +27,9 @@ export function parseAmountAndToken(amountString: string): { amount?: string; to
         }
         // if it's just a token with no amount
         if (/^[a-zA-Z]+$/.test(amountString)) {
-            return { token: amountString.toLowerCase() }
+            let token = amountString.toLowerCase()
+            token = token === 'matic' ? 'pol' : token
+            return { token }
         }
         throw new AmountValidationError('Invalid amount format')
     }
@@ -36,7 +38,7 @@ export function parseAmountAndToken(amountString: string): { amount?: string; to
 
     return {
         amount: amount || undefined,
-        token: token.toLowerCase(),
+        token: token.toLowerCase() === 'matic' ? 'pol' : token.toLowerCase(),
     }
 }
 
