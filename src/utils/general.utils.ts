@@ -9,7 +9,6 @@ import chroma from 'chroma-js'
 import { SiweMessage } from 'siwe'
 import { getAddress, isAddress } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
-import { isAddress } from 'viem'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
