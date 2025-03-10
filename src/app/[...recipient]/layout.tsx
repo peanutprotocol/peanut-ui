@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: any) {
     const previewData = {
         tokenAmount: amount || '0',
         recipientAddress: recipient,
-        tokenSymbol: token?.toUpperCase() || 'USD',
+        tokenSymbol: token?.toUpperCase(),
     }
 
     previewUrl = getPreviewUrl(host, previewData)
