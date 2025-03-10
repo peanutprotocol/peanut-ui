@@ -11,19 +11,14 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
 
     const amount = searchParams.get('amount') ?? ''
-    const chainId = searchParams.get('chainId') ?? ''
-    const tokenAddress = searchParams.get('tokenAddress') ?? ''
     const tokenSymbol = searchParams.get('tokenSymbol') ?? ''
     const address = searchParams.get('address') ?? ''
     const previewType =
         PreviewType[(searchParams.get('previewType')?.toUpperCase() ?? 'claim') as keyof typeof PreviewType] ??
         PreviewType.CLAIM
 
-    return new ImageResponse(
-        <LinkPreviewImg {...{ amount, chainId, tokenAddress, tokenSymbol, address, previewType }} />,
-        {
-            width: 400,
-            height: 200,
-        }
-    )
+    return new ImageResponse(<LinkPreviewImg {...{ amount, tokenSymbol, address, previewType }} />, {
+        width: 400,
+        height: 200,
+    })
 }
