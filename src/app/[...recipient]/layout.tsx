@@ -1,12 +1,4 @@
-import { PreviewType } from '@/components/Global/ImageGeneration/LinkPreview'
-
-import { Metadata } from 'next'
 import PaymentLayoutWrapper from './payment-layout-wrapper'
-
-type Props = {
-    params: { recipient: string[] }
-    searchParams: { [key: string]: string | undefined }
-}
 
 function getPreviewUrl(
     host: string,
@@ -26,28 +18,30 @@ function getPreviewUrl(
     if (data.tokenAddress) params.append('tokenAddress', data.tokenAddress)
     if (data.tokenSymbol) params.append('tokenSymbol', data.tokenSymbol)
     if (data.recipientAddress) params.append('address', data.recipientAddress)
-    params.append('previewType', PreviewType.REQUEST)
+    params.append('previewType', 'REQUEST')
 
     url.search = params.toString()
     return url.toString()
 }
 
-export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: any) {
     let title = 'Request Payment | Peanut'
     let previewUrl = '/metadata-img.jpg'
-    const host = process.env.NEXT_PUBLIC_BASE_URL!
+    const host = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
 
-    // extract recipient name (handling with chain)
-    let recipient = params.recipient[0]
+    if (!host) {
+        console.error('Error: NEXT_PUBLIC_BASE_URL is not defined')
+        return { title }
+    }
+
+    let recipient = params.recipient[0] || 'Someone'
     if (recipient.includes('%40') || recipient.includes('@')) {
         recipient = recipient.split(/[@%40]/)[0]
     }
 
-    // parse amount and token if present
     let amount, token
     if (params.recipient[1]) {
         const amountToken = params.recipient[1]
-        // match number and string pattern (e.g., "1USDC" or "0.1usdc")
         const match = amountToken.match(/^(\d*\.?\d*)(.*)$/)
         if (match) {
             amount = match[1]
