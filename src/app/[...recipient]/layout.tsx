@@ -1,55 +1,94 @@
-'use client'
+import { PreviewType } from '@/components/Global/ImageGeneration/LinkPreview'
 
-import GuestLoginModal from '@/components/Global/GuestLoginModal'
-import TopNavbar from '@/components/Global/TopNavbar'
-import WalletNavigation from '@/components/Global/WalletNavigation'
-import { ThemeProvider } from '@/config'
+import { Metadata } from 'next'
+import PaymentLayoutWrapper from './payment-layout-wrapper'
 
-import classNames from 'classnames'
-import { twMerge } from 'tailwind-merge'
+type Props = {
+    params: { recipient: string[] }
+    searchParams: { [key: string]: string | undefined }
+}
+
+function getPreviewUrl(
+    host: string,
+    data: {
+        tokenAmount?: string
+        chainId?: string
+        tokenAddress?: string
+        tokenSymbol?: string
+        recipientAddress?: string
+    }
+) {
+    const url = new URL('/api/preview-image', host)
+    const params = new URLSearchParams()
+
+    if (data.tokenAmount) params.append('amount', data.tokenAmount)
+    if (data.chainId) params.append('chainId', data.chainId)
+    if (data.tokenAddress) params.append('tokenAddress', data.tokenAddress)
+    if (data.tokenSymbol) params.append('tokenSymbol', data.tokenSymbol)
+    if (data.recipientAddress) params.append('address', data.recipientAddress)
+    params.append('previewType', PreviewType.REQUEST)
+
+    url.search = params.toString()
+    return url.toString()
+}
+
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+    let title = 'Request Payment | Peanut'
+    let previewUrl = '/metadata-img.jpg'
+    const host = process.env.NEXT_PUBLIC_BASE_URL!
+
+    // extract recipient name (handling with chain)
+    let recipient = params.recipient[0]
+    if (recipient.includes('%40') || recipient.includes('@')) {
+        recipient = recipient.split(/[@%40]/)[0]
+    }
+
+    // parse amount and token if present
+    let amount, token
+    if (params.recipient[1]) {
+        const amountToken = params.recipient[1]
+        // match number and string pattern (e.g., "1USDC" or "0.1usdc")
+        const match = amountToken.match(/^(\d*\.?\d*)(.*)$/)
+        if (match) {
+            amount = match[1]
+            token = match[2]
+        }
+    }
+
+    const previewData = {
+        tokenAmount: amount || '0',
+        recipientAddress: recipient,
+        tokenSymbol: token?.toUpperCase() || 'USD',
+    }
+
+    previewUrl = getPreviewUrl(host, previewData)
+
+    if (amount && token) {
+        title = `${recipient} is requesting ${amount} ${token.toUpperCase()}`
+    } else if (amount) {
+        title = `${recipient} is requesting $${amount}`
+    } else {
+        title = `${recipient} is requesting funds`
+    }
+
+    return {
+        title,
+        description: 'Send cryptocurrency to friends, family, or anyone else using Peanut on any chain.',
+        icons: {
+            icon: '/logo-favicon.png',
+        },
+        openGraph: {
+            images: [{ url: previewUrl }],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description: 'Send cryptocurrency to friends, family, or anyone else using Peanut on any chain.',
+        },
+        keywords: 'crypto payment, crypto transfer, crypto send, payment link',
+    }
+}
 
 export default function PaymentLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="flex h-[100dvh] w-full bg-background">
-            {/* Wrapper div for desktop layout */}
-            <div className="flex w-full">
-                {/* Sidebar - Fixed on desktop */}
-                <div className="hidden md:block">
-                    <div className="fixed left-0 top-0 z-20 h-screen w-64">
-                        <WalletNavigation />
-                    </div>
-                </div>
-
-                {/* Main content area */}
-                <div className="flex w-full flex-1 flex-col">
-                    {/* Fixed top navbar */}
-                    <div className="sticky top-0 z-10 w-full">
-                        <TopNavbar />
-                    </div>
-
-                    {/* Scrollable content area */}
-                    <div className={classNames(twMerge('flex-1 overflow-y-auto bg-background p-6 pb-24 md:pb-6'))}>
-                        <ThemeProvider>
-                            <div
-                                className={twMerge(
-                                    'flex min-h-[calc(100dvh-160px)] w-full items-start justify-center md:ml-auto  md:min-h-full md:w-[calc(100%-256px)]'
-                                )}
-                            >
-                                {children}
-                            </div>
-                        </ThemeProvider>
-                    </div>
-
-                    {/* Mobile navigation */}
-
-                    <div className="fixed bottom-0 left-0 right-0 z-10 bg-background md:hidden">
-                        <WalletNavigation />
-                    </div>
-                </div>
-            </div>
-
-            {/* Modal */}
-            <GuestLoginModal />
-        </div>
-    )
+    return <PaymentLayoutWrapper>{children}</PaymentLayoutWrapper>
 }
