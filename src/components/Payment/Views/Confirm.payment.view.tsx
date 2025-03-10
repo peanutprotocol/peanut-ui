@@ -51,6 +51,7 @@ export default function ConfirmPaymentView() {
     const [txFee, setTxFee] = useState<string>('0')
     const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
     const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
+    const [feeOptions, setFeeOptions] = useState<any | undefined>(undefined)
 
     // call charges service to get chargeDetails details
     useEffect(() => {
@@ -72,6 +73,11 @@ export default function ConfirmPaymentView() {
         if (!chargeDetails || !selectedChainID) return false
         return selectedChainID !== chargeDetails.chainId
     }, [chargeDetails, selectedChainID])
+
+    const diffTokens = useMemo<boolean>(() => {
+        if (!selectedTokenData || !chargeDetails) return false
+        return !areEvmAddressesEqual(selectedTokenData.address, chargeDetails.tokenAddress)
+    }, [selectedTokenData, chargeDetails])
 
     const createXChainUnsignedTx = async (tokenData: any, requestLink: any, senderAddress: string) => {
         console.log('Creating cross-chain tx with:', { tokenData, requestLink, senderAddress })
@@ -207,12 +213,12 @@ export default function ConfirmPaymentView() {
 
     // handle payment
     const handlePayment = async () => {
-        if (!isConnected || !address || !chargeDetails) return
-        if (isXChain && !xChainUnsignedTxs) {
+        if (!isConnected || !address || !chargeDetails || !selectedTokenData) return
+        if ((isXChain || diffTokens) && !xChainUnsignedTxs) {
             dispatch(paymentActions.setError('Cross-chain transaction not ready'))
             return
         }
-        if (!isXChain && !unsignedTx) {
+        if (!(isXChain || diffTokens) && !unsignedTx) {
             dispatch(paymentActions.setError('Transaction not ready'))
             return
         }
@@ -224,11 +230,9 @@ export default function ConfirmPaymentView() {
 
         try {
             // check balance and switch network
-            await checkUserHasEnoughBalance({
-                tokenValue: isXChain ? estimatedFromValue : chargeDetails.tokenAmount,
-            })
+            await checkUserHasEnoughBalance({ tokenValue: estimatedFromValue })
 
-            if (selectedChainID !== String(currentChain?.id)) {
+            if (currentChain && selectedChainID !== String(currentChain?.id)) {
                 await switchNetworkUtil({
                     chainId: selectedChainID,
                     currentChainId: String(currentChain?.id),
@@ -242,11 +246,12 @@ export default function ConfirmPaymentView() {
             // sign and send transaction
             const hash = await sendTransactions({
                 preparedDepositTxs: {
-                    unsignedTxs: isXChain
-                        ? (xChainUnsignedTxs as peanutInterfaces.IPeanutUnsignedTransaction[])
-                        : [unsignedTx as peanutInterfaces.IPeanutUnsignedTransaction],
+                    unsignedTxs:
+                        isXChain || diffTokens
+                            ? (xChainUnsignedTxs as peanutInterfaces.IPeanutUnsignedTransaction[])
+                            : [unsignedTx as peanutInterfaces.IPeanutUnsignedTransaction],
                 },
-                feeOptions: undefined,
+                feeOptions,
             })
 
             if (!hash) {
@@ -305,15 +310,16 @@ export default function ConfirmPaymentView() {
 
     // estimate gas fee when unsignedTx is ready
     useEffect(() => {
-        if (!chargeDetails || !unsignedTx) return
+        if (!chargeDetails || (!unsignedTx && !xChainUnsignedTxs)) return
 
         setIsEstimatingGas(true)
         estimateGasFee({
             chainId: isXChain ? selectedChainID : chargeDetails.chainId,
-            preparedTx: unsignedTx,
+            preparedTx: isXChain || diffTokens ? xChainUnsignedTxs : unsignedTx,
         })
-            .then(({ transactionCostUSD }) => {
+            .then(({ transactionCostUSD, feeOptions: calculatedFeeOptions }) => {
                 if (transactionCostUSD) setEstimatedGasCost(transactionCostUSD)
+                if (calculatedFeeOptions) setFeeOptions(calculatedFeeOptions)
             })
             .catch((error) => {
                 console.error('Error calculating transaction cost:', error)
@@ -323,7 +329,7 @@ export default function ConfirmPaymentView() {
             .finally(() => {
                 setIsEstimatingGas(false)
             })
-    }, [unsignedTx, chargeDetails, isXChain, selectedChainID])
+    }, [unsignedTx, xChainUnsignedTxs, chargeDetails, isXChain, selectedChainID, selectedTokenAddress, diffTokens])
 
     // calculate fee details
     const [feeCalculations, setFeeCalculations] = useState({
@@ -342,16 +348,16 @@ export default function ConfirmPaymentView() {
         try {
             const networkFee = {
                 expected:
-                    (isXChain
+                    (isXChain || diffTokens
                         ? parseFloat(txFee) * EXPECTED_NETWORK_FEE_MULTIPLIER
                         : isPeanutWallet
                           ? 0
                           : Number(estimatedGasCost || 0)) * EXPECTED_NETWORK_FEE_MULTIPLIER,
-                max: isXChain ? parseFloat(txFee) : isPeanutWallet ? 0 : Number(estimatedGasCost || 0),
+                max: isXChain || diffTokens ? parseFloat(txFee) : isPeanutWallet ? 0 : Number(estimatedGasCost || 0),
             }
 
             const slippage =
-                isXChain && calculatedSlippage
+                (isXChain || diffTokens) && calculatedSlippage
                     ? {
                           expected: Number(calculatedSlippage) * EXPECTED_SLIPPAGE_MULTIPLIER,
                           max: Number(calculatedSlippage),
@@ -406,6 +412,7 @@ export default function ConfirmPaymentView() {
         estimatedGasCost,
         estimatedFromValue,
         selectedTokenData,
+        diffTokens,
     ])
 
     if (!chargeDetails) return <PeanutLoading />

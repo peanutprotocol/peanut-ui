@@ -50,6 +50,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     useEffect(() => {
         if (!isPeanutWallet) resetTokenContextProvider()
         if (transactionHash && type === 'claimxchain') {
+            //TODO: change when adding claimlink history
             fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
     }, [isPeanutWallet, transactionHash, type])

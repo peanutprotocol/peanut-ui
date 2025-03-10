@@ -6,7 +6,6 @@ import AddressLink from '@/components/Global/AddressLink'
 import Icon from '@/components/Global/Icon'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import Timeline from '@/components/Global/Timeline'
-import { fetchDestinationChain } from '@/components/utils/utils'
 import { useAuth } from '@/context/authContext'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
@@ -15,7 +14,7 @@ import { requestsApi } from '@/services/requests'
 import { formatDate, getExplorerUrl, shortenAddressLong } from '@/utils'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 
 export default function PaymentStatusView() {
     const { requestDetails, chargeDetails, transactionHash, resolvedAddress } = usePaymentStore()
@@ -24,9 +23,6 @@ export default function PaymentStatusView() {
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
     const chargeId = searchParams.get('chargeId')
-    const [explorerUrlDestChainWithTxHash, setExplorerUrlDestChainWithTxHash] = useState<
-        { transactionId: string; transactionUrl: string } | undefined
-    >(undefined)
 
     // get statusDetails based on requestId or chargeId
     const statusDetails = useMemo(() => {
@@ -77,12 +73,18 @@ export default function PaymentStatusView() {
         return `${exporerUrl}${isBlockscoutExplorer ? '/tx/' : ''}${txHash}`
     }, [transactionHash, statusDetails, latestPayment])
 
-    // fetch destination chain details for new payments
-    useEffect(() => {
-        if (!statusDetails?.charge?.fulfillmentPayment && transactionHash) {
-            fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
-        }
-    }, [transactionHash, statusDetails])
+    const destinationTxAndUrl = useMemo(() => {
+        const txHash =
+            statusDetails?.charge?.fulfillmentPayment?.fulfillmentTransactionHash ||
+            latestPayment?.fulfillmentTransactionHash
+        const chainId = requestDetails?.chainId
+
+        if (!chainId || !txHash) return null
+
+        const exporerUrl = getExplorerUrl(chainId)
+        const transactionUrl = `${exporerUrl}/tx/${txHash}`
+        return { transactionUrl, transactionId: txHash }
+    }, [statusDetails, latestPayment, requestDetails])
 
     // polling for status updates
     useEffect(() => {
@@ -155,15 +157,12 @@ export default function PaymentStatusView() {
                 </div>
 
                 {/* Show destination tx for cross-chain payments */}
-                {explorerUrlDestChainWithTxHash && (
+                {destinationTxAndUrl && destinationTxAndUrl.transactionId !== transactionHash && (
                     <div className="flex w-full flex-row items-center justify-between gap-1">
                         <span>Destination Transaction:</span>
-                        {explorerUrlDestChainWithTxHash?.transactionUrl ? (
-                            <Link
-                                className="cursor-pointer underline"
-                                href={explorerUrlDestChainWithTxHash.transactionUrl}
-                            >
-                                {shortenAddressLong(explorerUrlDestChainWithTxHash.transactionId)}
+                        {destinationTxAndUrl?.transactionUrl ? (
+                            <Link className="cursor-pointer underline" href={destinationTxAndUrl.transactionUrl}>
+                                {shortenAddressLong(destinationTxAndUrl.transactionId)}
                             </Link>
                         ) : (
                             <div className="h-4 w-20 animate-pulse bg-gray-200" />
