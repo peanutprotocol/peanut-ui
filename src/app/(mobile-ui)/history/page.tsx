@@ -9,7 +9,14 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IDashboardItem } from '@/interfaces'
-import { formatAmountWithSignificantDigits, formatDate, getHeaderTitle, printableAddress, getTokenLogo, getChainLogo } from '@/utils'
+import {
+    formatAmountWithSignificantDigits,
+    formatDate,
+    getHeaderTitle,
+    printableAddress,
+    getTokenLogo,
+    getChainLogo,
+} from '@/utils'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
