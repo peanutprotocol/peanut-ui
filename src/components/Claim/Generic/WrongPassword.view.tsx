@@ -1,8 +1,8 @@
 'use client'
 
 import { Card } from '@/components/0_Bruddle'
-
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
+import { CrispButton } from '@/components/CrispChat'
 
 export const WrongPasswordClaimLink = () => {
     return (
@@ -13,10 +13,8 @@ export const WrongPasswordClaimLink = () => {
             </Card.Header>
             <Card.Content className="space-y-2 text-start">
                 <div className="block text-h8 font-normal">
-                    We would like to hear from your experience. Hit us up on{' '}
-                    <a className="text-link-decoration" target="_blank" href="https://discord.gg/BX9Ak7AW28">
-                        Discord!
-                    </a>
+                    We would like to hear from your experience.{' '}
+                    <CrispButton className="text-black underline dark:text-white">Chat with support</CrispButton>
                 </div>
 
                 <div className="w-full">

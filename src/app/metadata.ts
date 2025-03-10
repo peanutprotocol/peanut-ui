@@ -14,14 +14,14 @@ export function generateMetadata({
     return {
         title,
         description,
-        metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.to'),
+        metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'),
         icons: { icon: '/favicon.ico' },
         keywords,
         openGraph: {
             type: 'website',
             title,
             description,
-            url: 'https://peanut.to',
+            url: 'https://peanut.me',
             siteName: 'Peanut Protocol',
             images: [{ url: image, width: 1200, height: 630, alt: title }],
         },

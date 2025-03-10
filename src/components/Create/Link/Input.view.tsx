@@ -337,14 +337,14 @@ export const CreateLinkInputView = ({
                     <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
                         {' '}
                         {createType === 'link'
-                            ? 'Text Tokens'
+                            ? 'Send to Anyone'
                             : createType === 'direct'
                               ? `Send to ${validateEnsName(recipient.name) ? recipient.name : printableAddress(recipient.address ?? '')}`
                               : `Send to ${recipient.name}`}
                     </Card.Title>
                     <Card.Description>
                         {createType === 'link' &&
-                            'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
+                            "Send funds without needing the recipient's wallet address. They'll get a link to claim in their preferred token and blockchain."}
                         {createType === 'email_link' &&
                             `You will send an email to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
                         {createType === 'sms_link' &&

@@ -7,7 +7,7 @@ import { Metadata } from 'next'
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
     description: 'Send crypto via link',
-    metadataBase: new URL('https://peanut.to'),
+    metadataBase: new URL('https://peanut.me'),
 
     icons: {
         icon: '/favicon.ico',
