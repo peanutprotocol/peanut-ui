@@ -105,11 +105,9 @@ export const Create = () => {
     }
 
     useEffect(() => {
-        if (!isPeanutWallet) {
-            resetTokenContextProvider()
-            fetchAndSetCrossChainDetails()
-        }
-    }, [isPeanutWallet])
+        resetTokenContextProvider()
+        fetchAndSetCrossChainDetails()
+    }, [])
 
     useEffect(() => {
         if (address) {

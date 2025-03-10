@@ -15,6 +15,7 @@ import { formatDate, getExplorerUrl, shortenAddressLong } from '@/utils'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
+import { CrispButton } from '@/components/CrispChat'
 
 export default function PaymentStatusView() {
     const { requestDetails, chargeDetails, transactionHash, resolvedAddress } = usePaymentStore()
@@ -298,14 +299,8 @@ export default function PaymentStatusView() {
                 {/* Discord message */}
                 {latestPayment?.status !== 'FAILED' && (
                     <div className="text-h9 font-normal">
-                        We would like to hear from your experience. Hit us up on{' '}
-                        <a
-                            className="cursor-pointer text-black underline dark:text-white"
-                            target="_blank"
-                            href="https://discord.gg/BX9Ak7AW28"
-                        >
-                            Discord!
-                        </a>
+                        We would like to hear from your experience.{' '}
+                        <CrispButton className="text-black underline dark:text-white">Chat with support</CrispButton>
                     </div>
                 )}
             </Card.Content>

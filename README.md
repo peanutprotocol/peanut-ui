@@ -1,4 +1,4 @@
-Live at: [peanut.to](https://peanut.to) | [staging.peanut.to](https://staging.peanut.to)
+Live at: [peanut.to](https://peanut.me) | [staging.peanut.me](https://staging.peanut.to)
 
 ## Getting Started
 
@@ -7,7 +7,7 @@ Ask in Peanut [Discord](https://discord.gg/B99T9mQqBv) #dev channel if you have 
 First install the dependencies (location: root folder):
 
 ```bash
-git submodule update --init --recursive
+git submodule update --init --recursives
 pnpm install
 ```
 

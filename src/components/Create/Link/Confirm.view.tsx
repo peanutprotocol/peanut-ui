@@ -244,7 +244,7 @@ export const CreateLinkConfirmView = ({
                 <Card.Header>
                     <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
                         {createType == 'link'
-                            ? 'Text Tokens'
+                            ? 'Send to Anyone'
                             : createType == 'direct'
                               ? `Send to ${validateEnsName(recipient.name) ? recipient.name : printableAddress(recipient.address ?? '')}`
                               : `Send to ${recipient.name}`}
