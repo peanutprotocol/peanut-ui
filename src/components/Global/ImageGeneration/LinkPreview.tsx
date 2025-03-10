@@ -1,4 +1,3 @@
-import Title from '@/components/0_Bruddle/Title'
 import { formatAmount, printableAddress } from '@/utils'
 
 export enum PreviewType {
@@ -77,13 +76,18 @@ export function LinkPreviewImg({
                         justifyContent: 'center',
                         alignItems: 'center',
                         marginLeft: '-8px',
-                        marginTop: '6px',
+                        marginTop: '1px',
                     }}
                 >
-                    <Title
-                        text={`${!tokenSymbol ? '$' : ''} ${formatAmount(amount)} ${tokenSymbol ? tokenSymbol : ''}`}
-                        className="text-5xl"
-                    />
+                    <label
+                        style={{
+                            fontSize: '49px',
+                            fontWeight: 'bold',
+                            color: 'black',
+                        }}
+                    >
+                        {!tokenSymbol && '$'} {formatAmount(amount)} {tokenSymbol && tokenSymbol}
+                    </label>
                 </div>
             </div>
         </div>
