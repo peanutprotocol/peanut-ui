@@ -1,7 +1,10 @@
 'use client'
-
-import { peanutPublicClient } from '@/constants/viem.consts'
-import * as consts from '@/constants/zerodev.consts'
+import {
+    USER_OP_ENTRY_POINT,
+    PUBLIC_CLIENTS_BY_CHAIN,
+    PEANUT_WALLET_CHAIN,
+    ZERODEV_KERNEL_VERSION,
+} from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { useAppDispatch } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
@@ -13,18 +16,15 @@ import {
     createZeroDevPaymasterClient,
     KernelAccountClient,
 } from '@zerodev/sdk'
-import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
-import { createContext, useEffect, useState, useContext, ReactNode } from 'react'
-import { http, Transport } from 'viem'
-import * as Sentry from '@sentry/nextjs'
+import { createContext, useEffect, useState, useContext, ReactNode, useCallback } from 'react'
+import { Chain, http, PublicClient, Transport } from 'viem'
 
 interface KernelClientContextType {
-    kernelClient: AppSmartAccountClient | undefined
     setWebAuthnKey: (webAuthnKey: WebAuthnKey) => void
+    getClientForChain: (chainId: string) => GenericSmartAccountClient
 }
 
-// types
-type AppSmartAccountClient = KernelAccountClient<Transport, typeof consts.PEANUT_WALLET_CHAIN>
+type GenericSmartAccountClient<C extends Chain = Chain> = KernelAccountClient<Transport, C>
 
 type WebAuthnKey = Awaited<ReturnType<typeof toWebAuthnKey>>
 
@@ -32,25 +32,54 @@ const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
 const KernelClientContext = createContext<KernelClientContextType | undefined>(undefined)
 
-const createKernelClient = async (passkeyValidator: any) => {
-    console.log('Creating new kernel client...')
-    const kernelAccount = await createKernelAccount(peanutPublicClient, {
+export const createPasskeyValidator = async (publicClient: PublicClient, webAuthnKey: WebAuthnKey) => {
+    return await toPasskeyValidator(publicClient, {
+        webAuthnKey,
+        entryPoint: USER_OP_ENTRY_POINT,
+        kernelVersion: ZERODEV_KERNEL_VERSION,
+        validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2,
+    })
+}
+
+export const createKernelAccountForChain = async (
+    publicClient: PublicClient,
+    passkeyValidator: Awaited<ReturnType<typeof toPasskeyValidator>>
+) => {
+    return await createKernelAccount(publicClient, {
         plugins: {
             sudo: passkeyValidator,
         },
-        entryPoint: consts.USER_OP_ENTRY_POINT,
-        kernelVersion: KERNEL_V3_1,
+        entryPoint: USER_OP_ENTRY_POINT,
+        kernelVersion: ZERODEV_KERNEL_VERSION,
     })
+}
+
+export interface KernelClientOptions {
+    bundlerUrl: string
+    paymasterUrl: string
+}
+
+export const createKernelClientForChain = async <C extends Chain>(
+    publicClient: PublicClient,
+    chain: C,
+    passkeyValidator: Awaited<ReturnType<typeof toPasskeyValidator>>,
+    options: KernelClientOptions
+): Promise<GenericSmartAccountClient<C>> => {
+    console.log(`Creating new kernel client for chain ${chain.name}...`)
+
+    const { bundlerUrl, paymasterUrl } = options
+
+    const kernelAccount = await createKernelAccountForChain(publicClient, passkeyValidator)
 
     const kernelClient = createKernelAccountClient({
         account: kernelAccount,
-        chain: consts.PEANUT_WALLET_CHAIN,
-        bundlerTransport: http(consts.BUNDLER_URL),
+        chain: chain,
+        bundlerTransport: http(bundlerUrl),
         paymaster: {
             getPaymasterData: async (userOperation) => {
                 const zerodevPaymaster = createZeroDevPaymasterClient({
-                    chain: consts.PEANUT_WALLET_CHAIN,
-                    transport: http(consts.PAYMASTER_URL),
+                    chain: chain,
+                    transport: http(paymasterUrl),
                 })
 
                 try {
@@ -70,7 +99,7 @@ const createKernelClient = async (passkeyValidator: any) => {
 }
 
 export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
-    const [kernelClient, setKernelClient] = useState<AppSmartAccountClient>()
+    const [clientsByChain, setClientsByChain] = useState<Record<string, GenericSmartAccountClient>>({})
     const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
     const dispatch = useAppDispatch()
     const { fetchUser } = useAuth()
@@ -92,44 +121,56 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             }
         }
 
-        const initializeClient = async () => {
-            try {
-                const validator = await toPasskeyValidator(peanutPublicClient, {
-                    webAuthnKey,
-                    entryPoint: consts.USER_OP_ENTRY_POINT,
-                    kernelVersion: KERNEL_V3_1,
-                    validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2,
+        const initializeClients = async () => {
+            const newClientsByChain: Record<string, GenericSmartAccountClient> = {}
+            for (const chainId in PUBLIC_CLIENTS_BY_CHAIN) {
+                const { client, chain, bundlerUrl, paymasterUrl } = PUBLIC_CLIENTS_BY_CHAIN[chainId]
+                const validator = await createPasskeyValidator(client, webAuthnKey)
+                const kernelClient = await createKernelClientForChain(client, chain, validator, {
+                    bundlerUrl,
+                    paymasterUrl,
                 })
-
-                const client = await createKernelClient(validator)
-
-                if (isMounted) {
-                    fetchUser()
-                    setKernelClient(client)
-                    dispatch(zerodevActions.setAddress(client.account!.address))
-                    dispatch(zerodevActions.setIsKernelClientReady(true))
-                    dispatch(zerodevActions.setIsRegistering(false))
-                    dispatch(zerodevActions.setIsLoggingIn(false))
-                }
-            } catch (error) {
-                Sentry.captureException(error)
-                console.error('Error initializing kernel client:', error)
-                dispatch(zerodevActions.setIsKernelClientReady(false))
+                newClientsByChain[chainId] = kernelClient
+            }
+            if (isMounted) {
+                fetchUser()
+                setClientsByChain(newClientsByChain)
+                dispatch(zerodevActions.setIsKernelClientReady(true))
+                dispatch(zerodevActions.setIsRegistering(false))
+                dispatch(zerodevActions.setIsLoggingIn(false))
             }
         }
 
-        initializeClient()
+        initializeClients()
 
         return () => {
             isMounted = false
         }
     }, [webAuthnKey])
 
+    useEffect(() => {
+        const peanutClient = clientsByChain[PEANUT_WALLET_CHAIN.id]
+        if (peanutClient) {
+            dispatch(zerodevActions.setAddress(peanutClient.account!.address))
+        }
+    }, [clientsByChain])
+
+    const getClientForChain = useCallback(
+        (chainId: string) => {
+            const client = clientsByChain[chainId]
+            if (!client) {
+                throw new Error(`No client found for chain ${chainId}`)
+            }
+            return client
+        },
+        [clientsByChain]
+    )
+
     return (
         <KernelClientContext.Provider
             value={{
-                kernelClient,
                 setWebAuthnKey,
+                getClientForChain,
             }}
         >
             {children}

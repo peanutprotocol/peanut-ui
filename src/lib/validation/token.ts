@@ -4,6 +4,23 @@ import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { ChainValidationError } from '../url-parser/errors'
 import { POPULAR_CHAIN_NAME_VARIANTS } from '../url-parser/parser.consts'
 
+import { polygon } from 'viem/chains'
+
+const EXTRA_TOKENS_BY_CHAIN: Record<string, interfaces.ISquidToken[]> = {
+    [polygon.id.toString()]: [
+        {
+            active: true,
+            chainId: polygon.id.toString(),
+            address: '0x9Ae69fDfF2FA97e34B680752D8E70dfD529Ea6ca',
+            name: 'PINTA',
+            symbol: 'PNT',
+            decimals: 10,
+            logoURI: 'https://polygonscan.com/token/images/pintatoken_32.png',
+            usdPrice: 2.5,
+        },
+    ],
+}
+
 export async function getTokenAndChainDetails(
     tokenSymbol: string,
     chain?: string | number
@@ -12,8 +29,15 @@ export async function getTokenAndChainDetails(
     const squidChainsAndTokens = await getSquidChainsAndTokens()
 
     if (chain) {
+        //TODO what about chains and tokens that are not supported by squid? we should
+        //support direct token transfers for those chains
         const chainDetails = getChainDetails(chain, squidChainsAndTokens)
-        const tokenDetails = chainDetails.tokens.find((token) => token.symbol.toLowerCase() === normalizeTokenSymbol)
+        let tokenDetails = chainDetails.tokens.find((token) => token.symbol.toLowerCase() === normalizeTokenSymbol)
+        if (!tokenDetails) {
+            tokenDetails = EXTRA_TOKENS_BY_CHAIN[chainDetails.chainId]?.find(
+                (token) => token.symbol.toLowerCase() === normalizeTokenSymbol
+            )
+        }
         return {
             chain: chainDetails,
             token: tokenDetails,

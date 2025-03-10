@@ -60,7 +60,7 @@ export const shortenAddressLong = (address?: string, chars?: number): string => 
 }
 
 export const printableAddress = (address: string): string => {
-    if (validateEnsName(address)) return address
+    if (!isAddress(address)) return address
     return shortenAddressLong(address)
 }
 
@@ -683,10 +683,10 @@ export type UserPreferences = {
         decimals: number
     }
     lastSelectedWallet?: {
-        address: string
+        id: string
     }
     lastFocusedWallet?: {
-        address: string
+        id: string
     }
     balanceHidden?: boolean
 }
@@ -871,6 +871,8 @@ export const switchNetwork = async ({
             await new Promise((resolve) => setTimeout(resolve, 2000))
             setLoadingState('Loading')
         } catch (error) {
+            console.error('Error switching network:', error)
+            Sentry.captureException(error)
             throw new Error('Error switching network.')
         }
     }

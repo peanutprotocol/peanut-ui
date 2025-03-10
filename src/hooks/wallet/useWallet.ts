@@ -1,9 +1,16 @@
 'use client'
 
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
-import { peanutPublicClient } from '@/constants/viem.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, peanutPublicClient } from '@/constants'
 import { useAuth } from '@/context/authContext'
-import * as interfaces from '@/interfaces'
+import {
+    IWallet,
+    IDBWallet,
+    WalletProviderType,
+    WalletProtocolType,
+    IUserProfile,
+    IUserBalance,
+    AccountType,
+} from '@/interfaces'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, backgroundColorFromAddress, fetchWalletBalances } from '@/utils'
@@ -15,18 +22,23 @@ import { useAccount } from 'wagmi'
 import { useZeroDev } from '../useZeroDev'
 
 // utility functions
-const isPeanut = (wallet?: interfaces.IDBWallet): boolean =>
-    wallet?.walletProviderType === interfaces.WalletProviderType.PEANUT
+const isPeanut = (wallet?: IDBWallet): boolean => wallet?.walletProviderType === WalletProviderType.PEANUT
 
-const isExternalWallet = (wallet?: interfaces.IDBWallet): boolean =>
-    wallet?.walletProviderType === interfaces.WalletProviderType.BYOW
+const isExternalWallet = (wallet?: IDBWallet): boolean => wallet?.walletProviderType === WalletProviderType.BYOW
+
+const isSmartAccount = (wallet?: IDBWallet): boolean =>
+    wallet?.walletProviderType === WalletProviderType.PEANUT ||
+    wallet?.walletProviderType === WalletProviderType.REWARDS
+
+const idForWallet = (wallet: Pick<IDBWallet, 'walletProviderType' | 'address'>) =>
+    `${wallet.walletProviderType}-${wallet.address}`
 
 const createDefaultDBWallet = (
     address: string,
-    walletProviderType: interfaces.WalletProviderType,
-    protocolType: interfaces.WalletProtocolType,
+    walletProviderType: WalletProviderType,
+    protocolType: WalletProtocolType,
     connector: { iconUrl: string; name: string }
-): interfaces.IDBWallet => ({
+): IDBWallet => ({
     walletProviderType,
     protocolType,
     address,
@@ -35,6 +47,21 @@ const createDefaultDBWallet = (
         name: connector.name,
     },
 })
+
+const REWARD_WALLETS: Omit<IWallet, 'address'>[] = [
+    {
+        walletProviderType: WalletProviderType.REWARDS,
+        protocolType: WalletProtocolType.EVM,
+        connector: {
+            iconUrl: 'https://polygonscan.com/token/images/pintatoken_32.png',
+            name: 'Pinta wallet',
+        },
+        balance: BigInt(0),
+        connected: true,
+        balances: [],
+        id: 'pinta-wallet',
+    },
+]
 
 export const useWallet = () => {
     const dispatch = useAppDispatch()
@@ -48,21 +75,24 @@ export const useWallet = () => {
         chain: wagmiChain,
     } = useAccount()
 
-    const { selectedAddress, wallets, signInModalVisible, walletColor, isFetchingWallets } = useWalletStore()
+    const { selectedWalletId, wallets, signInModalVisible, walletColor, isFetchingWallets } = useWalletStore()
 
     const getUserAccount = useCallback(
-        (user: interfaces.IUserProfile, address: string) =>
+        (user: IUserProfile, address: string) =>
             user?.accounts.find((acc: any) => acc.account_identifier.toLowerCase() === address.toLowerCase()),
         [user]
     )
 
     const isWalletConnected = useCallback(
-        (wallet: interfaces.IDBWallet): boolean => {
+        (wallet: IDBWallet): boolean => {
             if (isPeanut(wallet) && kernelClientAddress) {
                 return isKernelClientReady && areEvmAddressesEqual(kernelClientAddress, wallet.address)
             }
             if (wagmiAddress && wallet) {
                 return isWagmiConnected && wagmiAddress.some((addr) => areEvmAddressesEqual(addr, wallet.address))
+            }
+            if (wallet.walletProviderType === WalletProviderType.REWARDS) {
+                return true
             }
             return false
         },
@@ -70,14 +100,14 @@ export const useWallet = () => {
     )
 
     const fetchWalletDetails = useCallback(
-        async (address: string, walletProviderType: interfaces.WalletProviderType) => {
+        async (address: string, walletProviderType: WalletProviderType): Promise<IWallet> => {
             // get connector details from user accounts
             const userAccount = user ? getUserAccount(user, address) : null
 
-            const dbWallet: interfaces.IDBWallet = createDefaultDBWallet(
+            const dbWallet: IDBWallet = createDefaultDBWallet(
                 address,
                 walletProviderType,
-                interfaces.WalletProtocolType.EVM,
+                WalletProtocolType.EVM,
                 userAccount?.connector || {
                     iconUrl: connector?.icon || '',
                     name: connector?.name || 'External Wallet',
@@ -85,7 +115,7 @@ export const useWallet = () => {
             )
 
             let balance = BigInt(0)
-            let balances: interfaces.IUserBalance[] | undefined
+            let balances: IUserBalance[] | undefined
 
             if (isPeanut(dbWallet)) {
                 balance = await peanutPublicClient.readContract({
@@ -100,7 +130,13 @@ export const useWallet = () => {
                 balance = parseUnits(totalBalance.toString(), PEANUT_WALLET_TOKEN_DECIMALS)
             }
 
-            return { ...dbWallet, balance, balances, connected: isWalletConnected(dbWallet) }
+            return {
+                ...dbWallet,
+                balance,
+                balances,
+                connected: isWalletConnected(dbWallet as IWallet),
+                id: idForWallet(dbWallet),
+            }
         },
         [connector, isWalletConnected, user?.accounts]
     )
@@ -114,14 +150,12 @@ export const useWallet = () => {
         const processedAccounts = await Promise.all(
             userAccounts
                 .filter((account) =>
-                    Object.values(interfaces.WalletProviderType).includes(
-                        account.account_type as unknown as interfaces.WalletProviderType
-                    )
+                    Object.values(WalletProviderType).includes(account.account_type as unknown as WalletProviderType)
                 )
                 .sort((a, b) => {
-                    if (interfaces.AccountType.PEANUT_WALLET === a.account_type) {
+                    if (AccountType.PEANUT_WALLET === a.account_type) {
                         return -1
-                    } else if (interfaces.AccountType.PEANUT_WALLET === b.account_type) {
+                    } else if (AccountType.PEANUT_WALLET === b.account_type) {
                         return 1
                     }
                     const dateA = new Date(a.created_at)
@@ -131,7 +165,7 @@ export const useWallet = () => {
                 .map((account) =>
                     fetchWalletDetails(
                         account.account_identifier,
-                        account.account_type as unknown as interfaces.WalletProviderType
+                        account.account_type as unknown as WalletProviderType
                     )
                 )
         )
@@ -146,15 +180,23 @@ export const useWallet = () => {
                         ? userAccounts.some((acc) => areEvmAddressesEqual(acc.account_identifier, address))
                         : true
                 })
-                .map((address) => fetchWalletDetails(address, interfaces.WalletProviderType.BYOW))
+                .map((address) => fetchWalletDetails(address, WalletProviderType.BYOW))
         )
 
-        const mergedWallets = [...processedAccounts, ...processedExternalWallets].reduce((unique, wallet) => {
-            if (!unique.some((w) => areEvmAddressesEqual(w.address, wallet.address))) {
-                unique.push(wallet)
-            }
-            return unique
-        }, [] as interfaces.IDBWallet[])
+        const mergedWallets: IWallet[] = [...processedAccounts, ...processedExternalWallets].reduce(
+            (unique, wallet) => {
+                if (!unique.some((w) => areEvmAddressesEqual(w.address, wallet.address))) {
+                    unique.push(wallet)
+                }
+                return unique
+            },
+            [] as IWallet[]
+        )
+
+        const peanutWallet = mergedWallets.find((w) => w.walletProviderType === WalletProviderType.PEANUT)
+        if (peanutWallet) {
+            mergedWallets.push(...REWARD_WALLETS.map((w) => ({ ...w, address: peanutWallet.address })))
+        }
 
         dispatch(walletActions.setWallets(mergedWallets))
         dispatch(walletActions.setIsFetchingWallets(false))
@@ -176,30 +218,30 @@ export const useWallet = () => {
     }, [isWalletsQueryLoading, dispatch])
 
     const selectedWallet = useMemo(() => {
-        if (!selectedAddress || !wallets.length) return undefined
-        const wallet = wallets.find((w) => w.address === selectedAddress)
+        if (!selectedWalletId || !wallets.length) return undefined
+        const wallet = wallets.find((w) => w.id === selectedWalletId)
         if (!wallet) {
             // The selected address does not correspond to any wallet
-            dispatch(walletActions.setSelectedAddress(undefined))
+            dispatch(walletActions.setSelectedWalletId(undefined))
             return undefined
         }
         return { ...wallet, connected: isWalletConnected(wallet) }
-    }, [selectedAddress, wallets, isWalletConnected])
+    }, [selectedWalletId, wallets, isWalletConnected])
 
     useEffect(() => {
-        if (!selectedAddress && wallets.length) {
+        if (!selectedWalletId && wallets.length) {
             const initialWallet = wallets.find(isPeanut) || wallets[0]
             if (initialWallet) {
-                dispatch(walletActions.setSelectedAddress(initialWallet.address))
+                dispatch(walletActions.setSelectedWalletId(initialWallet.id))
             }
         }
-    }, [wallets, selectedAddress, dispatch])
+    }, [wallets, selectedWalletId])
 
     useEffect(() => {
         if (selectedWallet?.address) {
             dispatch(walletActions.setWalletColor(backgroundColorFromAddress(selectedWallet.address)))
         }
-    }, [selectedWallet, dispatch])
+    }, [selectedWallet])
 
     const refetchBalances = useCallback(
         async (address: string) => {
@@ -235,15 +277,19 @@ export const useWallet = () => {
 
     const selectExternalWallet = useCallback(() => {
         if (wagmiAddress?.length) {
-            dispatch(walletActions.setSelectedAddress(wagmiAddress[0]))
+            dispatch(
+                walletActions.setSelectedWalletId(
+                    idForWallet({ address: wagmiAddress[0], walletProviderType: WalletProviderType.BYOW })
+                )
+            )
         }
-    }, [wagmiAddress, dispatch])
+    }, [wagmiAddress])
 
     return {
         wallets,
         selectedWallet,
-        setSelectedWallet: (wallet: interfaces.IWallet) => {
-            dispatch(walletActions.setSelectedAddress(wallet.address))
+        setSelectedWallet: (wallet: IWallet) => {
+            dispatch(walletActions.setSelectedWalletId(wallet.id))
         },
         address: selectedWallet?.address || externalWalletAddress,
         chain: isPeanut(selectedWallet) ? PEANUT_WALLET_CHAIN : wagmiChain,
@@ -257,6 +303,7 @@ export const useWallet = () => {
         refetchBalances,
         isPeanutWallet: isPeanut(selectedWallet),
         isExternalWallet: isExternalWallet(selectedWallet),
+        isSmartAccount: isSmartAccount(selectedWallet),
         selectExternalWallet,
         isWalletConnected,
         isFetchingWallets: isFetchingWallets || isWalletsQueryLoading,

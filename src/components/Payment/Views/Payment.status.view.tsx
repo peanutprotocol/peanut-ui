@@ -173,6 +173,21 @@ export default function PaymentStatusView() {
         )
     }
 
+    const recipientLink = useMemo(() => {
+        if (!requestDetails) return null
+
+        if (requestDetails.recipientAccount.user) {
+            const username = requestDetails.recipientAccount.user.username
+            return (
+                <Link className="cursor-pointer underline" href={`/${username}`}>
+                    {username}
+                </Link>
+            )
+        }
+
+        return <AddressLink address={resolvedAddress ?? requestDetails.recipientAddress} />
+    }, [requestDetails, resolvedAddress])
+
     const renderHeader = () => {
         // Case1: Just made payment, waiting for confirmation
         if (!latestPayment) {
@@ -180,9 +195,7 @@ export default function PaymentStatusView() {
                 <>
                     <Card.Title>Payment in Progress</Card.Title>
                     <Card.Description className="flex items-center justify-normal gap-2">
-                        <div>
-                            Your payment to <AddressLink address={resolvedAddress || ''} /> is being processed
-                        </div>
+                        <div>Your payment to {recipientLink} is being processed</div>
                         <div className="animate-spin">
                             <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4 w-4" />
                         </div>
@@ -225,18 +238,7 @@ export default function PaymentStatusView() {
             return (
                 <>
                     <Card.Title>Yay!!</Card.Title>
-                    <Card.Description>
-                        Payment to{' '}
-                        <AddressLink
-                            address={
-                                resolvedAddress ||
-                                requestDetails?.recipientAccount.identifier ||
-                                requestDetails?.recipientAddress ||
-                                ''
-                            }
-                        />{' '}
-                        was successful
-                    </Card.Description>
+                    <Card.Description>Payment to {recipientLink} was successful</Card.Description>
                 </>
             )
         }

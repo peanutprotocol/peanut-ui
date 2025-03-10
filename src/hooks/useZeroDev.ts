@@ -30,7 +30,7 @@ export const useZeroDev = () => {
     const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
-    const { kernelClient, setWebAuthnKey } = useKernelClient()
+    const { setWebAuthnKey, getClientForChain } = useKernelClient()
 
     const _getPasskeyName = (handle: string) => `${handle}.peanut.wallet`
 
@@ -84,25 +84,21 @@ export const useZeroDev = () => {
         }
     }
 
-    // UserOp functions
     const handleSendUserOpEncoded = useCallback(
-        async (calls: UserOpEncodedParams[]) => {
-            if (!kernelClient) {
-                throw new Error('Trying to send user operation before client initialization')
-            }
+        async (calls: UserOpEncodedParams[], chainId: string) => {
+            const client = getClientForChain(chainId)
             dispatch(zerodevActions.setIsSendingUserOp(true))
 
             try {
-                const userOpHash = await kernelClient.sendUserOperation({
-                    account: kernelClient.account,
-                    callData: await kernelClient.account!.encodeCalls(calls),
+                const userOpHash = await client.sendUserOperation({
+                    account: client.account,
+                    callData: await client.account!.encodeCalls(calls),
                 })
 
-                const receipt = await kernelClient.waitForUserOperationReceipt({
+                const receipt = await client.waitForUserOperationReceipt({
                     hash: userOpHash,
                 })
 
-                console.log('UserOp completed:', `https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia`)
                 dispatch(zerodevActions.setIsSendingUserOp(false))
 
                 return receipt.receipt.transactionHash
@@ -112,48 +108,34 @@ export const useZeroDev = () => {
                 throw error
             }
         },
-        [kernelClient, dispatch]
+        [getClientForChain]
     )
 
     const handleSendUserOpNotEncoded = useCallback(
-        async ({ to, value, abi, functionName, args }: UserOpNotEncodedParams) => {
-            if (!kernelClient?.account) {
-                throw new Error('Kernel client or account not initialized')
-            }
-
+        async ({ to, value, abi, functionName, args }: UserOpNotEncodedParams, chainId: string) => {
+            const client = getClientForChain(chainId)
             dispatch(zerodevActions.setIsSendingUserOp(true))
-
-            try {
-                const userOpHash = await kernelClient.sendUserOperation({
-                    account: kernelClient.account,
-                    callData: await kernelClient.account.encodeCalls([
-                        {
-                            to,
-                            value: BigInt(value),
-                            data: encodeFunctionData({
-                                abi,
-                                functionName,
-                                args,
-                            }),
-                        },
-                    ]),
-                })
-
-                await kernelClient.waitForUserOperationReceipt({
-                    hash: userOpHash,
-                })
-
-                console.log('UserOp completed:', `https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia`)
-                dispatch(zerodevActions.setIsSendingUserOp(false))
-
-                return userOpHash
-            } catch (error) {
-                console.error('Error sending not encoded UserOp:', error)
-                dispatch(zerodevActions.setIsSendingUserOp(false))
-                throw error
-            }
+            const userOpHash = await client.sendUserOperation({
+                account: client.account,
+                callData: await client.account!.encodeCalls([
+                    {
+                        to,
+                        value: BigInt(value),
+                        data: encodeFunctionData({
+                            abi,
+                            functionName,
+                            args,
+                        }),
+                    },
+                ]),
+            })
+            await client.waitForUserOperationReceipt({
+                hash: userOpHash,
+            })
+            dispatch(zerodevActions.setIsSendingUserOp(false))
+            return userOpHash
         },
-        [kernelClient, dispatch]
+        [getClientForChain]
     )
 
     return {
