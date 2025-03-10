@@ -208,15 +208,14 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                         </div>
                     )}
                     {transactionDetails?.attachmentUrl && (
-                        <a
-                            href={transactionDetails.attachmentUrl}
-                            download
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <div
+                            onClick={() => {
+                                window.open(transactionDetails.attachmentUrl, '_blank', 'noopener,noreferrer')
+                            }}
                             className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             Download attachment
-                        </a>
+                        </div>
                     )}
                     {transactionDetails?.type === 'Offramp Claim' && transactionDetails.status !== 'claimed' && (
                         <a
