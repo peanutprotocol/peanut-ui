@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
             if (data.code === 'duplicate_external_account') {
                 console.log('Duplicate account detected, fetching existing accounts')
 
-                const bridgeResponse = await fetch(
+                const bridgeResponse = await fetchWithSentry(
                     `https://api.bridge.xyz/v0/customers/${customerId}/external_accounts`,
                     {
                         method: 'GET',

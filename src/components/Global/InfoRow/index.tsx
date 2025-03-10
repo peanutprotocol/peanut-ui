@@ -1,5 +1,5 @@
 import { twMerge } from 'tailwind-merge'
-import Icon, { IconNameType } from '../Icon'
+import Icon from '../Icon'
 import MoreInfo from '../MoreInfo'
 
 interface InfoRowProps {
@@ -14,7 +14,7 @@ interface InfoRowProps {
 const InfoRow = ({ iconName, label, value, moreInfoText, loading, smallFont }: InfoRowProps) => (
     <div className={'flex w-full items-center justify-between gap-1 px-2 text-h8 text-gray-1'}>
         <div className="flex items-center gap-1">
-            <Icon name={iconName as IconNameType} className="h-4 fill-gray-1" />
+            <Icon name={iconName} className="h-4 fill-gray-1" />
             <label className={twMerge('text-h8 font-bold', smallFont ? 'text-h9' : 'text-sm')}>{label}</label>
         </div>
         {loading ? (

@@ -9,9 +9,17 @@ interface TokenAmountInputProps {
     setTokenValue: (tokenvalue: string | undefined) => void
     onSubmit?: () => void
     maxValue?: string
+    disabled?: boolean
 }
 
-const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit, maxValue }: TokenAmountInputProps) => {
+const TokenAmountInput = ({
+    className,
+    tokenValue,
+    setTokenValue,
+    onSubmit,
+    maxValue,
+    disabled,
+}: TokenAmountInputProps) => {
     const { inputDenomination, setInputDenomination, selectedTokenData } = useContext(context.tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
@@ -92,6 +100,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit, maxV
                         }
                     }}
                     style={{ maxWidth: `${parentWidth}px` }}
+                    disabled={disabled}
                 />
                 {maxValue && maxValue !== tokenValue && (
                     <button
@@ -111,15 +120,17 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit, maxV
                               ? utils.formatTokenAmount(Number(tokenValue) / (selectedTokenData?.price ?? 0))
                               : '$' + utils.formatTokenAmount(Number(tokenValue) * (selectedTokenData?.price ?? 0))}
                     </label>
-                    <button
-                        onClick={(e) => {
-                            e.preventDefault()
-                            if (selectedTokenData?.price)
-                                setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
-                        }}
-                    >
-                        <Icon name={'switch'} className="rotate-90 cursor-pointer fill-grey-1" />
-                    </button>
+                    {!disabled && (
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault()
+                                if (selectedTokenData?.price)
+                                    setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
+                            }}
+                        >
+                            <Icon name={'switch'} className="rotate-90 cursor-pointer fill-grey-1" />
+                        </button>
+                    )}
                 </div>
             )}
         </form>

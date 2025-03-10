@@ -1,10 +1,10 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
+import * as Sentry from '@sentry/nextjs'
 import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Loading from '../Loading'
-import * as Sentry from '@sentry/nextjs'
 
 type ValidatedInputProps = {
     label?: string
@@ -31,7 +31,7 @@ const ValidatedInput = ({
     label,
     placeholder = '',
     value,
-    debounceTime = 300,
+    debounceTime = 750,
     onUpdate,
     validate,
     className,
@@ -45,41 +45,52 @@ const ValidatedInput = ({
     const [isValidating, setIsValidating] = useState(false)
     const [debouncedValue, setDebouncedValue] = useState<string>(value)
     const previousValueRef = useRef(value)
+    const currentValueRef = useRef(value)
     const listId = useRef(`datalist-${Math.random().toString(36).substr(2, 9)}`)
 
     useEffect(() => {
-        if ('' === debouncedValue) {
+        if (debouncedValue === '') {
             return
         }
+
         let isStale = false
         previousValueRef.current = debouncedValue
         setIsValidating(true)
+
         validate(debouncedValue)
             .then((isValid) => {
                 if (isStale) return
                 setIsValid(isValid)
-                onUpdate({ value: debouncedValue, isValid, isChanging: false })
+                if (currentValueRef.current === debouncedValue) {
+                    onUpdate({ value: debouncedValue, isValid, isChanging: false })
+                }
             })
             .catch((error) => {
                 if (isStale) return
-                console.error('Unexpected error while validating recipient input field:', error)
+                console.error('Unexpected error while validating input field:', error)
                 setIsValid(false)
-                onUpdate({ value: debouncedValue, isValid: false, isChanging: false })
+                if (currentValueRef.current === debouncedValue) {
+                    onUpdate({ value: debouncedValue, isValid: false, isChanging: false })
+                }
                 Sentry.captureException(error)
             })
             .finally(() => {
-                if (isStale) return
-                setIsValidating(false)
+                if (!isStale) {
+                    setIsValidating(false)
+                }
             })
+
         return () => {
             isStale = true
         }
     }, [debouncedValue])
 
     useEffect(() => {
+        currentValueRef.current = value
         const handler = setTimeout(() => {
             setDebouncedValue(value)
         }, debounceTime)
+
         return () => {
             clearTimeout(handler)
         }
@@ -87,10 +98,11 @@ const ValidatedInput = ({
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value
+        currentValueRef.current = newValue
         onUpdate({
             value: newValue,
             isValid: false,
-            isChanging: !!newValue,
+            isChanging: true,
         })
     }
 

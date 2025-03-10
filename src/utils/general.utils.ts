@@ -1,13 +1,14 @@
 import * as consts from '@/constants'
-import { infuraApiKey } from '@/constants'
+import { INFURA_API_KEY } from '@/constants'
 import * as interfaces from '@/interfaces'
+import { AccountType } from '@/interfaces'
 import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
+import * as Sentry from '@sentry/nextjs'
 import peanut from '@squirrel-labs/peanut-sdk'
 import chroma from 'chroma-js'
-import { ethers } from 'ethers'
 import { SiweMessage } from 'siwe'
+import { getAddress, isAddress } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
-import * as Sentry from '@sentry/nextjs'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -347,18 +348,32 @@ export async function resolveFromEnsNameAndProviderUrl(
 }
 
 export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
-    let resolvedAddress: string | undefined
+    const mainProviderUrl = 'https://mainnet.infura.io/v3/' + INFURA_API_KEY
+    const fallbackProviderUrl = 'https://rpc.ankr.com/eth'
 
-    const providerUrl = `https://mainnet.infura.io/v3/${infuraApiKey}`
+    try {
+        const records = await JustaName.init().subnames.getRecords({
+            ens: ensName,
+            chainId: 1,
+            providerUrl: mainProviderUrl,
+        })
 
-    resolvedAddress = await resolveFromEnsNameAndProviderUrl(ensName, providerUrl)
+        return records?.records?.coins?.find((coin) => coin.id === 60)?.value
+    } catch (error) {
+        console.error('Error resolving ENS name with main provider:', error)
+        try {
+            const records = await JustaName.init().subnames.getRecords({
+                ens: ensName,
+                chainId: 1,
+                providerUrl: fallbackProviderUrl,
+            })
 
-    if (!resolvedAddress) {
-        // add a fallback provider here, the justaname sdk will use "https://cloudflare-eth.com" as a fallback if no provider url is provided
-        resolvedAddress = await resolveFromEnsNameAndProviderUrl(ensName)
+            return records?.records?.coins?.find((coin) => coin.id === 60)?.value
+        } catch (fallbackError) {
+            console.error('Error resolving ENS name with fallback provider:', fallbackError)
+            return undefined
+        }
     }
-
-    return resolvedAddress
 }
 
 export async function copyTextToClipboardWithFallback(text: string) {
@@ -398,17 +413,18 @@ export const isTestnetChain = (chainId: string) => {
 }
 
 export const areEvmAddressesEqual = (address1: string, address2: string): boolean => {
+    if (!isAddress(address1) || !isAddress(address2)) return false
     if (address1.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
-        address1 = ethers.constants.AddressZero
+        address1 = '0x0000000000000000000000000000000000000000'
     if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
-        address2 = ethers.constants.AddressZero
-    // By using ethers.getAddress we are safe from different cases
+        address2 = '0x0000000000000000000000000000000000000000'
+    // By using getAddress we are safe from different cases
     // and other address formatting
-    return ethers.utils.getAddress(address1) === ethers.utils.getAddress(address2)
+    return getAddress(address1) === getAddress(address2)
 }
 
 export const isAddressZero = (address: string): boolean => {
-    return areEvmAddressesEqual(address, ethers.constants.AddressZero)
+    return areEvmAddressesEqual(address, '0x0000000000000000000000000000000000000000')
 }
 
 export const isNativeCurrency = (address: string) => {
@@ -860,6 +876,13 @@ export const switchNetwork = async ({
     }
 }
 
+/** Gets the token decimals for a given token address and chain ID. */
+export function getTokenDecimals(tokenAddress: string, chainId: string): number | undefined {
+    return consts.peanutTokenDetails
+        .find((chain) => chain.chainId === chainId)
+        ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.decimals
+}
+
 /**
  * Gets the token symbol for a given token address and chain ID.
  *
@@ -868,11 +891,13 @@ export const switchNetwork = async ({
  *
  * @returns The token symbol, or undefined if not found.
  */
-export function getTokenSymbol(tokenAddress: string, chainId: string): string | undefined {
-    return consts.peanutTokenDetails
-        .find((chain) => chain.chainId === chainId)
-        ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
-        ?.symbol?.toUpperCase()
+export function getTokenSymbol(tokenAddress: string | undefined, chainId: string | undefined): string | undefined {
+    if (!tokenAddress || !chainId) return undefined
+
+    const chainTokens = consts.peanutTokenDetails.find((chain) => chain.chainId === chainId)?.tokens
+    if (!chainTokens) return undefined
+
+    return chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.symbol
 }
 
 /**
@@ -976,4 +1001,49 @@ export const formatExtendedNumber = (amount: string | number): string => {
     }
 
     return formatAmount(num)
+}
+
+export function getRequestLink(
+    requestData: {
+        recipientAccount: {
+            type: string
+            user?: {
+                username: string
+            }
+        }
+        recipientAddress: string
+        chainId?: string
+        tokenAmount?: string
+        tokenSymbol?: string
+    } & ({ uuid: string; chargeId?: never } | { uuid?: never; chargeId: string })
+): string {
+    const { recipientAccount, recipientAddress, chainId, tokenAmount, tokenSymbol, uuid, chargeId } = requestData
+    const isPeanutWallet = recipientAccount.type === AccountType.PEANUT_WALLET
+    const recipient = isPeanutWallet ? recipientAccount.user!.username : recipientAddress
+    let chain: string = ''
+    if (!isPeanutWallet && chainId) {
+        chain = `@${chainId}`
+    }
+    let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${recipient}${chain}/`
+    if (tokenAmount) {
+        link += `${tokenAmount}`
+    }
+    if (tokenSymbol) {
+        link += `${tokenSymbol}`
+    }
+    if (uuid) {
+        link += `?id=${uuid}`
+    } else if (chargeId) {
+        link += `?chargeId=${chargeId}`
+    }
+    return link
+}
+
+// for now it works
+export function getTokenLogo(tokenSymbol: string): string {
+    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/${tokenSymbol.toLowerCase()}.svg`
+}
+
+export function getChainLogo(chainName: string): string {
+    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${chainName.toLowerCase()}.webp`
 }

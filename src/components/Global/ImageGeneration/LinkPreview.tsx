@@ -1,5 +1,4 @@
-import * as consts from '@/constants'
-import * as utils from '@/utils'
+import { formatAmount, printableAddress } from '@/utils'
 
 export enum PreviewType {
     CLAIM = 'claim',
@@ -11,31 +10,27 @@ type PreviewTypeData = {
 }
 
 const PREVIEW_TYPES: Record<PreviewType, PreviewTypeData> = {
-    [PreviewType.CLAIM]: { message: 'sent you' },
+    [PreviewType.CLAIM]: { message: 'is sending you' },
     [PreviewType.REQUEST]: { message: 'is requesting' },
 }
 
 export function LinkPreviewImg({
     amount,
-    chainId,
-    tokenAddress,
     tokenSymbol,
     address,
     previewType,
 }: {
     amount: string
-    chainId: string
-    tokenAddress: string
-    tokenSymbol: string
+    tokenSymbol?: string
     address: string
     previewType: PreviewType
 }) {
-    const tokenImage = consts.peanutTokenDetails
-        .find((detail) => detail.chainId === chainId)
-        ?.tokens.find((token) => utils.areEvmAddressesEqual(token.address, tokenAddress))?.logoURI
-    const chainImage = consts.supportedPeanutChains.find((chain) => chain.chainId === chainId)?.icon.url
+    const previewBg = `${
+        process.env.NEXT_PUBLIC_VERCEL_URL
+            ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+            : process.env.NEXT_PUBLIC_BASE_URL
+    }/social-preview-bg.png`
 
-    const previewBg = `${process.env.NEXT_PUBLIC_BASE_URL}/preview-bg.png`
     return (
         <div
             style={{
@@ -72,7 +67,7 @@ export function LinkPreviewImg({
                 }}
             >
                 <label style={{ fontSize: '16px', fontWeight: 'bold', color: 'black' }}>
-                    {utils.printableAddress(address)} {PREVIEW_TYPES[previewType].message}
+                    {printableAddress(address)} {PREVIEW_TYPES[previewType].message}
                 </label>
                 <div
                     style={{
@@ -84,56 +79,14 @@ export function LinkPreviewImg({
                         marginTop: '1px',
                     }}
                 >
-                    <div
-                        style={{
-                            display: 'flex',
-                            height: '52px',
-                            width: '52px',
-                            position: 'relative',
-                        }}
-                    >
-                        {tokenImage && (
-                            <img
-                                src={tokenImage ?? ''}
-                                alt="Token Image"
-                                height="50px"
-                                width="50px"
-                                style={{
-                                    height: '50px',
-                                    width: '50px',
-                                    borderRadius: '50%',
-                                    objectFit: 'cover',
-                                    position: 'absolute',
-                                }}
-                            />
-                        )}
-
-                        {chainImage && (
-                            <img
-                                src={chainImage ?? ''}
-                                alt="Chain Image"
-                                height="37px"
-                                width="37px"
-                                style={{
-                                    position: 'absolute',
-                                    right: '-12px',
-                                    top: '-12px',
-                                    width: '37px',
-                                    borderRadius: '50%',
-                                    objectFit: 'cover',
-                                }}
-                            />
-                        )}
-                    </div>
                     <label
                         style={{
                             fontSize: '49px',
                             fontWeight: 'bold',
-                            textShadow: '1px 1px 1px rgba(0,0,0,0.3)',
                             color: 'black',
                         }}
                     >
-                        {utils.formatAmount(amount)} {tokenSymbol}
+                        {!tokenSymbol && '$'} {formatAmount(amount)} {tokenSymbol && tokenSymbol}
                     </label>
                 </div>
             </div>

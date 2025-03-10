@@ -1,16 +1,16 @@
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import Cookies from 'js-cookie'
 
-import * as interfaces from '@/interfaces'
 import { PEANUT_API_URL, supportedPeanutChains } from '@/constants'
+import * as interfaces from '@/interfaces'
 import {
-    getTokenSymbol,
+    fetchWithSentry,
+    getCashoutStatus,
     getClaimedLinksFromLocalStorage,
     getCreatedLinksFromLocalStorage,
     getDirectSendFromLocalStorage,
     getOfframpClaimsFromLocalStorage,
-    getCashoutStatus,
-    fetchWithSentry,
+    getTokenSymbol,
 } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 
@@ -155,7 +155,7 @@ export const useDashboard = () => {
                 address: '',
                 status: entry.status,
                 message: '',
-                attachmentUrl: '',
+                attachmentUrl: entry.attachmentUrl,
                 points: 0,
                 txHash: entry.txHash,
             })

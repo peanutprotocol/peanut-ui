@@ -15,13 +15,13 @@ import { fetchTokenSymbol, isNativeCurrency } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Create.consts'
-import { useToast } from '@/components/0_Bruddle/Toast'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry, getRequestLink } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
+import { useAuth } from '@/context/authContext'
 
 export const InitialView = ({
     onNext,
-    onPrev,
+    onPrev: _onPrev,
     setLink,
     setAttachmentOptions,
     attachmentOptions,
@@ -32,8 +32,8 @@ export const InitialView = ({
     recipientAddress,
     setRecipientAddress,
 }: _consts.ICreateScreenProps) => {
-    const toast = useToast()
     const { address, selectedWallet, isExternalWallet, isPeanutWallet, isConnected } = useWallet()
+    const { user } = useAuth()
     const {
         selectedTokenPrice,
         inputDenomination,
@@ -117,6 +117,8 @@ export const InitialView = ({
                 createFormData.append('tokenSymbol', tokenData.symbol)
                 if (attachmentOptions?.rawFile) {
                     createFormData.append('attachment', attachmentOptions.rawFile)
+                    createFormData.append('mimetype', attachmentOptions.rawFile.type)
+                    createFormData.append('filename', attachmentOptions.rawFile.name)
                 }
                 if (attachmentOptions?.message) {
                     createFormData.append('reference', attachmentOptions.message)
@@ -132,39 +134,9 @@ export const InitialView = ({
                     throw new Error(`Request failed: ${requestResponse.status}`)
                 }
                 const requestLinkDetails = await requestResponse.json()
-
-                /*
-                //TODO: create util function to generate link
-                //TODO: use human readeable instead of address
-                let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${requestLinkDetails.recipientAddress}/`
-                if (requestLinkDetails.tokenAmount) {
-                    link += `${requestLinkDetails.tokenAmount}`
-                }
-                if (requestLinkDetails.tokenSymbol) {
-                    link += `${requestLinkDetails.tokenSymbol}`
-                }
-                link += `?id=${requestLinkDetails.uuid}`
-
-                */
-                //TODO: remove this after denver and merging PR
-                const chargeResponse = await fetchWithSentry(`/api/proxy/charges`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        pricing_type: 'fixed_price',
-                        local_price: {
-                            amount: requestLinkDetails.tokenAmount,
-                            currency: 'USD',
-                        },
-                        requestId: requestLinkDetails.uuid,
-                    }),
-                })
-                const chargeData = await chargeResponse.json()
-                const link = `${process.env.NEXT_PUBLIC_BASE_URL}/request/pay?id=${chargeData.data.id}`
-
+                const link = getRequestLink(requestLinkDetails)
                 requestLinkDetails.link = link
+
                 setLink(link)
                 onNext()
             } catch (error) {
@@ -178,7 +150,7 @@ export const InitialView = ({
                 setLoadingState('Idle')
             }
         },
-        []
+        [isPeanutWallet, user?.user.username]
     )
 
     useEffect(() => {

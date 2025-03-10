@@ -4,10 +4,10 @@ import { next_proxy_url } from '@/constants'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
+import { fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { useState } from 'react'
-import * as Sentry from '@sentry/nextjs'
-import { fetchWithSentry } from '@/utils'
 
 const SignupStep = () => {
     const dispatch = useAppDispatch()
@@ -45,7 +45,7 @@ const SignupStep = () => {
 
         try {
             // here we expect 404 or 400 so dont use the fetchWithSentry helper
-            const res = await fetch(`${next_proxy_url}/get/users/username/${handle}`, {
+            const res = await fetchWithSentry(`${next_proxy_url}/get/users/username/${handle}`, {
                 method: 'HEAD',
             })
             switch (res.status) {

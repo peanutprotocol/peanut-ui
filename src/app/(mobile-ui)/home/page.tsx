@@ -1,13 +1,11 @@
 'use client'
 
-import { useToast } from '@/components/0_Bruddle/Toast'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import LogoutButton from '@/components/Global/LogoutButton'
-import WalletHeader from '@/components/Global/WalletHeader'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import { WalletCard } from '@/components/Home/WalletCard'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
 import { useAuth } from '@/context/authContext'
-import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { WalletProviderType } from '@/interfaces'
@@ -36,7 +34,7 @@ export default function Home() {
 
     const { username } = useAuth()
 
-    const { selectedWallet, wallets, isPeanutWallet, isConnected, setSelectedWallet, isWalletConnected } = useWallet()
+    const { selectedWallet, wallets, setSelectedWallet, isWalletConnected, isFetchingWallets } = useWallet()
 
     // initialize focusedIndex to match selectedWalletIndex
     const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
@@ -54,8 +52,6 @@ export default function Home() {
     }, [selectedWallet, wallets, dispatch])
 
     const hasWallets = wallets.length > 0
-    const { handleLogin, isLoggingIn } = useZeroDev()
-    const toast = useToast()
     const totalCards = hasWallets ? wallets.length + 1 : 1
 
     const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -125,15 +121,18 @@ export default function Home() {
         })
     }
 
+    if (isFetchingWallets) {
+        return <PeanutLoading />
+    }
+
     return (
         <div className="h-full w-full">
             <div className="flex h-full w-full flex-row justify-center overflow-hidden py-6 md:py-0">
                 <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
                     <div className="space-y-4 px-6">
                         <div className="flex items-center justify-between">
-                            <WalletHeader />
-
-                            <div className="md:hidden">
+                            <div className="flex w-full items-center justify-between md:hidden">
+                                <div className="font-knerd-outline text-h5 font-semibold">Peanut</div>
                                 <LogoutButton />
                             </div>
                         </div>

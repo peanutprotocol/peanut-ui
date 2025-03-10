@@ -1,6 +1,6 @@
+import { PEANUTMAN_LOGO } from '@/assets'
 import React, { forwardRef } from 'react'
 import { twMerge } from 'tailwind-merge'
-import Loading from '../Global/Loading'
 
 export type ButtonVariant = 'purple' | 'dark' | 'stroke' | 'transparent-light' | 'transparent-dark' | 'green' | 'yellow'
 type ButtonSize = 'small' | 'medium' | 'large' | 'xl' | 'xl-fixed'
@@ -64,7 +64,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref
     ) => {
         const buttonClasses = twMerge(
-            'btn w-full flex items-center gap-2',
+            'btn w-full flex items-center gap-2 transform transition-transform active:scale-90 ease-in-out',
             buttonVariants[variant],
             size && buttonSizes[size],
             shape === 'square' && 'btn-square',
@@ -74,7 +74,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
         return (
             <button className={buttonClasses} ref={ref} {...props}>
-                {loading && <Loading />}
+                {loading && (
+                    <span className="animate-spin">
+                        <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4" />
+                    </span>
+                )}
                 {children}
             </button>
         )

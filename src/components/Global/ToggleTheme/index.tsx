@@ -1,5 +1,5 @@
 'use client'
-import Icon, { IconNameType } from '@/components/Global/Icon'
+import Icon from '@/components/Global/Icon'
 import { useColorMode } from '@chakra-ui/color-mode'
 
 type ToggleThemeProps = {}
@@ -8,7 +8,7 @@ const ToggleTheme = ({}: ToggleThemeProps) => {
     const { colorMode, setColorMode } = useColorMode()
 
     const items: {
-        icon: IconNameType
+        icon: string
         active: boolean
         onClick: () => void
     }[] = [
