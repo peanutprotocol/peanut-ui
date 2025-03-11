@@ -1059,7 +1059,7 @@ export function getChainLogo(chainName: string): string {
         default:
             name = chainName.toLowerCase()
     }
-    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${chainName.toLowerCase()}.webp`
+    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${name}.webp`
 }
 
 export function isStableCoin(tokenSymbol: string): boolean {
