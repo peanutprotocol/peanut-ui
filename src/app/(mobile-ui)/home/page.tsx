@@ -34,16 +34,16 @@ export default function Home() {
 
     const { username } = useAuth()
 
-    const { selectedWallet, wallets, setSelectedWallet, isWalletConnected, isFetchingWallets } = useWallet()
+    const { selectedWallet, wallets, isWalletConnected, isFetchingWallets } = useWallet()
 
     // initialize focusedIndex to match selectedWalletIndex
-    const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
+    const rawIndex = wallets.findIndex((wallet) => wallet.id === selectedWallet?.id)
     const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
     const [focusedIndex, setFocusedIndex] = useState(selectedWalletIndex)
 
     // update focusedIndex and focused wallet when selectedWallet changes
     useEffect(() => {
-        const index = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
+        const index = wallets.findIndex((wallet) => wallet.id === selectedWallet?.id)
         if (index !== -1) {
             setFocusedIndex(index)
             // also update the focused wallet when selected wallet changes
@@ -82,8 +82,18 @@ export default function Home() {
                     transition: { type: 'spring', stiffness: 300, damping: 30 },
                 })
 
-                if (wallet.walletProviderType === WalletProviderType.PEANUT || isWalletConnected(wallet)) {
-                    setSelectedWallet(wallet)
+                // check wallet type and ID
+                const isValidPeanutWallet =
+                    wallet.id.startsWith('peanut-wallet') && wallet.walletProviderType === WalletProviderType.PEANUT
+
+                const isValidRewardsWallet =
+                    wallet.id === 'pinta-wallet' && wallet.walletProviderType === WalletProviderType.REWARDS
+
+                const isValidExternalWallet =
+                    wallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(wallet)
+
+                if (isValidPeanutWallet || isValidRewardsWallet || isValidExternalWallet) {
+                    dispatch(walletActions.setSelectedWalletId(wallet.id))
                 }
                 return
             }
@@ -107,11 +117,20 @@ export default function Home() {
         setFocusedIndex(targetIndex)
 
         if (targetIndex < wallets.length) {
-            dispatch(walletActions.setFocusedWallet(wallets[targetIndex]))
-
             const targetWallet = wallets[targetIndex]
-            if (targetWallet.walletProviderType === WalletProviderType.PEANUT || isWalletConnected(targetWallet)) {
-                setSelectedWallet(targetWallet)
+            dispatch(walletActions.setFocusedWallet(targetWallet))
+
+            // check wallet type and ID
+            const isValidPeanutWallet =
+                targetWallet.id.startsWith('peanut-wallet') &&
+                targetWallet.walletProviderType === WalletProviderType.PEANUT
+            const isValidRewardsWallet =
+                targetWallet.id === 'pinta-wallet' && targetWallet.walletProviderType === WalletProviderType.REWARDS
+            const isValidExternalWallet =
+                targetWallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(targetWallet)
+
+            if (isValidPeanutWallet || isValidRewardsWallet || isValidExternalWallet) {
+                dispatch(walletActions.setSelectedWalletId(targetWallet.id))
             }
         }
 
@@ -164,11 +183,11 @@ export default function Home() {
                                     {!!wallets.length &&
                                         wallets.map((wallet, index) => (
                                             <WalletCard
-                                                key={wallet.address}
+                                                key={wallet.id}
                                                 type="wallet"
                                                 wallet={wallet}
                                                 username={username ?? ''}
-                                                selected={selectedWalletIndex === index}
+                                                selected={selectedWallet?.id === wallet.id}
                                                 onClick={() => handleCardClick(index)}
                                                 index={index}
                                                 isBalanceHidden={isBalanceHidden}
