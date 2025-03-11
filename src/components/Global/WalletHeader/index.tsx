@@ -1,11 +1,14 @@
 'use client'
 
+import { PeanutArmHoldingBeer } from '@/assets'
 import PeanutWalletIcon from '@/assets/icons/small-peanut.png'
 import { Button, Card } from '@/components/0_Bruddle'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { IDBWallet, IWallet, WalletProviderType } from '@/interfaces'
+import { useAppDispatch } from '@/redux/hooks'
+import { walletActions } from '@/redux/slices/wallet-slice'
 import { printableUsdc, shortenAddressLong } from '@/utils'
 import { truncateString } from '@/utils/format.utils'
 import { identicon } from '@dicebear/collection'
@@ -89,7 +92,7 @@ const ConnectionStatusDot: React.FC<{ isConnected: boolean }> = ({ isConnected }
 // modal components
 const ModalHeader: React.FC<ModalHeaderProps> = ({ title, description, wallet }) => (
     <div className="flex items-start gap-2">
-        <WalletIconContainer src={getWalletIcon(wallet, false)} />
+        <WalletIconContainer src={getWalletIcon(wallet, false, false)} />
         <div className="space-y-1">
             <h1 className="text-lg font-bold">{title}</h1>
             <p className="text-sm font-medium">{description}</p>
@@ -110,9 +113,13 @@ const ModalActions: React.FC<ModalActionsProps> = ({ onAccept, isConnecting }) =
     </Button>
 )
 
-const getWalletIcon = (wallet: IWallet | null, isPeanutWallet: boolean) => {
+const getWalletIcon = (wallet: IWallet | null, isPeanutWallet: boolean, isRewardsWallet: boolean) => {
     if (isPeanutWallet || !wallet) {
         return PeanutWalletIcon
+    }
+
+    if (isRewardsWallet) {
+        return PeanutArmHoldingBeer
     }
 
     if (wallet.connector?.iconUrl) {
@@ -127,8 +134,9 @@ const getWalletIcon = (wallet: IWallet | null, isPeanutWallet: boolean) => {
 
 const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
     const [showModal, setShowModal] = useState(false)
-    const { wallets, setSelectedWallet, selectedWallet, isConnected, isWalletConnected, isPeanutWallet } = useWallet()
+    const { wallets, selectedWallet, isConnected, isWalletConnected, isPeanutWallet } = useWallet()
     const { connectWallet } = useWalletConnection()
+    const dispatch = useAppDispatch()
 
     const sortedWallets = useMemo(() => {
         return [...wallets].filter((account) => Object.values(WalletProviderType).includes(account.walletProviderType))
@@ -150,38 +158,48 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
 
     // handle wallet selection and close modal
     const handleWalletSelection = (wallet: IWallet) => {
-        // only set selected wallet if it's a Peanut wallet or a connected external wallet
-        if (wallet && (wallet.walletProviderType === WalletProviderType.PEANUT || isWalletConnected(wallet))) {
-            setSelectedWallet(wallet)
+        // only set selected wallet if it's a Peanut wallet, rewards wallet, or a connected external wallet
+        if (
+            wallet &&
+            (wallet.id.startsWith('peanut-wallet') ||
+                wallet.id === 'pinta-wallet' ||
+                (wallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(wallet)))
+        ) {
+            dispatch(walletActions.setSelectedWalletId(wallet.id))
         }
     }
 
     // set selected wallet to peanut wallet if no external wallet is connected or selected
     useEffect(() => {
         const connectedExternalWallet = sortedWallets.find(
-            (wallet) => wallet.walletProviderType !== WalletProviderType.PEANUT && isWalletConnected(wallet)
+            (wallet) => wallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(wallet)
         )
 
-        const isPeanutWalletSelected = selectedWallet?.walletProviderType === WalletProviderType.PEANUT
-        const isExternalWalletSelectedAndConnected =
-            selectedWallet?.walletProviderType !== WalletProviderType.PEANUT &&
-            isWalletConnected(selectedWallet as IDBWallet)
+        // check if current selection is valid
+        const isValidSelection =
+            selectedWallet &&
+            ((selectedWallet.id.startsWith('peanut-wallet') &&
+                selectedWallet.walletProviderType === WalletProviderType.PEANUT) ||
+                (selectedWallet.id === 'pinta-wallet' &&
+                    selectedWallet.walletProviderType === WalletProviderType.REWARDS) ||
+                (selectedWallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(selectedWallet)))
 
         // if no wallet is selected or current selection is invalid
-        if (!selectedWallet || (!isPeanutWalletSelected && !isExternalWalletSelectedAndConnected)) {
+        if (!selectedWallet || !isValidSelection) {
             if (connectedExternalWallet) {
-                setSelectedWallet(connectedExternalWallet as IWallet)
+                dispatch(walletActions.setSelectedWalletId(connectedExternalWallet.id))
             } else {
                 // fallback to Peanut wallet
                 const peanutWallet = sortedWallets.find(
-                    (wallet) => wallet.walletProviderType === WalletProviderType.PEANUT
+                    (wallet) =>
+                        wallet.id.startsWith('peanut-wallet') && wallet.walletProviderType === WalletProviderType.PEANUT
                 )
                 if (peanutWallet) {
-                    setSelectedWallet(peanutWallet as IWallet)
+                    dispatch(walletActions.setSelectedWalletId(peanutWallet.id))
                 }
             }
         }
-    }, [sortedWallets, isWalletConnected, setSelectedWallet, selectedWallet])
+    }, [sortedWallets, isWalletConnected, dispatch, selectedWallet])
 
     return (
         <div className={className}>
@@ -195,7 +213,7 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
                 )}
                 onClick={() => setShowModal(true)}
             >
-                <WalletIconContainer src={getWalletIcon(selectedWallet || null, isPeanutWallet)} />
+                <WalletIconContainer src={getWalletIcon(selectedWallet || null, isPeanutWallet, false)} />
 
                 {isConnected ? (
                     <span>
@@ -227,9 +245,9 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
                     <div className="space-y-2.5 pt-4">
                         {sortedWallets.map((wallet) => (
                             <WalletEntryCard
-                                key={wallet.address}
+                                key={wallet.id}
                                 wallet={wallet}
-                                isActive={wallet.address === selectedWallet?.address}
+                                isActive={wallet.id === selectedWallet?.id}
                                 onClick={() => handleWalletSelection(wallet)}
                             />
                         ))}
@@ -254,17 +272,21 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onC
     const isExternalWallet = useMemo(() => wallet.walletProviderType !== WalletProviderType.PEANUT, [wallet])
     const isPeanutWallet = useMemo(() => wallet.walletProviderType === WalletProviderType.PEANUT, [wallet])
     const isConnected = isWalletConnected(wallet as IDBWallet)
+    const isRewardsWallet = useMemo(() => wallet.walletProviderType === WalletProviderType.REWARDS, [wallet])
 
     // get wallet icon to display
-    const walletImage = useMemo(() => getWalletIcon(wallet, isPeanutWallet), [wallet, isPeanutWallet])
+    const walletImage = useMemo(
+        () => getWalletIcon(wallet, isPeanutWallet, isRewardsWallet),
+        [wallet, isPeanutWallet, isRewardsWallet]
+    )
 
     // get background color
     const backgroundColor = useMemo(() => {
-        if ((isPeanutWallet || isExternalWallet) && isConnected) {
+        if (isPeanutWallet || isRewardsWallet || (isExternalWallet && isConnected)) {
             return isActive ? 'bg-primary-1 hover:bg-primary-1/90' : 'bg-purple-4 bg-opacity-25 hover:bg-opacity-20'
         }
         if (isExternalWallet && !isConnected) return 'bg-n-4'
-    }, [isExternalWallet, isConnected, isActive, isPeanutWallet, wallet.address])
+    }, [isExternalWallet, isConnected, isActive, isPeanutWallet, isRewardsWallet])
 
     const { primaryName } = usePrimaryName({
         address: wallet.address,
@@ -284,9 +306,11 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onC
             <p className="text-xs font-medium">
                 {isPeanutWallet
                     ? 'Always ready to use'
-                    : isExternalWallet && isConnected
-                      ? 'Connected & Ready to sign'
-                      : 'Not connected'}
+                    : isRewardsWallet
+                      ? 'Ready to Claim beers!'
+                      : isExternalWallet && isConnected
+                        ? 'Connected & Ready to sign'
+                        : 'Not connected'}
             </p>
         </div>
     )
@@ -306,28 +330,39 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onC
                     <div className="flex w-full items-center justify-between">
                         <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                                {isPeanutWallet && username ? (
-                                    <p className="text-base font-bold">Peanut Wallet</p>
+                                {!isRewardsWallet ? (
+                                    isPeanutWallet && username ? (
+                                        <p className="text-base font-bold">Peanut Wallet</p>
+                                    ) : (
+                                        <p className="text-base font-bold">
+                                            {(primaryName && truncateString(primaryName, 18)) ||
+                                                shortenAddressLong(wallet.address)}
+                                        </p>
+                                    )
                                 ) : (
-                                    <p className="text-base font-bold">
-                                        {(primaryName && truncateString(primaryName, 18)) ||
-                                            shortenAddressLong(wallet.address)}
-                                    </p>
+                                    <p className="text-base font-bold">Beer Account</p>
                                 )}
-                                <CopyToClipboard
-                                    className="h-4 w-4"
-                                    fill={'black'}
-                                    textToCopy={
-                                        isPeanutWallet && username
-                                            ? `https://peanut.me/${username}`
-                                            : primaryName || wallet.address
-                                    }
-                                />
+                                {!isRewardsWallet && (
+                                    <CopyToClipboard
+                                        className="h-4 w-4"
+                                        fill={'black'}
+                                        textToCopy={
+                                            isPeanutWallet && username
+                                                ? `https://peanut.me/${username}`
+                                                : primaryName || wallet.address
+                                        }
+                                    />
+                                )}
                             </div>
                             <WalletStatus />
                         </div>
                         <div className="flex flex-col items-end gap-1">
-                            <p className="text-base font-bold">${printableUsdc(wallet.balance)}</p>
+                            {!isRewardsWallet ? (
+                                <p className="text-base font-bold">${printableUsdc(wallet.balance)}</p>
+                            ) : (
+                                // todo: render actual rewards wallet balance
+                                <p className="text-base font-bold">5 Beers</p>
+                            )}
                         </div>
                     </div>
                 </div>

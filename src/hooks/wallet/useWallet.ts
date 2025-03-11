@@ -87,15 +87,21 @@ export const useWallet = () => {
         (wallet: IDBWallet): boolean => {
             if (!wallet) return false
 
-            if (isPeanut(wallet) && kernelClientAddress) {
+            // check for rewards wallet first
+            if (wallet.walletProviderType === WalletProviderType.REWARDS) {
+                return true // always connected
+            }
+
+            // check for Peanut wallet
+            if (wallet.walletProviderType === WalletProviderType.PEANUT && kernelClientAddress) {
                 return isKernelClientReady && areEvmAddressesEqual(kernelClientAddress, wallet.address)
             }
-            if (wagmiAddress && wallet) {
+
+            // check for external wallets
+            if (wagmiAddress && wallet.walletProviderType === WalletProviderType.BYOW) {
                 return isWagmiConnected && wagmiAddress.some((addr) => areEvmAddressesEqual(addr, wallet.address))
             }
-            if (wallet.walletProviderType === WalletProviderType.REWARDS) {
-                return true
-            }
+
             return false
         },
         [isKernelClientReady, kernelClientAddress, isWagmiConnected, wagmiAddress]
@@ -223,7 +229,6 @@ export const useWallet = () => {
         if (!selectedWalletId || !wallets.length) return undefined
         const wallet = wallets.find((w) => w.id === selectedWalletId)
         if (!wallet) {
-            // The selected address does not correspond to any wallet
             dispatch(walletActions.setSelectedWalletId(undefined))
             return undefined
         }
@@ -231,13 +236,32 @@ export const useWallet = () => {
     }, [selectedWalletId, wallets, isWalletConnected])
 
     useEffect(() => {
-        if (!selectedWalletId && wallets.length) {
-            const initialWallet = wallets.find(isPeanut) || wallets[0]
-            if (initialWallet) {
-                dispatch(walletActions.setSelectedWalletId(initialWallet.id))
+        const connectedExternalWallet = wallets.find(
+            (wallet) => wallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(wallet)
+        )
+
+        const isValidSelection =
+            selectedWallet &&
+            ((selectedWallet.id.startsWith('peanut-wallet') &&
+                selectedWallet.walletProviderType === WalletProviderType.PEANUT) ||
+                (selectedWallet.id === 'pinta-wallet' &&
+                    selectedWallet.walletProviderType === WalletProviderType.REWARDS) ||
+                (selectedWallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(selectedWallet)))
+
+        if (!selectedWallet || !isValidSelection) {
+            if (connectedExternalWallet) {
+                dispatch(walletActions.setSelectedWalletId(connectedExternalWallet.id))
+            } else {
+                const peanutWallet = wallets.find(
+                    (wallet) =>
+                        wallet.id.startsWith('peanut-wallet') && wallet.walletProviderType === WalletProviderType.PEANUT
+                )
+                if (peanutWallet) {
+                    dispatch(walletActions.setSelectedWalletId(peanutWallet.id))
+                }
             }
         }
-    }, [wallets, selectedWalletId])
+    }, [wallets, isWalletConnected, dispatch, selectedWallet])
 
     useEffect(() => {
         if (selectedWallet?.address) {
