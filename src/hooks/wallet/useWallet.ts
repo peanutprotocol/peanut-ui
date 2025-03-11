@@ -3,13 +3,13 @@
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, peanutPublicClient } from '@/constants'
 import { useAuth } from '@/context/authContext'
 import {
-    IWallet,
-    IDBWallet,
-    WalletProviderType,
-    WalletProtocolType,
-    IUserProfile,
-    IUserBalance,
     AccountType,
+    IDBWallet,
+    IUserBalance,
+    IUserProfile,
+    IWallet,
+    WalletProtocolType,
+    WalletProviderType,
 } from '@/interfaces'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
@@ -85,6 +85,8 @@ export const useWallet = () => {
 
     const isWalletConnected = useCallback(
         (wallet: IDBWallet): boolean => {
+            if (!wallet) return false
+
             if (isPeanut(wallet) && kernelClientAddress) {
                 return isKernelClientReady && areEvmAddressesEqual(kernelClientAddress, wallet.address)
             }
