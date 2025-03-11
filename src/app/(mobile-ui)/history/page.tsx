@@ -22,6 +22,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { isAddress } from 'viem'
+import * as Sentry from '@sentry/nextjs'
 
 const ITEMS_PER_PAGE = 10
 
@@ -76,7 +77,7 @@ const HistoryPage = () => {
         }
     }
 
-    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, isLoading } = useInfiniteQuery({
+    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, isLoading, error } = useInfiniteQuery({
         queryKey: ['history', address],
         queryFn: fetchHistoryPage,
         getNextPageParam: (lastPage) => lastPage.nextPage,
@@ -109,7 +110,9 @@ const HistoryPage = () => {
     }
 
     if (status === 'error') {
-        return <div className="w-full py-4 text-center">Error loading history</div>
+        console.error(error)
+        Sentry.captureException(error)
+        return <div className="w-full py-4 text-center">Error loading history: {error?.message}</div>
     }
 
     if (!data?.pages.length) {

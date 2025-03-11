@@ -293,6 +293,7 @@ export function floorFixed(value: number, decimals: number) {
 }
 
 export function formatAmountWithSignificantDigits(amount: number, significantDigits: number): string {
+    if (amount === 0) return amount.toFixed(significantDigits)
     let fractionDigits = Math.floor(Math.log10(1 / amount)) + significantDigits
     fractionDigits = fractionDigits < 0 ? 0 : fractionDigits
     return amount.toFixed(fractionDigits)
