@@ -1054,6 +1054,7 @@ export function getChainLogo(chainName: string): string {
             name = 'arbitrum'
             break
         case 'bsc':
+        case 'bnb':
             name = 'binance'
             break
         default:
