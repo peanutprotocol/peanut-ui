@@ -47,7 +47,6 @@ interface ModalHeaderProps {
 }
 
 interface ModalActionsProps {
-    onCancel: () => void
     onAccept: () => void
     isConnecting: boolean
 }
@@ -63,6 +62,7 @@ interface ConfirmationModalProps {
 interface AddNewWalletProps {
     onClick: () => void
     hasExternalWallets: boolean
+    hasConnectedExternalWallets: boolean
 }
 
 // common Components
@@ -104,20 +104,10 @@ const InfoBox: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     </div>
 )
 
-const ModalActions: React.FC<ModalActionsProps> = ({ onCancel, onAccept, isConnecting }) => (
-    <div className="flex items-center justify-between gap-6">
-        <Button
-            size="medium"
-            onClick={onCancel}
-            variant="stroke"
-            className="bg-purple-5 text-black hover:bg-purple-5/80 hover:text-black active:bg-purple-5/80"
-        >
-            Cancel
-        </Button>
-        <Button size="medium" onClick={onAccept} variant="purple" disabled={isConnecting}>
-            {isConnecting ? 'Connecting...' : 'Accept'}
-        </Button>
-    </div>
+const ModalActions: React.FC<ModalActionsProps> = ({ onAccept, isConnecting }) => (
+    <Button size="medium" onClick={onAccept} variant="purple" disabled={isConnecting}>
+        {isConnecting ? 'Connecting...' : 'Accept'}
+    </Button>
 )
 
 const getWalletIcon = (wallet: IWallet | null, isPeanutWallet: boolean) => {
@@ -147,6 +137,16 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
     const hasExternalWallets = useMemo(() => {
         return sortedWallets.some((wallet) => wallet.walletProviderType !== WalletProviderType.PEANUT)
     }, [sortedWallets])
+
+    const hasConnectedExternalWallets = useMemo(() => {
+        return (
+            sortedWallets.length > 0 &&
+            sortedWallets.some(
+                (wallet) =>
+                    wallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(wallet as IDBWallet)
+            )
+        )
+    }, [sortedWallets, isWalletConnected])
 
     // handle wallet selection and close modal
     const handleWalletSelection = (wallet: IWallet) => {
@@ -233,7 +233,11 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
                                 onClick={() => handleWalletSelection(wallet)}
                             />
                         ))}
-                        <AddNewWallet onClick={connectWallet} hasExternalWallets={hasExternalWallets} />
+                        <AddNewWallet
+                            onClick={connectWallet}
+                            hasExternalWallets={hasExternalWallets}
+                            hasConnectedExternalWallets={hasConnectedExternalWallets}
+                        />
                     </div>
                 </div>
             </Modal>
@@ -249,7 +253,7 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onC
 
     const isExternalWallet = useMemo(() => wallet.walletProviderType !== WalletProviderType.PEANUT, [wallet])
     const isPeanutWallet = useMemo(() => wallet.walletProviderType === WalletProviderType.PEANUT, [wallet])
-    const isConnected = isWalletConnected(wallet)
+    const isConnected = isWalletConnected(wallet as IDBWallet)
 
     // get wallet icon to display
     const walletImage = useMemo(() => getWalletIcon(wallet, isPeanutWallet), [wallet, isPeanutWallet])
@@ -339,11 +343,11 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onC
 }
 
 // add new wallet component, triggers web3modal
-const AddNewWallet = ({ onClick, hasExternalWallets }: AddNewWalletProps) => {
+const AddNewWallet = ({ onClick, hasExternalWallets, hasConnectedExternalWallets }: AddNewWalletProps) => {
     const [showConfirmationModal, setShowConfirmationModal] = useState(false)
 
     const handleClick = () => {
-        if (hasExternalWallets) {
+        if (hasExternalWallets && hasConnectedExternalWallets) {
             setShowConfirmationModal(true)
         } else {
             onClick()
@@ -406,11 +410,7 @@ const ConfirmationModal = ({ wallet, showModal, setShowModal, onAccept, isAddWal
                         selected in your external wallet.
                     </InfoBox>
                 </div>
-                <ModalActions
-                    onCancel={() => setShowModal(false)}
-                    onAccept={handleAccept}
-                    isConnecting={connectionStatus === 'connecting'}
-                />
+                <ModalActions onAccept={handleAccept} isConnecting={connectionStatus === 'connecting'} />
             </div>
         </Modal>
     )
