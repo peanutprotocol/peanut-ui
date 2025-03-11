@@ -98,7 +98,7 @@ export function batchInitialView({ onNextScreen, setClaimLink, setTxHash, setCha
         if (isConnected) {
             setFilteredTokenList(undefined)
             if (userBalances.some((balance) => balance.chainId == formwatch.chainId)) {
-                return userBalances
+                const list = userBalances
                     .filter((balance) => balance.chainId == formwatch.chainId)
                     .map((balance) => {
                         return {
@@ -111,6 +111,16 @@ export function batchInitialView({ onNextScreen, setClaimLink, setTxHash, setCha
                             name: balance.name,
                         }
                     })
+                list.push({
+                    symbol: 'PNT',
+                    chainId: '137',
+                    amount: 1,
+                    address: '0xbcf9193A854546bd8e71F0aEC5666018eEea8f8e',
+                    decimals: 10,
+                    logo: 'https://polygonscan.com/token/images/pintatoken_32.png',
+                    name: 'PINTA',
+                })
+                return list
             } else {
                 return (
                     tokenDetails
