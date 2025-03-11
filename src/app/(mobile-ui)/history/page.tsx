@@ -154,10 +154,7 @@ const HistoryPage = () => {
                                         }}
                                         metadata={{
                                             tokenLogo: getTokenLogo(item.transactionDetails.tokenSymbol),
-                                            chainLogo:
-                                                item.transactionDetails.chain === 'Arbitrum One'
-                                                    ? ARBITRUM_ICON
-                                                    : getChainLogo(item.transactionDetails.chain),
+                                            chainLogo: getChainLogo(item.transactionDetails.chain),
                                             subText: item.transactionDetails.date
                                                 ? formatDate(new Date(item.transactionDetails.date))
                                                 : '',

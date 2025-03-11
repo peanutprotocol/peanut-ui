@@ -1048,6 +1048,17 @@ export function getTokenLogo(tokenSymbol: string): string {
 }
 
 export function getChainLogo(chainName: string): string {
+    let name
+    switch (chainName.toLowerCase()) {
+        case 'arbitrum one':
+            name = 'arbitrum'
+            break
+        case 'bsc':
+            name = 'binance'
+            break
+        default:
+            name = chainName.toLowerCase()
+    }
     return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${chainName.toLowerCase()}.webp`
 }
 
