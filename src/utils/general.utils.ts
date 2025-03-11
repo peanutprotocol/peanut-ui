@@ -1,5 +1,5 @@
 import * as consts from '@/constants'
-import { INFURA_API_KEY } from '@/constants'
+import { INFURA_API_KEY, STABLE_COINS } from '@/constants'
 import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
 import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
@@ -1049,4 +1049,8 @@ export function getTokenLogo(tokenSymbol: string): string {
 
 export function getChainLogo(chainName: string): string {
     return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${chainName.toLowerCase()}.webp`
+}
+
+export function isStableCoin(tokenSymbol: string): boolean {
+    return STABLE_COINS.includes(tokenSymbol.toUpperCase())
 }

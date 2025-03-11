@@ -16,6 +16,7 @@ import {
     printableAddress,
     getTokenLogo,
     getChainLogo,
+    isStableCoin,
 } from '@/utils'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -57,7 +58,7 @@ const HistoryPage = () => {
             return {
                 id: `${data.link ?? ''}-${data.txHash ?? ''}-${data.date}`,
                 transactionType: data.type,
-                amount: `$${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
+                amount: `${isStableCoin(data.tokenSymbol) ? '$' : data.tokenSymbol}${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
                 recipientAddress: data.address ?? '',
                 recipientAddressFormatter: (address: string) => {
                     const sanitizedAddressOrName = isAddress(address) ? printableAddress(address) : address
