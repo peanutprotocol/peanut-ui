@@ -198,3 +198,5 @@ export const pathTitles: { [key: string]: string } = {
     '/support': 'Support',
     '/claim': 'Claim Payment',
 }
+
+export const STABLE_COINS = ['USDC', 'USDT', 'DAI', 'BUSD']
