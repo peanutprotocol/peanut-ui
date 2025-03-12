@@ -500,7 +500,7 @@ export default function ConfirmPaymentView() {
                                 value={`$${isPeanutWallet ? 0 : feeCalculations.networkFee.max}`}
                                 moreInfoText={
                                     isPeanutWallet
-                                        ? 'This transaction is sponsored by peanut! Enjoy!'
+                                        ? 'This transaction is sponsored by Peanut! Enjoy!'
                                         : 'Maximum network fee you might pay for this transaction.'
                                 }
                             />

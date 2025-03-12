@@ -435,10 +435,10 @@ export const CreateLinkInputView = ({
                     )}
 
                     <span className="flex flex-row items-center justify-start gap-1 text-h8">
-                        Learn about peanut cashout
+                        Learn about Peanut cashout
                         <MoreInfo
                             text={
-                                'You can use peanut to cash out your funds directly to your bank account! (US and EU only)'
+                                'You can use Peanut to cash out your funds directly to your bank account! (US and EU only)'
                             }
                         />
                     </span>

@@ -338,7 +338,7 @@ describe('URL Parser Tests', () => {
             )
         })
 
-        it('should handle token without chain for peanut username', async () => {
+        it('should handle token without chain for Peanut username', async () => {
             const result = await parsePaymentURL(['kusharc', '5USDC'])
             expect(result.error).toBeNull()
             expect(result.parsedUrl).toEqual(
@@ -491,7 +491,7 @@ describe('URL Parser Tests', () => {
     })
 
     describe('Error Cases', () => {
-        it('should return error for invalid peanut usernames', async () => {
+        it('should return error for invalid Peanut usernames', async () => {
             const result = await parsePaymentURL(['0xinvalid'])
             expect(result.error).toBeTruthy()
             expect(result.parsedUrl).toBeNull()
