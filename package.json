@@ -55,6 +55,7 @@
         "i18n-iso-countries": "^7.13.0",
         "i18next": "^23.2.3",
         "js-cookie": "^3.0.5",
+        "jsqr": "^1.4.0",
         "lottie-react": "^2.4.0",
         "multicoin-address-validator": "^0.5.22",
         "next": "^14.2.18",
