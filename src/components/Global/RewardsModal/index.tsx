@@ -23,7 +23,13 @@ export const RewardDetails = () => {
 
 export const PartnerBarLocation = () => {
     return (
-        <Link href={'#'} rel="noreferrer noopenner" target="_blank" className="font-semibold underline">
+        <Link
+            // casa temple location
+            href={'https://maps.app.goo.gl/DmHaJzjKuCQLSRD27'}
+            rel="noreferrer noopenner"
+            target="_blank"
+            className="font-semibold underline"
+        >
             partner bar.
         </Link>
     )
