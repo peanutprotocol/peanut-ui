@@ -247,3 +247,12 @@ export type TRequestHistory = {
     senderAccount?: Account
     recipientAccount: Account
 }
+
+export type RewardLink = {
+    link: string
+    assetCode: string
+    campaign: {
+        id: string
+        name: string
+    }
+}
