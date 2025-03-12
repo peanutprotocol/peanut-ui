@@ -256,10 +256,19 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                 throw new Error('Request details not found')
             }
 
-            // calculate the token amount based on denomination
+            // this token amount is what we will create the charge with
             let tokenAmountToUse: string
             if (token?.symbol.toLowerCase() === 'usdc') {
                 tokenAmountToUse = usdValue ?? inputTokenAmount
+            } else if (!amount && !!token) {
+                // the receiver is requesting a specific token, so we need to
+                // calculate the amount based on the token price
+                const receiveTokenPrice = await fetchTokenPrice(token.address, chain?.chainId!)
+                const usdAmount =
+                    inputDenomination === 'TOKEN'
+                        ? parseFloat(inputTokenAmount) * selectedTokenPrice!
+                        : parseFloat(inputTokenAmount)
+                tokenAmountToUse = (usdAmount / receiveTokenPrice!.price).toString()
             } else if (inputDenomination === 'TOKEN') {
                 tokenAmountToUse = inputTokenAmount
             } else {
