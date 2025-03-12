@@ -11,10 +11,10 @@ import { usePrimaryName } from '@justaname.id/react'
 import classNames from 'classnames'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import Link from 'next/link'
 import { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 import CopyToClipboard from '../Global/CopyToClipboard'
+import { PartnerBarLocation } from '../Global/RewardsModal'
 
 const WALLET_CARD_WIDTH = 'w-[300px]'
 const WALLET_COLORS = ['bg-secondary-3', 'bg-secondary-1', 'bg-primary-1']
@@ -297,9 +297,9 @@ function WalletIdentifier({
         return (
             <p>
                 Claim at{' '}
-                <Link href={'#'} rel="noreferrer noopenner" className="underline" target="_blank">
-                    partners bars
-                </Link>
+                <span onClick={(e) => e.stopPropagation()}>
+                    <PartnerBarLocation />
+                </span>
             </p>
         )
     }
