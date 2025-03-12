@@ -31,6 +31,7 @@ interface WalletEntryCardProps {
     wallet: IWallet
     isActive?: boolean
     onClick: () => void
+    hasConnectedExternalWallets: boolean
 }
 
 interface WalletIconContainerProps {
@@ -253,6 +254,7 @@ const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: Wallet
                                 wallet={wallet}
                                 isActive={wallet.id === selectedWallet?.id}
                                 onClick={() => handleWalletSelection(wallet)}
+                                hasConnectedExternalWallets={hasConnectedExternalWallets}
                             />
                         ))}
                         <AddNewWallet
@@ -268,10 +270,16 @@ const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: Wallet
 }
 
 // individual wallet card component
-const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onClick }) => {
+const WalletEntryCard: React.FC<WalletEntryCardProps> = ({
+    wallet,
+    isActive,
+    onClick,
+    hasConnectedExternalWallets,
+}) => {
     const { username } = useAuth()
     const { isWalletConnected } = useWallet()
     const [showConfirmationModal, setShowConfirmationModal] = useState(false)
+    const { connectWallet } = useWalletConnection()
 
     const isExternalWallet = useMemo(() => wallet.walletProviderType !== WalletProviderType.PEANUT, [wallet])
     const isPeanutWallet = useMemo(() => wallet.walletProviderType === WalletProviderType.PEANUT, [wallet])
@@ -297,8 +305,15 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onC
     })
 
     const handleCardClick = () => {
+        // for external wallets that are not connected
         if (isExternalWallet && !isConnected) {
-            setShowConfirmationModal(true)
+            // if there's already a connected external wallet, show confirmation modal
+            if (hasConnectedExternalWallets) {
+                setShowConfirmationModal(true)
+            } else {
+                // show reown modal directly
+                connectWallet()
+            }
         } else {
             onClick()
         }
