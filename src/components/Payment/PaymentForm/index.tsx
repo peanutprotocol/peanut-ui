@@ -3,7 +3,6 @@
 import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import FileUploadInput from '@/components/Global/FileUploadInput'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
@@ -36,7 +35,7 @@ import { PaymentInfoRow } from '../PaymentInfoRow'
 
 export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const dispatch = useAppDispatch()
-    const { attachmentOptions, requestDetails, error, chargeDetails } = usePaymentStore()
+    const { requestDetails, error, chargeDetails } = usePaymentStore()
     const { signInModal, isPeanutWallet, selectedWallet, isExternalWallet, isWalletConnected, wallets } = useWallet()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -257,10 +256,19 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                 throw new Error('Request details not found')
             }
 
-            // calculate the token amount based on denomination
+            // this token amount is what we will create the charge with
             let tokenAmountToUse: string
             if (token?.symbol.toLowerCase() === 'usdc') {
                 tokenAmountToUse = usdValue ?? inputTokenAmount
+            } else if (!amount && !!token) {
+                // the receiver is requesting a specific token, so we need to
+                // calculate the amount based on the token price
+                const receiveTokenPrice = await fetchTokenPrice(token.address, chain?.chainId!)
+                const usdAmount =
+                    inputDenomination === 'TOKEN'
+                        ? parseFloat(inputTokenAmount) * selectedTokenPrice!
+                        : parseFloat(inputTokenAmount)
+                tokenAmountToUse = (usdAmount / receiveTokenPrice!.price).toString()
             } else if (inputDenomination === 'TOKEN') {
                 tokenAmountToUse = inputTokenAmount
             } else {
@@ -291,14 +299,6 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                     tokenDecimals: recipientTokenDecimals,
                     recipientAddress: recipient.resolvedAddress,
                 },
-            }
-
-            // add attachment if present
-            if (attachmentOptions?.rawFile) {
-                createChargeRequestPayload.attachment = attachmentOptions.rawFile
-            }
-            if (attachmentOptions?.message) {
-                createChargeRequestPayload.reference = attachmentOptions.message
             }
 
             // create charge using existing request ID and resolved address
@@ -396,13 +396,13 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                                     className="flex items-center gap-0.5 text-sm font-semibold hover:underline"
                                 >
                                     <span>Download</span>
-                                    <Icon name="download" className="h-4 fill-grey-1" />
+                                    <Icon name="download" className="fill-grey-1 h-4" />
                                 </a>
                             }
                         />
                     )}
                 </div>
-                <div className="mt-4 text-xs text-grey-1">
+                <div className="text-grey-1 mt-4 text-xs">
                     You can choose to pay with any token on any network. The payment will be automatically converted to
                     the requested token.
                 </div>
@@ -496,11 +496,6 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                 </div>
             )}
 
-            <FileUploadInput
-                attachmentOptions={attachmentOptions}
-                setAttachmentOptions={(options) => dispatch(paymentActions.setAttachmentOptions(options))}
-            />
-
             {/* Show Peanut Wallet cross-chain warning */}
             {isPeanutWalletCrossChainRequest && (
                 <ErrorAlert
@@ -512,7 +507,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             )}
 
             {!isPeanutWallet && !requestId && (
-                <div className="mt-4 text-xs text-grey-1">
+                <div className="text-grey-1 mt-4 text-xs">
                     You can choose to pay with any token on any network. The payment will be automatically converted to
                     the requested token.
                 </div>

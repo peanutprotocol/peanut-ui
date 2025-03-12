@@ -191,7 +191,7 @@ export const nativeCurrencyAddresses: string[] = [
 export const pathTitles: { [key: string]: string } = {
     '/home': 'Dashboard',
     '/send': 'Send',
-    '/wallet': 'Wallet asset',
+    '/wallet': 'Wallet Assets',
     '/request/create': 'Request Payment',
     '/request/pay': 'Pay Request',
     '/cashout': 'Cashout',

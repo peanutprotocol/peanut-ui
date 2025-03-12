@@ -2,6 +2,7 @@
 
 import { Button, Card } from '@/components/0_Bruddle'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
+import { CrispButton } from '@/components/CrispChat'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
@@ -89,14 +90,8 @@ export const SenderClaimLinkView = ({
                     </div>
                 )}
                 <label className="mt-2 text-h9 font-normal">
-                    We would like to hear from your experience. Hit us up on{' '}
-                    <a
-                        className="cursor-pointer text-black underline dark:text-white"
-                        target="_blank"
-                        href="https://discord.gg/BX9Ak7AW28"
-                    >
-                        Discord!
-                    </a>
+                    We would like to hear from your experience.{' '}
+                    <CrispButton className="text-black underline dark:text-white">Chat with support</CrispButton>
                 </label>
                 <PaymentsFooter />
             </Card.Content>
