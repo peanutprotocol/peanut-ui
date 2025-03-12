@@ -7,7 +7,7 @@ Ask in Peanut [Discord](https://discord.gg/B99T9mQqBv) #dev channel if you have 
 First install the dependencies (location: root folder):
 
 ```bash
-git submodule update --init --recursives
+git submodule update --init --recursive
 pnpm install
 ```
 
