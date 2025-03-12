@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import Icon from '../Icon'
 
 interface MoreInfoProps {
-    text: string
+    text: string | React.ReactNode
     html?: boolean
 }
 
@@ -81,7 +81,7 @@ const MoreInfo = ({ text, html = false }: MoreInfoProps) => {
                     className="whitespace-pre-line rounded border border-n-1 bg-white px-3 py-2 shadow-lg"
                 >
                     <div className="block text-h8 font-normal text-black">
-                        {html ? <div dangerouslySetInnerHTML={{ __html: text }} /> : <div>{text}</div>}
+                        {html ? <div dangerouslySetInnerHTML={{ __html: text as string }} /> : <div>{text}</div>}
                     </div>
                 </div>
             </Transition>,

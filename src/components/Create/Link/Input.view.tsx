@@ -438,7 +438,13 @@ export const CreateLinkInputView = ({
                         Learn about Peanut cashout
                         <MoreInfo
                             text={
-                                'You can use Peanut to cash out your funds directly to your bank account! (US and EU only)'
+                                <>
+                                    You can use Peanut to cash out your funds directly to your bank account! (US and EU
+                                    only)<br></br>{' '}
+                                    <a href="/cashout" className="hover:text-primary underline">
+                                        Learn more →
+                                    </a>
+                                </>
                             }
                         />
                     </span>
