@@ -4,8 +4,8 @@ import { Metadata } from 'next'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
-    description: 'Text Tokens',
-    metadataBase: new URL('https://peanut.to'),
+    description: 'Send to Anyone',
+    metadataBase: new URL('https://peanut.me'),
 
     icons: {
         icon: '/favicon.ico',

@@ -79,7 +79,7 @@ const features = [
         description:
             'Customize token and claim page to match your branding with logo and colors. Or even better, have the users claim the tokens on your own domain or app!',
         bg: 'bg-teal-1',
-        primaryRedirectUrl: 'https://peanut.to/send',
+        primaryRedirectUrl: 'https://peanut.me/send',
         primaryRedirectText: 'Try Now',
         secondaryRedirectUrl: 'https://docs.peanut.to/integrate/sdk/claim/claim-link-cross-chain',
         secondaryRedirectText: 'Learn more',

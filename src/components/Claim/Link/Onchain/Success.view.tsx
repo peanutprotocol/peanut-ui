@@ -1,6 +1,7 @@
 import { Button, Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
+import { CrispButton } from '@/components/CrispChat'
 import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -108,14 +109,8 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                 </Link>
                 <PaymentsFooter />
                 <label className="text-start text-h9 font-normal">
-                    We would like to hear from your experience. Hit us up on{' '}
-                    <a
-                        className="cursor-pointer text-black underline dark:text-white"
-                        target="_blank"
-                        href="https://discord.gg/BX9Ak7AW28"
-                    >
-                        Discord!
-                    </a>
+                    We would like to hear from your experience.{' '}
+                    <CrispButton className="text-black underline dark:text-white">Chat with support</CrispButton>
                 </label>
             </Card.Content>
         </Card>

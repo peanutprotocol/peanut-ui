@@ -1,14 +1,22 @@
-import Script from 'next/script'
+'use client'
 
-const openCrispChat = () => {
-    if (window.$crisp) {
-        window.$crisp.push(['do', 'chat:open'])
-    }
-}
+import Script from 'next/script'
+import { useRouter } from 'next/navigation'
 
 export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButtonElement>) => {
+    const router = useRouter()
+
+    const handleClick = () => {
+        if (window.$crisp) {
+            window.$crisp.push(['do', 'chat:open'])
+        } else {
+            // Fallback to support page if Crisp isn't loaded
+            router.push('/support')
+        }
+    }
+
     return (
-        <button {...rest} onClick={openCrispChat}>
+        <button {...rest} onClick={handleClick}>
             {children}
         </button>
     )

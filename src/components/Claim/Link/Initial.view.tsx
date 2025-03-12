@@ -573,7 +573,7 @@ export const InitialClaimLinkView = ({
                                         <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                     ) : (
                                         <>
-                                            $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
+                                            $0.00 <MoreInfo text={'This transaction is sponsored by Peanut! Enjoy!'} />
                                         </>
                                     )}
                                 </span>
@@ -594,7 +594,7 @@ export const InitialClaimLinkView = ({
                                         <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                     ) : (
                                         <>
-                                            $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
+                                            $0.00 <MoreInfo text={'This transaction is sponsored by Peanut! Enjoy!'} />
                                         </>
                                     )}
                                 </span>

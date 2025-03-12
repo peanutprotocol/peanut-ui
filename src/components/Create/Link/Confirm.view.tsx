@@ -244,7 +244,7 @@ export const CreateLinkConfirmView = ({
                 <Card.Header>
                     <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
                         {createType == 'link'
-                            ? 'Text Tokens'
+                            ? 'Send to Anyone'
                             : createType == 'direct'
                               ? `Send to ${validateEnsName(recipient.name) ? recipient.name : printableAddress(recipient.address ?? '')}`
                               : `Send to ${recipient.name}`}
@@ -330,7 +330,7 @@ export const CreateLinkConfirmView = ({
                                                 ? 'This transaction is sponsored by peanut! Enjoy!'
                                                 : transactionCostUSD > 0
                                                   ? `This transaction will cost you $${formatTokenAmount(transactionCostUSD, 3)} in network fees.`
-                                                  : 'This transaction is sponsored by peanut! Enjoy!'
+                                                  : 'This transaction is sponsored by Peanut! Enjoy!'
                                         }
                                     />
                                 </label>

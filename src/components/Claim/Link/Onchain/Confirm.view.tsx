@@ -225,7 +225,7 @@ export const ConfirmClaimLinkView = ({
                                 <label className="font-bold">Fees</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
+                                $0.00 <MoreInfo text={'This transaction is sponsored by Peanut! Enjoy!'} />
                             </span>
                         </div>
 
