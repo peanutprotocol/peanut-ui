@@ -44,6 +44,13 @@ export const getTokenDetails = (
     tokenDetails: interfaces.IPeanutTokenDetail[],
     chainDetails: interfaces.IPeanutChainDetails[]
 ) => {
+    if (sendFormData.token == 'PNT') {
+        return {
+          tokenAddress: '0x9Ae69fDfF2FA97e34B680752D8E70dfD529Ea6ca',
+          tokenDecimals: 10,
+          tokenType: 1
+        }
+    }
     let tokenAddress: string = ''
     let tokenDecimals: number = 18
     if (

@@ -115,7 +115,7 @@ export function batchInitialView({ onNextScreen, setClaimLink, setTxHash, setCha
                     symbol: 'PNT',
                     chainId: '137',
                     amount: 1,
-                    address: '0xbcf9193A854546bd8e71F0aEC5666018eEea8f8e',
+                    address: '0x9Ae69fDfF2FA97e34B680752D8E70dfD529Ea6ca',
                     decimals: 10,
                     logo: 'https://polygonscan.com/token/images/pintatoken_32.png',
                     name: 'PINTA',
