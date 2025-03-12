@@ -11,11 +11,12 @@ import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { AccountType } from '@/interfaces'
+import { AccountType, WalletProviderType } from '@/interfaces'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
+import { walletActions } from '@/redux/slices/wallet-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { CreateChargeRequest } from '@/services/services.types'
@@ -36,7 +37,7 @@ import { PaymentInfoRow } from '../PaymentInfoRow'
 export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const dispatch = useAppDispatch()
     const { requestDetails, error, chargeDetails } = usePaymentStore()
-    const { signInModal, isPeanutWallet, selectedWallet, isExternalWallet, isWalletConnected } = useWallet()
+    const { signInModal, isPeanutWallet, selectedWallet, isExternalWallet, isWalletConnected, wallets } = useWallet()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [displayTokenAmount, setDisplayTokenAmount] = useState<string>(
@@ -455,9 +456,20 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         }
     }, [chargeDetails, resetTokenAndChain])
 
+    // handle auto-selection of rewards wallet if token is PNT
+    useEffect(() => {
+        if (token?.symbol === 'PNT' && wallets) {
+            const rewardsWallet = wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.REWARDS)
+
+            if (rewardsWallet) {
+                dispatch(walletActions.setSelectedWalletId(rewardsWallet.id))
+            }
+        }
+    }, [token?.symbol, wallets, dispatch])
+
     return (
         <div className="space-y-4">
-            <FlowHeader hideWalletHeader={!isConnected} />
+            <FlowHeader hideWalletHeader={!isConnected} isPintaReq={token?.symbol === 'PNT'} />
 
             {/* Show recipient from parsed data */}
             <div className="text-h6 font-bold">
