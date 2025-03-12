@@ -1,4 +1,5 @@
 import { Button } from '@/components/0_Bruddle'
+import { usePathname } from 'next/navigation'
 import Icon from '../Icon'
 import WalletHeader from '../WalletHeader'
 
@@ -7,6 +8,7 @@ interface FlowHeaderProps {
     disableBackBtn?: boolean
     disableWalletHeader?: boolean
     hideWalletHeader?: boolean
+    isPintaReq?: boolean
 }
 
 const FlowHeader = ({
@@ -14,7 +16,14 @@ const FlowHeader = ({
     disableBackBtn,
     disableWalletHeader = false,
     hideWalletHeader = false,
+    isPintaReq = false,
 }: FlowHeaderProps) => {
+    const pathname = usePathname()
+    const isSendPage = pathname === '/send'
+    const isCashoutPage = pathname === '/cashout'
+    const isCreateReqPage = pathname === '/request/create'
+    const hideRewardsWallet = isSendPage || isCashoutPage || isCreateReqPage || !isPintaReq
+
     return (
         <div className="flex w-full flex-row items-center justify-between pb-3">
             {onPrev && (
@@ -23,7 +32,11 @@ const FlowHeader = ({
                 </Button>
             )}
             {!hideWalletHeader && (
-                <WalletHeader disabled={disableWalletHeader} className={onPrev ? 'w-fit' : 'w-full'} />
+                <WalletHeader
+                    disabled={disableWalletHeader}
+                    className={onPrev ? 'w-fit' : 'w-full'}
+                    hideRewardsWallet={hideRewardsWallet}
+                />
             )}
         </div>
     )

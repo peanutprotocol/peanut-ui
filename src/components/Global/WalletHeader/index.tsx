@@ -24,16 +24,13 @@ import Modal from '../Modal'
 interface WalletHeaderProps {
     className?: HTMLDivElement['className']
     disabled?: boolean
-    isConnected?: boolean
-    isUsable?: boolean
+    hideRewardsWallet?: boolean
 }
 
 interface WalletEntryCardProps {
     wallet: IWallet
     isActive?: boolean
     onClick: () => void
-    isConnected?: boolean
-    isUsable?: boolean
 }
 
 interface WalletIconContainerProps {
@@ -132,15 +129,21 @@ const getWalletIcon = (wallet: IWallet | null, isPeanutWallet: boolean, isReward
     }).toDataUri()
 }
 
-const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
+const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: WalletHeaderProps) => {
     const [showModal, setShowModal] = useState(false)
     const { wallets, selectedWallet, isConnected, isWalletConnected, isPeanutWallet } = useWallet()
     const { connectWallet } = useWalletConnection()
     const dispatch = useAppDispatch()
 
     const sortedWallets = useMemo(() => {
-        return [...wallets].filter((account) => Object.values(WalletProviderType).includes(account.walletProviderType))
-    }, [wallets, selectedWallet])
+        return [...wallets].filter((account) => {
+            // hide rewards wallet if hideRewardsWallet is true
+            if (hideRewardsWallet && account.walletProviderType === WalletProviderType.REWARDS) {
+                return false
+            }
+            return Object.values(WalletProviderType).includes(account.walletProviderType)
+        })
+    }, [wallets, selectedWallet, hideRewardsWallet])
 
     const hasExternalWallets = useMemo(() => {
         return sortedWallets.some((wallet) => wallet.walletProviderType !== WalletProviderType.PEANUT)
@@ -166,6 +169,7 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
                 (wallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(wallet)))
         ) {
             dispatch(walletActions.setSelectedWalletId(wallet.id))
+            setShowModal(false)
         }
     }
 
@@ -271,8 +275,8 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({ wallet, isActive, onC
 
     const isExternalWallet = useMemo(() => wallet.walletProviderType !== WalletProviderType.PEANUT, [wallet])
     const isPeanutWallet = useMemo(() => wallet.walletProviderType === WalletProviderType.PEANUT, [wallet])
-    const isConnected = isWalletConnected(wallet as IDBWallet)
     const isRewardsWallet = useMemo(() => wallet.walletProviderType === WalletProviderType.REWARDS, [wallet])
+    const isConnected = isWalletConnected(wallet as IDBWallet)
 
     // get wallet icon to display
     const walletImage = useMemo(
