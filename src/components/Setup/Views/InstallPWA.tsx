@@ -185,7 +185,6 @@ const InstallPWA = () => {
                 className="items-center rounded-none"
                 classWrap="sm:m-auto sm:self-center self-center bg-background m-4 rounded-none border-0"
             >
-                {/* todo: replace with images from design */}
                 <img
                     className="mx-auto pt-6 md:w-6/12"
                     width={200}
