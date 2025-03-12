@@ -35,7 +35,7 @@ import { PaymentInfoRow } from '../PaymentInfoRow'
 
 export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     const dispatch = useAppDispatch()
-    const { attachmentOptions, requestDetails, error, chargeDetails } = usePaymentStore()
+    const { requestDetails, error, chargeDetails } = usePaymentStore()
     const { signInModal, isPeanutWallet, selectedWallet, isExternalWallet, isWalletConnected } = useWallet()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -301,14 +301,6 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                 },
             }
 
-            // add attachment if present
-            if (attachmentOptions?.rawFile) {
-                createChargeRequestPayload.attachment = attachmentOptions.rawFile
-            }
-            if (attachmentOptions?.message) {
-                createChargeRequestPayload.reference = attachmentOptions.message
-            }
-
             // create charge using existing request ID and resolved address
             const charge = await chargesApi.create(createChargeRequestPayload)
 
@@ -492,11 +484,6 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                     <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
                 </div>
             )}
-
-            <FileUploadInput
-                attachmentOptions={attachmentOptions}
-                setAttachmentOptions={(options) => dispatch(paymentActions.setAttachmentOptions(options))}
-            />
 
             {/* Show Peanut Wallet cross-chain warning */}
             {isPeanutWalletCrossChainRequest && (
