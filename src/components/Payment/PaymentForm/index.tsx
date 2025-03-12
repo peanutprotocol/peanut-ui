@@ -396,13 +396,13 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                                     className="flex items-center gap-0.5 text-sm font-semibold hover:underline"
                                 >
                                     <span>Download</span>
-                                    <Icon name="download" className="fill-grey-1 h-4" />
+                                    <Icon name="download" className="h-4 fill-grey-1" />
                                 </a>
                             }
                         />
                     )}
                 </div>
-                <div className="text-grey-1 mt-4 text-xs">
+                <div className="mt-4 text-xs text-grey-1">
                     You can choose to pay with any token on any network. The payment will be automatically converted to
                     the requested token.
                 </div>
@@ -507,7 +507,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             )}
 
             {!isPeanutWallet && !requestId && (
-                <div className="text-grey-1 mt-4 text-xs">
+                <div className="mt-4 text-xs text-grey-1">
                     You can choose to pay with any token on any network. The payment will be automatically converted to
                     the requested token.
                 </div>
