@@ -5,6 +5,7 @@ import { Button, Card } from '@/components/0_Bruddle'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import Icon from '@/components/Global/Icon'
+import QRScanner from '@/components/Global/QRScanner'
 import { ListItemView } from '@/components/Global/ListItemView'
 import NavHeader from '@/components/Global/NavHeader'
 import { PartnerBarLocation, RewardDetails } from '@/components/Global/RewardsModal'
@@ -17,12 +18,13 @@ import { IWallet, WalletProviderType } from '@/interfaces'
 import { useWalletStore } from '@/redux/hooks'
 import { formatAmount, getChainName, getHeaderTitle, getUserPreferences, updateUserPreferences } from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { formatUnits } from 'viem'
+import { formatUnits, isAddress } from 'viem'
 
 const WalletDetailsPage = () => {
     const pathname = usePathname()
+    const router = useRouter()
     const { disconnect } = useDisconnect()
     const { focusedWallet: focusedWalletId } = useWalletStore()
     const { connectWallet } = useWalletConnection()
@@ -32,6 +34,33 @@ const WalletDetailsPage = () => {
         const prefs = getUserPreferences()
         return prefs?.balanceHidden ?? false
     })
+    const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
+
+    // Process QR code data
+    const processQRCode = async (data: string) => {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!
+        if (data.startsWith(baseUrl)) {
+            let path = data
+            if (path.startsWith(baseUrl)) {
+                path = path.substring(baseUrl.length)
+            }
+            if (!path.startsWith('/')) {
+                path = '/' + path
+            }
+            router.push(path)
+            return { success: true }
+        } else if (isAddress(data)) {
+            // hardcode PNT because this is only used for pinta wallet for now
+            const link = `${baseUrl}/${data}@polygon/PNT`
+            router.push(link)
+            return { success: true }
+        } else {
+            return {
+                success: false,
+                error: 'QR not recognized as Peanut URL',
+            }
+        }
+    }
 
     const walletDetails = wallets.find((wallet) => wallet.id === focusedWalletId)
     const isPeanutWallet = walletDetails?.walletProviderType === WalletProviderType.PEANUT
@@ -169,6 +198,7 @@ const WalletDetailsPage = () => {
 
             {isRewardsWallet && (
                 <Button
+                    onClick={() => setIsQRScannerOpen(true)}
                     variant="purple"
                     className={'mx-auto flex w-fit cursor-pointer items-center justify-center gap-2 rounded-full'}
                     shadowSize="4"
@@ -176,6 +206,9 @@ const WalletDetailsPage = () => {
                     <Icon name="camera" fill="black" className="size-4" />
                     <span>Scan QR Code</span>
                 </Button>
+            )}
+            {isQRScannerOpen && (
+                <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
             )}
 
             {renderRewardDetails()}
