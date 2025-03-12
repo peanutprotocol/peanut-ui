@@ -4,8 +4,8 @@ import { WALLET_SLICE } from '../constants'
 import { WalletUIState } from '../types/wallet.types'
 
 const initialState: WalletUIState = {
-    selectedAddress: getUserPreferences()?.lastSelectedWallet?.address,
-    focusedWallet: getUserPreferences()?.lastFocusedWallet?.address,
+    selectedWalletId: getUserPreferences()?.lastSelectedWallet?.id,
+    focusedWallet: getUserPreferences()?.lastFocusedWallet?.id,
     signInModalVisible: false,
     wallets: [],
     isConnected: false,
@@ -17,16 +17,16 @@ const walletSlice = createSlice({
     name: WALLET_SLICE,
     initialState,
     reducers: {
-        setSelectedAddress: (state, action) => {
-            state.selectedAddress = action.payload
+        setSelectedWalletId: (state, action) => {
+            state.selectedWalletId = action.payload
             updateUserPreferences({
-                lastSelectedWallet: { address: action.payload },
+                lastSelectedWallet: { id: action.payload },
             })
         },
         setFocusedWallet: (state, action) => {
-            state.focusedWallet = action.payload.address
+            state.focusedWallet = action.payload.id
             updateUserPreferences({
-                lastFocusedWallet: { address: action.payload.address },
+                lastFocusedWallet: { id: action.payload.id },
             })
         },
         setSignInModalVisible: (state, action) => {
@@ -43,24 +43,24 @@ const walletSlice = createSlice({
         },
         updateWalletBalance: (state, action) => {
             const { address, balance, balances } = action.payload
-            const walletIndex = state.wallets.findIndex((w) => w.address === address)
-            if (walletIndex !== -1) {
-                state.wallets[walletIndex] = {
-                    ...state.wallets[walletIndex],
-                    balance,
-                    balances,
+            state.wallets = state.wallets.map((wallet) => {
+                if (wallet.address.toLowerCase() === address.toLowerCase()) {
+                    return {
+                        ...wallet,
+                        balance,
+                        balances,
+                    }
                 }
-            }
+                return wallet
+            })
         },
         removeWallet: (state, action: PayloadAction<string>) => {
             // remove wallet from the wallets array
-            state.wallets = state.wallets.filter(
-                (wallet) => wallet.address.toLowerCase() !== action.payload.toLowerCase()
-            )
+            state.wallets = state.wallets.filter((wallet) => wallet.id !== action.payload)
 
             // if removed wallet was selected, clear the selection
-            if (state.selectedAddress?.toLowerCase() === action.payload.toLowerCase()) {
-                state.selectedAddress = undefined
+            if (state.selectedWalletId === action.payload) {
+                state.selectedWalletId = undefined
                 // update user preferences to remove the last selected wallet
                 updateUserPreferences({
                     lastSelectedWallet: undefined,
@@ -68,7 +68,7 @@ const walletSlice = createSlice({
             }
 
             // if the removed wallet was focused, clear the focus
-            if (state.focusedWallet?.toLowerCase() === action.payload.toLowerCase()) {
+            if (state.focusedWallet === action.payload) {
                 state.focusedWallet = undefined
                 // update user preferences to remove the last focused wallet
                 updateUserPreferences({

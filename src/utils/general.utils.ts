@@ -1,5 +1,5 @@
 import * as consts from '@/constants'
-import { INFURA_API_KEY } from '@/constants'
+import { INFURA_API_KEY, STABLE_COINS } from '@/constants'
 import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
 import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
@@ -60,7 +60,7 @@ export const shortenAddressLong = (address?: string, chars?: number): string => 
 }
 
 export const printableAddress = (address: string): string => {
-    if (validateEnsName(address)) return address
+    if (!isAddress(address)) return address
     return shortenAddressLong(address)
 }
 
@@ -293,6 +293,7 @@ export function floorFixed(value: number, decimals: number) {
 }
 
 export function formatAmountWithSignificantDigits(amount: number, significantDigits: number): string {
+    if (amount === 0) return amount.toFixed(significantDigits)
     let fractionDigits = Math.floor(Math.log10(1 / amount)) + significantDigits
     fractionDigits = fractionDigits < 0 ? 0 : fractionDigits
     return amount.toFixed(fractionDigits)
@@ -683,10 +684,10 @@ export type UserPreferences = {
         decimals: number
     }
     lastSelectedWallet?: {
-        address: string
+        id: string
     }
     lastFocusedWallet?: {
-        address: string
+        id: string
     }
     balanceHidden?: boolean
 }
@@ -871,6 +872,8 @@ export const switchNetwork = async ({
             await new Promise((resolve) => setTimeout(resolve, 2000))
             setLoadingState('Loading')
         } catch (error) {
+            console.error('Error switching network:', error)
+            Sentry.captureException(error)
             throw new Error('Error switching network.')
         }
     }
@@ -1037,4 +1040,29 @@ export function getRequestLink(
         link += `?chargeId=${chargeId}`
     }
     return link
+}
+
+// for now it works
+export function getTokenLogo(tokenSymbol: string): string {
+    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/${tokenSymbol.toLowerCase()}.svg`
+}
+
+export function getChainLogo(chainName: string): string {
+    let name
+    switch (chainName.toLowerCase()) {
+        case 'arbitrum one':
+            name = 'arbitrum'
+            break
+        case 'bsc':
+        case 'bnb':
+            name = 'binance'
+            break
+        default:
+            name = chainName.toLowerCase()
+    }
+    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${name}.webp`
+}
+
+export function isStableCoin(tokenSymbol: string): boolean {
+    return STABLE_COINS.includes(tokenSymbol.toUpperCase())
 }

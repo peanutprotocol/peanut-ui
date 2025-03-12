@@ -1,7 +1,7 @@
 import { Claim } from '@/components'
-import { Metadata } from 'next'
-import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import * as utils from '@/utils'
+import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
+import { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +30,8 @@ function createURL(host: string, searchParams: { [key: string]: string | string[
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
     let title = 'Claim your tokens!'
 
-    const host = process.env.NEXT_PUBLIC_BASE_URL!
+    const host = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
+
     let linkDetails = undefined
     try {
         const url = createURL(host, searchParams)
@@ -52,7 +53,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
     let previewUrl = '/claim-metadata-img.jpg'
     if (linkDetails) {
-        previewUrl = `${host}/api/preview-image?amount=${linkDetails.tokenAmount}&chainId=${linkDetails.chainId}&tokenAddress=${linkDetails.tokenAddress}&tokenSymbol=${linkDetails.tokenSymbol}&address=${linkDetails.senderAddress}`
+        previewUrl = `${host}/api/preview-image?amount=${linkDetails.tokenAmount}&tokenSymbol=${linkDetails.tokenSymbol}&address=${linkDetails.senderAddress}`
     }
     return {
         title: title,

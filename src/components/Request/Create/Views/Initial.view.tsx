@@ -117,6 +117,8 @@ export const InitialView = ({
                 createFormData.append('tokenSymbol', tokenData.symbol)
                 if (attachmentOptions?.rawFile) {
                     createFormData.append('attachment', attachmentOptions.rawFile)
+                    createFormData.append('mimetype', attachmentOptions.rawFile.type)
+                    createFormData.append('filename', attachmentOptions.rawFile.name)
                 }
                 if (attachmentOptions?.message) {
                     createFormData.append('reference', attachmentOptions.message)

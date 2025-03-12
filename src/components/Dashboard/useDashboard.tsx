@@ -155,7 +155,7 @@ export const useDashboard = () => {
                 address: '',
                 status: entry.status,
                 message: '',
-                attachmentUrl: '',
+                attachmentUrl: entry.attachmentUrl,
                 points: 0,
                 txHash: entry.txHash,
             })

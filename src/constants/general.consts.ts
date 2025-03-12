@@ -1,6 +1,6 @@
 import * as interfaces from '@/interfaces'
 import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
-import { arbitrum, arbitrumSepolia } from 'viem/chains'
+import { arbitrum, arbitrumSepolia, polygon } from 'viem/chains'
 
 export const peanutWalletIsInPreview = true
 
@@ -9,6 +9,7 @@ export const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
 export const infuraRpcUrls: Record<number, string> = {
     [arbitrum.id]: `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_KEY}`,
+    [polygon.id]: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
 }
 
 export const ipfsProviderArray = [
@@ -198,3 +199,5 @@ export const pathTitles: { [key: string]: string } = {
     '/support': 'Support',
     '/claim': 'Claim Payment',
 }
+
+export const STABLE_COINS = ['USDC', 'USDT', 'DAI', 'BUSD']

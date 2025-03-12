@@ -9,12 +9,21 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IDashboardItem } from '@/interfaces'
-import { formatAmountWithSignificantDigits, formatDate, getHeaderTitle, printableAddress } from '@/utils'
+import {
+    formatAmountWithSignificantDigits,
+    formatDate,
+    getHeaderTitle,
+    printableAddress,
+    getTokenLogo,
+    getChainLogo,
+    isStableCoin,
+} from '@/utils'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { isAddress } from 'viem'
+import * as Sentry from '@sentry/nextjs'
 
 const ITEMS_PER_PAGE = 10
 
@@ -49,7 +58,7 @@ const HistoryPage = () => {
             return {
                 id: `${data.link ?? ''}-${data.txHash ?? ''}-${data.date}`,
                 transactionType: data.type,
-                amount: `$${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
+                amount: `${isStableCoin(data.tokenSymbol) ? '$' : data.tokenSymbol}${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
                 recipientAddress: data.address ?? '',
                 recipientAddressFormatter: (address: string) => {
                     const sanitizedAddressOrName = isAddress(address) ? printableAddress(address) : address
@@ -69,7 +78,7 @@ const HistoryPage = () => {
         }
     }
 
-    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, isLoading } = useInfiniteQuery({
+    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, isLoading, error } = useInfiniteQuery({
         queryKey: ['history', address],
         queryFn: fetchHistoryPage,
         getNextPageParam: (lastPage) => lastPage.nextPage,
@@ -102,7 +111,9 @@ const HistoryPage = () => {
     }
 
     if (status === 'error') {
-        return <div className="w-full py-4 text-center">Error loading history</div>
+        console.error(error)
+        Sentry.captureException(error)
+        return <div className="w-full py-4 text-center">Error loading history: {error?.message}</div>
     }
 
     if (!data?.pages.length) {
@@ -142,14 +153,8 @@ const HistoryPage = () => {
                                             mainText: item.amount,
                                         }}
                                         metadata={{
-                                            tokenLogo:
-                                                item.transactionDetails.tokenSymbol === 'USDC'
-                                                    ? 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=040'
-                                                    : undefined,
-                                            chainLogo:
-                                                item.transactionDetails.chain === 'Arbitrum One'
-                                                    ? ARBITRUM_ICON
-                                                    : undefined,
+                                            tokenLogo: getTokenLogo(item.transactionDetails.tokenSymbol),
+                                            chainLogo: getChainLogo(item.transactionDetails.chain),
                                             subText: item.transactionDetails.date
                                                 ? formatDate(new Date(item.transactionDetails.date))
                                                 : '',
