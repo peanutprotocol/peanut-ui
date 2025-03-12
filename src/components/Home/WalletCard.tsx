@@ -177,9 +177,14 @@ function ExistingWalletCard({
                             displayName={walletDisplayInfo.displayName}
                             isRewardsWallet={isRewardsWallet}
                         />
-                        <div onClick={(e) => e.stopPropagation()}>
-                            <CopyToClipboard textToCopy={walletDisplayInfo.copyText} />
-                        </div>
+                        {!isRewardsWallet && (
+                            <div onClick={(e) => e.stopPropagation()}>
+                                <CopyToClipboard
+                                    fill={isConnected ? 'white' : 'grey'}
+                                    textToCopy={walletDisplayInfo.copyText}
+                                />
+                            </div>
+                        )}
                     </div>
                 </Card.Content>
             </Card>
