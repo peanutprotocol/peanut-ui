@@ -6,6 +6,29 @@ import { useState } from 'react'
 import Icon from '../Icon'
 import Modal from '../Modal'
 
+export const RewardDetails = () => {
+    return (
+        <div className="w-full space-y-1 border border-black bg-purple-100 p-4">
+            <div className="flex items-start justify-start gap-2">
+                <Icon name="info" fill="black" className="h-4 w-4" />
+                <div className="text-xs font-semibold">Exclusive benefits:</div>
+            </div>
+            <ul className="list-disc space-y-1 px-4 text-xs">
+                <li className="list-item">You will receive 1 additional beer each week during the event</li>
+                <li className="list-item">Visit our booth to unlock more rewards</li>
+            </ul>
+        </div>
+    )
+}
+
+export const PartnerBarLocation = () => {
+    return (
+        <Link href={'#'} rel="noreferrer noopenner" target="_blank" className="font-semibold underline">
+            partner bar.
+        </Link>
+    )
+}
+
 const RewardsModal = () => {
     const [showModal, setShowModal] = useState<boolean>(true)
 
@@ -28,28 +51,10 @@ const RewardsModal = () => {
                             </div>
                             <p className="text-xs">
                                 During Crecimiento, in Buenos Aires, use your Pinta Tokens to enjoy free beers at any{' '}
-                                <Link
-                                    href={'#'}
-                                    rel="noreferrer noopenner"
-                                    target="_blank"
-                                    className="font-semibold underline"
-                                >
-                                    partner bar.
-                                </Link>
+                                <PartnerBarLocation />
                             </p>
                         </div>
-                        <div className="w-full space-y-1 border border-black bg-purple-100 p-4">
-                            <div className="flex items-start justify-start gap-2">
-                                <Icon name="info" fill="black" className="h-4 w-4" />
-                                <div className="text-xs font-semibold">Exclusive benefits:</div>
-                            </div>
-                            <ul className="list-disc space-y-1 px-4 text-xs">
-                                <li className="list-item">
-                                    You will receive 1 additional beer each week during the event
-                                </li>
-                                <li className="list-item">Visit our booth to unlock more rewards</li>
-                            </ul>
-                        </div>
+                        <RewardDetails />
                         <Button
                             onClick={() => {
                                 setShowModal(false)
