@@ -33,6 +33,20 @@ const isSmartAccount = (wallet?: IDBWallet): boolean =>
 const idForWallet = (wallet: Pick<IDBWallet, 'walletProviderType' | 'address'>) =>
     `${wallet.walletProviderType}-${wallet.address}`
 
+export const byTypeAndConnectionStatus = (a: IWallet, b: IWallet) => {
+    if (a.walletProviderType === WalletProviderType.PEANUT) {
+        return -1
+    } else if (b.walletProviderType === WalletProviderType.PEANUT) {
+        return 1
+    }
+    if (a.connected && !b.connected) {
+        return -1
+    } else if (!a.connected && b.connected) {
+        return 1
+    }
+    return 0
+}
+
 const createDefaultDBWallet = (
     address: string,
     walletProviderType: WalletProviderType,
@@ -177,42 +191,29 @@ export const useWallet = () => {
                     )
                 )
         )
-
-        // process external wallets - based on user login status
         const processedExternalWallets = await Promise.all(
             wagmiAddressesList
                 .filter((address) => {
-                    // if user is logged in, only process wallets from userAccounts
-                    // if user is not logged in, process all connected wallets
-                    return user
-                        ? userAccounts.some((acc) => areEvmAddressesEqual(acc.account_identifier, address))
-                        : true
+                    return !processedAccounts.some((w) => areEvmAddressesEqual(w.address, address))
                 })
                 .map((address) => fetchWalletDetails(address, WalletProviderType.BYOW))
         )
 
-        const mergedWallets: IWallet[] = [...processedAccounts, ...processedExternalWallets].reduce(
-            (unique, wallet) => {
-                if (!unique.some((w) => areEvmAddressesEqual(w.address, wallet.address))) {
-                    unique.push(wallet)
-                }
-                return unique
-            },
-            [] as IWallet[]
-        )
+        const mergedWallets: IWallet[] = [...processedAccounts, ...processedExternalWallets]
 
         const peanutWallet = mergedWallets.find((w) => w.walletProviderType === WalletProviderType.PEANUT)
         if (peanutWallet) {
             mergedWallets.push(...REWARD_WALLETS.map((w) => ({ ...w, address: peanutWallet.address })))
         }
 
+        mergedWallets.sort(byTypeAndConnectionStatus)
         dispatch(walletActions.setWallets(mergedWallets))
         dispatch(walletActions.setIsFetchingWallets(false))
         return mergedWallets
-    }, [fetchWalletDetails, wagmiAddress, user, user?.accounts, dispatch])
+    }, [fetchWalletDetails, wagmiAddress, user, user?.accounts])
 
     const { isLoading: isWalletsQueryLoading } = useQuery({
-        queryKey: ['wallets', user?.accounts, wagmiAddress],
+        queryKey: ['wallets', user, user?.accounts, wagmiAddress],
         queryFn: mergeAndProcessWallets,
         enabled: !!wagmiAddress || !!user,
         staleTime: 30 * 1000, // 30 seconds
@@ -223,7 +224,7 @@ export const useWallet = () => {
         if (isWalletsQueryLoading) {
             dispatch(walletActions.setIsFetchingWallets(true))
         }
-    }, [isWalletsQueryLoading, dispatch])
+    }, [isWalletsQueryLoading])
 
     const selectedWallet = useMemo(() => {
         if (!selectedWalletId || !wallets.length) return undefined
@@ -261,7 +262,7 @@ export const useWallet = () => {
                 }
             }
         }
-    }, [wallets, isWalletConnected, dispatch, selectedWallet])
+    }, [wallets, isWalletConnected, selectedWallet])
 
     useEffect(() => {
         if (selectedWallet?.address) {
@@ -333,5 +334,6 @@ export const useWallet = () => {
         selectExternalWallet,
         isWalletConnected,
         isFetchingWallets: isFetchingWallets || isWalletsQueryLoading,
+        byTypeAndConnectionStatus,
     }
 }
