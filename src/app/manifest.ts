@@ -1,9 +1,18 @@
 import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
+    let name = 'Peanut'
+    switch (process.env.NODE_ENV) {
+        case 'development':
+            name = 'Peanut Dev'
+            break
+        case 'test':
+            name = 'Peanut Test'
+            break
+    }
     return {
-        name: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
-        short_name: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
+        name,
+        short_name: name,
         description: 'Butter smooth global money',
         start_url: '/home',
         display: 'standalone',
@@ -26,6 +35,12 @@ export default function manifest(): MetadataRoute.Manifest {
             {
                 protocol: 'web+peanut',
                 url: '/home',
+            },
+        ],
+        related_applications: [
+            {
+                platform: 'webapp',
+                url: 'https://peanut.me/manifest.json',
             },
         ],
         scope: '/',

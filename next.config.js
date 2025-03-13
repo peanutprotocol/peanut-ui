@@ -47,6 +47,10 @@ let nextConfig = {
                     destination: '/api/apple-app-site-association',
                 },
                 {
+                    source: '/.well-known/apple-app-site-association',
+                    destination: '/api/apple-app-site-association',
+                },
+                {
                     source: '/.well-known/assetLinks.json',
                     destination: '/api/assetLinks',
                 },
