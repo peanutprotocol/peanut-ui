@@ -1,10 +1,18 @@
 import { PEANUTMAN_BEER } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
+import { useAuth } from '@/context/authContext'
+import { rewardsApi } from '@/services/rewards'
+import { RewardLink } from '@/services/services.types'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Icon from '../Icon'
 import Modal from '../Modal'
+
+enum REWARD_ASSET_TYPE {
+    'PNT' = 'aleph_pinta_mar_2025_welcome_pnt',
+    'USDC' = 'aleph_pinta_mar_2025_welcome_usdc',
+}
 
 export const RewardDetails = () => {
     return (
@@ -37,6 +45,53 @@ export const PartnerBarLocation = () => {
 
 const RewardsModal = () => {
     const [showModal, setShowModal] = useState<boolean>(true)
+    const [rewardLinks, setRewardLinks] = useState<RewardLink[]>([])
+    const [error, setError] = useState<string>('')
+    const { user } = useAuth()
+
+    // get active reward link (pnt first, then usdc)
+    const getActiveReward = () => {
+        const pntReward = rewardLinks.find((r) => r.assetCode === REWARD_ASSET_TYPE.PNT)
+        const usdcReward = rewardLinks.find((r) => r.assetCode === REWARD_ASSET_TYPE.USDC)
+        return pntReward || usdcReward
+    }
+
+    const activeReward = getActiveReward()
+
+    // todo: update ux copy based on ui mockups
+    // get modal content based on active reward
+    const getModalContent = () => {
+        if (!activeReward) return null
+
+        const isPNTReward = activeReward.assetCode === REWARD_ASSET_TYPE.PNT
+
+        return {
+            title: isPNTReward ? 'Welcome to Peanut!' : 'More Rewards!',
+            subtitle: isPNTReward ? "You've received 5 Beers!" : "You've received 5 USDC!",
+            ctaText: isPNTReward ? 'Claim your $PNT Tokens' : 'Claim your USDC',
+        }
+    }
+
+    useEffect(() => {
+        if (user) {
+            rewardsApi
+                .getByUser(user.user.userId)
+                .then((res) => {
+                    setRewardLinks(res)
+                    console.log('rewards res', res)
+                })
+                .catch((_err) => {
+                    console.log('rewards api err', _err)
+                    setError('Failed to fetch rewards')
+                })
+        }
+    }, [user])
+
+    if (!rewardLinks.length || !activeReward) {
+        return null
+    }
+
+    const modalContent = getModalContent()
 
     return (
         <div className="relative">
@@ -52,8 +107,8 @@ const RewardsModal = () => {
                     <div className="space-y-4">
                         <div className="space-y-3 text-center">
                             <div className="space-y-2">
-                                <h3 className="text-h3 font-extrabold">Welcome to Peanut!</h3>
-                                <h5 className="text-h5 font-semibold">You've received 5 Beers!</h5>
+                                <h3 className="text-h3 font-extrabold">{modalContent?.title}</h3>
+                                <h5 className="text-h5 font-semibold">{modalContent?.subtitle}</h5>
                             </div>
                             <p className="text-xs">
                                 During Crecimiento, in Buenos Aires, use your Pinta Tokens to enjoy free beers at any{' '}
@@ -61,15 +116,11 @@ const RewardsModal = () => {
                             </p>
                         </div>
                         <RewardDetails />
-                        <Button
-                            onClick={() => {
-                                setShowModal(false)
-                            }}
-                            className="w-full"
-                            variant="purple"
-                        >
-                            Claim your $PNT Tokens
-                        </Button>
+                        <Link href={`http://${activeReward.link}`} className="block">
+                            <Button className="w-full" variant="purple">
+                                {modalContent?.ctaText}
+                            </Button>
+                        </Link>
                     </div>
                 </div>
 
