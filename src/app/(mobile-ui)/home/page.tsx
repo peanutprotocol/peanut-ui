@@ -3,6 +3,7 @@
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import LogoutButton from '@/components/Global/LogoutButton'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import RewardsModal from '@/components/Global/RewardsModal'
 import { WalletCard } from '@/components/Home/WalletCard'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
 import { useAuth } from '@/context/authContext'
@@ -220,6 +221,7 @@ export default function Home() {
                     </div>
                 </div>
             </div>
+            <RewardsModal />
         </div>
     )
 }

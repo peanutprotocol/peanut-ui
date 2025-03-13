@@ -21,23 +21,25 @@ import { TOOLTIPS } from '@/constants/tooltips'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useAppDispatch } from '@/redux/hooks'
+import { walletActions } from '@/redux/slices/wallet-slice'
 import {
     areEvmAddressesEqual,
     checkifImageType,
     ErrorHandler,
+    fetchWithSentry,
     formatTokenAmount,
     getBridgeChainName,
     getBridgeTokenName,
     saveClaimedLinkToLocalStorage,
-    fetchWithSentry,
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
+import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
-import * as Sentry from '@sentry/nextjs'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -61,6 +63,7 @@ export const InitialClaimLinkView = ({
     setUserType,
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
+    const dispatch = useAppDispatch()
     const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
@@ -397,6 +400,20 @@ export const InitialClaimLinkView = ({
         }
     }
 
+    const isPintaClaimLink = claimLinkData.tokenAddress === '0x9Ae69fDfF2FA97e34B680752D8E70dfD529Ea6ca'
+
+    useEffect(() => {
+        // set rewards wallet if user is connected and claim link is for Pinta
+        if (user && isPintaClaimLink) {
+            dispatch(walletActions.setSelectedWalletId('pinta-wallet'))
+
+            if (address) {
+                setRecipient({ name: undefined, address })
+                setIsValidRecipient(true)
+            }
+        }
+    }, [isPintaClaimLink, user, dispatch, address])
+
     useEffect(() => {
         if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
             return
@@ -440,7 +457,7 @@ export const InitialClaimLinkView = ({
 
     return (
         <div>
-            {!!user && <FlowHeader />}
+            {!!user && <FlowHeader isPintaClaim={isPintaClaimLink} />}
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
                     <Card.Title className="mx-auto">
