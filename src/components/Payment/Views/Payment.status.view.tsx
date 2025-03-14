@@ -55,24 +55,20 @@ export default function PaymentStatusView() {
     // get latest payment details
     const latestPayment = useMemo(() => {
         if (!statusDetails?.payments?.length) return null
-        return [...statusDetails.payments].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )[0]
-    }, [statusDetails])
+        return statusDetails.payments[0]
+    }, [statusDetails?.payments])
 
     const sourceUrlWithTx = useMemo(() => {
-        const txHash =
-            statusDetails?.charge?.fulfillmentPayment?.payerTransactionHash ||
-            transactionHash ||
-            latestPayment?.payerTransactionHash
-        const chainId = statusDetails?.charge?.fulfillmentPayment?.payerChainId || statusDetails?.charge?.chainId
+        if (!statusDetails || !latestPayment) return null
+        const paymentAttempt = statusDetails?.charge.fulfillmentPayment ?? latestPayment
+        const txHash = paymentAttempt.payerTransactionHash
+        const chainId = paymentAttempt.payerChainId
 
         if (!chainId || !txHash) return null
 
         const exporerUrl = getExplorerUrl(chainId)
-        const isBlockscoutExplorer = exporerUrl?.includes('blockscout')
-        return `${exporerUrl}${isBlockscoutExplorer ? '/tx/' : ''}${txHash}`
-    }, [transactionHash, statusDetails, latestPayment])
+        return `${exporerUrl}/tx/${txHash}`
+    }, [statusDetails?.charge?.fulfillmentPayment, latestPayment])
 
     const destinationTxAndUrl = useMemo(() => {
         const txHash =
