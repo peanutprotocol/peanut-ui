@@ -3,13 +3,63 @@ import Divider from '@/components/0_Bruddle/Divider'
 import FlowHeader from '@/components/Global/FlowHeader'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
+import { chargesApi } from '@/services/charges'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import PintaReqViewWrapper from '../PintaReqViewWrapper'
 
 const PintaReqPaySuccessView = () => {
     const dispatch = useAppDispatch()
     const { beerQuantity } = usePaymentStore()
+    const [isPooling, setIsPolling] = useState(true)
+    // todo: fix in balance pr
     const remainingBeers = 100 - beerQuantity
+    const searchParams = useSearchParams()
+    const chargeId = searchParams.get('chargeId')
+
+    // poll for payment status
+    useEffect(() => {
+        let intervalId: NodeJS.Timeout | undefined
+
+        const pollStatus = async () => {
+            if (!chargeId) return
+
+            try {
+                const updatedCharge = await chargesApi.get(chargeId)
+                dispatch(paymentActions.setChargeDetails(updatedCharge))
+
+                // stop polling if payment is in final state
+                if (
+                    updatedCharge.payments?.[0]?.status === 'SUCCESSFUL' ||
+                    updatedCharge.payments?.[0]?.status === 'FAILED'
+                ) {
+                    setIsPolling(false)
+                    if (intervalId) {
+                        clearInterval(intervalId)
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch status:', error)
+                setIsPolling(false)
+                if (intervalId) {
+                    clearInterval(intervalId)
+                }
+            }
+        }
+
+        if (chargeId && isPooling) {
+            pollStatus()
+            intervalId = setInterval(pollStatus, 5000)
+        }
+
+        return () => {
+            if (intervalId) {
+                clearInterval(intervalId)
+            }
+        }
+    }, [chargeId, dispatch, isPooling])
+
     return (
         <div>
             <div className="space-y-4">
