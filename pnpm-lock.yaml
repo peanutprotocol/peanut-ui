@@ -121,6 +121,9 @@ importers:
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
+      jsqr:
+        specifier: ^1.4.0
+        version: 1.4.0
       lottie-react:
         specifier: ^2.4.0
         version: 2.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -4879,6 +4882,9 @@ packages:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
     engines: {node: '>=6'}
     hasBin: true
+
+  jsqr@1.4.0:
+    resolution: {integrity: sha512-dxLob7q65Xg2DvstYkRpkYtmKm2sPJ9oFhrhmudT1dZvNFFTlroai3AWSpLey/w5vMcLBXRgOJsbXpdN9HzU/A==}
 
   jssha@3.3.1:
     resolution: {integrity: sha512-VCMZj12FCFMQYcFLPRm/0lOBbLi8uM2BhXPTqw3U4YAfs4AZfiApOoBLoN8cQE60Z50m1MYMTQVCfgF/KaCVhQ==}
@@ -13847,6 +13853,8 @@ snapshots:
   json-schema-traverse@1.0.0: {}
 
   json5@2.2.3: {}
+
+  jsqr@1.4.0: {}
 
   jssha@3.3.1: {}
 
