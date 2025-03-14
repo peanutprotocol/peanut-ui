@@ -1,5 +1,6 @@
 import PEANUTMAN_CRY from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif'
 import { Button } from '@/components/0_Bruddle'
+import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
@@ -19,6 +20,13 @@ function ValidationErrorView({ title, message, buttonText, redirectTo }: Validat
                 <h3 className="text-lg font-semibold">{title}</h3>
                 <h3 className="text-sm font-normal md:max-w-xs">{message}</h3>
             </div>
+            <Link
+                href={'https://docs.peanut.to/how-to-use-peanut-links/request-peanut-links'}
+                className="text-sm underline"
+                target="_blank"
+            >
+                Learn how to receive money through Peanut
+            </Link>
             <Button
                 onClick={() => {
                     router.push(redirectTo)
