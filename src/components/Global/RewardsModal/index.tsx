@@ -116,7 +116,7 @@ const RewardsModal = () => {
                             </p>
                         </div>
                         <RewardDetails />
-                        <Link href={`http://${activeReward.link}`} className="block">
+                        <Link href={activeReward.link} className="block">
                             <Button className="w-full" variant="purple">
                                 {modalContent?.ctaText}
                             </Button>
