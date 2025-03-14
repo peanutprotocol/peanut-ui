@@ -8,6 +8,7 @@ import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import PaymentStatusView from '@/components/Payment/Views/Payment.status.view'
 import PintaReqPayConfirmView from '@/components/PintaReqPay/Views/Confirm.pinta.view'
 import PintaReqPayInitialView from '@/components/PintaReqPay/Views/Initial.pinta.view'
+import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
 import { useAuth } from '@/context/authContext'
 import { EParseUrlError, parsePaymentURL, ParseUrlError } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
@@ -146,6 +147,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                     {currentView === 'INITIAL' && <PintaReqPayInitialView {...parsedPaymentData} />}
 
                     {currentView === 'CONFIRM' && <PintaReqPayConfirmView />}
+                    {currentView === 'STATUS' && <PintaReqPaySuccessView />}
                 </div>
             </div>
         )
