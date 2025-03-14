@@ -16,7 +16,15 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { IWallet, WalletProviderType } from '@/interfaces'
 import { useWalletStore } from '@/redux/hooks'
-import { formatAmount, getChainName, getHeaderTitle, getUserPreferences, updateUserPreferences } from '@/utils'
+import {
+    formatAmount,
+    getChainName,
+    getHeaderTitle,
+    getUserPreferences,
+    updateUserPreferences,
+    resolveFromEnsName,
+    validateEnsName,
+} from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -54,11 +62,17 @@ const WalletDetailsPage = () => {
             const link = `${baseUrl}/${data}@polygon/PNT`
             router.push(link)
             return { success: true }
-        } else {
-            return {
-                success: false,
-                error: 'QR not recognized as Peanut URL',
+        } else if (validateEnsName(data)) {
+            const resolvedAddress = await resolveFromEnsName(data.toLowerCase())
+            if (!!resolvedAddress) {
+                const link = `${baseUrl}/${resolvedAddress}@polygon/PNT`
+                router.push(link)
+                return { success: true }
             }
+        }
+        return {
+            success: false,
+            error: 'QR not recognized as Peanut URL',
         }
     }
 

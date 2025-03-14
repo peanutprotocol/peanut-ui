@@ -198,7 +198,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                         autoPlay
                         playsInline
                     />
-                    Copy <canvas ref={canvasRef} className="hidden" />
+                    <canvas ref={canvasRef} className="hidden" />
                     <div className="fixed left-0 top-8 w-full bg-black bg-opacity-50 py-2 text-center text-white">
                         {statusMessage}
                     </div>
