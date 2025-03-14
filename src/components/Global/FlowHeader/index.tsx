@@ -1,5 +1,5 @@
 import { Button } from '@/components/0_Bruddle'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import Icon from '../Icon'
 import WalletHeader from '../WalletHeader'
 
@@ -9,6 +9,7 @@ interface FlowHeaderProps {
     disableWalletHeader?: boolean
     hideWalletHeader?: boolean
     isPintaReq?: boolean
+    isPintaClaim?: boolean
 }
 
 const FlowHeader = ({
@@ -17,12 +18,22 @@ const FlowHeader = ({
     disableWalletHeader = false,
     hideWalletHeader = false,
     isPintaReq = false,
+    isPintaClaim = false,
 }: FlowHeaderProps) => {
     const pathname = usePathname()
+    const searchParams = useSearchParams()
+
     const isSendPage = pathname === '/send'
     const isCashoutPage = pathname === '/cashout'
     const isCreateReqPage = pathname === '/request/create'
-    const hideRewardsWallet = isSendPage || isCashoutPage || isCreateReqPage || !isPintaReq
+    const isClaimPage = pathname === '/claim'
+
+    const isPintaClaimPage = isClaimPage && searchParams?.get('t') && searchParams?.get('i') && isPintaClaim
+
+    // hide rewards wallet if:
+    // 1. on send/cashout/create request pages OR
+    // 2. not a pinta request and not a pinta claim
+    const hideRewardsWallet = isSendPage || isCashoutPage || isCreateReqPage || (!isPintaReq && !isPintaClaimPage)
 
     return (
         <div className="flex w-full flex-row items-center justify-between pb-3">
