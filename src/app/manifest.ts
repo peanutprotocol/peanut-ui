@@ -29,6 +29,7 @@ export default function manifest(): MetadataRoute.Manifest {
                 src: '/icons/icon-512x512.png',
                 sizes: '512x512',
                 type: 'image/png',
+                purpose: 'maskable',
             },
         ],
         protocol_handlers: [
