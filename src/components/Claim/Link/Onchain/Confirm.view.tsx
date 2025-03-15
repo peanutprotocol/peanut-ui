@@ -8,10 +8,10 @@ import * as consts from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as utils from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
 import * as _consts from '../../Claim.consts'
 import useClaimLink from '../../useClaimLink'
-import * as Sentry from '@sentry/nextjs'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -131,19 +131,24 @@ export const ConfirmClaimLinkView = ({
                                     className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
                                 >
                                     {attachment.message && <label className="text-h8 ">{attachment.message}</label>}
-                                    {attachment.attachmentUrl && utils.checkifImageType(fileType) ? (
-                                        <img src={attachment.attachmentUrl} className="h-18 w-18" alt="attachment" />
-                                    ) : (
-                                        <a
-                                            href={attachment.attachmentUrl}
-                                            download
-                                            target="_blank"
-                                            className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-grey-1 underline "
-                                        >
-                                            <Icon name={'download'} />
-                                            Download attachment
-                                        </a>
-                                    )}
+                                    {attachment.attachmentUrl &&
+                                        (utils.checkifImageType(fileType) ? (
+                                            <img
+                                                src={attachment.attachmentUrl}
+                                                className="h-18 w-18"
+                                                alt="attachment"
+                                            />
+                                        ) : (
+                                            <a
+                                                href={attachment.attachmentUrl}
+                                                download
+                                                target="_blank"
+                                                className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-grey-1 underline"
+                                            >
+                                                <Icon name={'download'} />
+                                                Download attachment
+                                            </a>
+                                        ))}
                                 </div>
                                 <div className="flex w-full border-t border-dotted border-black" />
                             </>
