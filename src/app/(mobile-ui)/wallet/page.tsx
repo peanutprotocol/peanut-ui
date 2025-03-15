@@ -5,9 +5,8 @@ import { Button, Card } from '@/components/0_Bruddle'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import Icon from '@/components/Global/Icon'
-import QRScanner from '@/components/Global/QRScanner'
 import { ListItemView } from '@/components/Global/ListItemView'
-import NavHeader from '@/components/Global/NavHeader'
+import QRScanner from '@/components/Global/QRScanner'
 import { PartnerBarLocation, RewardDetails } from '@/components/Global/RewardsModal'
 import { WalletCard } from '@/components/Home/WalletCard'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_TOKEN_NAME } from '@/constants'
@@ -19,10 +18,9 @@ import { useWalletStore } from '@/redux/hooks'
 import {
     formatAmount,
     getChainName,
-    getHeaderTitle,
     getUserPreferences,
-    updateUserPreferences,
     resolveFromEnsName,
+    updateUserPreferences,
     validateEnsName,
 } from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
@@ -167,10 +165,6 @@ const WalletDetailsPage = () => {
 
     return (
         <div className="mx-auto flex w-full flex-col gap-6 md:max-w-2xl">
-            <div className="md:hidden">
-                <NavHeader title={getHeaderTitle(pathname)} />
-            </div>
-
             <div className="mx-auto">
                 {focusedWalletId && walletDetails && (
                     <WalletCard

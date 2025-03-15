@@ -1,18 +1,20 @@
 'use client'
 
+import { GenericBanner } from '@/components/Global/Banner/GenericBanner'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
+import NavHeader from '@/components/Global/NavHeader'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import HomeWaitlist from '@/components/Home/HomeWaitlist'
 import { ThemeProvider } from '@/config'
 import { peanutWalletIsInPreview } from '@/constants'
 import { useAuth } from '@/context/authContext'
+import { getHeaderTitle } from '@/utils'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
-import { GenericBanner } from '@/components/Global/Banner/GenericBanner'
 
 const publicPathRegex = /^\/(request\/pay|claim)/
 
@@ -36,11 +38,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         return isPublicPath || (user?.user.hasPwAccess ?? false) || !peanutWalletIsInPreview
     }, [user, pathName])
 
+    const showNavHeader = !isHome
+
     if (!isReady) return null
     return (
         <div className="flex h-[100dvh] w-full bg-background">
             {/* Wrapper div for desktop layout */}
-            <div className="flex w-full">
+            <div className="flex h-full w-full flex-col">
+                {showNavHeader && showFullPeanutWallet && (
+                    <div className="px-6 py-4 md:hidden">
+                        <NavHeader title={getHeaderTitle(pathName)} />
+                    </div>
+                )}
                 {/* Sidebar - Fixed on desktop */}
                 {showFullPeanutWallet && (
                     <div className="hidden md:block">
@@ -78,7 +87,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             {showFullPeanutWallet ? (
                                 <div
                                     className={twMerge(
-                                        'flex min-h-[calc(100dvh-160px)] w-full items-center justify-center md:ml-auto md:min-h-full  md:w-[calc(100%-256px)]',
+                                        'flex min-h-[calc(100dvh-236px)] w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%-256px)]',
                                         alignStart && 'items-start',
                                         isSupport && 'h-full'
                                     )}
@@ -86,7 +95,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                                     {children}
                                 </div>
                             ) : (
-                                <HomeWaitlist />
+                                <div className="flex h-full items-center justify-center self-center">
+                                    <HomeWaitlist />
+                                </div>
                             )}
                         </ThemeProvider>
                     </div>

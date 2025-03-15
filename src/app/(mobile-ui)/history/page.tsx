@@ -1,29 +1,26 @@
 'use client'
 
-import { ARBITRUM_ICON } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
 import { useDashboard } from '@/components/Dashboard/useDashboard'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
-import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IDashboardItem } from '@/interfaces'
 import {
     formatAmountWithSignificantDigits,
     formatDate,
-    getHeaderTitle,
-    printableAddress,
-    getTokenLogo,
     getChainLogo,
+    getTokenLogo,
     isStableCoin,
+    printableAddress,
 } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { isAddress } from 'viem'
-import * as Sentry from '@sentry/nextjs'
 
 const ITEMS_PER_PAGE = 10
 
@@ -136,7 +133,6 @@ const HistoryPage = () => {
 
     return (
         <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
-            {!!data?.pages.length ? <NavHeader title={getHeaderTitle(pathname)} /> : null}
             <div className="h-full w-full">
                 {!!data?.pages.length &&
                     data?.pages.map((page, pageIndex) => (
