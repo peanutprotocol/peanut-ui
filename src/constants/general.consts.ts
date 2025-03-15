@@ -191,13 +191,13 @@ export const nativeCurrencyAddresses: string[] = [
 export const pathTitles: { [key: string]: string } = {
     '/home': 'Dashboard',
     '/send': 'Send',
-    '/wallet': 'Wallet Assets',
-    '/request/create': 'Request Payment',
-    '/request/pay': 'Pay Request',
+    '/wallet': 'Wallet',
+    '/request/create': 'Request',
+    '/request/pay': 'Pay',
     '/cashout': 'Cashout',
     '/history': 'History',
     '/support': 'Support',
-    '/claim': 'Claim Payment',
+    '/claim': 'Claim',
 }
 
 export const STABLE_COINS = ['USDC', 'USDT', 'DAI', 'BUSD']

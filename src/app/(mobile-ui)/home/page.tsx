@@ -1,5 +1,6 @@
 'use client'
 
+import { PEANUTMAN_LOGO_BLACK } from '@/assets'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import LogoutButton from '@/components/Global/LogoutButton'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -15,6 +16,7 @@ import { walletActions } from '@/redux/slices/wallet-slice'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
@@ -152,13 +154,13 @@ export default function Home() {
                     <div className="space-y-4 px-6">
                         <div className="flex items-center justify-between">
                             <div className="flex w-full items-center justify-between md:hidden">
-                                <div className="font-knerd-outline text-h5 font-semibold">Peanut</div>
+                                <Image src={PEANUTMAN_LOGO_BLACK} alt="Peanut Logo" className="w-20" />
                                 <LogoutButton />
                             </div>
                         </div>
                         <ProfileSection />
                     </div>
-                    <div className="pl-6">
+                    <div>
                         <div
                             className={classNames('relative h-[200px] p-4 sm:overflow-visible', {
                                 'overflow-hidden': wallets.length > 0,
@@ -171,7 +173,7 @@ export default function Home() {
                             {hasWallets ? (
                                 <motion.div
                                     ref={carouselRef}
-                                    className="absolute flex h-[calc(100%-32px)]"
+                                    className="absolute flex h-[calc(100%-32px)] px-4"
                                     animate={controls}
                                     drag="x"
                                     dragConstraints={{
