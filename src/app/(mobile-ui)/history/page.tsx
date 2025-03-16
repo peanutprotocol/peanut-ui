@@ -2,15 +2,18 @@
 
 import { Button } from '@/components/0_Bruddle'
 import { useDashboard } from '@/components/Dashboard/useDashboard'
+import AddressLink from '@/components/Global/AddressLink'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import { TransactionBadge } from '@/components/Global/TransactionBadge'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IDashboardItem } from '@/interfaces'
 import {
-    formatAmountWithSignificantDigits,
+    formatAmount,
     formatDate,
     getChainLogo,
+    getHistoryTransactionStatus,
     getTokenLogo,
     isStableCoin,
     printableAddress,
@@ -52,19 +55,24 @@ const HistoryPage = () => {
 
         const formattedData = pageData.map((data) => {
             const linkDetails = updatedData.find((item) => item.link === data.link)
+
+            const transactionStatus =
+                (linkDetails?.status ?? data.status)
+                    ? getHistoryTransactionStatus(data?.type as TransactionType, linkDetails?.status ?? data.status)
+                    : undefined
+
             return {
                 id: `${data.link ?? ''}-${data.txHash ?? ''}-${data.date}`,
                 transactionType: data.type,
-                amount: `${isStableCoin(data.tokenSymbol) ? '$' : data.tokenSymbol}${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
+                amount: `${isStableCoin(data.tokenSymbol) ? `$${formatAmount(data.amount)}` : `${formatAmount(data.amount)} ${data.tokenSymbol}`}`,
                 recipientAddress: data.address ?? '',
                 recipientAddressFormatter: (address: string) => {
                     const sanitizedAddressOrName = isAddress(address) ? printableAddress(address) : address
                     return `To ${sanitizedAddressOrName}`
                 },
-                status: linkDetails?.status ?? data.status ?? '',
+                status: transactionStatus,
                 transactionDetails: {
                     ...data,
-                    status: linkDetails?.status ?? data.status,
                 },
             }
         })
@@ -133,30 +141,42 @@ const HistoryPage = () => {
 
     return (
         <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
-            <div className="h-full w-full">
+            <div className="h-full w-full border-t border-n-1">
                 {!!data?.pages.length &&
                     data?.pages.map((page, pageIndex) => (
-                        <div key={pageIndex} className="border-b border-n-1">
+                        <div key={pageIndex}>
                             {page.items.map((item) => (
                                 <div key={item.id}>
                                     <ListItemView
                                         id={item.id}
                                         variant="history"
                                         primaryInfo={{
-                                            title: item.transactionType,
+                                            title: (
+                                                <div className="flex flex-col items-start gap-2 md:flex-row md:items-center ">
+                                                    <div className="font-bold">{item.transactionType}</div>
+                                                    <div className="flex flex-col items-end justify-end gap-2 text-end">
+                                                        <TransactionBadge status={item.status as string} />
+                                                    </div>
+                                                </div>
+                                            ),
+                                            subtitle: !!item.recipientAddress && (
+                                                <div
+                                                    className="text-xs text-gray-1"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    To: <AddressLink address={item.recipientAddress} />
+                                                </div>
+                                            ),
                                         }}
                                         secondaryInfo={{
                                             mainText: item.amount,
+                                            subText: item.transactionDetails.date
+                                                ? formatDate(new Date(item.transactionDetails.date))
+                                                : '',
                                         }}
                                         metadata={{
                                             tokenLogo: getTokenLogo(item.transactionDetails.tokenSymbol),
                                             chainLogo: getChainLogo(item.transactionDetails.chain),
-                                            subText: item.transactionDetails.date
-                                                ? formatDate(new Date(item.transactionDetails.date))
-                                                : '',
-                                            recipientAddress: item.recipientAddress,
-                                            recipientAddressFormatter: item.recipientAddressFormatter,
-                                            transactionType: item.transactionType as TransactionType,
                                         }}
                                         details={item.transactionDetails}
                                     />

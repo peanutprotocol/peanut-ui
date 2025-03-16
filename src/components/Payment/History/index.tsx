@@ -2,7 +2,7 @@ import AddressLink from '@/components/Global/AddressLink'
 import { ListItemView } from '@/components/Global/ListItemView'
 import { RecipientType } from '@/lib/url-parser/types/payment'
 import { TRequestHistory } from '@/services/services.types'
-import { getChainName, printableAddress, getTokenLogo } from '@/utils'
+import { formatAmount, getChainName, getTokenLogo } from '@/utils'
 
 interface PaymentHistoryProps {
     recipient: { identifier: string; recipientType: RecipientType; resolvedAddress: string }
@@ -25,20 +25,43 @@ export default function PaymentHistory({ recipient, history }: PaymentHistoryPro
                         <ListItemView
                             key={entry.uuid}
                             id={`${entry.chainId}-${idx}`}
-                            variant="history"
+                            variant="req_history"
                             primaryInfo={{
-                                title: `${entry.tokenSymbol}`,
-                                subtitle: entry.chainId && `on ${getChainName(entry.chainId)}`,
+                                title: (
+                                    <div>
+                                        <label className="font-bold">{entry.tokenSymbol}</label>
+                                        {entry.chainId && (
+                                            <label className="text-xs text-n-3">
+                                                {' '}
+                                                on {getChainName(entry.chainId)}
+                                            </label>
+                                        )}
+                                    </div>
+                                ),
+                                subtitle: (
+                                    <div className="text-xs text-n-3">
+                                        {entry.senderAccount ? (
+                                            <div>
+                                                Paid by:{' '}
+                                                <AddressLink
+                                                    address={
+                                                        entry.senderAccount.username || entry.senderAccount.identifier
+                                                    }
+                                                />{' '}
+                                                <br className="md:hidden" /> <span className="hidden md:inline">|</span>{' '}
+                                                Status: {entry.status}
+                                            </div>
+                                        ) : (
+                                            `Status: ${entry.status}`
+                                        )}
+                                    </div>
+                                ),
                             }}
                             secondaryInfo={{
-                                mainText: `$${Number(entry.amount).toFixed(2)}`,
+                                mainText: `$${formatAmount(entry.amount)}`,
+                                subText: new Date(entry.timestamp).toLocaleDateString(),
                             }}
                             metadata={{
-                                recipientAddress: entry.senderAccount
-                                    ? `Paid By: ${entry.senderAccount.username || printableAddress(entry.senderAccount.identifier)} | Status: ${entry.status}`
-                                    : `Status: ${entry.status}`,
-                                subText: new Date(entry.timestamp).toLocaleDateString(),
-                                disableEnsResolution: true,
                                 tokenLogo: getTokenLogo(entry.tokenSymbol),
                             }}
                         />

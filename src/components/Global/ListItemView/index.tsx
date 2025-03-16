@@ -1,13 +1,12 @@
 'use client'
 import Modal from '@/components/Global/Modal'
-import { TransactionBadge } from '@/components/Global/TransactionBadge'
 import { supportedPeanutChains } from '@/constants'
 import { IDashboardItem } from '@/interfaces'
 import { copyTextToClipboardWithFallback, getExplorerUrl } from '@/utils'
-import { usePrimaryName } from '@justaname.id/react'
 import Image from 'next/image'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import CopyToClipboard from '../CopyToClipboard'
 import Icon from '../Icon'
 
 interface TokenBalance {
@@ -27,10 +26,10 @@ export type TransactionType = 'Link Sent' | 'Link Received' | 'Money Requested' 
 
 interface ListItemViewProps {
     id: string
-    variant: 'history' | 'balance'
+    variant: 'history' | 'balance' | 'req_history'
     primaryInfo: {
-        title: string
-        subtitle?: string
+        title: React.ReactNode
+        subtitle?: React.ReactNode
     }
     secondaryInfo: {
         mainText: string
@@ -39,60 +38,19 @@ interface ListItemViewProps {
     metadata: {
         tokenLogo?: string
         chainLogo?: string
-        subText?: string
-        recipientAddress?: string
-        transactionType?: TransactionType
-        recipientAddressFormatter?: (address: string) => string
-        disableEnsResolution?: boolean
     }
     details?: IDashboardItem | TokenBalance
-}
-
-const getTransactionStatus = (type: TransactionType | undefined, status: string | undefined): string => {
-    if (!status || !type) return 'pending'
-
-    switch (type) {
-        case 'Link Sent':
-            return ['claimed', 'pending', 'unclaimed'].includes(status.toLowerCase()) ? status : 'pending'
-        case 'Link Received':
-            return ['claimed', 'pending'].includes(status.toLowerCase()) ? status : 'pending'
-        case 'Money Requested':
-            return ['claimed', 'paid', 'canceled'].includes(status.toLowerCase()) ? status : 'pending'
-        case 'Request paid':
-            return ['claimed', 'paid'].includes(status.toLowerCase()) ? status : 'pending'
-        case 'Cash Out':
-            return ['pending', 'successful', 'error'].includes(status.toLowerCase()) ? status : 'pending'
-        default:
-            return status
-    }
 }
 
 export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata, details }: ListItemViewProps) => {
     const [modalVisible, setModalVisible] = useState(false)
     const isHistory = variant === 'history'
     const transactionDetails = isHistory ? (details as IDashboardItem) : null
-    // todo: for payment history, unnecessary api calls were being made with incorrect address value, so temmporarily disabled ens resolution for payment history view
-    const { primaryName } = usePrimaryName({
-        address: metadata.recipientAddress,
-        enabled: !metadata.disableEnsResolution,
-    })
-    const primaryNameOrAddress = useMemo(() => {
-        if (metadata.disableEnsResolution) {
-            return metadata.recipientAddress
-        }
-        return primaryName && primaryName !== '' ? primaryName : metadata.recipientAddress
-    }, [primaryName, metadata.recipientAddress, metadata.disableEnsResolution])
-
-    // get the transaction status for history variant
-    const transactionStatus =
-        isHistory && metadata.transactionType
-            ? getTransactionStatus(metadata.transactionType, transactionDetails?.status)
-            : undefined
 
     return (
         <div
             className={twMerge(
-                'flex w-full flex-row items-center justify-between gap-2 border border-b-0 border-n-1 bg-white p-3 text-h8 font-normal dark:bg-black',
+                'flex w-full flex-row items-center justify-between gap-2 border border-t-0 border-n-1 bg-white p-3 text-h8 font-normal dark:bg-black',
                 isHistory ? 'cursor-pointer' : ''
             )}
             key={id}
@@ -100,7 +58,13 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
         >
             <div className="relative mr-2 min-w-fit">
                 {!!metadata.tokenLogo ? (
-                    <Image src={metadata.tokenLogo} alt="token logo" width={32} height={32} className="rounded-full" />
+                    <Image
+                        src={metadata.tokenLogo}
+                        alt="token logo"
+                        width={32}
+                        height={32}
+                        className="h-8 w-8 rounded-full"
+                    />
                 ) : (
                     <Icon name="token_placeholder" className="h-8 w-8" fill="#999" />
                 )}
@@ -116,42 +80,27 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                 )}
             </div>
 
-            <div className="flex w-full flex-col gap-2">
-                <div className="flex w-full flex-row items-center justify-between">
-                    <div className="flex w-full items-center gap-2">
-                        <div className="flex items-center gap-2">
+            <div className="flex w-full items-start justify-between gap-2">
+                <div className={twMerge('flex flex-col gap-2 md:flex-col')}>
+                    {primaryInfo.title &&
+                        (typeof primaryInfo.subtitle === 'string' ? (
                             <label className="font-bold">{primaryInfo.title}</label>
-                            {primaryInfo.subtitle && <label className="text-xs text-n-3">{primaryInfo.subtitle}</label>}
-                        </div>
-                        {isHistory && transactionStatus && (
-                            <div className="flex flex-col items-end justify-end gap-2 text-end">
-                                <TransactionBadge status={transactionStatus} />
-                            </div>
-                        )}
-                    </div>
-                    <label className="font-bold">{secondaryInfo.mainText}</label>
+                        ) : (
+                            (primaryInfo.title as React.ReactNode)
+                        ))}
+
+                    {primaryInfo.subtitle &&
+                        (typeof primaryInfo.subtitle === 'string' ? (
+                            <label className="text-xs text-n-3">{primaryInfo.subtitle}</label>
+                        ) : (
+                            primaryInfo.subtitle
+                        ))}
                 </div>
-                {(primaryNameOrAddress || metadata.subText || secondaryInfo.subText) && (
-                    <div className="flex w-full flex-row items-center justify-between">
-                        <div className="flex flex-col items-start justify-end gap-2 text-start">
-                            {primaryNameOrAddress && (
-                                <label className="text-xs font-normal text-n-3">
-                                    {metadata?.recipientAddressFormatter
-                                        ? metadata.recipientAddressFormatter(primaryNameOrAddress)
-                                        : primaryNameOrAddress}
-                                </label>
-                            )}
-                            {secondaryInfo.subText && (
-                                <label className="text-xs font-normal text-n-3">{secondaryInfo.subText}</label>
-                            )}
-                        </div>
-                        {metadata.subText && (
-                            <div>
-                                <label className="text-xs font-normal">{metadata.subText}</label>
-                            </div>
-                        )}
-                    </div>
-                )}
+
+                <div className="flex flex-col items-end justify-between gap-2">
+                    <label className="font-bold">{secondaryInfo.mainText}</label>
+                    {secondaryInfo.subText && <label className="text-xs text-n-3">{secondaryInfo.subText}</label>}
+                </div>
             </div>
 
             {/* modal only for history variant */}
@@ -183,9 +132,14 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                             onClick={() => {
                                 copyTextToClipboardWithFallback(transactionDetails?.link ?? '')
                             }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
-                            Copy link
+                            <label className="block">Copy link </label>
+                            <CopyToClipboard
+                                fill="black"
+                                textToCopy={transactionDetails?.link as string}
+                                className="h-5 w-5"
+                            />
                         </div>
                     )}
                     {transactionDetails?.txHash && (
@@ -202,9 +156,10 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                                     'noopener,noreferrer'
                                 )
                             }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
-                            Show in explorer
+                            <label className="block">Show in explorer </label>
+                            <Icon name="arrow-up-right" className="h-5 w-5" />
                         </div>
                     )}
                     {transactionDetails?.attachmentUrl && (
