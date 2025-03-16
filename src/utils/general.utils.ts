@@ -1,3 +1,4 @@
+import { TransactionType } from '@/components/Global/ListItemView'
 import * as consts from '@/constants'
 import { INFURA_API_KEY, STABLE_COINS } from '@/constants'
 import * as interfaces from '@/interfaces'
@@ -1065,4 +1066,23 @@ export function getChainLogo(chainName: string): string {
 
 export function isStableCoin(tokenSymbol: string): boolean {
     return STABLE_COINS.includes(tokenSymbol.toUpperCase())
+}
+
+export const getHistoryTransactionStatus = (type: TransactionType | undefined, status: string | undefined): string => {
+    if (!status || !type) return 'pending'
+
+    switch (type) {
+        case 'Link Sent':
+            return ['claimed', 'pending', 'unclaimed'].includes(status.toLowerCase()) ? status : 'pending'
+        case 'Link Received':
+            return ['claimed', 'pending'].includes(status.toLowerCase()) ? status : 'pending'
+        case 'Money Requested':
+            return ['claimed', 'paid', 'canceled'].includes(status.toLowerCase()) ? status : 'pending'
+        case 'Request paid':
+            return ['claimed', 'paid'].includes(status.toLowerCase()) ? status : 'pending'
+        case 'Cash Out':
+            return ['pending', 'successful', 'error'].includes(status.toLowerCase()) ? status : 'pending'
+        default:
+            return status
+    }
 }

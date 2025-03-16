@@ -100,14 +100,16 @@ const WalletDetailsPage = () => {
                             key={`peanut-${walletDetails.id}`}
                             id={`${PEANUT_WALLET_CHAIN.id}-${PEANUT_WALLET_CHAIN.name}`}
                             variant="balance"
-                            primaryInfo={{ title: PEANUT_WALLET_TOKEN_NAME }}
+                            primaryInfo={{
+                                title: PEANUT_WALLET_TOKEN_NAME as string,
+                                subtitle: PEANUT_WALLET_CHAIN.name,
+                            }}
                             secondaryInfo={{
                                 mainText: `$${formatAmount(formatUnits(walletDetails.balance, PEANUT_WALLET_TOKEN_DECIMALS))}`,
-                                subText: PEANUT_WALLET_CHAIN.name,
+                                subText: `${formatAmount(formatUnits(walletDetails.balance, PEANUT_WALLET_TOKEN_DECIMALS))} USDC`,
                             }}
                             metadata={{
                                 tokenLogo: ARBITRUM_ICON,
-                                subText: `${formatAmount(formatUnits(walletDetails.balance, PEANUT_WALLET_TOKEN_DECIMALS))} USDC`,
                             }}
                         />
                     </div>
@@ -125,14 +127,16 @@ const WalletDetailsPage = () => {
                                 key={`${balance.chainId}-${balance.symbol}`}
                                 id={`${balance.chainId}-${balance.symbol}`}
                                 variant="balance"
-                                primaryInfo={{ title: balance.symbol }}
+                                primaryInfo={{
+                                    title: balance.symbol as string,
+                                    subtitle: getChainName(balance.chainId),
+                                }}
                                 secondaryInfo={{
-                                    mainText: `$${Number(balance.value).toFixed(2)}`,
-                                    subText: getChainName(balance.chainId),
+                                    mainText: `$${formatAmount(balance.value)}`,
+                                    subText: `${formatAmount(balance.amount)} ${balance.symbol}`,
                                 }}
                                 metadata={{
                                     tokenLogo: balance.logoURI,
-                                    subText: `${formatAmount(balance.amount)} ${balance.symbol}`,
                                 }}
                                 details={balance}
                             />
