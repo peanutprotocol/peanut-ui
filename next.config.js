@@ -91,6 +91,11 @@ let nextConfig = {
                 destination: '/',
                 permanent: true,
             },
+            {
+                source: '/pints',
+                destination: 'https://lu.ma/dsc6xmpj',
+                permanent: false,
+            },
         ]
     },
     async headers() {
