@@ -13,6 +13,7 @@ const AddressLink = ({ address, recipientType }: { address: string; recipientTyp
     const { primaryName: ensName } = usePrimaryName({
         address: isAddress(address) ? (address as `0x${string}`) : undefined,
         chainId: 1, // Mainnet for ENS lookups
+        priority: 'onChain',
     })
 
     useEffect(() => {

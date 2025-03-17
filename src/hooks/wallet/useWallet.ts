@@ -1,5 +1,6 @@
 'use client'
 
+import { PeanutArmHoldingBeer } from '@/assets'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, peanutPublicClient } from '@/constants'
 import { useAuth } from '@/context/authContext'
 import {
@@ -67,8 +68,8 @@ const REWARD_WALLETS: Omit<IWallet, 'address'>[] = [
         walletProviderType: WalletProviderType.REWARDS,
         protocolType: WalletProtocolType.EVM,
         connector: {
-            iconUrl: 'https://polygonscan.com/token/images/pintatoken_32.png',
-            name: 'Pinta wallet',
+            iconUrl: PeanutArmHoldingBeer,
+            name: 'Beer Wallet',
         },
         balance: BigInt(0),
         connected: true,

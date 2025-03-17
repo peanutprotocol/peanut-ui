@@ -83,6 +83,7 @@ function ExistingWalletCard({
     const { isWalletConnected } = useWallet()
     const { primaryName } = usePrimaryName({
         address: wallet.address,
+        priority: 'onChain',
     })
 
     const isExternalWallet = wallet.walletProviderType !== WalletProviderType.PEANUT

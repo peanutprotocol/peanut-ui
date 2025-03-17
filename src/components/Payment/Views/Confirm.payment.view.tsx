@@ -1,11 +1,14 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
+import Divider from '@/components/0_Bruddle/Divider'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import PeanutSponsored from '@/components/Global/PeanutSponsored'
+import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
@@ -31,7 +34,7 @@ export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
     const { isConnected, chain: currentChain, address, isPeanutWallet } = useWallet()
-    const { attachmentOptions, parsedPaymentData, error, chargeDetails } = usePaymentStore()
+    const { attachmentOptions, parsedPaymentData, error, chargeDetails, beerQuantity } = usePaymentStore()
     const { selectedTokenData, selectedChainID, isXChain, setIsXChain, selectedTokenAddress } =
         useContext(tokenSelectorContext)
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
@@ -52,6 +55,7 @@ export default function ConfirmPaymentView() {
     const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
     const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
     const [feeOptions, setFeeOptions] = useState<any | undefined>(undefined)
+    const isPintaReq = parsedPaymentData?.token?.symbol === 'PNT'
 
     // call charges service to get chargeDetails details
     useEffect(() => {
@@ -414,6 +418,47 @@ export default function ConfirmPaymentView() {
         selectedTokenData,
         diffTokens,
     ])
+
+    if (isPintaReq) {
+        return (
+            <div className="space-y-4">
+                <FlowHeader
+                    hideWalletHeader={!isConnected}
+                    isPintaReq
+                    onPrev={() => {
+                        dispatch(paymentActions.setView('INITIAL'))
+                        window.history.replaceState(null, '', `${window.location.pathname}`)
+                        dispatch(paymentActions.setChargeDetails(null))
+                    }}
+                    disableWalletHeader
+                />
+                <PintaReqViewWrapper view="CONFIRM">
+                    <div className="flex flex-col items-center justify-center gap-3 pt-2">
+                        <div className="text-h8">You're Claiming</div>
+                        <div className="space-y-2 text-center">
+                            <div className="text-h5 font-bold">
+                                {beerQuantity} {beerQuantity > 1 ? 'Beers' : 'Beer'}
+                            </div>
+                            <p className="text-xs font-normal">From Beer Account</p>
+                        </div>
+                    </div>
+                    <PeanutSponsored />
+                    <Divider />
+                    <Button
+                        variant="purple"
+                        onClick={handlePayment}
+                        disabled={
+                            !isConnected || isSubmitting || isCalculatingFees || isEstimatingGas || isFeeEstimationError
+                        }
+                        loading={isSubmitting || isCalculatingFees || isEstimatingGas}
+                    >
+                        {getButtonText()}
+                    </Button>
+                    {error && <ErrorAlert description={error} />}
+                </PintaReqViewWrapper>
+            </div>
+        )
+    }
 
     if (!chargeDetails) return <PeanutLoading />
 
