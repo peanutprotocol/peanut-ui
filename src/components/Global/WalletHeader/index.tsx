@@ -302,6 +302,7 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({
 
     const { primaryName } = usePrimaryName({
         address: wallet.address,
+        priority: 'onChain',
     })
 
     const handleCardClick = () => {

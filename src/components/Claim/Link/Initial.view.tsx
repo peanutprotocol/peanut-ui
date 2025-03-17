@@ -400,7 +400,7 @@ export const InitialClaimLinkView = ({
         }
     }
 
-    const isPintaClaimLink = claimLinkData.tokenAddress === '0x9Ae69fDfF2FA97e34B680752D8E70dfD529Ea6ca'
+    const isPintaClaimLink = claimLinkData.tokenAddress === consts.PINTA_WALLET_TOKEN
 
     useEffect(() => {
         // set rewards wallet if user is connected and claim link is for Pinta

@@ -1,9 +1,8 @@
-import { getEntryPoint } from '@zerodev/sdk/constants'
-import { arbitrum, polygon } from 'viem/chains'
-import type { PublicClient, Chain } from 'viem'
-import { createPublicClient, http } from 'viem'
 import { infuraRpcUrls } from '@/constants/general.consts'
-import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
+import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
+import type { Chain, PublicClient } from 'viem'
+import { createPublicClient, http } from 'viem'
+import { arbitrum, polygon } from 'viem/chains'
 
 // consts needed to define low level SDK kernel
 // as per: https://docs.zerodev.app/sdk/getting-started/tutorial-passkeys
@@ -20,6 +19,12 @@ export const PEANUT_WALLET_CHAIN = arbitrum
 export const PEANUT_WALLET_TOKEN_DECIMALS = 6 // USDC decimals
 export const PEANUT_WALLET_TOKEN = '0xaf88d065e77c8cc2239327c5edb3a432268e5831'
 export const PEANUT_WALLET_TOKEN_NAME = 'USDC'
+
+export const PINTA_WALLET_CHAIN = polygon
+export const PINTA_WALLET_TOKEN_DECIMALS = 10
+export const PINTA_WALLET_TOKEN = '0x9Ae69fDfF2FA97e34B680752D8E70dfD529Ea6ca'
+export const PINTA_WALLET_TOKEN_NAME = 'PINTA'
+export const PINTA_WALLET_TOKEN_SYMBOL = 'PNT'
 
 /**
  * Zerodev needs these to be passed explicitly to avoid breaking changes
