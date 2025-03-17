@@ -16,7 +16,7 @@ import {
 } from '@/components/Offramp/Offramp.consts'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import * as consts from '@/constants'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PINTA_WALLET_TOKEN } from '@/constants'
 import { TOOLTIPS } from '@/constants/tooltips'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
@@ -37,7 +37,7 @@ import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
 import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
-import { useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useState, useMemo } from 'react'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
 
@@ -321,7 +321,14 @@ export const InitialClaimLinkView = ({
         }
     }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
 
+    const isReward = useMemo(() => {
+        if (!claimLinkData.tokenAddress) return false
+        return areEvmAddressesEqual(claimLinkData.tokenAddress, consts.PINTA_WALLET_TOKEN)
+    }, [claimLinkData.tokenAddress])
+
     useEffect(() => {
+        if (isReward || !claimLinkData.tokenAddress) return
+
         if (refetchXchainRoute) {
             setIsXchainLoading(true)
             setLoadingState('Fetching route')
@@ -334,7 +341,7 @@ export const InitialClaimLinkView = ({
             fetchRoute()
             setRefetchXchainRoute(false)
         }
-    }, [claimLinkData, refetchXchainRoute])
+    }, [claimLinkData, refetchXchainRoute, isReward])
 
     const fetchRoute = async (toToken?: string, toChain?: string) => {
         try {
@@ -400,11 +407,9 @@ export const InitialClaimLinkView = ({
         }
     }
 
-    const isPintaClaimLink = claimLinkData.tokenAddress === consts.PINTA_WALLET_TOKEN
-
     useEffect(() => {
         // set rewards wallet if user is connected and claim link is for Pinta
-        if (user && isPintaClaimLink) {
+        if (user && isReward) {
             dispatch(walletActions.setSelectedWalletId('pinta-wallet'))
 
             if (address) {
@@ -412,7 +417,7 @@ export const InitialClaimLinkView = ({
                 setIsValidRecipient(true)
             }
         }
-    }, [isPintaClaimLink, user, dispatch, address])
+    }, [isReward, user, address])
 
     useEffect(() => {
         if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
@@ -457,13 +462,19 @@ export const InitialClaimLinkView = ({
 
     return (
         <div>
-            {!!user && <FlowHeader isPintaClaim={isPintaClaimLink} />}
+            {!!user && <FlowHeader isPintaClaim={isReward} disableWalletHeader={isReward} />}
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
                     <Card.Title className="mx-auto">
                         <div className="flex w-full flex-col items-center justify-center gap-2">
-                            <AddressLink address={claimLinkData.senderAddress} /> sent you
-                            {tokenPrice ? (
+                            {isReward ? (
+                                <span>You received</span>
+                            ) : (
+                                <>
+                                    <AddressLink address={claimLinkData.senderAddress} /> sent you
+                                </>
+                            )}
+                            {!isReward && tokenPrice ? (
                                 <label className="text-h2">
                                     ${formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
                                 </label>
