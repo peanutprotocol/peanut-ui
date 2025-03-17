@@ -10,7 +10,13 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import BeerInput from '@/components/PintaReqPay/BeerInput'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    PINTA_WALLET_CHAIN,
+    PINTA_WALLET_TOKEN_DECIMALS,
+    PINTA_WALLET_TOKEN_SYMBOL,
+} from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, WalletProviderType } from '@/interfaces'
@@ -57,7 +63,6 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         setInputDenomination,
         selectedTokenPrice,
         selectedChainID,
-        selectedTokenDecimals,
         selectedTokenAddress,
         selectedTokenData,
         setSelectedChainID,
@@ -263,11 +268,11 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                 if (isPintaReq && recipient.resolvedAddress) {
                     const request = await requestsApi.create({
                         recipientAddress: recipient.resolvedAddress,
-                        chainId: '137',
+                        chainId: PINTA_WALLET_CHAIN.id.toString(),
                         tokenAddress: recipientTokenAddress,
                         tokenType: String(peanutInterfaces.EPeanutLinkType.erc20),
-                        tokenSymbol: 'PNT',
-                        tokenDecimals: '10',
+                        tokenSymbol: PINTA_WALLET_TOKEN_SYMBOL,
+                        tokenDecimals: PINTA_WALLET_TOKEN_DECIMALS.toString(),
                     })
                     validRequestId = request.uuid
                 } else {
@@ -279,7 +284,8 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
             // for Pinta requests, use beerQuantity
             let tokenAmountToUse: string
             if (isPintaReq) {
-                tokenAmountToUse = '0.00002' // todo: replace with beerQuantity after testing
+                // tokenAmountToUse = '0.00002' // todo: replace with beerQuantity after testing
+                tokenAmountToUse = beerQuantity.toString()
             } else {
                 if (token?.symbol.toLowerCase() === 'usdc') {
                     tokenAmountToUse = usdValue ?? inputTokenAmount
