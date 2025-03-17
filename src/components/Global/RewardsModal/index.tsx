@@ -1,4 +1,4 @@
-import { PEANUTMAN_BEER } from '@/assets'
+import { PEANUTMAN_BEER, PEANUTMAN_RAISING_HANDS } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
 import { useAuth } from '@/context/authContext'
 import { rewardsApi } from '@/services/rewards'
@@ -140,7 +140,16 @@ const RewardsModal = () => {
                     style={{ transform: 'translateY(-80%)' }}
                 >
                     <div className="relative h-42 w-[90%] md:h-52">
-                        <Image src={PEANUTMAN_BEER} alt="Peanut Man" layout="fill" objectFit="contain" />
+                        <Image
+                            src={
+                                activeReward.assetCode === REWARD_ASSET_TYPE.PNT
+                                    ? PEANUTMAN_BEER
+                                    : PEANUTMAN_RAISING_HANDS
+                            }
+                            alt="Peanut Man"
+                            layout="fill"
+                            objectFit="contain"
+                        />
                     </div>
                 </div>
             </Modal>

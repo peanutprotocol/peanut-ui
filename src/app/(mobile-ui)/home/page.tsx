@@ -1,6 +1,6 @@
 'use client'
 
-import { PEANUTMAN_LOGO_BLACK } from '@/assets'
+import { PEANUT_LOGO_BLACK } from '@/assets'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import LogoutButton from '@/components/Global/LogoutButton'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -154,7 +154,7 @@ export default function Home() {
                     <div className="space-y-4 px-6">
                         <div className="flex items-center justify-between">
                             <div className="flex w-full items-center justify-between md:hidden">
-                                <Image src={PEANUTMAN_LOGO_BLACK} alt="Peanut Logo" className="w-20" />
+                                <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" className="w-20" />
                                 <LogoutButton />
                             </div>
                         </div>
