@@ -1,5 +1,12 @@
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    PINTA_WALLET_TOKEN,
+    PINTA_WALLET_TOKEN_DECIMALS,
+    PINTA_WALLET_TOKEN_NAME,
+    PINTA_WALLET_TOKEN_SYMBOL,
+} from '@/constants'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { ChainValidationError } from '../url-parser/errors'
 import { POPULAR_CHAIN_NAME_VARIANTS } from '../url-parser/parser.consts'
@@ -11,10 +18,10 @@ const EXTRA_TOKENS_BY_CHAIN: Record<string, interfaces.ISquidToken[]> = {
         {
             active: true,
             chainId: polygon.id.toString(),
-            address: '0x9Ae69fDfF2FA97e34B680752D8E70dfD529Ea6ca',
-            name: 'PINTA',
-            symbol: 'PNT',
-            decimals: 10,
+            address: PINTA_WALLET_TOKEN,
+            name: PINTA_WALLET_TOKEN_NAME,
+            symbol: PINTA_WALLET_TOKEN_SYMBOL,
+            decimals: PINTA_WALLET_TOKEN_DECIMALS,
             logoURI: 'https://polygonscan.com/token/images/pintatoken_32.png',
             usdPrice: 2.5,
         },
