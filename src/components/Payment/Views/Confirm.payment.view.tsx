@@ -11,8 +11,9 @@ import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { WalletProviderType } from '@/interfaces'
 import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
-import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
+import { useAppDispatch, usePaymentStore, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import {
@@ -33,7 +34,14 @@ import { PaymentInfoRow } from '../PaymentInfoRow'
 export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
-    const { isConnected, chain: currentChain, address, isPeanutWallet } = useWallet()
+    const {
+        isConnected,
+        chain: currentChain,
+        address,
+        isPeanutWallet,
+        getRewardWalletBalance,
+        selectedWallet,
+    } = useWallet()
     const { attachmentOptions, parsedPaymentData, error, chargeDetails, beerQuantity } = usePaymentStore()
     const { selectedTokenData, selectedChainID, isXChain, setIsXChain, selectedTokenAddress } =
         useContext(tokenSelectorContext)
@@ -56,6 +64,14 @@ export default function ConfirmPaymentView() {
     const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
     const [feeOptions, setFeeOptions] = useState<any | undefined>(undefined)
     const isPintaReq = parsedPaymentData?.token?.symbol === 'PNT'
+    const { rewardWalletBalance } = useWalletStore()
+
+    const isInsufficientRewardsBalance = useMemo(() => {
+        if (!isPintaReq || selectedWallet?.walletProviderType !== WalletProviderType.REWARDS) {
+            return false
+        }
+        return Number(rewardWalletBalance) < beerQuantity
+    }, [isPintaReq, selectedWallet, rewardWalletBalance, beerQuantity])
 
     // call charges service to get chargeDetails details
     useEffect(() => {
@@ -287,6 +303,8 @@ export default function ConfirmPaymentView() {
     // Get button text based on state
     const getButtonText = () => {
         if (!isConnected) return 'Connect Wallet'
+        if (isInsufficientRewardsBalance) return 'Insufficient Balance'
+
         if (isSubmitting) {
             return (
                 <div className="flex items-center justify-center gap-2">
@@ -448,12 +466,22 @@ export default function ConfirmPaymentView() {
                         variant="purple"
                         onClick={handlePayment}
                         disabled={
-                            !isConnected || isSubmitting || isCalculatingFees || isEstimatingGas || isFeeEstimationError
+                            !isConnected ||
+                            isSubmitting ||
+                            isCalculatingFees ||
+                            isEstimatingGas ||
+                            isFeeEstimationError ||
+                            isInsufficientRewardsBalance
                         }
                         loading={isSubmitting || isCalculatingFees || isEstimatingGas}
                     >
                         {getButtonText()}
                     </Button>
+                    {isInsufficientRewardsBalance && (
+                        <ErrorAlert
+                            description={`You do not have enough balance in your Beer Account to claim ${beerQuantity} beers.`}
+                        />
+                    )}
                     {error && <ErrorAlert description={error} />}
                 </PintaReqViewWrapper>
             </div>

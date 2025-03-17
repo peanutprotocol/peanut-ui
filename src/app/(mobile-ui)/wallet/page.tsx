@@ -24,12 +24,11 @@ import {
     validateEnsName,
 } from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { formatUnits, isAddress } from 'viem'
 
 const WalletDetailsPage = () => {
-    const pathname = usePathname()
     const router = useRouter()
     const { disconnect } = useDisconnect()
     const { focusedWallet: focusedWalletId } = useWalletStore()
