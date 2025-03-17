@@ -2,6 +2,7 @@
 
 import { PEANUTMAN_LOGO } from '@/assets'
 import { Button, Card } from '@/components/0_Bruddle'
+import { CrispButton } from '@/components/CrispChat'
 import AddressLink from '@/components/Global/AddressLink'
 import Icon from '@/components/Global/Icon'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
@@ -14,8 +15,7 @@ import { requestsApi } from '@/services/requests'
 import { formatDate, getExplorerUrl, shortenAddressLong } from '@/utils'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
-import { CrispButton } from '@/components/CrispChat'
+import { useEffect, useMemo } from 'react'
 
 export default function PaymentStatusView() {
     const { requestDetails, chargeDetails, transactionHash, resolvedAddress } = usePaymentStore()
@@ -138,7 +138,7 @@ export default function PaymentStatusView() {
         return (
             <>
                 <div className="flex w-full flex-row items-center justify-between gap-1">
-                    <span>Transaction Hash:</span>
+                    <label className="text-h9">Transaction Hash:</label>
                     {(transactionHash || latestPayment?.payerTransactionHash) && sourceUrlWithTx ? (
                         <Link
                             className="cursor-pointer underline"
@@ -156,7 +156,7 @@ export default function PaymentStatusView() {
                 {/* Show destination tx for cross-chain payments */}
                 {destinationTxAndUrl && destinationTxAndUrl.transactionId !== transactionHash && (
                     <div className="flex w-full flex-row items-center justify-between gap-1">
-                        <span>Destination Transaction:</span>
+                        <label className="text-h9">Destination Transaction:</label>
                         {destinationTxAndUrl?.transactionUrl ? (
                             <Link className="cursor-pointer underline" href={destinationTxAndUrl.transactionUrl}>
                                 {shortenAddressLong(destinationTxAndUrl.transactionId)}
@@ -190,8 +190,8 @@ export default function PaymentStatusView() {
         if (!latestPayment) {
             return (
                 <>
-                    <Card.Title>Payment in Progress</Card.Title>
-                    <Card.Description className="flex items-center justify-normal gap-2">
+                    <Card.Title className="mx-auto">Payment in Progress</Card.Title>
+                    <Card.Description className="mx-auto flex items-center justify-center gap-2">
                         <div>Your payment to {recipientLink} is being processed</div>
                         <div className="animate-spin">
                             <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4 w-4" />
@@ -205,8 +205,8 @@ export default function PaymentStatusView() {
         if (latestPayment && latestPayment.status !== 'FAILED' && latestPayment.status !== 'SUCCESSFUL') {
             return (
                 <>
-                    <Card.Title>Payment in Progress</Card.Title>
-                    <Card.Description className="flex items-center justify-normal gap-2">
+                    <Card.Title className="mx-auto">Payment in Progress</Card.Title>
+                    <Card.Description className="mx-auto flex items-center justify-center gap-2">
                         <div>This might take some time</div>
                         <div className="animate-spin">
                             <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4 w-4" />
@@ -220,8 +220,8 @@ export default function PaymentStatusView() {
         if (latestPayment?.status === 'FAILED') {
             return (
                 <>
-                    <Card.Title>Payment Failed</Card.Title>
-                    <Card.Description>
+                    <Card.Title className="mx-auto">Payment Failed</Card.Title>
+                    <Card.Description className="mx-auto">
                         {(latestPayment.reason?.includes('Validation failed after maximum retry attempts') &&
                             'Payment failed due to validation failure') ||
                             'Something went wrong with the payment'}
@@ -234,8 +234,8 @@ export default function PaymentStatusView() {
         if (statusDetails?.charge?.fulfillmentPayment?.status === 'SUCCESSFUL') {
             return (
                 <>
-                    <Card.Title>Yay!!</Card.Title>
-                    <Card.Description>Payment to {recipientLink} was successful</Card.Description>
+                    <Card.Title className="mx-auto">Yay!!</Card.Title>
+                    <Card.Description className="mx-auto">Payment to {recipientLink} was successful</Card.Description>
                 </>
             )
         }
@@ -267,8 +267,8 @@ export default function PaymentStatusView() {
                             </div>
                         )}
                         {statusDetails.requestLink.reference && (
-                            <div className="flex items-start gap-2">
-                                <Icon name="email" className="h-4 w-4 min-w-4" />
+                            <div className="flex items-start justify-center gap-2">
+                                <Icon name="email" className="mt-0.5 h-4 w-4 min-w-4" />
                                 <p className="text-sm">{statusDetails.requestLink.reference}</p>
                             </div>
                         )}
@@ -276,7 +276,7 @@ export default function PaymentStatusView() {
                 )}
 
                 {/* Transaction details section */}
-                <div className="mb-2 w-full space-y-3 border-b border-dashed border-black pb-4">
+                <div className="mb-2 w-full space-y-3 border-b border-dashed border-black pb-4 pt-2">
                     {renderTransactionDetails()}
                 </div>
 
@@ -296,7 +296,7 @@ export default function PaymentStatusView() {
 
                 {/* Discord message */}
                 {latestPayment?.status !== 'FAILED' && (
-                    <div className="text-h9 font-normal">
+                    <div className="mx-auto text-h9 font-normal">
                         We would like to hear from your experience.{' '}
                         <CrispButton className="text-black underline dark:text-white">Chat with support</CrispButton>
                     </div>
@@ -313,7 +313,6 @@ export default function PaymentStatusView() {
                 <PaymentsFooter
                     href={userId ? undefined : '/setup'}
                     text={userId ? undefined : 'Sign up to see payments'}
-                    variant="transparent-dark"
                     className="mt-3 rounded-none border-x-0 border-t border-black text-black hover:text-black"
                 />
             )}

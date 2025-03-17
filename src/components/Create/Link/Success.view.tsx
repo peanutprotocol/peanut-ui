@@ -1,10 +1,9 @@
 'use client'
 
-import { Button, Card } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle'
 import CopyField from '@/components/Global/CopyField'
-import Icon from '@/components/Global/Icon'
-import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
+import StatusViewWrapper from '@/components/Global/StatusViewWrapper'
 import { tokenSelectorContext } from '@/context'
 import {
     copyTextToClipboardWithFallback,
@@ -15,10 +14,10 @@ import {
     validateEnsName,
 } from '@/utils'
 import { useToast } from '@chakra-ui/react'
+import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { ICreateScreenProps } from '../Create.consts'
-import * as Sentry from '@sentry/nextjs'
 
 export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tokenValue }: ICreateScreenProps) => {
     const { selectedChainID, inputDenomination, selectedTokenPrice } = useContext(tokenSelectorContext)
@@ -86,15 +85,14 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
     }, [])
 
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title>Yay!</Card.Title>
-            </Card.Header>
-            <Card.Content className="flex flex-col gap-4">
+        <StatusViewWrapper title="Yay!" hideSupportCta>
+            <div className="flex flex-col gap-6">
                 {link && <QRCodeWrapper url={link} />}
-                {createType === 'direct'
-                    ? `You have successfully sent the funds to ${validateEnsName(recipient.name) ? recipient.name : printableAddress(recipient.address ?? '')}.`
-                    : 'Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any token.'}
+                <label className="text-center text-h8">
+                    {createType === 'direct'
+                        ? `You have successfully sent the funds to ${validateEnsName(recipient.name) ? recipient.name : printableAddress(recipient.address ?? '')}.`
+                        : 'Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any token.'}
+                </label>
                 {link && (
                     <div className="flex w-full flex-col items-center justify-center gap-2 ">
                         {createType === 'email_link' && (
@@ -124,7 +122,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
                         <div className="w-full">
                             <CopyField text={link} />
                         </div>
-                        <div className="flex w-full flex-col gap-2">
+                        <div className="flex w-full flex-col gap-4">
                             <Button
                                 onClick={() => {
                                     share(link)
@@ -132,17 +130,17 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
                             >
                                 Share link
                             </Button>
-                            <Link className="w-full" target="_blank" href={`${explorerUrlWithTx}`}>
-                                <Button variant="dark">
-                                    Transaction hash
-                                    <Icon name="external" className="h-4 fill-grey-1" />
-                                </Button>
+                            <Link
+                                className="w-full text-center font-semibold text-grey-1 underline"
+                                target="_blank"
+                                href={`${explorerUrlWithTx}`}
+                            >
+                                Transaction hash
                             </Link>
-                            <PaymentsFooter />
                         </div>
                     </div>
                 )}
-            </Card.Content>
-        </Card>
+            </div>
+        </StatusViewWrapper>
     )
 }
