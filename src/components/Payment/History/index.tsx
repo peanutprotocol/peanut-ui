@@ -13,11 +13,12 @@ export default function PaymentHistory({ recipient, history }: PaymentHistoryPro
     if (history.length === 0 || !recipient) return null
 
     return (
-        <div className="space-y-3 border-b border-b-black">
+        <div className="space-y-3">
             <div className="text-base font-semibold">
-                Payment history to <AddressLink address={recipient.resolvedAddress} />
+                Payment history to{' '}
+                <AddressLink address={recipient.resolvedAddress} recipientType={recipient.recipientType} />
             </div>
-            <div>
+            <div className="border-t border-t-black">
                 {[...history]
                     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
                     .slice(0, 5)
@@ -47,6 +48,7 @@ export default function PaymentHistory({ recipient, history }: PaymentHistoryPro
                                                     address={
                                                         entry.senderAccount.username || entry.senderAccount.identifier
                                                     }
+                                                    recipientType={entry.senderAccount.isUser ? 'USERNAME' : undefined}
                                                 />{' '}
                                                 <br className="md:hidden" /> <span className="hidden md:inline">|</span>{' '}
                                                 Status: {entry.status}
