@@ -1,10 +1,11 @@
+import { RecipientType } from '@/lib/url-parser/types/payment'
+import * as utils from '@/utils'
+import { usePrimaryName } from '@justaname.id/react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { isAddress } from 'viem'
-import * as utils from '@/utils'
-import { usePrimaryName } from '@justaname.id/react'
 
-const AddressLink = ({ address }: { address: string }) => {
+const AddressLink = ({ address, recipientType }: { address: string; recipientType?: RecipientType }) => {
     const [url, setUrl] = useState<string>('')
     const [displayAddress, setDisplayAddress] = useState<string>(utils.printableAddress(address))
 
@@ -15,8 +16,11 @@ const AddressLink = ({ address }: { address: string }) => {
     })
 
     useEffect(() => {
-        // Always set debank URL
-        setUrl(`https://debank.com/profile/${address}`)
+        if (recipientType === 'USERNAME') {
+            setUrl(`${process.env.NEXT_PUBLIC_BASE_URL}/${address}`)
+        } else {
+            setUrl(`https://debank.com/profile/${address}`)
+        }
 
         // Update display: prefer ENS name, fallback to shortened address
         if (ensName) {
