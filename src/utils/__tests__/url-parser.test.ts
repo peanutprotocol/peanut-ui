@@ -1,17 +1,21 @@
 import { EParseUrlError, parsePaymentURL } from '@/lib/url-parser/parser'
 
 // mock ENS resolution
-jest.mock('@/utils', () => ({
-    resolveFromEnsName: (name: string) => {
-        if (name === 'vitalik.eth') {
-            return Promise.resolve('0x1234567890123456789012345678901234567890')
-        }
-        if (name.endsWith('.testvc.eth')) {
-            return Promise.resolve('0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271')
-        }
-        return Promise.resolve(null)
-    },
-}))
+jest.mock('@/utils', () => {
+    const originalModule = jest.requireActual('@/utils')
+    return {
+        ...originalModule,
+        resolveFromEnsName: (name: string) => {
+            if (name === 'vitalik.eth') {
+                return Promise.resolve('0x1234567890123456789012345678901234567890')
+            }
+            if (name.endsWith('.testvc.eth')) {
+                return Promise.resolve('0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271')
+            }
+            return Promise.resolve(null)
+        },
+    }
+})
 
 // mock Peanut username validation
 jest.mock('@/lib/validation/recipient', () => {
