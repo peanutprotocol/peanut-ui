@@ -1,16 +1,15 @@
 'use client'
 
-import { Button, Card } from '@/components/0_Bruddle'
-import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
-import { CrispButton } from '@/components/CrispChat'
+import { Button } from '@/components/0_Bruddle'
+import StatusViewWrapper from '@/components/Global/StatusViewWrapper'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
+import { ErrorHandler, shortenAddress } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
-import * as Sentry from '@sentry/nextjs'
 
 interface ISenderClaimLinkViewProps {
     changeToRecipientView: () => void
@@ -58,7 +57,7 @@ export const SenderClaimLinkView = ({
                 throw new Error('Error claiming link')
             }
         } catch (error) {
-            const errorString = utils.ErrorHandler(error)
+            const errorString = ErrorHandler(error)
             setErrorState({
                 showError: true,
                 errorMessage: errorString,
@@ -70,14 +69,11 @@ export const SenderClaimLinkView = ({
     }
 
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header className="mx-auto text-center">
-                <Card.Title className="text-center">Hello, {utils.shortenAddress(address ?? '')}</Card.Title>
-                <Card.Description className="text-center">
-                    This is a link that you have created. You can refund it or go to the recipient view.
-                </Card.Description>
-            </Card.Header>
-            <Card.Content className="flex flex-col gap-2">
+        <StatusViewWrapper
+            title={`Hello ${shortenAddress(address ?? '')}`}
+            description="This is a link that you have created. You can refund it or go to the recipient view."
+        >
+            <div className="flex flex-col gap-2">
                 <Button onClick={handleOnCancel} disabled={isLoading} loading={isLoading}>
                     Refund
                 </Button>
@@ -89,12 +85,7 @@ export const SenderClaimLinkView = ({
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                 )}
-                <label className="mt-2 text-h9 font-normal">
-                    We would like to hear from your experience.{' '}
-                    <CrispButton className="text-black underline dark:text-white">Chat with support</CrispButton>
-                </label>
-                <PaymentsFooter />
-            </Card.Content>
-        </Card>
+            </div>
+        </StatusViewWrapper>
     )
 }
