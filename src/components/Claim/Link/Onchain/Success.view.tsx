@@ -1,16 +1,13 @@
-import { Button, Card } from '@/components/0_Bruddle'
-import Icon from '@/components/Global/Icon'
-import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
-import { CrispButton } from '@/components/CrispChat'
+import StatusViewWrapper from '@/components/Global/StatusViewWrapper'
 import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as utils from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useConnections, useSwitchChain } from 'wagmi'
 import * as _consts from '../../Claim.consts'
-import * as Sentry from '@sentry/nextjs'
 
 export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
     const connections = useConnections()
@@ -64,35 +61,31 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     }, [isw3mEmailWallet])
 
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title>Yay!</Card.Title>
-                <Card.Description>You have successfully claimed your funds!</Card.Description>
-            </Card.Header>
-            <Card.Content className="flex flex-col gap-2">
-                <label className="text-start text-h8 font-normal text-grey-1">Transaction details</label>
+        <StatusViewWrapper title="Yay!" description="You have successfully claimed your funds!">
+            <div className="flex flex-col gap-2">
+                <label className="text-start text-h8 text-grey-1">Transaction details</label>
                 {type === 'claimxchain' && (
                     <div className="flex flex-col items-start justify-center gap-1 text-h9  font-normal">
                         <div className="flex w-full flex-row items-center justify-between gap-1">
-                            <label className="">Source chain:</label>
+                            <label className="text-h9">Source chain:</label>
                             <Link className="cursor-pointer  underline" href={explorerUrlWithTx}>
                                 {utils.shortenAddressLong(transactionHash ?? '')}
                             </Link>
                         </div>
                         <div className="flex w-full flex-row items-center justify-between gap-1">
-                            <label className="">Cross-chain Routing via Axelar:</label>
+                            <label className="text-h9">Cross-chain Routing via Axelar:</label>
 
                             <Link className="cursor-pointer  underline" href={explorerUrlAxelarWithTx}>
                                 {utils.shortenAddressLong(transactionHash ?? '')}
                             </Link>
                         </div>
                         <div className="flex w-full flex-row  items-center justify-between gap-1">
-                            <label className="">Destination Address:</label>
+                            <label className="text-h9">Destination Address:</label>
                             {!explorerUrlDestChainWithTxHash ? (
                                 <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
                             ) : (
                                 <Link
-                                    className="cursor-pointer  underline"
+                                    className="cursor-pointer underline"
                                     href={explorerUrlDestChainWithTxHash.transactionUrl}
                                 >
                                     {utils.shortenAddressLong(explorerUrlDestChainWithTxHash.transactionId ?? '')}
@@ -101,18 +94,13 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                         </div>
                     </div>
                 )}
-                <Link className="w-full" target="_blank" href={`${explorerUrlWithTx}`}>
-                    <Button variant="dark">
-                        Transaction hash
-                        <Icon name="external" className="h-4 fill-grey-1" />
-                    </Button>
-                </Link>
-                <PaymentsFooter />
-                <label className="text-start text-h9 font-normal">
-                    We would like to hear from your experience.{' '}
-                    <CrispButton className="text-black underline dark:text-white">Chat with support</CrispButton>
-                </label>
-            </Card.Content>
-        </Card>
+                <div className="flex w-full flex-row items-center justify-between gap-1">
+                    <label className="text-h9">Transaction hash:</label>
+                    <Link className="cursor-pointer text-h9 font-normal underline" href={explorerUrlWithTx}>
+                        {utils.shortenAddressLong(transactionHash ?? '')}
+                    </Link>
+                </div>
+            </div>
+        </StatusViewWrapper>
     )
 }

@@ -3,9 +3,9 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import * as Sentry from '@sentry/nextjs'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import * as Sentry from '@sentry/nextjs'
 
 const WelcomeStep = () => {
     const { handleNext } = useSetupFlow()
@@ -36,7 +36,7 @@ const WelcomeStep = () => {
                         })
                     }}
                 >
-                    Login
+                    Log in
                 </Button>
             </Card.Content>
         </Card>
