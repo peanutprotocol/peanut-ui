@@ -498,83 +498,82 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         }
     }, [token?.symbol, wallets, dispatch])
 
-    return (
-        <div className="space-y-4">
-            {!isPintaReq ? (
-                <>
-                    <FlowHeader hideWalletHeader={!isConnected} isPintaReq={token?.symbol === 'PNT'} />
-                    {/* Show recipient from parsed data */}
-                    <div className="text-h6 font-bold">
-                        Sending to{' '}
-                        {recipient.recipientType === 'USERNAME' ? (
-                            recipient.identifier
-                        ) : (
-                            <AddressLink address={recipient?.identifier} />
-                        )}
-                    </div>
-                    <TokenAmountInput
-                        tokenValue={inputTokenAmount}
-                        setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
-                        className="w-full"
-                        disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
-                    />
-                    {requestDetails?.recipientAccount.type !== AccountType.PEANUT_WALLET &&
-                        renderRequestedPaymentDetails()}
-                    {isExternalWallet && (
-                        <div>
-                            <div className="mb-2 text-sm font-medium">Choose your payment method:</div>
-                            <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
-                        </div>
-                    )}
-                    {/* Show Peanut Wallet cross-chain warning */}
-                    {isPeanutWalletCrossChainRequest && (
-                        <ErrorAlert
-                            label="Note"
-                            description={
-                                'Cross-chain payments are not supported with Peanut Wallet yet. Switch to an external wallet to pay this request.'
-                            }
-                        />
-                    )}
-                    {!isPeanutWallet && !requestId && (
-                        <div className="mt-4 text-xs text-grey-1">
-                            You can choose to pay with any token on any network. The payment will be automatically
-                            converted to the requested token.
-                        </div>
-                    )}
+    if (isPintaReq) {
+        return (
+            <div className="space-y-4">
+                <FlowHeader hideWalletHeader={!isConnected} isPintaReq />
+                <PintaReqViewWrapper view="INITIAL">
+                    <BeerInput />
                     <div className="space-y-2">
                         <Button
-                            loading={isSubmitting}
-                            shadowSize="4"
+                            variant="purple"
                             onClick={handleCreateCharge}
-                            disabled={!canCreateCharge || isSubmitting || isPeanutWalletCrossChainRequest}
+                            disabled={beerQuantity === 0 || isSubmitting || isPeanutWalletCrossChainRequest}
+                            loading={isSubmitting}
                             className="w-full"
                         >
-                            {getButtonText()}
+                            {isSubmitting ? 'Creating charge...' : 'Confirm'}
                         </Button>
-
-                        {error && <ErrorAlert label="Error" description={error} />}
+                        {error && <ErrorAlert description={error} />}
                     </div>
-                </>
-            ) : (
-                <>
-                    <FlowHeader hideWalletHeader={!isConnected} isPintaReq />
-                    <PintaReqViewWrapper view="INITIAL">
-                        <BeerInput />
-                        <div className="space-y-2">
-                            <Button
-                                variant="purple"
-                                onClick={handleCreateCharge}
-                                disabled={beerQuantity === 0 || isSubmitting || isPeanutWalletCrossChainRequest}
-                                loading={isSubmitting}
-                                className="w-full"
-                            >
-                                {isSubmitting ? 'Creating charge...' : 'Confirm'}
-                            </Button>
-                            {error && <ErrorAlert description={error} />}
-                        </div>
-                    </PintaReqViewWrapper>
-                </>
+                </PintaReqViewWrapper>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-4">
+            <FlowHeader hideWalletHeader={!isConnected} isPintaReq={token?.symbol === 'PNT'} />
+            {/* Show recipient from parsed data */}
+            <div className="text-h6 font-bold">
+                Sending to{' '}
+                {recipient.recipientType === 'USERNAME' ? (
+                    recipient.identifier
+                ) : (
+                    <AddressLink address={recipient?.identifier} />
+                )}
+            </div>
+            <TokenAmountInput
+                tokenValue={inputTokenAmount}
+                setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
+                className="w-full"
+                disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
+            />
+            {requestDetails?.recipientAccount.type !== AccountType.PEANUT_WALLET && renderRequestedPaymentDetails()}
+            {isExternalWallet && (
+                <div>
+                    <div className="mb-2 text-sm font-medium">Choose your payment method:</div>
+                    <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
+                </div>
             )}
+            {/* Show Peanut Wallet cross-chain warning */}
+            {isPeanutWalletCrossChainRequest && (
+                <ErrorAlert
+                    label="Note"
+                    description={
+                        'Cross-chain payments are not supported with Peanut Wallet yet. Switch to an external wallet to pay this request.'
+                    }
+                />
+            )}
+            {!isPeanutWallet && !requestId && (
+                <div className="mt-4 text-xs text-grey-1">
+                    You can choose to pay with any token on any network. The payment will be automatically converted to
+                    the requested token.
+                </div>
+            )}
+            <div className="space-y-2">
+                <Button
+                    loading={isSubmitting}
+                    shadowSize="4"
+                    onClick={handleCreateCharge}
+                    disabled={!canCreateCharge || isSubmitting || isPeanutWalletCrossChainRequest}
+                    className="w-full"
+                >
+                    {getButtonText()}
+                </Button>
+
+                {error && <ErrorAlert label="Error" description={error} />}
+            </div>
         </div>
     )
 }
