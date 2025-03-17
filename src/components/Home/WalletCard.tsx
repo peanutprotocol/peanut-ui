@@ -255,35 +255,38 @@ function WalletBalance({
     onToggleBalanceVisibility: (e: React.MouseEvent<HTMLButtonElement>) => void
 }) {
     const { rewardWalletBalance } = useWalletStore()
-    let balanceDisplay = null
 
-    if (isRewardsWallet) {
-        balanceDisplay = `${rewardWalletBalance} ${Number(rewardWalletBalance) === 0 ? 'Beers' : Number(rewardWalletBalance) > 1 ? 'Beers' : 'Beer'}`
-    } else if (isBalanceHidden) {
-        balanceDisplay = (
-            <span className="inline-flex items-center">
-                <span className="relative top-1">* * * *</span>
-            </span>
-        )
-    } else {
-        balanceDisplay = `$ ${formatExtendedNumber(printableUsdc(wallet.balance))}`
-    }
+    const balanceDisplay = useMemo(() => {
+        if (isBalanceHidden) {
+            return (
+                <span className="inline-flex items-center">
+                    <span className="relative top-1">* * * *</span>
+                </span>
+            )
+        }
+
+        if (isRewardsWallet) {
+            let balance = Math.floor(Number(rewardWalletBalance))
+            balance = isNaN(balance) ? 0 : balance
+            return `${balance} ${balance === 0 ? 'Beers' : balance > 1 ? 'Beers' : 'Beer'}`
+        }
+
+        return `$ ${formatExtendedNumber(printableUsdc(wallet.balance))}`
+    }, [isRewardsWallet, isBalanceHidden, rewardWalletBalance, wallet.balance])
 
     return (
         <>
             <p className="min-w-28 text-4xl font-black leading-none sm:text-[2.5rem]">{balanceDisplay}</p>
 
-            {!isRewardsWallet && (
-                <button onClick={onToggleBalanceVisibility}>
-                    <Icon
-                        name={isBalanceHidden ? 'eye-slash' : 'eye'}
-                        className={classNames('h-6 w-6', {
-                            'opacity-80': isExternalWallet && !isConnected,
-                        })}
-                        fill={isExternalWallet && !isConnected ? 'bg-gray-5' : 'white'}
-                    />
-                </button>
-            )}
+            <button onClick={onToggleBalanceVisibility}>
+                <Icon
+                    name={isBalanceHidden ? 'eye-slash' : 'eye'}
+                    className={classNames('h-6 w-6', {
+                        'opacity-80': isExternalWallet && !isConnected,
+                    })}
+                    fill={isExternalWallet && !isConnected ? 'bg-gray-5' : 'white'}
+                />
+            </button>
         </>
     )
 }
@@ -298,7 +301,7 @@ function WalletIdentifier({
     if (isRewardsWallet) {
         return (
             <p>
-                Claim at{' '}
+                Use at{' '}
                 <span onClick={(e) => e.stopPropagation()}>
                     <PartnerBarLocation />
                 </span>
