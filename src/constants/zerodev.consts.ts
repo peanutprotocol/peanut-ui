@@ -65,3 +65,4 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
 }
 
 export const peanutPublicClient = PUBLIC_CLIENTS_BY_CHAIN[PEANUT_WALLET_CHAIN.id].client
+export const pintaPublicClient = PUBLIC_CLIENTS_BY_CHAIN[PINTA_WALLET_CHAIN.id].client

@@ -8,4 +8,5 @@ export interface WalletUIState {
     isConnected: boolean
     walletColor: string
     isFetchingWallets: boolean
+    rewardWalletBalance: string
 }
