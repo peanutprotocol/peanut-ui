@@ -58,7 +58,6 @@ const RewardsModal = () => {
 
     const activeReward = getActiveReward()
 
-    // todo: update ux copy based on ui mockups
     // get modal content based on active reward
     const getModalContent = () => {
         if (!activeReward) return null
@@ -66,9 +65,16 @@ const RewardsModal = () => {
         const isPNTReward = activeReward.assetCode === REWARD_ASSET_TYPE.PNT
 
         return {
-            title: isPNTReward ? 'Welcome to Peanut!' : 'More Rewards!',
-            subtitle: isPNTReward ? "You've received 5 Beers!" : "You've received 5 USDC!",
-            ctaText: isPNTReward ? 'Claim your $PNT Tokens' : 'Claim your USDC',
+            title: isPNTReward ? 'Welcome to Peanut!' : `Wait, there's more!`,
+            subtitle: isPNTReward ? (
+                "You've received 5 Beers!"
+            ) : (
+                <span>
+                    Here's <span className="font-bold">$5</span> for you to explore{' '}
+                    <span className="font-bold">Peanut Wallet</span> and its features!
+                </span>
+            ),
+            ctaText: isPNTReward ? 'Claim your Beers!' : 'Claim',
         }
     }
 
@@ -78,7 +84,6 @@ const RewardsModal = () => {
                 .getByUser(user.user.userId)
                 .then((res) => {
                     setRewardLinks(res)
-                    console.log('rewards res', res)
                 })
                 .catch((_err) => {
                     console.log('rewards api err', _err)
@@ -110,12 +115,17 @@ const RewardsModal = () => {
                                 <h3 className="text-h3 font-extrabold">{modalContent?.title}</h3>
                                 <h5 className="text-h5 font-semibold">{modalContent?.subtitle}</h5>
                             </div>
-                            <p className="text-xs">
-                                During Crecimiento, in Buenos Aires, use your Pinta Tokens to enjoy free beers at any{' '}
-                                <PartnerBarLocation />
-                            </p>
+                            {activeReward.assetCode === REWARD_ASSET_TYPE.PNT ? (
+                                <p className="text-xs">
+                                    During Crecimiento, in Buenos Aires, use your Pinta Tokens to enjoy free beers at
+                                    any <PartnerBarLocation />
+                                </p>
+                            ) : (
+                                <p className="text-xs">Your seamless crypto experience starts now.</p>
+                            )}
                         </div>
-                        <RewardDetails />
+                        {activeReward.assetCode === REWARD_ASSET_TYPE.PNT && <RewardDetails />}
+
                         <Link href={activeReward.link} className="block">
                             <Button className="w-full" variant="purple">
                                 {modalContent?.ctaText}
