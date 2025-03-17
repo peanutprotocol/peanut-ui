@@ -336,6 +336,13 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({
         </div>
     )
 
+    const rewardBalanceText = useMemo(() => {
+        let balance = Math.floor(Number(rewardWalletBalance))
+        if (Number.isNaN(balance)) balance = 0
+        if (balance === 0) return '0 Beers'
+        return `${balance} Beer${balance > 1 ? 's' : ''}`
+    }, [rewardWalletBalance])
+
     return (
         <Card onClick={handleCardClick}>
             <Card.Content
@@ -381,14 +388,7 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({
                             {!isRewardsWallet ? (
                                 <p className="text-base font-bold">${printableUsdc(wallet.balance)}</p>
                             ) : (
-                                <p className="text-base font-bold">
-                                    {rewardWalletBalance}
-                                    {Number(rewardWalletBalance) === 0
-                                        ? 'Beers'
-                                        : Number(rewardWalletBalance) > 1
-                                          ? 'Beers'
-                                          : 'Beer'}
-                                </p>
+                                <p className="text-base font-bold">{rewardBalanceText}</p>
                             )}
                         </div>
                     </div>
