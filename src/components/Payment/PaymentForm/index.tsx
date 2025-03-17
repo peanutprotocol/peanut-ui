@@ -47,15 +47,12 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     const { signInModal, isPeanutWallet, selectedWallet, isExternalWallet, isWalletConnected, wallets } = useWallet()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [displayTokenAmount, setDisplayTokenAmount] = useState<string>(
-        chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
-    )
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
     )
     const [usdValue, setUsdValue] = useState<string>('')
     const [requestedTokenPrice, setRequestedTokenPrice] = useState<number | null>(null)
-    const [isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
+    const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
 
     const {
         inputDenomination,
@@ -169,7 +166,6 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         if (initialSetupDone) return
 
         if (amount) {
-            setDisplayTokenAmount(amount)
             setInputTokenAmount(amount)
             setInputDenomination(token?.symbol ? 'TOKEN' : 'USD')
         }
@@ -202,6 +198,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
 
     // fetch token price
     useEffect(() => {
+        if (isPintaReq) return
         if (!requestDetails?.tokenAddress || !requestDetails?.chainId || !requestDetails?.tokenAmount) return
 
         const getTokenPriceData = async () => {
@@ -230,7 +227,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         }
 
         getTokenPriceData()
-    }, [requestDetails])
+    }, [requestDetails, isPintaReq])
 
     const handleCreateCharge = async () => {
         if (!isConnected) {
@@ -456,15 +453,11 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     useEffect(() => {
         if (!inputTokenAmount) return
         if (inputDenomination === 'TOKEN') {
-            setDisplayTokenAmount(inputTokenAmount)
             if (selectedTokenPrice) {
                 setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
             }
         } else if (inputDenomination === 'USD') {
             setUsdValue(inputTokenAmount)
-            if (selectedTokenPrice) {
-                setDisplayTokenAmount((parseFloat(inputTokenAmount) / selectedTokenPrice).toString())
-            }
         }
     }, [inputTokenAmount, inputDenomination, selectedTokenPrice])
 
@@ -487,6 +480,14 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         }
     }, [chargeDetails, resetTokenAndChain])
 
+    // Init beer quantity
+    useEffect(() => {
+        if (!inputTokenAmount) return
+        if (isPintaReq) {
+            dispatch(paymentActions.setBeerQuantity(Number(inputTokenAmount)))
+        }
+    }, [isPintaReq, inputTokenAmount])
+
     // handle auto-selection of rewards wallet if token is PNT
     useEffect(() => {
         if (token?.symbol === 'PNT' && wallets) {
@@ -503,7 +504,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
             <div className="space-y-4">
                 <FlowHeader hideWalletHeader={!isConnected} isPintaReq />
                 <PintaReqViewWrapper view="INITIAL">
-                    <BeerInput />
+                    <BeerInput disabled={!!amount} />
                     <div className="space-y-2">
                         <Button
                             variant="purple"

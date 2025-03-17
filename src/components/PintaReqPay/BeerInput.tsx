@@ -7,9 +7,10 @@ import Icon from '../Global/Icon'
 type BeerInputProps = {
     min?: number
     max?: number
+    disabled?: boolean
 }
 
-const BeerInput: React.FC<BeerInputProps> = ({ min = 1, max = 99 }) => {
+const BeerInput: React.FC<BeerInputProps> = ({ min = 1, max = 99, disabled = false }) => {
     const { beerQuantity } = usePaymentStore()
     const dispatch = useAppDispatch()
 
@@ -27,26 +28,28 @@ const BeerInput: React.FC<BeerInputProps> = ({ min = 1, max = 99 }) => {
                 <span className="text-h1">{beerQuantity}</span>
                 <span className="text-h5 font-bold">{beerQuantity > 1 ? 'Beers' : 'Beer'}</span>
             </div>
-            <div className="absolute right-4 flex flex-col ">
-                <Button
-                    size="medium"
-                    variant="transparent-dark"
-                    onClick={increment}
-                    className="w-12 p-0 hover:bg-gray-50"
-                    aria-label="Increase beer count"
-                >
-                    <Icon name="arrow-bottom" className="h-10 w-10 rotate-180" />
-                </Button>
-                <Button
-                    size="medium"
-                    variant="transparent-dark"
-                    onClick={decrement}
-                    className="w-12 p-0 hover:bg-gray-50"
-                    aria-label="Decrease beer count"
-                >
-                    <Icon name="arrow-bottom" className="h-5 w-5" />
-                </Button>
-            </div>
+            {!disabled && (
+                <div className="absolute right-4 flex flex-col ">
+                    <Button
+                        size="medium"
+                        variant="transparent-dark"
+                        onClick={increment}
+                        className="w-12 p-0 hover:bg-gray-50"
+                        aria-label="Increase beer count"
+                    >
+                        <Icon name="arrow-bottom" className="h-10 w-10 rotate-180" />
+                    </Button>
+                    <Button
+                        size="medium"
+                        variant="transparent-dark"
+                        onClick={decrement}
+                        className="w-12 p-0 hover:bg-gray-50"
+                        aria-label="Decrease beer count"
+                    >
+                        <Icon name="arrow-bottom" className="h-5 w-5" />
+                    </Button>
+                </div>
+            )}
         </div>
     )
 }

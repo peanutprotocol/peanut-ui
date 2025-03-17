@@ -1,11 +1,12 @@
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PINTA_WALLET_TOKEN } from '@/constants'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { validateAmount } from '../validation/amount'
 import { validateAndResolveRecipient } from '../validation/recipient'
 import { getChainDetails, getTokenAndChainDetails } from '../validation/token'
 import { AmountValidationError } from './errors'
 import { ParsedURL } from './types/payment'
+import { areEvmAddressesEqual } from '@/utils'
 
 export function parseAmountAndToken(amountString: string): { amount?: string; token?: string } {
     // remove all whitespace
@@ -40,6 +41,10 @@ export function parseAmountAndToken(amountString: string): { amount?: string; to
         amount: amount || undefined,
         token: token.toLowerCase() === 'matic' ? 'pol' : token.toLowerCase(),
     }
+}
+
+function mustBeInteger(tokenAddress: string): boolean {
+    return areEvmAddressesEqual(tokenAddress, PINTA_WALLET_TOKEN)
 }
 
 export enum EParseUrlError {
@@ -145,6 +150,15 @@ export async function parsePaymentURL(
             // Update chain details for non-USERNAME recipients if needed
             if (!chainDetails && !isPeanutRecipient && tokenAndChainData.chain) {
                 chainDetails = tokenAndChainData.chain as interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
+            }
+
+            //validate reward amount
+            if (
+                parsedAmount?.amount &&
+                mustBeInteger(tokenDetails.address) &&
+                !Number.isInteger(Number(parsedAmount.amount))
+            ) {
+                return { parsedUrl: null, error: { message: EParseUrlError.INVALID_AMOUNT, recipient } }
             }
         } else if (isPeanutRecipient) {
             tokenDetails = chainDetails?.tokens.find(
