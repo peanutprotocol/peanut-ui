@@ -1,7 +1,15 @@
 'use client'
 
 import { PeanutArmHoldingBeer } from '@/assets'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, peanutPublicClient } from '@/constants'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    PEANUT_WALLET_TOKEN_DECIMALS,
+    peanutPublicClient,
+    PINTA_WALLET_TOKEN,
+    PINTA_WALLET_TOKEN_DECIMALS,
+    pintaPublicClient,
+} from '@/constants'
 import { useAuth } from '@/context/authContext'
 import {
     AccountType,
@@ -14,11 +22,11 @@ import {
 } from '@/interfaces'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { areEvmAddressesEqual, backgroundColorFromAddress, fetchWalletBalances } from '@/utils'
+import { areEvmAddressesEqual, backgroundColorFromAddress, fetchWalletBalances, formatAmount } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo } from 'react'
-import { erc20Abi, getAddress, parseUnits } from 'viem'
+import { erc20Abi, formatUnits, getAddress, parseUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { useZeroDev } from '../useZeroDev'
 
@@ -313,6 +321,29 @@ export const useWallet = () => {
         }
     }, [wagmiAddress])
 
+    const getRewardWalletBalance = async () => {
+        const address = wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.REWARDS)?.address
+
+        if (!address) return
+
+        const balance = await pintaPublicClient.readContract({
+            address: PINTA_WALLET_TOKEN,
+            abi: erc20Abi,
+            functionName: 'balanceOf',
+            args: [getAddress(address)],
+        })
+
+        return formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
+    }
+
+    useEffect(() => {
+        const fetchRewardsWalletBalance = async () => {
+            const balance = await getRewardWalletBalance()
+            dispatch(walletActions.setRewardWalletBalance(balance))
+        }
+        fetchRewardsWalletBalance()
+    }, [])
+
     return {
         wallets,
         selectedWallet,
@@ -336,5 +367,6 @@ export const useWallet = () => {
         isWalletConnected,
         isFetchingWallets: isFetchingWallets || isWalletsQueryLoading,
         byTypeAndConnectionStatus,
+        getRewardWalletBalance,
     }
 }

@@ -4,6 +4,7 @@ import { Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IWallet, WalletProviderType } from '@/interfaces'
+import { useWalletStore } from '@/redux/hooks'
 import { formatExtendedNumber, printableUsdc, shortenAddressLong } from '@/utils'
 import { identicon } from '@dicebear/collection'
 import { createAvatar } from '@dicebear/core'
@@ -253,11 +254,11 @@ function WalletBalance({
     isConnected: boolean
     onToggleBalanceVisibility: (e: React.MouseEvent<HTMLButtonElement>) => void
 }) {
+    const { rewardWalletBalance } = useWalletStore()
     let balanceDisplay = null
 
     if (isRewardsWallet) {
-        // TODO: Replace with actual value from backend
-        balanceDisplay = '5 Beers'
+        balanceDisplay = `${rewardWalletBalance} ${Number(rewardWalletBalance) === 0 ? 'Beers' : Number(rewardWalletBalance) > 1 ? 'Beers' : 'Beer'}`
     } else if (isBalanceHidden) {
         balanceDisplay = (
             <span className="inline-flex items-center">

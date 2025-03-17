@@ -7,7 +7,7 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { IDBWallet, IWallet, WalletProviderType } from '@/interfaces'
-import { useAppDispatch } from '@/redux/hooks'
+import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { printableUsdc, shortenAddressLong } from '@/utils'
 import { truncateString } from '@/utils/format.utils'
@@ -277,6 +277,7 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({
     hasConnectedExternalWallets,
 }) => {
     const { username } = useAuth()
+    const { rewardWalletBalance } = useWalletStore()
     const { isWalletConnected } = useWallet()
     const [showConfirmationModal, setShowConfirmationModal] = useState(false)
     const { connectWallet } = useWalletConnection()
@@ -380,8 +381,14 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({
                             {!isRewardsWallet ? (
                                 <p className="text-base font-bold">${printableUsdc(wallet.balance)}</p>
                             ) : (
-                                // todo: render actual rewards wallet balance
-                                <p className="text-base font-bold">5 Beers</p>
+                                <p className="text-base font-bold">
+                                    {rewardWalletBalance}
+                                    {Number(rewardWalletBalance) === 0
+                                        ? 'Beers'
+                                        : Number(rewardWalletBalance) > 1
+                                          ? 'Beers'
+                                          : 'Beer'}
+                                </p>
                             )}
                         </div>
                     </div>
