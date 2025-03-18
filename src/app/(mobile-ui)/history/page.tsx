@@ -21,14 +21,12 @@ import {
 import * as Sentry from '@sentry/nextjs'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { isAddress } from 'viem'
 
 const ITEMS_PER_PAGE = 10
 
 const HistoryPage = () => {
-    const pathname = usePathname()
     const { address } = useWallet()
     const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
     const [dashboardData, setDashboardData] = useState<IDashboardItem[]>([])
