@@ -85,7 +85,6 @@ jest.mock('@/app/actions/squid', () => ({
 }))
 
 jest.mock('@/constants', () => ({
-    JUSTANAME_ENS: process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || '',
     PEANUT_WALLET_CHAIN: {
         id: '42161',
         name: 'Arbitrum',
