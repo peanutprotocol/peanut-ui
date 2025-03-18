@@ -1,6 +1,7 @@
 import peanutPointing from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_06/PNGS_konradurban_06_11.png'
 import { Button } from '@/components/0_Bruddle'
 import Modal from '@/components/Global/Modal'
+import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useEffect, useState } from 'react'
 
@@ -54,6 +55,7 @@ const InstallPWA = () => {
     const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('desktop')
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
+    const [isDesktop, setIsDesktop] = useState(false)
 
     useEffect(() => {
         // Store the install prompt
@@ -75,17 +77,23 @@ const InstallPWA = () => {
         })
 
         // Detect device type
-        const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        const isIOSDevice = /iPad|iPhone|iPod|Mac|Macintosh/.test(navigator.userAgent)
         const isMobileDevice = /Android|webOS|iPad|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
             navigator.userAgent
         )
 
-        if (isIOSDevice) {
-            setDeviceType('ios')
-        } else if (isMobileDevice) {
-            setDeviceType('android')
+        // Check if user is on desktop
+        setIsDesktop(!isMobileDevice)
+
+        // For desktop, default to iOS if on Mac, otherwise Android
+        if (!isMobileDevice) {
+            setDeviceType(isIOSDevice ? 'ios' : 'android')
         } else {
-            setDeviceType('desktop')
+            if (isIOSDevice) {
+                setDeviceType('ios')
+            } else {
+                setDeviceType('android')
+            }
         }
     }, [])
 
@@ -105,10 +113,10 @@ const InstallPWA = () => {
 
     const IOSInstructions = () => (
         <div className="space-y-4">
-            <StepTitle text="Add Peanut wallet in to your home screen" />
+            <StepTitle text="Install Peanut" />
             <p>
-                To add Peanut wallet to your Home screen, tap the (<ShareIcon />) icons and then {`"Add home Screen"`}{' '}
-                in your Safari browser.
+                To add Peanut to your Home screen, tap the (<ShareIcon />) icons and then {`"Add to home screen"`} in
+                your Safari browser.
             </p>
         </div>
     )
@@ -117,12 +125,12 @@ const InstallPWA = () => {
         <div className="flex flex-col gap-4">
             {canInstall ? (
                 <Button onClick={handleInstall} className="w-full">
-                    Install Peanut Wallet
+                    Install Peanut
                 </Button>
             ) : (
                 <>
                     <div className="space-y-4">
-                        <StepTitle text="Add Peanut wallet in to your home screen" />
+                        <StepTitle text="Install Peanut" />
                         <p className="mt-2">1. Tap the three dots menu at the top of your screen.</p>
                         <p>2. Tap 'Add to Home Screen' or 'Install app' from the menu options.</p>
                     </div>
@@ -133,22 +141,29 @@ const InstallPWA = () => {
 
     const DesktopInstructions = () => (
         <div>
-            {canInstall ? (
-                <Button onClick={handleInstall} className="w-full">
-                    <InstallPWADesktopIcon />
-                    Install Peanut Wallet
-                </Button>
-            ) : (
-                <>
-                    <div className="space-y-4">
-                        <StepTitle text="Install on Desktop" />
-                        <p>
-                            Look for the install icon (<InstallPWADesktopIcon />) in your browser's address bar and
-                            click it.
-                        </p>
+            {/* Note: We ignore desktop install for now, preferring users to install on their phones */}
+            <div className="space-y-4">
+                <StepTitle text="Install on your Phone" />
+                <p className="mb-4">
+                    For the best experience, we recommend installing Peanut on your phone. Scan this QR code with your
+                    phone's camera:
+                </p>
+                <div className="mx-auto mb-4">
+                    <QRCodeWrapper url={window.location.origin} />
+                </div>
+                <p className="text-sm text-gray-600">
+                    After scanning, follow the installation instructions for {deviceType === 'ios' ? 'iOS' : 'Android'}.
+                </p>
+                {canInstall && (
+                    <div className="mt-4 border-t pt-4">
+                        <p className="mb-2 text-sm text-gray-600">Alternatively, you can install on desktop:</p>
+                        <Button onClick={handleInstall} className="w-full">
+                            <InstallPWADesktopIcon />
+                            Install Peanut
+                        </Button>
                     </div>
-                </>
-            )}
+                )}
+            </div>
         </div>
     )
 
