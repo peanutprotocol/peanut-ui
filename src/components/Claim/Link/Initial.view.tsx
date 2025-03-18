@@ -41,6 +41,7 @@ import { useCallback, useContext, useEffect, useState, useMemo } from 'react'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
 import { WalletProviderType } from '@/interfaces'
+import { parseUnits } from 'viem'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -370,9 +371,7 @@ export const InitialClaimLinkView = ({
                 return undefined
             }
 
-            const tokenAmount = Math.floor(
-                Number(claimLinkData.tokenAmount) * Math.pow(10, claimLinkData.tokenDecimals)
-            ).toString()
+            const tokenAmount: BigInt = parseUnits(claimLinkData.tokenAmount, claimLinkData.tokenDecimals)
 
             const fromToken =
                 claimLinkData.tokenAddress === '0x0000000000000000000000000000000000000000'
@@ -383,7 +382,7 @@ export const InitialClaimLinkView = ({
                 squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
                 fromChain: claimLinkData.chainId.toString(),
                 fromToken: fromToken,
-                fromAmount: tokenAmount,
+                fromAmount: tokenAmount.toString(),
                 toChain: toChain ? toChain : selectedChainID.toString(),
                 toToken: toToken ? toToken : selectedTokenAddress,
                 slippage: 1,

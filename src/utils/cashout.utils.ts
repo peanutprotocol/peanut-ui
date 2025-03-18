@@ -4,6 +4,7 @@ import { fetchWithSentry, areEvmAddressesEqual } from '@/utils'
 import { generateKeysFromString, getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import countries from 'i18n-iso-countries'
 import * as Sentry from '@sentry/nextjs'
+import { parseUnits } from 'viem'
 
 const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
 
@@ -702,13 +703,13 @@ export const fetchRouteRaw = async (
     fromAddress?: string
 ) => {
     try {
-        const _tokenAmount = BigInt(Math.floor(Number(tokenAmount) * Math.pow(10, tokenDecimals))).toString()
+        const fromAmount = parseUnits(tokenAmount, tokenDecimals).toString()
 
         const route = await getSquidRouteRaw({
             squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
             fromChain: fromChain,
             fromToken: fromToken.toLowerCase(),
-            fromAmount: _tokenAmount,
+            fromAmount,
             // TODO: move placeholder address to consts file
             fromAddress: fromAddress ?? '0x9647BB6a598c2675310c512e0566B60a5aEE6261', // placeholder address just to get a route sample
             toAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C', // placeholder address just to get a route sample

@@ -4,6 +4,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { printableUsdc } from '@/utils'
 import Image from 'next/image'
 import { useMemo } from 'react'
+import { parseUnits } from 'viem'
 
 const ProfileWalletBalance = () => {
     const { selectedWallet } = useWallet()
@@ -46,7 +47,7 @@ const ProfileWalletBalance = () => {
                     </div>
                     <div>
                         <div className="text-right text-sm font-bold text-black">
-                            ${printableUsdc(BigInt(Math.floor(Number(getMaxBalanceToken?.value || 0) * 10 ** 6)))}
+                            ${printableUsdc(parseUnits(getMaxBalanceToken?.value || '0', 6))}
                         </div>
                         {getMaxBalanceToken?.symbol && getMaxBalanceToken?.name && (
                             <div className="text-xs text-grey-1">
