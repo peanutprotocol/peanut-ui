@@ -40,6 +40,7 @@ import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState, useMemo } from 'react'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
+import { WalletProviderType } from '@/interfaces'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -87,8 +88,16 @@ export const InitialClaimLinkView = ({
         supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
     const { claimLink } = useClaimLink()
-    const { isConnected, address, signInModal, isExternalWallet, isPeanutWallet, selectedWallet, refetchBalances } =
-        useWallet()
+    const {
+        isConnected,
+        address,
+        signInModal,
+        isExternalWallet,
+        isPeanutWallet,
+        selectedWallet,
+        refetchBalances,
+        selectPeanutWallet,
+    } = useWallet()
     const { user } = useAuth()
 
     const resetSelectedToken = useCallback(() => {
@@ -409,15 +418,18 @@ export const InitialClaimLinkView = ({
 
     useEffect(() => {
         // set rewards wallet if user is connected and claim link is for Pinta
-        if (user && isReward) {
+        if (!user) return
+        if (isReward) {
             dispatch(walletActions.setSelectedWalletId('pinta-wallet'))
 
             if (address) {
                 setRecipient({ name: undefined, address })
                 setIsValidRecipient(true)
             }
+        } else if (selectedWallet?.walletProviderType === WalletProviderType.REWARDS) {
+            selectPeanutWallet()
         }
-    }, [isReward, user, address])
+    }, [isReward, user, address, selectedWallet?.walletProviderType, selectPeanutWallet])
 
     useEffect(() => {
         if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
