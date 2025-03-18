@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
     formData.forEach((value, key) => {
         apiFormData.append(key, value)
     })
-
     const response = await fetchWithSentry(fullAPIUrl, {
         method: 'POST',
         headers: {
