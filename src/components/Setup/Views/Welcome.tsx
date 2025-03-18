@@ -22,7 +22,7 @@ const WelcomeStep = () => {
 
     return (
         <Card className="border-0">
-            <Card.Content className="space-y-4 p-0">
+            <Card.Content className="space-y-4 p-0 pt-4">
                 <Button shadowSize="4" onClick={() => handleNext()}>
                     Sign up
                 </Button>

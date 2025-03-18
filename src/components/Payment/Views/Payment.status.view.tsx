@@ -6,8 +6,10 @@ import { CrispButton } from '@/components/CrispChat'
 import AddressLink from '@/components/Global/AddressLink'
 import Icon from '@/components/Global/Icon'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import Timeline from '@/components/Global/Timeline'
 import { useAuth } from '@/context/authContext'
+import { useTranslationViewTransition } from '@/hooks/useTranslationViewTransition'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
@@ -24,6 +26,7 @@ export default function PaymentStatusView() {
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
     const chargeId = searchParams.get('chargeId')
+    const isTransitioning = useTranslationViewTransition()
 
     // get statusDetails based on requestId or chargeId
     const statusDetails = useMemo(() => {
@@ -241,6 +244,10 @@ export default function PaymentStatusView() {
         }
 
         return null
+    }
+
+    if (isTransitioning) {
+        return <PeanutLoading />
     }
 
     if (!statusDetails) return null
