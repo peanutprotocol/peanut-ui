@@ -31,6 +31,18 @@ export default function manifest(): MetadataRoute.Manifest {
                 type: 'image/png',
                 purpose: 'maskable',
             },
+            {
+                src: '/icons/apple-touch-icon.png',
+                sizes: '180x180',
+                type: 'image/png',
+                purpose: 'maskable',
+            },
+            {
+                src: '/icons/apple-touch-icon-152x152.png',
+                sizes: '152x152',
+                type: 'image/png',
+                purpose: 'maskable',
+            },
         ],
         protocol_handlers: [
             {
@@ -42,6 +54,10 @@ export default function manifest(): MetadataRoute.Manifest {
             {
                 platform: 'webapp',
                 url: 'https://peanut.me/manifest.json',
+            },
+            {
+                platform: 'ios',
+                url: 'https://peanut.me',
             },
         ],
         scope: '/',
