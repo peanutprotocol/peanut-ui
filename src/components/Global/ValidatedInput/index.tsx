@@ -47,6 +47,49 @@ const ValidatedInput = ({
     const previousValueRef = useRef(value)
     const currentValueRef = useRef(value)
     const listId = useRef(`datalist-${Math.random().toString(36).substr(2, 9)}`)
+    const inputRef = useRef<HTMLInputElement>(null)
+
+    useEffect(() => {
+        if (!inputRef.current) return
+
+        // disable translation for the input element
+        inputRef.current.setAttribute('translate', 'no')
+        inputRef.current.classList.add('notranslate')
+
+        // create a MutationObserver to monitor changes in the input element
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                // handle added nodes to remove unwanted elements (e.g., google translate overlays)
+                if (mutation.type === 'childList') {
+                    Array.from(mutation.addedNodes).forEach((node) => {
+                        if (
+                            node.nodeType === 1 &&
+                            ((node as Element).classList?.contains('google-translate-skip') ||
+                                (node as Element).getAttribute('translate') === 'yes')
+                        ) {
+                            ;(node as Element).remove()
+                        }
+                    })
+                }
+
+                // ensure the input value matches current value ref
+                if (inputRef.current && inputRef.current.value !== currentValueRef.current) {
+                    inputRef.current.value = currentValueRef.current
+                }
+            })
+        })
+
+        // observe input for changes
+        observer.observe(inputRef.current, {
+            childList: true, // monitor child node additions/removals
+            subtree: true, // monitor changes in all descendant nodes
+            characterData: true, // monitor changes to text content
+            attributes: true, // monitor changes to attributes
+        })
+
+        // cleanup observer when the component unmounts
+        return () => observer.disconnect()
+    }, [])
 
     useEffect(() => {
         if (debouncedValue === '') {
@@ -111,23 +154,25 @@ const ValidatedInput = ({
             className={`relative w-full border border-n-1 focus:border-purple-1 dark:border-white ${
                 value && !isValidating && !isValid && debouncedValue === value ? ' border-red dark:border-red' : ''
             } ${className}`}
+            translate="no"
         >
             <div className="absolute left-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-1">
                 {infoText && (
-                    <div className="flex h-6 w-6 items-center justify-center bg-white">
+                    <div className="notranslate flex h-6 w-6 items-center justify-center bg-white">
                         <MoreInfo text={infoText} html={true} />
                     </div>
                 )}
             </div>
 
-            <div className="flex w-full items-center">
+            <div className="notranslate flex w-full items-center" translate="no">
                 <BaseInput
+                    ref={inputRef}
                     type="text"
                     value={formatDisplayValue ? formatDisplayValue(value) : value}
                     onChange={handleChange}
                     className={twMerge(
-                        `h-12 w-full border-0 bg-white pr-1 text-h8 
-                        font-medium outline-none focus:outline-none
+                        `notranslate h-12 w-full border-0 bg-white pr-1 
+                        text-h8 font-medium outline-none focus:outline-none
                         active:bg-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75`,
                         !!infoText ? 'pl-0' : 'pl-4'
                     )}
@@ -138,6 +183,7 @@ const ValidatedInput = ({
                     autoCapitalize="off"
                     name={name}
                     list={suggestions ? listId.current : undefined}
+                    translate="no"
                     style={{
                         WebkitTapHighlightColor: 'transparent',
                         WebkitTextFillColor: 'inherit',
