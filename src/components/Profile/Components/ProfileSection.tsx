@@ -20,7 +20,8 @@ const ProfileSection = ({}: ProfileSectionProps) => {
         <div className="space-y-4 py-2">
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="rounded-full border border-black pt-1">
+                    {/* <div className="h-12 w-12 rounded-full border border-black pb-3 pt-1"> */}
+                    <div className="flex size-12 items-center justify-center rounded-full border border-black bg-white pb-0.5 pt-1">
                         <Image
                             src={PEANUTMAN_PFP}
                             alt="profile image"
