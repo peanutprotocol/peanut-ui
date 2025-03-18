@@ -4,6 +4,7 @@ import { supportedPeanutChains } from '@/constants'
 import { IDashboardItem } from '@/interfaces'
 import { copyTextToClipboardWithFallback, getExplorerUrl } from '@/utils'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import CopyToClipboard from '../CopyToClipboard'
@@ -141,6 +142,17 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                                 className="h-5 w-5"
                             />
                         </div>
+                    )}
+                    {(transactionDetails?.type === 'Link Received' ||
+                        transactionDetails?.type === 'Link Sent' ||
+                        transactionDetails?.type === 'Request Link') && (
+                        <Link
+                            className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            href={transactionDetails.link!}
+                        >
+                            <label className="block">See status</label>
+                            <Icon name="arrow-up-right" className="h-5 w-5" />
+                        </Link>
                     )}
                     {transactionDetails?.txHash && (
                         <div
