@@ -14,12 +14,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { IWallet, WalletProviderType } from '@/interfaces'
 import { useWalletStore } from '@/redux/hooks'
-import {
-    formatAmount,
-    getChainName,
-    getUserPreferences,
-    updateUserPreferences,
-} from '@/utils'
+import { formatAmount, getChainName, getUserPreferences, updateUserPreferences } from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
 import { useState } from 'react'
 import { formatUnits } from 'viem'
