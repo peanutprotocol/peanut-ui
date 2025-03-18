@@ -206,6 +206,12 @@ const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: Wallet
         }
     }, [sortedWallets, isWalletConnected, dispatch, selectedWallet])
 
+    // Add primary name resolution
+    const { primaryName } = usePrimaryName({
+        address: selectedWallet?.address,
+        priority: 'onChain',
+    })
+
     return (
         <div className={className}>
             {/* wallet selector button with current wallet info */}
@@ -223,8 +229,11 @@ const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: Wallet
                 {isConnected ? (
                     <span>
                         {selectedWallet?.walletProviderType === WalletProviderType.PEANUT
-                            ? 'Peanut'
-                            : selectedWallet?.connector?.name || shortenAddressLong(selectedWallet?.address)}
+                            ? 'Peanut Wallet'
+                            : selectedWallet?.walletProviderType === WalletProviderType.REWARDS
+                              ? 'Beer Wallet'
+                              : (primaryName && truncateString(primaryName, 24)) ||
+                                shortenAddressLong(selectedWallet?.address)}
                     </span>
                 ) : (
                     'Connect Wallet'

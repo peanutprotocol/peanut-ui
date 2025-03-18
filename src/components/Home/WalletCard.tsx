@@ -156,7 +156,7 @@ function ExistingWalletCard({
                         <WalletAvatar
                             image={walletImage}
                             isRewardsWallet={isRewardsWallet}
-                            isPenautWallet={isPeanutWallet}
+                            isPeanutWallet={isPeanutWallet}
                             imgClassName={isPeanutWallet ? 'p-0 pt-1 h-8 w-8 rounded-full' : ''}
                         />
                         <WalletBadges
@@ -202,20 +202,20 @@ function ExistingWalletCard({
 function WalletAvatar({
     image,
     isRewardsWallet,
-    isPenautWallet,
+    isPeanutWallet,
     imgClassName,
 }: {
     image: string
     isRewardsWallet: boolean
-    isPenautWallet: boolean
+    isPeanutWallet: boolean
     imgClassName?: HTMLImageElement['className']
 }) {
     return (
         <div
             className={twMerge(
                 isRewardsWallet ? 'p-1' : 'p-2',
-                isPenautWallet && 'p-0',
-                'relative z-10 flex size-8 items-center justify-center rounded-full bg-white'
+                isPeanutWallet && 'border border-black p-0 pb-0.5',
+                'flex size-8 items-center justify-center rounded-full bg-white'
             )}
         >
             <Image

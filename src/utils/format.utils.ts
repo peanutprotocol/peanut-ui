@@ -31,6 +31,7 @@ export const formatBankAccountDisplay = (value: string | undefined, type?: 'iban
 
 export const truncateString = (str: string, maxLength: number = 14): string => {
     if (str.length <= 14) return str
+    if (str.length <= maxLength) return str
 
     return str.slice(0, maxLength - 3) + '...'
 }
