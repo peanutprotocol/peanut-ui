@@ -140,16 +140,11 @@ export default function PaymentStatusView() {
     const recipientLink = useMemo(() => {
         if (!requestDetails) return null
 
-        if (requestDetails.recipientAccount.user) {
-            const username = requestDetails.recipientAccount.user.username
-            return (
-                <Link className="cursor-pointer underline" href={`/${username}`}>
-                    {username}
-                </Link>
-            )
-        }
+        const identifier = requestDetails.recipientAccount.user
+            ? requestDetails.recipientAccount.user.username
+            : (resolvedAddress ?? requestDetails.recipientAddress)
 
-        return <AddressLink address={resolvedAddress ?? requestDetails.recipientAddress} />
+        return <AddressLink address={identifier} />
     }, [requestDetails, resolvedAddress])
 
     const payerLink = useMemo(() => {
