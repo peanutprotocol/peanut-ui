@@ -1,5 +1,4 @@
-import { BG_WALLET_CARD_SVG, PeanutArmHoldingBeer } from '@/assets'
-import PeanutWalletIcon from '@/assets/icons/small-peanut.png'
+import { BG_WALLET_CARD_SVG, PeanutArmHoldingBeer, PEANUTMAN_PFP } from '@/assets'
 import { Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -89,6 +88,7 @@ function ExistingWalletCard({
 
     const isExternalWallet = wallet.walletProviderType !== WalletProviderType.PEANUT
     const isRewardsWallet = wallet.walletProviderType === WalletProviderType.REWARDS
+    const isPeanutWallet = wallet.walletProviderType === WalletProviderType.PEANUT
     const isConnected = isWalletConnected(wallet)
 
     const backgroundColor = useMemo(() => {
@@ -99,7 +99,7 @@ function ExistingWalletCard({
 
     const walletImage = useMemo(() => {
         if (wallet.walletProviderType === WalletProviderType.PEANUT) {
-            return PeanutWalletIcon
+            return PEANUTMAN_PFP
         }
 
         if (isRewardsWallet) {
@@ -153,7 +153,12 @@ function ExistingWalletCard({
                 <Card.Content className="z-10 flex h-full flex-col justify-normal gap-3 px-6 py-4">
                     {/* Header section */}
                     <div className="flex items-center justify-between">
-                        <WalletAvatar image={walletImage} isRewardsWallet={isRewardsWallet} />
+                        <WalletAvatar
+                            image={walletImage}
+                            isRewardsWallet={isRewardsWallet}
+                            isPenautWallet={isPeanutWallet}
+                            imgClassName={isPeanutWallet ? 'p-0 pt-1 h-8 w-8 rounded-full' : ''}
+                        />
                         <WalletBadges
                             isExternalWallet={isExternalWallet}
                             isRewardsWallet={isRewardsWallet}
@@ -194,15 +199,32 @@ function ExistingWalletCard({
     )
 }
 
-function WalletAvatar({ image, isRewardsWallet }: { image: string; isRewardsWallet: boolean }) {
+function WalletAvatar({
+    image,
+    isRewardsWallet,
+    isPenautWallet,
+    imgClassName,
+}: {
+    image: string
+    isRewardsWallet: boolean
+    isPenautWallet: boolean
+    imgClassName?: HTMLImageElement['className']
+}) {
     return (
         <div
             className={twMerge(
                 isRewardsWallet ? 'p-1' : 'p-2',
-                'flex size-8 items-center justify-center rounded-full bg-white'
+                isPenautWallet && 'p-0',
+                'relative z-10 flex size-8 items-center justify-center rounded-full bg-white'
             )}
         >
-            <Image src={image} alt="Wallet avatar" className="size-6 object-contain" width={24} height={24} />
+            <Image
+                src={image}
+                alt="Wallet avatar"
+                className={twMerge('size-6 object-contain', imgClassName)}
+                width={24}
+                height={24}
+            />
         </div>
     )
 }

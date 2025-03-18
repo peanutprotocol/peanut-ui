@@ -1,4 +1,4 @@
-import { PeanutGuy } from '@/assets'
+import { PEANUTMAN_PFP } from '@/assets'
 import { Badge } from '@/components/0_Bruddle/Badge'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { useAuth } from '@/context/authContext'
@@ -20,11 +20,13 @@ const ProfileSection = ({}: ProfileSectionProps) => {
         <div className="space-y-4 py-2">
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <Image
-                        src={PeanutGuy}
-                        alt="profile image"
-                        className="size-11 rounded-full border border-black object-contain"
-                    />
+                    <div className="rounded-full border border-black pt-1">
+                        <Image
+                            src={PEANUTMAN_PFP}
+                            alt="profile image"
+                            className="size-11 rounded-full object-contain"
+                        />
+                    </div>
                     <div className="text-md space-y-1 font-semibold">
                         <div className="text-grey-1">peanut.me/</div>
                         <div className="flex items-center gap-3">
