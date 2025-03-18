@@ -314,3 +314,16 @@ Firefox input[type='number'] {
     font-stretch: 50;
     font-weight: 400;
 }
+
+/* elements that shouldn't be translated */
+.notranslate {
+    -webkit-user-modify: read-only !important;
+    -moz-user-modify: read-only !important;
+    -ms-user-modify: read-only !important;
+    user-modify: read-only !important;
+}
+
+/* Prevent translation of input placeholders */
+input::placeholder {
+    translate: no;
+}
