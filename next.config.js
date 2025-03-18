@@ -93,7 +93,7 @@ let nextConfig = {
             },
             {
                 source: '/pints',
-                destination: 'https://lu.ma/dsc6xmpj',
+                destination: 'https://lu.ma/ruimu656',
                 permanent: false,
             },
         ]
