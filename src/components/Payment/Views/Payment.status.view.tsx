@@ -137,9 +137,53 @@ export default function PaymentStatusView() {
         }
     }, [requestId, chargeId, latestPayment?.status, dispatch])
 
+    const recipientLink = useMemo(() => {
+        if (!requestDetails) return null
+
+        if (requestDetails.recipientAccount.user) {
+            const username = requestDetails.recipientAccount.user.username
+            return (
+                <Link className="cursor-pointer underline" href={`/${username}`}>
+                    {username}
+                </Link>
+            )
+        }
+
+        return <AddressLink address={resolvedAddress ?? requestDetails.recipientAddress} />
+    }, [requestDetails, resolvedAddress])
+
+    const payerLink = useMemo(() => {
+        if (!latestPayment?.payerAddress) return null
+
+        if (latestPayment.payerAccount?.user) {
+            const username = latestPayment.payerAccount.user.username
+            return (
+                <Link className="cursor-pointer underline" href={`/${username}`}>
+                    {username}
+                </Link>
+            )
+        }
+
+        return <AddressLink address={latestPayment.payerAddress} />
+    }, [latestPayment])
+
     const renderTransactionDetails = () => {
         return (
             <>
+                {payerLink && recipientLink && (
+                    <>
+                        <div className="flex w-full flex-row items-center justify-between gap-1">
+                            <label className="text-h9">From:</label>
+                            {payerLink}
+                        </div>
+
+                        <div className="flex w-full flex-row items-center justify-between gap-1">
+                            <label className="text-h9">To:</label>
+                            {recipientLink}
+                        </div>
+                    </>
+                )}
+
                 <div className="flex w-full flex-row items-center justify-between gap-1">
                     <label className="text-h9">Transaction Hash:</label>
                     {(transactionHash || latestPayment?.payerTransactionHash) && sourceUrlWithTx ? (
@@ -172,21 +216,6 @@ export default function PaymentStatusView() {
             </>
         )
     }
-
-    const recipientLink = useMemo(() => {
-        if (!requestDetails) return null
-
-        if (requestDetails.recipientAccount.user) {
-            const username = requestDetails.recipientAccount.user.username
-            return (
-                <Link className="cursor-pointer underline" href={`/${username}`}>
-                    {username}
-                </Link>
-            )
-        }
-
-        return <AddressLink address={resolvedAddress ?? requestDetails.recipientAddress} />
-    }, [requestDetails, resolvedAddress])
 
     const renderHeader = () => {
         // Case1: Just made payment, waiting for confirmation
