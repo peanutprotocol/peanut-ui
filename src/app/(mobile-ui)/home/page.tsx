@@ -2,6 +2,7 @@
 
 import { PEANUT_LOGO_BLACK } from '@/assets'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
+import DirectSendQr from '@/components/Global/DirectSendQR'
 import LogoutButton from '@/components/Global/LogoutButton'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
@@ -11,7 +12,7 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { WalletProviderType } from '@/interfaces'
-import { useAppDispatch } from '@/redux/hooks'
+import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
@@ -38,6 +39,7 @@ export default function Home() {
     const { username } = useAuth()
 
     const { selectedWallet, wallets, isWalletConnected, isFetchingWallets } = useWallet()
+    const { focusedWallet: focusedWalletId } = useWalletStore()
 
     // initialize focusedIndex to match selectedWalletIndex
     const rawIndex = wallets.findIndex((wallet) => wallet.id === selectedWallet?.id)
@@ -210,16 +212,20 @@ export default function Home() {
                     </div>
 
                     <div className="px-6 md:pb-6">
-                        <DirectionalActionButtons
-                            leftButton={{
-                                title: 'Send',
-                                href: '/send',
-                            }}
-                            rightButton={{
-                                title: 'Receive',
-                                href: '/request/create',
-                            }}
-                        />
+                        { focusedWalletId && wallets.find(w => w.id === focusedWalletId)?.walletProviderType === WalletProviderType.REWARDS ? (
+                            <DirectSendQr />
+                        ) : (
+                            <DirectionalActionButtons
+                                leftButton={{
+                                    title: 'Send',
+                                    href: '/send',
+                                }}
+                                rightButton={{
+                                    title: 'Receive',
+                                    href: '/request/create',
+                                }}
+                            />
+                        ) }
                     </div>
                 </div>
             </div>
