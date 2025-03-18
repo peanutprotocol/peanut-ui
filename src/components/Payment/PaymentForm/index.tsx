@@ -44,7 +44,15 @@ import { PaymentInfoRow } from '../PaymentInfoRow'
 export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: ParsedURL & { isPintaReq?: boolean }) => {
     const dispatch = useAppDispatch()
     const { requestDetails, error, chargeDetails, beerQuantity } = usePaymentStore()
-    const { signInModal, isPeanutWallet, selectedWallet, isExternalWallet, isWalletConnected, wallets } = useWallet()
+    const {
+        signInModal,
+        isPeanutWallet,
+        selectedWallet,
+        isExternalWallet,
+        isWalletConnected,
+        wallets,
+        selectPeanutWallet,
+    } = useWallet()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
@@ -490,14 +498,17 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
 
     // handle auto-selection of rewards wallet if token is PNT
     useEffect(() => {
-        if (token?.symbol === 'PNT' && wallets) {
-            const rewardsWallet = wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.REWARDS)
+        if (!wallets?.length) return
 
+        if (token?.symbol === 'PNT') {
+            const rewardsWallet = wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.REWARDS)
             if (rewardsWallet) {
                 dispatch(walletActions.setSelectedWalletId(rewardsWallet.id))
             }
+        } else if (selectedWallet?.walletProviderType === WalletProviderType.REWARDS) {
+            selectPeanutWallet()
         }
-    }, [token?.symbol, wallets, dispatch])
+    }, [token?.symbol, wallets, selectedWallet?.walletProviderType, selectPeanutWallet])
 
     if (isPintaReq) {
         return (

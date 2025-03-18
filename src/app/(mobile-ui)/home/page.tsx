@@ -19,7 +19,7 @@ import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 
 const cardWidth = 300
 const cardMargin = 16
@@ -41,23 +41,19 @@ export default function Home() {
     const { selectedWallet, wallets, isWalletConnected, isFetchingWallets } = useWallet()
     const { focusedWallet: focusedWalletId } = useWalletStore()
 
-    // initialize focusedIndex to match selectedWalletIndex
-    const rawIndex = wallets.findIndex((wallet) => wallet.id === selectedWallet?.id)
-    const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
-    const [focusedIndex, setFocusedIndex] = useState(selectedWalletIndex)
+    const [focusedIndex, setFocusedIndex] = useState(0)
 
     // update focusedIndex and focused wallet when selectedWallet changes
     useEffect(() => {
         const index = wallets.findIndex((wallet) => wallet.id === selectedWallet?.id)
         if (index !== -1) {
             setFocusedIndex(index)
-            // also update the focused wallet when selected wallet changes
             dispatch(walletActions.setFocusedWallet(wallets[index]))
         }
-    }, [selectedWallet, wallets, dispatch])
+    }, [selectedWallet, wallets])
 
-    const hasWallets = wallets.length > 0
-    const totalCards = hasWallets ? wallets.length + 1 : 1
+    const hasWallets = useMemo(() => wallets.length > 0, [wallets])
+    const totalCards = useMemo(() => (hasWallets ? wallets.length + 1 : 1), [hasWallets, wallets])
 
     const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation()
@@ -69,11 +65,12 @@ export default function Home() {
     }
 
     useEffect(() => {
+        if (!hasWallets || isFetchingWallets) return
         controls.start({
-            x: -(selectedWalletIndex * (cardWidth + cardMargin)),
+            x: -(focusedIndex * (cardWidth + cardMargin)),
             transition: { type: 'spring', stiffness: 300, damping: 30 },
         })
-    }, [selectedWalletIndex, controls])
+    }, [focusedIndex, controls, hasWallets, isFetchingWallets])
 
     const handleCardClick = (index: number) => {
         if (index < wallets.length) {

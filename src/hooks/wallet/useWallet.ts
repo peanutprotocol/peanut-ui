@@ -321,6 +321,16 @@ export const useWallet = () => {
         }
     }, [wagmiAddress])
 
+    const selectPeanutWallet = useCallback(() => {
+        if (kernelClientAddress) {
+            dispatch(
+                walletActions.setSelectedWalletId(
+                    idForWallet({ address: kernelClientAddress, walletProviderType: WalletProviderType.PEANUT })
+                )
+            )
+        }
+    }, [kernelClientAddress])
+
     const getRewardWalletBalance = async () => {
         const address = wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.REWARDS)?.address
 
@@ -364,6 +374,7 @@ export const useWallet = () => {
         isExternalWallet: isExternalWallet(selectedWallet),
         isSmartAccount: isSmartAccount(selectedWallet),
         selectExternalWallet,
+        selectPeanutWallet,
         isWalletConnected,
         isFetchingWallets: isFetchingWallets || isWalletsQueryLoading,
         byTypeAndConnectionStatus,
