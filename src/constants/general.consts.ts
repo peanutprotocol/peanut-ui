@@ -24,8 +24,6 @@ export const ipfsProviderArray = [
     'https://gw3.io/ipfs/',
 ]
 
-export const JUSTANAME_ENS = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || ''
-
 export const PEANUT_API_URL = (
     process.env.PEANUT_API_URL ||
     process.env.NEXT_PUBLIC_PEANUT_API_URL ||

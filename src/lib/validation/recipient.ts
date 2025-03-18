@@ -1,10 +1,12 @@
 import { isAddress } from 'viem'
 
-import { JUSTANAME_ENS, PEANUT_API_URL } from '@/constants'
+import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry, resolveFromEnsName } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { RecipientValidationError } from '../url-parser/errors'
 import { RecipientType } from '../url-parser/types/payment'
+import { usersApi } from '@/services/users'
+import { AccountType } from '@/interfaces'
 
 export async function validateAndResolveRecipient(
     recipient: string
@@ -39,11 +41,12 @@ export async function validateAndResolveRecipient(
             if (!isValidPeanutUsername) {
                 throw new RecipientValidationError('Invalid Peanut username')
             }
-            const address = await resolveFromEnsName(`${recipient}.${JUSTANAME_ENS}`)
+            const user = await usersApi.getByUsername(recipient)
+            const address = user.accounts.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier
             return {
                 identifier: recipient,
                 recipientType,
-                resolvedAddress: address || '',
+                resolvedAddress: address!,
             }
 
         default:

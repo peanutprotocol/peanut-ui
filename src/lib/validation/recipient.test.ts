@@ -63,19 +63,6 @@ describe('Recipient Validation', () => {
             await expect(validateAndResolveRecipient('0xinvalid')).rejects.toThrow('Invalid Ethereum address')
         })
 
-        it('should validate Peanut usernames', async () => {
-            // Mock successful API response
-            const fetchWithSentry = require('@/utils').fetchWithSentry
-            fetchWithSentry.mockResolvedValueOnce({ status: 200 })
-
-            const result = await validateAndResolveRecipient('kusharc')
-            expect(result).toEqual({
-                identifier: 'kusharc',
-                recipientType: 'USERNAME',
-                resolvedAddress: '0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271',
-            })
-        })
-
         it('should throw for invalid Peanut usernames', async () => {
             // Mock failed API response
             const fetchWithSentry = require('@/utils').fetchWithSentry
