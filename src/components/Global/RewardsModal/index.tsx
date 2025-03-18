@@ -67,7 +67,7 @@ const RewardsModal = () => {
         return {
             title: isPNTReward ? 'Welcome to Peanut!' : `Wait, there's more!`,
             subtitle: isPNTReward ? (
-                "You've received 5 Beers!"
+                "You've received 2 Beers!"
             ) : (
                 <span>
                     Here's <span className="font-bold">$5</span> for you to explore{' '}
