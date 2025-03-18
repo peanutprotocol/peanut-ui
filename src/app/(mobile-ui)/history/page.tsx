@@ -30,13 +30,16 @@ const HistoryPage = () => {
     const { address } = useWallet()
     const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
     const [dashboardData, setDashboardData] = useState<IDashboardItem[]>([])
+    const [isLoadingDashboard, setIsLoadingDashboard] = useState(true)
     const loaderRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         let isStale = false
+        setIsLoadingDashboard(true)
         composeLinkDataArray(address ?? '').then((data) => {
             if (isStale) return
             setDashboardData(data)
+            setIsLoadingDashboard(false)
         })
         return () => {
             isStale = true
@@ -109,7 +112,7 @@ const HistoryPage = () => {
         return () => observer.disconnect()
     }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-    if (isLoading) {
+    if (isLoadingDashboard || isLoading) {
         return <PeanutLoading />
     }
 
@@ -119,7 +122,7 @@ const HistoryPage = () => {
         return <div className="w-full py-4 text-center">Error loading history: {error?.message}</div>
     }
 
-    if (!data?.pages.length) {
+    if (dashboardData.length === 0) {
         return (
             <div className="flex h-[80dvh] items-center justify-center">
                 <NoDataEmptyState
