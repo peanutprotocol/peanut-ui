@@ -345,7 +345,7 @@ export const useCreateLink = () => {
             formData.append('senderAddress', senderAddress)
 
             if (attachmentOptions.attachmentFile) {
-                formData.append('attachmentFile', attachmentOptions.attachmentFile)
+                formData.append('attachment', attachmentOptions.attachmentFile)
             }
 
             const response = await fetchWithSentry('/api/peanut/submit-claim-link/init', {
