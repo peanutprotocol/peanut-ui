@@ -1,3 +1,4 @@
+import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { PeanutProvider } from '@/config'
 import * as context from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
@@ -62,7 +63,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             >
                 <PeanutProvider>
                     <context.ContextProvider>
-                        <FooterVisibilityProvider>{children}</FooterVisibilityProvider>
+                        <FooterVisibilityProvider>
+                            <TranslationSafeWrapper>{children}</TranslationSafeWrapper>
+                        </FooterVisibilityProvider>
                     </context.ContextProvider>
                 </PeanutProvider>
             </body>

@@ -1,5 +1,5 @@
 import { PEANUTMAN_LOGO } from '@/assets'
-import React, { forwardRef } from 'react'
+import React, { forwardRef, useEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 export type ButtonVariant = 'purple' | 'dark' | 'stroke' | 'transparent-light' | 'transparent-dark' | 'green' | 'yellow'
@@ -48,41 +48,36 @@ const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
     },
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-    (
-        {
-            children,
-            className,
-            variant = 'purple',
-            size,
-            shape = 'default',
-            shadowSize,
-            shadowType = 'primary',
-            loading,
-            ...props
-        },
-        ref
-    ) => {
-        const buttonClasses = twMerge(
-            'btn w-full flex items-center gap-2 transform transition-transform active:scale-90 ease-in-out',
-            buttonVariants[variant],
-            size && buttonSizes[size],
-            shape === 'square' && 'btn-square',
-            shadowSize && buttonShadows[shadowType][shadowSize],
-            className
-        )
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ children, className, ...props }, ref) => {
+    const localRef = useRef<HTMLButtonElement>(null)
+    const buttonRef = (ref as React.RefObject<HTMLButtonElement>) || localRef
 
-        return (
-            <button className={buttonClasses} ref={ref} {...props}>
-                {loading && (
-                    <span className="animate-spin">
-                        <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4" />
-                    </span>
-                )}
-                {children}
-            </button>
-        )
-    }
-)
+    useEffect(() => {
+        if (!buttonRef.current) return
+        buttonRef.current.setAttribute('translate', 'no')
+        buttonRef.current.classList.add('notranslate')
+    }, [])
+
+    const buttonClasses = twMerge(
+        'btn w-full flex items-center gap-2 transform transition-transform active:scale-90 ease-in-out notranslate',
+        buttonVariants[props.variant || 'purple'],
+        props.size && buttonSizes[props.size],
+        props.shape === 'square' && 'btn-square',
+        props.shadowSize && buttonShadows[props.shadowType || 'primary'][props.shadowSize],
+        className
+    )
+
+    return (
+        <button className={twMerge(buttonClasses, 'notranslate')} ref={buttonRef} translate="no" {...props}>
+            {props.loading && (
+                <span className="animate-spin">
+                    <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4" />
+                </span>
+            )}
+
+            {children}
+        </button>
+    )
+})
 
 Button.displayName = 'Button'
