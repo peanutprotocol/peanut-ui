@@ -1045,6 +1045,9 @@ export function getRequestLink(
 
 // for now it works
 export function getTokenLogo(tokenSymbol: string): string {
+    if (tokenSymbol.toLowerCase() === 'pnt') {
+        return 'https://polygonscan.com/token/images/pintatoken_32.png'
+    }
     return `https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/${tokenSymbol.toLowerCase()}.svg`
 }
 
