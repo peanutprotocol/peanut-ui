@@ -24,9 +24,10 @@ import {
     updateUserPreferences,
     validateEnsName,
 } from '@/utils'
-import * as Sentry from '@sentry/nextjs'
 import * as _consts from '../Create.consts'
 import { useCreateLink } from '../useCreateLink'
+import * as Sentry from '@sentry/nextjs'
+import AddressLink from '@/components/Global/AddressLink'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -262,7 +263,7 @@ export const CreateLinkConfirmView = ({
                         {createType == 'link'
                             ? 'Send to Anyone'
                             : createType == 'direct'
-                              ? `Send to ${validateEnsName(recipient.name) ? recipient.name : printableAddress(recipient.address ?? '')}`
+                              ? `Send to ${validateEnsName(recipient.name) ? recipient.name : <AddressLink address={recipient.address ?? ''} />}`
                               : `Send to ${recipient.name}`}
                     </Card.Title>
                     <Card.Description>
@@ -273,7 +274,9 @@ export const CreateLinkConfirmView = ({
                         {createType === 'sms_link' &&
                             `You will send a text message to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
                         {createType === 'direct' &&
-                            `You will send the tokens directly to ${recipient.name ?? recipient.address}. Ensure the recipient address is correct, else the funds might be lost.`}
+                            `You will send the tokens directly to ${
+                                recipient.name ?? <AddressLink address={recipient.address ?? ''} />
+                            }. Ensure the recipient address is correct, else the funds might be lost.`}
                     </Card.Description>
                 </Card.Header>
                 <Card.Content className="space-y-3">
