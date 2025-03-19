@@ -2,14 +2,12 @@
 
 import { GenericBanner } from '@/components/Global/Banner/GenericBanner'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
-import NavHeader from '@/components/Global/NavHeader'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import HomeWaitlist from '@/components/Home/HomeWaitlist'
 import { ThemeProvider } from '@/config'
 import { peanutWalletIsInPreview } from '@/constants'
 import { useAuth } from '@/context/authContext'
-import { getHeaderTitle } from '@/utils'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -45,11 +43,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div className="flex h-[100dvh] w-full bg-background">
             {/* Wrapper div for desktop layout */}
             <div className="flex h-full w-full flex-col">
-                {showNavHeader && showFullPeanutWallet && (
-                    <div className="px-6 py-4 md:hidden">
-                        <NavHeader title={getHeaderTitle(pathName)} />
-                    </div>
-                )}
                 {/* Sidebar - Fixed on desktop */}
                 {showFullPeanutWallet && (
                     <div className="hidden md:block">
@@ -87,7 +80,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             {showFullPeanutWallet ? (
                                 <div
                                     className={twMerge(
-                                        'flex min-h-[calc(100dvh-236px)] w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%-256px)]',
+                                        'flex min-h-[calc(100dvh-160px)] w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%-160px)]',
                                         alignStart && 'items-start',
                                         isSupport && 'h-full'
                                     )}

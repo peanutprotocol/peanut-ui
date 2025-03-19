@@ -18,7 +18,7 @@ export function MarqueeWrapper({
     backgroundColor,
     onClick,
     direction = 'left',
-    className = 'border-b-2 border-black border',
+    className = 'border-b-1 border-black border',
 }: MarqueeWrapperProps) {
     const baseClass = `${className} ${backgroundColor}`
     const _className = onClick ? `${baseClass} cursor-pointer` : baseClass
