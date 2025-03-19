@@ -16,6 +16,7 @@ const AddressLink = ({ address, className = '' }: AddressLinkProps) => {
     const [displayAddress, setDisplayAddress] = useState<string>(
         isAddress(address) ? printableAddress(address) : address
     )
+    const [urlAddress, setUrlAddress] = useState<string>(address)
 
     // Look up ENS name only for Ethereum addresses
     const { primaryName: ensName } = usePrimaryName({
@@ -27,19 +28,19 @@ const AddressLink = ({ address, className = '' }: AddressLinkProps) => {
     useEffect(() => {
         // Update display: prefer ENS name for addresses, otherwise use as-is
         if (isAddress(address) && ensName) {
-            setDisplayAddress(ensName)
-            // for peanut ens names, strip the domain from the displayed string!
-            const ensDomain = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || ''
-            if (ensName.endsWith(ensDomain)) {
-                setDisplayAddress(ensName.slice(0, -(ensDomain.length + 1))) // include the dot
-            }
+            // for peanut ens names, strip the domain from the displayed string so its just a username (no ens subdomain)
+            const peanutEnsDomain = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || ''
+            const normalizedEnsName = ensName.replace(peanutEnsDomain, '').replace(/\.$/, '')
+
+            setDisplayAddress(normalizedEnsName)
+            setUrlAddress(ensName)
         } else {
             setDisplayAddress(isAddress(address) ? printableAddress(address) : address)
         }
     }, [address, ensName])
 
     // Create a simple URL - all identifiers go to /{identifier}
-    const url = `/${displayAddress}`
+    const url = `/${urlAddress}`
 
     return (
         <Link className={`cursor-pointer underline ${className}`} href={url} target="_blank">
