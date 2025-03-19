@@ -29,7 +29,9 @@ const ProfileSection = ({}: ProfileSectionProps) => {
                         />
                     </div>
                     <div className="text-md space-y-1 font-semibold">
-                        <div className="text-grey-1">peanut.me/</div>
+                        <div className="notranslate text-grey-1" translate="no">
+                            peanut.me/
+                        </div>
                         <div className="flex items-center gap-3">
                             <div className="">{user?.user.username}</div>
                             {user?.user.kycStatus === 'approved' && (

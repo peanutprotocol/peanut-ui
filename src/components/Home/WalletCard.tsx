@@ -331,7 +331,11 @@ function WalletIdentifier({
         )
     }
 
-    return <p className="truncate text-xl font-black sm:text-2xl">{displayName}</p>
+    return (
+        <p className="notranslate truncate text-xl font-black sm:text-2xl" translate="no">
+            {displayName}
+        </p>
+    )
 }
 
 function getWalletDisplayInfo(

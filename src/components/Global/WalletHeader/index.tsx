@@ -366,7 +366,7 @@ const WalletEntryCard: React.FC<WalletEntryCardProps> = ({
                 <div className="flex w-full flex-col gap-1">
                     <div className="flex w-full items-center justify-between">
                         <div className="space-y-1">
-                            <div className="flex items-center gap-2">
+                            <div className="notranslate flex items-center gap-2" translate="no">
                                 {!isRewardsWallet ? (
                                     isPeanutWallet && username ? (
                                         <p className="text-base font-bold">Peanut Wallet</p>

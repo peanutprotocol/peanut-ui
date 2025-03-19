@@ -76,8 +76,9 @@ const MobileNav: React.FC<MobileNavProps> = ({ tabs, pathName }) => (
             <Link
                 href={href}
                 key={name}
+                translate="no"
                 className={classNames(
-                    'flex flex-col items-center justify-center object-contain py-2 hover:cursor-pointer',
+                    'notranslate flex flex-col items-center justify-center object-contain py-2 hover:cursor-pointer',
                     { 'text-primary-1': pathName === href }
                 )}
             >
