@@ -140,14 +140,12 @@ export default function PaymentStatusView() {
 
     const recipientLink = useMemo(() => {
         if (!requestDetails) return null
-        // context on resolution logic: https://discord.com/channels/972435984954302464/1351613681867427932/1351632018177392650
 
-        if (requestDetails.recipientAddress) {
-            return <AddressLink address={requestDetails.recipientAddress} />
-        }
+        const identifier = requestDetails.recipientAccount.user
+            ? requestDetails.recipientAccount.user.username
+            : (resolvedAddress ?? requestDetails.recipientAddress)
 
-        // Fallback to resolved address (?)
-        return resolvedAddress ? <AddressLink address={resolvedAddress} /> : null
+        return <AddressLink address={identifier} />
     }, [requestDetails, resolvedAddress])
 
     const payerLink = useMemo(() => {
