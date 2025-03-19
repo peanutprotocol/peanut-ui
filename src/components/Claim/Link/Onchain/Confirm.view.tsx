@@ -4,6 +4,7 @@ import AddressLink from '@/components/Global/AddressLink'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
+import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import * as consts from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -187,7 +188,7 @@ export const ConfirmClaimLinkView = ({
                         </span>
                     </div>
 
-                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                    <div className="flex w-full flex-col items-center justify-center gap-2 py-2">
                         {selectedRoute && (
                             <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
@@ -224,36 +225,7 @@ export const ConfirmClaimLinkView = ({
                             </div>
                         )}
 
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'gas'} className="h-4 fill-grey-1" />
-                                <label className="font-bold">Fees</label>
-                            </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                $0.00 <MoreInfo text={'This transaction is sponsored by Peanut! Enjoy!'} />
-                            </span>
-                        </div>
-
-                        {/* TODO: correct points estimation
-                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                        <div className="flex w-max flex-row items-center justify-center gap-1">
-                            <Icon name={'plus-circle'} className="h-4 fill-grey-1" />
-                            <label className="font-bold">Points</label>
-                        </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
-                        <MoreInfo
-                            text={
-                                estimatedPoints
-                                    ? estimatedPoints > 0
-                                        ? `This transaction will add ${estimatedPoints} to your total points balance.`
-                                        : 'This transaction will not add any points to your total points balance'
-                                    : 'This transaction will not add any points to your total points balance'
-                            }
-                        />
-                    </span>
-                </div>
-                    */}
+                        <PeanutSponsored />
 
                         <Button onClick={handleOnClaim} disabled={isLoading} loading={isLoading}>
                             {isLoading ? loadingState : 'Claim'}

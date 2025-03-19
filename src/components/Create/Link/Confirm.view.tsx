@@ -6,7 +6,8 @@ import Divider from '@/components/0_Bruddle/Divider'
 import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
-import MoreInfo from '@/components/Global/MoreInfo'
+import InfoRow from '@/components/Global/InfoRow'
+import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
@@ -23,9 +24,9 @@ import {
     updateUserPreferences,
     validateEnsName,
 } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import * as _consts from '../Create.consts'
 import { useCreateLink } from '../useCreateLink'
-import * as Sentry from '@sentry/nextjs'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -325,53 +326,27 @@ export const CreateLinkConfirmView = ({
                                 )}
                             </div>
                         )}
-                        {transactionCostUSD !== undefined && (
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-grey-1">
-                                <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-grey-1" />
-                                    <label className="font-bold">Network cost</label>
-                                </div>
-                                <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {isPeanutWallet
-                                        ? '$0'
-                                        : transactionCostUSD === 0
-                                          ? '$0'
-                                          : transactionCostUSD < 0.01
+                        {transactionCostUSD !== undefined &&
+                            (!isPeanutWallet ? (
+                                <InfoRow
+                                    iconName="gas"
+                                    label="Network cost"
+                                    value={
+                                        transactionCostUSD < 0.01
                                             ? '$<0.01'
-                                            : `$${formatTokenAmount(transactionCostUSD, 3) ?? 0}`}
-                                    <MoreInfo
-                                        text={
-                                            isPeanutWallet
-                                                ? 'This transaction is sponsored by peanut! Enjoy!'
-                                                : transactionCostUSD > 0
-                                                  ? `This transaction will cost you $${formatTokenAmount(transactionCostUSD, 3)} in network fees.`
-                                                  : 'This transaction is sponsored by Peanut! Enjoy!'
-                                        }
-                                    />
-                                </label>
-                            </div>
-                        )}
+                                            : `$${formatTokenAmount(transactionCostUSD, 3) ?? 0}`
+                                    }
+                                    moreInfoText={`This transaction will cost you $${
+                                        transactionCostUSD < 0.01
+                                            ? '<0.01'
+                                            : `${formatTokenAmount(transactionCostUSD, 3) ?? 0}`
+                                    } in network fees.`}
+                                />
+                            ) : (
+                                <PeanutSponsored />
+                            ))}
                     </div>
-                    {/* <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                    <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <Icon name={'plus-circle'} className="h-4 fill-grey-1" />
-                        <label className="font-bold">Points</label>
-                    </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        {estimatedPoints && estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
-                        <MoreInfo
-                            text={
-                                estimatedPoints
-                                    ? estimatedPoints > 0
-                                        ? `This transaction will add ${estimatedPoints} to your total points balance.`
-                                        : estimatedPoints < 0
-                                          ? `This transaction will cost you ${estimatedPoints} points, but will not cost you any gas fees!`
-                                          : 'This transaction will not add any points to your total points balance'
-                                    : 'This transaction will not add any points to your total points balance'
-                            }
-                        />
-                    </span>
-                </div> */}
+
                     <Divider className="my-4" />
                     <div className="mb-4 flex flex-col gap-2 sm:flex-row-reverse">
                         <Button loading={isLoading} onClick={handleConfirm} disabled={isLoading}>

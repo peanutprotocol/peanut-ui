@@ -7,6 +7,7 @@ import FlowHeader from '@/components/Global/FlowHeader'
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
+import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import {
     MAX_CASHOUT_LIMIT,
@@ -16,11 +17,12 @@ import {
 } from '@/components/Offramp/Offramp.consts'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import * as consts from '@/constants'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PINTA_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TOOLTIPS } from '@/constants/tooltips'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { WalletProviderType } from '@/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import {
@@ -38,11 +40,10 @@ import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
 import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
-import { useCallback, useContext, useEffect, useState, useMemo } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { parseUnits } from 'viem'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
-import { WalletProviderType } from '@/interfaces'
-import { parseUnits } from 'viem'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -560,7 +561,7 @@ export const InitialClaimLinkView = ({
                         />
                     )}
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
-                        <div className="flex w-full flex-col items-center justify-center gap-2">
+                        <div className="flex w-full flex-col items-center justify-center gap-2 py-2">
                             {selectedRoute && (
                                 <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
                                     <div className="flex w-max flex-row items-center justify-center gap-1">
@@ -605,64 +606,7 @@ export const InitialClaimLinkView = ({
                                 </div>
                             )}
 
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                                <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-grey-1" />
-                                    <label className="font-bold">Fees</label>
-                                </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {isXchainLoading ? (
-                                        <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                    ) : (
-                                        <>
-                                            $0.00 <MoreInfo text={'This transaction is sponsored by Peanut! Enjoy!'} />
-                                        </>
-                                    )}
-                                </span>
-                            </div>
-                            {/* TODO: correct points estimation
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'plus-circle'} className="h-4 fill-grey-1" />
-                                <label className="font-bold">Points</label>
-                            </div>
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                                <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-grey-1" />
-                                    <label className="font-bold">Fees</label>
-                                </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {isXchainLoading ? (
-                                        <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                    ) : (
-                                        <>
-                                            $0.00 <MoreInfo text={'This transaction is sponsored by Peanut! Enjoy!'} />
-                                        </>
-                                    )}
-                                </span>
-                            </div>
-
-                            {/* TODO: correct points estimation
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                                <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'plus-circle'} className="h-4 fill-grey-1" />
-                                    <label className="font-bold">Points</label>
-                                </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
-                                    <MoreInfo
-                                        text={
-                                            estimatedPoints
-                                                ? estimatedPoints > 0
-                                                    ? `This transaction will add ${estimatedPoints} to your total points balance.`
-                                                    : 'This transaction will not add any points to your total points balance'
-                                                : 'This transaction will not add any points to your total points balance'
-                                        }
-                                    />
-                                </span>
-                            </div>
-                        </div>
-                                */}
+                            {!isXchainLoading && <PeanutSponsored />}
                         </div>
                     )}
                     <div className="flex w-full flex-col items-center justify-center gap-4">
