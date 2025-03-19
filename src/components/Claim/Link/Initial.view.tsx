@@ -120,7 +120,7 @@ export const InitialClaimLinkView = ({
             setRecipient({ name: undefined, address: address })
         } else {
             const currentUrl = new URL(window.location.href)
-            saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}`)
+            saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
             signInModal.open()
         }
     }
