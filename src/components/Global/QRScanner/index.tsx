@@ -48,7 +48,8 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                 const result = await onScan(data)
                 if (result.success) {
                     toast.info('QR code recognized')
-                    closeScanner()
+                    // wait a little bit before closing the scanner
+                    setTimeout(closeScanner, 500)
                 } else {
                     setStatusMessage("We dont't support this QR code yet")
                     toast.error(result.error || 'QR code processing failed')
