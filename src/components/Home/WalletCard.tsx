@@ -331,7 +331,7 @@ function WalletIdentifier({
         )
     }
 
-    return <p className="truncate text-xl font-black sm:text-2xl">{displayName}</p>
+    return <p className="truncate text-lg font-black sm:text-xl">{displayName}</p>
 }
 
 function getWalletDisplayInfo(
@@ -348,13 +348,16 @@ function getWalletDisplayInfo(
     }
 
     if (wallet.walletProviderType === WalletProviderType.PEANUT) {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL?.split('://')[1] || 'peanut.me'
         return {
             displayName: (
                 <>
-                    peanut.me/<span className="font-bold">{username}</span>
+                    <span className="font-bold">
+                        {baseUrl}/{username}
+                    </span>
                 </>
             ),
-            copyText: `peanut.me/${username}`,
+            copyText: `${baseUrl}/${username}`,
         }
     }
 

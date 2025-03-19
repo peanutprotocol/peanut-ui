@@ -82,12 +82,17 @@ const InstallPWA = () => {
             navigator.userAgent
         )
 
+        // Log user agent and detection results
+        console.log('User Agent:', navigator.userAgent)
+        console.log('Is iOS Device:', isIOSDevice)
+        console.log('Is Mobile Device:', isMobileDevice)
+
         // Check if user is on desktop
         setIsDesktop(!isMobileDevice)
 
         // For desktop, default to iOS if on Mac, otherwise Android
         if (!isMobileDevice) {
-            setDeviceType(isIOSDevice ? 'ios' : 'android')
+            setDeviceType('desktop')
         } else {
             if (isIOSDevice) {
                 setDeviceType('ios')
@@ -95,6 +100,9 @@ const InstallPWA = () => {
                 setDeviceType('android')
             }
         }
+
+        // Log the final device type
+        console.log('Detected Device Type:', deviceType)
     }, [])
 
     const handleInstall = async () => {
@@ -139,20 +147,21 @@ const InstallPWA = () => {
         </div>
     )
 
+    // Desktop instructions tell the user to install on their phone
     const DesktopInstructions = () => (
         <div>
-            {/* Note: We ignore desktop install for now, preferring users to install on their phones */}
             <div className="space-y-4">
                 <StepTitle text="Install on your Phone" />
                 <p className="mb-4">
                     For the best experience, we recommend installing Peanut on your phone. Scan this QR code with your
                     phone's camera:
                 </p>
-                <div className="mx-auto mb-4">
-                    <QRCodeWrapper url={window.location.origin} />
+                <div className="mx-auto rounded-lg bg-background p-4">
+                    <QRCodeWrapper url={process.env.NEXT_PUBLIC_BASE_URL + '/setup' || window.location.origin} />
                 </div>
-                <p className="text-sm text-gray-600">
-                    After scanning, follow the installation instructions for {deviceType === 'ios' ? 'iOS' : 'Android'}.
+                {/* TODO: we need to have setup instructions after login! This currently wont fully work */}
+                <p className="text-center text-sm text-gray-600">
+                    After scanning, log in with your passkey and follow the installation instructions.
                 </p>
                 {canInstall && (
                     <div className="mt-4 border-t pt-4">
@@ -168,13 +177,14 @@ const InstallPWA = () => {
     )
 
     const getInstructions = () => {
-        switch (deviceType) {
-            case 'ios':
-                return <IOSInstructions />
-            case 'android':
-                return <AndroidInstructions />
-            default:
-                return <DesktopInstructions />
+        console.log('Showing instructions for:', deviceType)
+
+        if (deviceType === 'desktop') {
+            return <DesktopInstructions />
+        } else if (deviceType === 'ios') {
+            return <IOSInstructions />
+        } else {
+            return <AndroidInstructions />
         }
     }
 
@@ -200,13 +210,15 @@ const InstallPWA = () => {
                 className="items-center rounded-none"
                 classWrap="sm:m-auto sm:self-center self-center bg-background m-4 rounded-none border-0"
             >
-                <img
-                    className="mx-auto pt-6 md:w-6/12"
-                    width={200}
-                    height={200}
-                    src={peanutPointing.src}
-                    alt="Peanut pointing"
-                />
+                {deviceType !== 'desktop' && (
+                    <img
+                        className="mx-auto pt-6 md:w-6/12"
+                        width={200}
+                        height={200}
+                        src={peanutPointing.src}
+                        alt="Peanut pointing"
+                    />
+                )}
                 <div className="space-y-4 p-6">
                     {getInstructions()}
                     <Button

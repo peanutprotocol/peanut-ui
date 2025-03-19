@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { isAddress } from 'viem'
 import { printableAddress } from '@/utils'
-import { usePrimaryName } from '@justaname.id/react'
 
 interface AddressLinkProps {
     address: string

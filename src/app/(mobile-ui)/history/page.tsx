@@ -26,7 +26,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { isAddress } from 'viem'
-import * as Sentry from '@sentry/nextjs'
 
 const ITEMS_PER_PAGE = 10
 
