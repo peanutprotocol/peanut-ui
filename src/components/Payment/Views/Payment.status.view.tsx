@@ -18,6 +18,7 @@ import { formatDate, getExplorerUrl, shortenAddressLong } from '@/utils'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
+import { isAddress } from 'viem'
 
 export default function PaymentStatusView() {
     const { requestDetails, chargeDetails, transactionHash, resolvedAddress } = usePaymentStore()
@@ -139,25 +140,18 @@ export default function PaymentStatusView() {
 
     const recipientLink = useMemo(() => {
         if (!requestDetails) return null
+        // context on resolution logic: https://discord.com/channels/972435984954302464/1351613681867427932/1351632018177392650
 
-        const identifier = requestDetails.recipientAccount.user
-            ? requestDetails.recipientAccount.user.username
-            : (resolvedAddress ?? requestDetails.recipientAddress)
+        if (requestDetails.recipientAddress) {
+            return <AddressLink address={requestDetails.recipientAddress} />
+        }
 
-        return <AddressLink address={identifier} />
+        // Fallback to resolved address (?)
+        return resolvedAddress ? <AddressLink address={resolvedAddress} /> : null
     }, [requestDetails, resolvedAddress])
 
     const payerLink = useMemo(() => {
         if (!latestPayment?.payerAddress) return null
-
-        if (latestPayment.payerAccount?.user) {
-            const username = latestPayment.payerAccount.user.username
-            return (
-                <Link className="cursor-pointer underline" href={`/${username}`}>
-                    {username}
-                </Link>
-            )
-        }
 
         return <AddressLink address={latestPayment.payerAddress} />
     }, [latestPayment])

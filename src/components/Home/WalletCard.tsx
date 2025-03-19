@@ -81,6 +81,8 @@ function ExistingWalletCard({
     onClick,
 }: WalletCardWallet) {
     const { isWalletConnected } = useWallet()
+
+    // exceptionally we don't use AddressLink here because the whole card is clickable
     const { primaryName } = usePrimaryName({
         address: wallet.address,
         priority: 'onChain',

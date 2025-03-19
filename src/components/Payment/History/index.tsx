@@ -74,7 +74,6 @@ export default function PaymentHistory({ recipient, history }: PaymentHistoryPro
                                         <>Status: {entry.status}</>
                                     ),
                                 subText: new Date(entry.timestamp).toLocaleDateString(),
-                                disableEnsResolution: true,
                                 tokenLogo: getTokenLogo(entry.tokenSymbol),
                             }}
                         />

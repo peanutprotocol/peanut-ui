@@ -43,7 +43,6 @@ interface ListItemViewProps {
         recipientAddress?: string
         transactionType?: TransactionType
         recipientAddressFormatter?: (address: string) => React.ReactNode
-        disableEnsResolution?: boolean
     }
     details?: IDashboardItem | TokenBalance
 }

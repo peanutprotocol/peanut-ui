@@ -1,4 +1,5 @@
 import { formatAmount, printableAddress } from '@/utils'
+import AddressLink from '@/components/Global/AddressLink'
 
 export enum PreviewType {
     CLAIM = 'claim',
@@ -67,7 +68,7 @@ export function LinkPreviewImg({
                 }}
             >
                 <label style={{ fontSize: '16px', fontWeight: 'bold', color: 'black' }}>
-                    {printableAddress(address)} {PREVIEW_TYPES[previewType].message}
+                    <AddressLink address={address} className="no-underline" /> {PREVIEW_TYPES[previewType].message}
                 </label>
                 <div
                     style={{
