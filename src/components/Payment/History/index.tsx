@@ -62,18 +62,6 @@ export default function PaymentHistory({ recipient, history }: PaymentHistoryPro
                                 subText: new Date(entry.timestamp).toLocaleDateString(),
                             }}
                             metadata={{
-                                recipientAddress: entry.senderAccount
-                                    ? entry.senderAccount.username || entry.senderAccount.identifier
-                                    : '',
-                                recipientAddressFormatter: (address) =>
-                                    entry.senderAccount ? (
-                                        <>
-                                            Paid By: <AddressLink address={address} /> | Status: {entry.status}
-                                        </>
-                                    ) : (
-                                        <>Status: {entry.status}</>
-                                    ),
-                                subText: new Date(entry.timestamp).toLocaleDateString(),
                                 tokenLogo: getTokenLogo(entry.tokenSymbol),
                             }}
                         />

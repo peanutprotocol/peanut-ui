@@ -267,6 +267,7 @@ export const CreateLinkConfirmView = ({
                               : `Send to ${recipient.name}`}
                     </Card.Title>
                     <Card.Description>
+                        {/* TODO: use addresslink */}
                         {createType === 'link' &&
                             'Make a payment with the link. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
                         {createType === 'email_link' &&

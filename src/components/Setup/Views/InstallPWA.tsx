@@ -82,12 +82,6 @@ const InstallPWA = () => {
             navigator.userAgent
         )
 
-        // Log user agent and detection results
-        console.log('User Agent:', navigator.userAgent)
-        console.log('Is iOS Device:', isIOSDevice)
-        console.log('Is Mobile Device:', isMobileDevice)
-
-        // Check if user is on desktop
         setIsDesktop(!isMobileDevice)
 
         // For desktop, default to iOS if on Mac, otherwise Android
@@ -124,7 +118,7 @@ const InstallPWA = () => {
             <StepTitle text="Install Peanut" />
             <p>
                 To add Peanut to your Home screen, tap the (<ShareIcon />) icons and then {`"Add to home screen"`} in
-                your Safari browser.
+                your browser.
             </p>
         </div>
     )

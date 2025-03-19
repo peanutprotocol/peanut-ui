@@ -50,7 +50,7 @@ export const setupSteps: ISetupStep[] = [
         screenId: 'passkey-success',
         layoutType: 'standard',
         title: `Your Passkey is set up!`,
-        description: `From now on, Peanut will use your face or fingerprint to verify it's you. Never lose your seed phrase again.`,
+        description: `From now on, Peanut will use your face or fingerprint to verify it's you. Never lose or leak your seed phrase again - there is no seed phrase!`,
         image: ThumbsUp,
         component: PasskeySuccess,
         showBackButton: true,

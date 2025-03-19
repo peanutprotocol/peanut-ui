@@ -39,10 +39,6 @@ interface ListItemViewProps {
     metadata: {
         tokenLogo?: string
         chainLogo?: string
-        subText?: string
-        recipientAddress?: string
-        transactionType?: TransactionType
-        recipientAddressFormatter?: (address: string) => React.ReactNode
     }
     details?: IDashboardItem | TokenBalance
 }
