@@ -95,6 +95,11 @@ let nextConfig = {
                 destination: '/',
                 permanent: true,
             },
+            {
+                source: '/pints',
+                destination: 'https://lu.ma/ruimu656',
+                permanent: false,
+            },
         ]
     },
     async headers() {
