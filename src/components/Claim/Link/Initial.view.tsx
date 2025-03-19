@@ -1,6 +1,8 @@
 'use client'
 
 import { Button, Card } from '@/components/0_Bruddle'
+import Divider from '@/components/0_Bruddle/Divider'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { CrispButton } from '@/components/CrispChat'
 import AddressLink from '@/components/Global/AddressLink'
 import FlowHeader from '@/components/Global/FlowHeader'
@@ -21,6 +23,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TOOLTIPS } from '@/constants/tooltips'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
+import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
@@ -38,8 +41,11 @@ import {
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
+import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { parseUnits } from 'viem'
 import * as _consts from '../Claim.consts'
@@ -68,6 +74,9 @@ export const InitialClaimLinkView = ({
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
     const dispatch = useAppDispatch()
+    const router = useRouter()
+    const toast = useToast()
+    const { handleLogin, isLoggingIn } = useZeroDev()
     const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
@@ -77,6 +86,7 @@ export const InitialClaimLinkView = ({
     const [isXchainLoading, setIsXchainLoading] = useState<boolean>(false)
     const [routes, setRoutes] = useState<any[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
+    const { open: openReownModal } = useAppKit()
 
     const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
     const {
@@ -610,44 +620,75 @@ export const InitialClaimLinkView = ({
                         </div>
                     )}
                     <div className="flex w-full flex-col items-center justify-center gap-4">
-                        <Button
-                            onClick={() => {
-                                // TODO: claiming to IBAN is decided to proceed based on recipient.address !== address, so
-                                // imperative to ensure address here is fetched by useWallet
-                                if (!isConnected && recipient.address.length === 0) {
-                                    handleConnectWallet()
-                                } else if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
-                                    // force cross-chain route for Peanut Wallet if chain doesn't match
-                                    setRefetchXchainRoute(true)
-                                    onNext()
-                                } else if (recipientType === 'iban' || recipientType === 'us') {
-                                    // handle IBAN/US bank account claims
-                                    handleIbanRecipient()
-                                } else if (hasFetchedRoute && selectedRoute) {
-                                    // handle  cross-chain claims
-                                    onNext()
-                                } else {
-                                    // handle direct claims
-                                    handleClaimLink()
+                        {!user && !isConnected && recipient.address.length === 0 && (
+                            <div className="w-full space-y-2 py-2">
+                                <Button
+                                    disabled={isLoggingIn}
+                                    loading={isLoggingIn}
+                                    onClick={() => {
+                                        handleLogin().catch((e) => {
+                                            toast.error('Error logging in')
+                                            Sentry.captureException(e)
+                                        })
+                                    }}
+                                    variant="purple"
+                                    className="text-sm md:text-base"
+                                >
+                                    Sign in with your Peanut Wallet
+                                </Button>
+                                <Link href={'/setup'} className="block h-8 text-center font-bold underline">
+                                    Don't have a Peanut Wallet? Get one now!
+                                </Link>
+                                <Divider text="or" />
+                                <Button
+                                    onClick={() => openReownModal()}
+                                    variant="transparent-light"
+                                    className="flex w-full items-center justify-center gap-2 border border-black bg-purple-5 text-sm text-black hover:bg-purple-5 md:text-base"
+                                >
+                                    Connect External Wallet
+                                </Button>
+                            </div>
+                        )}
+                        {(isConnected || (recipient.address && recipient.address.length > 0)) && (
+                            <Button
+                                onClick={() => {
+                                    if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+                                        setRefetchXchainRoute(true)
+                                        onNext()
+                                    } else if (recipientType === 'iban' || recipientType === 'us') {
+                                        handleIbanRecipient()
+                                    } else if (hasFetchedRoute && selectedRoute) {
+                                        onNext()
+                                    } else {
+                                        handleClaimLink()
+                                    }
+                                }}
+                                loading={isLoading || isXchainLoading}
+                                disabled={
+                                    isLoading ||
+                                    isXchainLoading ||
+                                    inputChanging ||
+                                    (hasFetchedRoute && !selectedRoute) ||
+                                    (!isConnected && !recipient.address) ||
+                                    (!isConnected && !isValidRecipient)
                                 }
-                            }}
-                            loading={isLoading || isXchainLoading}
-                            disabled={
-                                isLoading ||
-                                isXchainLoading ||
-                                inputChanging ||
-                                (hasFetchedRoute && !selectedRoute) ||
-                                (isValidRecipient === false && recipient.address.length > 0)
-                            }
-                        >
-                            {!isConnected && recipient.address.length === 0
-                                ? 'Connect Wallet'
-                                : isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id
-                                  ? 'Proceed'
-                                  : hasFetchedRoute && selectedRoute
+                                className="text-sm md:text-base"
+                            >
+                                {isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id
                                     ? 'Proceed'
-                                    : 'Claim Now'}
-                        </Button>
+                                    : hasFetchedRoute && selectedRoute
+                                      ? 'Proceed'
+                                      : 'Claim Now'}
+                            </Button>
+                        )}
+                        {!user && (isConnected || recipient.address.length !== 0) && (
+                            <div className="space-y-1 text-center">
+                                <label className="h-8">Want to manage all your payments in one place?</label>
+                                <Link href={'/setup'} className="block h-8 text-center font-bold underline">
+                                    Create a Peanut account
+                                </Link>
+                            </div>
+                        )}
                         {address && recipient.address.length < 0 && recipientType === 'address' && (
                             <div
                                 className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"
