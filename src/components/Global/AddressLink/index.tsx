@@ -4,12 +4,20 @@ import { usePrimaryName } from '@justaname.id/react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { isAddress } from 'viem'
+import { printableAddress } from '@/utils'
 
-const AddressLink = ({ address, recipientType }: { address: string; recipientType?: RecipientType }) => {
-    const [url, setUrl] = useState<string>('')
-    const [displayAddress, setDisplayAddress] = useState<string>(utils.printableAddress(address))
+interface AddressLinkProps {
+    address: string
+    className?: string
+    children?: React.ReactNode
+}
 
-    // Look up ENS name for any valid Ethereum address
+const AddressLink = ({ address, className = '' }: AddressLinkProps) => {
+    const [displayAddress, setDisplayAddress] = useState<string>(
+        isAddress(address) ? printableAddress(address) : address
+    )
+
+    // Look up ENS name only for Ethereum addresses
     const { primaryName: ensName } = usePrimaryName({
         address: isAddress(address) ? (address as `0x${string}`) : undefined,
         chainId: 1, // Mainnet for ENS lookups
@@ -17,26 +25,21 @@ const AddressLink = ({ address, recipientType }: { address: string; recipientTyp
     })
 
     useEffect(() => {
-        if (recipientType === 'USERNAME') {
-            setUrl(`${process.env.NEXT_PUBLIC_BASE_URL}/${address}`)
-        } else {
-            setUrl(`https://debank.com/profile/${address}`)
-        }
-
-        // Update display: prefer ENS name, fallback to shortened address
-        if (ensName) {
+        // Update display: prefer ENS name for addresses, otherwise use as-is
+        if (isAddress(address) && ensName) {
             setDisplayAddress(ensName)
         } else {
-            setDisplayAddress(utils.printableAddress(address))
+            setDisplayAddress(isAddress(address) ? printableAddress(address) : address)
         }
     }, [address, ensName])
 
-    return url ? (
-        <Link className="cursor-pointer underline" href={url} target="_blank">
+    // Create a simple URL - all identifiers go to /{identifier}
+    const url = `/${address}`
+
+    return (
+        <Link className={`cursor-pointer underline ${className}`} href={url} target="_blank">
             {displayAddress}
         </Link>
-    ) : (
-        <span>{displayAddress}</span>
     )
 }
 

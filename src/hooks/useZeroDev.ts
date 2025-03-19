@@ -32,6 +32,7 @@ export const useZeroDev = () => {
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
     const { setWebAuthnKey, getClientForChain } = useKernelClient()
 
+    // Future note: could be `${handle}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIM || 'peanut.me'}` (have to change BE too)
     const _getPasskeyName = (handle: string) => `${handle}.peanut.wallet`
 
     // register function

@@ -15,8 +15,7 @@ export default function PaymentHistory({ recipient, history }: PaymentHistoryPro
     return (
         <div className="space-y-3">
             <div className="text-base font-semibold">
-                Payment history to{' '}
-                <AddressLink address={recipient.resolvedAddress} recipientType={recipient.recipientType} />
+                Payment history to <AddressLink address={recipient.identifier} />
             </div>
             <div className="border-t border-t-black">
                 {[...history]
@@ -48,7 +47,6 @@ export default function PaymentHistory({ recipient, history }: PaymentHistoryPro
                                                     address={
                                                         entry.senderAccount.username || entry.senderAccount.identifier
                                                     }
-                                                    recipientType={entry.senderAccount.isUser ? 'USERNAME' : undefined}
                                                 />{' '}
                                                 <br className="md:hidden" /> <span className="hidden md:inline">|</span>{' '}
                                                 Status: {entry.status}

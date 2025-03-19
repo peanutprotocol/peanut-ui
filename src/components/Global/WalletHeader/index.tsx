@@ -206,7 +206,6 @@ const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: Wallet
         }
     }, [sortedWallets, isWalletConnected, dispatch, selectedWallet])
 
-    // Add primary name resolution
     const { primaryName } = usePrimaryName({
         address: selectedWallet?.address,
         priority: 'onChain',

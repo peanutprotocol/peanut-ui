@@ -81,6 +81,8 @@ function ExistingWalletCard({
     onClick,
 }: WalletCardWallet) {
     const { isWalletConnected } = useWallet()
+
+    // exceptionally we don't use AddressLink here because the whole card is clickable
     const { primaryName } = usePrimaryName({
         address: wallet.address,
         priority: 'onChain',
@@ -330,9 +332,8 @@ function WalletIdentifier({
             </p>
         )
     }
-
     return (
-        <p className="notranslate truncate text-xl font-black sm:text-2xl" translate="no">
+        <p className="notranslate truncate text-lg font-black sm:text-xl" translate="no">
             {displayName}
         </p>
     )
@@ -352,13 +353,16 @@ function getWalletDisplayInfo(
     }
 
     if (wallet.walletProviderType === WalletProviderType.PEANUT) {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL?.split('://')[1] || 'peanut.me'
         return {
             displayName: (
                 <>
-                    peanut.me/<span className="font-bold">{username}</span>
+                    <span className="font-bold">
+                        {baseUrl}/{username}
+                    </span>
                 </>
             ),
-            copyText: `peanut.me/${username}`,
+            copyText: `${baseUrl}/${username}`,
         }
     }
 

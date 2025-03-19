@@ -30,6 +30,7 @@ import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useSwitchChain } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
+import AddressLink from '@/components/Global/AddressLink'
 
 export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
@@ -504,7 +505,13 @@ export default function ConfirmPaymentView() {
             <div className="">
                 <PaymentInfoRow
                     label="Recipient"
-                    value={parsedPaymentData?.recipient?.identifier || chargeDetails?.requestLink?.recipientAddress}
+                    value={
+                        <AddressLink
+                            address={
+                                parsedPaymentData?.recipient?.identifier || chargeDetails?.requestLink?.recipientAddress
+                            }
+                        />
+                    }
                 />
 
                 <PaymentInfoRow
@@ -515,7 +522,17 @@ export default function ConfirmPaymentView() {
 
                 <PaymentInfoRow
                     loading={isCalculatingFees || isEstimatingGas}
-                    label={`${parsedPaymentData?.recipient.recipientType === 'ADDRESS' ? shortenAddressLong(parsedPaymentData?.recipient.identifier) : parsedPaymentData?.recipient.identifier} will receive`}
+                    label={
+                        <>
+                            <AddressLink
+                                address={
+                                    parsedPaymentData?.recipient?.identifier ||
+                                    chargeDetails?.requestLink?.recipientAddress
+                                }
+                            />{' '}
+                            will receive
+                        </>
+                    }
                     value={`${formatAmount(Number(chargeDetails!.tokenAmount))} ${chargeDetails?.tokenSymbol} on ${getReadableChainName(chargeDetails.chainId)}`}
                 />
 

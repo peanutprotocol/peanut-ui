@@ -1,4 +1,6 @@
 import PaymentLayoutWrapper from './payment-layout-wrapper'
+import { printableAddress } from '@/utils'
+import { isAddress } from 'viem'
 
 function getPreviewUrl(
     host: string,
@@ -60,11 +62,11 @@ export async function generateMetadata({ params }: any) {
     previewUrl = getPreviewUrl(host, previewData)
 
     if (amount && token) {
-        title = `${recipient} is requesting ${amount} ${token.toUpperCase()}`
+        title = `${isAddress(recipient) ? printableAddress(recipient) : recipient} is requesting ${amount} ${token.toUpperCase()}`
     } else if (amount) {
-        title = `${recipient} is requesting $${amount}`
+        title = `${isAddress(recipient) ? printableAddress(recipient) : recipient} is requesting $${amount}`
     } else {
-        title = `${recipient} is requesting funds`
+        title = `${isAddress(recipient) ? printableAddress(recipient) : recipient} is requesting funds`
     }
 
     return {
