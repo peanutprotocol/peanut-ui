@@ -17,7 +17,7 @@ export const CREATE_SCREEN_FLOW: CreateScreens[] = ['INITIAL', 'SUCCESS']
 export const CREATE_SCREEN_MAP: { [key in CreateScreens]: { comp: React.FC<any> } } = {
     INITIAL: { comp: views.InitialView },
 
-    SUCCESS: { comp: views.SuccessView },
+    SUCCESS: { comp: views.CreateRequestSuccessView },
 }
 
 export interface ICreateScreenProps {

@@ -1,6 +1,6 @@
 import * as interfaces from '@/interfaces'
 import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
-import { arbitrum, arbitrumSepolia } from 'viem/chains'
+import { arbitrum, arbitrumSepolia, polygon } from 'viem/chains'
 
 export const peanutWalletIsInPreview = true
 
@@ -9,6 +9,7 @@ export const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
 export const infuraRpcUrls: Record<number, string> = {
     [arbitrum.id]: `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_KEY}`,
+    [polygon.id]: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
 }
 
 export const ipfsProviderArray = [
@@ -22,8 +23,6 @@ export const ipfsProviderArray = [
     'https://nftstorage.link/ipfs/',
     'https://gw3.io/ipfs/',
 ]
-
-export const JUSTANAME_ENS = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || ''
 
 export const PEANUT_API_URL = (
     process.env.PEANUT_API_URL ||
@@ -190,13 +189,13 @@ export const nativeCurrencyAddresses: string[] = [
 export const pathTitles: { [key: string]: string } = {
     '/home': 'Dashboard',
     '/send': 'Send',
-    '/wallet': 'Wallet asset',
-    '/request/create': 'Request Payment',
-    '/request/pay': 'Pay Request',
+    '/wallet': 'Wallet',
+    '/request/create': 'Request',
+    '/request/pay': 'Pay',
     '/cashout': 'Cashout',
     '/history': 'History',
     '/support': 'Support',
-    '/claim': 'Claim Payment',
+    '/claim': 'Claim',
 }
 
 export const STABLE_COINS = ['USDC', 'USDT', 'DAI', 'BUSD']

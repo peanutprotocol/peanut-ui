@@ -58,13 +58,11 @@ export const useWalletConnection = () => {
                 })
                 await fetchUser()
                 processedAddresses.current.add(lowerAddress)
-                toast.success('Wallet added successfully')
                 return true
             } catch (error) {
                 if (error?.toString().includes('Account already exists')) {
                     // remove the wallet from the store
                     dispatch(walletActions.removeWallet(lowerAddress))
-                    toast.error('This wallet is already associated with another account.')
                     processedAddresses.current.add(lowerAddress)
                     return false
                 }
@@ -104,7 +102,12 @@ export const useWalletConnection = () => {
         await openWalletModal({ view: 'Connect' })
 
         if (status === 'connected' && connectedAddress) {
-            await addWalletToBackend(connectedAddress)
+            const successful = await addWalletToBackend(connectedAddress)
+            if (successful) {
+                toast.success('Wallet added successfully')
+            } else {
+                toast.error('This wallet is already associated with another account.')
+            }
         }
     }, [openWalletModal, status, connectedAddress, addWalletToBackend, toast, disconnectWallet])
 

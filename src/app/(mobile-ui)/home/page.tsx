@@ -1,21 +1,25 @@
 'use client'
 
+import { PEANUT_LOGO_BLACK } from '@/assets'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
+import DirectSendQr from '@/components/Global/DirectSendQR'
 import LogoutButton from '@/components/Global/LogoutButton'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import RewardsModal from '@/components/Global/RewardsModal'
 import { WalletCard } from '@/components/Home/WalletCard'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { WalletProviderType } from '@/interfaces'
-import { useAppDispatch } from '@/redux/hooks'
+import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 
 const cardWidth = 300
 const cardMargin = 16
@@ -34,25 +38,22 @@ export default function Home() {
 
     const { username } = useAuth()
 
-    const { selectedWallet, wallets, setSelectedWallet, isWalletConnected, isFetchingWallets } = useWallet()
+    const { selectedWallet, wallets, isWalletConnected, isFetchingWallets } = useWallet()
+    const { focusedWallet: focusedWalletId } = useWalletStore()
 
-    // initialize focusedIndex to match selectedWalletIndex
-    const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
-    const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
-    const [focusedIndex, setFocusedIndex] = useState(selectedWalletIndex)
+    const [focusedIndex, setFocusedIndex] = useState(0)
 
     // update focusedIndex and focused wallet when selectedWallet changes
     useEffect(() => {
-        const index = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
+        const index = wallets.findIndex((wallet) => wallet.id === selectedWallet?.id)
         if (index !== -1) {
             setFocusedIndex(index)
-            // also update the focused wallet when selected wallet changes
             dispatch(walletActions.setFocusedWallet(wallets[index]))
         }
-    }, [selectedWallet, wallets, dispatch])
+    }, [selectedWallet, wallets])
 
-    const hasWallets = wallets.length > 0
-    const totalCards = hasWallets ? wallets.length + 1 : 1
+    const hasWallets = useMemo(() => wallets.length > 0, [wallets])
+    const totalCards = useMemo(() => (hasWallets ? wallets.length + 1 : 1), [hasWallets, wallets])
 
     const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation()
@@ -64,11 +65,12 @@ export default function Home() {
     }
 
     useEffect(() => {
+        if (!hasWallets || isFetchingWallets) return
         controls.start({
-            x: -(selectedWalletIndex * (cardWidth + cardMargin)),
+            x: -(focusedIndex * (cardWidth + cardMargin)),
             transition: { type: 'spring', stiffness: 300, damping: 30 },
         })
-    }, [selectedWalletIndex, controls])
+    }, [focusedIndex, controls, hasWallets, isFetchingWallets])
 
     const handleCardClick = (index: number) => {
         if (index < wallets.length) {
@@ -82,8 +84,18 @@ export default function Home() {
                     transition: { type: 'spring', stiffness: 300, damping: 30 },
                 })
 
-                if (wallet.walletProviderType === WalletProviderType.PEANUT || isWalletConnected(wallet)) {
-                    setSelectedWallet(wallet)
+                // check wallet type and ID
+                const isValidPeanutWallet =
+                    wallet.id.startsWith('peanut-wallet') && wallet.walletProviderType === WalletProviderType.PEANUT
+
+                const isValidRewardsWallet =
+                    wallet.id === 'pinta-wallet' && wallet.walletProviderType === WalletProviderType.REWARDS
+
+                const isValidExternalWallet =
+                    wallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(wallet)
+
+                if (isValidPeanutWallet || isValidRewardsWallet || isValidExternalWallet) {
+                    dispatch(walletActions.setSelectedWalletId(wallet.id))
                 }
                 return
             }
@@ -107,11 +119,20 @@ export default function Home() {
         setFocusedIndex(targetIndex)
 
         if (targetIndex < wallets.length) {
-            dispatch(walletActions.setFocusedWallet(wallets[targetIndex]))
-
             const targetWallet = wallets[targetIndex]
-            if (targetWallet.walletProviderType === WalletProviderType.PEANUT || isWalletConnected(targetWallet)) {
-                setSelectedWallet(targetWallet)
+            dispatch(walletActions.setFocusedWallet(targetWallet))
+
+            // check wallet type and ID
+            const isValidPeanutWallet =
+                targetWallet.id.startsWith('peanut-wallet') &&
+                targetWallet.walletProviderType === WalletProviderType.PEANUT
+            const isValidRewardsWallet =
+                targetWallet.id === 'pinta-wallet' && targetWallet.walletProviderType === WalletProviderType.REWARDS
+            const isValidExternalWallet =
+                targetWallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(targetWallet)
+
+            if (isValidPeanutWallet || isValidRewardsWallet || isValidExternalWallet) {
+                dispatch(walletActions.setSelectedWalletId(targetWallet.id))
             }
         }
 
@@ -132,13 +153,13 @@ export default function Home() {
                     <div className="space-y-4 px-6">
                         <div className="flex items-center justify-between">
                             <div className="flex w-full items-center justify-between md:hidden">
-                                <div className="font-knerd-outline text-h5 font-semibold">Peanut</div>
+                                <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" className="w-20" />
                                 <LogoutButton />
                             </div>
                         </div>
                         <ProfileSection />
                     </div>
-                    <div className="pl-6">
+                    <div>
                         <div
                             className={classNames('relative h-[200px] p-4 sm:overflow-visible', {
                                 'overflow-hidden': wallets.length > 0,
@@ -151,7 +172,7 @@ export default function Home() {
                             {hasWallets ? (
                                 <motion.div
                                     ref={carouselRef}
-                                    className="absolute flex h-[calc(100%-32px)]"
+                                    className="absolute flex h-[calc(100%-32px)] px-4"
                                     animate={controls}
                                     drag="x"
                                     dragConstraints={{
@@ -164,11 +185,11 @@ export default function Home() {
                                     {!!wallets.length &&
                                         wallets.map((wallet, index) => (
                                             <WalletCard
-                                                key={wallet.address}
+                                                key={wallet.id}
                                                 type="wallet"
                                                 wallet={wallet}
                                                 username={username ?? ''}
-                                                selected={selectedWalletIndex === index}
+                                                selected={selectedWallet?.id === wallet.id}
                                                 onClick={() => handleCardClick(index)}
                                                 index={index}
                                                 isBalanceHidden={isBalanceHidden}
@@ -187,20 +208,28 @@ export default function Home() {
                         </div>
                     </div>
 
-                    <div className="px-6 md:pb-6">
-                        <DirectionalActionButtons
-                            leftButton={{
-                                title: 'Send',
-                                href: '/send',
-                            }}
-                            rightButton={{
-                                title: 'Receive',
-                                href: '/request/create',
-                            }}
-                        />
-                    </div>
+                    {focusedWalletId &&
+                    wallets.find((w) => w.id === focusedWalletId)?.walletProviderType === WalletProviderType.REWARDS ? (
+                        <div className="px-6 md:pb-6">
+                            <DirectSendQr />
+                        </div>
+                    ) : (
+                        <div className="px-6 md:pb-6">
+                            <DirectionalActionButtons
+                                leftButton={{
+                                    title: 'Send',
+                                    href: '/send',
+                                }}
+                                rightButton={{
+                                    title: 'Receive',
+                                    href: '/request/create',
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
+            <RewardsModal />
         </div>
     )
 }

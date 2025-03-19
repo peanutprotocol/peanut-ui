@@ -8,14 +8,23 @@ import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import BeerInput from '@/components/PintaReqPay/BeerInput'
+import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    PINTA_WALLET_CHAIN,
+    PINTA_WALLET_TOKEN_DECIMALS,
+    PINTA_WALLET_TOKEN_SYMBOL,
+} from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { AccountType } from '@/interfaces'
+import { AccountType, WalletProviderType } from '@/interfaces'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
+import { walletActions } from '@/redux/slices/wallet-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { CreateChargeRequest } from '@/services/services.types'
@@ -31,32 +40,34 @@ import {
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 
-export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
+export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: ParsedURL & { isPintaReq?: boolean }) => {
     const dispatch = useAppDispatch()
-    const { attachmentOptions, requestDetails, error, chargeDetails } = usePaymentStore()
-    const { isConnected: isExternalWalletConnected } = useAccount()
-    const { signInModal, isPeanutWallet } = useWallet()
+    const { requestDetails, error, chargeDetails, beerQuantity } = usePaymentStore()
+    const {
+        signInModal,
+        isPeanutWallet,
+        selectedWallet,
+        isExternalWallet,
+        isWalletConnected,
+        wallets,
+        selectPeanutWallet,
+    } = useWallet()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [displayTokenAmount, setDisplayTokenAmount] = useState<string>(
-        chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
-    )
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
     )
     const [usdValue, setUsdValue] = useState<string>('')
     const [requestedTokenPrice, setRequestedTokenPrice] = useState<number | null>(null)
-    const [isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
+    const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
 
     const {
         inputDenomination,
         setInputDenomination,
         selectedTokenPrice,
         selectedChainID,
-        selectedTokenDecimals,
         selectedTokenAddress,
         selectedTokenData,
         setSelectedChainID,
@@ -65,9 +76,13 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     } = useContext(context.tokenSelectorContext)
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
-    const isConnected = isExternalWalletConnected || isPeanutWallet
+    const isConnected = useMemo<boolean>(() => {
+        return selectedWallet ? isWalletConnected(selectedWallet) : false
+    }, [isWalletConnected, selectedWallet])
 
     const recipientChainId = useMemo<string>(() => {
+        if (!requestDetails) return ''
+
         if (chargeDetails?.chainId) return chargeDetails.chainId
         if (requestDetails?.chainId) return requestDetails.chainId
         switch (recipient.recipientType) {
@@ -82,6 +97,8 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     }, [chargeDetails?.chainId, requestDetails?.chainId, recipient, selectedChainID])
 
     const recipientTokenAddress = useMemo<string>(() => {
+        if (!requestDetails) return ''
+
         if (chargeDetails?.tokenAddress) return chargeDetails.tokenAddress
         if (requestDetails?.tokenAddress) return requestDetails.tokenAddress
         switch (recipient.recipientType) {
@@ -96,6 +113,8 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     }, [chargeDetails?.tokenAddress, requestDetails?.tokenAddress, recipient, selectedTokenAddress])
 
     const recipientTokenSymbol = useMemo<string>(() => {
+        if (!requestDetails) return ''
+
         if (chargeDetails?.tokenSymbol) return chargeDetails.tokenSymbol
         if (requestDetails?.tokenSymbol) return requestDetails.tokenSymbol
         switch (recipient.recipientType) {
@@ -121,6 +140,8 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     ])
 
     const recipientTokenDecimals = useMemo<number>(() => {
+        if (!requestDetails) return 0
+
         if (chargeDetails?.tokenDecimals) return chargeDetails.tokenDecimals
         if (requestDetails?.tokenDecimals) return requestDetails.tokenDecimals
         switch (recipient.recipientType) {
@@ -154,7 +175,6 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         if (initialSetupDone) return
 
         if (amount) {
-            setDisplayTokenAmount(amount)
             setInputTokenAmount(amount)
             setInputDenomination(token?.symbol ? 'TOKEN' : 'USD')
         }
@@ -185,15 +205,9 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         dispatch(paymentActions.setError(null))
     }, [dispatch, recipient])
 
-    useEffect(() => {
-        if (isPeanutWallet) {
-            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-        }
-    }, [isPeanutWallet])
-
     // fetch token price
     useEffect(() => {
+        if (isPintaReq) return
         if (!requestDetails?.tokenAddress || !requestDetails?.chainId || !requestDetails?.tokenAmount) return
 
         const getTokenPriceData = async () => {
@@ -222,21 +236,24 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         }
 
         getTokenPriceData()
-    }, [requestDetails])
+    }, [requestDetails, isPintaReq])
 
     const handleCreateCharge = async () => {
         if (!isConnected) {
             signInModal.open()
-
             return
         }
 
-        if (
+        // for Pinta requests, check beer quantity
+        if (isPintaReq) {
+            if (beerQuantity === 0 || isSubmitting) return
+        } else if (
             (!inputTokenAmount && inputDenomination === 'TOKEN') ||
             (!usdValue && inputDenomination === 'USD') ||
             isSubmitting
-        )
+        ) {
             return
+        }
 
         setIsSubmitting(true)
         dispatch(paymentActions.setError(null))
@@ -252,32 +269,51 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                     throw new Error('Invalid request ID')
                 }
             } else if (!requestDetails) {
-                throw new Error('Request details not found')
+                // for Pinta requests, create request if not exists
+                if (isPintaReq && recipient.resolvedAddress) {
+                    const request = await requestsApi.create({
+                        recipientAddress: recipient.resolvedAddress,
+                        chainId: PINTA_WALLET_CHAIN.id.toString(),
+                        tokenAddress: recipientTokenAddress,
+                        tokenType: String(peanutInterfaces.EPeanutLinkType.erc20),
+                        tokenSymbol: PINTA_WALLET_TOKEN_SYMBOL,
+                        tokenDecimals: PINTA_WALLET_TOKEN_DECIMALS.toString(),
+                    })
+                    validRequestId = request.uuid
+                } else {
+                    throw new Error('Request details not found')
+                }
             }
 
             // this token amount is what we will create the charge with
+            // for Pinta requests, use beerQuantity
             let tokenAmountToUse: string
-            if (token?.symbol.toLowerCase() === 'usdc') {
-                tokenAmountToUse = usdValue ?? inputTokenAmount
-            } else if (!amount && !!token) {
-                // the receiver is requesting a specific token, so we need to
-                // calculate the amount based on the token price
-                const receiveTokenPrice = await fetchTokenPrice(token.address, chain?.chainId!)
-                const usdAmount =
-                    inputDenomination === 'TOKEN'
-                        ? parseFloat(inputTokenAmount) * selectedTokenPrice!
-                        : parseFloat(inputTokenAmount)
-                tokenAmountToUse = (usdAmount / receiveTokenPrice!.price).toString()
-            } else if (inputDenomination === 'TOKEN') {
-                tokenAmountToUse = inputTokenAmount
+            if (isPintaReq) {
+                // tokenAmountToUse = '0.00002' // todo: replace with beerQuantity after testing
+                tokenAmountToUse = beerQuantity.toString()
             } else {
-                // convert to token amount using token price, if input value is in USD
-                if (!selectedTokenPrice) {
-                    throw new Error('Token price not available')
+                if (token?.symbol.toLowerCase() === 'usdc') {
+                    tokenAmountToUse = usdValue ?? inputTokenAmount
+                } else if (!amount && !!token) {
+                    // the receiver is requesting a specific token, so we need to
+                    // calculate the amount based on the token price
+                    const receiveTokenPrice = await fetchTokenPrice(token.address, chain?.chainId!)
+                    const usdAmount =
+                        inputDenomination === 'TOKEN'
+                            ? parseFloat(inputTokenAmount) * selectedTokenPrice!
+                            : parseFloat(inputTokenAmount)
+                    tokenAmountToUse = (usdAmount / receiveTokenPrice!.price).toString()
+                } else if (inputDenomination === 'TOKEN') {
+                    tokenAmountToUse = inputTokenAmount
+                } else {
+                    // convert to token amount using token price, if input value is in USD
+                    if (!selectedTokenPrice) {
+                        throw new Error('Token price not available')
+                    }
+                    const usdAmount = parseFloat(inputTokenAmount)
+                    const tokenAmount = usdAmount / selectedTokenPrice
+                    tokenAmountToUse = tokenAmount.toString()
                 }
-                const usdAmount = parseFloat(inputTokenAmount)
-                const tokenAmount = usdAmount / selectedTokenPrice
-                tokenAmountToUse = tokenAmount.toString()
             }
 
             const createChargeRequestPayload: CreateChargeRequest = {
@@ -289,23 +325,18 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                 baseUrl: window.location.origin,
                 requestId: validRequestId || requestDetails!.uuid,
                 requestProps: {
-                    chainId: recipientChainId,
+                    // for Pinta requests, Polygon chain ID
+                    chainId: isPintaReq ? '137' : recipientChainId,
                     tokenAddress: recipientTokenAddress,
-                    tokenType: isNativeCurrency(recipientTokenAddress)
-                        ? peanutInterfaces.EPeanutLinkType.native
-                        : peanutInterfaces.EPeanutLinkType.erc20,
-                    tokenSymbol: recipientTokenSymbol,
-                    tokenDecimals: recipientTokenDecimals,
+                    tokenType: isPintaReq
+                        ? peanutInterfaces.EPeanutLinkType.erc20
+                        : isNativeCurrency(recipientTokenAddress)
+                          ? peanutInterfaces.EPeanutLinkType.native
+                          : peanutInterfaces.EPeanutLinkType.erc20,
+                    tokenSymbol: isPintaReq ? 'PNT' : recipientTokenSymbol,
+                    tokenDecimals: isPintaReq ? 10 : recipientTokenDecimals,
                     recipientAddress: recipient.resolvedAddress,
                 },
-            }
-
-            // add attachment if present
-            if (attachmentOptions?.rawFile) {
-                createChargeRequestPayload.attachment = attachmentOptions.rawFile
-            }
-            if (attachmentOptions?.message) {
-                createChargeRequestPayload.reference = attachmentOptions.message
             }
 
             // create charge using existing request ID and resolved address
@@ -355,6 +386,10 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
             setSelectedTokenAddress((requestDetails?.tokenAddress || token?.address) ?? '')
         }
     }, [requestDetails, isPeanutWallet])
+
+    useEffect(() => {
+        if (isPeanutWallet) resetTokenAndChain()
+    }, [resetTokenAndChain, isPeanutWallet])
 
     const recipientLabel = useMemo(() => {
         if (!requestDetails) return ''
@@ -427,15 +462,11 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
     useEffect(() => {
         if (!inputTokenAmount) return
         if (inputDenomination === 'TOKEN') {
-            setDisplayTokenAmount(inputTokenAmount)
             if (selectedTokenPrice) {
                 setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
             }
         } else if (inputDenomination === 'USD') {
             setUsdValue(inputTokenAmount)
-            if (selectedTokenPrice) {
-                setDisplayTokenAmount((parseFloat(inputTokenAmount) / selectedTokenPrice).toString())
-            }
         }
     }, [inputTokenAmount, inputDenomination, selectedTokenPrice])
 
@@ -458,10 +489,54 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
         }
     }, [chargeDetails, resetTokenAndChain])
 
+    // Init beer quantity
+    useEffect(() => {
+        if (!inputTokenAmount) return
+        if (isPintaReq) {
+            dispatch(paymentActions.setBeerQuantity(Number(inputTokenAmount)))
+        }
+    }, [isPintaReq, inputTokenAmount])
+
+    // handle auto-selection of rewards wallet if token is PNT
+    useEffect(() => {
+        if (!wallets?.length) return
+
+        if (token?.symbol === 'PNT') {
+            const rewardsWallet = wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.REWARDS)
+            if (rewardsWallet) {
+                dispatch(walletActions.setSelectedWalletId(rewardsWallet.id))
+            }
+        } else if (selectedWallet?.walletProviderType === WalletProviderType.REWARDS) {
+            selectPeanutWallet()
+        }
+    }, [token?.symbol, wallets, selectedWallet?.walletProviderType, selectPeanutWallet])
+
+    if (isPintaReq) {
+        return (
+            <div className="space-y-4">
+                <FlowHeader hideWalletHeader={!isConnected} isPintaReq />
+                <PintaReqViewWrapper view="INITIAL">
+                    <BeerInput disabled={!!amount} />
+                    <div className="space-y-2">
+                        <Button
+                            variant="purple"
+                            onClick={handleCreateCharge}
+                            disabled={beerQuantity === 0 || isSubmitting || isPeanutWalletCrossChainRequest}
+                            loading={isSubmitting}
+                            className="w-full"
+                        >
+                            {isSubmitting ? 'Creating charge...' : 'Confirm'}
+                        </Button>
+                        {error && <ErrorAlert description={error} />}
+                    </div>
+                </PintaReqViewWrapper>
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-4">
-            <FlowHeader hideWalletHeader={!isConnected} />
-
+            <FlowHeader hideWalletHeader={!isConnected} isPintaReq={token?.symbol === 'PNT'} />
             {/* Show recipient from parsed data */}
             <div className="text-h6 font-bold">
                 Sending to{' '}
@@ -471,28 +546,19 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                     <AddressLink address={recipient?.identifier} />
                 )}
             </div>
-
             <TokenAmountInput
                 tokenValue={inputTokenAmount}
                 setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
                 className="w-full"
                 disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
             />
-
             {requestDetails?.recipientAccount.type !== AccountType.PEANUT_WALLET && renderRequestedPaymentDetails()}
-
-            {!isPeanutWallet && (
+            {isExternalWallet && (
                 <div>
                     <div className="mb-2 text-sm font-medium">Choose your payment method:</div>
                     <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
                 </div>
             )}
-
-            <FileUploadInput
-                attachmentOptions={attachmentOptions}
-                setAttachmentOptions={(options) => dispatch(paymentActions.setAttachmentOptions(options))}
-            />
-
             {/* Show Peanut Wallet cross-chain warning */}
             {isPeanutWalletCrossChainRequest && (
                 <ErrorAlert
@@ -502,14 +568,12 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                     }
                 />
             )}
-
             {!isPeanutWallet && !requestId && (
                 <div className="mt-4 text-xs text-grey-1">
                     You can choose to pay with any token on any network. The payment will be automatically converted to
                     the requested token.
                 </div>
             )}
-
             <div className="space-y-2">
                 <Button
                     loading={isSubmitting}
@@ -521,17 +585,7 @@ export const PaymentForm = ({ recipient, amount, token, chain }: ParsedURL) => {
                     {getButtonText()}
                 </Button>
 
-                {error && (
-                    <div className="bg-red-50 rounded-md p-4">
-                        <div className="flex">
-                            <div className="flex-shrink-0">⚠️</div>
-                            <div className="ml-3">
-                                <h3 className="text-red-800 text-sm font-medium">Error</h3>
-                                <div className="text-red-700 mt-2 text-sm">{error}</div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {error && <ErrorAlert label="Error" description={error} />}
             </div>
         </div>
     )

@@ -112,6 +112,8 @@ export const CreateLinkConfirmView = ({
     }, [selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens])
 
     const handleConfirm = async () => {
+        const now = new Date().getTime()
+        console.log(`Starting at ${now}ms`)
         setLoadingState('Loading')
 
         setErrorState({
@@ -123,6 +125,7 @@ export const CreateLinkConfirmView = ({
             let hash: string = ''
             let fileUrl = ''
             if (createType != 'direct') {
+                console.log(`Submitting claim link init at ${new Date().getTime() - now}ms`)
                 const data = await submitClaimLinkInit({
                     password: password ?? '',
                     attachmentOptions: {
@@ -131,6 +134,7 @@ export const CreateLinkConfirmView = ({
                     },
                     senderAddress: address ?? '',
                 })
+                console.log(`Claim link init response at ${new Date().getTime() - now}ms`)
                 fileUrl = data?.fileUrl
             }
 
@@ -142,15 +146,21 @@ export const CreateLinkConfirmView = ({
                 // Peanut's BE to make it gasless. The paymaster will make it by default
                 // once submitted, but as far as this flow is concerned, the userop is 'not-gasless'
                 if (!preparedDepositTxs) return
+                console.log(`Sending not-gasless transaction at ${new Date().getTime() - now}ms`)
                 hash =
                     (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
+                console.log(`Not-gasless transaction response at ${new Date().getTime() - now}ms`)
             } else {
                 if (!gaslessPayload || !gaslessPayloadMessage) return
                 setLoadingState('Sign in wallet')
+                console.log(`Signing in wallet at ${new Date().getTime() - now}ms`)
                 const signature = await signTypedData({ gaslessMessage: gaslessPayloadMessage })
+                console.log(`Signing in wallet response at ${new Date().getTime() - now}ms`)
                 if (!signature) return
                 setLoadingState('Executing transaction')
+                console.log(`Executing transaction at ${new Date().getTime() - now}ms`)
                 hash = await makeDepositGasless({ signature, payload: gaslessPayload })
+                console.log(`Executing transaction response at ${new Date().getTime() - now}ms`)
             }
 
             setTxHash(hash)
@@ -178,7 +188,9 @@ export const CreateLinkConfirmView = ({
                     transaction: preparedDepositTxs && preparedDepositTxs.unsignedTxs[0],
                 })
             } else {
+                console.log(`Getting link from hash at ${new Date().getTime() - now}ms`)
                 const link = await getLinkFromHash({ hash, linkDetails, password, walletType })
+                console.log(`Getting link from hash response at ${new Date().getTime() - now}ms`)
 
                 saveCreatedLinkToLocalStorage({
                     address: address ?? '',
@@ -195,6 +207,7 @@ export const CreateLinkConfirmView = ({
                 })
 
                 setLink(link[0])
+                console.log(`Submitting claim link confirm at ${new Date().getTime() - now}ms`)
                 await submitClaimLinkConfirm({
                     chainId: selectedChainID,
                     link: link[0],
@@ -207,6 +220,7 @@ export const CreateLinkConfirmView = ({
                             ? preparedDepositTxs && preparedDepositTxs.unsignedTxs[0]
                             : undefined,
                 })
+                console.log(`Submitting claim link confirm response at ${new Date().getTime() - now}ms`)
 
                 if (createType === 'email_link') shareToEmail(recipient.name ?? '', link[0], usdValue)
                 if (createType === 'sms_link') shareToSms(recipient.name ?? '', link[0], usdValue)
@@ -222,6 +236,7 @@ export const CreateLinkConfirmView = ({
                 })
             }
 
+            console.log(`Finished at ${new Date().getTime() - now}ms`)
             onNext()
             refetchBalances(address ?? '')
         } catch (error) {
@@ -244,7 +259,7 @@ export const CreateLinkConfirmView = ({
                 <Card.Header>
                     <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
                         {createType == 'link'
-                            ? 'Text Tokens'
+                            ? 'Send to Anyone'
                             : createType == 'direct'
                               ? `Send to ${validateEnsName(recipient.name) ? recipient.name : printableAddress(recipient.address ?? '')}`
                               : `Send to ${recipient.name}`}
@@ -330,7 +345,7 @@ export const CreateLinkConfirmView = ({
                                                 ? 'This transaction is sponsored by peanut! Enjoy!'
                                                 : transactionCostUSD > 0
                                                   ? `This transaction will cost you $${formatTokenAmount(transactionCostUSD, 3)} in network fees.`
-                                                  : 'This transaction is sponsored by peanut! Enjoy!'
+                                                  : 'This transaction is sponsored by Peanut! Enjoy!'
                                         }
                                     />
                                 </label>

@@ -1,7 +1,7 @@
 'useClient'
 
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { claimLinkGasless, claimLinkXChainGasless, interfaces } from '@squirrel-labs/peanut-sdk'
+import { claimLinkGasless, claimLinkXChainGasless } from '@squirrel-labs/peanut-sdk'
 import { useContext } from 'react'
 import { useSwitchChain } from 'wagmi'
 import { fetchWithSentry } from '@/utils'
@@ -76,16 +76,6 @@ export const useClaimLink = () => {
         }
     }
 
-    const getSquidRoute = async ({
-        linkDetails,
-        destinationChainId,
-        destinationToken,
-    }: {
-        linkDetails: interfaces.IPeanutLinkDetails
-        destinationChainId: string
-        destinationToken: string
-    }) => {}
-
     const switchNetwork = async (chainId: string) => {
         try {
             await switchNetworkUtil({
@@ -102,7 +92,6 @@ export const useClaimLink = () => {
             Sentry.captureException(error)
         }
     }
-    const checkTxStatus = async (txHash: string) => {}
 
     const getAttachmentInfo = async (link: string) => {
         try {
@@ -131,9 +120,7 @@ export const useClaimLink = () => {
     return {
         claimLink,
         claimLinkXchain,
-        getSquidRoute,
         switchNetwork,
-        checkTxStatus,
         getAttachmentInfo,
     }
 }

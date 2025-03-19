@@ -34,9 +34,11 @@ export async function generateMetadata({ params }: any) {
         return { title }
     }
 
-    let recipient = params.recipient[0] || 'Someone'
+    let recipient = params.recipient[0]
+
     if (recipient.includes('%40') || recipient.includes('@')) {
-        recipient = recipient.split(/[@%40]/)[0]
+        // split on @ or %40
+        recipient = recipient.split(/%40|@/)[0] || 'Someone'
     }
 
     let amount, token

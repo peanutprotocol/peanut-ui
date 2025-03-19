@@ -60,8 +60,8 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'notification-permission',
         layoutType: 'standard',
-        title: 'Enable notification',
-        description: 'Get notified about incoming and outgoing of payments.',
+        title: 'Enable Notifications',
+        description: `Get immediately notified when you get paid.`,
         image: PEANUTMAN_THINKING,
         component: NotificationPermission,
         showBackButton: true,

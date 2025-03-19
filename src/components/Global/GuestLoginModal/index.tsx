@@ -35,7 +35,7 @@ const GuestLoginModal = () => {
                 >
                     Sign In
                 </Button>
-                <Link href={'/setup'} className="text-h8 underline">
+                <Link href={'/setup'} className="text-h8 underline" onClick={signInModal.close}>
                     Don't have a Peanut wallet? Get one now.
                 </Link>
                 <div className="my-2 flex w-full items-center gap-4">

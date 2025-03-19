@@ -1,17 +1,21 @@
 import { EParseUrlError, parsePaymentURL } from '@/lib/url-parser/parser'
 
 // mock ENS resolution
-jest.mock('@/utils', () => ({
-    resolveFromEnsName: (name: string) => {
-        if (name === 'vitalik.eth') {
-            return Promise.resolve('0x1234567890123456789012345678901234567890')
-        }
-        if (name.endsWith('.testvc.eth')) {
-            return Promise.resolve('0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271')
-        }
-        return Promise.resolve(null)
-    },
-}))
+jest.mock('@/utils', () => {
+    const originalModule = jest.requireActual('@/utils')
+    return {
+        ...originalModule,
+        resolveFromEnsName: (name: string) => {
+            if (name === 'vitalik.eth') {
+                return Promise.resolve('0x1234567890123456789012345678901234567890')
+            }
+            if (name.endsWith('.testvc.eth')) {
+                return Promise.resolve('0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271')
+            }
+            return Promise.resolve(null)
+        },
+    }
+})
 
 // mock Peanut username validation
 jest.mock('@/lib/validation/recipient', () => {
@@ -81,7 +85,6 @@ jest.mock('@/app/actions/squid', () => ({
 }))
 
 jest.mock('@/constants', () => ({
-    JUSTANAME_ENS: process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || '',
     PEANUT_WALLET_CHAIN: {
         id: '42161',
         name: 'Arbitrum',
@@ -338,7 +341,7 @@ describe('URL Parser Tests', () => {
             )
         })
 
-        it('should handle token without chain for peanut username', async () => {
+        it('should handle token without chain for Peanut username', async () => {
             const result = await parsePaymentURL(['kusharc', '5USDC'])
             expect(result.error).toBeNull()
             expect(result.parsedUrl).toEqual(
@@ -491,7 +494,7 @@ describe('URL Parser Tests', () => {
     })
 
     describe('Error Cases', () => {
-        it('should return error for invalid peanut usernames', async () => {
+        it('should return error for invalid Peanut usernames', async () => {
             const result = await parsePaymentURL(['0xinvalid'])
             expect(result.error).toBeTruthy()
             expect(result.parsedUrl).toBeNull()

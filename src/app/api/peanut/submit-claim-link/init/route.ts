@@ -22,25 +22,28 @@ export async function POST(request: NextRequest) {
                 }
             )
         }
-
         const { address: pubKey } = generateKeysFromString(password)
 
-        const requestBody = {
-            pubKey,
-            apiKey: process.env.PEANUT_API_KEY ?? '',
-            senderAddress,
-            reference: attachmentOptions.message,
-            link: formData.get('link') as string,
-            signature: null,
+        const apiFormData = new FormData()
+        apiFormData.append('pubKey', pubKey)
+        apiFormData.append('apiKey', process.env.PEANUT_API_KEY ?? '')
+        apiFormData.append('senderAddress', senderAddress)
+        apiFormData.append('reference', attachmentOptions.message ?? '')
+        apiFormData.append('link', formData.get('link') as string)
+        apiFormData.append('signature', '')
+        const attachmentFile = formData.get('attachment') as File
+        if (attachmentFile) {
+            apiFormData.append('attachment', attachmentFile)
+            apiFormData.append('mimetype', attachmentFile.type)
+            apiFormData.append('filename', attachmentFile.name)
         }
 
         const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/submit-claim-link/init`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'api-key': process.env.PEANUT_API_KEY ?? '',
+                'api-key': process.env.PEANUT_API_KEY!,
             },
-            body: JSON.stringify(requestBody),
+            body: apiFormData,
         })
 
         if (!response.ok) {

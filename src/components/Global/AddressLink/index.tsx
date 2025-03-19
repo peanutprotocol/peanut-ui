@@ -1,11 +1,11 @@
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { useEnsName } from 'wagmi'
-import { isAddress } from 'viem'
+import { RecipientType } from '@/lib/url-parser/types/payment'
 import * as utils from '@/utils'
 import { usePrimaryName } from '@justaname.id/react'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { isAddress } from 'viem'
 
-const AddressLink = ({ address }: { address: string }) => {
+const AddressLink = ({ address, recipientType }: { address: string; recipientType?: RecipientType }) => {
     const [url, setUrl] = useState<string>('')
     const [displayAddress, setDisplayAddress] = useState<string>(utils.printableAddress(address))
 
@@ -13,11 +13,15 @@ const AddressLink = ({ address }: { address: string }) => {
     const { primaryName: ensName } = usePrimaryName({
         address: isAddress(address) ? (address as `0x${string}`) : undefined,
         chainId: 1, // Mainnet for ENS lookups
+        priority: 'onChain',
     })
 
     useEffect(() => {
-        // Always set debank URL
-        setUrl(`https://debank.com/profile/${address}`)
+        if (recipientType === 'USERNAME') {
+            setUrl(`${process.env.NEXT_PUBLIC_BASE_URL}/${address}`)
+        } else {
+            setUrl(`https://debank.com/profile/${address}`)
+        }
 
         // Update display: prefer ENS name, fallback to shortened address
         if (ensName) {

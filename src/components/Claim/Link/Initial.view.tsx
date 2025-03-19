@@ -16,28 +16,33 @@ import {
 } from '@/components/Offramp/Offramp.consts'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import * as consts from '@/constants'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PINTA_WALLET_TOKEN } from '@/constants'
 import { TOOLTIPS } from '@/constants/tooltips'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useAppDispatch } from '@/redux/hooks'
+import { walletActions } from '@/redux/slices/wallet-slice'
 import {
     areEvmAddressesEqual,
     checkifImageType,
     ErrorHandler,
+    fetchWithSentry,
     formatTokenAmount,
     getBridgeChainName,
     getBridgeTokenName,
     saveClaimedLinkToLocalStorage,
-    fetchWithSentry,
+    saveToLocalStorage,
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
+import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
-import { useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useState, useMemo } from 'react'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
-import * as Sentry from '@sentry/nextjs'
+import { WalletProviderType } from '@/interfaces'
+import { parseUnits } from 'viem'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -61,6 +66,7 @@ export const InitialClaimLinkView = ({
     setUserType,
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
+    const dispatch = useAppDispatch()
     const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
@@ -84,8 +90,16 @@ export const InitialClaimLinkView = ({
         supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
     const { claimLink } = useClaimLink()
-    const { isConnected, address, signInModal, isExternalWallet, isPeanutWallet, selectedWallet, refetchBalances } =
-        useWallet()
+    const {
+        isConnected,
+        address,
+        signInModal,
+        isExternalWallet,
+        isPeanutWallet,
+        selectedWallet,
+        refetchBalances,
+        selectPeanutWallet,
+    } = useWallet()
     const { user } = useAuth()
 
     const resetSelectedToken = useCallback(() => {
@@ -105,6 +119,8 @@ export const InitialClaimLinkView = ({
             await new Promise((resolve) => setTimeout(resolve, 100))
             setRecipient({ name: undefined, address: address })
         } else {
+            const currentUrl = new URL(window.location.href)
+            saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
             signInModal.open()
         }
     }
@@ -318,7 +334,14 @@ export const InitialClaimLinkView = ({
         }
     }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
 
+    const isReward = useMemo(() => {
+        if (!claimLinkData.tokenAddress) return false
+        return areEvmAddressesEqual(claimLinkData.tokenAddress, consts.PINTA_WALLET_TOKEN)
+    }, [claimLinkData.tokenAddress])
+
     useEffect(() => {
+        if (isReward || !claimLinkData.tokenAddress) return
+
         if (refetchXchainRoute) {
             setIsXchainLoading(true)
             setLoadingState('Fetching route')
@@ -331,7 +354,7 @@ export const InitialClaimLinkView = ({
             fetchRoute()
             setRefetchXchainRoute(false)
         }
-    }, [claimLinkData, refetchXchainRoute])
+    }, [claimLinkData, refetchXchainRoute, isReward])
 
     const fetchRoute = async (toToken?: string, toChain?: string) => {
         try {
@@ -351,9 +374,7 @@ export const InitialClaimLinkView = ({
                 return undefined
             }
 
-            const tokenAmount = Math.floor(
-                Number(claimLinkData.tokenAmount) * Math.pow(10, claimLinkData.tokenDecimals)
-            ).toString()
+            const tokenAmount: BigInt = parseUnits(claimLinkData.tokenAmount, claimLinkData.tokenDecimals)
 
             const fromToken =
                 claimLinkData.tokenAddress === '0x0000000000000000000000000000000000000000'
@@ -364,7 +385,7 @@ export const InitialClaimLinkView = ({
                 squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
                 fromChain: claimLinkData.chainId.toString(),
                 fromToken: fromToken,
-                fromAmount: tokenAmount,
+                fromAmount: tokenAmount.toString(),
                 toChain: toChain ? toChain : selectedChainID.toString(),
                 toToken: toToken ? toToken : selectedTokenAddress,
                 slippage: 1,
@@ -396,6 +417,21 @@ export const InitialClaimLinkView = ({
             setLoadingState('Idle')
         }
     }
+
+    useEffect(() => {
+        // set rewards wallet if user is connected and claim link is for Pinta
+        if (!user) return
+        if (isReward) {
+            dispatch(walletActions.setSelectedWalletId('pinta-wallet'))
+
+            if (address) {
+                setRecipient({ name: undefined, address })
+                setIsValidRecipient(true)
+            }
+        } else if (selectedWallet?.walletProviderType === WalletProviderType.REWARDS) {
+            selectPeanutWallet()
+        }
+    }, [isReward, user, address, selectedWallet?.walletProviderType, selectPeanutWallet])
 
     useEffect(() => {
         if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
@@ -440,13 +476,19 @@ export const InitialClaimLinkView = ({
 
     return (
         <div>
-            {!!user && <FlowHeader />}
+            {!!user && <FlowHeader isPintaClaim={isReward} disableWalletHeader={isReward} />}
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
                     <Card.Title className="mx-auto">
                         <div className="flex w-full flex-col items-center justify-center gap-2">
-                            <AddressLink address={claimLinkData.senderAddress} /> sent you
-                            {tokenPrice ? (
+                            {isReward ? (
+                                <span>You received</span>
+                            ) : (
+                                <>
+                                    <AddressLink address={claimLinkData.senderAddress} /> sent you
+                                </>
+                            )}
+                            {!isReward && tokenPrice ? (
                                 <label className="text-h2">
                                     ${formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
                                 </label>
@@ -573,7 +615,7 @@ export const InitialClaimLinkView = ({
                                         <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                     ) : (
                                         <>
-                                            $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
+                                            $0.00 <MoreInfo text={'This transaction is sponsored by Peanut! Enjoy!'} />
                                         </>
                                     )}
                                 </span>
@@ -594,7 +636,7 @@ export const InitialClaimLinkView = ({
                                         <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                     ) : (
                                         <>
-                                            $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
+                                            $0.00 <MoreInfo text={'This transaction is sponsored by Peanut! Enjoy!'} />
                                         </>
                                     )}
                                 </span>

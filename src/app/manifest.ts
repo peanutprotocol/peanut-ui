@@ -1,9 +1,18 @@
 import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
+    let name = 'Peanut'
+    switch (process.env.NODE_ENV) {
+        case 'development':
+            name = 'Peanut Dev'
+            break
+        case 'test':
+            name = 'Peanut Test'
+            break
+    }
     return {
-        name: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
-        short_name: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
+        name,
+        short_name: name,
         description: 'Butter smooth global money',
         start_url: '/home',
         display: 'standalone',
@@ -20,12 +29,35 @@ export default function manifest(): MetadataRoute.Manifest {
                 src: '/icons/icon-512x512.png',
                 sizes: '512x512',
                 type: 'image/png',
+                purpose: 'maskable',
+            },
+            {
+                src: '/icons/apple-touch-icon.png',
+                sizes: '180x180',
+                type: 'image/png',
+                purpose: 'maskable',
+            },
+            {
+                src: '/icons/apple-touch-icon-152x152.png',
+                sizes: '152x152',
+                type: 'image/png',
+                purpose: 'maskable',
             },
         ],
         protocol_handlers: [
             {
                 protocol: 'web+peanut',
                 url: '/home',
+            },
+        ],
+        related_applications: [
+            {
+                platform: 'webapp',
+                url: 'https://peanut.me/manifest.json',
+            },
+            {
+                platform: 'ios',
+                url: 'https://peanut.me',
             },
         ],
         scope: '/',

@@ -1,3 +1,4 @@
+import { TransactionType } from '@/components/Global/ListItemView'
 import * as consts from '@/constants'
 import { INFURA_API_KEY, STABLE_COINS } from '@/constants'
 import * as interfaces from '@/interfaces'
@@ -60,7 +61,7 @@ export const shortenAddressLong = (address?: string, chars?: number): string => 
 }
 
 export const printableAddress = (address: string): string => {
-    if (validateEnsName(address)) return address
+    if (!isAddress(address)) return address
     return shortenAddressLong(address)
 }
 
@@ -684,10 +685,10 @@ export type UserPreferences = {
         decimals: number
     }
     lastSelectedWallet?: {
-        address: string
+        id: string
     }
     lastFocusedWallet?: {
-        address: string
+        id: string
     }
     balanceHidden?: boolean
 }
@@ -872,6 +873,8 @@ export const switchNetwork = async ({
             await new Promise((resolve) => setTimeout(resolve, 2000))
             setLoadingState('Loading')
         } catch (error) {
+            console.error('Error switching network:', error)
+            Sentry.captureException(error)
             throw new Error('Error switching network.')
         }
     }
@@ -1042,13 +1045,47 @@ export function getRequestLink(
 
 // for now it works
 export function getTokenLogo(tokenSymbol: string): string {
+    if (tokenSymbol.toLowerCase() === 'pnt') {
+        return 'https://polygonscan.com/token/images/pintatoken_32.png'
+    }
     return `https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/${tokenSymbol.toLowerCase()}.svg`
 }
 
 export function getChainLogo(chainName: string): string {
-    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${chainName.toLowerCase()}.webp`
+    let name
+    switch (chainName.toLowerCase()) {
+        case 'arbitrum one':
+            name = 'arbitrum'
+            break
+        case 'bsc':
+        case 'bnb':
+            name = 'binance'
+            break
+        default:
+            name = chainName.toLowerCase()
+    }
+    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${name}.webp`
 }
 
 export function isStableCoin(tokenSymbol: string): boolean {
     return STABLE_COINS.includes(tokenSymbol.toUpperCase())
+}
+
+export const getHistoryTransactionStatus = (type: TransactionType | undefined, status: string | undefined): string => {
+    if (!status || !type) return 'pending'
+
+    switch (type) {
+        case 'Link Sent':
+            return ['claimed', 'pending', 'unclaimed'].includes(status.toLowerCase()) ? status : 'pending'
+        case 'Link Received':
+            return ['claimed', 'pending'].includes(status.toLowerCase()) ? status : 'pending'
+        case 'Money Requested':
+            return ['claimed', 'paid', 'canceled'].includes(status.toLowerCase()) ? status : 'pending'
+        case 'Request paid':
+            return ['claimed', 'paid'].includes(status.toLowerCase()) ? status : 'pending'
+        case 'Cash Out':
+            return ['pending', 'successful', 'error'].includes(status.toLowerCase()) ? status : 'pending'
+        default:
+            return status
+    }
 }

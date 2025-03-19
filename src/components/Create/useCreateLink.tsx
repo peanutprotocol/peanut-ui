@@ -32,23 +32,25 @@ import { Hex } from 'viem'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { WalletProviderType } from '@/interfaces'
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
     const { selectedChainID, selectedTokenData, selectedTokenAddress } = useContext(tokenSelectorContext)
 
-    const { chain: currentChain, address, selectedWallet, refetchBalances } = useWallet()
+    const {
+        chain: currentChain,
+        address,
+        selectedWallet,
+        refetchBalances,
+        isExternalWallet,
+        isSmartAccount,
+    } = useWallet()
     const { connector } = useAccount()
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
     const { walletType, environmentInfo } = useWalletType()
-
-    const isActiveWalletPW = selectedWallet?.walletProviderType === WalletProviderType.PEANUT
-    const isActiveWalletBYOW = selectedWallet?.walletProviderType === WalletProviderType.BYOW
-
     const { handleSendUserOpEncoded } = useZeroDev()
 
     // step 1
@@ -343,7 +345,7 @@ export const useCreateLink = () => {
             formData.append('senderAddress', senderAddress)
 
             if (attachmentOptions.attachmentFile) {
-                formData.append('attachmentFile', attachmentOptions.attachmentFile)
+                formData.append('attachment', attachmentOptions.attachmentFile)
             }
 
             const response = await fetchWithSentry('/api/peanut/submit-claim-link/init', {
@@ -556,13 +558,13 @@ export const useCreateLink = () => {
                 let idx = 0
                 const signedTxsResponse: string[] = []
 
-                if (isActiveWalletPW) {
+                if (isSmartAccount) {
                     const params = preparedDepositTxs.unsignedTxs.map((tx) => ({
                         to: tx.to! as Hex,
                         value: tx.value?.valueOf(),
                         data: tx.data as Hex | undefined,
                     }))
-                    let hash = await handleSendUserOpEncoded(params)
+                    let hash = await handleSendUserOpEncoded(params, selectedChainID)
                     signedTxsResponse.push(hash.toString())
                     idx++
                     return signedTxsResponse[signedTxsResponse.length - 1]
@@ -582,7 +584,7 @@ export const useCreateLink = () => {
                             Sentry.captureException(error)
                         }
                     }
-                    if (isActiveWalletBYOW) {
+                    if (isExternalWallet) {
                         // Send the transaction using wagmi
                         // current stage is encoded but NOT signed
                         let hash = await sendTransactionAsync({
@@ -634,7 +636,7 @@ export const useCreateLink = () => {
                 throw error
             }
         },
-        [selectedChainID, sendTransactionAsync, config, isActiveWalletPW, isActiveWalletBYOW, handleSendUserOpEncoded]
+        [selectedChainID, sendTransactionAsync, config, isSmartAccount, isExternalWallet, handleSendUserOpEncoded]
     )
     const getLinkFromHash = async ({
         hash,
@@ -679,7 +681,7 @@ export const useCreateLink = () => {
                 chainId: selectedChainID,
                 tokenAddress: selectedTokenAddress,
             })
-            if (_isGaslessDepositPossible && !isActiveWalletPW) {
+            if (_isGaslessDepositPossible && !isSmartAccount) {
                 // routing only gasless BYOW txs through here
                 const makeGaslessDepositResponse = await makeGaslessDepositPayload({
                     _linkDetails: linkDetails,
@@ -734,7 +736,7 @@ export const useCreateLink = () => {
             estimateGasFee,
             selectedChainID,
             selectedTokenAddress,
-            isActiveWalletPW,
+            isSmartAccount,
         ]
     )
 

@@ -629,7 +629,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
         ) : (
             <div className="flex w-full flex-col items-center justify-center gap-6 px-2 text-start">
                 <p className="text-h8 font-normal">
-                    Complete the following steps to link your bank account to your peanut profile for a smooth cashout
+                    Complete the following steps to link your bank account to your Peanut profile for a smooth cashout
                     experience.
                 </p>
                 <Steps

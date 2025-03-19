@@ -6,6 +6,7 @@ import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import PaymentStatusView from '@/components/Payment/Views/Payment.status.view'
+import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
 import { useAuth } from '@/context/authContext'
 import { EParseUrlError, parsePaymentURL, ParseUrlError } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
@@ -135,6 +136,18 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     const isLoading = !isUrlParsed || (chargeId && !chargeDetails) || (requestId && !requestDetails)
     if (isLoading) {
         return <PeanutLoading />
+    }
+
+    if (parsedPaymentData?.token?.symbol === 'PNT') {
+        return (
+            <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
+                <div>
+                    {currentView === 'INITIAL' && <InitialPaymentView {...parsedPaymentData} />}
+                    {currentView === 'CONFIRM' && <ConfirmPaymentView />}
+                    {currentView === 'STATUS' && <PintaReqPaySuccessView />}
+                </div>
+            </div>
+        )
     }
 
     return (
