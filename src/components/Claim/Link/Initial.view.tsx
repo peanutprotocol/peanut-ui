@@ -32,6 +32,7 @@ import {
     getBridgeChainName,
     getBridgeTokenName,
     saveClaimedLinkToLocalStorage,
+    saveToLocalStorage,
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
@@ -118,6 +119,8 @@ export const InitialClaimLinkView = ({
             await new Promise((resolve) => setTimeout(resolve, 100))
             setRecipient({ name: undefined, address: address })
         } else {
+            const currentUrl = new URL(window.location.href)
+            saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}`)
             signInModal.open()
         }
     }
