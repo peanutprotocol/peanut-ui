@@ -5,6 +5,7 @@ import { useDashboard } from '@/components/Dashboard/useDashboard'
 import AddressLink from '@/components/Global/AddressLink'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
+import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { TransactionBadge } from '@/components/Global/TransactionBadge'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -13,6 +14,7 @@ import {
     formatAmount,
     formatDate,
     getChainLogo,
+    getHeaderTitle,
     getHistoryTransactionStatus,
     getTokenLogo,
     isStableCoin,
@@ -21,12 +23,14 @@ import {
 import * as Sentry from '@sentry/nextjs'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { isAddress } from 'viem'
 
 const ITEMS_PER_PAGE = 10
 
 const HistoryPage = () => {
+    const pathname = usePathname()
     const { address } = useWallet()
     const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
     const [dashboardData, setDashboardData] = useState<IDashboardItem[]>([])
@@ -142,6 +146,7 @@ const HistoryPage = () => {
 
     return (
         <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
+            {!!data?.pages.length ? <NavHeader title={getHeaderTitle(pathname)} /> : null}
             <div className="h-full w-full border-t border-n-1">
                 {!!data?.pages.length &&
                     data?.pages.map((page, pageIndex) => (

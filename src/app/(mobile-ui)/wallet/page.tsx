@@ -3,9 +3,11 @@
 import { ARBITRUM_ICON } from '@/assets'
 import { Button, Card } from '@/components/0_Bruddle'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
+import DirectSendQr from '@/components/Global/DirectSendQR'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import Icon from '@/components/Global/Icon'
 import { ListItemView } from '@/components/Global/ListItemView'
+import NavHeader from '@/components/Global/NavHeader'
 import { PartnerBarLocation, RewardDetails } from '@/components/Global/RewardsModal'
 import { WalletCard } from '@/components/Home/WalletCard'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_TOKEN_NAME } from '@/constants'
@@ -14,13 +16,14 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { IWallet, WalletProviderType } from '@/interfaces'
 import { useWalletStore } from '@/redux/hooks'
-import { formatAmount, getChainName, getUserPreferences, updateUserPreferences } from '@/utils'
+import { formatAmount, getChainName, getHeaderTitle, getUserPreferences, updateUserPreferences } from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
+import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { formatUnits } from 'viem'
-import DirectSendQr from '@/components/Global/DirectSendQR'
 
 const WalletDetailsPage = () => {
+    const pathname = usePathname()
     const { disconnect } = useDisconnect()
     const { focusedWallet: focusedWalletId } = useWalletStore()
     const { connectWallet } = useWalletConnection()
@@ -126,6 +129,10 @@ const WalletDetailsPage = () => {
 
     return (
         <div className="mx-auto flex w-full flex-col gap-6 md:max-w-2xl">
+            <div className="md:hidden">
+                <NavHeader title={getHeaderTitle(pathname)} />
+            </div>
+
             <div className="mx-auto">
                 {focusedWalletId && walletDetails && (
                     <WalletCard
