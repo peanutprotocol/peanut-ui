@@ -31,7 +31,7 @@ const AddressLink = ({ address, className = '' }: AddressLinkProps) => {
             // for peanut ens names, strip the domain from the displayed string!
             const ensDomain = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || ''
             if (ensName.endsWith(ensDomain)) {
-                setDisplayAddress(ensName.slice(0, -ensDomain.length))
+                setDisplayAddress(ensName.slice(0, -(ensDomain.length + 1))) // include the dot
             }
         } else {
             setDisplayAddress(isAddress(address) ? printableAddress(address) : address)
