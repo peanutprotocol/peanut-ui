@@ -130,10 +130,14 @@ export const InitialClaimLinkView = ({
             await new Promise((resolve) => setTimeout(resolve, 100))
             setRecipient({ name: undefined, address: address })
         } else {
-            const currentUrl = new URL(window.location.href)
-            saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
+            saveRedirectUrl()
             signInModal.open()
         }
+    }
+
+    const saveRedirectUrl = () => {
+        const currentUrl = new URL(window.location.href)
+        saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
     }
 
     const handleClaimLink = async () => {
@@ -636,7 +640,11 @@ export const InitialClaimLinkView = ({
                                 >
                                     Sign in with your Peanut Wallet
                                 </Button>
-                                <Link href={'/setup'} className="block h-8 text-center font-bold underline">
+                                <Link
+                                    href={'/setup'}
+                                    onClick={saveRedirectUrl}
+                                    className="block h-8 text-center font-bold underline"
+                                >
                                     Don't have a Peanut Wallet? Get one now!
                                 </Link>
                                 <Divider text="or" />
@@ -684,7 +692,11 @@ export const InitialClaimLinkView = ({
                         {!user && (isConnected || recipient.address.length !== 0) && (
                             <div className="space-y-1 text-center">
                                 <label className="h-8">Want to manage all your payments in one place?</label>
-                                <Link href={'/setup'} className="block h-8 text-center font-bold underline">
+                                <Link
+                                    href={'/setup'}
+                                    onClick={saveRedirectUrl}
+                                    className="block h-8 text-center font-bold underline"
+                                >
                                     Create a Peanut account
                                 </Link>
                             </div>
