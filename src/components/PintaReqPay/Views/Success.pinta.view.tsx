@@ -14,9 +14,7 @@ const PintaReqPaySuccessView = () => {
     const { rewardWalletBalance } = useWalletStore()
     const [isPooling, setIsPolling] = useState(true)
     // todo: fix in balance pr
-    const remainingBeers =  useMemo(() =>
-        Math.floor(Number(rewardWalletBalance))
-    , [rewardWalletBalance])
+    const remainingBeers = useMemo(() => Math.floor(Number(rewardWalletBalance)), [rewardWalletBalance])
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
 
