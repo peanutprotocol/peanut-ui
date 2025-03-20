@@ -59,7 +59,7 @@ export default function ConfirmPaymentView() {
     >()
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const { switchChainAsync } = useSwitchChain()
-    const { setLoadingState } = useContext(loadingStateContext)
+    const { setLoadingState, loadingState } = useContext(loadingStateContext)
     const [txFee, setTxFee] = useState<string>('0')
     const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
     const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
@@ -146,6 +146,14 @@ export default function ConfirmPaymentView() {
             return xchainUnsignedTxs
         } catch (error) {
             console.error('Cross-chain preparation error:', error)
+            let errorBody = undefined
+            try {
+                errorBody = JSON.parse((error as Error).message)
+            } catch (e) {}
+            if (errorBody?.message) {
+                dispatch(paymentActions.setError(errorBody.message))
+                return
+            }
             throw new Error(error instanceof Error ? error.message : 'Failed to estimate from amount')
         }
     }
@@ -187,7 +195,7 @@ export default function ConfirmPaymentView() {
                 )
 
                 if (!txData?.unsignedTxs) {
-                    throw new Error('Failed to prepare cross-chain transaction')
+                    return false
                 }
 
                 setXChainUnsignedTxs(txData.unsignedTxs)
@@ -218,6 +226,8 @@ export default function ConfirmPaymentView() {
             return false
         } finally {
             setIsSubmitting(false)
+            setIsEstimatingGas(false)
+            setIsCalculatingFees(false)
         }
         return true
     }
@@ -307,12 +317,18 @@ export default function ConfirmPaymentView() {
         if (isInsufficientRewardsBalance) return 'Insufficient Balance'
 
         if (isSubmitting) {
-            return (
-                <div className="flex items-center justify-center gap-2">
-                    <span>{isXChainTx ? 'Fetching Best Quote For You...' : 'Preparing Transaction...'}</span>
-                </div>
-            )
+            // First, show any global loading state if set (these take precedence over local states)
+            if (loadingState !== 'Idle') {
+                if (loadingState === 'Sign in wallet') return 'Sign in wallet...'
+                if (loadingState === 'Executing transaction') return 'Processing payment...'
+                if (loadingState === 'Switching network') return 'Switching network...'
+                if (loadingState === 'Fetching route') return 'Finding best route...'
+                if (loadingState === 'Awaiting route fulfillment') return 'Finalizing transaction...'
+                return loadingState
+            }
+            return isXChainTx ? 'Fetching Best Quote For You...' : 'Preparing Transaction...'
         }
+
         if (isCalculatingFees || isEstimatingGas) {
             return (
                 <div className="flex items-center justify-center gap-2">
