@@ -49,7 +49,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                 if (result.success) {
                     toast.info('QR code recognized')
                     // wait a little bit before closing the scanner
-                    setTimeout(closeScanner, 500)
+                    setTimeout(closeScanner, 750)
                 } else {
                     setStatusMessage("We dont't support this QR code yet")
                     toast.error(result.error || 'QR code processing failed')
