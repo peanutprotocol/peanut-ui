@@ -398,7 +398,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     }, [resetTokenAndChain, isPeanutWallet])
 
     const renderRequestedPaymentDetails = () => {
-        if (!requestDetails || !requestDetails.tokenAmount || !requestDetails.tokenSymbol) return null
+        if (!requestDetails || !requestDetails.tokenAmount || !requestDetails.tokenSymbol || !requestId) return null
 
         const tokenAmount = parseFloat(requestDetails.tokenAmount)
         const tokenUsdValue =
@@ -555,7 +555,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                 className="w-full"
                 disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
             />
-            {requestDetails?.recipientAccount.type !== AccountType.PEANUT_WALLET && renderRequestedPaymentDetails()}
+            {renderRequestedPaymentDetails()}
             {isExternalWallet && (
                 <div>
                     <div className="mb-2 text-sm font-medium">Choose your payment method:</div>
