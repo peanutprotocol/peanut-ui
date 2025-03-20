@@ -3,6 +3,7 @@ import { useContext, useMemo, useState } from 'react'
 
 import { Button, Card } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
+import AddressLink from '@/components/Global/AddressLink'
 import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
@@ -16,7 +17,6 @@ import {
     areEvmAddressesEqual,
     ErrorHandler,
     formatTokenAmount,
-    printableAddress,
     saveCreatedLinkToLocalStorage,
     saveDirectSendToLocalStorage,
     shareToEmail,
@@ -24,10 +24,9 @@ import {
     updateUserPreferences,
     validateEnsName,
 } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import * as _consts from '../Create.consts'
 import { useCreateLink } from '../useCreateLink'
-import * as Sentry from '@sentry/nextjs'
-import AddressLink from '@/components/Global/AddressLink'
 
 export const CreateLinkConfirmView = ({
     onNext,

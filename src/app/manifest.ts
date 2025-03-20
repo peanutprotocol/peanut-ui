@@ -35,13 +35,11 @@ export default function manifest(): MetadataRoute.Manifest {
                 src: '/icons/apple-touch-icon.png',
                 sizes: '180x180',
                 type: 'image/png',
-                purpose: 'maskable',
             },
             {
                 src: '/icons/apple-touch-icon-152x152.png',
                 sizes: '152x152',
                 type: 'image/png',
-                purpose: 'maskable',
             },
         ],
         protocol_handlers: [

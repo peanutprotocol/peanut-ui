@@ -1,12 +1,12 @@
 'use client'
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { isAddress } from 'viem'
 
 import { Button } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 import QRScanner from '@/components/Global/QRScanner'
-import { validateEnsName, resolveFromEnsName } from '@/utils'
+import { resolveFromEnsName, validateEnsName } from '@/utils'
 
 export default function DirectSendQr() {
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
@@ -47,7 +47,14 @@ export default function DirectSendQr() {
             <Button
                 onClick={() => setIsQRScannerOpen(true)}
                 variant="purple"
-                className={'mx-auto flex w-fit cursor-pointer items-center justify-center gap-2 rounded-full'}
+                className={
+                    'mx-auto flex w-fit cursor-pointer items-center justify-center gap-2 rounded-full' +
+                    ' [-webkit-tap-highlight-color:transparent]' +
+                    ' [&]:!-webkit-appearance-none'
+                }
+                style={{
+                    WebkitAppearance: 'none',
+                }}
                 shadowSize="4"
             >
                 <Icon name="camera" fill="black" className="size-4" />
