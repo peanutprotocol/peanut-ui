@@ -208,30 +208,24 @@ export default function Home() {
                         </div>
                     </div>
 
-                    {/* Only show CTAs if not focused on the add wallet card */}
-                    {focusedIndex !== totalCards - 1 && (
-                        <>
-                            {focusedWalletId &&
-                            wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
-                                WalletProviderType.REWARDS ? (
-                                <div className="px-6 md:pb-6">
-                                    <DirectSendQr />
-                                </div>
-                            ) : (
-                                <div className="px-6 md:pb-6">
-                                    <DirectionalActionButtons
-                                        leftButton={{
-                                            title: 'Send',
-                                            href: '/send',
-                                        }}
-                                        rightButton={{
-                                            title: 'Receive',
-                                            href: '/request/create',
-                                        }}
-                                    />
-                                </div>
-                            )}
-                        </>
+                    {focusedWalletId &&
+                    wallets.find((w) => w.id === focusedWalletId)?.walletProviderType === WalletProviderType.REWARDS ? (
+                        <div className="px-6 md:pb-6">
+                            <DirectSendQr />
+                        </div>
+                    ) : (
+                        <div className="px-6 md:pb-6">
+                            <DirectionalActionButtons
+                                leftButton={{
+                                    title: 'Send',
+                                    href: '/send',
+                                }}
+                                rightButton={{
+                                    title: 'Receive',
+                                    href: '/request/create',
+                                }}
+                            />
+                        </div>
                     )}
                 </div>
             </div>
