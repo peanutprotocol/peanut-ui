@@ -1,6 +1,6 @@
 'use client'
 
-import { PeanutArmHoldingBeer } from '@/assets'
+import { PeanutArmHoldingBeer, PEANUTMAN_LOGO } from '@/assets'
 import PeanutWalletIcon from '@/assets/icons/small-peanut.png'
 import { Button, Card } from '@/components/0_Bruddle'
 import { useAuth } from '@/context/authContext'
@@ -135,6 +135,7 @@ const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: Wallet
     const { wallets, selectedWallet, isConnected, isWalletConnected, isPeanutWallet } = useWallet()
     const { connectWallet } = useWalletConnection()
     const dispatch = useAppDispatch()
+    const [isInitializing, setIsInitializing] = useState(true)
 
     const sortedWallets = useMemo(() => {
         return [...wallets].filter((account) => {
@@ -204,6 +205,7 @@ const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: Wallet
                 }
             }
         }
+        setIsInitializing(false)
     }, [sortedWallets, isWalletConnected, dispatch, selectedWallet])
 
     const { primaryName } = usePrimaryName({
@@ -225,7 +227,7 @@ const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: Wallet
             >
                 <WalletIconContainer src={getWalletIcon(selectedWallet || null, isPeanutWallet, false)} />
 
-                {isConnected ? (
+                {isConnected && !isInitializing ? (
                     <span>
                         {selectedWallet?.walletProviderType === WalletProviderType.PEANUT
                             ? 'Peanut Wallet'
@@ -235,7 +237,10 @@ const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: Wallet
                                 shortenAddressLong(selectedWallet?.address)}
                     </span>
                 ) : (
-                    'Connect Wallet'
+                    <div className="flex items-center gap-2">
+                        <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4 animate-spin" />
+                        <div>Loading...</div>
+                    </div>
                 )}
                 <button className="ml-2.5 flex size-7 items-center justify-center rounded-full border border-n-1 bg-white p-0.5">
                     <Icon name="arrow-down-filled" fill="black" className="h-4" />
