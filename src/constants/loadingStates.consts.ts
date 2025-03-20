@@ -2,6 +2,7 @@ export type LoadingStates =
     | 'Idle'
     | 'Loading'
     | 'Preparing transaction'
+    | 'Approve transaction'
     | 'Sign in wallet'
     | 'Executing transaction'
     | 'Allow network switch'
