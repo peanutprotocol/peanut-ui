@@ -33,5 +33,6 @@ export function generateMetadata({
             creator: '@PeanutProtocol',
             site: '@PeanutProtocol',
         },
+        applicationName: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
     }
 }

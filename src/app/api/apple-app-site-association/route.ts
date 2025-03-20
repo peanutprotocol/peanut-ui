@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
 import { PEANUT_API_URL } from '@/constants'
-export const dynamic = 'force-dynamic'
 import { fetchWithSentry } from '@/utils'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 
 export async function GET(_request: NextRequest) {
     const response = await fetchWithSentry(`${PEANUT_API_URL}/apple-app-site-association`)
