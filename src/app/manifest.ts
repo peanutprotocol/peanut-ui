@@ -1,6 +1,12 @@
 import type { MetadataRoute } from 'next'
 
-export default function manifest(): MetadataRoute.Manifest {
+// extend manifest type to support pwa deep linking capabilities
+interface ExtendedManifest extends MetadataRoute.Manifest {
+    capture_links?: 'existing-client-navigate'
+    handle_links?: 'preferred'
+}
+
+export default function manifest(): ExtendedManifest {
     let name = 'Peanut'
     switch (process.env.NODE_ENV) {
         case 'development':
@@ -15,6 +21,7 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: name,
         description: 'Butter smooth global money',
         start_url: '/home',
+        scope: '/',
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#000000',
@@ -58,6 +65,5 @@ export default function manifest(): MetadataRoute.Manifest {
                 url: 'https://peanut.me',
             },
         ],
-        scope: '/',
     }
 }

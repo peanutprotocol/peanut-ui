@@ -151,19 +151,10 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     }
 
     return (
-        <div
-            className={twMerge(
-                'mx-auto h-full w-full space-y-8 self-start md:w-6/12',
-                currentView !== 'INITIAL' && 'self-center'
-            )}
-        >
+        <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
             <div>
                 {currentView === 'INITIAL' && <InitialPaymentView {...(parsedPaymentData as ParsedURL)} />}
-                {currentView === 'CONFIRM' && (
-                    <div className="self-start">
-                        <ConfirmPaymentView />
-                    </div>
-                )}
+                {currentView === 'CONFIRM' && <ConfirmPaymentView />}
                 {currentView === 'STATUS' && <PaymentStatusView />}
             </div>
             {currentView === 'INITIAL' && (
