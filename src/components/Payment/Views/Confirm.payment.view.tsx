@@ -307,6 +307,7 @@ export default function ConfirmPaymentView() {
             const errorString = ErrorHandler(error)
             dispatch(paymentActions.setError(errorString))
         } finally {
+            setLoadingState('Idle')
             setIsSubmitting(false)
         }
     }
