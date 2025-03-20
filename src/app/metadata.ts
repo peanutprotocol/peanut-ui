@@ -33,5 +33,19 @@ export function generateMetadata({
             creator: '@PeanutProtocol',
             site: '@PeanutProtocol',
         },
+        other: {
+            'apple-mobile-web-app-capable': 'yes',
+            'mobile-web-app-capable': 'yes',
+            'apple-mobile-web-app-status-bar-style': 'default',
+            'apple-mobile-web-app-title': 'Peanut',
+            'application-name': 'Peanut',
+        },
+        applicationName: 'Peanut',
+        appleWebApp: {
+            capable: true,
+            title: 'Peanut',
+            statusBarStyle: 'black-translucent',
+            startupImage: ['/icons/apple-touch-icon.png'],
+        },
     }
 }
