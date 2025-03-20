@@ -72,8 +72,11 @@ const HistoryPage = () => {
                 amount: `${isStableCoin(data.tokenSymbol) ? `$${formatAmount(data.amount)}` : `${formatAmount(data.amount)} ${data.tokenSymbol}`}`,
                 recipientAddress: data.address ?? '',
                 recipientAddressFormatter: (address: string) => {
-                    const sanitizedAddressOrName = isAddress(address) ? printableAddress(address) : address
-                    return `To ${sanitizedAddressOrName}`
+                    return (
+                        <>
+                            To <AddressLink address={address} />
+                        </>
+                    )
                 },
                 status: transactionStatus,
                 transactionDetails: {

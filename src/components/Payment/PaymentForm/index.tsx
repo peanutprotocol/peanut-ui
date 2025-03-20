@@ -3,7 +3,6 @@
 import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import FileUploadInput from '@/components/Global/FileUploadInput'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
@@ -391,16 +390,6 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         if (isPeanutWallet) resetTokenAndChain()
     }, [resetTokenAndChain, isPeanutWallet])
 
-    const recipientLabel = useMemo(() => {
-        if (!requestDetails) return ''
-
-        if (requestDetails.recipientAccount.type === AccountType.PEANUT_WALLET) {
-            return requestDetails.recipientAccount.user.username
-        }
-
-        return printableAddress(requestDetails.recipientAddress)
-    }, [requestDetails])
-
     const renderRequestedPaymentDetails = () => {
         if (!requestDetails || !requestDetails.tokenAmount || !requestDetails.tokenSymbol) return null
 
@@ -416,7 +405,14 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
 
         return (
             <div className="mb-6 border border-dashed border-black p-4">
-                <div className="text-sm font-semibold text-black">{recipientLabel} is requesting:</div>
+                <div className="text-sm font-semibold text-black">
+                    {requestDetails.recipientAccount.type === AccountType.PEANUT_WALLET ? (
+                        <AddressLink address={requestDetails.recipientAccount.user.username} />
+                    ) : (
+                        <AddressLink address={requestDetails.recipientAddress} />
+                    )}{' '}
+                    is requesting:
+                </div>
                 <div className="flex flex-col">
                     <PaymentInfoRow label="Amount" value={displayAmount} />
                     {requestDetails.chainId && (
@@ -539,12 +535,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
             <FlowHeader hideWalletHeader={!isConnected} isPintaReq={token?.symbol === 'PNT'} />
             {/* Show recipient from parsed data */}
             <div className="text-h6 font-bold">
-                Sending to{' '}
-                {recipient.recipientType === 'USERNAME' ? (
-                    recipient.identifier
-                ) : (
-                    <AddressLink address={recipient?.identifier} />
-                )}
+                Sending to <AddressLink address={recipient.identifier} />
             </div>
             <TokenAmountInput
                 tokenValue={inputTokenAmount}

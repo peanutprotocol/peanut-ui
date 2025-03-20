@@ -1,12 +1,15 @@
 'use client'
 
 import { Button, Card } from '@/components/0_Bruddle'
+import Divider from '@/components/0_Bruddle/Divider'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { CrispButton } from '@/components/CrispChat'
 import AddressLink from '@/components/Global/AddressLink'
 import FlowHeader from '@/components/Global/FlowHeader'
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
+import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import {
     MAX_CASHOUT_LIMIT,
@@ -16,11 +19,13 @@ import {
 } from '@/components/Offramp/Offramp.consts'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import * as consts from '@/constants'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PINTA_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TOOLTIPS } from '@/constants/tooltips'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
+import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { WalletProviderType } from '@/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import {
@@ -36,13 +41,15 @@ import {
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
+import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
-import { useCallback, useContext, useEffect, useState, useMemo } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { parseUnits } from 'viem'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
-import { WalletProviderType } from '@/interfaces'
-import { parseUnits } from 'viem'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -67,6 +74,9 @@ export const InitialClaimLinkView = ({
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
     const dispatch = useAppDispatch()
+    const router = useRouter()
+    const toast = useToast()
+    const { handleLogin, isLoggingIn } = useZeroDev()
     const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
@@ -76,6 +86,7 @@ export const InitialClaimLinkView = ({
     const [isXchainLoading, setIsXchainLoading] = useState<boolean>(false)
     const [routes, setRoutes] = useState<any[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
+    const { open: openReownModal } = useAppKit()
 
     const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
     const {
@@ -119,10 +130,14 @@ export const InitialClaimLinkView = ({
             await new Promise((resolve) => setTimeout(resolve, 100))
             setRecipient({ name: undefined, address: address })
         } else {
-            const currentUrl = new URL(window.location.href)
-            saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
+            saveRedirectUrl()
             signInModal.open()
         }
+    }
+
+    const saveRedirectUrl = () => {
+        const currentUrl = new URL(window.location.href)
+        saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
     }
 
     const handleClaimLink = async () => {
@@ -560,7 +575,7 @@ export const InitialClaimLinkView = ({
                         />
                     )}
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
-                        <div className="flex w-full flex-col items-center justify-center gap-2">
+                        <div className="flex w-full flex-col items-center justify-center gap-2 py-2">
                             {selectedRoute && (
                                 <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
                                     <div className="flex w-max flex-row items-center justify-center gap-1">
@@ -605,105 +620,87 @@ export const InitialClaimLinkView = ({
                                 </div>
                             )}
 
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                                <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-grey-1" />
-                                    <label className="font-bold">Fees</label>
-                                </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {isXchainLoading ? (
-                                        <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                    ) : (
-                                        <>
-                                            $0.00 <MoreInfo text={'This transaction is sponsored by Peanut! Enjoy!'} />
-                                        </>
-                                    )}
-                                </span>
-                            </div>
-                            {/* TODO: correct points estimation
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'plus-circle'} className="h-4 fill-grey-1" />
-                                <label className="font-bold">Points</label>
-                            </div>
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                                <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-grey-1" />
-                                    <label className="font-bold">Fees</label>
-                                </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {isXchainLoading ? (
-                                        <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                    ) : (
-                                        <>
-                                            $0.00 <MoreInfo text={'This transaction is sponsored by Peanut! Enjoy!'} />
-                                        </>
-                                    )}
-                                </span>
-                            </div>
-
-                            {/* TODO: correct points estimation
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                                <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'plus-circle'} className="h-4 fill-grey-1" />
-                                    <label className="font-bold">Points</label>
-                                </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
-                                    <MoreInfo
-                                        text={
-                                            estimatedPoints
-                                                ? estimatedPoints > 0
-                                                    ? `This transaction will add ${estimatedPoints} to your total points balance.`
-                                                    : 'This transaction will not add any points to your total points balance'
-                                                : 'This transaction will not add any points to your total points balance'
-                                        }
-                                    />
-                                </span>
-                            </div>
-                        </div>
-                                */}
+                            {!isXchainLoading && <PeanutSponsored />}
                         </div>
                     )}
                     <div className="flex w-full flex-col items-center justify-center gap-4">
-                        <Button
-                            onClick={() => {
-                                // TODO: claiming to IBAN is decided to proceed based on recipient.address !== address, so
-                                // imperative to ensure address here is fetched by useWallet
-                                if (!isConnected && recipient.address.length === 0) {
-                                    handleConnectWallet()
-                                } else if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
-                                    // force cross-chain route for Peanut Wallet if chain doesn't match
-                                    setRefetchXchainRoute(true)
-                                    onNext()
-                                } else if (recipientType === 'iban' || recipientType === 'us') {
-                                    // handle IBAN/US bank account claims
-                                    handleIbanRecipient()
-                                } else if (hasFetchedRoute && selectedRoute) {
-                                    // handle  cross-chain claims
-                                    onNext()
-                                } else {
-                                    // handle direct claims
-                                    handleClaimLink()
+                        {!user && !isConnected && recipient.address.length === 0 && (
+                            <div className="w-full space-y-2 py-2">
+                                <Button
+                                    disabled={isLoggingIn}
+                                    loading={isLoggingIn}
+                                    onClick={() => {
+                                        handleLogin().catch((e) => {
+                                            toast.error('Error logging in')
+                                            Sentry.captureException(e)
+                                        })
+                                    }}
+                                    variant="purple"
+                                    className="text-sm md:text-base"
+                                >
+                                    Sign in with your Peanut Wallet
+                                </Button>
+                                <Link
+                                    href={'/setup'}
+                                    onClick={saveRedirectUrl}
+                                    className="block h-8 text-center font-bold underline"
+                                >
+                                    Don't have a Peanut Wallet? Get one now!
+                                </Link>
+                                <Divider text="or" />
+                                <Button
+                                    onClick={() => openReownModal()}
+                                    variant="transparent-light"
+                                    className="flex w-full items-center justify-center gap-2 border border-black bg-purple-5 text-sm text-black hover:bg-purple-5 md:text-base"
+                                >
+                                    Connect External Wallet
+                                </Button>
+                            </div>
+                        )}
+                        {(isConnected || (recipient.address && recipient.address.length > 0)) && (
+                            <Button
+                                onClick={() => {
+                                    if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+                                        setRefetchXchainRoute(true)
+                                        onNext()
+                                    } else if (recipientType === 'iban' || recipientType === 'us') {
+                                        handleIbanRecipient()
+                                    } else if (hasFetchedRoute && selectedRoute) {
+                                        onNext()
+                                    } else {
+                                        handleClaimLink()
+                                    }
+                                }}
+                                loading={isLoading || isXchainLoading}
+                                disabled={
+                                    isLoading ||
+                                    isXchainLoading ||
+                                    inputChanging ||
+                                    (hasFetchedRoute && !selectedRoute) ||
+                                    (!isConnected && !recipient.address) ||
+                                    (!isConnected && !isValidRecipient)
                                 }
-                            }}
-                            loading={isLoading || isXchainLoading}
-                            disabled={
-                                isLoading ||
-                                isXchainLoading ||
-                                inputChanging ||
-                                (hasFetchedRoute && !selectedRoute) ||
-                                (isValidRecipient === false && recipient.address.length > 0)
-                            }
-                        >
-                            {!isConnected && recipient.address.length === 0
-                                ? 'Connect Wallet'
-                                : isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id
-                                  ? 'Proceed'
-                                  : hasFetchedRoute && selectedRoute
+                                className="text-sm md:text-base"
+                            >
+                                {isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id
                                     ? 'Proceed'
-                                    : 'Claim Now'}
-                        </Button>
+                                    : hasFetchedRoute && selectedRoute
+                                      ? 'Proceed'
+                                      : 'Claim Now'}
+                            </Button>
+                        )}
+                        {!user && (isConnected || recipient.address.length !== 0) && (
+                            <div className="space-y-1 text-center">
+                                <label className="h-8">Want to manage all your payments in one place?</label>
+                                <Link
+                                    href={'/setup'}
+                                    onClick={saveRedirectUrl}
+                                    className="block h-8 text-center font-bold underline"
+                                >
+                                    Create a Peanut account
+                                </Link>
+                            </div>
+                        )}
                         {address && recipient.address.length < 0 && recipientType === 'address' && (
                             <div
                                 className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"

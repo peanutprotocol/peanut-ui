@@ -8,7 +8,7 @@ export const PaymentInfoRow = ({
     moreInfoText,
     loading,
 }: {
-    label: string
+    label: string | React.ReactNode
     value: number | string | React.ReactNode
     moreInfoText?: string
     loading?: boolean

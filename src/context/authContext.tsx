@@ -5,7 +5,7 @@ import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { type GetUserLinksResponse, fetchWithSentry } from '@/utils'
 import { hitUserMetric } from '@/utils/metrics.utils'
-import { ToastId, useToast } from '@chakra-ui/react'
+import { ToastId, useToast } from '@chakra-ui/react' // TODO: use normmal toasts we use throughout the app, not chakra toasts!
 import { useAppKit } from '@reown/appkit/react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
