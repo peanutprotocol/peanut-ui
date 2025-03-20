@@ -36,8 +36,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         return isPublicPath || (user?.user.hasPwAccess ?? false) || !peanutWalletIsInPreview
     }, [user, pathName])
 
-    const showNavHeader = !isHome
-
     if (!isReady) return null
     return (
         <div className="flex h-[100dvh] w-full bg-background">

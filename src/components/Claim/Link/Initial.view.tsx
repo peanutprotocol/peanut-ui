@@ -1,12 +1,12 @@
 'use client'
 
 import { Button, Card } from '@/components/0_Bruddle'
-import Divider from '@/components/0_Bruddle/Divider'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { CrispButton } from '@/components/CrispChat'
 import AddressLink from '@/components/Global/AddressLink'
 import FlowHeader from '@/components/Global/FlowHeader'
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import GuestLoginCta from '@/components/Global/GuestLoginCta'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
@@ -37,7 +37,7 @@ import {
     getBridgeChainName,
     getBridgeTokenName,
     saveClaimedLinkToLocalStorage,
-    saveToLocalStorage,
+    saveRedirectUrl,
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
@@ -133,11 +133,6 @@ export const InitialClaimLinkView = ({
             saveRedirectUrl()
             signInModal.open()
         }
-    }
-
-    const saveRedirectUrl = () => {
-        const currentUrl = new URL(window.location.href)
-        saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
     }
 
     const handleClaimLink = async () => {
@@ -624,39 +619,7 @@ export const InitialClaimLinkView = ({
                         </div>
                     )}
                     <div className="flex w-full flex-col items-center justify-center gap-4">
-                        {!user && !isConnected && recipient.address.length === 0 && (
-                            <div className="w-full space-y-2 py-2">
-                                <Button
-                                    disabled={isLoggingIn}
-                                    loading={isLoggingIn}
-                                    onClick={() => {
-                                        handleLogin().catch((e) => {
-                                            toast.error('Error logging in')
-                                            Sentry.captureException(e)
-                                        })
-                                    }}
-                                    variant="purple"
-                                    className="text-sm md:text-base"
-                                >
-                                    Sign in with your Peanut Wallet
-                                </Button>
-                                <Link
-                                    href={'/setup'}
-                                    onClick={saveRedirectUrl}
-                                    className="block h-8 text-center font-bold underline"
-                                >
-                                    Don't have a Peanut Wallet? Get one now!
-                                </Link>
-                                <Divider text="or" />
-                                <Button
-                                    onClick={() => openReownModal()}
-                                    variant="transparent-light"
-                                    className="flex w-full items-center justify-center gap-2 border border-black bg-purple-5 text-sm text-black hover:bg-purple-5 md:text-base"
-                                >
-                                    Connect External Wallet
-                                </Button>
-                            </div>
-                        )}
+                        {!user && !isConnected && recipient.address.length === 0 && <GuestLoginCta />}
                         {(isConnected || (recipient.address && recipient.address.length > 0)) && (
                             <Button
                                 onClick={() => {

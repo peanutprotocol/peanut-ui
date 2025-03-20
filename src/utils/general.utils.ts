@@ -1089,3 +1089,8 @@ export const getHistoryTransactionStatus = (type: TransactionType | undefined, s
             return status
     }
 }
+
+export const saveRedirectUrl = () => {
+    const currentUrl = new URL(window.location.href)
+    saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
+}
