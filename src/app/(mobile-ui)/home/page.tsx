@@ -19,7 +19,7 @@ import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const cardWidth = 300
 const cardMargin = 16
@@ -208,24 +208,30 @@ export default function Home() {
                         </div>
                     </div>
 
-                    {focusedWalletId &&
-                    wallets.find((w) => w.id === focusedWalletId)?.walletProviderType === WalletProviderType.REWARDS ? (
-                        <div className="px-6 md:pb-6">
-                            <DirectSendQr />
-                        </div>
-                    ) : (
-                        <div className="px-6 md:pb-6">
-                            <DirectionalActionButtons
-                                leftButton={{
-                                    title: 'Send',
-                                    href: '/send',
-                                }}
-                                rightButton={{
-                                    title: 'Receive',
-                                    href: '/request/create',
-                                }}
-                            />
-                        </div>
+                    {/* Only show CTAs if not focused on the add wallet card */}
+                    {focusedIndex !== totalCards - 1 && (
+                        <>
+                            {focusedWalletId &&
+                            wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
+                                WalletProviderType.REWARDS ? (
+                                <div className="px-6 md:pb-6">
+                                    <DirectSendQr />
+                                </div>
+                            ) : (
+                                <div className="px-6 md:pb-6">
+                                    <DirectionalActionButtons
+                                        leftButton={{
+                                            title: 'Send',
+                                            href: '/send',
+                                        }}
+                                        rightButton={{
+                                            title: 'Receive',
+                                            href: '/request/create',
+                                        }}
+                                    />
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
