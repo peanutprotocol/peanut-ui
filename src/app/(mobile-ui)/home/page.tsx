@@ -19,7 +19,7 @@ import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const cardWidth = 300
 const cardMargin = 16

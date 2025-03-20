@@ -1,9 +1,11 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
+import GuestLoginCta from '@/components/Global/GuestLoginCta'
 import Icon from '@/components/Global/Icon'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -17,6 +19,8 @@ import {
     PINTA_WALLET_TOKEN_SYMBOL,
 } from '@/constants'
 import * as context from '@/context'
+import { useAuth } from '@/context/authContext'
+import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, WalletProviderType } from '@/interfaces'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
@@ -34,15 +38,18 @@ import {
     getTokenDecimals,
     getTokenSymbol,
     isNativeCurrency,
-    printableAddress,
 } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 
 export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: ParsedURL & { isPintaReq?: boolean }) => {
     const dispatch = useAppDispatch()
+    const { user } = useAuth()
+    const router = useRouter()
+    const { handleLogin, isLoggingIn, isKernelClientReady } = useZeroDev()
+    const toast = useToast()
     const { requestDetails, error, chargeDetails, beerQuantity } = usePaymentStore()
     const {
         signInModal,
@@ -391,7 +398,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     }, [resetTokenAndChain, isPeanutWallet])
 
     const renderRequestedPaymentDetails = () => {
-        if (!requestDetails || !requestDetails.tokenAmount || !requestDetails.tokenSymbol) return null
+        if (!requestDetails || !requestDetails.tokenAmount || !requestDetails.tokenSymbol || !requestId) return null
 
         const tokenAmount = parseFloat(requestDetails.tokenAmount)
         const tokenUsdValue =
@@ -514,15 +521,20 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                 <PintaReqViewWrapper view="INITIAL">
                     <BeerInput disabled={!!amount} />
                     <div className="space-y-2">
-                        <Button
-                            variant="purple"
-                            onClick={handleCreateCharge}
-                            disabled={beerQuantity === 0 || isSubmitting || isPeanutWalletCrossChainRequest}
-                            loading={isSubmitting}
-                            className="w-full"
-                        >
-                            {isSubmitting ? 'Creating charge...' : 'Confirm'}
-                        </Button>
+                        {!user ? (
+                            <GuestLoginCta hideConnectWallet />
+                        ) : (
+                            <Button
+                                variant="purple"
+                                onClick={handleCreateCharge}
+                                disabled={beerQuantity === 0 || isSubmitting || isPeanutWalletCrossChainRequest}
+                                loading={isSubmitting}
+                                className="w-full"
+                            >
+                                {isSubmitting ? 'Creating charge...' : 'Confirm'}
+                            </Button>
+                        )}
+
                         {error && <ErrorAlert description={error} />}
                     </div>
                 </PintaReqViewWrapper>
@@ -543,7 +555,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                 className="w-full"
                 disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
             />
-            {requestDetails?.recipientAccount.type !== AccountType.PEANUT_WALLET && renderRequestedPaymentDetails()}
+            {renderRequestedPaymentDetails()}
             {isExternalWallet && (
                 <div>
                     <div className="mb-2 text-sm font-medium">Choose your payment method:</div>
