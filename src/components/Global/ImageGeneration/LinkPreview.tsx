@@ -1,4 +1,5 @@
 import { formatAmount, printableAddress } from '@/utils'
+import { isAddress } from 'viem'
 
 export enum PreviewType {
     CLAIM = 'claim',
@@ -7,11 +8,22 @@ export enum PreviewType {
 
 type PreviewTypeData = {
     message: string
+    emptyAmountMessage?: string
 }
 
 const PREVIEW_TYPES: Record<PreviewType, PreviewTypeData> = {
     [PreviewType.CLAIM]: { message: 'is sending you' },
-    [PreviewType.REQUEST]: { message: 'is requesting' },
+    [PreviewType.REQUEST]: { message: 'is requesting', emptyAmountMessage: 'is requesting funds' },
+}
+
+function formatDisplayAddress(address: string): string {
+    if (address.startsWith('0x')) {
+        if (isAddress(address)) {
+            return printableAddress(address)
+        }
+        return address
+    }
+    return address
 }
 
 export function LinkPreviewImg({
@@ -30,6 +42,9 @@ export function LinkPreviewImg({
             ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
             : process.env.NEXT_PUBLIC_BASE_URL
     }/social-preview-bg.png`
+
+    const isEmptyAmount = !amount || parseFloat(amount) === 0
+    const showEmptyAmountMessage = previewType === PreviewType.REQUEST && isEmptyAmount
 
     return (
         <div
@@ -67,28 +82,33 @@ export function LinkPreviewImg({
                 }}
             >
                 <label style={{ fontSize: '16px', fontWeight: 'bold', color: 'black' }}>
-                    {printableAddress(address)} {PREVIEW_TYPES[previewType].message}
+                    {formatDisplayAddress(address)}{' '}
+                    {showEmptyAmountMessage
+                        ? PREVIEW_TYPES[previewType].emptyAmountMessage
+                        : PREVIEW_TYPES[previewType].message}
                 </label>
-                <div
-                    style={{
-                        display: 'flex',
-                        gap: '16px',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        marginLeft: '-8px',
-                        marginTop: '1px',
-                    }}
-                >
-                    <label
+                {!showEmptyAmountMessage && (
+                    <div
                         style={{
-                            fontSize: '49px',
-                            fontWeight: 'bold',
-                            color: 'black',
+                            display: 'flex',
+                            gap: '16px',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginLeft: '-8px',
+                            marginTop: '1px',
                         }}
                     >
-                        {!tokenSymbol && '$'} {formatAmount(amount)} {tokenSymbol && tokenSymbol}
-                    </label>
-                </div>
+                        <label
+                            style={{
+                                fontSize: '49px',
+                                fontWeight: 'bold',
+                                color: 'black',
+                            }}
+                        >
+                            {!tokenSymbol && '$'} {formatAmount(amount)} {tokenSymbol && tokenSymbol}
+                        </label>
+                    </div>
+                )}
             </div>
         </div>
     )

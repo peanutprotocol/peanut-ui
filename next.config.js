@@ -139,16 +139,6 @@ let nextConfig = {
                         key: 'Permissions-Policy',
                         value: 'clipboard-read=(self), clipboard-write=(self)',
                     },
-                    // allow service worker to handle all routes
-                    {
-                        key: 'Service-Worker-Allowed',
-                        value: '/',
-                    },
-                    // prevent PWA from being embedded in iframes
-                    {
-                        key: 'X-Frame-Options',
-                        value: 'DENY',
-                    },
                 ],
             },
         ]

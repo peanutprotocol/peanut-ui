@@ -55,37 +55,4 @@ self.addEventListener('notificationclick', (event) => {
     )
 })
 
-// handle url navigation for pwa deep linking
-self.addEventListener('fetch', (event) => {
-    const url = new URL(event.request.url)
-
-    // only handle navigation requests (clicking links)
-    if (event.request.mode === 'navigate') {
-        event.respondWith(
-            (async () => {
-                try {
-                    // find all pwa windows
-                    const clients = await self.clients.matchAll({
-                        type: 'window',
-                        includeUncontrolled: true,
-                    })
-
-                    // if pwa is already open, focus and navigate
-                    if (clients.length > 0) {
-                        const client = clients[0]
-                        await client.focus()
-                        return client.navigate(url.href)
-                    }
-
-                    // if no window exists, open new one
-                    return self.clients.openWindow(url.href)
-                } catch (error) {
-                    // fallback to normal navigation if anything fails
-                    return fetch(event.request)
-                }
-            })()
-        )
-    }
-})
-
 serwist.addEventListeners()
