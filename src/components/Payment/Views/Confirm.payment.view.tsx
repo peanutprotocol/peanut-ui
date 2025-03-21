@@ -3,6 +3,7 @@
 import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
 import { useCreateLink } from '@/components/Create/useCreateLink'
+import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
@@ -22,7 +23,6 @@ import {
     formatAmount,
     getTokenSymbol,
     isAddressZero,
-    shortenAddressLong,
     switchNetwork as switchNetworkUtil,
 } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
@@ -30,7 +30,6 @@ import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useSwitchChain } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
-import AddressLink from '@/components/Global/AddressLink'
 
 export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
@@ -330,7 +329,8 @@ export default function ConfirmPaymentView() {
             return isXChainTx ? 'Fetching Best Quote For You...' : 'Preparing Transaction...'
         }
 
-        if (isCalculatingFees || isEstimatingGas) {
+        if (isPintaReq && (isCalculatingFees || isEstimatingGas)) return 'Hang on...'
+        else if (isCalculatingFees || isEstimatingGas) {
             return (
                 <div className="flex items-center justify-center gap-2">
                     <span>Calculating Fees...</span>
