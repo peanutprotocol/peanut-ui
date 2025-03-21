@@ -48,7 +48,7 @@ export default function DirectSendQr() {
                 onClick={() => setIsQRScannerOpen(true)}
                 variant="purple"
                 className={
-                    'mx-auto flex w-fit cursor-pointer items-center justify-center gap-2 rounded-full' +
+                    'mx-auto flex w-[90%] cursor-pointer items-center justify-center gap-2 rounded-full md:w-fit' +
                     ' [-webkit-tap-highlight-color:transparent]' +
                     ' [&]:!-webkit-appearance-none'
                 }
