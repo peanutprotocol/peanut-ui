@@ -68,7 +68,7 @@ const RewardsModal = () => {
             title: 'Welcome to Peanut!',
             subtitle: (
                 <span>
-                    Here's <span className="font-bold">$5</span> for you to explore{' '}
+                    Here's <span className="font-bold">$2</span> for you to explore{' '}
                     <span className="font-bold">Peanut Wallet</span> and its features!
                 </span>
             ),
