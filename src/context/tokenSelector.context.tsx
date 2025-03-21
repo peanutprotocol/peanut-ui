@@ -1,5 +1,5 @@
 'use client'
-import React, { createContext, useEffect, useState } from 'react'
+import React, { createContext, useEffect, useState, useMemo } from 'react'
 
 import * as utils from '@/utils'
 import * as consts from '@/constants'
@@ -7,6 +7,7 @@ import { type ITokenPriceData } from '@/interfaces'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
 import * as Sentry from '@sentry/nextjs'
+import { useWallet } from '@/contexts/WalletContext'
 
 type inputDenominationType = 'USD' | 'TOKEN'
 
@@ -36,17 +37,27 @@ export const tokenSelectorContext = createContext({
  * It handles fetching token prices, updating context values, and resetting the provider based on user preferences and wallet connection status.
  */
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
-    const initialTokenData = {
-        address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC
-        chainId: '10', // Optimism
-        decimals: 6,
-    }
-    const { lastUsedToken } = utils.getUserPreferences() ?? {}
-    if (lastUsedToken) {
-        initialTokenData.address = lastUsedToken.address
-        initialTokenData.chainId = lastUsedToken.chainId
-        initialTokenData.decimals = lastUsedToken.decimals
-    }
+    const { isPeanutWallet } = useWallet()
+
+    const initialTokenData = useMemo(() => {
+        if (isPeanutWallet) {
+            return {
+                address: consts.PEANUT_WALLET_TOKEN,
+                chainId: consts.PEANUT_WALLET_CHAIN.id.toString(),
+                decimals: 6,
+            }
+        }
+
+        const { lastUsedToken } = utils.getUserPreferences() ?? {}
+        return (
+            lastUsedToken ?? {
+                address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC
+                chainId: '10', // Optimism
+                decimals: 6,
+            }
+        )
+    }, [isPeanutWallet])
+
     const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenData.address)
     const [selectedChainID, setSelectedChainID] = useState(initialTokenData.chainId)
     const [selectedTokenPrice, setSelectedTokenPrice] = useState<number | undefined>(undefined)
