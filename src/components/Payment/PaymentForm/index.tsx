@@ -517,7 +517,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     if (isPintaReq) {
         return (
             <div className="space-y-4">
-                <FlowHeader hideWalletHeader={!isConnected} isPintaReq />
+                {!!user && <FlowHeader hideWalletHeader={!isConnected} isPintaReq />}
                 <PintaReqViewWrapper view="INITIAL">
                     <BeerInput disabled={!!amount} />
                     <div className="space-y-2">
