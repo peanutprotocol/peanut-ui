@@ -2,7 +2,6 @@
 import { useContext, useMemo, useState } from 'react'
 
 import { Button, Card } from '@/components/0_Bruddle'
-import Divider from '@/components/0_Bruddle/Divider'
 import AddressLink from '@/components/Global/AddressLink'
 import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import FlowHeader from '@/components/Global/FlowHeader'
@@ -350,8 +349,7 @@ export const CreateLinkConfirmView = ({
                             ))}
                     </div>
 
-                    <Divider className="my-4" />
-                    <div className="mb-4 flex flex-col gap-2 sm:flex-row-reverse">
+                    <div className="my-4 flex flex-col gap-2 sm:flex-row-reverse">
                         <Button loading={isLoading} onClick={handleConfirm} disabled={isLoading}>
                             {isLoading ? loadingState : 'Confirm'}
                         </Button>

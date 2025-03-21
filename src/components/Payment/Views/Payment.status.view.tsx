@@ -14,11 +14,11 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { formatDate, getExplorerUrl, shortenAddressLong } from '@/utils'
+import { formatAmount, formatDate, getChainName, getExplorerUrl, shortenAddressLong } from '@/utils'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
-import { isAddress } from 'viem'
+import { formatUnits } from 'viem'
 
 export default function PaymentStatusView() {
     const { requestDetails, chargeDetails, transactionHash, resolvedAddress } = usePaymentStore()
@@ -154,6 +154,28 @@ export default function PaymentStatusView() {
         return <AddressLink address={latestPayment.payerAddress} />
     }, [latestPayment])
 
+    const amount = useMemo(() => {
+        if (!latestPayment || !requestDetails) return null
+        return latestPayment?.paidAmountInRequestedToken
+            ? formatAmount(
+                  formatUnits(
+                      BigInt(Number(latestPayment.paidAmountInRequestedToken)),
+                      requestDetails?.tokenDecimals ?? 0
+                  )
+              )
+            : null
+    }, [latestPayment, requestDetails])
+
+    const token = useMemo(() => {
+        if (!requestDetails) return null
+        return requestDetails.tokenSymbol
+    }, [requestDetails])
+
+    const chain = useMemo(() => {
+        if (!requestDetails) return null
+        return getChainName(requestDetails.chainId)
+    }, [requestDetails])
+
     const renderTransactionDetails = () => {
         return (
             <>
@@ -168,6 +190,27 @@ export default function PaymentStatusView() {
                             <label className="text-h9">To:</label>
                             {recipientLink}
                         </div>
+
+                        {amount && (
+                            <div className="flex w-full flex-row items-center justify-between gap-1">
+                                <label className="text-h9">Amount:</label>
+                                {amount}
+                            </div>
+                        )}
+
+                        {token && (
+                            <div className="flex w-full flex-row items-center justify-between gap-1">
+                                <label className="text-h9">Token:</label>
+                                {token}
+                            </div>
+                        )}
+
+                        {chain && (
+                            <div className="flex w-full flex-row items-center justify-between gap-1">
+                                <label className="text-h9">Chain:</label>
+                                {chain}
+                            </div>
+                        )}
                     </>
                 )}
 
@@ -290,9 +333,9 @@ export default function PaymentStatusView() {
                             </div>
                         )}
                         {statusDetails.requestLink.reference && (
-                            <div className="flex items-start justify-center gap-2">
+                            <div className="flex max-w-full items-start justify-center gap-2">
                                 <Icon name="email" className="mt-0.5 h-4 w-4 min-w-4" />
-                                <p className="text-sm">{statusDetails.requestLink.reference}</p>
+                                <p className="max-w-[90%] break-all text-sm">{statusDetails.requestLink.reference}</p>
                             </div>
                         )}
                     </div>

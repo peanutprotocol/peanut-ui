@@ -122,9 +122,7 @@ export interface Payment {
     payerTransactionHash: string
     payerChainId: string
     paidTokenAddress: string
-    paidAmountInRequestedToken: {
-        value: string
-    } | null
+    paidAmountInRequestedToken: string | null
     payerAddress: string | null
     fulfillmentTransactionHash: string | null
     status: TStatus

@@ -233,7 +233,7 @@ const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: Wallet
                             ? 'Peanut Wallet'
                             : selectedWallet?.walletProviderType === WalletProviderType.REWARDS
                               ? 'Beer Wallet'
-                              : (primaryName && truncateString(primaryName, 24)) ||
+                              : (primaryName && truncateString(primaryName, 18)) ||
                                 shortenAddressLong(selectedWallet?.address)}
                     </span>
                 ) : (
