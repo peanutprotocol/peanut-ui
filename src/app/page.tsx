@@ -16,7 +16,7 @@ export default function LandingPage() {
             message: ['No fees', 'Instant', '24/7', 'Dollars', 'Fiat / Crypto'],
         },
         primaryCta: {
-            label: 'WAITLIST',
+            label: 'TRY NOW',
             href: '/setup',
         },
         secondaryCta: {
