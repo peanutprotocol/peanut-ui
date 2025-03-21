@@ -147,7 +147,12 @@ const RewardsModal = () => {
                             variant="purple"
                             onClick={() => {
                                 hitUserMetric(user!.user.userId, 'click', { button: 'reward_modal_cta' })
-                                router.push(activeReward!.link)
+                                const link = activeReward!.link
+                                if (link.startsWith(process.env.NEXT_PUBLIC_BASE_URL!)) {
+                                    router.push(activeReward!.link)
+                                } else {
+                                    window.open(activeReward!.link, '_blank')
+                                }
                             }}
                         >
                             {modalContent?.ctaText}
