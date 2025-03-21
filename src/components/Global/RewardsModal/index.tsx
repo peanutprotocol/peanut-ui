@@ -8,6 +8,8 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import Icon from '../Icon'
 import Modal from '../Modal'
+import { useRouter } from 'next/navigation'
+import { hitUserMetric } from '@/utils/metrics.utils'
 
 enum REWARD_ASSET_TYPE {
     'PNT' = 'aleph_pinta_mar_2025_welcome_pnt',
@@ -48,6 +50,7 @@ const RewardsModal = () => {
     const [rewardLinks, setRewardLinks] = useState<RewardLink[]>([])
     const [error, setError] = useState<string>('')
     const { user } = useAuth()
+    const router = useRouter()
 
     // get active reward link (pnt first, then usdc)
     const getActiveReward = () => {
@@ -60,6 +63,18 @@ const RewardsModal = () => {
 
     // get modal content based on active reward
     const getModalContent = () => {
+        //TODO: change after aleph event
+        return {
+            title: 'Welcome to Peanut!',
+            subtitle: (
+                <span>
+                    Here's <span className="font-bold">$5</span> for you to explore{' '}
+                    <span className="font-bold">Peanut Wallet</span> and its features!
+                </span>
+            ),
+            ctaText: 'Chat with us to claim!',
+        }
+        /*
         if (!activeReward) return null
 
         const isPNTReward = activeReward.assetCode === REWARD_ASSET_TYPE.PNT
@@ -76,6 +91,7 @@ const RewardsModal = () => {
             ),
             ctaText: isPNTReward ? 'Claim your Beers!' : 'Claim',
         }
+        */
     }
 
     useEffect(() => {
@@ -115,7 +131,7 @@ const RewardsModal = () => {
                                 <h3 className="text-h3 font-extrabold">{modalContent?.title}</h3>
                                 <h5 className="text-h5 font-semibold">{modalContent?.subtitle}</h5>
                             </div>
-                            {activeReward.assetCode === REWARD_ASSET_TYPE.PNT ? (
+                            {activeReward?.assetCode === REWARD_ASSET_TYPE.PNT ? (
                                 <p className="text-xs">
                                     During Crecimiento, in Buenos Aires, use your Pinta Tokens to enjoy free beers at
                                     any <PartnerBarLocation />
@@ -124,13 +140,23 @@ const RewardsModal = () => {
                                 <p className="text-xs">Your seamless crypto experience starts now.</p>
                             )}
                         </div>
-                        {activeReward.assetCode === REWARD_ASSET_TYPE.PNT && <RewardDetails />}
+                        {activeReward?.assetCode === REWARD_ASSET_TYPE.PNT && <RewardDetails />}
 
-                        <Link href={activeReward.link} className="block">
-                            <Button className="w-full" variant="purple">
-                                {modalContent?.ctaText}
-                            </Button>
-                        </Link>
+                        <Button
+                            className="w-full"
+                            variant="purple"
+                            onClick={() => {
+                                hitUserMetric(user!.user.userId, 'click', { button: 'reward_modal_cta' })
+                                const link = activeReward!.link
+                                if (link.startsWith(process.env.NEXT_PUBLIC_BASE_URL!)) {
+                                    router.push(activeReward!.link)
+                                } else {
+                                    window.open(activeReward!.link, '_blank')
+                                }
+                            }}
+                        >
+                            {modalContent?.ctaText}
+                        </Button>
                     </div>
                 </div>
 
@@ -142,7 +168,7 @@ const RewardsModal = () => {
                     <div className="relative h-42 w-[90%] md:h-52">
                         <Image
                             src={
-                                activeReward.assetCode === REWARD_ASSET_TYPE.PNT
+                                activeReward?.assetCode === REWARD_ASSET_TYPE.PNT
                                     ? PEANUTMAN_BEER
                                     : PEANUTMAN_RAISING_HANDS
                             }
