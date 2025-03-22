@@ -731,7 +731,7 @@ export const checkifImageType = (type: string) => {
     else return false
 }
 
-export const estimateStableCoin = (tokenPrice: number) => {
+export const estimateIfIsStableCoinFromPrice = (tokenPrice: number) => {
     // if the tokenprice is between .995 and 1.005, return 1
     if (tokenPrice >= 0.995 && tokenPrice <= 1.005) {
         return true

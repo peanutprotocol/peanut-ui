@@ -48,7 +48,7 @@ const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
     },
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ children, className, ...props }, ref) => {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ children, className, loading, ...props }, ref) => {
     const localRef = useRef<HTMLButtonElement>(null)
     const buttonRef = (ref as React.RefObject<HTMLButtonElement>) || localRef
 
@@ -69,7 +69,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ children, cl
 
     return (
         <button className={twMerge(buttonClasses, 'notranslate')} ref={buttonRef} translate="no" {...props}>
-            {props.loading && (
+            {loading && (
                 <span className="animate-spin">
                     <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4" />
                 </span>

@@ -24,9 +24,9 @@ const customStyle = [
         style: {
             fill: 'none',
             stroke: 'rgb(0, 0, 0)',
-            'stroke-linecap': 'round',
-            'stroke-linejoin': 'round',
-            'stroke-width': 1,
+            strokeLinecap: 'round',
+            strokeLinejoin: 'round',
+            strokeWidth: 1,
         },
     },
 ]
