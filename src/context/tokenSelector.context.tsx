@@ -1,13 +1,13 @@
 'use client'
-import React, { createContext, useEffect, useState, useMemo } from 'react'
+import React, { createContext, useEffect, useMemo, useState } from 'react'
 
-import * as utils from '@/utils'
-import * as consts from '@/constants'
-import { type ITokenPriceData } from '@/interfaces'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
+import * as consts from '@/constants'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { type ITokenPriceData } from '@/interfaces'
+import * as utils from '@/utils'
 import * as Sentry from '@sentry/nextjs'
-import { useWallet } from '@/contexts/WalletContext'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
 
 type inputDenominationType = 'USD' | 'TOKEN'
 
