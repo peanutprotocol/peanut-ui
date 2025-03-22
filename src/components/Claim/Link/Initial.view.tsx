@@ -619,7 +619,7 @@ export const InitialClaimLinkView = ({
                         </div>
                     )}
                     <div className="flex w-full flex-col items-center justify-center gap-4">
-                        {!user && !isConnected && recipient.address.length === 0 && <GuestLoginCta />}
+                        {!user && !isConnected && recipient.address.length === 0 && <GuestLoginCta view="CLAIM" />}
                         {(isConnected || (recipient.address && recipient.address.length > 0)) && (
                             <Button
                                 onClick={() => {

@@ -522,7 +522,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                     <BeerInput disabled={!!amount} />
                     <div className="space-y-2">
                         {!user ? (
-                            <GuestLoginCta hideConnectWallet />
+                            <GuestLoginCta hideConnectWallet view="CLAIM" />
                         ) : (
                             <Button
                                 variant="purple"
