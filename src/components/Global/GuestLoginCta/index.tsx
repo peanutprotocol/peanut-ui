@@ -5,14 +5,14 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { saveRedirectUrl } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 interface GuestLoginCtaProps {
     hideConnectWallet?: boolean
+    view?: 'CLAIM' | 'REQUEST'
 }
 
-const GuestLoginCta = ({ hideConnectWallet = false }: GuestLoginCtaProps) => {
+const GuestLoginCta = ({ hideConnectWallet = false, view }: GuestLoginCtaProps) => {
     const { handleLogin, isLoggingIn } = useZeroDev()
     const toast = useToast()
     const router = useRouter()
@@ -72,11 +72,8 @@ const GuestLoginCta = ({ hideConnectWallet = false }: GuestLoginCtaProps) => {
                 variant="purple"
                 className="text-sm md:text-base"
             >
-                Sign in with your Peanut Wallet
+                {view === 'CLAIM' ? 'Claim with Peanut Wallet' : 'Pay with Peanut Wallet'}
             </Button>
-            <Link href={'/setup'} onClick={saveRedirectUrl} className="block h-8 text-center font-bold underline">
-                Don't have a Peanut Wallet? Get one now!
-            </Link>
             {!hideConnectWallet && (
                 <>
                     <Divider text="or" />
