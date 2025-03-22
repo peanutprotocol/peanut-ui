@@ -10,7 +10,7 @@ import { ListItemView } from '@/components/Global/ListItemView'
 import NavHeader from '@/components/Global/NavHeader'
 import { PartnerBarLocation, RewardDetails } from '@/components/Global/RewardsModal'
 import { WalletCard } from '@/components/Home/WalletCard'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_TOKEN_NAME } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
@@ -61,7 +61,7 @@ const WalletDetailsPage = () => {
                             id={`${PEANUT_WALLET_CHAIN.id}-${PEANUT_WALLET_CHAIN.name}`}
                             variant="balance"
                             primaryInfo={{
-                                title: PEANUT_WALLET_TOKEN_NAME as string,
+                                title: PEANUT_WALLET_TOKEN_SYMBOL as string,
                                 subtitle: PEANUT_WALLET_CHAIN.name,
                             }}
                             secondaryInfo={{

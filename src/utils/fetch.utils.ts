@@ -1,4 +1,4 @@
-import { fetchWithSentry, isAddressZero, estimateStableCoin } from '@/utils'
+import { fetchWithSentry, isAddressZero, estimateIfIsStableCoinFromPrice } from '@/utils'
 import { type ITokenPriceData } from '@/interfaces'
 
 type IMobulaMarketData = {
@@ -82,7 +82,7 @@ export const fetchTokenPrice = async (
                 decimals,
                 logoURI: json.data.logo,
             }
-            if (estimateStableCoin(json.data.price)) {
+            if (estimateIfIsStableCoinFromPrice(json.data.price)) {
                 data.price = 1
             }
             return data

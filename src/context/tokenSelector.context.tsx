@@ -2,12 +2,21 @@
 import React, { createContext, useEffect, useMemo, useState } from 'react'
 
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
-import * as consts from '@/constants'
+import {
+    PEANUT_WALLET_TOKEN,
+    PEANUT_WALLET_TOKEN_IMG_URL,
+    PEANUT_WALLET_TOKEN_SYMBOL,
+    PEANUT_WALLET_TOKEN_NAME,
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN_DECIMALS,
+    STABLE_COINS,
+    supportedMobulaChains,
+} from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { type ITokenPriceData } from '@/interfaces'
-import * as utils from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
+import { estimateIfIsStableCoinFromPrice, getUserPreferences, fetchTokenPrice } from '@/utils'
 
 type inputDenominationType = 'USD' | 'TOKEN'
 
@@ -39,34 +48,50 @@ export const tokenSelectorContext = createContext({
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
     const { isPeanutWallet } = useWallet()
 
-    const initialTokenData = useMemo(() => {
+    const peanutWalletTokenData = {
+        price: 1,
+        decimals: PEANUT_WALLET_TOKEN_DECIMALS,
+        symbol: PEANUT_WALLET_TOKEN_SYMBOL,
+        name: PEANUT_WALLET_TOKEN_NAME,
+        address: PEANUT_WALLET_TOKEN,
+        chainId: PEANUT_WALLET_CHAIN.id.toString(),
+        logoURI: PEANUT_WALLET_TOKEN_IMG_URL,
+    } as ITokenPriceData
+
+    const peanutDefaultTokenData = {
+        // address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC
+        // chainId: '10', // Optimism
+        // decimals: 6,
+        address: PEANUT_WALLET_TOKEN,
+        chainId: PEANUT_WALLET_CHAIN.id.toString(),
+        decimals: PEANUT_WALLET_TOKEN_DECIMALS,
+    }
+
+    // Initialize with default values
+    const initialTokenData = (() => {
         if (isPeanutWallet) {
             return {
-                address: consts.PEANUT_WALLET_TOKEN,
-                chainId: consts.PEANUT_WALLET_CHAIN.id.toString(),
-                decimals: 6,
+                address: PEANUT_WALLET_TOKEN,
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                decimals: PEANUT_WALLET_TOKEN_DECIMALS,
             }
         }
 
-        const { lastUsedToken } = utils.getUserPreferences() ?? {}
-        return (
-            lastUsedToken ?? {
-                address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC
-                chainId: '10', // Optimism
-                decimals: 6,
-            }
-        )
-    }, [isPeanutWallet])
+        const { lastUsedToken } = getUserPreferences() ?? {}
+        return lastUsedToken ?? peanutDefaultTokenData
+    })()
 
     const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenData.address)
     const [selectedChainID, setSelectedChainID] = useState(initialTokenData.chainId)
-    const [selectedTokenPrice, setSelectedTokenPrice] = useState<number | undefined>(undefined)
-    const [inputDenomination, setInputDenomination] = useState<inputDenominationType>('TOKEN')
+    const [selectedTokenPrice, setSelectedTokenPrice] = useState<number | undefined>(isPeanutWallet ? 1 : undefined)
+    const [inputDenomination, setInputDenomination] = useState<inputDenominationType>(isPeanutWallet ? 'USD' : 'TOKEN')
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
     const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(initialTokenData.decimals)
     const [isXChain, setIsXChain] = useState<boolean>(false)
     const [isFetchingTokenData, setIsFetchingTokenData] = useState<boolean>(false)
-    const [selectedTokenData, setSelectedTokenData] = useState<ITokenPriceData | undefined>(undefined)
+    const [selectedTokenData, setSelectedTokenData] = useState<ITokenPriceData | undefined>(
+        isPeanutWallet ? peanutWalletTokenData : undefined
+    )
     const [supportedSquidChainsAndTokens, setSupportedSquidChainsAndTokens] = useState<
         Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>
     >({})
@@ -77,54 +102,100 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     }
 
     const resetTokenContextProvider = () => {
-        const { lastUsedToken } = utils.getUserPreferences() ?? {}
-        const tokenData = lastUsedToken ?? initialTokenData
+        const { lastUsedToken } = getUserPreferences() ?? {}
+        const tokenData = isPeanutWallet
+            ? {
+                  address: PEANUT_WALLET_TOKEN,
+                  chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                  decimals: PEANUT_WALLET_TOKEN_DECIMALS,
+              }
+            : (lastUsedToken ?? peanutDefaultTokenData)
+
         setSelectedChainID(tokenData.chainId)
         setSelectedTokenAddress(tokenData.address)
         setSelectedTokenDecimals(tokenData.decimals)
-        setSelectedTokenPrice(undefined)
-        setInputDenomination('TOKEN')
-        setSelectedTokenData(undefined)
+        setSelectedTokenPrice(isPeanutWallet ? 1 : undefined)
+        setInputDenomination(isPeanutWallet ? 'USD' : 'TOKEN')
+        setSelectedTokenData(isPeanutWallet ? peanutWalletTokenData : undefined)
     }
 
     useEffect(() => {
-        let isCurrent = true
+        let isCurrent = true // flag to check if the component is still mounted
 
         async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
-            setIsFetchingTokenData(true)
             try {
-                if (!consts.supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
+                // First check if it's a Peanut Wallet USDC
+                if (isPeanutWallet && tokenAddress === PEANUT_WALLET_TOKEN) {
+                    setSelectedTokenData({
+                        price: 1,
+                        decimals: PEANUT_WALLET_TOKEN_DECIMALS,
+                        symbol: PEANUT_WALLET_TOKEN_SYMBOL,
+                        name: PEANUT_WALLET_TOKEN_NAME,
+                        address: PEANUT_WALLET_TOKEN,
+                        chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                        logoURI: PEANUT_WALLET_TOKEN_IMG_URL,
+                    } as ITokenPriceData)
+                    setSelectedTokenPrice(1)
+                    setSelectedTokenDecimals(PEANUT_WALLET_TOKEN_DECIMALS)
+                    setInputDenomination('USD')
+                    return
+                }
+
+                // Then check if it's a known stablecoin from our supported tokens
+                const token = supportedSquidChainsAndTokens[chainId]?.tokens.find(
+                    (t) => t.address.toLowerCase() === tokenAddress.toLowerCase()
+                )
+
+                if (token && STABLE_COINS.includes(token.symbol.toUpperCase())) {
+                    setSelectedTokenData({
+                        price: 1,
+                        decimals: token.decimals,
+                        symbol: token.symbol,
+                        name: token.name,
+                        address: token.address,
+                        chainId: chainId,
+                        logoURI: token.logoURI,
+                    } as ITokenPriceData)
+                    setSelectedTokenPrice(1)
+                    setSelectedTokenDecimals(token.decimals)
+                    setInputDenomination('USD')
+                    return
+                }
+
+                // If not a known stablecoin, proceed with price fetch
+                if (!supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
                     setSelectedTokenData(undefined)
                     setSelectedTokenPrice(undefined)
                     setSelectedTokenDecimals(undefined)
                     setInputDenomination('TOKEN')
                     return
-                } else {
-                    const tokenPriceResponse = await utils.fetchTokenPrice(tokenAddress, chainId)
-                    if (!isCurrent) {
-                        return // if landed here, fetch outdated so discard the result
-                    }
-                    if (tokenPriceResponse?.price) {
-                        setSelectedTokenPrice(tokenPriceResponse.price)
-                        setSelectedTokenDecimals(tokenPriceResponse.decimals)
-                        setSelectedTokenData(tokenPriceResponse)
-                        if (tokenPriceResponse.price === 1) {
-                            setInputDenomination('TOKEN')
-                        } else {
-                            setInputDenomination('USD')
-                        }
+                }
+
+                const tokenPriceResponse = await fetchTokenPrice(tokenAddress, chainId)
+                if (!isCurrent) return
+
+                if (tokenPriceResponse?.price) {
+                    setSelectedTokenPrice(tokenPriceResponse.price)
+                    setSelectedTokenDecimals(tokenPriceResponse.decimals)
+                    setSelectedTokenData(tokenPriceResponse)
+                    if (estimateIfIsStableCoinFromPrice(tokenPriceResponse.price)) {
+                        setInputDenomination('USD')
                     } else {
-                        setSelectedTokenData(undefined)
-                        setSelectedTokenPrice(undefined)
-                        setSelectedTokenDecimals(undefined)
                         setInputDenomination('TOKEN')
                     }
+                } else {
+                    setSelectedTokenData(undefined)
+                    setSelectedTokenPrice(undefined)
+                    setSelectedTokenDecimals(undefined)
+                    setInputDenomination('TOKEN')
                 }
             } catch (error) {
                 Sentry.captureException(error)
                 console.log('error fetching tokenPrice, falling back to tokenDenomination')
             } finally {
-                setIsFetchingTokenData(false)
+                if (isCurrent) {
+                    setIsFetchingTokenData(false)
+                }
             }
         }
 
@@ -135,12 +206,14 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             setSelectedTokenPrice(undefined)
             setSelectedTokenDecimals(undefined)
             setInputDenomination('TOKEN')
+
             fetchAndSetTokenPrice(selectedTokenAddress, selectedChainID)
             return () => {
                 isCurrent = false
+                setIsFetchingTokenData(false)
             }
         }
-    }, [selectedTokenAddress, selectedChainID])
+    }, [selectedTokenAddress, selectedChainID, isPeanutWallet, supportedSquidChainsAndTokens])
 
     useEffect(() => {
         getSquidChainsAndTokens().then(setSupportedSquidChainsAndTokens)

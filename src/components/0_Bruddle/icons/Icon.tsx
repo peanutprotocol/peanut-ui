@@ -160,7 +160,7 @@ export const NavIcons: React.FC<NavIconsProps> = ({ name, size = 24, className, 
                         />
                         <path
                             d="M15.9932 7.54785V10.0498C15.9932 10.602 16.4409 11.0498 16.9932 11.0498H19.3361"
-                            stroke-linecap="round"
+                            strokeLinecap="round"
                             className="stroke-current"
                             strokeWidth="1.5"
                             fill="none"
@@ -212,7 +212,7 @@ export const NavIcons: React.FC<NavIconsProps> = ({ name, size = 24, className, 
                             height="9.4"
                             rx="1.2"
                             stroke="black"
-                            stroke-width="1.6"
+                            strokeWidth="1.6"
                             className="stroke-current"
                             fill="none"
                         />
