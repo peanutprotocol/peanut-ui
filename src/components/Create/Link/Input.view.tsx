@@ -410,7 +410,7 @@ export const CreateLinkInputView = ({
                                             })
                                             .catch((error) => {
                                                 Sentry.captureException(error)
-                                                toast.error('Error logging in')
+                                                toast.error('Error logging in. Try a different browser')
                                             })
                                             .finally(() => {
                                                 setLoadingState('Idle')

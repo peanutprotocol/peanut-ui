@@ -81,7 +81,7 @@ export const useZeroDev = () => {
             setWebAuthnKey(webAuthnKey)
             saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
         } catch (e) {
-            console.error('Error logging in', e)
+            console.error('Error logging in. Try a different browser', e)
             dispatch(zerodevActions.setIsLoggingIn(false))
             throw e
         }
