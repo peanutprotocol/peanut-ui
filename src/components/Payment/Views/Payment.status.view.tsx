@@ -14,7 +14,14 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { formatAmount, formatDate, getChainName, getExplorerUrl, shortenAddressLong } from '@/utils'
+import {
+    formatAmount,
+    formatDate,
+    getChainName,
+    getExplorerUrl,
+    shortenAddressLong,
+    formatPaymentStatus,
+} from '@/utils'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
@@ -346,14 +353,17 @@ export default function PaymentStatusView() {
                     {renderTransactionDetails()}
                 </div>
 
-                {/* Timeline */}
+                {/* Timeline - oldest first */}
                 {latestPayment && (
                     <div className="w-full space-y-2">
                         <div className="text-h8 font-semibold text-gray-1">Payment Timeline</div>
                         <div className="py-1">
-                            {statusDetails.timeline.map((entry, index) => (
+                            {[...statusDetails.timeline].reverse().map((entry, index) => (
                                 <div key={index}>
-                                    <Timeline value={`${entry.status}`} label={`${formatDate(new Date(entry.time))}`} />
+                                    <Timeline
+                                        value={formatPaymentStatus(entry.status)}
+                                        label={`${formatDate(new Date(entry.time))}`}
+                                    />
                                 </div>
                             ))}
                         </div>
