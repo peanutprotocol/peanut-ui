@@ -1094,3 +1094,20 @@ export const saveRedirectUrl = () => {
     const currentUrl = new URL(window.location.href)
     saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
 }
+
+export const formatPaymentStatus = (status: string): string => {
+    switch (status.toUpperCase()) {
+        case 'NEW':
+            return 'Request Created'
+        case 'PENDING':
+            return 'Payment Initialized'
+        case 'COMPLETED':
+            return 'Payment Completed'
+        case 'SUCCESSFUL':
+            return 'Payment Completed'
+        case 'FAILED':
+            return 'Payment Failed'
+        default:
+            return status
+    }
+}

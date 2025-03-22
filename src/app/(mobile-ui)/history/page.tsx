@@ -19,6 +19,7 @@ import {
     getTokenLogo,
     isStableCoin,
     printableAddress,
+    formatPaymentStatus,
 } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -63,7 +64,9 @@ const HistoryPage = () => {
 
             const transactionStatus =
                 (linkDetails?.status ?? data.status)
-                    ? getHistoryTransactionStatus(data?.type as TransactionType, linkDetails?.status ?? data.status)
+                    ? formatPaymentStatus(
+                          getHistoryTransactionStatus(data?.type as TransactionType, linkDetails?.status ?? data.status)
+                      )
                     : undefined
 
             return {
