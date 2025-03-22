@@ -470,12 +470,12 @@ export default function ConfirmPaymentView() {
                 />
                 <PintaReqViewWrapper view="CONFIRM">
                     <div className="flex flex-col items-center justify-center gap-3 pt-2">
-                        <div className="text-h8">You're Claiming</div>
+                        <div className="text-h8">You're paying for</div>
                         <div className="space-y-2 text-center">
                             <div className="text-h5 font-bold">
                                 {beerQuantity} {beerQuantity > 1 ? 'Beers' : 'Beer'}
                             </div>
-                            <p className="text-xs font-normal">From Beer Account</p>
+                            <p className="text-xs font-normal">From your Beer Account</p>
                         </div>
                     </div>
                     <PeanutSponsored />

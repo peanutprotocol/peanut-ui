@@ -287,6 +287,7 @@ export const CreateLinkConfirmView = ({
                             chainIconUri={selectedChain?.iconUri ?? ''}
                             tokenAmount={tokenValue ?? '0'}
                             title="You're sending"
+                            showOnlyUSD={isPeanutWallet}
                         />
                     </div>
 
