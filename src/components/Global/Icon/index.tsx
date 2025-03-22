@@ -18,7 +18,15 @@ const customViewbox = [
     { name: 'peanut', viewBox: '2 2 20 20' },
 ]
 
-const customStyle = [
+type CustomStyle = {
+    name: string
+    style: React.CSSProperties & {
+        strokeLinecap?: 'butt' | 'round' | 'square' | 'inherit'
+        strokeLinejoin?: 'miter' | 'round' | 'bevel' | 'inherit'
+    }
+}
+
+const customStyle: CustomStyle[] = [
     {
         name: 'peanut',
         style: {
