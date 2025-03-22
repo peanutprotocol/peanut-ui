@@ -29,7 +29,7 @@ const GuestLoginModal = () => {
                             .then(signInModal.close)
                             .catch((e) => {
                                 console.error(e)
-                                toast.error('Error logging in')
+                                toast.error('Error logging in. Try a different browser')
                             })
                     }}
                 >
