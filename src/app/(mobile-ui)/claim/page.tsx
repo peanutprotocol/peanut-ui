@@ -29,13 +29,13 @@ function createURL(host: string, searchParams: { [key: string]: string | string[
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
     let title = 'Claim your tokens!'
-
     const host = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
 
     let linkDetails = undefined
     try {
         const url = createURL(host, searchParams)
         linkDetails = await getLinkDetails({ link: url })
+
         if (!linkDetails.claimed) {
             title =
                 'You received ' +
@@ -52,9 +52,19 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     }
 
     let previewUrl = '/claim-metadata-img.jpg'
-    if (linkDetails) {
-        previewUrl = `${host}/api/preview-image?amount=${linkDetails.tokenAmount}&tokenSymbol=${linkDetails.tokenSymbol}&address=${linkDetails.senderAddress}`
+    if (linkDetails && !linkDetails.claimed) {
+        const url = new URL('/api/preview-image', host)
+        const params = new URLSearchParams()
+
+        params.append('amount', linkDetails.tokenAmount.toString())
+        params.append('tokenSymbol', linkDetails.tokenSymbol)
+        params.append('address', linkDetails.senderAddress)
+        params.append('previewType', 'CLAIM')
+
+        url.search = params.toString()
+        previewUrl = url.toString()
     }
+
     return {
         title: title,
         icons: {
@@ -64,8 +74,16 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
             images: [
                 {
                     url: previewUrl,
+                    width: 400,
+                    height: 200,
                 },
             ],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description: 'Claim your tokens using Peanut Protocol',
+            images: [previewUrl],
         },
     }
 }

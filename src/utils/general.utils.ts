@@ -731,7 +731,7 @@ export const checkifImageType = (type: string) => {
     else return false
 }
 
-export const estimateStableCoin = (tokenPrice: number) => {
+export const estimateIfIsStableCoinFromPrice = (tokenPrice: number) => {
     // if the tokenprice is between .995 and 1.005, return 1
     if (tokenPrice >= 0.995 && tokenPrice <= 1.005) {
         return true
@@ -1093,4 +1093,21 @@ export const getHistoryTransactionStatus = (type: TransactionType | undefined, s
 export const saveRedirectUrl = () => {
     const currentUrl = new URL(window.location.href)
     saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
+}
+
+export const formatPaymentStatus = (status: string): string => {
+    switch (status.toUpperCase()) {
+        case 'NEW':
+            return 'Request Created'
+        case 'PENDING':
+            return 'Payment Initialized'
+        case 'COMPLETED':
+            return 'Payment Completed'
+        case 'SUCCESSFUL':
+            return 'Payment Completed'
+        case 'FAILED':
+            return 'Payment Failed'
+        default:
+            return status
+    }
 }

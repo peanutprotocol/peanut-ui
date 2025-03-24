@@ -3,6 +3,7 @@
 import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
 import { useCreateLink } from '@/components/Create/useCreateLink'
+import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
@@ -22,7 +23,6 @@ import {
     formatAmount,
     getTokenSymbol,
     isAddressZero,
-    shortenAddressLong,
     switchNetwork as switchNetworkUtil,
 } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
@@ -30,7 +30,6 @@ import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useSwitchChain } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
-import AddressLink from '@/components/Global/AddressLink'
 
 export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
@@ -59,7 +58,7 @@ export default function ConfirmPaymentView() {
     >()
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const { switchChainAsync } = useSwitchChain()
-    const { setLoadingState } = useContext(loadingStateContext)
+    const { setLoadingState, loadingState } = useContext(loadingStateContext)
     const [txFee, setTxFee] = useState<string>('0')
     const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
     const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
@@ -146,6 +145,14 @@ export default function ConfirmPaymentView() {
             return xchainUnsignedTxs
         } catch (error) {
             console.error('Cross-chain preparation error:', error)
+            let errorBody = undefined
+            try {
+                errorBody = JSON.parse((error as Error).message)
+            } catch (e) {}
+            if (errorBody?.message) {
+                dispatch(paymentActions.setError(errorBody.message))
+                return
+            }
             throw new Error(error instanceof Error ? error.message : 'Failed to estimate from amount')
         }
     }
@@ -187,7 +194,7 @@ export default function ConfirmPaymentView() {
                 )
 
                 if (!txData?.unsignedTxs) {
-                    throw new Error('Failed to prepare cross-chain transaction')
+                    return false
                 }
 
                 setXChainUnsignedTxs(txData.unsignedTxs)
@@ -218,6 +225,8 @@ export default function ConfirmPaymentView() {
             return false
         } finally {
             setIsSubmitting(false)
+            setIsEstimatingGas(false)
+            setIsCalculatingFees(false)
         }
         return true
     }
@@ -297,6 +306,7 @@ export default function ConfirmPaymentView() {
             const errorString = ErrorHandler(error)
             dispatch(paymentActions.setError(errorString))
         } finally {
+            setLoadingState('Idle')
             setIsSubmitting(false)
         }
     }
@@ -307,13 +317,20 @@ export default function ConfirmPaymentView() {
         if (isInsufficientRewardsBalance) return 'Insufficient Balance'
 
         if (isSubmitting) {
-            return (
-                <div className="flex items-center justify-center gap-2">
-                    <span>{isXChainTx ? 'Fetching Best Quote For You...' : 'Preparing Transaction...'}</span>
-                </div>
-            )
+            // First, show any global loading state if set (these take precedence over local states)
+            if (loadingState !== 'Idle') {
+                if (loadingState === 'Sign in wallet') return 'Sign in wallet...'
+                if (loadingState === 'Executing transaction') return 'Processing payment...'
+                if (loadingState === 'Switching network') return 'Switching network...'
+                if (loadingState === 'Fetching route') return 'Finding best route...'
+                if (loadingState === 'Awaiting route fulfillment') return 'Finalizing transaction...'
+                return loadingState
+            }
+            return isXChainTx ? 'Fetching Best Quote For You...' : 'Preparing Transaction...'
         }
-        if (isCalculatingFees || isEstimatingGas) {
+
+        if (isPintaReq && (isCalculatingFees || isEstimatingGas)) return 'Hang on...'
+        else if (isCalculatingFees || isEstimatingGas) {
             return (
                 <div className="flex items-center justify-center gap-2">
                     <span>Calculating Fees...</span>
@@ -453,12 +470,12 @@ export default function ConfirmPaymentView() {
                 />
                 <PintaReqViewWrapper view="CONFIRM">
                     <div className="flex flex-col items-center justify-center gap-3 pt-2">
-                        <div className="text-h8">You're Claiming</div>
+                        <div className="text-h8">You're paying for</div>
                         <div className="space-y-2 text-center">
                             <div className="text-h5 font-bold">
                                 {beerQuantity} {beerQuantity > 1 ? 'Beers' : 'Beer'}
                             </div>
-                            <p className="text-xs font-normal">From Beer Account</p>
+                            <p className="text-xs font-normal">From your Beer Account</p>
                         </div>
                     </div>
                     <PeanutSponsored />

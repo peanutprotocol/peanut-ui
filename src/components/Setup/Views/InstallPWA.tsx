@@ -4,6 +4,7 @@ import Modal from '@/components/Global/Modal'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useEffect, useState } from 'react'
+import { getFromLocalStorage } from '@/utils'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -68,11 +69,13 @@ const InstallPWA = () => {
         // Detect when PWA is installed
         window.addEventListener('appinstalled', () => {
             // Wait a moment to let the install complete
+            const localStorageRedirect = getFromLocalStorage('redirect')
+            const redirect = localStorageRedirect ? localStorageRedirect : '/home'
             setTimeout(() => {
                 setInstallComplete(true)
                 setShowModal(false)
                 // Try to open the PWA
-                window.location.href = window.location.origin + '/home'
+                window.location.href = window.location.origin + redirect
             }, 1000)
         })
 

@@ -83,8 +83,8 @@ export const CreateLinkInputView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const [_tokenValue, _setTokenValue] = useState<string | undefined>(
-        inputDenomination === 'TOKEN' ? tokenValue : usdValue
+    const [currentInputValue, setCurrentInputValue] = useState<string | undefined>(
+        (inputDenomination === 'TOKEN' ? tokenValue : usdValue) ?? ''
     )
 
     const { open } = useAppKit()
@@ -93,7 +93,7 @@ export const CreateLinkInputView = ({
 
     const handleOnNext = async () => {
         try {
-            if (isLoading || (isConnected && !tokenValue)) return
+            if (isLoading || (isConnected && !currentInputValue)) return
 
             setLoadingState('Loading')
 
@@ -183,26 +183,37 @@ export const CreateLinkInputView = ({
                 } else {
                     setTransactionType('not-gasless')
 
-                    // Dev block
-                    // Overwrite approval to 0 amount to re-test approvals
-
-                    // let chainId = linkDetails.chainId
-                    // let tokenAddress = linkDetails.tokenAddress!
-                    // let provider = undefined
-                    // let spenderAddress = undefined
-
-                    // let contractVersion = getLatestContractVersion({ chainId: linkDetails.chainId, type: 'normal' })
-
-                    // const defaultProvider = provider || (await getDefaultProvider(chainId))
-                    // const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, defaultProvider)
-
-                    // const _PEANUT_CONTRACTS = PEANUT_CONTRACTS as { [chainId: string]: { [contractVersion: string]: string } }
-                    // const spender = spenderAddress || (_PEANUT_CONTRACTS[chainId] && _PEANUT_CONTRACTS[chainId][contractVersion])
-
-                    // const tx = await tokenContract.populateTransaction.approve(spender, BigInt(0))
-                    // const peanutTxs: any = {unsignedTxs: [ethersV5ToPeanutTx(tx)]}
-
-                    // prepareDepositTxsResponse = peanutTxs
+                    /*
+                     * DEV BLOCK: Code to reset token approvals for testing
+                     *
+                     * This code can be uncommented to force token approval to 0
+                     * in order to test the approval flow:
+                     *
+                     * let chainId = linkDetails.chainId
+                     * let tokenAddress = linkDetails.tokenAddress!
+                     * let provider = undefined
+                     * let spenderAddress = undefined
+                     *
+                     * let contractVersion = getLatestContractVersion({
+                     *   chainId: linkDetails.chainId,
+                     *   type: 'normal'
+                     * })
+                     *
+                     * const defaultProvider = provider || (await getDefaultProvider(chainId))
+                     * const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, defaultProvider)
+                     *
+                     * const _PEANUT_CONTRACTS = PEANUT_CONTRACTS as {
+                     *   [chainId: string]: { [contractVersion: string]: string }
+                     * }
+                     * const spender = spenderAddress || (
+                     *   _PEANUT_CONTRACTS[chainId] && _PEANUT_CONTRACTS[chainId][contractVersion]
+                     * )
+                     *
+                     * const tx = await tokenContract.populateTransaction.approve(spender, BigInt(0))
+                     * const peanutTxs: any = {unsignedTxs: [ethersV5ToPeanutTx(tx)]}
+                     *
+                     * prepareDepositTxsResponse = peanutTxs
+                     */
 
                     prepareDepositTxsResponse = await prepareDepositTxs({
                         _linkDetails: linkDetails,
@@ -308,19 +319,19 @@ export const CreateLinkInputView = ({
     }, [selectedChainID, selectedTokenAddress, selectedWallet?.balances, selectedWallet?.balance])
 
     useEffect(() => {
-        if (!_tokenValue) return
+        if (!currentInputValue) return
         if (inputDenomination === 'TOKEN') {
-            setTokenValue(_tokenValue)
+            setTokenValue(currentInputValue)
             if (selectedTokenPrice) {
-                setUsdValue((parseFloat(_tokenValue) * selectedTokenPrice).toString())
+                setUsdValue((parseFloat(currentInputValue) * selectedTokenPrice).toString())
             }
         } else if (inputDenomination === 'USD') {
-            setUsdValue(_tokenValue)
+            setUsdValue(currentInputValue)
             if (selectedTokenPrice) {
-                setTokenValue((parseFloat(_tokenValue) / selectedTokenPrice).toString())
+                setTokenValue((parseFloat(currentInputValue) / selectedTokenPrice).toString())
             }
         }
-    }, [_tokenValue, inputDenomination])
+    }, [currentInputValue, inputDenomination, selectedTokenPrice])
 
     useEffect(() => {
         if (isPeanutWallet) {
@@ -357,9 +368,9 @@ export const CreateLinkInputView = ({
                     <div className="flex flex-col gap-4">
                         <TokenAmountInput
                             className="w-full"
-                            tokenValue={_tokenValue}
+                            tokenValue={currentInputValue}
                             maxValue={maxValue}
-                            setTokenValue={_setTokenValue}
+                            setTokenValue={setCurrentInputValue}
                             onSubmit={() => {
                                 if (!isConnected) signInModal.open()
                                 else handleOnNext()
@@ -399,7 +410,7 @@ export const CreateLinkInputView = ({
                                             })
                                             .catch((error) => {
                                                 Sentry.captureException(error)
-                                                toast.error('Error logging in')
+                                                toast.error('Error logging in. Try a different browser')
                                             })
                                             .finally(() => {
                                                 setLoadingState('Idle')
@@ -412,7 +423,7 @@ export const CreateLinkInputView = ({
                                 }
                             }}
                             loading={isLoading}
-                            disabled={isLoading || !tokenValue}
+                            disabled={isLoading || !currentInputValue}
                         >
                             {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
                         </Button>

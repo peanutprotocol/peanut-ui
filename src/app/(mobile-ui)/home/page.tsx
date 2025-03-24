@@ -142,6 +142,11 @@ export default function Home() {
         })
     }
 
+    const isAddWalletFocused = useMemo<boolean>(() => {
+        if ((wallets?.length ?? 0) === 0) return true
+        return wallets.length <= focusedIndex
+    }, [focusedIndex, wallets?.length])
+
     if (isFetchingWallets) {
         return <PeanutLoading />
     }
@@ -208,8 +213,9 @@ export default function Home() {
                         </div>
                     </div>
 
-                    {focusedWalletId &&
-                    wallets.find((w) => w.id === focusedWalletId)?.walletProviderType === WalletProviderType.REWARDS ? (
+                    {isAddWalletFocused ? null : focusedWalletId &&
+                      wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
+                          WalletProviderType.REWARDS ? (
                         <div className="px-6 md:pb-6">
                             <DirectSendQr />
                         </div>

@@ -233,7 +233,7 @@ const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: Wallet
                             ? 'Peanut Wallet'
                             : selectedWallet?.walletProviderType === WalletProviderType.REWARDS
                               ? 'Beer Wallet'
-                              : (primaryName && truncateString(primaryName, 24)) ||
+                              : (primaryName && truncateString(primaryName, 18)) ||
                                 shortenAddressLong(selectedWallet?.address)}
                     </span>
                 ) : (
@@ -242,9 +242,9 @@ const WalletHeader = ({ className, disabled, hideRewardsWallet = false }: Wallet
                         <div>Loading...</div>
                     </div>
                 )}
-                <button className="ml-2.5 flex size-7 items-center justify-center rounded-full border border-n-1 bg-white p-0.5">
+                <div className="ml-2.5 flex size-7 items-center justify-center rounded-full border border-n-1 bg-white p-0.5">
                     <Icon name="arrow-down-filled" fill="black" className="h-4" />
-                </button>
+                </div>
             </Button>
 
             {/* wallet selection modal */}

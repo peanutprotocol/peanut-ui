@@ -3,11 +3,13 @@ import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { WalletProviderType } from '@/interfaces'
-import { useSetupStore } from '@/redux/hooks'
+import { useSetupStore, useAppDispatch } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect, useState } from 'react'
 import * as Sentry from '@sentry/nextjs'
 
 const SetupPasskey = () => {
+    const dispatch = useAppDispatch()
     const { handle } = useSetupStore()
     const { handleNext, isLoading } = useSetupFlow()
     const { handleRegister, address } = useZeroDev()
@@ -30,6 +32,9 @@ const SetupPasskey = () => {
                     console.error('Error adding account', e)
                     setError('Error adding account')
                 })
+                .finally(() => {
+                    dispatch(setupActions.setLoading(false))
+                })
         }
     }, [address, addAccount, user, handleNext])
 
@@ -37,13 +42,16 @@ const SetupPasskey = () => {
         <div className="flex h-full flex-col justify-end gap-2 text-center">
             <Button
                 loading={isLoading}
+                disabled={isLoading}
                 onClick={async () => {
+                    dispatch(setupActions.setLoading(true))
                     try {
                         await handleRegister(handle)
                     } catch (e) {
                         Sentry.captureException(e)
                         console.error('Error registering passkey:', e)
                         setError('Error registering passkey.')
+                        dispatch(setupActions.setLoading(false))
                     }
                 }}
                 className="text-nowrap"

@@ -547,6 +547,7 @@ export const InitialClaimLinkView = ({
                             }}
                         />
                     )}
+                    {/* Temporarily hidden text input
                     {(!isConnected || isExternalWallet) && (
                         <GeneralRecipientInput
                             className="pl-8"
@@ -569,6 +570,7 @@ export const InitialClaimLinkView = ({
                             infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
                         />
                     )}
+                    */}
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                         <div className="flex w-full flex-col items-center justify-center gap-2 py-2">
                             {selectedRoute && (
@@ -619,7 +621,9 @@ export const InitialClaimLinkView = ({
                         </div>
                     )}
                     <div className="flex w-full flex-col items-center justify-center gap-4">
-                        {!user && !isConnected && recipient.address.length === 0 && <GuestLoginCta />}
+                        {!user && !isConnected && recipient.address.length === 0 && (
+                            <GuestLoginCta view="CLAIM" hideConnectWallet={true} />
+                        )}
                         {(isConnected || (recipient.address && recipient.address.length > 0)) && (
                             <Button
                                 onClick={() => {
@@ -664,6 +668,7 @@ export const InitialClaimLinkView = ({
                                 </Link>
                             </div>
                         )}
+                        {/* Temporarily hidden external wallet option
                         {address && recipient.address.length < 0 && recipientType === 'address' && (
                             <div
                                 className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"
@@ -674,6 +679,7 @@ export const InitialClaimLinkView = ({
                                 {isConnected ? 'Or claim/swap to your connected wallet' : 'Connect a wallet'}
                             </div>
                         )}
+                        */}
                         {errorState.showError && (
                             <div className="text-start">
                                 {errorState.errorMessage === 'offramp unavailable' ? (

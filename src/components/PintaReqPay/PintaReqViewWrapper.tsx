@@ -7,11 +7,11 @@ interface PintaReqViewWrapperProps {
 const PintaReqViewWrapper = ({ children, view }: PintaReqViewWrapperProps) => {
     const viewContentMap = {
         INITIAL: {
-            title: 'Claim Beer',
+            title: 'Get your Beer',
             description: 'Exchange your Pinta Tokens for cold beer at this bar. Each token gets you drink.',
         },
         CONFIRM: {
-            title: 'Claim Beer',
+            title: 'Get your Beer',
             description: 'Exchange your Pinta Tokens for cold beer at this bar. Each token gets you drink.',
         },
         SUCCESS: {

@@ -2,12 +2,13 @@
 
 import * as consts from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
+import { loadingStateContext } from '@/context'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { saveToLocalStorage } from '@/utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
-import { useCallback } from 'react'
+import { useCallback, useContext } from 'react'
 import { Abi, Address, encodeFunctionData, Hex } from 'viem'
 
 // types
@@ -31,6 +32,7 @@ export const useZeroDev = () => {
     const { user } = useAuth()
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
     const { setWebAuthnKey, getClientForChain } = useKernelClient()
+    const { setLoadingState } = useContext(loadingStateContext)
 
     // Future note: could be `${handle}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIM || 'peanut.me'}` (have to change BE too)
     const _getPasskeyName = (handle: string) => `${handle}.peanut.wallet`
@@ -79,7 +81,7 @@ export const useZeroDev = () => {
             setWebAuthnKey(webAuthnKey)
             saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
         } catch (e) {
-            console.error('Error logging in', e)
+            console.error('Error logging in. Try a different browser', e)
             dispatch(zerodevActions.setIsLoggingIn(false))
             throw e
         }
@@ -96,6 +98,7 @@ export const useZeroDev = () => {
                     callData: await client.account!.encodeCalls(calls),
                 })
 
+                setLoadingState('Executing transaction')
                 const receipt = await client.waitForUserOperationReceipt({
                     hash: userOpHash,
                 })

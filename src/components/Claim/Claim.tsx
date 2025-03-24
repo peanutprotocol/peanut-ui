@@ -9,12 +9,12 @@ import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import PageContainer from '../0_Bruddle/PageContainer'
 import { ActionType, estimatePoints } from '../utils/utils'
 import * as _consts from './Claim.consts'
 import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
-import * as Sentry from '@sentry/nextjs'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)

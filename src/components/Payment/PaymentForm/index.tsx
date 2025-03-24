@@ -453,7 +453,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
 
     // check if this is a cross-chain request for Peanut Wallet
     const isPeanutWalletCrossChainRequest = useMemo(() => {
-        if (!requestDetails || !isPeanutWallet) return false
+        if (!requestDetails?.chainId || !requestDetails?.tokenAddress || !isPeanutWallet) return false
 
         // check if requested chain and token match Peanut Wallet's supported chain/token
         return (
@@ -517,12 +517,12 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     if (isPintaReq) {
         return (
             <div className="space-y-4">
-                <FlowHeader hideWalletHeader={!isConnected} isPintaReq />
+                {!!user && <FlowHeader hideWalletHeader={!isConnected} isPintaReq />}
                 <PintaReqViewWrapper view="INITIAL">
                     <BeerInput disabled={!!amount} />
                     <div className="space-y-2">
                         {!user ? (
-                            <GuestLoginCta hideConnectWallet />
+                            <GuestLoginCta hideConnectWallet view="CLAIM" />
                         ) : (
                             <Button
                                 variant="purple"

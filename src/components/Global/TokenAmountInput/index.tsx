@@ -1,7 +1,9 @@
-import * as context from '@/context'
-import * as utils from '@/utils'
+import { tokenSelectorContext } from '@/context'
+import { formatAmountWithoutComma, estimateIfIsStableCoinFromPrice, formatTokenAmount } from '@/utils'
 import { useContext, useEffect, useMemo, useRef } from 'react'
 import Icon from '../Icon'
+import { PEANUT_WALLET_TOKEN } from '@/constants'
+import { useWallet } from '@/hooks/wallet/useWallet'
 
 interface TokenAmountInputProps {
     className?: string
@@ -20,9 +22,11 @@ const TokenAmountInput = ({
     maxValue,
     disabled,
 }: TokenAmountInputProps) => {
-    const { inputDenomination, setInputDenomination, selectedTokenData } = useContext(context.tokenSelectorContext)
+    const { inputDenomination, setInputDenomination, selectedTokenData, selectedTokenAddress } =
+        useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
+    const { isPeanutWallet } = useWallet()
 
     const onChange = (tokenvalue: string) => {
         setTokenValue(tokenvalue)
@@ -70,8 +74,14 @@ const TokenAmountInput = ({
             onClick={handleContainerClick}
         >
             <div className="flex h-14 w-full flex-row items-center justify-center gap-1">
-                {selectedTokenData?.price &&
-                    (inputDenomination === 'USD' || utils.estimateStableCoin(selectedTokenData.price) ? (
+                {/* Show dollar sign if either:
+                    1. We have price data from API and it's either in USD mode or is a stablecoin
+                         // TODO: if multiple denominations (USD, EURO, etc), show the correct one
+                    2. It's a Peanut Wallet USDC transaction (which we know is always $1)
+                    This prevents flickering/not loading of the dollar sign while waiting for price data */}
+                {(selectedTokenData?.price || (isPeanutWallet && selectedTokenAddress === PEANUT_WALLET_TOKEN)) &&
+                    (inputDenomination === 'USD' ||
+                    (selectedTokenData?.price ? estimateIfIsStableCoinFromPrice(selectedTokenData.price) : false) ? (
                         <label className={`text-h1 ${tokenValue ? 'text-black' : 'text-gray-2'}`}>$</label>
                     ) : (
                         <label className="sr-only text-h1">$</label>
@@ -80,7 +90,7 @@ const TokenAmountInput = ({
                     className={`h-12 w-[4ch] max-w-80 bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                     placeholder={'0.00'}
                     onChange={(e) => {
-                        const value = utils.formatAmountWithoutComma(e.target.value)
+                        const value = formatAmountWithoutComma(e.target.value)
                         onChange(value)
                     }}
                     ref={inputRef}
@@ -111,14 +121,14 @@ const TokenAmountInput = ({
                     </button>
                 )}
             </div>
-            {selectedTokenData?.price && !utils.estimateStableCoin(selectedTokenData.price) && (
+            {selectedTokenData?.price && !estimateIfIsStableCoinFromPrice(selectedTokenData.price) && (
                 <div className="flex w-full flex-row items-center justify-center gap-1">
                     <label className="text-base text-grey-1">
                         {!tokenValue
                             ? '0'
                             : inputDenomination === 'USD'
-                              ? utils.formatTokenAmount(Number(tokenValue) / (selectedTokenData?.price ?? 0))
-                              : '$' + utils.formatTokenAmount(Number(tokenValue) * (selectedTokenData?.price ?? 0))}
+                              ? formatTokenAmount(Number(tokenValue) / (selectedTokenData?.price ?? 0))
+                              : '$' + formatTokenAmount(Number(tokenValue) * (selectedTokenData?.price ?? 0))}
                     </label>
                     {!disabled && (
                         <button

@@ -1,0 +1,7 @@
+# @dev Add cursor rules here. This goes in the LLM context window on every query when using cursor.
+
+- Use explicit imports where possible
+- Make a best effort to keep code quality high. Reuse existing components and functions, dont hardcode hacky solutions.
+- When making changes, ensure you're not breaking existing functionality, and if there's a risk, explicitly WARN about it.
+- If you notice an opportunity to refactor or improve existing code, mention it.
+- Performance is important. Cache where possible, make sure to not make unnecessary re-renders or data fetching.

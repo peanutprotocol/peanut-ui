@@ -33,7 +33,7 @@ const AddressLink = ({ address, className = '' }: AddressLinkProps) => {
             const normalizedEnsName = ensName.replace(peanutEnsDomain, '').replace(/\.$/, '')
 
             setDisplayAddress(normalizedEnsName)
-            setUrlAddress(ensName)
+            setUrlAddress(normalizedEnsName)
         } else {
             setDisplayAddress(isAddress(address) ? printableAddress(address) : address)
         }

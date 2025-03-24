@@ -559,11 +559,14 @@ export const useCreateLink = () => {
                 const signedTxsResponse: string[] = []
 
                 if (isSmartAccount) {
-                    const params = preparedDepositTxs.unsignedTxs.map((tx) => ({
-                        to: tx.to! as Hex,
-                        value: tx.value?.valueOf(),
-                        data: tx.data as Hex | undefined,
-                    }))
+                    setLoadingState('Approve transaction')
+                    const params = preparedDepositTxs.unsignedTxs.map(
+                        (tx: peanutInterfaces.IPeanutUnsignedTransaction) => ({
+                            to: tx.to! as Hex,
+                            value: tx.value?.valueOf(),
+                            data: tx.data as Hex | undefined,
+                        })
+                    )
                     let hash = await handleSendUserOpEncoded(params, selectedChainID)
                     signedTxsResponse.push(hash.toString())
                     idx++
