@@ -1,12 +1,4 @@
-import { IUserBalance, IWallet } from '@/interfaces'
-
-interface WalletBalances {
-    [address: string]: {
-        balances: IUserBalance[]
-        totalBalance: number
-        lastFetched: number
-    }
-}
+import { IWallet } from '@/interfaces'
 
 export interface WalletUIState {
     selectedWalletId: string | undefined
@@ -17,5 +9,4 @@ export interface WalletUIState {
     walletColor: string
     isFetchingWallets: boolean
     rewardWalletBalance: string
-    walletBalances: WalletBalances | undefined
 }
