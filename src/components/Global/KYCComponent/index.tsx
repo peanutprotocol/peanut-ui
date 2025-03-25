@@ -22,13 +22,13 @@ const steps = [
 ]
 
 interface IKYCComponentProps {
-    intialStep: number
+    initialStep: number
     offrampForm: consts.IOfframpForm
     setOfframpForm: (form: consts.IOfframpForm) => void
     onCompleted?: (message: string) => void
 }
 
-export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, onCompleted }: IKYCComponentProps) => {
+export const GlobalKYCComponent = ({ initialStep, offrampForm, setOfframpForm, onCompleted }: IKYCComponentProps) => {
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -53,7 +53,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         activeStep,
         nextStep: goToNext,
     } = useSteps({
-        initialStep: intialStep,
+        initialStep: initialStep,
     })
 
     const {
