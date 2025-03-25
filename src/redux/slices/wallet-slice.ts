@@ -12,6 +12,7 @@ const initialState: WalletUIState = {
     walletColor: 'rgba(0,0,0,0)',
     isFetchingWallets: false,
     rewardWalletBalance: '',
+    walletBalances: undefined,
 }
 
 const walletSlice = createSlice({
@@ -54,6 +55,17 @@ const walletSlice = createSlice({
                 }
                 return wallet
             })
+
+            if (balances) {
+                state.walletBalances = {
+                    ...state.walletBalances,
+                    [address.toLowerCase()]: {
+                        balances,
+                        totalBalance: Number(balance),
+                        lastFetched: Date.now(),
+                    },
+                }
+            }
         },
         removeWallet: (state, action: PayloadAction<string>) => {
             // remove wallet from the wallets array
