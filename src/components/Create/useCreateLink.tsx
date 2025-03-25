@@ -2,13 +2,7 @@
 import { PEANUT_API_URL, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
-import {
-    balanceByToken,
-    fetchTokenPrice,
-    isNativeCurrency,
-    saveCreatedLinkToLocalStorage,
-    fetchWithSentry,
-} from '@/utils'
+import { balanceByToken, isNativeCurrency, saveCreatedLinkToLocalStorage, fetchWithSentry } from '@/utils'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import peanut, {
     generateKeysFromString,
@@ -22,6 +16,7 @@ import { useAccount, useConfig, useSendTransaction, useSignTypedData, useSwitchC
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
 import * as Sentry from '@sentry/nextjs'
+import { fetchTokenPrice } from '@/app/actions/tokens'
 
 interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined

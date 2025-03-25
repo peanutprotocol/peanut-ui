@@ -71,8 +71,8 @@ importers:
         specifier: ^9.0.10
         version: 9.0.11(next@14.2.23(@babel/core@7.26.0)(@opentelemetry/api@1.9.0)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.7.3)(webpack@5.97.1)
       '@squirrel-labs/peanut-sdk':
-        specifier: ^0.6.1
-        version: 0.6.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+        specifier: ^0.6.2
+        version: 0.6.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       '@tanstack/react-query':
         specifier: 5.8.4
         version: 5.8.4(react-dom@18.3.1(react@18.3.1))(react-native@0.77.0(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@types/react@18.3.18)(bufferutil@4.0.9)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1)
@@ -2576,8 +2576,8 @@ packages:
   '@spruceid/siwe-parser@2.1.2':
     resolution: {integrity: sha512-d/r3S1LwJyMaRAKQ0awmo9whfXeE88Qt00vRj91q5uv5ATtWIQEGJ67Yr5eSZw5zp1/fZCXZYuEckt8lSkereQ==}
 
-  '@squirrel-labs/peanut-sdk@0.6.1':
-    resolution: {integrity: sha512-n5i3NmDzF4yXvVT76HdxaI0ZjX4+a40EBnInlo1XKvBVMEXlQCJzVFlLTLDWm3CjdqN/+y49ivcJ3qhgmS6oRQ==}
+  '@squirrel-labs/peanut-sdk@0.6.2':
+    resolution: {integrity: sha512-TLlYjyaCMNdCZ5lqsEheXFRcor8KOQzf5SEEVD9YIEpQQVOARb3BUmwat+shb6WPG9ZnZCH0xIpkplHpXsBYSg==}
 
   '@stablelib/aead@1.0.1':
     resolution: {integrity: sha512-q39ik6sxGHewqtO0nP4BuSe3db5G1fEJE8ukvngS2gLkBXyy6E7pLubhbYgnkDFv6V8cWaxcE4Xn0t6LWcJkyg==}
@@ -10466,7 +10466,7 @@ snapshots:
       uri-js: 4.4.1
       valid-url: 1.0.9
 
-  '@squirrel-labs/peanut-sdk@0.6.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)':
+  '@squirrel-labs/peanut-sdk@0.6.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)':
     dependencies:
       ethersv5: ethers@5.7.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)
     transitivePeerDependencies:
