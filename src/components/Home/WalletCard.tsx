@@ -11,7 +11,7 @@ import { usePrimaryName } from '@justaname.id/react'
 import classNames from 'classnames'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { useMemo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 import CopyToClipboard from '../Global/CopyToClipboard'
 import { PartnerBarLocation } from '../Global/RewardsModal'
@@ -44,7 +44,13 @@ type WalletCardWallet = BaseWalletCardProps & {
 
 type WalletCardProps = WalletCardAdd | WalletCardWallet
 
-export function WalletCard(props: WalletCardProps) {
+// memoize subcomponents
+const MemoizedWalletAvatar = memo(WalletAvatar)
+const MemoizedWalletBadges = memo(WalletBadges)
+const MemoizedWalletBalance = memo(WalletBalance)
+const MemoizedWalletIdentifier = memo(WalletIdentifier)
+
+export const WalletCard = memo(function WalletCard(props: WalletCardProps) {
     const { type, onClick } = props
 
     if (type === 'add') {
@@ -52,7 +58,7 @@ export function WalletCard(props: WalletCardProps) {
     }
 
     return <ExistingWalletCard {...(props as WalletCardWallet)} />
-}
+})
 
 function AddWalletCard({ onClick }: { onClick?: () => void }) {
     return (
@@ -133,6 +139,10 @@ function ExistingWalletCard({
 
     const walletDisplayInfo = getWalletDisplayInfo(wallet, username, primaryName, isRewardsWallet)
 
+    const handleCopyClick = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation()
+    }, [])
+
     return (
         <motion.div
             className={classNames('mr-4 h-full', cardOpacity)}
@@ -155,13 +165,13 @@ function ExistingWalletCard({
                 <Card.Content className="z-10 flex h-full flex-col justify-normal gap-3 px-6 py-4">
                     {/* Header section */}
                     <div className="flex items-center justify-between">
-                        <WalletAvatar
+                        <MemoizedWalletAvatar
                             image={walletImage}
                             isRewardsWallet={isRewardsWallet}
                             isPeanutWallet={isPeanutWallet}
                             imgClassName={isPeanutWallet ? 'p-0 pt-1 h-8 w-8 rounded-full' : ''}
                         />
-                        <WalletBadges
+                        <MemoizedWalletBadges
                             isExternalWallet={isExternalWallet}
                             isRewardsWallet={isRewardsWallet}
                             isConnected={isConnected}
@@ -170,7 +180,7 @@ function ExistingWalletCard({
 
                     {/* Balance section */}
                     <div className="flex items-center gap-3">
-                        <WalletBalance
+                        <MemoizedWalletBalance
                             wallet={wallet}
                             isBalanceHidden={isBalanceHidden}
                             isRewardsWallet={isRewardsWallet}
@@ -182,12 +192,12 @@ function ExistingWalletCard({
 
                     {/* Footer section */}
                     <div className="relative flex items-center justify-between">
-                        <WalletIdentifier
+                        <MemoizedWalletIdentifier
                             displayName={walletDisplayInfo.displayName}
                             isRewardsWallet={isRewardsWallet}
                         />
                         {!isRewardsWallet && (
-                            <div onClick={(e) => e.stopPropagation()}>
+                            <div onClick={handleCopyClick}>
                                 <CopyToClipboard
                                     fill={isConnected ? 'white' : 'grey'}
                                     textToCopy={walletDisplayInfo.copyText}

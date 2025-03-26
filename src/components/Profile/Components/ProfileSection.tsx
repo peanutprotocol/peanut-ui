@@ -3,24 +3,28 @@ import { Badge } from '@/components/0_Bruddle/Badge'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { useAuth } from '@/context/authContext'
 import Image from 'next/image'
+import { memo, useCallback, useMemo } from 'react'
 
-interface ProfileSectionProps {}
-
-const ProfileSection = ({}: ProfileSectionProps) => {
+const ProfileSection = memo(() => {
     const { user } = useAuth()
 
-    const points = {
-        Points: user?.points,
-        Invites: user?.totalReferralPoints,
-        // todo: implement boost logic
-        Boost: 0,
-    }
+    const points = useMemo(
+        () => ({
+            Points: user?.points,
+            Invites: user?.totalReferralPoints,
+            Boost: 0,
+        }),
+        [user?.points, user?.totalReferralPoints]
+    )
+
+    const handleCopy = useCallback(() => {
+        return `https://peanut.me/${user?.user.username}`
+    }, [user?.user.username])
 
     return (
         <div className="space-y-4 py-2">
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    {/* <div className="h-12 w-12 rounded-full border border-black pb-3 pt-1"> */}
                     <div className="flex size-12 items-center justify-center rounded-full border border-black bg-white pb-0.5 pt-1">
                         <Image
                             src={PEANUTMAN_PFP}
@@ -43,24 +47,13 @@ const ProfileSection = ({}: ProfileSectionProps) => {
                     </div>
                 </div>
                 <div className="flex size-8 items-center justify-center rounded-full bg-white p-2">
-                    <CopyToClipboard fill="black" textToCopy={`https://peanut.me/${user?.user.username}`} />
+                    <CopyToClipboard fill="black" textToCopy={handleCopy()} />
                 </div>
             </div>
-            {/* todo: revisit later, commenting out for now */}
-            {/* <div className="border-t border-dashed border-black">
-                {
-                    <div className="flex justify-between py-2">
-                        {Object.entries(points).map(([key, value]) => (
-                            <div key={key} className="space-y-0.5">
-                                <div className="text-base font-bold">{value}</div>
-                                <div className="text-xs text-gray-500">{key}</div>
-                            </div>
-                        ))}
-                    </div>
-                }
-            </div> */}
         </div>
     )
-}
+})
+
+ProfileSection.displayName = 'ProfileSection'
 
 export default ProfileSection
