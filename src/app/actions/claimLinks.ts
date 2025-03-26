@@ -10,7 +10,6 @@ import { fetchTokenDetails } from '@/app/actions/tokens'
 export const getLinkDetails = unstable_cache(
     async (link: string): Promise<any> => {
         const params = peanut.getParamsFromLink(link)
-        console.dir(params)
         const chainId = params.chainId
         const contractVersion = params.contractVersion
         const depositIdx = params.depositIdx
@@ -37,7 +36,6 @@ export const getLinkDetails = unstable_cache(
         if (!deposit) {
             throw new Error(`No deposit found for depositIdx ${depositIdx}`)
         }
-        console.dir(deposit)
         const tokenDetails = await fetchTokenDetails(deposit.tokenAddress, chainId)
         return peanut.extractLinkDetails({ params, deposit, tokenDetails })
     },
