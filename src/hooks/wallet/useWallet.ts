@@ -355,6 +355,11 @@ export const useWallet = () => {
         return formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
     }
 
+    const peanutWalletDetails = useMemo(() => {
+        if (!wallets.length) return undefined
+        return wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.PEANUT)
+    }, [wallets])
+
     useEffect(() => {
         const fetchRewardsWalletBalance = async () => {
             const balance = await getRewardWalletBalance()
@@ -389,5 +394,6 @@ export const useWallet = () => {
         byTypeAndConnectionStatus,
         getRewardWalletBalance,
         refetchSelectedWalletBalance: () => selectedWallet && refetchBalances(selectedWallet.address),
+        peanutWalletDetails,
     }
 }
