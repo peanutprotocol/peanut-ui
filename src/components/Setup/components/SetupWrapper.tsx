@@ -30,6 +30,7 @@ interface SetupWrapperProps {
     direction?: number
     deferredPrompt?: BeforeInstallPromptEvent | null
     canInstall?: boolean
+    deviceType?: 'ios' | 'android' | 'desktop'
 }
 
 // define responsive height classes for different layout types
@@ -174,13 +175,14 @@ export const SetupWrapper = memo(
         imageClassName,
         deferredPrompt,
         canInstall,
+        deviceType,
     }: SetupWrapperProps) => {
         return (
             <div className="flex min-h-[100dvh] flex-col">
                 {/* navigation buttons */}
                 <Navigation
                     showBackButton={showBackButton}
-                    showSkipButton={showSkipButton}
+                    showSkipButton={showSkipButton || (deviceType === 'desktop' && screenId === 'pwa-install')}
                     onBack={onBack}
                     onSkip={onSkip}
                 />
@@ -219,7 +221,11 @@ export const SetupWrapper = memo(
                         <div className="mx-auto w-full md:max-w-xs">
                             {Children.map(children, (child) => {
                                 if ((child as ReactElement).type === InstallPWA) {
-                                    return cloneElement(child as ReactElement, { deferredPrompt, canInstall })
+                                    return cloneElement(child as ReactElement, {
+                                        deferredPrompt,
+                                        canInstall,
+                                        deviceType,
+                                    })
                                 }
                                 return child
                             })}

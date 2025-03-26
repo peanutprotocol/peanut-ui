@@ -6,6 +6,17 @@ import { InstallPWA, SetupPasskey, SignupStep, WelcomeStep } from '@/components/
 
 export const setupSteps: ISetupStep[] = [
     {
+        screenId: 'pwa-install',
+        layoutType: 'standard',
+        title: 'Install Peanut on your phone',
+        description: 'Please install Peanut on your phone for the best experience!',
+        image: PEANUTMAN_MOBILE,
+        component: InstallPWA,
+        showBackButton: false,
+        showSkipButton: false,
+        imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
+    },
+    {
         screenId: 'welcome',
         layoutType: 'welcome',
         title: 'Access Dollars Easily',
@@ -35,16 +46,5 @@ export const setupSteps: ISetupStep[] = [
         showBackButton: true,
         showSkipButton: false,
         imageClassName: 'w-[55%] md:w-[35%] h-auto mt-14 md:mt-0',
-    },
-    {
-        screenId: 'pwa-install',
-        layoutType: 'standard',
-        title: 'Install Peanut on your phone',
-        description: 'Please install Peanut on your phone for the best experience!',
-        image: PEANUTMAN_MOBILE,
-        component: InstallPWA,
-        showBackButton: true,
-        showSkipButton: false,
-        imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
     },
 ]

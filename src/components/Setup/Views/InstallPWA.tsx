@@ -52,12 +52,13 @@ const ShareIcon = () => (
 const InstallPWA = ({
     canInstall,
     deferredPrompt,
+    deviceType,
 }: {
     canInstall?: boolean
     deferredPrompt?: BeforeInstallPromptEvent | null
+    deviceType?: 'ios' | 'android' | 'desktop'
 }) => {
     const { handleNext } = useSetupFlow()
-    const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('desktop')
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
 
@@ -65,35 +66,13 @@ const InstallPWA = ({
         // Detect when PWA is installed
         window.addEventListener('appinstalled', () => {
             // Wait a moment to let the install complete
-            const localStorageRedirect = getFromLocalStorage('redirect')
-            const redirect = localStorageRedirect ? localStorageRedirect : '/home'
             setTimeout(() => {
                 setInstallComplete(true)
                 setShowModal(false)
                 // Try to open the PWA
-                window.location.href = window.location.origin + redirect
+                window.location.href = window.location.origin + '/setup'
             }, 1000)
         })
-
-        // Detect device type
-        const isIOSDevice = /iPad|iPhone|iPod|Mac|Macintosh/.test(navigator.userAgent)
-        const isMobileDevice = /Android|webOS|iPad|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-            navigator.userAgent
-        )
-
-        // For desktop, default to iOS if on Mac, otherwise Android
-        if (!isMobileDevice) {
-            setDeviceType('desktop')
-        } else {
-            if (isIOSDevice) {
-                setDeviceType('ios')
-            } else {
-                setDeviceType('android')
-            }
-        }
-
-        // Log the final device type
-        console.log('Detected Device Type:', deviceType)
     }, [])
 
     const handleInstall = useCallback(async () => {
@@ -175,7 +154,9 @@ const InstallPWA = ({
         <div className="flex flex-col gap-4">
             <Button
                 onClick={() => {
-                    if (installComplete) {
+                    if (canInstall) {
+                        handleInstall()
+                    } else if (installComplete) {
                         handleNext()
                     } else {
                         setShowModal(true)
