@@ -31,18 +31,12 @@ import { walletActions } from '@/redux/slices/wallet-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { CreateChargeRequest } from '@/services/services.types'
-import {
-    ErrorHandler,
-    fetchTokenPrice,
-    formatAmount,
-    getTokenDecimals,
-    getTokenSymbol,
-    isNativeCurrency,
-} from '@/utils'
+import { ErrorHandler, formatAmount, getTokenDecimals, getTokenSymbol, isNativeCurrency } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { PaymentInfoRow } from '../PaymentInfoRow'
+import { fetchTokenPrice } from '@/app/actions/tokens'
 
 export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: ParsedURL & { isPintaReq?: boolean }) => {
     const dispatch = useAppDispatch()
@@ -453,7 +447,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
 
     // check if this is a cross-chain request for Peanut Wallet
     const isPeanutWalletCrossChainRequest = useMemo(() => {
-        if (!requestDetails || !isPeanutWallet) return false
+        if (!requestDetails?.chainId || !requestDetails?.tokenAddress || !isPeanutWallet) return false
 
         // check if requested chain and token match Peanut Wallet's supported chain/token
         return (

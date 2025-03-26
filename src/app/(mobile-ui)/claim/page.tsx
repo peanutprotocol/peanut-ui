@@ -1,7 +1,7 @@
 import { Claim } from '@/components'
 import * as utils from '@/utils'
-import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import { Metadata } from 'next'
+import { getLinkDetails } from '@/app/actions/claimLinks'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,23 +32,26 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     const host = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
 
     let linkDetails = undefined
-    try {
-        const url = createURL(host, searchParams)
-        linkDetails = await getLinkDetails({ link: url })
+    // only if we have params
+    if (searchParams.i && searchParams.c) {
+        try {
+            const url = createURL(host, searchParams)
+            linkDetails = await getLinkDetails(url)
 
-        if (!linkDetails.claimed) {
-            title =
-                'You received ' +
-                (Number(linkDetails.tokenAmount) < 0.01
-                    ? 'some '
-                    : utils.formatAmount(Number(linkDetails.tokenAmount)) + ' in ') +
-                linkDetails.tokenSymbol +
-                '!'
-        } else {
-            title = 'This link has been claimed'
+            if (!linkDetails.claimed) {
+                title =
+                    'You received ' +
+                    (Number(linkDetails.tokenAmount) < 0.01
+                        ? 'some '
+                        : utils.formatAmount(Number(linkDetails.tokenAmount)) + ' in ') +
+                    linkDetails.tokenSymbol +
+                    '!'
+            } else {
+                title = 'This link has been claimed'
+            }
+        } catch (e) {
+            console.log('error: ', e)
         }
-    } catch (e) {
-        console.log('error: ', e)
     }
 
     let previewUrl = '/claim-metadata-img.jpg'

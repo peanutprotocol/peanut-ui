@@ -8,13 +8,14 @@ import * as consts from '@/constants'
 import * as context from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import PageContainer from '../0_Bruddle/PageContainer'
 import { ActionType, estimatePoints } from '../utils/utils'
 import * as _consts from './Claim.consts'
 import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
+import { getLinkDetails } from '@/app/actions/claimLinks'
+import { fetchTokenPrice } from '@/app/actions/tokens'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -76,9 +77,12 @@ export const Claim = ({}) => {
     }
     const checkLink = async (link: string) => {
         try {
-            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({
-                link,
-            })
+            const url = new URL(link)
+            const password = url.hash.split('=')[1]
+            url.hash = ''
+            //TODO: discriminate by token type??
+            let linkDetails = await getLinkDetails(link)
+            linkDetails = { ...linkDetails, link, password }
             const attachmentInfo = await getAttachmentInfo(linkDetails.link)
             setAttachment({
                 message: attachmentInfo?.message,
@@ -88,7 +92,6 @@ export const Claim = ({}) => {
             setClaimLinkData(linkDetails)
             setSelectedChainID(linkDetails.chainId)
             setSelectedTokenAddress(linkDetails.tokenAddress)
-
             const keyPair = peanut.generateKeysFromString(linkDetails.password)
             const generatedPubKey = keyPair.address
 
@@ -105,8 +108,8 @@ export const Claim = ({}) => {
                 return
             }
 
-            const tokenPrice = await utils.fetchTokenPrice(linkDetails.tokenAddress.toLowerCase(), linkDetails.chainId)
-            tokenPrice && setTokenPrice(tokenPrice?.price)
+            const tokenPrice = await fetchTokenPrice(linkDetails.tokenAddress.toLowerCase(), linkDetails.chainId)
+            if (tokenPrice) setTokenPrice(tokenPrice.price)
 
             if (address) {
                 setRecipient({ name: '', address })
