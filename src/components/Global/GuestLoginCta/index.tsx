@@ -82,7 +82,7 @@ const GuestLoginCta = ({ hideConnectWallet = false, view }: GuestLoginCtaProps) 
                         variant="transparent-light"
                         className="flex w-full items-center justify-center gap-2 border border-black bg-purple-5 text-sm text-black hover:bg-purple-5 md:text-base"
                     >
-                        Connect External Wallet 1
+                        Connect External Wallet
                     </Button>
                 </>
             )}
