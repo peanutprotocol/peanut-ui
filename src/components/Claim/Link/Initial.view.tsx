@@ -1,8 +1,6 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle/Button'
-import { Card } from '@/components/0_Bruddle/Card'
-import Divider from '@/components/0_Bruddle/Divider'
+import { Button, Card } from '@/components/0_Bruddle'
 import { CrispButton } from '@/components/CrispChat'
 import AddressLink from '@/components/Global/AddressLink'
 import FlowHeader from '@/components/Global/FlowHeader'
@@ -22,8 +20,7 @@ import { ActionType, estimatePoints } from '@/components/utils/utils'
 import * as consts from '@/constants'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TOOLTIPS } from '@/constants/tooltips'
-import { loadingStateContext } from '@/context/loadingStates.context'
-import { TokenContextProvider } from '@/context/tokenSelector.context'
+import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
@@ -46,8 +43,9 @@ import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { parseUnits } from 'viem'
-import { IClaimScreenProps } from '../Claim.consts'
+import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
+import Divider from '@/components/0_Bruddle/Divider'
 
 const isPeanutClaimOnlyMode = () => {
     if (typeof window === 'undefined') return false
@@ -76,7 +74,7 @@ export const InitialClaimLinkView = ({
     setOfframpForm,
     setUserType,
     setInitialKYCStep,
-}: IClaimScreenProps) => {
+}: _consts.IClaimScreenProps) => {
     const dispatch = useAppDispatch()
     const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
@@ -88,7 +86,7 @@ export const InitialClaimLinkView = ({
     const [routes, setRoutes] = useState<any[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
 
-    const { setLoadingState, isLoading } = useContext(loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
     const {
         selectedChainID,
         setSelectedChainID,
@@ -99,7 +97,7 @@ export const InitialClaimLinkView = ({
         isXChain,
         setIsXChain,
         supportedSquidChainsAndTokens,
-    } = useContext(TokenContextProvider)
+    } = useContext(context.tokenSelectorContext)
     const { claimLink } = useClaimLink()
     const {
         isConnected,
