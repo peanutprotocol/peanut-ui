@@ -3,8 +3,9 @@ import { Button } from '@/components/0_Bruddle'
 import Modal from '@/components/Global/Modal'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { getFromLocalStorage } from '@/utils'
+import { BeforeInstallPromptEvent } from '@/components/Setup/Setup.types'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -48,24 +49,19 @@ const ShareIcon = () => (
     </svg>
 )
 
-let deferredPrompt: any = null
-
-const InstallPWA = () => {
+const InstallPWA = ({
+    canInstall,
+    deferredPrompt,
+}: {
+    canInstall?: boolean
+    deferredPrompt?: BeforeInstallPromptEvent | null
+}) => {
     const { handleNext } = useSetupFlow()
-    const [canInstall, setCanInstall] = useState(false)
     const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('desktop')
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
-    const [isDesktop, setIsDesktop] = useState(false)
 
     useEffect(() => {
-        // Store the install prompt
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault()
-            deferredPrompt = e
-            setCanInstall(true)
-        })
-
         // Detect when PWA is installed
         window.addEventListener('appinstalled', () => {
             // Wait a moment to let the install complete
@@ -85,8 +81,6 @@ const InstallPWA = () => {
             navigator.userAgent
         )
 
-        setIsDesktop(!isMobileDevice)
-
         // For desktop, default to iOS if on Mac, otherwise Android
         if (!isMobileDevice) {
             setDeviceType('desktop')
@@ -102,19 +96,11 @@ const InstallPWA = () => {
         console.log('Detected Device Type:', deviceType)
     }, [])
 
-    const handleInstall = async () => {
+    const handleInstall = useCallback(async () => {
         if (!deferredPrompt) return
-
         // Show the install prompt
         deferredPrompt.prompt()
-
-        // Wait for the user to respond to the prompt
-        const { outcome } = await deferredPrompt.userChoice
-
-        if (outcome === 'accepted') {
-            deferredPrompt = null
-        }
-    }
+    }, [deferredPrompt])
 
     const IOSInstructions = () => (
         <div className="space-y-4">
@@ -218,17 +204,18 @@ const InstallPWA = () => {
                 )}
                 <div className="space-y-4 p-6">
                     {getInstructions()}
-                    <Button
-                        onClick={() => {
-                            setShowModal(false)
-                            setInstallComplete(true)
-                        }}
-                        className="w-full bg-white"
-                        shadowSize="4"
-                        variant="stroke"
-                    >
-                        Got it!
-                    </Button>
+                    {!canInstall && (
+                        <Button
+                            onClick={() => {
+                                setShowModal(false)
+                            }}
+                            className="w-full bg-white"
+                            shadowSize="4"
+                            variant="stroke"
+                        >
+                            Got it!
+                        </Button>
+                    )}
                 </div>
             </Modal>
         </div>

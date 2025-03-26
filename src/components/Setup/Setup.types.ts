@@ -26,6 +26,8 @@ export type ScreenProps = {
 
 export interface StepComponentProps {
     handle?: string
+    deferredPrompt?: BeforeInstallPromptEvent | null
+    canInstall?: boolean
 }
 
 export interface ISetupStep {
@@ -38,4 +40,13 @@ export interface ISetupStep {
     showBackButton?: boolean
     showSkipButton?: boolean
     imageClassName?: string
+}
+
+export interface BeforeInstallPromptEvent extends Event {
+    readonly platforms: Array<string>
+    readonly userChoice: Promise<{
+        outcome: 'accepted' | 'dismissed'
+        platform: string
+    }>
+    prompt(): Promise<void>
 }

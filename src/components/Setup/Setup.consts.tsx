@@ -1,18 +1,8 @@
 import passkeyPeanut from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_02/PNGS_konradurban_02_17.png'
-import successPeanut from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_03/PNGS_konradurban_03_46.png'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import { PEANUTMAN_MOBILE, PEANUTMAN_THINKING, PEANUTMAN_WALLET, ThumbsUp } from '@/assets'
+import { PEANUTMAN_MOBILE } from '@/assets'
 import { ISetupStep } from '@/components/Setup/Setup.types'
-import {
-    AddWallets,
-    InstallPWA,
-    NotificationPermission,
-    PasskeySuccess,
-    SetupPasskey,
-    SetupSuccess,
-    SignupStep,
-    WelcomeStep,
-} from '@/components/Setup/Views'
+import { InstallPWA, SetupPasskey, SignupStep, WelcomeStep } from '@/components/Setup/Views'
 
 export const setupSteps: ISetupStep[] = [
     {
@@ -47,59 +37,14 @@ export const setupSteps: ISetupStep[] = [
         imageClassName: 'w-[55%] md:w-[35%] h-auto mt-14 md:mt-0',
     },
     {
-        screenId: 'passkey-success',
-        layoutType: 'standard',
-        title: `Your Passkey is set up!`,
-        description: `From now on, Peanut will use your face or fingerprint to verify it's you. Never lose or leak your seed phrase again - there is no seed phrase!`,
-        image: ThumbsUp,
-        component: PasskeySuccess,
-        showBackButton: true,
-        showSkipButton: false,
-        imageClassName: 'w-[85%] md:w-[60%] h-auto mt-14 md:mt-0',
-    },
-    {
-        screenId: 'notification-permission',
-        layoutType: 'standard',
-        title: 'Enable Notifications',
-        description: `Get immediately notified when you get paid (and when we send you goodies)!`,
-        image: PEANUTMAN_THINKING,
-        component: NotificationPermission,
-        showBackButton: true,
-        showSkipButton: true,
-        imageClassName: 'w-[45%] md:w-[30%] h-auto mt-12 md:mt-0',
-    },
-    {
         screenId: 'pwa-install',
         layoutType: 'standard',
         title: 'Install Peanut on your phone',
-        description: 'We recommend installing Peanut on your phone for the best experience!',
+        description: 'Please install Peanut on your phone for the best experience!',
         image: PEANUTMAN_MOBILE,
         component: InstallPWA,
         showBackButton: true,
-        showSkipButton: true,
-        imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
-    },
-    {
-        screenId: 'add-wallets',
-        layoutType: 'standard',
-        title: 'Add External Wallet',
-        description:
-            'Want to manage multiple wallets from peanut? Add it now to keep everything in one place - or do it later',
-        image: PEANUTMAN_WALLET,
-        component: AddWallets,
-        showBackButton: true,
-        showSkipButton: true,
-        imageClassName: 'w-full md:w-[80%] h-full mt-20 md:mt-0',
-    },
-    {
-        screenId: 'success',
-        layoutType: 'standard',
-        title: `You're all set!`,
-        description: 'Start using Peanut for your payments',
-        image: successPeanut.src,
-        component: SetupSuccess,
-        showBackButton: true,
         showSkipButton: false,
-        imageClassName: 'w-[65%] md:w-[40%] h-auto mt-20 md:mt-0',
+        imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
     },
 ]
