@@ -16,7 +16,8 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { type ITokenPriceData } from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
-import { estimateIfIsStableCoinFromPrice, getUserPreferences, fetchTokenPrice } from '@/utils'
+import { estimateIfIsStableCoinFromPrice, getUserPreferences } from '@/utils'
+import { fetchTokenPrice } from '@/app/actions/tokens'
 
 type inputDenominationType = 'USD' | 'TOKEN'
 
