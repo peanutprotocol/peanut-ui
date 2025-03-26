@@ -1,6 +1,7 @@
 import { PEANUTMAN_LOGO } from '@/assets'
+import React from 'react'
 
-export default function PeanutLoading() {
+const PeanutLoading = React.memo(function PeanutLoading() {
     return (
         <div className="relative flex w-full items-center justify-center self-center">
             <div className="animate-spin">
@@ -9,4 +10,6 @@ export default function PeanutLoading() {
             </div>
         </div>
     )
-}
+})
+
+export default PeanutLoading

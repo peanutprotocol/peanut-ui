@@ -22,7 +22,7 @@ const CopyToClipboard = ({ textToCopy, fill, className }: Props) => {
     return (
         <Icon
             name={copied ? 'check' : 'content-copy'}
-            className={twMerge('h-6 w-6 hover:opacity-80', className)}
+            className={twMerge('h-6 w-6 cursor-pointer hover:opacity-80', className)}
             fill={fill ? fill : 'white'}
             onClick={handleCopy}
         />
