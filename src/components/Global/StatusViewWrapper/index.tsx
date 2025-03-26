@@ -3,21 +3,21 @@ import { CrispButton } from '@/components/CrispChat'
 import React from 'react'
 import { PaymentsFooter } from '../PaymentsFooter'
 
-interface SuccessViewProps {
-    title: string
+interface StatusViewWrapperProps {
+    title: React.ReactNode
     description?: string
     children?: React.ReactNode
     hideSupportCta?: boolean
     supportCtaText?: string
 }
 
-const StatusViewWrapper = ({
+const StatusViewWrapper: React.FC<StatusViewWrapperProps> = ({
     title,
     description,
     children,
     hideSupportCta = false,
     supportCtaText,
-}: SuccessViewProps) => {
+}) => {
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header className="space-y-2 border-0">
