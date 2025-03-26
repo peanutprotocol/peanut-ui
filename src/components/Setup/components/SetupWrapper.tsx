@@ -182,7 +182,9 @@ export const SetupWrapper = memo(
                 {/* navigation buttons */}
                 <Navigation
                     showBackButton={showBackButton}
-                    showSkipButton={showSkipButton || (deviceType === 'desktop' && screenId === 'pwa-install')}
+                    showSkipButton={
+                        showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === 'desktop'))
+                    }
                     onBack={onBack}
                     onSkip={onSkip}
                 />

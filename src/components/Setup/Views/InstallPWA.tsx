@@ -4,8 +4,9 @@ import Modal from '@/components/Global/Modal'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useEffect, useState, useCallback } from 'react'
-import { getFromLocalStorage } from '@/utils'
 import { BeforeInstallPromptEvent } from '@/components/Setup/Setup.types'
+import { setupActions } from '@/redux/slices/setup-slice'
+import { useAppDispatch } from '@/redux/hooks'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -58,9 +59,10 @@ const InstallPWA = ({
     deferredPrompt?: BeforeInstallPromptEvent | null
     deviceType?: 'ios' | 'android' | 'desktop'
 }) => {
-    const { handleNext } = useSetupFlow()
+    const { handleNext, isLoading } = useSetupFlow()
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
+    const dispatch = useAppDispatch()
 
     useEffect(() => {
         // Detect when PWA is installed
@@ -77,8 +79,10 @@ const InstallPWA = ({
 
     const handleInstall = useCallback(async () => {
         if (!deferredPrompt) return
+        dispatch(setupActions.setLoading(true))
         // Show the install prompt
-        deferredPrompt.prompt()
+        await deferredPrompt.prompt()
+        dispatch(setupActions.setLoading(false))
     }, [deferredPrompt])
 
     const IOSInstructions = () => (
@@ -153,6 +157,8 @@ const InstallPWA = ({
     return (
         <div className="flex flex-col gap-4">
             <Button
+                loading={isLoading}
+                disabled={isLoading}
                 onClick={() => {
                     if (canInstall) {
                         handleInstall()
