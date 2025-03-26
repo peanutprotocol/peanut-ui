@@ -11,8 +11,12 @@ import Icon from '../Global/Icon'
 import Modal from '../Global/Modal'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 
+type AddFundMethod = 'exchange' | 'request_link' | null
+
+type Wallet = { name: string; logo: string }
+
 const AddFunds = () => {
-    const [addFundMethod, setAddFundMethod] = useState<'exchange' | 'request_link' | null>(null)
+    const [addFundMethod, setAddFundMethod] = useState<AddFundMethod>(null)
     const [showModal, setShowModal] = useState(false)
 
     const getModalContent = () => {
@@ -28,19 +32,13 @@ const AddFunds = () => {
 
     return (
         <div>
-            {/* modal trigger */}
             <div onClick={() => setShowModal(true)} className="flex flex-col items-center gap-2.5">
-                <Button
-                    variant={'purple'}
-                    className={twMerge('h-10 w-10 cursor-pointer rounded-full p-0')}
-                    shadowSize="4"
-                >
+                <Button variant="purple" className={twMerge('h-10 w-10 rounded-full p-0')} shadowSize="4">
                     <Icon name="plus" className="h-5 w-5" />
                 </Button>
                 <div className="font-semibold">Add</div>
             </div>
 
-            {/* modal content */}
             <Modal
                 hideOverlay={addFundMethod === 'request_link'}
                 visible={showModal}
@@ -49,7 +47,7 @@ const AddFunds = () => {
                     setShowModal(false)
                 }}
                 className="w-full items-center"
-                classWrap="bg-background rounded-none border-0 p-6 w-full max-h-[90vh] md:max-h-full overflow-y-auto"
+                classWrap="bg-background rounded-none p-6 max-h-[90vh] md:max-h-full overflow-y-auto"
             >
                 {getModalContent()}
             </Modal>
@@ -64,15 +62,9 @@ const UsingExchange = () => {
     const peanutWalletAddress = useMemo(() => {
         return peanutWalletDetails?.address ?? ''
     }, [peanutWalletDetails])
-
     return (
-        <div className="relative w-full space-y-4">
-            {/* Header */}
-            <div className="space-y-1">
-                <h2 className="text-2xl font-black">Add funds</h2>
-                <p className="text-sm">Only send USDC on Arbitrum is supported.</p>
-            </div>
-
+        <div className="w-full space-y-4">
+            <Header title="Add funds" subtitle="Only send USDC on Arbitrum is supported." />
             {/* QR Code */}
             <div
                 className={`mx-auto w-fit rounded-md border border-black bg-white p-4 transition-all duration-300 ${!understood ? 'blur-md' : ''}`}
@@ -112,110 +104,47 @@ const UsingExchange = () => {
 
 const UsingRequestLink = () => {
     const [linkCopied, setLinkCopied] = useState(false)
-
     const { user } = useUserStore()
+    const depositLink = `https://peanut.me/${user?.user?.username}?action=deposit`
 
-    const depositLink = useMemo(() => {
-        return `https://peanut.me/${user?.user?.username}?action=deposit`
-    }, [user])
-
-    const wallets = useMemo(
+    const wallets: Wallet[] = useMemo(
         () => [
-            {
-                name: 'MetaMask',
-                logo: METAMASK_LOGO,
-            },
-            {
-                name: 'Trust Wallet',
-                logo: TRUST_WALLET_LOGO,
-            },
-            {
-                name: 'Coinbase',
-                logo: COINBASE_LOGO,
-            },
-            {
-                name: 'Rainbow',
-                logo: RAINBOW_LOGO,
-            },
+            { name: 'MetaMask', logo: METAMASK_LOGO },
+            { name: 'Trust Wallet', logo: TRUST_WALLET_LOGO },
+            { name: 'Coinbase', logo: COINBASE_LOGO },
+            { name: 'Rainbow', logo: RAINBOW_LOGO },
         ],
         []
     )
 
     return (
         <div className="w-full space-y-6">
-            {/* Header */}
-            <div className="space-y-2 text-start">
-                <h2 className="text-2xl font-black">Use a Self-Custodial Wallet</h2>
-                <p className="text-sm text-gray-600">Follow these steps to add funds using your wallet</p>
-            </div>
-
-            {/* Steps Container */}
-            <div className="space-y-6">
-                {/* Step 1: Copy Link */}
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full border border-black bg-black text-sm text-white">
-                            1
-                        </div>
-                        <h3 className="font-semibold">Copy deposit link</h3>
-                    </div>
-                    <Button
-                        variant="purple"
-                        onClick={() => {
-                            navigator.clipboard.writeText(depositLink)
-                            setLinkCopied(true)
-                            setTimeout(() => setLinkCopied(false), 2000)
-                        }}
-                        shadowSize="4"
-                    >
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Icon name={linkCopied ? 'check' : 'content-copy'} className="h-5 w-5" />
-                                <span>{linkCopied ? 'Copied!' : 'Copy'}</span>
+            <Header title="Use a Self-Custodial Wallet" subtitle="Follow these steps to add funds using your wallet" />
+            <Step number={1} title="Copy deposit link">
+                <Button variant="purple" onClick={() => navigator.clipboard.writeText(depositLink)} shadowSize="4">
+                    <Icon name={linkCopied ? 'check' : 'content-copy'} className="h-5 w-5" />
+                    <span>{linkCopied ? 'Copied!' : 'Copy'}</span>
+                </Button>
+            </Step>
+            <Step number={2} title="Open your preferred wallet">
+                <div className="grid grid-cols-4 gap-4">
+                    {wallets.map((wallet) => (
+                        <div key={wallet.name} className="flex flex-col items-center gap-2">
+                            <div className="bg-white-100 flex h-12 w-12 items-center justify-center rounded-full border bg-white">
+                                <Image src={wallet.logo} className="h-8 w-8" alt="Wallet Logo" />
                             </div>
+                            <span className="text-center text-xs">{wallet.name}</span>
                         </div>
-                    </Button>
+                    ))}
                 </div>
-
-                {/* Step 2: Open Wallet */}
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full border border-black bg-black text-sm text-white">
-                            2
-                        </div>
-                        <h3 className="font-semibold">Open your preferred wallet</h3>
-                    </div>
-                    {/* Wallet Icons Grid */}
-                    <div className="grid grid-cols-4 gap-4">
-                        {wallets.map((wallet) => (
-                            <div key={wallet.name} className="flex flex-col items-center gap-2">
-                                <div className="bg-white-100 flex h-12 w-12 items-center justify-center rounded-full border bg-white">
-                                    <Image src={wallet.logo} className="h-8 w-8" alt="Wallet Logo" />
-                                </div>
-                                <span className="text-center text-xs">{wallet.name}</span>
-                            </div>
-                        ))}
-                    </div>
+            </Step>
+            <Step number={3} title="Paste link in wallet's browser">
+                <div className="shadow-primary-4 flex items-center justify-center border border-black bg-primary-1/10 p-4">
+                    <p className="text-sm">
+                        Open your wallet's built-in browser and paste the copied link to proceed with the transaction
+                    </p>
                 </div>
-
-                {/* Step 3: Paste in Browser */}
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full border border-black bg-black text-sm text-white">
-                            3
-                        </div>
-                        <h3 className="font-semibold">Paste link in wallet's browser</h3>
-                    </div>
-                    {/* Visual Guide */}
-                    <div className="shadow-primary-4 flex items-center justify-center border border-black bg-primary-1/10 p-4">
-                        <p className="text-sm">
-                            Open your wallet's built-in browser and paste the copied link to proceed with the
-                            transaction
-                        </p>
-                    </div>
-                </div>
-            </div>
-
+            </Step>{' '}
             {/* Info Box */}
             <div className="space-y-3">
                 <InfoBox
@@ -303,6 +232,25 @@ const SelectFundingMethod = ({
         </div>
     )
 }
+
+const Header = ({ title, subtitle }: { title: string; subtitle?: string }) => (
+    <div className="text-start">
+        <h2 className="text-2xl font-black">{title}</h2>
+        {subtitle && <p className="text-sm text-gray-600">{subtitle}</p>}
+    </div>
+)
+
+const Step = ({ number, title, children }: { number: number; title: string; children: ReactNode }) => (
+    <div className="space-y-3">
+        <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full border bg-black text-white">
+                {number}
+            </div>
+            <h3 className="font-semibold">{title}</h3>
+        </div>
+        {children}
+    </div>
+)
 
 const InfoBox = ({ title, description }: { title?: string; description: string | ReactNode }) => {
     return (
