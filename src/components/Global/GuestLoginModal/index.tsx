@@ -58,7 +58,7 @@ const GuestLoginModal = () => {
                             .finally(signInModal.close)
                     }}
                 >
-                    Connect External Wallet
+                    Connect External Wallet 2
                 </Button>
             </div>
         </Modal>

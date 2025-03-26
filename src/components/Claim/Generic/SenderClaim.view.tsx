@@ -10,6 +10,7 @@ import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
+import AddressLink from '@/components/Global/AddressLink'
 
 interface ISenderClaimLinkViewProps {
     changeToRecipientView: () => void
@@ -70,7 +71,11 @@ export const SenderClaimLinkView = ({
 
     return (
         <StatusViewWrapper
-            title={`Hello ${shortenAddress(address ?? '')}`}
+            title={
+                <span>
+                    Hello <AddressLink address={address ?? ''} />
+                </span>
+            }
             description="This is a link that you have created. You can refund it or go to the recipient view."
         >
             <div className="flex flex-col gap-2">
