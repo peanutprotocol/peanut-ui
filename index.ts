@@ -23,7 +23,6 @@ export { default as StarBlue } from './star-blue.svg'
 export { default as SmileStars } from './smile-stars.svg'
 export { default as StopSign } from './stop-sign.svg'
 export { default as VibesSign } from './vibes.svg'
-export { default as MascotExample } from './mascot-example.gif'
 
 export { default as HandPeace } from './hand-peace.svg'
 export { default as HandRad } from './hand-rad.svg'
