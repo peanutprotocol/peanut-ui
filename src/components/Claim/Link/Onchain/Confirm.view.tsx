@@ -119,10 +119,13 @@ export const ConfirmClaimLinkView = ({
             <Card>
                 <Card.Header>
                     <Card.Title className="mx-auto text-center">
-                        <AddressLink address={claimLinkData.senderAddress} /> <br /> sent you{' '}
+                        <AddressLink address={claimLinkData.senderAddress} /> <br /> sent you <br />
                         <label className="text-start text-h2">
-                            {utils.formatAmount(claimLinkData.tokenAmount)} {claimLinkData.tokenSymbol} <br /> on{' '}
-                            {supportedSquidChainsAndTokens[claimLinkData.chainId]?.axelarChainName}
+                            {utils.formatAmount(claimLinkData.tokenAmount)} {claimLinkData.tokenSymbol} <br />
+                            <span className="text-lg">
+                                {' '}
+                                on {supportedSquidChainsAndTokens[claimLinkData.chainId]?.axelarChainName}
+                            </span>
                         </label>
                     </Card.Title>
                     <Card.Description className="mx-auto">
@@ -225,6 +228,7 @@ export const ConfirmClaimLinkView = ({
                             </div>
                         )}
 
+                        {/* stylistically this needs to be fixe */}
                         <PeanutSponsored />
 
                         <Button onClick={handleOnClaim} disabled={isLoading} loading={isLoading}>

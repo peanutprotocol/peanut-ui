@@ -1,7 +1,8 @@
 'use client'
 
-import { Button, Card } from '@/components/0_Bruddle'
-import { useToast } from '@/components/0_Bruddle/Toast'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import Divider from '@/components/0_Bruddle/Divider'
 import { CrispButton } from '@/components/CrispChat'
 import AddressLink from '@/components/Global/AddressLink'
 import FlowHeader from '@/components/Global/FlowHeader'
@@ -21,9 +22,9 @@ import { ActionType, estimatePoints } from '@/components/utils/utils'
 import * as consts from '@/constants'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TOOLTIPS } from '@/constants/tooltips'
-import * as context from '@/context'
+import { loadingStateContext } from '@/context/loadingStates.context'
+import { TokenContextProvider } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
-import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
@@ -41,16 +42,12 @@ import {
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
-import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { parseUnits } from 'viem'
-import * as _consts from '../Claim.consts'
+import { IClaimScreenProps } from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
-import Divider from '@/components/0_Bruddle/Divider'
 
 const isPeanutClaimOnlyMode = () => {
     if (typeof window === 'undefined') return false
@@ -79,11 +76,8 @@ export const InitialClaimLinkView = ({
     setOfframpForm,
     setUserType,
     setInitialKYCStep,
-}: _consts.IClaimScreenProps) => {
+}: IClaimScreenProps) => {
     const dispatch = useAppDispatch()
-    const router = useRouter()
-    const toast = useToast()
-    const { handleLogin, isLoggingIn } = useZeroDev()
     const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
@@ -93,9 +87,8 @@ export const InitialClaimLinkView = ({
     const [isXchainLoading, setIsXchainLoading] = useState<boolean>(false)
     const [routes, setRoutes] = useState<any[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
-    const { open: openReownModal } = useAppKit()
 
-    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
         selectedChainID,
         setSelectedChainID,
@@ -106,7 +99,7 @@ export const InitialClaimLinkView = ({
         isXChain,
         setIsXChain,
         supportedSquidChainsAndTokens,
-    } = useContext(context.tokenSelectorContext)
+    } = useContext(TokenContextProvider)
     const { claimLink } = useClaimLink()
     const {
         isConnected,
@@ -546,10 +539,7 @@ export const InitialClaimLinkView = ({
                 </Card.Header>
                 <Card.Content className="flex flex-col gap-2">
                     {/* Token Selector
-                     * We don't want to show this if we're claiming to peanut wallet
-                     * - User is NOT connected OR is using external wallet
-                     * - Recipient type is NOT iban/us account
-                     * - NOT in peanut-only mode (t=pnt in URL)
+                     * We don't want to show this if we're claiming to peanut wallet. Else its okay
                      */}
                     {(!isConnected || isExternalWallet) &&
                         recipientType !== 'iban' &&
@@ -619,27 +609,27 @@ export const InitialClaimLinkView = ({
                         </div>
                     )}
                     <div className="flex w-full flex-col items-center justify-center">
-                        {/* Show primary actions only when no valid recipient input */}
                         {(!recipient.address || !isValidRecipient) && (
                             <>
-                                {/* Guest Login CTA (Peanut Wallet) */}
-                                {!user && !isConnected && recipient.address.length === 0 && (
+                                {!user && recipient.address.length === 0 && (
                                     <>
                                         <GuestLoginCta view="CLAIM" hideConnectWallet={isPeanutClaimOnlyMode()} />
                                     </>
                                 )}
 
-                                {!isPeanutClaimOnlyMode() && <Divider text="or" className="text-grey-1" />}
+                                {!isPeanutClaimOnlyMode() && recipient.address.length === 0 && (
+                                    <Divider text="or" className="text-grey-1" />
+                                )}
                             </>
                         )}
 
-                        {/* Manual Input Section - Always visible if not peanut-only mode */}
+                        {/* Manual DestinationInput Section*/}
                         {!isPeanutClaimOnlyMode() && (
                             <div className="flex w-full flex-col gap-4">
                                 {(!isConnected || isExternalWallet) && (
                                     <GeneralRecipientInput
                                         className="pl-8"
-                                        placeholder="wallet address / ENS / IBAN / US account number"
+                                        placeholder="wallet address, ENS name or bank account"
                                         recipient={recipient}
                                         onUpdate={(update: GeneralRecipientUpdate) => {
                                             setRecipient(update.recipient)
@@ -699,10 +689,7 @@ export const InitialClaimLinkView = ({
                             </div>
                         )}
 
-                        {/* Error Messages
-                         * Shows when there are errors
-                         * Different messages for different error types
-                         */}
+                        {/* Error Messages */}
                         {errorState.showError && (
                             <div className="text-start">
                                 {errorState.errorMessage === 'offramp unavailable' ? (
