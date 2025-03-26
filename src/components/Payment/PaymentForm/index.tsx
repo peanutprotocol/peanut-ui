@@ -1,7 +1,7 @@
 'use client'
 
+import { fetchTokenPrice } from '@/app/actions/tokens'
 import { Button } from '@/components/0_Bruddle'
-import { useToast } from '@/components/0_Bruddle/Toast'
 import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
@@ -20,7 +20,6 @@ import {
 } from '@/constants'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
-import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, WalletProviderType } from '@/interfaces'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
@@ -32,18 +31,15 @@ import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { CreateChargeRequest } from '@/services/services.types'
 import { ErrorHandler, formatAmount, getTokenDecimals, getTokenSymbol, isNativeCurrency } from '@/utils'
+import { useAppKit } from '@reown/appkit/react'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { PaymentInfoRow } from '../PaymentInfoRow'
-import { fetchTokenPrice } from '@/app/actions/tokens'
 
 export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: ParsedURL & { isPintaReq?: boolean }) => {
     const dispatch = useAppDispatch()
     const { user } = useAuth()
-    const router = useRouter()
-    const { handleLogin, isLoggingIn, isKernelClientReady } = useZeroDev()
-    const toast = useToast()
     const { requestDetails, error, chargeDetails, beerQuantity } = usePaymentStore()
     const {
         signInModal,
@@ -74,8 +70,10 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         setSelectedTokenAddress,
         setSelectedTokenDecimals,
     } = useContext(context.tokenSelectorContext)
+    const { open: openReownModal } = useAppKit()
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
+    const isDepositRequest = searchParams.get('action') === 'deposit'
     const isConnected = useMemo<boolean>(() => {
         return selectedWallet ? isWalletConnected(selectedWallet) : false
     }, [isWalletConnected, selectedWallet])
@@ -239,6 +237,11 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     }, [requestDetails, isPintaReq])
 
     const handleCreateCharge = async () => {
+        if (isDepositRequest && !isConnected) {
+            openReownModal()
+            return
+        }
+
         if (!isConnected) {
             signInModal.open()
             return

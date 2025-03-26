@@ -1,17 +1,18 @@
 'use client'
-import { Button } from '@/components/0_Bruddle'
+import { Button, ButtonVariant } from '@/components/0_Bruddle'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import * as utils from '@/utils'
 import { useState } from 'react'
 
 interface CopyFieldProps {
     text: string
+    variant?: ButtonVariant
     shadowSize?: '4' | '6' | '8'
     displayText?: string
     disabled?: boolean
 }
 
-const CopyField = ({ text, shadowSize, displayText, disabled }: CopyFieldProps) => {
+const CopyField = ({ text, variant, shadowSize, displayText, disabled }: CopyFieldProps) => {
     const [isCopied, setIsCopied] = useState(false)
 
     return (
@@ -19,7 +20,7 @@ const CopyField = ({ text, shadowSize, displayText, disabled }: CopyFieldProps) 
             <BaseInput disabled value={displayText ? displayText : text} className="h-10" />
             <Button
                 disabled={disabled}
-                variant="stroke"
+                variant={variant ? variant : 'stroke'}
                 className="h-10 w-fit"
                 onClick={() => {
                     utils.copyTextToClipboardWithFallback(text)

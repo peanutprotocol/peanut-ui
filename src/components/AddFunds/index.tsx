@@ -11,23 +11,24 @@ import Icon from '../Global/Icon'
 import Modal from '../Global/Modal'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 
-type AddFundMethod = 'exchange' | 'request_link' | null
+type DepositMethod = 'exchange' | 'request_link' | null
 
 type Wallet = { name: string; logo: string }
 
 const AddFunds = () => {
-    const [addFundMethod, setAddFundMethod] = useState<AddFundMethod>(null)
+    const [addFundMethod, setAddFundMethod] = useState<DepositMethod>(null)
     const [showModal, setShowModal] = useState(false)
 
-    const getModalContent = () => {
-        switch (addFundMethod) {
-            case 'exchange':
-                return <UsingExchange />
-            case 'request_link':
-                return <UsingRequestLink />
-            default:
-                return <SelectFundingMethod setAddFundMethod={setAddFundMethod} />
-        }
+    const handleClose = () => {
+        // first close modal
+        setShowModal(false)
+
+        // reset deposit method with a delay
+        const timer = setTimeout(() => {
+            setAddFundMethod(null)
+        }, 300)
+
+        return () => clearTimeout(timer)
     }
 
     return (
@@ -42,14 +43,17 @@ const AddFunds = () => {
             <Modal
                 hideOverlay={addFundMethod === 'request_link'}
                 visible={showModal}
-                onClose={() => {
-                    setAddFundMethod(null)
-                    setShowModal(false)
-                }}
+                onClose={handleClose}
                 className="w-full items-center"
                 classWrap="bg-background rounded-none p-6 max-h-[90vh] md:max-h-full overflow-y-auto"
             >
-                {getModalContent()}
+                {addFundMethod === 'exchange' ? (
+                    <UsingExchange />
+                ) : addFundMethod === 'request_link' ? (
+                    <UsingRequestLink />
+                ) : (
+                    <SelectFundingMethod setAddFundMethod={setAddFundMethod} />
+                )}
             </Modal>
         </div>
     )
@@ -121,10 +125,7 @@ const UsingRequestLink = () => {
         <div className="w-full space-y-6">
             <Header title="Use a Self-Custodial Wallet" subtitle="Follow these steps to add funds using your wallet" />
             <Step number={1} title="Copy deposit link">
-                <Button variant="purple" onClick={() => navigator.clipboard.writeText(depositLink)} shadowSize="4">
-                    <Icon name={linkCopied ? 'check' : 'content-copy'} className="h-5 w-5" />
-                    <span>{linkCopied ? 'Copied!' : 'Copy'}</span>
-                </Button>
+                <CopyField variant="purple" text={depositLink} shadowSize="4" />
             </Step>
             <Step number={2} title="Open your preferred wallet">
                 <div className="grid grid-cols-4 gap-4">
@@ -149,15 +150,7 @@ const UsingRequestLink = () => {
             <div className="space-y-3">
                 <InfoBox
                     title="Note"
-                    description={
-                        "Make sure to use the browser within your wallet app. Using a regular browser won't work."
-                    }
-                />
-                <InfoBox
-                    title="Important"
-                    description={
-                        'Only USDC on Arbitrum is supported. Sending any other token or using a different network will result in a loss of funds.'
-                    }
+                    description={'Make sure to use the browser within your wallet app for better experience.'}
                 />
             </div>
         </div>
@@ -172,10 +165,7 @@ const SelectFundingMethod = ({
     return (
         <div className="w-full space-y-6">
             {/* Header */}
-            <div className="space-y-2 text-start">
-                <h2 className="text-2xl font-black">Add funds</h2>
-                <p className="text-sm text-gray-600">Choose how you want to add funds to your wallet</p>
-            </div>
+            <Header title="Add funds" subtitle="Choose how you want to add funds to your wallet" />
 
             {/* Method Selection Cards */}
             <div className="space-y-6">
@@ -185,7 +175,7 @@ const SelectFundingMethod = ({
                     className="shadow-primary-4 w-full border border-black bg-primary-1 p-4 text-left transition-all hover:bg-primary-1/80"
                 >
                     <div className="flex items-start gap-4">
-                        <div className="flex items-center justify-center rounded-full bg-white p-3">
+                        <div className="flex items-center justify-center rounded-full border border-black bg-white p-3">
                             <NavIcons name="wallet" size={20} />
                         </div>
                         <div className="flex-1 space-y-1">
@@ -193,7 +183,7 @@ const SelectFundingMethod = ({
                                 <h3 className="font-semibold">Use a Self-Custodial Wallet</h3>
                                 <Icon name="arrow-next" className="h-5 w-5 text-gray-400" />
                             </div>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm">
                                 Send funds directly from your web3 wallet like MetaMask, Trust Wallet, or any other
                                 self-custodial wallet.
                             </p>
@@ -207,7 +197,7 @@ const SelectFundingMethod = ({
                     className="shadow-primary-4 w-full border border-black bg-secondary-1 p-4 text-left transition-all hover:bg-secondary-1/80"
                 >
                     <div className="flex items-start gap-4">
-                        <div className="flex items-center justify-center rounded-full bg-white p-3">
+                        <div className="flex items-center justify-center rounded-full border border-black bg-white p-3">
                             <Icon name="bank" className="h-5 w-5" />
                         </div>
                         <div className="flex-1 space-y-1">
@@ -215,7 +205,7 @@ const SelectFundingMethod = ({
                                 <h3 className="font-semibold">Use an Exchange</h3>
                                 <Icon name="arrow-next" className="h-5 w-5 text-gray-400" />
                             </div>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm">
                                 Send funds from your exchange account like Coinbase, Binance, or any other centralized
                                 exchange.
                             </p>
@@ -223,12 +213,6 @@ const SelectFundingMethod = ({
                     </div>
                 </button>
             </div>
-
-            {/* Info Box */}
-            <InfoBox
-                title="Important"
-                description="Only USDC on Arbitrum network is supported. Sending any other token or using a different network will result in loss of funds."
-            />
         </div>
     )
 }
@@ -236,7 +220,7 @@ const SelectFundingMethod = ({
 const Header = ({ title, subtitle }: { title: string; subtitle?: string }) => (
     <div className="text-start">
         <h2 className="text-2xl font-black">{title}</h2>
-        {subtitle && <p className="text-sm text-gray-600">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-gray-1">{subtitle}</p>}
     </div>
 )
 
