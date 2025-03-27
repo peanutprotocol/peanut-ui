@@ -61,14 +61,24 @@ const AddFunds = () => {
 
 const UsingExchange = () => {
     const [understood, setUnderstood] = useState(false)
+    const [showWarning, setShowWarning] = useState(false)
     const { peanutWalletDetails } = useWallet()
 
     const peanutWalletAddress = useMemo(() => {
         return peanutWalletDetails?.address ?? ''
     }, [peanutWalletDetails])
+
+    const handleDisabledCopy = () => {
+        if (!understood) {
+            setShowWarning(true)
+            setTimeout(() => setShowWarning(false), 3000)
+        }
+    }
+
     return (
         <div className="w-full space-y-4">
             <Header title="Add funds" subtitle="Only send USDC on Arbitrum is supported." />
+
             {/* QR Code */}
             <div
                 className={`mx-auto w-fit rounded-md border border-black bg-white p-4 transition-all duration-300 ${!understood ? 'blur-md' : ''}`}
@@ -82,6 +92,7 @@ const UsingExchange = () => {
                 displayText={printableAddress(peanutWalletAddress)}
                 shadowSize="4"
                 disabled={!understood}
+                onDisabledClick={handleDisabledCopy}
             />
 
             <div className="space-y-2">
@@ -96,10 +107,15 @@ const UsingExchange = () => {
                     <input
                         type="checkbox"
                         checked={understood}
-                        onChange={(e) => setUnderstood(e.target.checked)}
+                        onChange={(e) => {
+                            setUnderstood(e.target.checked)
+                            setShowWarning(false)
+                        }}
                         className="h-4 w-4 accent-white"
                     />
-                    <span className="text-sm font-medium">I understand.</span>
+                    <span className={twMerge(`text-sm font-medium ${showWarning ? 'text-red' : ''} transition-colors`)}>
+                        I understand.
+                    </span>
                 </label>
             </div>
         </div>
