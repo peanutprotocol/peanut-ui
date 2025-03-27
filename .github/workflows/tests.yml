@@ -22,7 +22,7 @@ jobs:
               run: pnpm install
 
             - name: TypeScript Check
-              run: npx tsc --noEmit
+              run: git submodule update --init --recursive && npx tsc --noEmit
 
             - name: Run Tests
               run: pnpm test
