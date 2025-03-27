@@ -3,8 +3,10 @@ import { Button } from '@/components/0_Bruddle'
 import Modal from '@/components/Global/Modal'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useEffect, useState } from 'react'
-import { getFromLocalStorage } from '@/utils'
+import { useEffect, useState, useCallback } from 'react'
+import { BeforeInstallPromptEvent } from '@/components/Setup/Setup.types'
+import { setupActions } from '@/redux/slices/setup-slice'
+import { useAppDispatch } from '@/redux/hooks'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -48,73 +50,40 @@ const ShareIcon = () => (
     </svg>
 )
 
-let deferredPrompt: any = null
-
-const InstallPWA = () => {
-    const { handleNext } = useSetupFlow()
-    const [canInstall, setCanInstall] = useState(false)
-    const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('desktop')
+const InstallPWA = ({
+    canInstall,
+    deferredPrompt,
+    deviceType,
+}: {
+    canInstall?: boolean
+    deferredPrompt?: BeforeInstallPromptEvent | null
+    deviceType?: 'ios' | 'android' | 'desktop'
+}) => {
+    const { handleNext, isLoading } = useSetupFlow()
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
-    const [isDesktop, setIsDesktop] = useState(false)
+    const dispatch = useAppDispatch()
 
     useEffect(() => {
-        // Store the install prompt
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault()
-            deferredPrompt = e
-            setCanInstall(true)
-        })
-
         // Detect when PWA is installed
         window.addEventListener('appinstalled', () => {
             // Wait a moment to let the install complete
-            const localStorageRedirect = getFromLocalStorage('redirect')
-            const redirect = localStorageRedirect ? localStorageRedirect : '/home'
             setTimeout(() => {
                 setInstallComplete(true)
                 setShowModal(false)
                 // Try to open the PWA
-                window.location.href = window.location.origin + redirect
+                window.location.href = window.location.origin + '/setup'
             }, 1000)
         })
-
-        // Detect device type
-        const isIOSDevice = /iPad|iPhone|iPod|Mac|Macintosh/.test(navigator.userAgent)
-        const isMobileDevice = /Android|webOS|iPad|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-            navigator.userAgent
-        )
-
-        setIsDesktop(!isMobileDevice)
-
-        // For desktop, default to iOS if on Mac, otherwise Android
-        if (!isMobileDevice) {
-            setDeviceType('desktop')
-        } else {
-            if (isIOSDevice) {
-                setDeviceType('ios')
-            } else {
-                setDeviceType('android')
-            }
-        }
-
-        // Log the final device type
-        console.log('Detected Device Type:', deviceType)
     }, [])
 
-    const handleInstall = async () => {
+    const handleInstall = useCallback(async () => {
         if (!deferredPrompt) return
-
+        dispatch(setupActions.setLoading(true))
         // Show the install prompt
-        deferredPrompt.prompt()
-
-        // Wait for the user to respond to the prompt
-        const { outcome } = await deferredPrompt.userChoice
-
-        if (outcome === 'accepted') {
-            deferredPrompt = null
-        }
-    }
+        await deferredPrompt.prompt()
+        dispatch(setupActions.setLoading(false))
+    }, [deferredPrompt])
 
     const IOSInstructions = () => (
         <div className="space-y-4">
@@ -188,8 +157,12 @@ const InstallPWA = () => {
     return (
         <div className="flex flex-col gap-4">
             <Button
+                loading={isLoading}
+                disabled={isLoading}
                 onClick={() => {
-                    if (installComplete) {
+                    if (canInstall) {
+                        handleInstall()
+                    } else if (installComplete) {
                         handleNext()
                     } else {
                         setShowModal(true)
@@ -218,17 +191,18 @@ const InstallPWA = () => {
                 )}
                 <div className="space-y-4 p-6">
                     {getInstructions()}
-                    <Button
-                        onClick={() => {
-                            setShowModal(false)
-                            setInstallComplete(true)
-                        }}
-                        className="w-full bg-white"
-                        shadowSize="4"
-                        variant="stroke"
-                    >
-                        Got it!
-                    </Button>
+                    {!canInstall && (
+                        <Button
+                            onClick={() => {
+                                setShowModal(false)
+                            }}
+                            className="w-full bg-white"
+                            shadowSize="4"
+                            variant="stroke"
+                        >
+                            Got it!
+                        </Button>
+                    )}
                 </div>
             </Modal>
         </div>

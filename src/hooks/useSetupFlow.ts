@@ -12,7 +12,7 @@ export const useSetupFlow = () => {
     const isLastStep = currentStep === steps.length
 
     const handleNext = useCallback(
-        async <T extends ScreenId>(callback?: () => Promise<boolean>, props?: ScreenProps[T]) => {
+        async <T extends ScreenId>(callback?: () => Promise<boolean>, _props?: ScreenProps[T]) => {
             dispatch(setupActions.setLoading(true))
 
             try {
@@ -26,12 +26,12 @@ export const useSetupFlow = () => {
                 dispatch(setupActions.setLoading(false))
             }
         },
-        [dispatch]
+        []
     )
 
     const handleBack = useCallback(() => {
         dispatch(setupActions.previousStep())
-    }, [dispatch])
+    }, [])
 
     return {
         currentStep,

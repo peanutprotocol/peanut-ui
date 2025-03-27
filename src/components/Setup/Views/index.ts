@@ -1,8 +1,4 @@
-export { default as AddWallets } from './AddWallets'
 export { default as InstallPWA } from './InstallPWA'
-export { default as NotificationPermission } from './NotificationPermission'
-export { default as PasskeySuccess } from './PasskeySuccess'
 export { default as SetupPasskey } from './SetupPasskey'
 export { default as SignupStep } from './Signup'
-export { default as SetupSuccess } from './Success'
 export { default as WelcomeStep } from './Welcome'

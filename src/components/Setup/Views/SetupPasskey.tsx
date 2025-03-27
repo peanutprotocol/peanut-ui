@@ -6,6 +6,8 @@ import { WalletProviderType } from '@/interfaces'
 import { useSetupStore, useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect, useState } from 'react'
+import { getFromLocalStorage } from '@/utils'
+import { useRouter } from 'next/navigation'
 import * as Sentry from '@sentry/nextjs'
 
 const SetupPasskey = () => {
@@ -16,6 +18,9 @@ const SetupPasskey = () => {
     const { user } = useAuth()
     const { addAccount } = useAuth()
     const [error, setError] = useState<string | null>(null)
+    const router = useRouter()
+    const localStorageRedirect = getFromLocalStorage('redirect')
+    const redirect = localStorageRedirect ? localStorageRedirect : '/home'
 
     useEffect(() => {
         if (address && user) {
@@ -25,7 +30,7 @@ const SetupPasskey = () => {
                 userId: user?.user.userId as string,
             })
                 .then(() => {
-                    handleNext()
+                    router.push(redirect)
                 })
                 .catch((e) => {
                     Sentry.captureException(e)
