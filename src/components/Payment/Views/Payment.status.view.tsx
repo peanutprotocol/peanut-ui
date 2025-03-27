@@ -28,7 +28,7 @@ import { useEffect, useMemo } from 'react'
 import { formatUnits } from 'viem'
 
 export default function PaymentStatusView() {
-    const { requestDetails, chargeDetails, transactionHash, resolvedAddress } = usePaymentStore()
+    const { requestDetails, chargeDetails, transactionHash: srcTxHash, resolvedAddress } = usePaymentStore()
     const dispatch = useAppDispatch()
     const { userId } = useAuth()
     const searchParams = useSearchParams()
@@ -99,7 +99,7 @@ export default function PaymentStatusView() {
         let intervalId: NodeJS.Timeout | undefined
 
         const pollStatus = async () => {
-            if (!requestId && !chargeId && !transactionHash) return
+            if (!requestId && !chargeId && !srcTxHash) return
 
             try {
                 if (requestId) {
@@ -126,13 +126,13 @@ export default function PaymentStatusView() {
             }
         }
 
-        // start polling:
+        // start polling if:
         // 1. requestId/chargeId and payment is not in final state
-        // 2. transactionHash is available
+        // 2. srcTxHash is available
         const shouldPoll =
             ((requestId || chargeId) &&
                 (!latestPayment || (latestPayment.status !== 'SUCCESSFUL' && latestPayment.status !== 'FAILED'))) ||
-            transactionHash
+            srcTxHash
 
         if (shouldPoll) {
             // initial poll
@@ -147,7 +147,7 @@ export default function PaymentStatusView() {
                 clearInterval(intervalId)
             }
         }
-    }, [requestId, chargeId, latestPayment?.status, transactionHash, dispatch])
+    }, [requestId, chargeId, latestPayment?.status, srcTxHash, dispatch])
 
     const recipientLink = useMemo(() => {
         if (!requestDetails) return null
@@ -227,14 +227,14 @@ export default function PaymentStatusView() {
 
                 <div className="flex w-full flex-row items-center justify-between gap-1">
                     <label className="text-h9">Transaction Hash:</label>
-                    {(transactionHash || latestPayment?.payerTransactionHash) && sourceUrlWithTx ? (
+                    {(srcTxHash || latestPayment?.payerTransactionHash) && sourceUrlWithTx ? (
                         <Link
                             className="cursor-pointer underline"
                             href={sourceUrlWithTx}
                             target="_blank"
                             rel="noopener noreferrer"
                         >
-                            {shortenAddressLong(transactionHash || latestPayment?.payerTransactionHash || '')}
+                            {shortenAddressLong(srcTxHash || latestPayment?.payerTransactionHash || '')}
                         </Link>
                     ) : (
                         <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
@@ -242,7 +242,7 @@ export default function PaymentStatusView() {
                 </div>
 
                 {/* Show destination tx for cross-chain payments */}
-                {destinationTxAndUrl && destinationTxAndUrl.transactionId !== transactionHash && (
+                {destinationTxAndUrl && destinationTxAndUrl.transactionId !== srcTxHash && (
                     <div className="flex w-full flex-row items-center justify-between gap-1">
                         <label className="text-h9">Destination Transaction:</label>
                         {destinationTxAndUrl?.transactionUrl ? (
