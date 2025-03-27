@@ -2,7 +2,7 @@
 import { Button, ButtonVariant } from '@/components/0_Bruddle'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import * as utils from '@/utils'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 interface CopyFieldProps {
@@ -14,10 +14,12 @@ interface CopyFieldProps {
     onDisabledClick?: () => void
 }
 
+const timeoutDuration = 3000
+
 const CopyField = ({ text, variant, shadowSize, displayText, disabled, onDisabledClick }: CopyFieldProps) => {
     const [isCopied, setIsCopied] = useState(false)
 
-    const handleClick = () => {
+    const handleClick = useCallback(() => {
         if (disabled && onDisabledClick) {
             onDisabledClick()
             return
@@ -25,8 +27,8 @@ const CopyField = ({ text, variant, shadowSize, displayText, disabled, onDisable
 
         utils.copyTextToClipboardWithFallback(text)
         setIsCopied(true)
-        setTimeout(() => setIsCopied(false), 3000)
-    }
+        setTimeout(() => setIsCopied(false), timeoutDuration)
+    }, [disabled, onDisabledClick, text])
 
     return (
         <div className="flex w-full flex-row items-stretch justify-between gap-2">

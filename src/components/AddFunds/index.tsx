@@ -4,31 +4,44 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { printableAddress } from '@/utils'
 import Image from 'next/image'
-import { ReactNode, useMemo, useState } from 'react'
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button, NavIcons } from '../0_Bruddle'
 import Icon from '../Global/Icon'
 import Modal from '../Global/Modal'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 
-type DepositMethod = 'exchange' | 'request_link' | null
+type FundingMethod = 'exchange' | 'request_link' | null
 
 type Wallet = { name: string; logo: string }
 
+// main component
 const AddFunds = () => {
-    const [addFundMethod, setAddFundMethod] = useState<DepositMethod>(null)
+    const [fundingMethod, setFundingMethod] = useState<FundingMethod>(null)
     const [showModal, setShowModal] = useState(false)
+    const timerRef = useRef<NodeJS.Timeout>()
+
+    // cleanup timer on unmount
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) {
+                clearTimeout(timerRef.current)
+            }
+        }
+    }, [])
 
     const handleClose = () => {
         // first close modal
         setShowModal(false)
 
         // reset deposit method with a delay
-        const timer = setTimeout(() => {
-            setAddFundMethod(null)
-        }, 300)
+        if (timerRef.current) {
+            clearTimeout(timerRef.current)
+        }
 
-        return () => clearTimeout(timer)
+        timerRef.current = setTimeout(() => {
+            setFundingMethod(null)
+        }, 300)
     }
 
     return (
@@ -41,26 +54,83 @@ const AddFunds = () => {
             </div>
 
             <Modal
-                hideOverlay={addFundMethod === 'request_link'}
+                hideOverlay={fundingMethod === 'request_link'}
                 visible={showModal}
                 onClose={handleClose}
                 className="w-full items-center"
                 classWrap="bg-background rounded-none p-6 max-h-[90vh] md:max-h-full overflow-y-auto"
             >
-                {addFundMethod === 'exchange' ? (
+                {fundingMethod === 'exchange' ? (
                     <UsingExchange />
-                ) : addFundMethod === 'request_link' ? (
+                ) : fundingMethod === 'request_link' ? (
                     <UsingRequestLink />
                 ) : (
-                    <SelectFundingMethod setAddFundMethod={setAddFundMethod} />
+                    <SelectFundingMethod setFundingMethod={setFundingMethod} />
                 )}
             </Modal>
         </div>
     )
 }
 
+// sub-components
+const ContentWrapper = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
+    <div className={twMerge('w-full space-y-6', className)}>{children}</div>
+)
+
+const MethodCard = ({
+    onClick,
+    icon,
+    title,
+    description,
+    variant = 'primary',
+}: {
+    onClick: () => void
+    icon: ReactNode
+    title: string
+    description: string
+    variant?: 'primary' | 'secondary'
+}) => (
+    <button
+        onClick={onClick}
+        className={twMerge(
+            'shadow-primary-4 w-full border border-black p-4 text-left transition-all',
+            variant === 'primary' ? 'bg-primary-1 hover:bg-primary-1/80' : 'bg-secondary-1 hover:bg-secondary-1/80'
+        )}
+    >
+        <div className="flex items-start gap-4">
+            <div className="flex items-center justify-center rounded-full border border-black bg-white p-3">{icon}</div>
+            <div className="flex-1 space-y-1">
+                <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">{title}</h3>
+                    <Icon name="arrow-next" className="h-5 w-5 text-gray-400" />
+                </div>
+                <p className="text-sm">{description}</p>
+            </div>
+        </div>
+    </button>
+)
+
+const WalletGrid = ({ wallets }: { wallets: Wallet[] }) => (
+    <div className="grid grid-cols-4 gap-4">
+        {wallets.map((wallet) => (
+            <div key={wallet.name} className="flex flex-col items-center gap-2">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border bg-white">
+                    <Image src={wallet.logo} className="h-8 w-8" alt={`${wallet.name} Logo`} />
+                </div>
+                <span className="text-center text-xs">{wallet.name}</span>
+            </div>
+        ))}
+    </div>
+)
+
+const InfoMessage = ({ children }: { children: ReactNode }) => (
+    <div className="shadow-primary-4 flex items-center justify-center border border-black bg-primary-1/10 p-4">
+        <p className="text-sm">{children}</p>
+    </div>
+)
+
 const UsingExchange = () => {
-    const [understood, setUnderstood] = useState(false)
+    const [userAcknowledged, setUserAcknowledged] = useState(false)
     const [showWarning, setShowWarning] = useState(false)
     const { peanutWalletDetails } = useWallet()
 
@@ -69,19 +139,22 @@ const UsingExchange = () => {
     }, [peanutWalletDetails])
 
     const handleDisabledCopy = () => {
-        if (!understood) {
+        if (!userAcknowledged) {
             setShowWarning(true)
             setTimeout(() => setShowWarning(false), 3000)
         }
     }
 
     return (
-        <div className="w-full space-y-4">
+        <ContentWrapper className="space-y-4">
             <Header title="Add funds" subtitle="Only send USDC on Arbitrum is supported." />
 
             {/* QR Code */}
             <div
-                className={`mx-auto w-fit rounded-md border border-black bg-white p-4 transition-all duration-300 ${!understood ? 'blur-md' : ''}`}
+                className={twMerge(
+                    'mx-auto w-fit rounded-md border border-black bg-white p-4 transition-all duration-300',
+                    !userAcknowledged && 'blur-md'
+                )}
             >
                 <QRCodeWrapper url={peanutWalletAddress} />
             </div>
@@ -91,7 +164,7 @@ const UsingExchange = () => {
                 text={peanutWalletAddress}
                 displayText={printableAddress(peanutWalletAddress)}
                 shadowSize="4"
-                disabled={!understood}
+                disabled={!userAcknowledged}
                 onDisabledClick={handleDisabledCopy}
             />
 
@@ -106,24 +179,23 @@ const UsingExchange = () => {
                 <label className="flex cursor-pointer items-center gap-2">
                     <input
                         type="checkbox"
-                        checked={understood}
+                        checked={userAcknowledged}
                         onChange={(e) => {
-                            setUnderstood(e.target.checked)
+                            setUserAcknowledged(e.target.checked)
                             setShowWarning(false)
                         }}
                         className="h-4 w-4 accent-white"
                     />
-                    <span className={twMerge(`text-sm font-medium ${showWarning ? 'text-red' : ''} transition-colors`)}>
+                    <span className={twMerge('text-sm font-medium transition-colors', showWarning && 'text-red')}>
                         I understand.
                     </span>
                 </label>
             </div>
-        </div>
+        </ContentWrapper>
     )
 }
 
 const UsingRequestLink = () => {
-    const [linkCopied, setLinkCopied] = useState(false)
     const { user } = useUserStore()
     const depositLink = `https://peanut.me/${user?.user?.username}?action=deposit`
 
@@ -138,30 +210,19 @@ const UsingRequestLink = () => {
     )
 
     return (
-        <div className="w-full space-y-6">
+        <ContentWrapper className="space-y-6">
             <Header title="Use a Self-Custodial Wallet" subtitle="Follow these steps to add funds using your wallet" />
             <Step number={1} title="Copy deposit link">
                 <CopyField variant="purple" text={depositLink} shadowSize="4" />
             </Step>
             <Step number={2} title="Open your preferred wallet">
-                <div className="grid grid-cols-4 gap-4">
-                    {wallets.map((wallet) => (
-                        <div key={wallet.name} className="flex flex-col items-center gap-2">
-                            <div className="bg-white-100 flex h-12 w-12 items-center justify-center rounded-full border bg-white">
-                                <Image src={wallet.logo} className="h-8 w-8" alt="Wallet Logo" />
-                            </div>
-                            <span className="text-center text-xs">{wallet.name}</span>
-                        </div>
-                    ))}
-                </div>
+                <WalletGrid wallets={wallets} />
             </Step>
             <Step number={3} title="Paste link in wallet's browser">
-                <div className="shadow-primary-4 flex items-center justify-center border border-black bg-primary-1/10 p-4">
-                    <p className="text-sm">
-                        Open your wallet's built-in browser and paste the copied link to proceed with the transaction
-                    </p>
-                </div>
-            </Step>{' '}
+                <InfoMessage>
+                    Open your wallet's built-in browser and paste the copied link to proceed with the transaction
+                </InfoMessage>
+            </Step>
             {/* Info Box */}
             <div className="space-y-3">
                 <InfoBox
@@ -169,67 +230,40 @@ const UsingRequestLink = () => {
                     description={'Make sure to use the browser within your wallet app for better experience.'}
                 />
             </div>
-        </div>
+        </ContentWrapper>
     )
 }
 
 const SelectFundingMethod = ({
-    setAddFundMethod,
+    setFundingMethod,
 }: {
-    setAddFundMethod: (method: 'exchange' | 'request_link') => void
+    setFundingMethod: (method: 'exchange' | 'request_link') => void
 }) => {
     return (
-        <div className="w-full space-y-6">
+        <ContentWrapper className="space-y-6">
             {/* Header */}
             <Header title="Add funds" subtitle="Choose how you want to add funds to your wallet" />
 
             {/* Method Selection Cards */}
             <div className="space-y-6">
                 {/* Self Custodial Wallet Option */}
-                <button
-                    onClick={() => setAddFundMethod('request_link')}
-                    className="shadow-primary-4 w-full border border-black bg-primary-1 p-4 text-left transition-all hover:bg-primary-1/80"
-                >
-                    <div className="flex items-start gap-4">
-                        <div className="flex items-center justify-center rounded-full border border-black bg-white p-3">
-                            <NavIcons name="wallet" size={20} />
-                        </div>
-                        <div className="flex-1 space-y-1">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-semibold">Use a Self-Custodial Wallet</h3>
-                                <Icon name="arrow-next" className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <p className="text-sm">
-                                Send funds directly from your web3 wallet like MetaMask, Trust Wallet, or any other
-                                self-custodial wallet.
-                            </p>
-                        </div>
-                    </div>
-                </button>
+                <MethodCard
+                    onClick={() => setFundingMethod('request_link')}
+                    icon={<NavIcons name="wallet" size={20} />}
+                    title="Use a Self-Custodial Wallet"
+                    description="Send funds directly from your web3 wallet like MetaMask, Trust Wallet, or any other self-custodial wallet."
+                />
 
                 {/* Exchange Option */}
-                <button
-                    onClick={() => setAddFundMethod('exchange')}
-                    className="shadow-primary-4 w-full border border-black bg-secondary-1 p-4 text-left transition-all hover:bg-secondary-1/80"
-                >
-                    <div className="flex items-start gap-4">
-                        <div className="flex items-center justify-center rounded-full border border-black bg-white p-3">
-                            <Icon name="bank" className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1 space-y-1">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-semibold">Use an Exchange</h3>
-                                <Icon name="arrow-next" className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <p className="text-sm">
-                                Send funds from your exchange account like Coinbase, Binance, or any other centralized
-                                exchange.
-                            </p>
-                        </div>
-                    </div>
-                </button>
+                <MethodCard
+                    variant="secondary"
+                    onClick={() => setFundingMethod('exchange')}
+                    icon={<Icon name="bank" className="h-5 w-5" />}
+                    title="Use an Exchange"
+                    description="Send funds from your exchange account like Coinbase, Binance, or any other centralized exchange."
+                />
             </div>
-        </div>
+        </ContentWrapper>
     )
 }
 
