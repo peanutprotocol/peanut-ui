@@ -23,6 +23,7 @@ export type ScreenProps = {
     success: undefined
     'contact-info': undefined
     'pwa-install': undefined
+    'unsupported-browser': undefined
 }
 
 export interface StepComponentProps {
