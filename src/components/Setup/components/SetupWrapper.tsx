@@ -4,9 +4,10 @@ import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import Icon from '@/components/Global/Icon'
 import classNames from 'classnames'
 import Image from 'next/image'
-import { ReactNode, memo } from 'react'
+import { ReactNode, memo, Children, cloneElement, type ReactElement } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { LayoutType, ScreenId } from '../Setup.types'
+import { LayoutType, ScreenId, BeforeInstallPromptEvent } from '@/components/Setup/Setup.types'
+import InstallPWA from '@/components/Setup/Views/InstallPWA'
 
 /**
  * props interface for the SetupWrapper component
@@ -27,6 +28,10 @@ interface SetupWrapperProps {
     onSkip?: () => void
     step?: number
     direction?: number
+    deferredPrompt?: BeforeInstallPromptEvent | null
+    canInstall?: boolean
+    deviceType?: 'ios' | 'android' | 'desktop'
+    unsupportedBrowser?: boolean
 }
 
 // define responsive height classes for different layout types
@@ -60,16 +65,20 @@ const Navigation = memo(
 
         return (
             <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
-                {showBackButton && (
-                    <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label="Go back">
-                        <Icon name="arrow-prev" className="h-7 w-7" />
-                    </Button>
-                )}
-                {showSkipButton && (
-                    <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
-                        <span className="text-grey-1">Skip</span>
-                    </Button>
-                )}
+                <div>
+                    {showBackButton && (
+                        <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label="Go back">
+                            <Icon name="arrow-prev" className="h-7 w-7" />
+                        </Button>
+                    )}
+                </div>
+                <div>
+                    {showSkipButton && (
+                        <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
+                            <span className="text-grey-1">Skip</span>
+                        </Button>
+                    )}
+                </div>
             </div>
         )
     }
@@ -169,15 +178,19 @@ export const SetupWrapper = memo(
         onSkip,
         screenId,
         imageClassName,
-        step = 0,
-        direction = 0,
+        deferredPrompt,
+        canInstall,
+        deviceType,
+        unsupportedBrowser,
     }: SetupWrapperProps) => {
         return (
             <div className="flex min-h-[100dvh] flex-col">
                 {/* navigation buttons */}
                 <Navigation
                     showBackButton={showBackButton}
-                    showSkipButton={showSkipButton}
+                    showSkipButton={
+                        showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === 'desktop'))
+                    }
                     onBack={onBack}
                     onSkip={onSkip}
                 />
@@ -213,7 +226,19 @@ export const SetupWrapper = memo(
                             {description && <p className="text-base">{description}</p>}
                         </div>
                         {/* main content area */}
-                        <div className="mx-auto w-full md:max-w-xs">{children}</div>
+                        <div className="mx-auto w-full md:max-w-xs">
+                            {Children.map(children, (child) => {
+                                if ((child as ReactElement).type === InstallPWA) {
+                                    return cloneElement(child as ReactElement, {
+                                        deferredPrompt,
+                                        canInstall,
+                                        deviceType,
+                                        unsupportedBrowser,
+                                    })
+                                }
+                                return child
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>

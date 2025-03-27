@@ -2,7 +2,15 @@ import { PEANUTMAN_LOGO } from '@/assets'
 import React, { forwardRef, useEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 
-export type ButtonVariant = 'purple' | 'dark' | 'stroke' | 'transparent-light' | 'transparent-dark' | 'green' | 'yellow'
+export type ButtonVariant =
+    | 'purple'
+    | 'dark'
+    | 'stroke'
+    | 'transparent-light'
+    | 'transparent-dark'
+    | 'green'
+    | 'yellow'
+    | 'transparent'
 type ButtonSize = 'small' | 'medium' | 'large' | 'xl' | 'xl-fixed'
 type ButtonShape = 'default' | 'square'
 type ShadowSize = '4' | '6' | '8'
@@ -25,6 +33,7 @@ const buttonVariants: Record<ButtonVariant, string> = {
     'transparent-dark': 'btn-transparent-dark',
     green: 'bg-green-1',
     yellow: 'bg-secondary-1',
+    transparent: 'bg-transparent border-none hover:bg-transparent !active:bg-transparent focus:bg-transparent',
 }
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -61,6 +70,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ children, cl
     const buttonClasses = twMerge(
         'btn w-full flex items-center gap-2 transform transition-transform active:scale-90 ease-in-out notranslate',
         buttonVariants[props.variant || 'purple'],
+        props.variant === 'transparent' && props.disabled && 'disabled:bg-transparent disabled:border-transparent',
         props.size && buttonSizes[props.size],
         props.shape === 'square' && 'btn-square',
         props.shadowSize && buttonShadows[props.shadowType || 'primary'][props.shadowSize],

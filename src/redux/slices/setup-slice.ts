@@ -40,6 +40,10 @@ const setupSlice = createSlice({
         setSteps: (state, action: PayloadAction<ISetupStep[]>) => {
             state.steps = action.payload
         },
+
+        setStep: (state, action: PayloadAction<number>) => {
+            state.currentStep = action.payload
+        },
     },
 })
 

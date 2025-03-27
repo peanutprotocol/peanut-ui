@@ -1,13 +1,11 @@
 'use client'
-import { usePWAStatus } from '@/hooks/usePWAStatus'
+import { useUserQuery } from '@/hooks/query/user'
 import * as interfaces from '@/interfaces'
-import { useAppDispatch } from '@/redux/hooks'
+import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { type GetUserLinksResponse, fetchWithSentry } from '@/utils'
-import { hitUserMetric } from '@/utils/metrics.utils'
 import { ToastId, useToast } from '@chakra-ui/react' // TODO: use normmal toasts we use throughout the app, not chakra toasts!
 import { useAppKit } from '@reown/appkit/react'
-import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { createContext, ReactNode, useContext, useRef, useState } from 'react'
 
@@ -48,31 +46,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const router = useRouter()
     const { open: web3modalOpen } = useAppKit()
-    const isPwa = usePWAStatus()
     const dispatch = useAppDispatch()
-    const {
-        data: user,
-        isFetching: isFetchingUser,
-        refetch: fetchUser,
-    } = useQuery<interfaces.IUserProfile | null>({
-        queryKey: ['user'],
-        initialData: null,
-        queryFn: async () => {
-            const userResponse = await fetchWithSentry('/api/peanut/user/get-user-from-cookie')
-            if (userResponse.ok) {
-                const userData: interfaces.IUserProfile | null = await userResponse.json()
-                if (userData) {
-                    // no await, log metric async
-                    hitUserMetric(userData.user.userId, 'login', { isPwa: isPwa })
-                }
+    const { user: authUser } = useUserStore()
 
-                return userData
-            } else {
-                console.warn('Failed to fetch user. Probably not logged in.')
-                return null
-            }
-        },
-    })
+    const { data: user, isFetching: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
 
     const legacy_fetchUser = async () => {
         const { data: fetchedUser } = await fetchUser()
@@ -85,6 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isClosable: true,
         icon: '🥜',
     })
+
     const toastIdRef = useRef<ToastId | undefined>(undefined)
     const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -317,7 +295,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return (
         <AuthContext.Provider
             value={{
-                user,
+                user: user ?? null,
                 userId: user?.user?.userId,
                 username: user?.user?.username ?? undefined,
                 updateBridgeCustomerData,

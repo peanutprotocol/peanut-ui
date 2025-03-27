@@ -156,9 +156,18 @@ export const useWallet = () => {
                     args: [getAddress(address)],
                 })
             } else {
-                const { balances: fetchedBalances, totalBalance } = await fetchWalletBalances(address)
-                balances = fetchedBalances
-                balance = parseUnits(totalBalance.toString(), PEANUT_WALLET_TOKEN_DECIMALS)
+                // check if balance is in redux store
+                const existingWallet = wallets.find((w) => w.address.toLowerCase() === address.toLowerCase())
+                if (existingWallet?.balances) {
+                    // use existing balance from store
+                    balances = existingWallet.balances
+                    balance = existingWallet.balance
+                } else {
+                    // only fetch if balance is not in store
+                    const { balances: fetchedBalances, totalBalance } = await fetchWalletBalances(address)
+                    balances = fetchedBalances
+                    balance = parseUnits(totalBalance.toString(), PEANUT_WALLET_TOKEN_DECIMALS)
+                }
             }
 
             return {
@@ -169,7 +178,7 @@ export const useWallet = () => {
                 id: idForWallet(dbWallet),
             }
         },
-        [connector, isWalletConnected, user?.accounts]
+        [connector, isWalletConnected, user?.accounts, wallets]
     )
 
     const mergeAndProcessWallets = useCallback(async () => {
@@ -346,6 +355,11 @@ export const useWallet = () => {
         return formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
     }
 
+    const peanutWalletDetails = useMemo(() => {
+        if (!wallets.length) return undefined
+        return wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.PEANUT)
+    }, [wallets])
+
     useEffect(() => {
         const fetchRewardsWalletBalance = async () => {
             const balance = await getRewardWalletBalance()
@@ -379,5 +393,7 @@ export const useWallet = () => {
         isFetchingWallets: isFetchingWallets || isWalletsQueryLoading,
         byTypeAndConnectionStatus,
         getRewardWalletBalance,
+        refetchSelectedWalletBalance: () => selectedWallet && refetchBalances(selectedWallet.address),
+        peanutWalletDetails,
     }
 }

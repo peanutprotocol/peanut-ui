@@ -12,7 +12,7 @@ export const useSetupFlow = () => {
     const isLastStep = currentStep === steps.length
 
     const handleNext = useCallback(
-        async <T extends ScreenId>(callback?: () => Promise<boolean>, props?: ScreenProps[T]) => {
+        async (callback?: () => Promise<boolean>, screenId?: ScreenId) => {
             dispatch(setupActions.setLoading(true))
 
             try {
@@ -21,17 +21,38 @@ export const useSetupFlow = () => {
                     if (!isValid) return
                 }
 
-                dispatch(setupActions.nextStep())
+                if (screenId) {
+                    // Find the step index for the given screenId and set it
+                    const stepIndex = steps.findIndex((s) => s.screenId === screenId)
+                    if (stepIndex !== -1) {
+                        dispatch(setupActions.setStep(stepIndex + 1))
+                    } else {
+                        dispatch(setupActions.nextStep())
+                    }
+                } else {
+                    dispatch(setupActions.nextStep())
+                }
             } finally {
                 dispatch(setupActions.setLoading(false))
             }
         },
-        [dispatch]
+        [dispatch, steps]
     )
 
     const handleBack = useCallback(() => {
         dispatch(setupActions.previousStep())
     }, [dispatch])
+
+    // Function to specifically set a screen by ID
+    const setScreenId = useCallback(
+        (screenId: ScreenId) => {
+            const stepIndex = steps.findIndex((s) => s.screenId === screenId)
+            if (stepIndex !== -1) {
+                dispatch(setupActions.setStep(stepIndex + 1))
+            }
+        },
+        [dispatch, steps]
+    )
 
     return {
         currentStep,
@@ -41,6 +62,7 @@ export const useSetupFlow = () => {
         isLoading,
         handleNext,
         handleBack,
+        setScreenId,
         step,
     }
 }

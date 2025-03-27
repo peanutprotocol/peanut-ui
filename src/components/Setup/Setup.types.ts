@@ -7,6 +7,7 @@ export type ScreenId =
     | 'pwa-install'
     | 'add-wallets'
     | 'success'
+    | 'unsupported-browser'
 
 export type LayoutType = 'welcome' | 'signup' | 'standard'
 
@@ -22,10 +23,13 @@ export type ScreenProps = {
     success: undefined
     'contact-info': undefined
     'pwa-install': undefined
+    'unsupported-browser': undefined
 }
 
 export interface StepComponentProps {
     handle?: string
+    deferredPrompt?: BeforeInstallPromptEvent | null
+    canInstall?: boolean
 }
 
 export interface ISetupStep {
@@ -38,4 +42,13 @@ export interface ISetupStep {
     showBackButton?: boolean
     showSkipButton?: boolean
     imageClassName?: string
+}
+
+export interface BeforeInstallPromptEvent extends Event {
+    readonly platforms: Array<string>
+    readonly userChoice: Promise<{
+        outcome: 'accepted' | 'dismissed'
+        platform: string
+    }>
+    prompt(): Promise<void>
 }

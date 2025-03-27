@@ -51,7 +51,7 @@ export default function manifest(): MetadataRoute.Manifest {
         related_applications: [
             {
                 platform: 'webapp',
-                url: 'https://peanut.me/manifest.json',
+                url: 'https://peanut.me/manifest.webmanifest',
             },
             {
                 platform: 'ios',

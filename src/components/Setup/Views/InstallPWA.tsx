@@ -3,8 +3,10 @@ import { Button } from '@/components/0_Bruddle'
 import Modal from '@/components/Global/Modal'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useEffect, useState } from 'react'
-import { getFromLocalStorage } from '@/utils'
+import { useEffect, useState, useCallback } from 'react'
+import { BeforeInstallPromptEvent } from '@/components/Setup/Setup.types'
+import { setupActions } from '@/redux/slices/setup-slice'
+import { useAppDispatch } from '@/redux/hooks'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -48,73 +50,79 @@ const ShareIcon = () => (
     </svg>
 )
 
-let deferredPrompt: any = null
-
-const InstallPWA = () => {
-    const { handleNext } = useSetupFlow()
-    const [canInstall, setCanInstall] = useState(false)
-    const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('desktop')
+const InstallPWA = ({
+    canInstall,
+    deferredPrompt,
+    deviceType,
+    unsupportedBrowser,
+}: {
+    canInstall?: boolean
+    deferredPrompt?: BeforeInstallPromptEvent | null
+    deviceType?: 'ios' | 'android' | 'desktop'
+    unsupportedBrowser?: boolean
+}) => {
+    const { handleNext, isLoading } = useSetupFlow()
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
-    const [isDesktop, setIsDesktop] = useState(false)
+    const dispatch = useAppDispatch()
+
+    // Use the prop if provided, otherwise detect locally
+    const [isUnsupportedBrowser, setIsUnsupportedBrowser] = useState(false)
 
     useEffect(() => {
-        // Store the install prompt
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault()
-            deferredPrompt = e
-            setCanInstall(true)
-        })
+        // Use the prop value if it exists
+        if (unsupportedBrowser !== undefined) {
+            setIsUnsupportedBrowser(unsupportedBrowser)
+        } else {
+            // Otherwise detect it
+            const checkPasskeySupport = async () => {
+                try {
+                    const hasPasskeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+                    setIsUnsupportedBrowser(!hasPasskeySupport)
+                } catch (error) {
+                    // If there's an error checking, assume it's unsupported
+                    setIsUnsupportedBrowser(true)
+                }
+            }
 
+            checkPasskeySupport()
+        }
+    }, [unsupportedBrowser])
+
+    useEffect(() => {
+        if (!isUnsupportedBrowser) {
+            handleNext()
+        }
+    }, [isUnsupportedBrowser])
+
+    useEffect(() => {
         // Detect when PWA is installed
         window.addEventListener('appinstalled', () => {
             // Wait a moment to let the install complete
-            const localStorageRedirect = getFromLocalStorage('redirect')
-            const redirect = localStorageRedirect ? localStorageRedirect : '/home'
             setTimeout(() => {
                 setInstallComplete(true)
                 setShowModal(false)
-                // Try to open the PWA
-                window.location.href = window.location.origin + redirect
+                dispatch(setupActions.setLoading(false))
             }, 1000)
         })
-
-        // Detect device type
-        const isIOSDevice = /iPad|iPhone|iPod|Mac|Macintosh/.test(navigator.userAgent)
-        const isMobileDevice = /Android|webOS|iPad|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-            navigator.userAgent
-        )
-
-        setIsDesktop(!isMobileDevice)
-
-        // For desktop, default to iOS if on Mac, otherwise Android
-        if (!isMobileDevice) {
-            setDeviceType('desktop')
-        } else {
-            if (isIOSDevice) {
-                setDeviceType('ios')
-            } else {
-                setDeviceType('android')
-            }
-        }
-
-        // Log the final device type
-        console.log('Detected Device Type:', deviceType)
     }, [])
 
-    const handleInstall = async () => {
+    const handleInstall = useCallback(async () => {
         if (!deferredPrompt) return
-
+        dispatch(setupActions.setLoading(true))
         // Show the install prompt
-        deferredPrompt.prompt()
-
-        // Wait for the user to respond to the prompt
+        await deferredPrompt.prompt()
         const { outcome } = await deferredPrompt.userChoice
-
-        if (outcome === 'accepted') {
-            deferredPrompt = null
+        if (outcome === 'dismissed') {
+            dispatch(setupActions.setLoading(false))
+        } else if (outcome === 'accepted') {
+            setTimeout(() => {
+                setInstallComplete(true)
+                window.location.href = window.location.origin + '/setup'
+                dispatch(setupActions.setLoading(false))
+            }, 5000)
         }
-    }
+    }, [deferredPrompt])
 
     const IOSInstructions = () => (
         <div className="space-y-4">
@@ -128,10 +136,15 @@ const InstallPWA = () => {
 
     const AndroidInstructions = () => (
         <div className="flex flex-col gap-4">
-            {canInstall ? (
-                <Button onClick={handleInstall} className="w-full">
-                    Install Peanut
-                </Button>
+            {installComplete ? (
+                <>
+                    <div className="space-y-4">
+                        <StepTitle text="Open Peanut App" />
+                        <p className="mt-2">
+                            You have already installed Peanut on your phone. Open it and continue the setup there!
+                        </p>
+                    </div>
+                </>
             ) : (
                 <>
                     <div className="space-y-4">
@@ -173,10 +186,32 @@ const InstallPWA = () => {
         </div>
     )
 
-    const getInstructions = () => {
-        console.log('Showing instructions for:', deviceType)
+    const UnsupportedBrowserInstructions = () => (
+        <div className="space-y-4">
+            <StepTitle text="Browser Not Supported" />
+            <p className="mt-2">
+                It looks like you're using an in-app browser (like Telegram or Discord) that doesn't support passkeys,
+                which are required for secure access to your wallet.
+            </p>
+            <p className="mt-2">
+                Please open this link in your device's main browser (like Safari, Chrome, or Firefox):
+            </p>
+            <div className="mt-4 rounded-lg bg-gray-100 p-3 text-center">
+                <code className="select-all font-mono text-sm">{window.location.origin}/setup</code>
+            </div>
+            <p className="mt-2 text-sm text-gray-600">
+                Tap the button below to open in your main browser, or copy the link above manually.
+            </p>
+        </div>
+    )
 
-        if (deviceType === 'desktop') {
+    const getInstructions = () => {
+        console.log('Showing instructions for:', deviceType, 'Unsupported browser:', isUnsupportedBrowser)
+
+        // If this is an unsupported browser, show those instructions
+        if (isUnsupportedBrowser) {
+            return <UnsupportedBrowserInstructions />
+        } else if (deviceType === 'desktop') {
             return <DesktopInstructions />
         } else if (deviceType === 'ios') {
             return <IOSInstructions />
@@ -188,9 +223,14 @@ const InstallPWA = () => {
     return (
         <div className="flex flex-col gap-4">
             <Button
+                loading={isLoading}
+                disabled={isLoading}
                 onClick={() => {
-                    if (installComplete) {
-                        handleNext()
+                    if (isUnsupportedBrowser) {
+                        // Open in default browser
+                        window.open(window.location.origin + '/setup', '_blank')
+                    } else if (canInstall) {
+                        handleInstall()
                     } else {
                         setShowModal(true)
                     }
@@ -198,7 +238,7 @@ const InstallPWA = () => {
                 className="w-full"
                 shadowSize="4"
             >
-                {installComplete ? 'Done' : 'Install App'}
+                {isUnsupportedBrowser ? 'Open in Main Browser' : installComplete ? 'Done' : 'Install App'}
             </Button>
 
             <Modal
@@ -218,17 +258,18 @@ const InstallPWA = () => {
                 )}
                 <div className="space-y-4 p-6">
                     {getInstructions()}
-                    <Button
-                        onClick={() => {
-                            setShowModal(false)
-                            setInstallComplete(true)
-                        }}
-                        className="w-full bg-white"
-                        shadowSize="4"
-                        variant="stroke"
-                    >
-                        Got it!
-                    </Button>
+                    {!canInstall && (
+                        <Button
+                            onClick={() => {
+                                setShowModal(false)
+                            }}
+                            className="w-full bg-white"
+                            shadowSize="4"
+                            variant="stroke"
+                        >
+                            Got it!
+                        </Button>
+                    )}
                 </div>
             </Modal>
         </div>

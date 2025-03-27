@@ -1,7 +1,6 @@
 'use client'
 
 import { Button, Card } from '@/components/0_Bruddle'
-import { useToast } from '@/components/0_Bruddle/Toast'
 import { CrispButton } from '@/components/CrispChat'
 import AddressLink from '@/components/Global/AddressLink'
 import FlowHeader from '@/components/Global/FlowHeader'
@@ -23,7 +22,6 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TOOLTIPS } from '@/constants/tooltips'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
-import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
@@ -37,19 +35,16 @@ import {
     getBridgeChainName,
     getBridgeTokenName,
     saveClaimedLinkToLocalStorage,
-    saveRedirectUrl,
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
-import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { parseUnits } from 'viem'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
+import Divider from '@/components/0_Bruddle/Divider'
 
 const isPeanutClaimOnlyMode = () => {
     if (typeof window === 'undefined') return false
@@ -80,9 +75,6 @@ export const InitialClaimLinkView = ({
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
     const dispatch = useAppDispatch()
-    const router = useRouter()
-    const toast = useToast()
-    const { handleLogin, isLoggingIn } = useZeroDev()
     const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
@@ -92,7 +84,6 @@ export const InitialClaimLinkView = ({
     const [isXchainLoading, setIsXchainLoading] = useState<boolean>(false)
     const [routes, setRoutes] = useState<any[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
-    const { open: openReownModal } = useAppKit()
 
     const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
     const {
@@ -110,7 +101,6 @@ export const InitialClaimLinkView = ({
     const {
         isConnected,
         address,
-        signInModal,
         isExternalWallet,
         isPeanutWallet,
         selectedWallet,
@@ -128,18 +118,6 @@ export const InitialClaimLinkView = ({
             setSelectedTokenAddress(claimLinkData.tokenAddress)
         }
     }, [claimLinkData, isPeanutWallet])
-
-    // TODO: all handleConnectWallet will need to pass through useWallet()
-    const handleConnectWallet = async () => {
-        if (isConnected && address) {
-            setRecipient({ name: undefined, address: '' })
-            await new Promise((resolve) => setTimeout(resolve, 100))
-            setRecipient({ name: undefined, address: address })
-        } else {
-            saveRedirectUrl()
-            signInModal.open()
-        }
-    }
 
     const handleClaimLink = async () => {
         setLoadingState('Loading')
@@ -355,84 +333,97 @@ export const InitialClaimLinkView = ({
         return areEvmAddressesEqual(claimLinkData.tokenAddress, consts.PINTA_WALLET_TOKEN)
     }, [claimLinkData.tokenAddress])
 
+    const fetchRoute = useCallback(
+        async (toToken?: string, toChain?: string) => {
+            try {
+                const existingRoute = routes.find(
+                    (route) =>
+                        route.fromChain === claimLinkData.chainId &&
+                        route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
+                        route.toChain === (toChain || selectedChainID) &&
+                        areEvmAddressesEqual(route.toToken, toToken || selectedTokenAddress)
+                )
+
+                if (existingRoute) {
+                    setSelectedRoute(existingRoute)
+                    return existingRoute
+                } else if (!isXChain && !toToken && !toChain) {
+                    setHasFetchedRoute(false)
+                    return undefined
+                }
+
+                const tokenAmount: BigInt = parseUnits(claimLinkData.tokenAmount, claimLinkData.tokenDecimals)
+
+                const fromToken =
+                    claimLinkData.tokenAddress === '0x0000000000000000000000000000000000000000'
+                        ? SQUID_ETH_ADDRESS
+                        : claimLinkData.tokenAddress.toLowerCase()
+
+                const route = await getSquidRouteRaw({
+                    squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+                    fromChain: claimLinkData.chainId.toString(),
+                    fromToken: fromToken,
+                    fromAmount: tokenAmount.toString(),
+                    toChain: toChain ? toChain : selectedChainID.toString(),
+                    toToken: toToken ? toToken : selectedTokenAddress,
+                    slippage: 1,
+                    fromAddress: claimLinkData.senderAddress,
+                    toAddress:
+                        recipientType === 'us' || recipientType === 'iban'
+                            ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
+                            : recipient.address || '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
+                })
+
+                setRoutes([...routes, route])
+                if (!toToken && !toChain) {
+                    setSelectedRoute(route)
+                    setHasFetchedRoute(true)
+                }
+                return route
+            } catch (error) {
+                console.error('Error fetching route:', error)
+                if (!toToken && !toChain) {
+                    setSelectedRoute(undefined)
+                }
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'No route found for the given token pair.',
+                })
+                Sentry.captureException(error)
+                return undefined
+            } finally {
+                setIsXchainLoading(false)
+                setLoadingState('Idle')
+            }
+        },
+        [claimLinkData, isXChain, selectedChainID, selectedTokenAddress, setLoadingState]
+    )
+
     useEffect(() => {
-        if (isReward || !claimLinkData.tokenAddress) return
+        let isMounted = true
+        if (isReward || !claimLinkData.tokenAddress)
+            return () => {
+                isMounted = false
+            }
 
         if (refetchXchainRoute) {
             setIsXchainLoading(true)
             setLoadingState('Fetching route')
-            setHasFetchedRoute(true)
             setErrorState({
                 showError: false,
                 errorMessage: '',
             })
 
-            fetchRoute()
-            setRefetchXchainRoute(false)
-        }
-    }, [claimLinkData, refetchXchainRoute, isReward])
-
-    const fetchRoute = async (toToken?: string, toChain?: string) => {
-        try {
-            const existingRoute = routes.find(
-                (route) =>
-                    route.fromChain === claimLinkData.chainId &&
-                    route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
-                    route.toChain === (toChain || selectedChainID) &&
-                    areEvmAddressesEqual(route.toToken, toToken || selectedTokenAddress)
-            )
-
-            if (existingRoute) {
-                setSelectedRoute(existingRoute)
-                return existingRoute
-            } else if (!isXChain && !toToken && !toChain) {
-                setHasFetchedRoute(false)
-                return undefined
-            }
-
-            const tokenAmount: BigInt = parseUnits(claimLinkData.tokenAmount, claimLinkData.tokenDecimals)
-
-            const fromToken =
-                claimLinkData.tokenAddress === '0x0000000000000000000000000000000000000000'
-                    ? SQUID_ETH_ADDRESS
-                    : claimLinkData.tokenAddress.toLowerCase()
-
-            const route = await getSquidRouteRaw({
-                squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
-                fromChain: claimLinkData.chainId.toString(),
-                fromToken: fromToken,
-                fromAmount: tokenAmount.toString(),
-                toChain: toChain ? toChain : selectedChainID.toString(),
-                toToken: toToken ? toToken : selectedTokenAddress,
-                slippage: 1,
-                fromAddress: claimLinkData.senderAddress,
-                toAddress:
-                    recipientType === 'us' || recipientType === 'iban'
-                        ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
-                        : recipient.address || '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
+            fetchRoute().finally(() => {
+                if (isMounted) {
+                    setRefetchXchainRoute(false)
+                }
             })
-
-            setRoutes([...routes, route])
-            if (!toToken && !toChain) {
-                setSelectedRoute(route)
-            }
-            return route
-        } catch (error) {
-            console.error('Error fetching route:', error)
-            if (!toToken && !toChain) {
-                setSelectedRoute(undefined)
-            }
-            setErrorState({
-                showError: true,
-                errorMessage: 'No route found for the given token pair.',
-            })
-            Sentry.captureException(error)
-            return undefined
-        } finally {
-            setIsXchainLoading(false)
-            setLoadingState('Idle')
         }
-    }
+        return () => {
+            isMounted = false
+        }
+    }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute])
 
     useEffect(() => {
         // set rewards wallet if user is connected and claim link is for Pinta
@@ -544,37 +535,27 @@ export const InitialClaimLinkView = ({
                     </Card.Description>
                 </Card.Header>
                 <Card.Content className="flex flex-col gap-2">
-                    {(!isConnected || isExternalWallet) && recipientType !== 'iban' && recipientType !== 'us' && (
-                        <TokenSelector
-                            shouldBeConnected={false}
-                            showOnlySquidSupported
-                            onReset={() => {
-                                resetSelectedToken()
-                            }}
-                        />
-                    )}
-                    {(!isConnected || isExternalWallet) && !isPeanutClaimOnlyMode() && (
-                        <GeneralRecipientInput
-                            className="pl-8"
-                            placeholder="wallet address / ENS / IBAN / US account number"
-                            recipient={recipient}
-                            onUpdate={(update: GeneralRecipientUpdate) => {
-                                setRecipient(update.recipient)
-                                if (!update.recipient.address) {
-                                    setRecipientType('address')
-                                } else {
-                                    setRecipientType(update.type)
-                                }
-                                setIsValidRecipient(update.isValid)
-                                setErrorState({
-                                    showError: !update.isValid,
-                                    errorMessage: update.errorMessage,
-                                })
-                                setInputChanging(update.isChanging)
-                            }}
-                            infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
-                        />
-                    )}
+                    {/* Token Selector
+                     * We don't want to show this if we're claiming to peanut wallet. Else its okay
+                     */}
+                    {(!isConnected || isExternalWallet) &&
+                        recipientType !== 'iban' &&
+                        recipientType !== 'us' &&
+                        !isPeanutClaimOnlyMode() && (
+                            <TokenSelector
+                                shouldBeConnected={false}
+                                showOnlySquidSupported
+                                onReset={() => {
+                                    resetSelectedToken()
+                                }}
+                            />
+                        )}
+                    {/* Route Information & Peanut Sponsored
+                     * Shows when:
+                     * - Has valid recipient
+                     * - Recipient type is NOT iban/us
+                     * Displays cross-chain route info if applicable
+                     */}
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                         <div className="flex w-full flex-col items-center justify-center gap-2 py-2">
                             {selectedRoute && (
@@ -624,68 +605,91 @@ export const InitialClaimLinkView = ({
                             {!isXchainLoading && <PeanutSponsored />}
                         </div>
                     )}
-                    <div className="flex w-full flex-col items-center justify-center gap-4">
-                        {!user && !isConnected && recipient.address.length === 0 && (
-                            <GuestLoginCta view="CLAIM" hideConnectWallet={isPeanutClaimOnlyMode()} />
+                    <div className="flex w-full flex-col items-center justify-center">
+                        {(!recipient.address || !isValidRecipient) && (
+                            <>
+                                {/* Guest Login CTA (Peanut Wallet) */}
+                                {/* Always hide connect wallet - user can use the manual input field */}
+                                {(isPeanutClaimOnlyMode() || !user) && recipient.address.length === 0 && (
+                                    <GuestLoginCta view="CLAIM" hideConnectWallet={true} />
+                                )}
+
+                                {!isPeanutClaimOnlyMode() && recipient.address.length === 0 && (
+                                    <Divider text="or" className="-mt-2 mb-2 text-grey-1" />
+                                )}
+                            </>
                         )}
-                        {(isConnected || (recipient.address && recipient.address.length > 0)) && (
-                            <Button
-                                onClick={() => {
-                                    if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
-                                        setRefetchXchainRoute(true)
-                                        onNext()
-                                    } else if (recipientType === 'iban' || recipientType === 'us') {
-                                        handleIbanRecipient()
-                                    } else if (hasFetchedRoute && selectedRoute) {
-                                        onNext()
-                                    } else {
-                                        handleClaimLink()
-                                    }
-                                }}
-                                loading={isLoading || isXchainLoading}
-                                disabled={
-                                    isLoading ||
-                                    isXchainLoading ||
-                                    inputChanging ||
-                                    (hasFetchedRoute && !selectedRoute) ||
-                                    (!isConnected && !recipient.address) ||
-                                    (!isConnected && !isValidRecipient)
-                                }
-                                className="text-sm md:text-base"
-                            >
-                                {isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id
-                                    ? 'Proceed'
-                                    : hasFetchedRoute && selectedRoute
-                                      ? 'Proceed'
-                                      : 'Claim Now'}
-                            </Button>
-                        )}
-                        {/* @dev Disabled temporarily for visual clutter. Might have to be redesigned, but keeping code in place for reference
-                        {!user && (isConnected || recipient.address.length !== 0) && (
-                            <div className="space-y-1 text-center">
-                                <label className="h-8">Want to manage all your payments in one place?</label>
-                                <Link
-                                    href={'/setup'}
-                                    onClick={saveRedirectUrl}
-                                    className="block h-8 text-center font-bold underline"
-                                >
-                                    Create a Peanut account
-                                </Link>
-                            </div>
-                        )} */}
-                        {address &&
-                            recipient.address.length < 0 &&
-                            recipientType === 'address' &&
-                            !isPeanutClaimOnlyMode() && (
-                                <div
-                                    className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"
-                                    onClick={() => {
-                                        handleConnectWallet()
-                                    }}
-                                >
-                                    {isConnected ? 'Or claim/swap to your connected wallet' : 'Connect a wallet'}
+
+                        {/* Alternative options section with divider */}
+                        {!isPeanutClaimOnlyMode() && (
+                            <>
+                                {/* Manual Input Section - Always visible in non-peanut-only mode */}
+                                <div className="flex w-full flex-col gap-4">
+                                    {(!isConnected || isExternalWallet) && (
+                                        <GeneralRecipientInput
+                                            className="pl-8"
+                                            placeholder="wallet address, ENS name or bank account"
+                                            recipient={recipient}
+                                            onUpdate={(update: GeneralRecipientUpdate) => {
+                                                setRecipient(update.recipient)
+                                                if (!update.recipient.address) {
+                                                    setRecipientType('address')
+                                                    // Reset loading state when input is cleared
+                                                    setLoadingState('Idle')
+                                                } else {
+                                                    setRecipientType(update.type)
+                                                }
+                                                setIsValidRecipient(update.isValid)
+                                                setErrorState({
+                                                    showError: !update.isValid,
+                                                    errorMessage: update.errorMessage,
+                                                })
+                                                setInputChanging(update.isChanging)
+                                            }}
+                                            infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
+                                        />
+                                    )}
+
+                                    {/* Claim Button - show when there's any input, disabled until valid */}
+                                    {recipient.address && (
+                                        <Button
+                                            onClick={() => {
+                                                if (
+                                                    isPeanutWallet &&
+                                                    Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id
+                                                ) {
+                                                    setRefetchXchainRoute(true)
+                                                    onNext()
+                                                } else if (recipientType === 'iban' || recipientType === 'us') {
+                                                    handleIbanRecipient()
+                                                } else if (hasFetchedRoute && selectedRoute) {
+                                                    onNext()
+                                                } else {
+                                                    handleClaimLink()
+                                                }
+                                            }}
+                                            loading={isLoading || isXchainLoading}
+                                            disabled={
+                                                isLoading ||
+                                                isXchainLoading ||
+                                                inputChanging ||
+                                                (hasFetchedRoute && !selectedRoute) ||
+                                                !isValidRecipient
+                                            }
+                                            className="text-sm md:text-base"
+                                        >
+                                            {isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id
+                                                ? 'Proceed'
+                                                : hasFetchedRoute && selectedRoute
+                                                  ? 'Proceed'
+                                                  : 'Claim Now'}
+                                        </Button>
+                                    )}
                                 </div>
-                            )}
+                            </>
+                        )}
+
+                        {/* Error Messages */}
                         {errorState.showError && (
                             <div className="text-start">
                                 {errorState.errorMessage === 'offramp unavailable' ? (
@@ -745,7 +749,7 @@ export const InitialClaimLinkView = ({
                                 )}
                             </div>
                         )}
-                    </div>{' '}
+                    </div>
                     <Popover id="HEpPuXFz" />
                 </Card.Content>
             </Card>

@@ -10,6 +10,7 @@ import chroma from 'chroma-js'
 import { SiweMessage } from 'siwe'
 import { getAddress, isAddress } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
+import type { Address } from 'viem'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -885,6 +886,20 @@ export function getTokenDecimals(tokenAddress: string, chainId: string): number 
     return consts.peanutTokenDetails
         .find((chain) => chain.chainId === chainId)
         ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.decimals
+}
+
+export function getTokenDetails({ tokenAddress, chainId }: { tokenAddress: Address; chainId: string }):
+    | {
+          symbol: string
+          name: string
+          decimals: number
+      }
+    | undefined {
+    const chainTokens = consts.peanutTokenDetails.find((c) => c.chainId === chainId)?.tokens
+    if (!chainTokens) return undefined
+    const tokenDetails = chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
+    if (!tokenDetails) return undefined
+    return tokenDetails
 }
 
 /**
