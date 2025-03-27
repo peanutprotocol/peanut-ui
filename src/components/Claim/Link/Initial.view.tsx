@@ -52,6 +52,12 @@ const isPeanutClaimOnlyMode = () => {
     return urlParams.get('t') === 'pnt'
 }
 
+const isPeanutClaimOnlyMode = () => {
+    if (typeof window === 'undefined') return false
+    const urlParams = new URLSearchParams(window.location.search)
+    return urlParams.get('t') === 'pnt'
+}
+
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
