@@ -64,16 +64,20 @@ const Navigation = memo(
 
         return (
             <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
-                {showBackButton && (
-                    <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label="Go back">
-                        <Icon name="arrow-prev" className="h-7 w-7" />
-                    </Button>
-                )}
-                {showSkipButton && (
-                    <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
-                        <span className="text-grey-1">Skip</span>
-                    </Button>
-                )}
+                <div>
+                    {showBackButton && (
+                        <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label="Go back">
+                            <Icon name="arrow-prev" className="h-7 w-7" />
+                        </Button>
+                    )}
+                </div>
+                <div>
+                    {showSkipButton && (
+                        <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
+                            <span className="text-grey-1">Skip</span>
+                        </Button>
+                    )}
+                </div>
             </div>
         )
     }
