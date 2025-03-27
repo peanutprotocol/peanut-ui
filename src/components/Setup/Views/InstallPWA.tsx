@@ -86,6 +86,12 @@ const InstallPWA = ({
         const { outcome } = await deferredPrompt.userChoice
         if (outcome === 'dismissed') {
             dispatch(setupActions.setLoading(false))
+        } else if (outcome === 'accepted') {
+            setTimeout(() => {
+                setInstallComplete(true)
+                window.location.href = window.location.origin + '/setup'
+                dispatch(setupActions.setLoading(false))
+            }, 5000)
         }
     }, [deferredPrompt])
 
@@ -101,7 +107,16 @@ const InstallPWA = ({
 
     const AndroidInstructions = () => (
         <div className="flex flex-col gap-4">
-            {canInstall ? (
+            {installComplete ? (
+                <>
+                    <div className="space-y-4">
+                        <StepTitle text="Open Peanut App" />
+                        <p className="mt-2">
+                            You have already installed Peanut on your phone. Open it and continue the setup there!
+                        </p>
+                    </div>
+                </>
+            ) : canInstall ? (
                 <Button onClick={handleInstall} className="w-full">
                     Install Peanut
                 </Button>
