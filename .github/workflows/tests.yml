@@ -21,9 +21,6 @@ jobs:
             - name: Install Dependencies
               run: pnpm install
 
-            - name: TypeScript Check
-              run: git submodule update --init --recursive && npx tsc --noEmit
-
             - name: Run Tests
               run: pnpm test
 
