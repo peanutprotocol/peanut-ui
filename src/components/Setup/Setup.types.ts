@@ -7,6 +7,7 @@ export type ScreenId =
     | 'pwa-install'
     | 'add-wallets'
     | 'success'
+    | 'unsupported-browser'
 
 export type LayoutType = 'welcome' | 'signup' | 'standard'
 
@@ -22,6 +23,7 @@ export type ScreenProps = {
     success: undefined
     'contact-info': undefined
     'pwa-install': undefined
+    'unsupported-browser': undefined
 }
 
 export interface StepComponentProps {

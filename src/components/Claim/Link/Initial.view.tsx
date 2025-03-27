@@ -610,8 +610,7 @@ export const InitialClaimLinkView = ({
                             <>
                                 {/* Guest Login CTA (Peanut Wallet) */}
                                 {/* Always hide connect wallet - user can use the manual input field */}
-
-                                {!user && recipient.address.length === 0 && (
+                                {(isPeanutClaimOnlyMode() || !user) && recipient.address.length === 0 && (
                                     <GuestLoginCta view="CLAIM" hideConnectWallet={true} />
                                 )}
 
