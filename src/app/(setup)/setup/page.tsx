@@ -9,7 +9,7 @@ import { setupActions } from '@/redux/slices/setup-slice'
 
 export default function SetupPage() {
     const { steps } = useSetupStore()
-    const { step, handleNext, handleBack, setScreenId } = useSetupFlow()
+    const { step, handleNext, handleBack } = useSetupFlow()
     const [direction, setDirection] = useState(0)
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
@@ -95,7 +95,7 @@ export default function SetupPage() {
             title={step.title}
             description={step.description}
             showBackButton={step.showBackButton}
-            showSkipButton={step.showSkipButton || step.screenId === 'unsupported-browser'}
+            showSkipButton={step.showSkipButton}
             imageClassName={step.imageClassName}
             onBack={handleBack}
             onSkip={() => handleNext()}

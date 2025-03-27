@@ -90,6 +90,12 @@ const InstallPWA = ({
     }, [unsupportedBrowser])
 
     useEffect(() => {
+        if (!isUnsupportedBrowser) {
+            handleNext()
+        }
+    }, [isUnsupportedBrowser])
+
+    useEffect(() => {
         // Detect when PWA is installed
         window.addEventListener('appinstalled', () => {
             // Wait a moment to let the install complete
