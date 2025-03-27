@@ -17,10 +17,10 @@ import { requestsApi } from '@/services/requests'
 import {
     formatAmount,
     formatDate,
+    formatPaymentStatus,
     getChainName,
     getExplorerUrl,
     shortenAddressLong,
-    formatPaymentStatus,
 } from '@/utils'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -99,7 +99,7 @@ export default function PaymentStatusView() {
         let intervalId: NodeJS.Timeout | undefined
 
         const pollStatus = async () => {
-            if (!requestId && !chargeId) return
+            if (!requestId && !chargeId && !transactionHash) return
 
             try {
                 if (requestId) {
@@ -126,11 +126,15 @@ export default function PaymentStatusView() {
             }
         }
 
-        // pool status if payment is not in final state
-        if (
-            (requestId || chargeId) &&
-            (!latestPayment || (latestPayment.status !== 'SUCCESSFUL' && latestPayment.status !== 'FAILED'))
-        ) {
+        // start polling:
+        // 1. requestId/chargeId and payment is not in final state
+        // 2. transactionHash is available
+        const shouldPoll =
+            ((requestId || chargeId) &&
+                (!latestPayment || (latestPayment.status !== 'SUCCESSFUL' && latestPayment.status !== 'FAILED'))) ||
+            transactionHash
+
+        if (shouldPoll) {
             // initial poll
             pollStatus()
 
@@ -143,7 +147,7 @@ export default function PaymentStatusView() {
                 clearInterval(intervalId)
             }
         }
-    }, [requestId, chargeId, latestPayment?.status, dispatch])
+    }, [requestId, chargeId, latestPayment?.status, transactionHash, dispatch])
 
     const recipientLink = useMemo(() => {
         if (!requestDetails) return null
