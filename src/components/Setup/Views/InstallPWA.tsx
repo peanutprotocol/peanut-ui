@@ -73,6 +73,7 @@ const InstallPWA = ({
                 setShowModal(false)
                 // Try to open the PWA
                 window.location.href = window.location.origin + '/setup'
+                dispatch(setupActions.setLoading(false))
             }, 1000)
         })
     }, [])
@@ -82,7 +83,10 @@ const InstallPWA = ({
         dispatch(setupActions.setLoading(true))
         // Show the install prompt
         await deferredPrompt.prompt()
-        dispatch(setupActions.setLoading(false))
+        const { outcome } = await deferredPrompt.userChoice
+        if (outcome === 'dismissed') {
+            dispatch(setupActions.setLoading(false))
+        }
     }, [deferredPrompt])
 
     const IOSInstructions = () => (
