@@ -27,7 +27,7 @@ const HomeWaitlist = () => {
     return (
         <div className="flex h-full w-full flex-col items-center justify-between p-8">
             <div className="flex h-full w-full flex-col items-center justify-between sm:w-1/2">
-                <Title text="Home" className="text-8xl" />
+                <Title text="Home" className="text-6xl" />
                 {username && (
                     <Card>
                         <Card.Header className="mx-auto border-none">

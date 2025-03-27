@@ -121,19 +121,22 @@ const GeneralRecipientInput = ({
     }
 
     return (
-        <ValidatedInput
-            label="To"
-            value={recipient.name ?? recipient.address}
-            placeholder={placeholder}
-            validate={checkAddress}
-            onUpdate={onInputUpdate}
-            className={className}
-            autoComplete="on"
-            name="bank-account"
-            suggestions={getSuggestions(recipientType.current)}
-            infoText={infoText}
-            formatDisplayValue={formatDisplayValue}
-        />
+        <div className="w-full">
+            <label className="mb-2 block text-left text-sm font-bold">Claim to</label>
+            <ValidatedInput
+                label="To"
+                value={recipient.name ?? recipient.address}
+                placeholder={placeholder}
+                validate={checkAddress}
+                onUpdate={onInputUpdate}
+                className={className}
+                autoComplete="on"
+                name="bank-account"
+                suggestions={getSuggestions(recipientType.current)}
+                infoText={infoText}
+                formatDisplayValue={formatDisplayValue}
+            />
+        </div>
     )
 }
 

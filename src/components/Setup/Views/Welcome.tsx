@@ -31,7 +31,7 @@ const WelcomeStep = () => {
                     variant="transparent-dark"
                     onClick={() => {
                         handleLogin().catch((e) => {
-                            toast.error('Error logging in. Try a different browser')
+                            toast.error('Error logging in')
                             Sentry.captureException(e)
                         })
                     }}

@@ -19,8 +19,6 @@ const SetupPasskey = () => {
     const { addAccount } = useAuth()
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
-    const localStorageRedirect = getFromLocalStorage('redirect')
-    const redirect = localStorageRedirect ? localStorageRedirect : '/home'
 
     useEffect(() => {
         if (address && user) {
@@ -30,7 +28,14 @@ const SetupPasskey = () => {
                 userId: user?.user.userId as string,
             })
                 .then(() => {
-                    router.push(redirect)
+                    // if redirect is set, redirect to the redirect url and clear
+                    const localStorageRedirect = getFromLocalStorage('redirect')
+                    if (localStorageRedirect) {
+                        localStorage.removeItem('redirect')
+                        router.push(localStorageRedirect)
+                    } else {
+                        router.push('/home')
+                    }
                 })
                 .catch((e) => {
                     Sentry.captureException(e)
@@ -41,7 +46,7 @@ const SetupPasskey = () => {
                     dispatch(setupActions.setLoading(false))
                 })
         }
-    }, [address, addAccount, user, handleNext])
+    }, [address, addAccount, user, handleNext, router])
 
     return (
         <div className="flex h-full flex-col justify-end gap-2 text-center">

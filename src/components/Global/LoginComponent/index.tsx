@@ -3,8 +3,9 @@ import { useAuth } from '@/context/authContext'
 import crypto from 'crypto'
 import { useMemo, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry, getFromLocalStorage } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
+import { useRouter } from 'next/navigation'
 
 interface ILoginComponentProps {
     email?: string
@@ -22,6 +23,7 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
     const [loadingState, setLoadingState] = useState<string>('Idle')
     const isLoading = useMemo(() => loadingState !== 'Idle', [loadingState])
     const { fetchUser } = useAuth()
+    const router = useRouter()
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -112,8 +114,17 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
             }
             await fetchUser()
             onSubmit?.({ status: 'success', message: 'User registered successfully' })
+
+            // Handle redirect after successful login. If redirectUrl is provided, use it. Otherwise, use localStorage redirect.
             if (redirectUrl) {
                 window.location.href = redirectUrl
+            } else {
+                // Fall back to localStorage redirect if available
+                const localStorageRedirect = getFromLocalStorage('redirect')
+                if (localStorageRedirect) {
+                    localStorage.removeItem('redirect') // Clear the redirect URL
+                    router.push(localStorageRedirect)
+                }
             }
         } catch (error) {
             console.error(error)
