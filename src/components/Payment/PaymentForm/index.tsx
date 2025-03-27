@@ -292,7 +292,6 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
             // for Pinta requests, use beerQuantity
             let tokenAmountToUse: string
             if (isPintaReq) {
-                // tokenAmountToUse = '0.00002' // todo: replace with beerQuantity after testing
                 tokenAmountToUse = beerQuantity.toString()
             } else {
                 if (token?.symbol.toLowerCase() === 'usdc') {
@@ -463,6 +462,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         if (!inputTokenAmount) return
         if (inputDenomination === 'TOKEN') {
             if (selectedTokenPrice) {
+                setInputDenomination('USD')
                 setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
             }
         } else if (inputDenomination === 'USD') {
