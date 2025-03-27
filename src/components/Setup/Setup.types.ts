@@ -7,6 +7,7 @@ export type ScreenId =
     | 'pwa-install'
     | 'add-wallets'
     | 'success'
+    | 'unsupported-browser'
 
 export type LayoutType = 'welcome' | 'signup' | 'standard'
 

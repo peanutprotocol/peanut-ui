@@ -54,15 +54,40 @@ const InstallPWA = ({
     canInstall,
     deferredPrompt,
     deviceType,
+    unsupportedBrowser,
 }: {
     canInstall?: boolean
     deferredPrompt?: BeforeInstallPromptEvent | null
     deviceType?: 'ios' | 'android' | 'desktop'
+    unsupportedBrowser?: boolean
 }) => {
     const { handleNext, isLoading } = useSetupFlow()
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
     const dispatch = useAppDispatch()
+
+    // Use the prop if provided, otherwise detect locally
+    const [isUnsupportedBrowser, setIsUnsupportedBrowser] = useState(false)
+
+    useEffect(() => {
+        // Use the prop value if it exists
+        if (unsupportedBrowser !== undefined) {
+            setIsUnsupportedBrowser(unsupportedBrowser)
+        } else {
+            // Otherwise detect it
+            const checkPasskeySupport = async () => {
+                try {
+                    const hasPasskeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+                    setIsUnsupportedBrowser(!hasPasskeySupport)
+                } catch (error) {
+                    // If there's an error checking, assume it's unsupported
+                    setIsUnsupportedBrowser(true)
+                }
+            }
+
+            checkPasskeySupport()
+        }
+    }, [unsupportedBrowser])
 
     useEffect(() => {
         // Detect when PWA is installed
@@ -71,8 +96,6 @@ const InstallPWA = ({
             setTimeout(() => {
                 setInstallComplete(true)
                 setShowModal(false)
-                // Try to open the PWA
-                window.location.href = window.location.origin + '/setup'
                 dispatch(setupActions.setLoading(false))
             }, 1000)
         })
@@ -116,10 +139,6 @@ const InstallPWA = ({
                         </p>
                     </div>
                 </>
-            ) : canInstall ? (
-                <Button onClick={handleInstall} className="w-full">
-                    Install Peanut
-                </Button>
             ) : (
                 <>
                     <div className="space-y-4">
@@ -161,10 +180,32 @@ const InstallPWA = ({
         </div>
     )
 
-    const getInstructions = () => {
-        console.log('Showing instructions for:', deviceType)
+    const UnsupportedBrowserInstructions = () => (
+        <div className="space-y-4">
+            <StepTitle text="Browser Not Supported" />
+            <p className="mt-2">
+                It looks like you're using an in-app browser (like Telegram or Discord) that doesn't support passkeys,
+                which are required for secure access to your wallet.
+            </p>
+            <p className="mt-2">
+                Please open this link in your device's main browser (like Safari, Chrome, or Firefox):
+            </p>
+            <div className="mt-4 rounded-lg bg-gray-100 p-3 text-center">
+                <code className="select-all font-mono text-sm">{window.location.origin}/setup</code>
+            </div>
+            <p className="mt-2 text-sm text-gray-600">
+                Tap the button below to open in your main browser, or copy the link above manually.
+            </p>
+        </div>
+    )
 
-        if (deviceType === 'desktop') {
+    const getInstructions = () => {
+        console.log('Showing instructions for:', deviceType, 'Unsupported browser:', isUnsupportedBrowser)
+
+        // If this is an unsupported browser, show those instructions
+        if (isUnsupportedBrowser) {
+            return <UnsupportedBrowserInstructions />
+        } else if (deviceType === 'desktop') {
             return <DesktopInstructions />
         } else if (deviceType === 'ios') {
             return <IOSInstructions />
@@ -179,10 +220,11 @@ const InstallPWA = ({
                 loading={isLoading}
                 disabled={isLoading}
                 onClick={() => {
-                    if (canInstall) {
+                    if (isUnsupportedBrowser) {
+                        // Open in default browser
+                        window.open(window.location.origin + '/setup', '_blank')
+                    } else if (canInstall) {
                         handleInstall()
-                    } else if (installComplete) {
-                        handleNext()
                     } else {
                         setShowModal(true)
                     }
@@ -190,7 +232,7 @@ const InstallPWA = ({
                 className="w-full"
                 shadowSize="4"
             >
-                {installComplete ? 'Done' : 'Install App'}
+                {isUnsupportedBrowser ? 'Open in Main Browser' : installComplete ? 'Done' : 'Install App'}
             </Button>
 
             <Modal

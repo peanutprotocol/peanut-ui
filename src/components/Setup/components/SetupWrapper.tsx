@@ -31,6 +31,7 @@ interface SetupWrapperProps {
     deferredPrompt?: BeforeInstallPromptEvent | null
     canInstall?: boolean
     deviceType?: 'ios' | 'android' | 'desktop'
+    unsupportedBrowser?: boolean
 }
 
 // define responsive height classes for different layout types
@@ -180,6 +181,7 @@ export const SetupWrapper = memo(
         deferredPrompt,
         canInstall,
         deviceType,
+        unsupportedBrowser,
     }: SetupWrapperProps) => {
         return (
             <div className="flex min-h-[100dvh] flex-col">
@@ -231,6 +233,7 @@ export const SetupWrapper = memo(
                                         deferredPrompt,
                                         canInstall,
                                         deviceType,
+                                        unsupportedBrowser,
                                     })
                                 }
                                 return child
