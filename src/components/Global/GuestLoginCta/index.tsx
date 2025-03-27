@@ -6,6 +6,7 @@ import { saveRedirectUrl } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 interface GuestLoginCtaProps {
     hideConnectWallet?: boolean
@@ -13,67 +14,57 @@ interface GuestLoginCtaProps {
 }
 
 const GuestLoginCta = ({ hideConnectWallet = false, view }: GuestLoginCtaProps) => {
-    const { handleLogin, isLoggingIn } = useZeroDev()
+    const { handleLogin, isLoggingIn, address: passkeyAddress } = useZeroDev()
     const toast = useToast()
     const router = useRouter()
     const { open: openReownModal } = useAppKit()
 
+    // If user already has a passkey address, auto-redirect to avoid double prompting
+    useEffect(() => {
+        if (passkeyAddress && !isLoggingIn) {
+            console.log('User already has passkey wallet:', passkeyAddress)
+        }
+    }, [passkeyAddress, isLoggingIn])
+
+    const handleSignUp = () => {
+        saveRedirectUrl()
+        router.push('/setup')
+    }
+
     const handleLoginClick = async () => {
+        // Prevent double login attempts
+        if (isLoggingIn || passkeyAddress) {
+            return
+        }
+
         try {
-            // check for existing passkeys
-            const hasPasskeys = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-                .then(async (available) => {
-                    if (!available) return false
-
-                    // check if credentials exist for current domain
-                    try {
-                        const result = await navigator.credentials.get({
-                            mediation: 'optional',
-                            publicKey: {
-                                challenge: Uint8Array.from('check-passkeys', (c) => c.charCodeAt(0)),
-                                rpId: window.location.hostname.replace(/^www\./, ''),
-                                timeout: 1000,
-                                userVerification: 'discouraged',
-                            },
-                        })
-                        return !!result
-                    } catch (e) {
-                        return false
-                    }
-                })
-                .catch(() => false)
-
-            if (!hasPasskeys) {
-                saveRedirectUrl()
-                router.push('/setup')
-                return
-            }
-
-            try {
-                await handleLogin()
-            } catch (e) {
-                toast.error('Error logging in. Try a different browser')
-                Sentry.captureException(e)
-            }
+            await handleLogin()
         } catch (e) {
-            console.error('Error checking for passkeys:', e)
-            // fallback to setup if can't check passkeys
-            saveRedirectUrl()
-            router.push('/setup')
+            toast.error('Error logging in')
+            Sentry.captureException(e)
         }
     }
 
     return (
         <div className="w-full space-y-2 py-2">
+            {/* Primary Sign Up Button */}
+            <Button onClick={handleSignUp} shadowSize="4" variant="purple" className="text-sm md:text-base">
+                {view === 'CLAIM' ? 'Sign Up' : 'Sign Up'}
+            </Button>
+
+            {/* Secondary Log In Button */}
             <Button
-                disabled={isLoggingIn}
+                disabled={isLoggingIn || !!passkeyAddress}
                 loading={isLoggingIn}
                 onClick={handleLoginClick}
-                variant="purple"
-                className="text-sm md:text-base"
+                variant="transparent"
+                className="!disabled:bg-transparent flex items-center justify-center gap-1 text-sm disabled:text-gray-400 md:text-base"
             >
-                {view === 'CLAIM' ? 'Claim with Peanut Wallet' : 'Pay with Peanut Wallet'}
+                {/* <span className="text-grey-1">Already have Peanut? &gt; </span> */}
+                <span className="font-bold">Log in</span>
             </Button>
+
+            {/* "or" divider and External Wallet Button */}
             {!hideConnectWallet && (
                 <>
                     <Divider text="or" />

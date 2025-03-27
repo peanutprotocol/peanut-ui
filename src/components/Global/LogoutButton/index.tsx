@@ -18,7 +18,7 @@ const LogoutButton = () => {
         <Button
             disabled={isLoggingOut}
             size="medium"
-            variant="transparent-dark"
+            variant="transparent"
             onClick={logout}
             className="flex w-fit items-center gap-3 px-0 hover:text-gray-1 md:px-3"
         >

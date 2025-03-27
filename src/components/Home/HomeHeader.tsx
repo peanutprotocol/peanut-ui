@@ -41,7 +41,7 @@ const HomeHeader = () => {
                                 if (isConnected) return
                                 handleLogin().catch((error) => {
                                     Sentry.captureException(error)
-                                    toast.error('Error logging in. Try a different browser')
+                                    toast.error('Error logging in')
                                 })
                             }}
                         >
