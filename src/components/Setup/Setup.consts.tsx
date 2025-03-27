@@ -1,5 +1,5 @@
 import passkeyPeanut from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_02/PNGS_konradurban_02_17.png'
-import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGROUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { PEANUTMAN_MOBILE } from '@/assets'
 import { ISetupStep } from '@/components/Setup/Setup.types'
 import { InstallPWA, SetupPasskey, SignupStep, WelcomeStep } from '@/components/Setup/Views'
