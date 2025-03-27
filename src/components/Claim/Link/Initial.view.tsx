@@ -35,7 +35,6 @@ import {
     getBridgeChainName,
     getBridgeTokenName,
     saveClaimedLinkToLocalStorage,
-    saveRedirectUrl,
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
@@ -102,7 +101,6 @@ export const InitialClaimLinkView = ({
     const {
         isConnected,
         address,
-        signInModal,
         isExternalWallet,
         isPeanutWallet,
         selectedWallet,
@@ -120,18 +118,6 @@ export const InitialClaimLinkView = ({
             setSelectedTokenAddress(claimLinkData.tokenAddress)
         }
     }, [claimLinkData, isPeanutWallet])
-
-    // TODO: all handleConnectWallet will need to pass through useWallet()
-    const handleConnectWallet = async () => {
-        if (isConnected && address) {
-            setRecipient({ name: undefined, address: '' })
-            await new Promise((resolve) => setTimeout(resolve, 100))
-            setRecipient({ name: undefined, address: address })
-        } else {
-            saveRedirectUrl()
-            signInModal.open()
-        }
-    }
 
     const handleClaimLink = async () => {
         setLoadingState('Loading')
@@ -347,84 +333,97 @@ export const InitialClaimLinkView = ({
         return areEvmAddressesEqual(claimLinkData.tokenAddress, consts.PINTA_WALLET_TOKEN)
     }, [claimLinkData.tokenAddress])
 
+    const fetchRoute = useCallback(
+        async (toToken?: string, toChain?: string) => {
+            try {
+                const existingRoute = routes.find(
+                    (route) =>
+                        route.fromChain === claimLinkData.chainId &&
+                        route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
+                        route.toChain === (toChain || selectedChainID) &&
+                        areEvmAddressesEqual(route.toToken, toToken || selectedTokenAddress)
+                )
+
+                if (existingRoute) {
+                    setSelectedRoute(existingRoute)
+                    return existingRoute
+                } else if (!isXChain && !toToken && !toChain) {
+                    setHasFetchedRoute(false)
+                    return undefined
+                }
+
+                const tokenAmount: BigInt = parseUnits(claimLinkData.tokenAmount, claimLinkData.tokenDecimals)
+
+                const fromToken =
+                    claimLinkData.tokenAddress === '0x0000000000000000000000000000000000000000'
+                        ? SQUID_ETH_ADDRESS
+                        : claimLinkData.tokenAddress.toLowerCase()
+
+                const route = await getSquidRouteRaw({
+                    squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+                    fromChain: claimLinkData.chainId.toString(),
+                    fromToken: fromToken,
+                    fromAmount: tokenAmount.toString(),
+                    toChain: toChain ? toChain : selectedChainID.toString(),
+                    toToken: toToken ? toToken : selectedTokenAddress,
+                    slippage: 1,
+                    fromAddress: claimLinkData.senderAddress,
+                    toAddress:
+                        recipientType === 'us' || recipientType === 'iban'
+                            ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
+                            : recipient.address || '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
+                })
+
+                setRoutes([...routes, route])
+                if (!toToken && !toChain) {
+                    setSelectedRoute(route)
+                    setHasFetchedRoute(true)
+                }
+                return route
+            } catch (error) {
+                console.error('Error fetching route:', error)
+                if (!toToken && !toChain) {
+                    setSelectedRoute(undefined)
+                }
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'No route found for the given token pair.',
+                })
+                Sentry.captureException(error)
+                return undefined
+            } finally {
+                setIsXchainLoading(false)
+                setLoadingState('Idle')
+            }
+        },
+        [claimLinkData, isXChain, selectedChainID, selectedTokenAddress, setLoadingState]
+    )
+
     useEffect(() => {
-        if (isReward || !claimLinkData.tokenAddress) return
+        let isMounted = true
+        if (isReward || !claimLinkData.tokenAddress)
+            return () => {
+                isMounted = false
+            }
 
         if (refetchXchainRoute) {
             setIsXchainLoading(true)
             setLoadingState('Fetching route')
-            setHasFetchedRoute(true)
             setErrorState({
                 showError: false,
                 errorMessage: '',
             })
 
-            fetchRoute()
-            setRefetchXchainRoute(false)
-        }
-    }, [claimLinkData, refetchXchainRoute, isReward])
-
-    const fetchRoute = async (toToken?: string, toChain?: string) => {
-        try {
-            const existingRoute = routes.find(
-                (route) =>
-                    route.fromChain === claimLinkData.chainId &&
-                    route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
-                    route.toChain === (toChain || selectedChainID) &&
-                    areEvmAddressesEqual(route.toToken, toToken || selectedTokenAddress)
-            )
-
-            if (existingRoute) {
-                setSelectedRoute(existingRoute)
-                return existingRoute
-            } else if (!isXChain && !toToken && !toChain) {
-                setHasFetchedRoute(false)
-                return undefined
-            }
-
-            const tokenAmount: BigInt = parseUnits(claimLinkData.tokenAmount, claimLinkData.tokenDecimals)
-
-            const fromToken =
-                claimLinkData.tokenAddress === '0x0000000000000000000000000000000000000000'
-                    ? SQUID_ETH_ADDRESS
-                    : claimLinkData.tokenAddress.toLowerCase()
-
-            const route = await getSquidRouteRaw({
-                squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
-                fromChain: claimLinkData.chainId.toString(),
-                fromToken: fromToken,
-                fromAmount: tokenAmount.toString(),
-                toChain: toChain ? toChain : selectedChainID.toString(),
-                toToken: toToken ? toToken : selectedTokenAddress,
-                slippage: 1,
-                fromAddress: claimLinkData.senderAddress,
-                toAddress:
-                    recipientType === 'us' || recipientType === 'iban'
-                        ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
-                        : recipient.address || '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
+            fetchRoute().finally(() => {
+                if (isMounted) {
+                    setRefetchXchainRoute(false)
+                }
             })
-
-            setRoutes([...routes, route])
-            if (!toToken && !toChain) {
-                setSelectedRoute(route)
-            }
-            return route
-        } catch (error) {
-            console.error('Error fetching route:', error)
-            if (!toToken && !toChain) {
-                setSelectedRoute(undefined)
-            }
-            setErrorState({
-                showError: true,
-                errorMessage: 'No route found for the given token pair.',
-            })
-            Sentry.captureException(error)
-            return undefined
-        } finally {
-            setIsXchainLoading(false)
-            setLoadingState('Idle')
         }
-    }
+        return () => {
+            isMounted = false
+        }
+    }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute])
 
     useEffect(() => {
         // set rewards wallet if user is connected and claim link is for Pinta
