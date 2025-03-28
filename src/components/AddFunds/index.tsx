@@ -3,6 +3,7 @@ import CopyField from '@/components/Global/CopyField'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { printableAddress } from '@/utils'
+import { Checkbox } from '@chakra-ui/react'
 import Image from 'next/image'
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -47,7 +48,7 @@ const AddFunds = () => {
     return (
         <div>
             <div onClick={() => setShowModal(true)} className="flex flex-col items-center gap-2.5">
-                <Button variant="purple" className={twMerge('h-10 w-10 rounded-full p-0')} shadowSize="4">
+                <Button variant="purple" className={twMerge('h-12 w-12 rounded-full p-0')} shadowSize="4">
                     <Icon name="plus" className="h-5 w-5" />
                 </Button>
                 <div className="font-semibold">Add</div>
@@ -177,18 +178,31 @@ const UsingExchange = () => {
 
                 {/* Checkbox */}
                 <label className="flex cursor-pointer items-center gap-2">
-                    <input
-                        type="checkbox"
+                    <Checkbox
                         checked={userAcknowledged}
                         onChange={(e) => {
                             setUserAcknowledged(e.target.checked)
                             setShowWarning(false)
                         }}
-                        className="h-4 w-4 accent-white"
-                    />
-                    <span className={twMerge('text-sm font-medium transition-colors', showWarning && 'text-red')}>
-                        I understand.
-                    </span>
+                        iconColor="black"
+                        sx={{
+                            '.chakra-checkbox__control': {
+                                borderColor: showWarning ? 'red' : 'black',
+                                background: 'transparent',
+                                _checked: {
+                                    borderColor: showWarning ? 'red' : 'black',
+                                    background: 'transparent',
+                                },
+                                _hover: {
+                                    borderColor: showWarning ? 'red' : 'black',
+                                },
+                            },
+                        }}
+                    >
+                        <span className={twMerge('text-sm font-medium transition-colors', showWarning && 'text-red')}>
+                            I understand.
+                        </span>
+                    </Checkbox>
                 </label>
             </div>
         </ContentWrapper>
