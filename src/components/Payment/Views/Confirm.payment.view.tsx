@@ -27,21 +27,14 @@ import {
 } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
-import { useContext, useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState, useCallback } from 'react'
 import { useSwitchChain } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 
 export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
-    const {
-        isConnected,
-        chain: currentChain,
-        address,
-        isPeanutWallet,
-        getRewardWalletBalance,
-        selectedWallet,
-    } = useWallet()
+    const { isConnected, chain: currentChain, address, isPeanutWallet, selectedWallet, isExternalWallet } = useWallet()
     const { attachmentOptions, parsedPaymentData, error, chargeDetails, beerQuantity } = usePaymentStore()
     const { selectedTokenData, selectedChainID, isXChain, setIsXChain, selectedTokenAddress } =
         useContext(tokenSelectorContext)
@@ -242,7 +235,7 @@ export default function ConfirmPaymentView() {
     }, [dispatch])
 
     // handle payment
-    const handlePayment = async () => {
+    const handlePayment = useCallback(async () => {
         if (!isConnected || !address || !chargeDetails || !selectedTokenData) return
         if ((isXChain || diffTokens) && !xChainUnsignedTxs) {
             dispatch(paymentActions.setError('Cross-chain transaction not ready'))
@@ -262,7 +255,7 @@ export default function ConfirmPaymentView() {
             // check balance and switch network
             await checkUserHasEnoughBalance({ tokenValue: estimatedFromValue })
 
-            if (currentChain && selectedChainID !== String(currentChain?.id)) {
+            if (isExternalWallet && currentChain && selectedChainID !== String(currentChain?.id)) {
                 await switchNetworkUtil({
                     chainId: selectedChainID,
                     currentChainId: String(currentChain?.id),
@@ -309,7 +302,20 @@ export default function ConfirmPaymentView() {
             setLoadingState('Idle')
             setIsSubmitting(false)
         }
-    }
+    }, [
+        isConnected,
+        address,
+        chargeDetails,
+        selectedTokenData,
+        isXChain,
+        diffTokens,
+        xChainUnsignedTxs,
+        unsignedTx,
+        checkUserHasEnoughBalance,
+        sendTransactions,
+        selectedChainID,
+        isExternalWallet,
+    ])
 
     // Get button text based on state
     const getButtonText = () => {
