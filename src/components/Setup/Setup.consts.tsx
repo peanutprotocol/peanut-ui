@@ -30,9 +30,9 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'welcome',
         layoutType: 'welcome',
-        title: 'Access Dollars Easily',
+        title: 'Pay with Dollars easily',
         description:
-            'Peanut wallet is the easiest way to receive and spend digital dollars. Sign up to Peanut now to be the first to know about the launch and get pre-launch rewards. Be at the forefront.',
+            'Peanut wallet is the easiest way to receive and spend digital dollars. Get the app now, pay your friends in dollars, and get pre-launch rewards!',
         image: chillPeanutAnim.src,
         component: WelcomeStep,
         showBackButton: false,
