@@ -9,14 +9,13 @@ interface CopyFieldProps {
     text: string
     variant?: ButtonVariant
     shadowSize?: '4' | '6' | '8'
-    displayText?: string
     disabled?: boolean
     onDisabledClick?: () => void
 }
 
 const timeoutDuration = 3000
 
-const CopyField = ({ text, variant, shadowSize, displayText, disabled, onDisabledClick }: CopyFieldProps) => {
+const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: CopyFieldProps) => {
     const [isCopied, setIsCopied] = useState(false)
 
     const handleClick = useCallback(() => {
@@ -32,7 +31,7 @@ const CopyField = ({ text, variant, shadowSize, displayText, disabled, onDisable
 
     return (
         <div className="flex w-full flex-row items-stretch justify-between gap-2">
-            <BaseInput disabled value={displayText ? displayText : text} className="h-10" />
+            <BaseInput disabled value={text} className="h-10" />
             <Button
                 disabled={disabled && !onDisabledClick}
                 variant={variant ? variant : 'stroke'}

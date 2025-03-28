@@ -2,7 +2,6 @@ import { COINBASE_LOGO, METAMASK_LOGO, RAINBOW_LOGO, TRUST_WALLET_LOGO } from '@
 import CopyField from '@/components/Global/CopyField'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
-import { printableAddress } from '@/utils'
 import { Checkbox } from '@chakra-ui/react'
 import Image from 'next/image'
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
@@ -17,7 +16,7 @@ type FundingMethod = 'exchange' | 'request_link' | null
 type Wallet = { name: string; logo: string }
 
 // main component
-const AddFunds = () => {
+const AddFunds = ({ fullCta }: { fullCta?: boolean }) => {
     const [fundingMethod, setFundingMethod] = useState<FundingMethod>(null)
     const [showModal, setShowModal] = useState(false)
     const timerRef = useRef<NodeJS.Timeout>()
@@ -47,12 +46,24 @@ const AddFunds = () => {
 
     return (
         <div>
-            <div onClick={() => setShowModal(true)} className="flex flex-col items-center gap-2.5">
-                <Button variant="purple" className={twMerge('h-12 w-12 rounded-full p-0')} shadowSize="4">
+            {!fullCta ? (
+                <div onClick={() => setShowModal(true)} className="flex flex-col items-center gap-2.5">
+                    <Button variant="purple" className={twMerge('h-14 w-14 rounded-full p-0')} shadowSize="4">
+                        <Icon name="plus" className="h-5 w-5" />
+                    </Button>
+                    <div className="font-semibold">Add</div>
+                </div>
+            ) : (
+                <Button
+                    onClick={() => setShowModal(true)}
+                    variant="purple"
+                    className={twMerge('flex w-full items-center gap-2')}
+                    shadowSize="4"
+                >
                     <Icon name="plus" className="h-5 w-5" />
+                    <div className="font-semibold">Add Funds</div>
                 </Button>
-                <div className="font-semibold">Add</div>
-            </div>
+            )}
 
             <Modal
                 hideOverlay={fundingMethod === 'request_link'}
@@ -163,7 +174,6 @@ const UsingExchange = () => {
             {/* Copy Address Field */}
             <CopyField
                 text={peanutWalletAddress}
-                displayText={printableAddress(peanutWalletAddress)}
                 shadowSize="4"
                 disabled={!userAcknowledged}
                 onDisabledClick={handleDisabledCopy}
