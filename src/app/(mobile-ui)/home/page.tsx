@@ -1,6 +1,8 @@
 'use client'
 
-import { PEANUT_LOGO_BLACK } from '@/assets'
+import { PEANUT_LOGO_BLACK, PEANUTMAN_BEER } from '@/assets'
+import { Card } from '@/components/0_Bruddle'
+import AddFunds from '@/components/AddFunds'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import DirectSendQr from '@/components/Global/DirectSendQR'
 import LogoutButton from '@/components/Global/LogoutButton'
@@ -148,6 +150,33 @@ export default function Home() {
         return wallets.length <= focusedIndex
     }, [focusedIndex, wallets?.length])
 
+    const renderPintaPromoCard = () => {
+        return (
+            <div className="relative mx-6 my-22">
+                <div className="absolute -top-5 left-1/2 z-0 w-48 -translate-x-1/2 -translate-y-1/2 transform">
+                    <div className="relative h-32 w-full">
+                        <Image src={PEANUTMAN_BEER} alt="Peanut Man" layout="fill" objectFit="contain" priority />
+                    </div>
+                </div>
+                <Card className="relative z-10 w-full bg-white">
+                    <Card.Content className="p-4">
+                        <div className="flex flex-col gap-2">
+                            <div className="text-center font-semibold text-primary-1">
+                                🍺 FREE BEER! 🍺 FREE BEER! 🍺 FREE BEER!
+                            </div>
+                            <div className="text-sm text-purple-800">
+                                Deposit any amount in your Peanut wallet today and receive free Pinta tokens! Use these
+                                tokens to enjoy complimentary beers at <span className="font-bold">Peanuts Party</span>{' '}
+                                event in Buenos Aires.
+                            </div>
+                            <AddFunds fullCta />
+                        </div>
+                    </Card.Content>
+                </Card>
+            </div>
+        )
+    }
+
     if (isFetchingWallets) {
         return <PeanutLoading />
     }
@@ -239,6 +268,8 @@ export default function Home() {
                             </div>
                         ) : null}
                     </div>
+
+                    {renderPintaPromoCard()}
                 </div>
             </div>
             <RewardsModal />
