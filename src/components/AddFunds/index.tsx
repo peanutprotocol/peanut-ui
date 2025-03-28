@@ -2,7 +2,6 @@ import { COINBASE_LOGO, METAMASK_LOGO, RAINBOW_LOGO, TRUST_WALLET_LOGO } from '@
 import CopyField from '@/components/Global/CopyField'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
-import { printableAddress } from '@/utils'
 import { Checkbox } from '@chakra-ui/react'
 import Image from 'next/image'
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
@@ -163,7 +162,6 @@ const UsingExchange = () => {
             {/* Copy Address Field */}
             <CopyField
                 text={peanutWalletAddress}
-                displayText={printableAddress(peanutWalletAddress)}
                 shadowSize="4"
                 disabled={!userAcknowledged}
                 onDisabledClick={handleDisabledCopy}
