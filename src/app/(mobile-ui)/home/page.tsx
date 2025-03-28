@@ -165,9 +165,7 @@ export default function Home() {
                                 🍺 FREE BEER! 🍺 FREE BEER! 🍺 FREE BEER!
                             </div>
                             <div className="text-sm text-purple-800">
-                                Deposit any amount in your Peanut wallet today and receive free Pinta tokens! Use these
-                                tokens to enjoy complimentary beers at <span className="font-bold">Peanuts Party</span>{' '}
-                                event in Buenos Aires.
+                                Deposit any amount in your Peanut wallet today and receive free Pinta tokens!
                             </div>
                             <AddFunds fullCta />
                         </div>
