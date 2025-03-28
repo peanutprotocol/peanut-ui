@@ -33,7 +33,8 @@ const buttonVariants: Record<ButtonVariant, string> = {
     'transparent-dark': 'btn-transparent-dark',
     green: 'bg-green-1',
     yellow: 'bg-secondary-1',
-    transparent: 'bg-transparent border-none hover:bg-transparent !active:bg-transparent focus:bg-transparent',
+    transparent:
+        'bg-transparent border-none hover:bg-transparent !active:bg-transparent focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent',
 }
 
 const buttonSizes: Record<ButtonSize, string> = {
