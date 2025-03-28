@@ -222,18 +222,22 @@ export default function Home() {
                         ) : wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
                           WalletProviderType.PEANUT ? (
                             <PeanutWalletActions />
-                        ) : (
-                            <DirectionalActionButtons
-                                leftButton={{
-                                    title: 'Send',
-                                    href: '/send',
-                                }}
-                                rightButton={{
-                                    title: 'Receive',
-                                    href: '/request/create',
-                                }}
-                            />
-                        )}
+                        ) : focusedWalletId &&
+                          wallets.find((w) => w.id === focusedWalletId) &&
+                          isWalletConnected(wallets.find((w) => w.id === focusedWalletId)!) ? (
+                            <div className="flex w-full flex-row items-center justify-center gap-5">
+                                <DirectionalActionButtons
+                                    leftButton={{
+                                        title: 'Send',
+                                        href: '/send',
+                                    }}
+                                    rightButton={{
+                                        title: 'Receive',
+                                        href: '/request/create',
+                                    }}
+                                />
+                            </div>
+                        ) : null}
                     </div>
                 </div>
             </div>

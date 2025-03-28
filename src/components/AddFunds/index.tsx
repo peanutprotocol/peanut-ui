@@ -48,7 +48,7 @@ const AddFunds = () => {
     return (
         <div>
             <div onClick={() => setShowModal(true)} className="flex flex-col items-center gap-2.5">
-                <Button variant="purple" className={twMerge('h-12 w-12 rounded-full p-0')} shadowSize="4">
+                <Button variant="purple" className={twMerge('h-14 w-14 rounded-full p-0')} shadowSize="4">
                     <Icon name="plus" className="h-5 w-5" />
                 </Button>
                 <div className="font-semibold">Add</div>
