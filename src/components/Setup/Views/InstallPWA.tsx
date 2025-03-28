@@ -118,7 +118,6 @@ const InstallPWA = ({
         } else if (outcome === 'accepted') {
             setTimeout(() => {
                 setInstallComplete(true)
-                window.location.href = window.location.origin + '/setup'
                 dispatch(setupActions.setLoading(false))
             }, 5000)
         }
@@ -226,7 +225,7 @@ const InstallPWA = ({
                 loading={isLoading}
                 disabled={isLoading}
                 onClick={() => {
-                    if (isUnsupportedBrowser) {
+                    if (isUnsupportedBrowser || installComplete) {
                         // Open in default browser
                         window.open(window.location.origin + '/setup', '_blank')
                     } else if (canInstall) {
