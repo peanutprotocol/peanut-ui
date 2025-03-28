@@ -237,7 +237,7 @@ const InstallPWA = ({
                 className="w-full"
                 shadowSize="4"
             >
-                {isUnsupportedBrowser ? 'Open in Main Browser' : installComplete ? 'Done' : 'Install App'}
+                {isUnsupportedBrowser ? 'Open in Main Browser' : installComplete ? 'Open in the App' : 'Install App'}
             </Button>
 
             <Modal
