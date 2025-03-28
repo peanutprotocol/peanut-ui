@@ -14,6 +14,7 @@ import { hitUserMetric } from '@/utils/metrics.utils'
 enum REWARD_ASSET_TYPE {
     'PNT' = 'aleph_pinta_mar_2025_welcome_pnt',
     'USDC' = 'aleph_pinta_mar_2025_welcome_usdc',
+    'DEPOSIT' = 'aleph_pinta_mar_2025_deposit_reward_pnt',
 }
 
 export const RewardDetails = () => {
@@ -54,9 +55,12 @@ const RewardsModal = () => {
 
     // get active reward link (pnt first, then usdc)
     const getActiveReward = () => {
+        return rewardLinks.find((r) => r.assetCode === REWARD_ASSET_TYPE.DEPOSIT)
+        /*
         const pntReward = rewardLinks.find((r) => r.assetCode === REWARD_ASSET_TYPE.PNT)
         const usdcReward = rewardLinks.find((r) => r.assetCode === REWARD_ASSET_TYPE.USDC)
         return pntReward || usdcReward
+        */
     }
 
     const activeReward = getActiveReward()
@@ -65,14 +69,14 @@ const RewardsModal = () => {
     const getModalContent = () => {
         //TODO: change after aleph event
         return {
-            title: 'Welcome to Peanut!',
+            title: 'Deposit Confirmed!',
             subtitle: (
                 <span>
-                    Here's <span className="font-bold">$2</span> for you to explore{' '}
-                    <span className="font-bold">Peanut Wallet</span> and its features!
+                    Here's <span className="font-bold">2 Beers</span> to celebrate your first deposit to your{' '}
+                    <span className="font-bold">Peanut Wallet</span>
                 </span>
             ),
-            ctaText: 'Chat with us to claim!',
+            ctaText: 'Claim your Beers!',
         }
         /*
         if (!activeReward) return null
@@ -168,7 +172,8 @@ const RewardsModal = () => {
                     <div className="relative h-42 w-[90%] md:h-52">
                         <Image
                             src={
-                                activeReward?.assetCode === REWARD_ASSET_TYPE.PNT
+                                activeReward?.assetCode === REWARD_ASSET_TYPE.PNT ||
+                                activeReward?.assetCode === REWARD_ASSET_TYPE.DEPOSIT
                                     ? PEANUTMAN_BEER
                                     : PEANUTMAN_RAISING_HANDS
                             }
