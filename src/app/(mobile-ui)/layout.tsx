@@ -70,7 +70,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             twMerge(
                                 'flex-1 overflow-y-auto bg-background p-6 pb-24 md:pb-6',
                                 !!isSupport && 'p-0 pb-20 md:p-6',
-                                !!isHome && 'p-0 md:p-6'
+                                !!isHome && 'p-0 md:p-6 md:pr-0'
                             )
                         )}
                     >
