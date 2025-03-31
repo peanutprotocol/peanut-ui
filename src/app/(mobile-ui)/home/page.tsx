@@ -18,6 +18,7 @@ import { WalletProviderType } from '@/interfaces'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
+import { usePrimaryNameBatch } from '@justaname.id/react'
 import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
 import Image from 'next/image'
@@ -45,6 +46,13 @@ export default function Home() {
     const { focusedWallet: focusedWalletId } = useWalletStore()
 
     const [focusedIndex, setFocusedIndex] = useState(0)
+
+    // Fetch ENS names for all wallet addresses
+    const walletAddresses = useMemo(() => wallets.map((wallet) => wallet.address), [wallets])
+    const { allPrimaryNames } = usePrimaryNameBatch({
+        addresses: walletAddresses,
+        enabled: !!walletAddresses.length,
+    })
 
     // update focusedIndex and focused wallet when selectedWallet changes
     useEffect(() => {
@@ -224,6 +232,7 @@ export default function Home() {
                                                 type="wallet"
                                                 wallet={wallet}
                                                 username={username ?? ''}
+                                                primaryName={allPrimaryNames?.[wallet.address] || wallet.address}
                                                 selected={selectedWallet?.id === wallet.id}
                                                 onClick={() => handleCardClick(index)}
                                                 index={index}

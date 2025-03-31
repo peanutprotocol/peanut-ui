@@ -17,6 +17,7 @@ import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { IWallet, WalletProviderType } from '@/interfaces'
 import { useWalletStore } from '@/redux/hooks'
 import { formatAmount, getChainName, getHeaderTitle, getUserPreferences, updateUserPreferences } from '@/utils'
+import { usePrimaryName } from '@justaname.id/react'
 import { useDisconnect } from '@reown/appkit/react'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
@@ -37,6 +38,11 @@ const WalletDetailsPage = () => {
     const walletDetails = wallets.find((wallet) => wallet.id === focusedWalletId)
     const isPeanutWallet = walletDetails?.walletProviderType === WalletProviderType.PEANUT
     const isRewardsWallet = walletDetails?.walletProviderType === WalletProviderType.REWARDS
+
+    const { primaryName } = usePrimaryName({
+        address: walletDetails?.address,
+        priority: 'onChain',
+    })
 
     const isConnected = isWalletConnected(walletDetails as IWallet)
 
@@ -140,6 +146,7 @@ const WalletDetailsPage = () => {
                         type="wallet"
                         wallet={walletDetails}
                         username={username ?? ''}
+                        primaryName={primaryName ?? walletDetails.address}
                         selected
                         onClick={() => {}}
                         index={0}
