@@ -15,15 +15,15 @@ import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { balanceByToken, floorFixed, formatIban, printableUsdc, validateBankAccount, fetchWithSentry } from '@/utils'
+import { balanceByToken, fetchWithSentry, floorFixed, formatIban, printableUsdc, validateBankAccount } from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import { useAppKit } from '@reown/appkit/react'
+import * as Sentry from '@sentry/nextjs'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import * as _consts from '../Cashout.consts'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
-import * as Sentry from '@sentry/nextjs'
 
 export const InitialCashoutView = ({
     onNext,
@@ -457,7 +457,7 @@ export const InitialCashoutView = ({
                         }}
                         loading={isLoading}
                         // Only allow the user to proceed if they are connected and the form is valid
-                        disabled={isConnected && isDisabled}
+                        disabled={(isConnected && isDisabled) || isLoading}
                     >
                         {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Proceed'}
                     </Button>
