@@ -22,8 +22,8 @@ const config: MaintenanceConfig = {
         MAINTAINABLE_ROUTES.CLAIM,
     ],
     maintenanceTime: {
-        start: '2025-02-20T11:10:00Z',
-        end: '2025-02-20T17:30:00Z',
+        start: '2025-04-02T00:00:00Z',
+        end: '2025-04-04T00:00:00Z',
     },
 }
 
