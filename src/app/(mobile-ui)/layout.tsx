@@ -52,10 +52,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                 {/* Main content area */}
                 <div className="flex w-full flex-1 flex-col">
+                    {/*
                     <GenericBanner
                         message="PRE-ALPHA: Use with caution. Small amounts only."
                         icon="⚠️"
                         backgroundColor="bg-primary-1"
+                    />
+                    */}
+                    <GenericBanner
+                        message="Under maintenance"
+                        icon="⚠️"
                     />
                     {/* Fixed top navbar */}
                     {showFullPeanutWallet && (
