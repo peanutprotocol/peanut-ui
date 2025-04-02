@@ -60,7 +60,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     />
                     */}
                     <GenericBanner
-                        message="Under maintenance"
+                        message="Scheduled maintenance. Some features might be unavailable."
                         icon="⚠️"
                     />
                     {/* Fixed top navbar */}
