@@ -1,4 +1,3 @@
-export * from './About'
 export * from './Blog'
 export * from './Cashout'
 export * from './Claim'
