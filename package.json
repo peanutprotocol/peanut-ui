@@ -53,25 +53,21 @@
         "ethers": "5.7.2",
         "framer-motion": "^11.11.17",
         "i18n-iso-countries": "^7.13.0",
-        "i18next": "^23.2.3",
         "js-cookie": "^3.0.5",
         "jsqr": "^1.4.0",
         "lottie-react": "^2.4.0",
         "multicoin-address-validator": "^0.5.22",
         "next": "^14.2.18",
-        "pino-pretty": "^13.0.0",
         "react": "^18.3.1",
         "react-csv": "^2.2.2",
         "react-dom": "^18.3.1",
         "react-fast-marquee": "^1.6.5",
         "react-ga4": "^2.1.0",
         "react-hook-form": "^7.53.2",
-        "react-lottie": "^1.2.8",
         "react-qr-code": "^2.0.15",
         "react-redux": "^9.2.0",
         "react-tooltip": "^5.28.0",
         "redux": "^5.0.1",
-        "sharp": "^0.33.5",
         "siwe": "^2.3.2",
         "tailwind-merge": "^1.14.0",
         "tailwind-scrollbar": "^3.1.0",
@@ -83,7 +79,9 @@
         "yup": "^1.4.0"
     },
     "devDependencies": {
+        "@next/bundle-analyzer": "^15.2.4",
         "@serwist/build": "^9.0.10",
+        "@size-limit/preset-app": "^11.2.0",
         "@testing-library/jest-dom": "^6.4.2",
         "@testing-library/react": "^16.1.0",
         "@testing-library/user-event": "^14.5.2",
@@ -104,12 +102,12 @@
         "jest-transform-stub": "^2.0.0",
         "knip": "^5.37.1",
         "ngrok": "^4.0.0",
-        "pino-pretty": "^13.0.0",
         "postcss": "^8.4.49",
         "postcss-import": "^16.1.0",
         "prettier": "^3.3.3",
         "prettier-plugin-tailwindcss": "^0.5.14",
         "serwist": "^9.0.10",
+        "size-limit": "^11.2.0",
         "tailwindcss": "^3.4.15",
         "ts-jest": "^29.1.2",
         "tslib": "^2.7.0",
@@ -151,5 +149,11 @@
         "@wagmi/core": "2.14.3",
         "viem": "^2.21.48",
         "wagmi": "2.8.6"
-    }
+    },
+    "size-limit": [
+        {
+            "path": ".next/static/chunks/*.js",
+            "limit": "500 KB"
+        }
+    ]
 }

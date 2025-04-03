@@ -1,5 +1,9 @@
 const os = require('os')
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+    enabled: process.env.ANALYZE === 'true',
+})
 
+const redirectsConfig = require('./redirects.json')
 const interfaces = os.networkInterfaces()
 let ipAddress = 'Unable to determine IP address'
 
@@ -38,7 +42,7 @@ let nextConfig = {
         }
         return config
     },
-    reactStrictMode: false,
+    reactStrictMode: process.env.NODE_ENV !== 'development' ? false : true,
     async rewrites() {
         return {
             beforeFiles: [
@@ -58,49 +62,7 @@ let nextConfig = {
         }
     },
     async redirects() {
-        return [
-            {
-                source: '/docs',
-                destination: 'https://docs.peanut.to',
-                permanent: false,
-                basePath: false,
-            },
-            {
-                source: '/packet',
-                destination: '/raffle/claim',
-                permanent: true,
-            },
-            {
-                source: '/create-packet',
-                destination: '/raffle/create',
-                permanent: true,
-            },
-            {
-                source: '/batch/create',
-                destination: 'https://legacy.peanut.to/batch/create',
-                permanent: true,
-            },
-            {
-                source: '/raffle/create',
-                destination: 'https://legacy.peanut.to/raffle/create',
-                permanent: true,
-            },
-            {
-                source: '/raffle/claim',
-                destination: 'https://legacy.peanut.to/raffle/claim',
-                permanent: true,
-            },
-            {
-                source: '/pioneers',
-                destination: '/',
-                permanent: true,
-            },
-            {
-                source: '/pints',
-                destination: 'https://lu.ma/ruimu656',
-                permanent: false,
-            },
-        ]
+        return process.env.NODE_ENV === 'development' ? [] : redirectsConfig
     },
     async headers() {
         return [
@@ -193,10 +155,14 @@ if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD))
     module.exports = nextConfig
 }
 
-module.exports = async () => {
-    const withSerwist = (await import('@serwist/next')).default({
-        swSrc: './src/app/sw.ts',
-        swDest: 'public/sw.js',
-    })
-    return withSerwist(nextConfig)
+if (process.env.NODE_ENV !== 'development') {
+    module.exports = async () => {
+        const withSerwist = (await import('@serwist/next')).default({
+            swSrc: './src/app/sw.ts',
+            swDest: 'public/sw.js',
+        })
+        return withSerwist(nextConfig)
+    }
 }
+
+module.exports = withBundleAnalyzer(nextConfig)
