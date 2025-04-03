@@ -165,9 +165,7 @@ export default function Home() {
                                 🍺 FREE BEER! 🍺 FREE BEER! 🍺 FREE BEER!
                             </div>
                             <div className="text-sm text-purple-800">
-                                Deposit any amount in your Peanut wallet today and receive free Pinta tokens! Use these
-                                tokens to enjoy complimentary beers at <span className="font-bold">Peanuts Party</span>{' '}
-                                event in Buenos Aires.
+                                Deposit any amount in your Peanut wallet today and receive free Pinta tokens!
                             </div>
                             <AddFunds fullCta />
                         </div>
@@ -243,7 +241,7 @@ export default function Home() {
                         </div>
                     </div>
 
-                    <div className="px-6 md:pb-6">
+                    <div className="h-22 px-6 md:pb-6">
                         {isAddWalletFocused ? null : focusedWalletId &&
                           wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
                               WalletProviderType.REWARDS ? (
@@ -254,7 +252,7 @@ export default function Home() {
                         ) : focusedWalletId &&
                           wallets.find((w) => w.id === focusedWalletId) &&
                           isWalletConnected(wallets.find((w) => w.id === focusedWalletId)!) ? (
-                            <div className="flex w-full flex-row items-center justify-center gap-5">
+                            <div className="flex w-full flex-row items-center justify-center gap-9">
                                 <DirectionalActionButtons
                                     leftButton={{
                                         title: 'Send',

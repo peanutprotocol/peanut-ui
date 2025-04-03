@@ -2,6 +2,7 @@
 
 import { ARBITRUM_ICON } from '@/assets'
 import { Button, Card } from '@/components/0_Bruddle'
+import AddFunds from '@/components/AddFunds'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import DirectSendQr from '@/components/Global/DirectSendQR'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
@@ -152,11 +153,9 @@ const WalletDetailsPage = () => {
 
             {!isRewardsWallet && (
                 <>
-                    <div className="flex w-full flex-row items-center justify-center gap-5">
-                        <DirectionalActionButtons
-                            leftButton={{ title: 'Top up', href: '/topup', disabled: true }}
-                            rightButton={{ title: 'Cashout', href: '/cashout' }}
-                        />
+                    <div className="flex w-full flex-row items-center justify-center gap-9">
+                        <AddFunds />
+                        <DirectionalActionButtons leftButton={{ title: 'Cashout', href: '/cashout' }} />
                     </div>
 
                     {!isPeanutWallet && (
