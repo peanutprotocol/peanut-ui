@@ -1,5 +1,4 @@
 'use client'
-import { PEANUTMAN_LOGO } from '@/assets'
 import { JustaNameContext } from '@/config/justaname.config'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import {
@@ -29,7 +28,7 @@ const metadata = {
     name: 'Peanut Protocol',
     description: 'Peanut protocol - send crypto with links',
     url: process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.to', // origin must match your domain & subdomain
-    icons: [PEANUTMAN_LOGO],
+    icons: [`${process.env.NEXT_PUBLIC_BASE_URL}/favicon.ico`],
 }
 
 export const networks = [arbitrum, mainnet, optimism, polygon, gnosis, base, scroll, mantle, bsc] as [
