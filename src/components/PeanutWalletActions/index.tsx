@@ -3,7 +3,7 @@ import DirectionalActionButtons from '../Global/DirectionalActionButtons'
 
 const PeanutWalletActions = () => {
     return (
-        <div className="flex items-center justify-center gap-5">
+        <div className="flex items-center justify-center gap-9">
             <AddFunds />
             <DirectionalActionButtons
                 leftButton={{
