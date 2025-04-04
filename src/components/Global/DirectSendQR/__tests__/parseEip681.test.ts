@@ -29,7 +29,7 @@ describe('parseEip681', () => {
         expect(result).toEqual({
             address: '0x8e23ee67d1332ad560396262c48ffbb01f93d052',
             amount: '1',
-            tokenSymbol: '',
+            tokenAddress: '0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7',
         })
     })
 
