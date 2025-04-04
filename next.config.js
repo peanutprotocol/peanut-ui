@@ -42,7 +42,7 @@ let nextConfig = {
         }
         return config
     },
-    reactStrictMode: process.env.NODE_ENV !== 'development' ? false : true,
+    reactStrictMode: false,
     async rewrites() {
         return {
             beforeFiles: [
