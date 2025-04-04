@@ -13,7 +13,7 @@ import * as Sentry from '@sentry/nextjs'
 const SetupPasskey = () => {
     const dispatch = useAppDispatch()
     const { handle } = useSetupStore()
-    const { handleNext, isLoading } = useSetupFlow()
+    const { isLoading } = useSetupFlow()
     const { handleRegister, address } = useZeroDev()
     const { user } = useAuth()
     const { addAccount } = useAuth()
@@ -46,7 +46,7 @@ const SetupPasskey = () => {
                     dispatch(setupActions.setLoading(false))
                 })
         }
-    }, [address, addAccount, user, handleNext, router])
+    }, [address, user])
 
     return (
         <div className="flex h-full flex-col justify-end gap-2 text-center">
