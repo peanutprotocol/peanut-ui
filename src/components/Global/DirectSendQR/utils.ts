@@ -42,8 +42,10 @@ const MP_AR_REGEX =
 /* PIX is also a emvco qr code */
 const PIX_REGEX = /^.*00020126.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
 
+const EIP_681_REGEX = /^ethereum:(?:pay-)?([^@/?]+)(?:@([^/?]+))?(?:\/([^?]+))?(?:\?(.*))?$/i
+
 const REGEXES_BY_TYPE: { [key in QrType]?: RegExp } = {
-    [EQrType.EIP_681]: /^ethereum:(?:pay-)?([^@/?]+)(?:@([^/?]+))?(?:\/([^?]+))?(?:\?(.*))?$/,
+    [EQrType.EIP_681]: EIP_681_REGEX,
     [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
     [EQrType.BITCOIN_ONCHAIN]: /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/,
     [EQrType.BITCOIN_INVOICE]: /^ln(bc|tb|bcrt)([0-9]{1,}[a-z0-9]+){1}$/,
@@ -90,7 +92,7 @@ export const parseEip681 = (
     tokenSymbol?: string
     tokenAddress?: string
 } => {
-    const match = data.match(/^ethereum:(?:pay-)?([^@/?]+)(?:@([^/?]+))?(?:\/([^?]+))?(?:\?(.*))?$/)
+    const match = data.match(EIP_681_REGEX)
     if (!match) {
         return { address: '' }
     }
