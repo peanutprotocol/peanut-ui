@@ -20,11 +20,10 @@ export interface IFileUploadInputProps {
 const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploadInputProps) => {
     const [fileType, setFileType] = useState<string>('')
 
-    const handleFileChange = (e: any) => {
-        const file = e.target.files[0]
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
         if (file) {
             const url = URL.createObjectURL(file)
-
             setAttachmentOptions({ message: attachmentOptions.message, fileUrl: url, rawFile: file })
         }
     }
@@ -34,6 +33,12 @@ const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploa
         e.stopPropagation()
         e.preventDefault()
         setAttachmentOptions({ message: attachmentOptions.message, fileUrl: undefined, rawFile: undefined })
+
+        // reset file input
+        const fileInput = document.getElementById('file-input') as HTMLInputElement
+        if (fileInput) {
+            fileInput.value = ''
+        }
     }
 
     useEffect(() => {
