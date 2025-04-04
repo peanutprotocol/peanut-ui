@@ -9,16 +9,14 @@ import { useEffect } from 'react'
 
 const WelcomeStep = () => {
     const { handleNext } = useSetupFlow()
-    const { handleLogin, isLoggingIn, isKernelClientReady } = useZeroDev()
+    const { handleLogin, isLoggingIn } = useZeroDev()
     const { user } = useAuth()
     const { push } = useRouter()
     const toast = useToast()
 
     useEffect(() => {
-        if (!!user && isKernelClientReady) {
-            push('/home')
-        }
-    }, [isKernelClientReady, user])
+        if (!!user) push('/home')
+    }, [user])
 
     return (
         <Card className="border-0">

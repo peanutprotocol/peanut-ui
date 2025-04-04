@@ -7,7 +7,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { BeforeInstallPromptEvent } from '@/components/Setup/Setup.types'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useAppDispatch } from '@/redux/hooks'
-import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/authContext'
 
@@ -68,7 +67,6 @@ const InstallPWA = ({
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
     const dispatch = useAppDispatch()
-    const { isKernelClientReady } = useZeroDev()
     const { user } = useAuth()
     const { push } = useRouter()
 
@@ -77,10 +75,8 @@ const InstallPWA = ({
 
     // Redirect to home if user is logged in
     useEffect(() => {
-        if (!!user && isKernelClientReady) {
-            push('/home')
-        }
-    }, [isKernelClientReady, user])
+        if (!!user) push('/home')
+    }, [user])
 
     useEffect(() => {
         // Use the prop value if it exists
