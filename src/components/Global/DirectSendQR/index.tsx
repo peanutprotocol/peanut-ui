@@ -25,78 +25,99 @@ export default function DirectSendQr() {
         data = data.toLowerCase()
         switch (recognizeQr(data)) {
             case EQrType.PEANUT_URL:
-                let path = data
-                path = path.substring(BASE_URL.length)
-                if (!path.startsWith('/')) {
-                    path = '/' + path
+                {
+                    let path = data
+                    path = path.substring(BASE_URL.length)
+                    if (!path.startsWith('/')) {
+                        path = '/' + path
+                    }
+                    redirectUrl = path
                 }
-                redirectUrl = path
                 break
             case EQrType.PINTA_MERCHANT:
-                redirectUrl = `/${data}@polygon/PNT`
-                break
-            case EQrType.EVM_ADDRESS:
-                //TODO: show that we can only send usd in arbitrum before redirecting
-                redirectUrl = `/${data}@arbitrum/usdc`
-                break
-            case EQrType.EIP_681:
-                //TODO: show that we can only send usd in arbitrum before redirecting
-                try {
-                    const { address } = parseEip681(data)
-                    if (address) {
-                        redirectUrl = `/${address}@arbitrum/usdc`
-                    }
-                } catch (error) {
-                    toast.error('Error parsing EIP-681 URL')
-                    Sentry.captureException(error)
+                {
+                    redirectUrl = `/${data}@polygon/PNT`
                 }
                 break
-            case EQrType.ENS_NAME:
-                const resolvedAddress = await resolveFromEnsName(data.toLowerCase())
-                if (!!resolvedAddress) {
+            case EQrType.EVM_ADDRESS:
+                {
                     //TODO: show that we can only send usd in arbitrum before redirecting
                     redirectUrl = `/${data}@arbitrum/usdc`
                 }
                 break
-            case EQrType.MERCADO_PAGO:
+            case EQrType.EIP_681:
+                {
+                    //TODO: show that we can only send usd in arbitrum before redirecting
+                    try {
+                        const { address } = parseEip681(data)
+                        if (address) {
+                            redirectUrl = `/${address}@arbitrum/usdc`
+                        }
+                    } catch (error) {
+                        toast.error('Error parsing EIP-681 URL')
+                        Sentry.captureException(error)
+                    }
+                }
+                break
+            case EQrType.ENS_NAME:
+                {
+                    const resolvedAddress = await resolveFromEnsName(data.toLowerCase())
+                    if (!!resolvedAddress) {
+                        //TODO: show that we can only send usd in arbitrum before redirecting
+                        redirectUrl = `/${data}@arbitrum/usdc`
+                    }
+                }
+                break
+            case EQrType.MERCADO_PAGO: {
                 //TODO: show that we recognize it but not support it yet
                 toast.info('Mercado Pago QR code recognized')
                 return { success: true }
+            }
             // break
-            case EQrType.BITCOIN_ONCHAIN:
+            case EQrType.BITCOIN_ONCHAIN: {
                 //TODO: show that we recognize it but not support it yet
                 toast.info('Bitcoin On-Chain QR code recognized')
                 return { success: true }
+            }
             // break
-            case EQrType.BITCOIN_INVOICE:
+            case EQrType.BITCOIN_INVOICE: {
                 //TODO: show that we recognize it but not support it yet
                 toast.info('Bitcoin Invoice QR code recognized')
                 return { success: true }
+            }
             // break
-            case EQrType.PIX:
+            case EQrType.PIX: {
                 //TODO: show that we recognize it but not support it yet
                 toast.info('PIX QR code recognized')
                 return { success: true }
+            }
             // break
-            case EQrType.TRON_ADDRESS:
+            case EQrType.TRON_ADDRESS: {
                 //TODO: show that we recognize it but not support it yet
                 toast.info('Tron Address QR code recognized')
                 return { success: true }
+            }
             // break
-            case EQrType.SOLANA_ADDRESS:
+            case EQrType.SOLANA_ADDRESS: {
                 //TODO: show that we recognize it but not support it yet
                 toast.info('Solana Address QR code recognized')
                 return { success: true }
+            }
             // break
-            case EQrType.XRP_ADDRESS:
+            case EQrType.XRP_ADDRESS: {
                 //TODO: show that we recognize it but not support it yet
                 toast.info('XRP Address QR code recognized')
                 return { success: true }
+            }
             // break
             case EQrType.URL:
-                redirectUrl = data
+                {
+                    redirectUrl = data
+                }
                 break
             default:
+                {
+                }
                 break
         }
 
