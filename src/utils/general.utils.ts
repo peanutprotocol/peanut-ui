@@ -67,7 +67,7 @@ export const printableAddress = (address: string): string => {
 }
 
 export const validateEnsName = (ensName: string = ''): boolean => {
-    return /(?:^|[^a-zA-Z0-9-_.])(([^\s.]{1,63}\.)+[^\s.]{2,63})/.test(ensName)
+    return /^[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?$/.test(ensName)
 }
 
 export function jsonStringify(data: any): string {
