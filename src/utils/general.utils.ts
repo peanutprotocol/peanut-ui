@@ -66,6 +66,14 @@ export const printableAddress = (address: string): string => {
     return shortenAddressLong(address)
 }
 
+/**
+ * Validates if a string is a valid ENS name format
+ * Checks that the string follows the ENS domain pattern with required TLD
+ * e.g., 'vitalik.eth', 'domain.xyz'
+ *
+ * @param ensName - The ENS name to validate
+ * @returns true if the string is a valid ENS format, false otherwise
+ */
 export const validateEnsName = (ensName: string = ''): boolean => {
     return /^[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?$/.test(ensName)
 }
