@@ -1,4 +1,3 @@
-'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { Button } from '@/components/0_Bruddle'
@@ -170,12 +169,6 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
     useEffect(() => {
         setIsScanning(isOpen)
     }, [isOpen])
-    // Handle facing mode change
-    useEffect(() => {
-        if (isScanning && streamRef.current) {
-            startCamera()
-        }
-    }, [facingMode, isScanning, startCamera])
 
     if (!isScanning) {
         return null
