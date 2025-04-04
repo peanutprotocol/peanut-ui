@@ -83,7 +83,13 @@ export function recognizeQr(data: string): QrType | null {
  */
 export const parseEip681 = (
     data: string
-): { address: string; chainId?: string; amount?: string; tokenSymbol?: string } => {
+): {
+    address: string
+    chainId?: string
+    amount?: string
+    tokenSymbol?: string
+    tokenAddress?: string
+} => {
     const match = data.match(/^ethereum:(?:pay-)?([^@/?]+)(?:@([^/?]+))?(?:\/([^?]+))?(?:\?(.*))?$/)
     if (!match) {
         return { address: '' }
@@ -114,7 +120,8 @@ export const parseEip681 = (
             address: recipientAddress,
             chainId,
             amount,
-            tokenSymbol: getTokenSymbol(tokenAddress, chainId) ?? '',
+            tokenSymbol: getTokenSymbol(tokenAddress, chainId),
+            tokenAddress,
         }
     }
 
