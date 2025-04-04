@@ -1053,7 +1053,7 @@ export function getRequestLink(
     }
     let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${recipient}${chain}/`
     if (tokenAmount) {
-        link += `${tokenAmount}`
+        link += `${formatAmount(tokenAmount)}`
     }
     if (tokenSymbol) {
         link += `${tokenSymbol}`
