@@ -30,8 +30,12 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     const requestId = searchParams.get('id')
 
     useEffect(() => {
+        let isMounted = true
         const fetchParsedURL = async () => {
             const { parsedUrl, error } = await parsePaymentURL(params.recipient)
+
+            if (!isMounted) return
+
             if (parsedUrl) {
                 dispatch(
                     paymentActions.setParsedPaymentData({
@@ -46,7 +50,10 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         }
 
         fetchParsedURL()
-    }, [params.recipient])
+        return () => {
+            isMounted = false
+        }
+    }, [params.recipient, user])
 
     // handle validation and charge creation
     useEffect(() => {
