@@ -1,4 +1,5 @@
 import { Button } from '@/components/0_Bruddle'
+import { useUserStore } from '@/redux/hooks'
 import { usePathname, useSearchParams } from 'next/navigation'
 import Icon from '../Icon'
 import WalletHeader from '../WalletHeader'
@@ -20,6 +21,8 @@ const FlowHeader = ({
     isPintaReq = false,
     isPintaClaim = false,
 }: FlowHeaderProps) => {
+    const { user } = useUserStore()
+
     const pathname = usePathname()
     const searchParams = useSearchParams()
 
@@ -42,7 +45,7 @@ const FlowHeader = ({
                     <Icon name="arrow-prev" />
                 </Button>
             )}
-            {!hideWalletHeader && (
+            {!hideWalletHeader && !!user?.user.userId && (
                 <WalletHeader
                     disabled={disableWalletHeader}
                     className={onPrev ? 'w-fit' : 'w-full'}
