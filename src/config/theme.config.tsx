@@ -1,7 +1,7 @@
 'use client'
 
 import { theme } from '@/styles/theme'
-import { ColorModeScript, ColorModeProvider } from '@chakra-ui/color-mode'
+import { ColorModeProvider, ColorModeScript } from '@chakra-ui/color-mode'
 import { ChakraProvider } from '@chakra-ui/react'
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
@@ -12,5 +12,3 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         </ColorModeProvider>
     )
 }
-
-export default ThemeProvider
