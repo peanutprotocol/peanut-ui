@@ -7,7 +7,6 @@ import { useWalletStore } from '@/redux/hooks'
 import { formatExtendedNumber, printableUsdc, shortenAddressLong } from '@/utils'
 import { identicon } from '@dicebear/collection'
 import { createAvatar } from '@dicebear/core'
-import { usePrimaryName } from '@justaname.id/react'
 import classNames from 'classnames'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
@@ -33,6 +32,7 @@ type WalletCardWallet = BaseWalletCardProps & {
     type: 'wallet'
     wallet: IWallet
     username: string
+    primaryName: string
     selected?: boolean
     isConnected?: boolean
     isUsable?: boolean
@@ -74,6 +74,7 @@ function AddWalletCard({ onClick }: { onClick?: () => void }) {
 function ExistingWalletCard({
     wallet,
     username,
+    primaryName,
     index,
     isBalanceHidden,
     onToggleBalanceVisibility,
@@ -81,12 +82,6 @@ function ExistingWalletCard({
     onClick,
 }: WalletCardWallet) {
     const { isWalletConnected } = useWallet()
-
-    // exceptionally we don't use AddressLink here because the whole card is clickable
-    const { primaryName } = usePrimaryName({
-        address: wallet.address,
-        priority: 'onChain',
-    })
 
     const isExternalWallet = wallet.walletProviderType !== WalletProviderType.PEANUT
     const isRewardsWallet = wallet.walletProviderType === WalletProviderType.REWARDS
@@ -339,12 +334,7 @@ function WalletIdentifier({
     )
 }
 
-function getWalletDisplayInfo(
-    wallet: IWallet,
-    username: string,
-    primaryName: string | null | undefined,
-    isRewardsWallet: boolean
-) {
+function getWalletDisplayInfo(wallet: IWallet, username: string, primaryName: string, isRewardsWallet: boolean) {
     if (isRewardsWallet) {
         return {
             displayName: 'Rewards',
