@@ -7,6 +7,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { BeforeInstallPromptEvent } from '@/components/Setup/Setup.types'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useAppDispatch } from '@/redux/hooks'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/context/authContext'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -65,9 +67,16 @@ const InstallPWA = ({
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
     const dispatch = useAppDispatch()
+    const { user } = useAuth()
+    const { push } = useRouter()
 
     // Use the prop if provided, otherwise detect locally
     const [isUnsupportedBrowser, setIsUnsupportedBrowser] = useState(false)
+
+    // Redirect to home if user is logged in
+    useEffect(() => {
+        if (!!user) push('/home')
+    }, [user])
 
     useEffect(() => {
         // Use the prop value if it exists

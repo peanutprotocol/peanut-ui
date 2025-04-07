@@ -1,4 +1,5 @@
 import { formatAmount, printableAddress } from '@/utils'
+import { usePrimaryName } from '@justaname.id/react'
 import { isAddress } from 'viem'
 
 export enum PreviewType {
@@ -17,6 +18,15 @@ const PREVIEW_TYPES: Record<PreviewType, PreviewTypeData> = {
 }
 
 function formatDisplayAddress(address: string): string {
+    const { primaryName } = usePrimaryName({
+        address,
+        priority: 'onChain',
+    })
+
+    if (primaryName) {
+        return primaryName
+    }
+
     if (address.startsWith('0x')) {
         if (isAddress(address)) {
             return printableAddress(address)

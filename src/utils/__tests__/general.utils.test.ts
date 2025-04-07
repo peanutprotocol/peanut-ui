@@ -208,6 +208,34 @@ describe('General Utilities', () => {
                 },
                 expectedLink: 'https://peanut.example.org/satoshi/10?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
             },
+            {
+                requestData: {
+                    recipientAccount: {
+                        type: AccountType.PEANUT_WALLET,
+                        user: {
+                            username: 'satoshi',
+                        },
+                    },
+                    recipientAddress: '0x1234567890123456789012345678901234567890',
+                    tokenAmount: '10.000000',
+                    uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                },
+                expectedLink: 'https://peanut.example.org/satoshi/10?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+            },
+            {
+                requestData: {
+                    recipientAccount: {
+                        type: AccountType.PEANUT_WALLET,
+                        user: {
+                            username: 'satoshi',
+                        },
+                    },
+                    recipientAddress: '0x1234567890123456789012345678901234567890',
+                    tokenAmount: '10.110000',
+                    uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                },
+                expectedLink: 'https://peanut.example.org/satoshi/10.11?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+            },
             // For Peanut Wallet users with token amount and symbol
             {
                 requestData: {
