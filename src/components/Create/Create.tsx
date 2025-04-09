@@ -3,14 +3,22 @@
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { createElement, Suspense, useContext, useEffect, useState } from 'react'
 
-import * as context from '@/context'
+import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { fetchWithSentry, rankAddressesByInteractions } from '@/utils'
 import PageContainer from '../0_Bruddle/PageContainer'
-import * as _consts from './Create.consts'
+import {
+    CREATE_SCREEN_FLOW,
+    CREATE_SCREEN_MAP,
+    CreateType,
+    IAttachmentOptions,
+    ICreateScreenProps,
+    ICreateScreenState,
+    INIT_VIEW_STATE,
+} from './Create.consts'
 
 export const Create = () => {
-    const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
+    const [step, setStep] = useState<ICreateScreenState>(INIT_VIEW_STATE)
     const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
     const [usdValue, setUsdValue] = useState<undefined | string>(undefined)
 
@@ -32,13 +40,13 @@ export const Create = () => {
     const [feeOptions, setFeeOptions] = useState<any | undefined>(undefined)
     const [transactionCostUSD, setTransactionCostUSD] = useState<number | undefined>(undefined)
     const [estimatedPoints, setEstimatedPoints] = useState<number | undefined>(undefined)
-    const [attachmentOptions, setAttachmentOptions] = useState<_consts.IAttachmentOptions>({
+    const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         fileUrl: undefined,
         message: undefined,
         rawFile: undefined,
     })
 
-    const [createType, setCreateType] = useState<_consts.CreateType>(undefined)
+    const [createType, setCreateType] = useState<CreateType>(undefined)
     const [recipient, setRecipient] = useState<{ address: string | undefined; name: string | undefined }>({
         address: undefined,
         name: undefined,
@@ -55,13 +63,13 @@ export const Create = () => {
 
     const { address, isPeanutWallet } = useWallet()
 
-    const { resetTokenContextProvider } = useContext(context.tokenSelectorContext)
+    const { resetTokenContextProvider } = useContext(tokenSelectorContext)
 
     const handleOnNext = () => {
-        if (step.idx === _consts.CREATE_SCREEN_FLOW.length - 1) return
+        if (step.idx === CREATE_SCREEN_FLOW.length - 1) return
         const newIdx = step.idx + 1
         setStep(() => ({
-            screen: _consts.CREATE_SCREEN_FLOW[newIdx],
+            screen: CREATE_SCREEN_FLOW[newIdx],
             idx: newIdx,
         }))
     }
@@ -70,7 +78,7 @@ export const Create = () => {
         if (step.idx === 0) return
         const newIdx = step.idx - 1
         setStep(() => ({
-            screen: _consts.CREATE_SCREEN_FLOW[newIdx],
+            screen: CREATE_SCREEN_FLOW[newIdx],
             idx: newIdx,
         }))
     }
@@ -121,7 +129,7 @@ export const Create = () => {
         <Suspense>
             <PageContainer>
                 <div className="max-w-xl">
-                    {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
+                    {createElement(CREATE_SCREEN_MAP[step.screen].comp, {
                         onPrev: handleOnPrev,
                         onNext: handleOnNext,
                         tokenValue: tokenValue,
@@ -159,7 +167,7 @@ export const Create = () => {
                         crossChainDetails,
                         usdValue,
                         setUsdValue,
-                    } as _consts.ICreateScreenProps)}
+                    } as ICreateScreenProps)}
                 </div>
             </PageContainer>
         </Suspense>
