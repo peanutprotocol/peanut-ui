@@ -1,8 +1,9 @@
 'use client'
+import { fetchTokenPrice } from '@/app/actions/tokens'
 import { PEANUT_API_URL, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
-import { balanceByToken, isNativeCurrency, saveCreatedLinkToLocalStorage, fetchWithSentry } from '@/utils'
+import { balanceByToken, fetchWithSentry, isNativeCurrency, saveCreatedLinkToLocalStorage } from '@/utils'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import peanut, {
     generateKeysFromString,
@@ -15,8 +16,6 @@ import { formatEther, parseEther, parseUnits } from 'viem'
 import { useAccount, useConfig, useSendTransaction, useSignTypedData, useSwitchChain } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
-import * as Sentry from '@sentry/nextjs'
-import { fetchTokenPrice } from '@/app/actions/tokens'
 
 interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
@@ -27,6 +26,7 @@ import { Hex } from 'viem'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { captureException } from '@sentry/nextjs'
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
@@ -207,7 +207,7 @@ export const useCreateLink = () => {
             })
             console.log(`Switched to chain ${chainId}`)
         } catch (error) {
-            Sentry.captureException(error)
+            captureException(error)
             console.error('Failed to switch network:', error)
         }
     }
@@ -317,7 +317,7 @@ export const useCreateLink = () => {
             return Math.round(data.points)
         } catch (error) {
             console.error('Failed to estimate points:', error)
-            Sentry.captureException(error)
+            captureException(error)
             return 0 // Returning 0 or another error handling strategy could be implemented here
         }
     }
@@ -579,7 +579,7 @@ export const useCreateLink = () => {
                             })
                         } catch (error: any) {
                             console.log('error setting fee options, fallback to default')
-                            Sentry.captureException(error)
+                            captureException(error)
                         }
                     }
                     if (isExternalWallet) {
@@ -619,7 +619,7 @@ export const useCreateLink = () => {
                                         await new Promise((resolve) => setTimeout(resolve, 500))
                                     } else {
                                         console.error('Failed to wait for transaction receipt after 3 attempts', error)
-                                        Sentry.captureException(error)
+                                        captureException(error)
                                     }
                                 }
                             }
