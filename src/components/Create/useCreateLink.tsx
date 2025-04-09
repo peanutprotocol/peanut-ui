@@ -22,7 +22,6 @@ import type { TransactionReceipt } from 'viem'
 import { useAccount, useConfig, useSendTransaction, useSignTypedData, useSwitchChain } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
-import * as Sentry from '@sentry/nextjs'
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { getLinkFromTx } from '@/app/actions/claimLinks'
 
@@ -35,6 +34,7 @@ import { Hex } from 'viem'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { captureException } from '@sentry/nextjs'
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
@@ -215,7 +215,7 @@ export const useCreateLink = () => {
             })
             console.log(`Switched to chain ${chainId}`)
         } catch (error) {
-            Sentry.captureException(error)
+            captureException(error)
             console.error('Failed to switch network:', error)
         }
     }
@@ -325,7 +325,7 @@ export const useCreateLink = () => {
             return Math.round(data.points)
         } catch (error) {
             console.error('Failed to estimate points:', error)
-            Sentry.captureException(error)
+            captureException(error)
             return 0 // Returning 0 or another error handling strategy could be implemented here
         }
     }
@@ -585,7 +585,7 @@ export const useCreateLink = () => {
                             })
                         } catch (error: any) {
                             console.log('error setting fee options, fallback to default')
-                            Sentry.captureException(error)
+                            captureException(error)
                         }
                     }
                     if (isExternalWallet) {
@@ -629,7 +629,7 @@ export const useCreateLink = () => {
                                         await new Promise((resolve) => setTimeout(resolve, 500))
                                     } else {
                                         console.error('Failed to wait for transaction receipt after 3 attempts', error)
-                                        Sentry.captureException(error)
+                                        captureException(error)
                                     }
                                 }
                             }
