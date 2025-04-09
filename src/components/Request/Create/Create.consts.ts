@@ -1,4 +1,4 @@
-import { IAttachmentOptions } from '@/components/Create/Create.consts'
+import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import * as views from './Views'
 
 type CreateScreens = 'INITIAL' | 'SUCCESS'

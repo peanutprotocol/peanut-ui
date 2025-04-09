@@ -1,8 +1,8 @@
 'use client'
 
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import { IAttachmentOptions } from '@/components/Create/Create.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { useRouter } from 'next/navigation'
 import { createElement, useEffect, useState } from 'react'
 import * as _consts from './Create.consts'
