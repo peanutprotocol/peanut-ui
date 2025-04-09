@@ -12,6 +12,10 @@ export type IAttachmentOptions = {
     rawFile: File | undefined
 }
 
+export type ErrorState = {
+    showError: boolean
+    errorMessage: string
+}
 export interface ISendFlowState {
     view: SendFlowView
     tokenValue: string | undefined
@@ -20,6 +24,7 @@ export interface ISendFlowState {
     linkDetails: peanutInterfaces.IPeanutLinkDetails | undefined
     password: string | undefined
     transactionType: SendFlowTxnType
+    estimatedPoints: number | undefined
     gaslessPayload: peanutInterfaces.IGaslessDepositPayload | undefined
     gaslessPayloadMessage: peanutInterfaces.IPreparedEIP712Message | undefined
     preparedDepositTxs: peanutInterfaces.IPrepareDepositTxsResponse | undefined
@@ -28,6 +33,6 @@ export interface ISendFlowState {
     feeOptions: any | undefined
     transactionCostUSD: number | undefined
     attachmentOptions: IAttachmentOptions
-    errorState: undefined
+    errorState: ErrorState | undefined
     crossChainDetails: [] | undefined
 }

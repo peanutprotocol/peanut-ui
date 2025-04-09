@@ -1,7 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { SEND_FLOW_SLICE } from '../constants'
-import { IAttachmentOptions, ISendFlowState, Recipient, SendFlowTxnType, SendFlowView } from '../types/send-flow.types'
+import {
+    ErrorState,
+    IAttachmentOptions,
+    ISendFlowState,
+    Recipient,
+    SendFlowTxnType,
+    SendFlowView,
+} from '../types/send-flow.types'
 
 const initialState: ISendFlowState = {
     view: 'INITIAL',
@@ -14,6 +21,7 @@ const initialState: ISendFlowState = {
     linkDetails: undefined,
     password: undefined,
     transactionType: 'not-gasless',
+    estimatedPoints: undefined,
     gaslessPayload: undefined,
     gaslessPayloadMessage: undefined,
     preparedDepositTxs: undefined,
@@ -55,6 +63,9 @@ const sendFlowSlice = createSlice({
         setTransactionType(state, action: { payload: SendFlowTxnType }) {
             state.transactionType = action.payload
         },
+        setEstimatedPoints(state, action: { payload: number | undefined }) {
+            state.estimatedPoints = action.payload
+        },
         setGaslessPayload(state, action: { payload: peanutInterfaces.IGaslessDepositPayload | undefined }) {
             state.gaslessPayload = action.payload
         },
@@ -79,7 +90,7 @@ const sendFlowSlice = createSlice({
         setAttachmentOptions(state, action: { payload: IAttachmentOptions }) {
             state.attachmentOptions = action.payload
         },
-        setErrorState(state, action: { payload: undefined }) {
+        setErrorState(state, action: { payload: ErrorState | undefined }) {
             state.errorState = action.payload
         },
         setCrossChainDetails(state, action: { payload: [] | undefined }) {
