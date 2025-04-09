@@ -16,6 +16,8 @@ const customViewbox = [
         viewBox: '0 0 471.701 471.701',
     },
     { name: 'peanut', viewBox: '2 2 20 20' },
+    { name: 'qr-code', viewBox: '0 0 40 40' },
+    { name: 'flip-camera', viewBox: '0 0 20 20' },
 ]
 
 type CustomStyle = {
@@ -35,6 +37,12 @@ const customStyle: CustomStyle[] = [
             strokeLinecap: 'round',
             strokeLinejoin: 'round',
             strokeWidth: 1,
+        },
+    },
+    {
+        name: 'flip-camera',
+        style: {
+            fillRule: 'evenodd',
         },
     },
 ]
@@ -218,6 +226,8 @@ const icons: IconsType = {
     'arrow-down-filled': 'M8 16L0 4h16L8 16Z',
     wallet: 'M4.398 4.286c-.947 0-1.714.767-1.714 1.714v12c0 .947.767 1.714 1.714 1.714h10.674c.947 0 1.714-.767 1.714-1.714v-12c0-.947-.767-1.714-1.714-1.714H4.398zm8.024 4.8h3.733c.947 0 1.714.767 1.714 1.714v2.4c0 .947-.767 1.714-1.714 1.714h-3.162c-1.42 0-2.571-1.151-2.571-2.571v-.686c0-1.42 1.151-2.571 2.571-2.571z',
     share: 'm6.055 1.996-.71.71-.795-.795v5.585h-.99V1.91l-.795.795-.71-.71 2-2zm2 2.5v5.5c0 .55-.45 1-1 1h-6a1 1 0 0 1-1-1v-5.5c0-.555.445-1 1-1h1.5v1h-1.5v5.5h6v-5.5h-1.5v-1h1.5a1 1 0 0 1 1 1',
+    'flip-camera':
+        'M7.059 1a1.5 1.5 0 0 0-1.32.786l-.54 1q-.058.105-.096.214H1.5A1.5 1.5 0 0 0 0 4.5v11A1.5 1.5 0 0 0 1.5 17h17a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 18.5 3h-3.621a2 2 0 0 0-.1-.223l-.55-1A1.5 1.5 0 0 0 12.914 1zm4.692 14.08c-.63.278-1.311.42-2 .42A5.016 5.016 0 0 1 4.776 11H3.501a.5.5 0 0 1-.405-.795l2.27-3.145a.5.5 0 0 1 .81 0l2.275 3.145a.5.5 0 0 1-.4.8h-1.25a3.014 3.014 0 0 0 2.95 2.495c.32 0 .637-.05.94-.15l1.33 1.6c-.09.05-.18.09-.27.13m2.884-2.14L16.9 9.8a.5.5 0 0 0-.405-.8H15.22a5.016 5.016 0 0 0-4.975-4.5 4.94 4.94 0 0 0-2.27.55l1.33 1.6c.303-.1.62-.15.94-.15a3.014 3.014 0 0 1 2.95 2.505h-1.25a.5.5 0 0 0-.4.795l2.28 3.14a.5.5 0 0 0 .81 0',
 }
 
 type IconProps = {
@@ -231,10 +241,10 @@ type IconProps = {
 
 const Icon = ({ className, name, fill, onClick, width = 16, height = 16 }: IconProps) => (
     <svg
-        className={twMerge(`inline-block h-4 w-4 ${className}`)}
+        className={twMerge(`inline-block h-4 w-4`, className)}
         width={width}
         height={height}
-        viewBox={customViewbox.find((box) => box.name === name)?.viewBox ?? `0 0 ${width} ${height}`}
+        viewBox={customViewbox.find((box) => box.name === name)?.viewBox ?? `0 0 16 16`}
         style={customStyle.find((style) => style.name === name)?.style ?? undefined}
         onClick={onClick}
     >

@@ -1,24 +1,32 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 import QRScanner from '@/components/Global/QRScanner'
+import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 import { resolveFromEnsName } from '@/utils'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
+import { useAuth } from '@/context/authContext'
 import { recognizeQr, EQrType, parseEip681 } from './utils'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import * as Sentry from '@sentry/nextjs'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
-export default function DirectSendQr() {
+export default function DirectSendQr({ className = '' }: { className?: string }) {
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
     const router = useRouter()
     const dispatch = useAppDispatch()
     const toast = useToast()
+    const { user } = useAuth()
+    const profileUrl = useMemo(() => {
+        if (!user?.user.username) return ''
+        return `${BASE_URL}/${user.user.username}`
+    }, [user?.user.username])
 
     const processQRCode = async (data: string) => {
         let redirectUrl: string | undefined = undefined
@@ -137,21 +145,24 @@ export default function DirectSendQr() {
             <Button
                 onClick={() => setIsQRScannerOpen(true)}
                 variant="purple"
-                className={
-                    'mx-auto flex w-full cursor-pointer items-center justify-center gap-2 rounded-full md:w-fit' +
-                    ' [-webkit-tap-highlight-color:transparent]' +
-                    ' [&]:!-webkit-appearance-none'
-                }
-                style={{
-                    WebkitAppearance: 'none',
-                }}
-                shadowSize="4"
+                className={twMerge(
+                    'mx-auto h-16 w-16 -translate-y-1/3 transform cursor-pointer justify-center rounded-full border-4 border-primary-2 p-0',
+                    className
+                )}
             >
-                <Icon name="camera" fill="black" className="size-4" />
-                <span>Scan QR Code</span>
+                <Icon name="qr-code" width={40} height={40} />
             </Button>
             {isQRScannerOpen && (
-                <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
+                <>
+                    <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
+                    <QRBottomDrawer
+                        url={profileUrl}
+                        collapsedTitle="My QR"
+                        expandedTitle="Show QR to Get Paid"
+                        text="Let others scan this to pay you"
+                        buttonText="Share your profile"
+                    />
+                </>
             )}
         </>
     )

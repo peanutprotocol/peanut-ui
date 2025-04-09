@@ -2,7 +2,6 @@
 
 import { PEANUT_LOGO_BLACK } from '@/assets'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
-import DirectSendQr from '@/components/Global/DirectSendQR'
 import LogoutButton from '@/components/Global/LogoutButton'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
@@ -228,7 +227,7 @@ export default function Home() {
                         {isAddWalletFocused ? null : focusedWalletId &&
                           wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
                               WalletProviderType.REWARDS ? (
-                            <DirectSendQr />
+                              null
                         ) : wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
                           WalletProviderType.PEANUT ? (
                             <PeanutWalletActions />

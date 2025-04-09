@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { Button } from '@/components/0_Bruddle'
+import Icon from '@/components/Global/Icon'
 import { createPortal } from 'react-dom'
 import jsQR from 'jsqr'
 
@@ -15,7 +16,6 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
     const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment')
     const [isScanning, setIsScanning] = useState(isOpen)
     const [processingQR, setProcessingQR] = useState(false)
-    const [statusMessage, setStatusMessage] = useState('Scanning for QR codes...')
     const toast = useToast()
     const videoRef = useRef<HTMLVideoElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -43,14 +43,12 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
             if (processingQR) return
             try {
                 setProcessingQR(true)
-                setStatusMessage('QR Code Found! Processing...')
                 const result = await onScan(data)
                 if (result.success) {
                     toast.info('QR code recognized')
                     // wait a little bit before closing the scanner
                     setTimeout(closeScanner, 750)
                 } else {
-                    setStatusMessage("We dont't support this QR code yet")
                     toast.error(result.error || 'QR code processing failed')
                     // Resume scanning
                     setProcessingQR(false)
@@ -58,7 +56,6 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
             } catch (error) {
                 console.error('Error processing QR code:', error)
                 toast.error('Error processing QR code')
-                setStatusMessage('Scanning for QR codes...')
                 setProcessingQR(false)
             }
         },
@@ -193,14 +190,37 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                         playsInline
                     />
                     <canvas ref={canvasRef} className="hidden" />
-                    <div className="fixed left-0 top-8 w-full bg-black bg-opacity-50 py-2 text-center text-white">
-                        {statusMessage}
+                    <div className="fixed left-0 top-8 grid w-full grid-flow-col items-center bg-black bg-opacity-15 py-2 text-center text-white">
+                        <Button
+                            variant="transparent-light"
+                            className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
+                            onClick={closeScanner}
+                        >
+                            <Icon name="close" fill="white" />
+                        </Button>
+                        <span className="text-3xl font-extrabold">Scan to pay</span>
+                        <Button
+                            variant="transparent-light"
+                            className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
+                            onClick={toggleCamera}
+                        >
+                            <Icon name="flip-camera" fill="white" height={24} width={24} />
+                        </Button>
                     </div>
-                    <div className="fixed left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 transform rounded-lg border-2 border-white" />
-                    <div className="fixed bottom-0 left-0 z-[60] flex w-full justify-between p-4">
-                        <Button onClick={closeScanner}>Close</Button>
+                    <div className="fixed left-1/2 h-64 w-64 -translate-x-1/2 translate-y-1/2">
+                        <div className="absolute inset-8">
+                            {/* Top-left corner */}
+                            <div className="absolute -left-2 -top-2 h-12 w-12 rounded-tl-2xl border-l-4 border-t-4 border-pink-400" />
 
-                        <Button onClick={toggleCamera}>Flip Camera</Button>
+                            {/* Top-right corner */}
+                            <div className="absolute -right-2 -top-2 h-12 w-12 rounded-tr-2xl border-r-4 border-t-4 border-pink-400" />
+
+                            {/* Bottom-left corner */}
+                            <div className="absolute -bottom-2 -left-2 h-12 w-12 rounded-bl-2xl border-b-4 border-l-4 border-pink-400" />
+
+                            {/* Bottom-right corner */}
+                            <div className="absolute -bottom-2 -right-2 h-12 w-12 rounded-br-2xl border-b-4 border-r-4 border-pink-400" />
+                        </div>
                     </div>
                 </>
             )}

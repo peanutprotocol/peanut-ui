@@ -4,7 +4,6 @@ import { ARBITRUM_ICON } from '@/assets'
 import { Button, Card } from '@/components/0_Bruddle'
 import AddFunds from '@/components/AddFunds'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
-import DirectSendQr from '@/components/Global/DirectSendQR'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import Icon from '@/components/Global/Icon'
 import { ListItemView } from '@/components/Global/ListItemView'
@@ -179,8 +178,6 @@ const WalletDetailsPage = () => {
                     {renderTokenDetails()}
                 </>
             )}
-
-            {isRewardsWallet && <DirectSendQr />}
 
             {renderRewardDetails()}
         </div>

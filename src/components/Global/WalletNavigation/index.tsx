@@ -1,10 +1,11 @@
 import { PEANUT_LOGO } from '@/assets'
-import { NavIcons, NavIconsName, Button } from '@/components/0_Bruddle'
+import { NavIcons, NavIconsName } from '@/components/0_Bruddle'
 import classNames from 'classnames'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Icon from '@/components/Global/Icon'
+import DirectSendQr from '@/components/Global/DirectSendQR'
 
 type NavPathProps = {
     name: string
@@ -62,10 +63,9 @@ const NavSection: React.FC<NavSectionProps> = ({ title, tabs, pathName, isLastSe
 
 type MobileNavProps = {
     pathName: string
-    onQRButtonClick: () => void
 }
 
-const MobileNav: React.FC<MobileNavProps> = ({ pathName, onQRButtonClick }) => (
+const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => (
     <div className="z-1 grid h-16 grid-cols-3 border-t border-black bg-background md:hidden">
         {/* Home Link */}
         <Link
@@ -81,12 +81,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName, onQRButtonClick }) => (
         </Link>
 
         {/* QR Button - Main Action */}
-        <Button
-            onClick={onQRButtonClick}
-            className="mx-auto h-16 w-16 -translate-y-1/3 transform cursor-pointer justify-center rounded-full border-4 border-primary-2 p-0"
-        >
-            <Icon name="qr-code" width={40} height={40} className="" />
-        </Button>
+        <DirectSendQr className="-translate-y-1/3 transform" />
 
         {/* Support Link */}
         <Link
@@ -117,7 +112,7 @@ const WalletNavigation: React.FC = () => {
                     <NavSection title="Others" tabs={desktopPaths['Others']} pathName={pathName} isLastSection />
                 </div>
             </div>
-            <MobileNav pathName={pathName} onQRButtonClick={() => {}} />
+            <MobileNav pathName={pathName} />
         </div>
     )
 }
