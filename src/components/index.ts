@@ -1,7 +1,6 @@
 export * from './Blog'
 export * from './Cashout'
 export * from './Claim'
-export * from './Create'
 export * from './CrispChat'
 export * from './Dashboard'
 export * from './Jobs'
