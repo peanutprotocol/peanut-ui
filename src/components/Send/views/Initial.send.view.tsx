@@ -2,25 +2,17 @@
 
 import { isGaslessDepositPossible } from '@/components/Create/Create.utils'
 import { useCreateLink } from '@/components/Create/useCreateLink'
+import { LoadingStates } from '@/constants/loadingStates.consts'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
 import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
-import {
-    balanceByToken,
-    ErrorHandler,
-    floorFixed,
-    isNativeCurrency,
-    printableUsdc,
-    saveCreatedLinkToLocalStorage,
-    updateUserPreferences,
-} from '@/utils'
+import { balanceByToken, ErrorHandler, floorFixed, isNativeCurrency, printableUsdc } from '@/utils'
 import { captureException } from '@sentry/nextjs'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { formatEther } from 'viem'
 import { Button, Card } from '../../0_Bruddle'
 import FileUploadInput from '../../Global/FileUploadInput'
 import FlowHeader from '../../Global/FlowHeader'
@@ -28,6 +20,119 @@ import Icon from '../../Global/Icon'
 import MoreInfo from '../../Global/MoreInfo'
 import TokenAmountInput from '../../Global/TokenAmountInput'
 import TokenSelector from '../../Global/TokenSelector/TokenSelector'
+import { createAndProcessLink } from '../utils/createLinkUtils'
+
+// helper function to update both token and usd values in redux
+const updateTokenAndUsdValues = (
+    dispatch: any,
+    currentInputValue: string | undefined,
+    inputDenomination: string,
+    selectedTokenPrice: number | undefined
+) => {
+    if (!currentInputValue) return
+
+    if (inputDenomination === 'TOKEN') {
+        dispatch(sendFlowActions.setTokenValue(currentInputValue))
+        if (selectedTokenPrice) {
+            dispatch(sendFlowActions.setUsdValue((parseFloat(currentInputValue) * selectedTokenPrice).toString()))
+        }
+    } else if (inputDenomination === 'USD') {
+        dispatch(sendFlowActions.setUsdValue(currentInputValue))
+        if (selectedTokenPrice) {
+            dispatch(sendFlowActions.setTokenValue((parseFloat(currentInputValue) / selectedTokenPrice).toString()))
+        }
+    }
+}
+
+// handles the transaction flow for external wallets (non-peanut)
+// prepares the transaction and navigates to the confirm view
+const processStandardWalletTransaction = async (
+    linkDetails: any,
+    password: string,
+    selectedChainID: string,
+    selectedTokenAddress: string,
+    selectedWallet: any,
+    WalletProviderType: any,
+    makeGaslessDepositPayload: any,
+    prepareDepositTxs: any,
+    estimateGasFee: any,
+    estimatePoints: any,
+    address: string | undefined,
+    usdValue: string | undefined,
+    switchNetwork: any,
+    dispatch: any,
+    setLoadingState: any
+) => {
+    setLoadingState('Preparing transaction')
+
+    let prepareDepositTxsResponse
+    const _isGaslessDepositPossible = isGaslessDepositPossible({
+        chainId: selectedChainID,
+        tokenAddress: selectedTokenAddress,
+    })
+
+    if (_isGaslessDepositPossible && selectedWallet?.walletProviderType !== WalletProviderType.PEANUT) {
+        dispatch(sendFlowActions.setTransactionType('gasless'))
+
+        const makeGaslessDepositResponse = await makeGaslessDepositPayload({
+            _linkDetails: linkDetails,
+            _password: password,
+        })
+
+        if (!makeGaslessDepositResponse || !makeGaslessDepositResponse.payload || !makeGaslessDepositResponse.message)
+            return
+
+        dispatch(sendFlowActions.setGaslessPayload(makeGaslessDepositResponse.payload))
+        dispatch(sendFlowActions.setGaslessPayloadMessage(makeGaslessDepositResponse.message))
+
+        dispatch(sendFlowActions.setFeeOptions(undefined))
+        dispatch(sendFlowActions.setTransactionCostUSD(0))
+    } else {
+        dispatch(sendFlowActions.setTransactionType('not-gasless'))
+
+        prepareDepositTxsResponse = await prepareDepositTxs({
+            _linkDetails: linkDetails,
+            _password: password,
+        })
+
+        dispatch(sendFlowActions.setPreparedDepositTxs(prepareDepositTxsResponse))
+
+        try {
+            const { feeOptions, transactionCostUSD } = await estimateGasFee({
+                chainId: selectedChainID,
+                preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
+            })
+
+            dispatch(sendFlowActions.setFeeOptions(feeOptions))
+            dispatch(sendFlowActions.setTransactionCostUSD(transactionCostUSD))
+        } catch (error) {
+            console.error(error)
+            dispatch(sendFlowActions.setFeeOptions(undefined))
+            dispatch(sendFlowActions.setTransactionCostUSD(undefined))
+            captureException(error)
+        }
+    }
+
+    // todo: rethink if we need this rn? - kushagra
+    // estimate points
+    const estimatedPoints = await estimatePoints({
+        chainId: selectedChainID,
+        address: address ?? '',
+        amountUSD: parseFloat(usdValue ?? '0'),
+        preparedTx: _isGaslessDepositPossible
+            ? undefined
+            : prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
+        actionType: 'CREATE',
+    })
+
+    if (estimatedPoints) dispatch(sendFlowActions.setEstimatedPoints(estimatedPoints))
+    else dispatch(sendFlowActions.setEstimatedPoints(0))
+
+    await switchNetwork(selectedChainID)
+
+    // continue to confirm view
+    dispatch(sendFlowActions.setView('CONFIRM'))
+}
 
 const InitialSendView = () => {
     const dispatch = useAppDispatch()
@@ -44,26 +149,16 @@ const InitialSendView = () => {
         switchNetwork,
         estimateGasFee,
         estimatePoints,
-        prepareDirectSendTx,
         sendTransactions,
         signTypedData,
         makeDepositGasless,
         getLinkFromHash,
         submitClaimLinkInit,
         submitClaimLinkConfirm,
-        submitDirectTransfer,
-        prepareCreateLinkWrapper,
     } = useCreateLink()
 
-    const {
-        selectedTokenPrice,
-        inputDenomination,
-        selectedChainID,
-        setSelectedChainID,
-        selectedTokenAddress,
-        setSelectedTokenAddress,
-        selectedTokenData,
-    } = useContext(tokenSelectorContext)
+    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress, selectedTokenData } =
+        useContext(tokenSelectorContext)
 
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
 
@@ -89,6 +184,7 @@ const InitialSendView = () => {
 
             setLoadingState('Loading')
 
+            // clear any previous errors
             dispatch(
                 sendFlowActions.setErrorState({
                     showError: false,
@@ -96,276 +192,149 @@ const InitialSendView = () => {
                 })
             )
 
-            // Important: Set token and USD values in redux before proceeding
-            if (inputDenomination === 'TOKEN') {
-                dispatch(sendFlowActions.setTokenValue(currentInputValue))
-                if (selectedTokenPrice) {
-                    dispatch(
-                        sendFlowActions.setUsdValue(
-                            (parseFloat(currentInputValue ?? '0') * selectedTokenPrice).toString()
-                        )
-                    )
-                }
-            } else if (inputDenomination === 'USD') {
-                dispatch(sendFlowActions.setUsdValue(currentInputValue))
-                if (selectedTokenPrice) {
-                    dispatch(
-                        sendFlowActions.setTokenValue(
-                            (parseFloat(currentInputValue ?? '') / selectedTokenPrice).toString()
-                        )
-                    )
-                }
-            }
+            // update token and usd values in redux based on user input
+            updateTokenAndUsdValues(dispatch, currentInputValue, inputDenomination, selectedTokenPrice)
 
-            // Wait for redux state to update
+            // wait for redux state to update before proceeding
             await new Promise((resolve) => setTimeout(resolve, 0))
 
-            // Balance checks
-            if (isNativeCurrency(selectedTokenAddress)) {
-                setLoadingState('Loading')
-                const linkDetails = {
-                    ...generateLinkDetails({
-                        tokenValue: tokenValue,
-                        envInfo: environmentInfo,
-                        walletType: walletType,
-                    }),
-                }
-
-                const password = await generatePassword()
-                const prepareDepositTxsResponse = await prepareDepositTxs({
-                    _linkDetails: linkDetails,
-                    _password: password,
-                })
-
-                if (prepareDepositTxsResponse) {
-                    const { feeOptions } = await estimateGasFee({
-                        chainId: selectedChainID,
-                        preparedTx: prepareDepositTxsResponse.unsignedTxs[0],
-                    })
-
-                    // calculate gas amount in native token
-                    const gasLimit = BigInt(feeOptions.gasLimit)
-                    const gasPrice = BigInt(feeOptions.maxFeePerGas || feeOptions.gasPrice)
-                    const maxGasAmount = Number(formatEther(gasLimit * gasPrice))
-
-                    setLoadingState('Loading')
+            // check wallet balance
+            try {
+                // for native tokens, we need to consider gas fees
+                if (isNativeCurrency(selectedTokenAddress)) {
+                    // Get a rough gas estimate - this could be optimized
+                    const roughGasEstimate = 0.001 // A conservative estimate in native token units
                     await checkUserHasEnoughBalance({
                         tokenValue: tokenValue!,
-                        gasAmount: maxGasAmount,
+                        gasAmount: roughGasEstimate,
                     })
+                } else {
+                    await checkUserHasEnoughBalance({ tokenValue: tokenValue! })
                 }
-            } else {
-                setLoadingState('Loading')
-                await checkUserHasEnoughBalance({ tokenValue: tokenValue! })
+            } catch (error) {
+                // if balance check fails, show error
+                const errorString = ErrorHandler(error)
+                dispatch(
+                    sendFlowActions.setErrorState({
+                        showError: true,
+                        errorMessage: errorString,
+                    })
+                )
+                setLoadingState('Idle')
+                return
             }
 
+            // generate link details and password
             setLoadingState('Generating details')
-
             const linkDetails = generateLinkDetails({
                 tokenValue: tokenValue,
                 envInfo: environmentInfo,
                 walletType: walletType,
             })
-
             dispatch(sendFlowActions.setLinkDetails({ ...linkDetails }))
-
             const password = await generatePassword()
             dispatch(sendFlowActions.setPassword(password))
 
-            setLoadingState('Preparing transaction')
-
-            // For Peanut wallet users, process the transaction directly
+            // proceed based on wallet type
             if (isPeanutWallet) {
+                // for peanut wallet, create link directly without confirmation step
                 try {
-                    // Submit claim link init
-                    const data = await submitClaimLinkInit({
-                        password: password ?? '',
-                        attachmentOptions: {
-                            attachmentFile: attachmentOptions.rawFile,
-                            message: attachmentOptions.message,
-                        },
-                        senderAddress: address ?? '',
-                    })
-                    const fileUrl = data?.fileUrl
-
-                    // Set transaction type to not-gasless for Peanut wallet
-                    dispatch(sendFlowActions.setTransactionType('not-gasless'))
-
-                    // Prepare deposit transactions
+                    // prepare deposit transactions
                     const prepareDepositTxsResponse = await prepareDepositTxs({
                         _linkDetails: linkDetails,
                         _password: password,
                     })
-
-                    if (!prepareDepositTxsResponse) {
-                        throw new Error('Failed to prepare deposit transactions')
-                    }
-
                     dispatch(sendFlowActions.setPreparedDepositTxs(prepareDepositTxsResponse))
+                    dispatch(sendFlowActions.setTransactionType('not-gasless'))
 
-                    // Send transactions
-                    setLoadingState('Executing transaction')
-                    const hash =
-                        (await sendTransactions({
-                            preparedDepositTxs: prepareDepositTxsResponse,
-                            feeOptions: undefined,
-                        })) ?? ''
-
-                    if (!hash) {
-                        throw new Error('Failed to execute transaction')
-                    }
-
-                    dispatch(sendFlowActions.setTxHash(hash))
-
-                    // Get link from hash
-                    setLoadingState('Creating link')
-                    const link = await getLinkFromHash({
-                        hash,
-                        linkDetails,
+                    // use shared utility to create and process the link
+                    await createAndProcessLink({
+                        transactionType: 'not-gasless',
+                        preparedDepositTxs: prepareDepositTxsResponse as peanutInterfaces.IPrepareDepositTxsResponse,
+                        linkDetails: linkDetails as peanutInterfaces.IPeanutLinkDetails,
                         password,
-                        walletType,
-                    })
-
-                    if (!link || !link[0]) {
-                        throw new Error('Failed to create link')
-                    }
-
-                    // Save link to local storage
-                    saveCreatedLinkToLocalStorage({
-                        address: address ?? '',
-                        data: {
-                            link: link[0],
-                            depositDate: new Date().toISOString(),
-                            USDTokenPrice: selectedTokenPrice ?? 0,
-                            points: 0,
-                            txHash: hash,
-                            message: attachmentOptions.message ?? '',
-                            attachmentUrl: fileUrl,
-                            ...linkDetails,
+                        attachmentOptions: attachmentOptions || {
+                            rawFile: undefined,
+                            message: undefined,
+                            fileUrl: undefined,
                         },
+                        address,
+                        selectedChainID,
+                        usdValue,
+                        selectedTokenPrice,
+                        estimatedPoints: 0,
+                        selectedTokenAddress,
+                        selectedTokenDecimals: selectedTokenData?.decimals,
+                        feeOptions: undefined,
+                        sendTransactions: async ({ preparedDepositTxs, feeOptions }) => {
+                            return (await sendTransactions({ preparedDepositTxs, feeOptions })) || ''
+                        },
+                        signTypedData: async ({ gaslessMessage }) => {
+                            return await signTypedData({ gaslessMessage })
+                        },
+                        makeDepositGasless: async ({ signature, payload }) => {
+                            return await makeDepositGasless({ signature, payload })
+                        },
+                        getLinkFromHash: async ({ hash, linkDetails, password, walletType }) => {
+                            return await getLinkFromHash({
+                                hash,
+                                linkDetails,
+                                password,
+                                walletType: walletType as 'blockscout',
+                            })
+                        },
+                        submitClaimLinkInit: async ({ password, attachmentOptions, senderAddress }) => {
+                            return await submitClaimLinkInit({ password, attachmentOptions, senderAddress })
+                        },
+                        submitClaimLinkConfirm: async ({
+                            chainId,
+                            link,
+                            password,
+                            txHash,
+                            senderAddress,
+                            amountUsd,
+                            transaction,
+                        }) => {
+                            await submitClaimLinkConfirm({
+                                chainId,
+                                link,
+                                password,
+                                txHash,
+                                senderAddress,
+                                amountUsd,
+                                transaction,
+                            })
+                        },
+                        walletType: walletType as 'blockscout' | undefined,
+                        refetchBalances: (address) => refetchBalances(address),
+                        dispatch,
+                        setLoadingState: (state) => setLoadingState(state as LoadingStates),
                     })
-
-                    dispatch(sendFlowActions.setLink(link[0]))
-
-                    // Submit claim link confirm
-                    await submitClaimLinkConfirm({
-                        chainId: selectedChainID,
-                        link: link[0],
-                        password: password ?? '',
-                        txHash: hash,
-                        senderAddress: address ?? '',
-                        amountUsd: parseFloat(usdValue ?? '0'),
-                        transaction: prepareDepositTxsResponse.unsignedTxs[0],
-                    })
-
-                    // Update user preferences
-                    if (selectedChainID && selectedTokenAddress && selectedTokenData?.decimals) {
-                        updateUserPreferences({
-                            lastUsedToken: {
-                                chainId: selectedChainID,
-                                address: selectedTokenAddress,
-                                decimals: selectedTokenData.decimals,
-                            },
-                        })
-                    }
-
-                    // Refresh balances
-                    refetchBalances(address ?? '')
-
-                    // Skip to success view
-                    dispatch(sendFlowActions.setView('SUCCESS'))
-                    return
                 } catch (error) {
-                    console.error('Error processing Peanut wallet transaction:', error)
-                    const errorString = ErrorHandler(error)
-                    dispatch(
-                        sendFlowActions.setErrorState({
-                            showError: true,
-                            errorMessage: errorString,
-                        })
-                    )
-                    captureException(error)
-                    setLoadingState('Idle')
-                    return
+                    throw error
                 }
-            }
-
-            // For non-Peanut wallets, continue with the normal flow
-            let prepareDepositTxsResponse: interfaces.IPrepareDepositTxsResponse | undefined
-            const _isGaslessDepositPossible = isGaslessDepositPossible({
-                chainId: selectedChainID,
-                tokenAddress: selectedTokenAddress,
-            })
-
-            if (_isGaslessDepositPossible && selectedWallet?.walletProviderType !== WalletProviderType.PEANUT) {
-                // PW userops are marked as 'not-gasless' in this flow, since
-                // they will become gasless via the paymaster
-                dispatch(sendFlowActions.setTransactionType('gasless'))
-
-                const makeGaslessDepositResponse = await makeGaslessDepositPayload({
-                    _linkDetails: linkDetails,
-                    _password: password,
-                })
-
-                if (
-                    !makeGaslessDepositResponse ||
-                    !makeGaslessDepositResponse.payload ||
-                    !makeGaslessDepositResponse.message
-                )
-                    return
-                dispatch(sendFlowActions.setGaslessPayload(makeGaslessDepositResponse.payload))
-                dispatch(sendFlowActions.setGaslessPayloadMessage(makeGaslessDepositResponse.message))
-
-                dispatch(sendFlowActions.setFeeOptions(undefined))
-                dispatch(sendFlowActions.setTransactionCostUSD(0))
             } else {
-                dispatch(sendFlowActions.setTransactionType('not-gasless'))
-
-                prepareDepositTxsResponse = await prepareDepositTxs({
-                    _linkDetails: linkDetails,
-                    _password: password,
-                })
-
-                dispatch(sendFlowActions.setPreparedDepositTxs(prepareDepositTxsResponse))
-
-                let _feeOptions = undefined
-
-                try {
-                    const { feeOptions, transactionCostUSD } = await estimateGasFee({
-                        chainId: selectedChainID,
-                        preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
-                    })
-
-                    _feeOptions = feeOptions
-                    dispatch(sendFlowActions.setFeeOptions(feeOptions))
-                    dispatch(sendFlowActions.setTransactionCostUSD(transactionCostUSD))
-                } catch (error) {
-                    console.error(error)
-                    dispatch(sendFlowActions.setFeeOptions(undefined))
-                    dispatch(sendFlowActions.setTransactionCostUSD(undefined))
-                    captureException(error)
-                }
+                // for external wallets, prepare transaction and go to confirm view
+                await processStandardWalletTransaction(
+                    linkDetails,
+                    password,
+                    selectedChainID,
+                    selectedTokenAddress,
+                    selectedWallet,
+                    WalletProviderType,
+                    makeGaslessDepositPayload,
+                    prepareDepositTxs,
+                    estimateGasFee,
+                    estimatePoints,
+                    address,
+                    usdValue,
+                    switchNetwork,
+                    dispatch,
+                    setLoadingState
+                )
             }
-
-            // Estimate points
-            const estimatedPoints = await estimatePoints({
-                chainId: selectedChainID,
-                address: address ?? '',
-                amountUSD: parseFloat(usdValue ?? '0'),
-                preparedTx: _isGaslessDepositPossible
-                    ? undefined
-                    : prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
-                actionType: 'CREATE',
-            })
-
-            if (estimatedPoints) dispatch(sendFlowActions.setEstimatedPoints(estimatedPoints))
-            else dispatch(sendFlowActions.setEstimatedPoints(0))
-
-            await switchNetwork(selectedChainID)
-
-            // For non-Peanut wallets, continue to confirm view
-            dispatch(sendFlowActions.setView('CONFIRM'))
         } catch (error) {
+            // handle errors
             const errorString = ErrorHandler(error)
             dispatch(
                 sendFlowActions.setErrorState({
