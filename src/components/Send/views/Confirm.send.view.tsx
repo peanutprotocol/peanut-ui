@@ -38,7 +38,6 @@ const ConfirmSendView = () => {
         feeOptions,
         estimatedPoints,
         attachmentOptions,
-        recipient,
         crossChainDetails,
         usdValue,
         errorState,
@@ -53,8 +52,6 @@ const ConfirmSendView = () => {
         supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
 
-    console.log('Redux Token confrim view:', selectedTokenAddress)
-
     const { walletType } = useWalletType()
 
     const {
@@ -64,7 +61,6 @@ const ConfirmSendView = () => {
         getLinkFromHash,
         submitClaimLinkInit,
         submitClaimLinkConfirm,
-        submitDirectTransfer,
     } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
