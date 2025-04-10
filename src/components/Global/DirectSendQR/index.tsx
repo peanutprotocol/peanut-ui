@@ -1,24 +1,182 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
+import CopyField from '@/components/Global/CopyField'
 import Icon from '@/components/Global/Icon'
+import Checkbox from '@/components/0_Bruddle/Checkbox'
 import QRScanner from '@/components/Global/QRScanner'
 import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
+import Modal from '@/components/Global/Modal'
 import { resolveFromEnsName } from '@/utils'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { useAuth } from '@/context/authContext'
-import { recognizeQr, EQrType, parseEip681 } from './utils'
+import { recognizeQr, EQrType, parseEip681, NAME_BY_QR_TYPE } from './utils'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { usePush } from '@/context/pushProvider'
+import { hitUserMetric } from '@/utils/metrics.utils'
 import * as Sentry from '@sentry/nextjs'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
+enum EModalType {
+    QR_NOT_SUPPORTED = 'QR_NOT_SUPPORTED',
+    WILL_BE_NOTIFIED = 'WILL_BE_NOTIFIED',
+    DIRECT_SEND = 'DIRECT_SEND',
+    EXTERNAL_URL = 'EXTERNAL_URL',
+    UNRECOGNIZED = 'UNRECOGNIZED',
+}
+
+type ModalType = `${EModalType}`
+
+interface ModalContentProps {
+    setModalContent: React.Dispatch<React.SetStateAction<ModalType | undefined>>
+    qrType: EQrType
+    setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>
+    redirectTo: string | undefined
+}
+
+const MODAL_CONTENTS: Record<ModalType, React.ComponentType<ModalContentProps>> = {
+    [EModalType.QR_NOT_SUPPORTED]: NotSupportedContent,
+    [EModalType.WILL_BE_NOTIFIED]: WillBeNotifiedContent,
+    [EModalType.DIRECT_SEND]: DirectSendContent,
+    [EModalType.EXTERNAL_URL]: ExternalUrlContent,
+    [EModalType.UNRECOGNIZED]: UnrecognizedContent,
+}
+
+function NotSupportedContent({ setModalContent, qrType }: ModalContentProps) {
+    const pushNotifications = usePush()
+    const { user } = useAuth()
+    return (
+        <div className="flex flex-col justify-center p-6">
+            <span className="text-sm">We're working on an integration.</span>
+            <span className="text-sm">Get notified when it goes live!</span>
+            <Button
+                onClick={() => {
+                    if (pushNotifications.isSupported && !pushNotifications.isSubscribed) {
+                        pushNotifications.subscribe().then(() => {
+                            setModalContent(EModalType.WILL_BE_NOTIFIED)
+                            return
+                        })
+                    } else {
+                        setModalContent(EModalType.WILL_BE_NOTIFIED)
+                    }
+                    hitUserMetric(user!.user.userId, 'qr-notify-me', { qrType })
+                }}
+                className="mt-4 w-full"
+                shadowType="primary"
+                shadowSize="4"
+            >
+                Get notified!
+            </Button>
+        </div>
+    )
+}
+
+function WillBeNotifiedContent({ qrType, setIsModalOpen }: ModalContentProps) {
+    return (
+        <div className="flex flex-col justify-center p-6">
+            <span className="text-sm">We'll let you know as soon as {NAME_BY_QR_TYPE[qrType]} is supported.</span>
+            <Button
+                onClick={() => setIsModalOpen(false)}
+                className="mt-4 w-full"
+                variant="primary-soft"
+                shadowType="primary"
+                shadowSize="4"
+            >
+                Close
+            </Button>
+        </div>
+    )
+}
+
+function DirectSendContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
+    const [userAcknowledged, setUserAcknowledged] = useState(false)
+    const router = useRouter()
+    return (
+        <div className="flex flex-col justify-center p-6">
+            <span className="text-sm">Peanut only supports USDC on Arbitrum.</span>
+            <span className="text-sm">Please confirm with the recipient that they accept USDC on Arbitrum</span>
+            <Checkbox
+                value={userAcknowledged}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    setUserAcknowledged(e.target.checked)
+                }}
+                className="mt-4"
+                label="Got it, USDC on Arbitrum only."
+            />
+            <Button
+                onClick={() => {
+                    router.push(redirectTo!)
+                    setTimeout(() => {
+                        setIsModalOpen(false)
+                    }, 750)
+                }}
+                disabled={!userAcknowledged}
+                className="mt-4 w-full"
+                shadowType="primary"
+                shadowSize="4"
+            >
+                Continue
+            </Button>
+        </div>
+    )
+}
+
+function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
+    return (
+        <div className="flex flex-col justify-center p-6">
+            <CopyField text={redirectTo!} shadowSize="4" />
+            <span className="mt-4 text-sm">Peanut doesn’t support this QR but you can open it with your browser. </span>
+            <span className="text-sm">Make sure you trust this website!</span>
+            <div className="flex items-center justify-center gap-2">
+                <Button
+                    onClick={() => {
+                        window.open(redirectTo, '_system')
+                        setTimeout(() => {
+                            setIsModalOpen(false)
+                        }, 750)
+                    }}
+                    className="mt-4 w-full"
+                    shadowType="primary"
+                    shadowSize="4"
+                >
+                    Open link
+                </Button>
+                <Button
+                    onClick={() => setIsModalOpen(false)}
+                    className="mt-4 w-full"
+                    variant="primary-soft"
+                    shadowType="primary"
+                    shadowSize="4"
+                >
+                    Close
+                </Button>
+            </div>
+        </div>
+    )
+}
+
+function UnrecognizedContent({ setIsModalOpen }: ModalContentProps) {
+    return (
+        <div className="flex flex-col justify-center p-6">
+            <span className="text-sm">Sorry, this QR code couldn’t be recognized.</span>
+            <Button onClick={() => setIsModalOpen(false)} className="mt-4 w-full" shadowType="primary" shadowSize="4">
+                Okay
+            </Button>
+        </div>
+    )
+}
+
 export default function DirectSendQr({ className = '' }: { className?: string }) {
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [qrType, setQrType] = useState<EQrType | undefined>(undefined)
+    const [redirectTo, setRedirectTo] = useState<string | undefined>(undefined)
+    const [modalContent, setModalContent] = useState<ModalType | undefined>(undefined)
     const router = useRouter()
     const dispatch = useAppDispatch()
     const toast = useToast()
@@ -28,10 +186,14 @@ export default function DirectSendQr({ className = '' }: { className?: string })
         return `${BASE_URL}/${user.user.username}`
     }, [user?.user.username])
 
-    const processQRCode = async (data: string) => {
+    const processQRCode = async (data: string): Promise<{ success: boolean; error?: string }> => {
         let redirectUrl: string | undefined = undefined
+        let toConfirmUrl: string | undefined = undefined
         data = data.toLowerCase()
-        switch (recognizeQr(data)) {
+        const qrType = recognizeQr(data)
+        hitUserMetric(user!.user.userId, 'scan-qr', { qrType, data })
+        setQrType(qrType as EQrType)
+        switch (qrType) {
             case EQrType.PEANUT_URL:
                 {
                     let path = data
@@ -49,17 +211,15 @@ export default function DirectSendQr({ className = '' }: { className?: string })
                 break
             case EQrType.EVM_ADDRESS:
                 {
-                    //TODO: show that we can only send usd in arbitrum before redirecting
-                    redirectUrl = `/${data}@arbitrum/usdc`
+                    toConfirmUrl = `/${data}@arbitrum/usdc`
                 }
                 break
             case EQrType.EIP_681:
                 {
-                    //TODO: show that we can only send usd in arbitrum before redirecting
                     try {
                         const { address } = parseEip681(data)
                         if (address) {
-                            redirectUrl = `/${address}@arbitrum/usdc`
+                            toConfirmUrl = `/${address}@arbitrum/usdc`
                         }
                     } catch (error) {
                         toast.error('Error parsing EIP-681 URL')
@@ -69,62 +229,36 @@ export default function DirectSendQr({ className = '' }: { className?: string })
                 break
             case EQrType.ENS_NAME:
                 {
-                    const resolvedAddress = await resolveFromEnsName(data.toLowerCase())
+                    const resolvedAddress = await resolveFromEnsName(data)
                     if (!!resolvedAddress) {
-                        //TODO: show that we can only send usd in arbitrum before redirecting
-                        redirectUrl = `/${data}@arbitrum/usdc`
+                        toConfirmUrl = `/${data}@arbitrum/usdc`
                     }
                 }
                 break
-            case EQrType.MERCADO_PAGO: {
-                //TODO: show that we recognize it but not support it yet
-                toast.info('Mercado Pago QR code recognized')
-                return { success: true }
-            }
-            // break
-            case EQrType.BITCOIN_ONCHAIN: {
-                //TODO: show that we recognize it but not support it yet
-                toast.info('Bitcoin On-Chain QR code recognized')
-                return { success: true }
-            }
-            // break
-            case EQrType.BITCOIN_INVOICE: {
-                //TODO: show that we recognize it but not support it yet
-                toast.info('Bitcoin Invoice QR code recognized')
-                return { success: true }
-            }
-            // break
-            case EQrType.PIX: {
-                //TODO: show that we recognize it but not support it yet
-                toast.info('PIX QR code recognized')
-                return { success: true }
-            }
-            // break
-            case EQrType.TRON_ADDRESS: {
-                //TODO: show that we recognize it but not support it yet
-                toast.info('Tron Address QR code recognized')
-                return { success: true }
-            }
-            // break
-            case EQrType.SOLANA_ADDRESS: {
-                //TODO: show that we recognize it but not support it yet
-                toast.info('Solana Address QR code recognized')
-                return { success: true }
-            }
-            // break
+            case EQrType.MERCADO_PAGO:
+            case EQrType.BITCOIN_ONCHAIN:
+            case EQrType.BITCOIN_INVOICE:
+            case EQrType.PIX:
+            case EQrType.TRON_ADDRESS:
+            case EQrType.SOLANA_ADDRESS:
             case EQrType.XRP_ADDRESS: {
-                //TODO: show that we recognize it but not support it yet
-                toast.info('XRP Address QR code recognized')
+                setModalContent(EModalType.QR_NOT_SUPPORTED)
+                setIsModalOpen(true)
+                setIsQRScannerOpen(false)
                 return { success: true }
             }
-            // break
-            case EQrType.URL:
-                {
-                    redirectUrl = data
-                }
-                break
+            case EQrType.URL: {
+                setRedirectTo(data)
+                setModalContent(EModalType.EXTERNAL_URL)
+                setIsModalOpen(true)
+                setIsQRScannerOpen(false)
+                return { success: true }
+            }
             default:
                 {
+                    setModalContent(EModalType.UNRECOGNIZED)
+                    setIsModalOpen(true)
+                    setIsQRScannerOpen(false)
                 }
                 break
         }
@@ -132,6 +266,16 @@ export default function DirectSendQr({ className = '' }: { className?: string })
         if (redirectUrl) {
             dispatch(paymentActions.setView('INITIAL'))
             router.push(redirectUrl)
+            setIsQRScannerOpen(false)
+            return { success: true }
+        }
+
+        if (toConfirmUrl) {
+            dispatch(paymentActions.setView('INITIAL'))
+            setModalContent(EModalType.DIRECT_SEND)
+            setIsModalOpen(true)
+            setIsQRScannerOpen(false)
+            setRedirectTo(toConfirmUrl)
             return { success: true }
         }
 
@@ -140,18 +284,76 @@ export default function DirectSendQr({ className = '' }: { className?: string })
             error: 'QR not recognized as Peanut URL',
         }
     }
+
+    const modalTitle = useMemo(() => {
+        let title: string | undefined
+        if (modalContent && qrType) {
+            switch (modalContent) {
+                case EModalType.QR_NOT_SUPPORTED:
+                    {
+                        const qrTypeName = NAME_BY_QR_TYPE[qrType]
+                        title = `${qrTypeName} not supported yet.`
+                    }
+                    break
+                case EModalType.WILL_BE_NOTIFIED:
+                    {
+                        title = "You're on the list!"
+                    }
+                    break
+                case EModalType.DIRECT_SEND:
+                    {
+                        title = 'ℹ️ Only USDC on Arbitrum'
+                    }
+                    break
+                case EModalType.EXTERNAL_URL:
+                    {
+                        title = 'This is an external link!'
+                    }
+                    break
+            }
+        } else if (modalContent === EModalType.UNRECOGNIZED) {
+            title = 'Unrecognized QR code'
+        }
+        return title
+    }, [modalContent, qrType])
+
     return (
         <>
             <Button
                 onClick={() => setIsQRScannerOpen(true)}
                 variant="purple"
+                shadowSize="4"
+                shadowType="primary"
                 className={twMerge(
-                    'mx-auto h-16 w-16 -translate-y-1/3 transform cursor-pointer justify-center rounded-full border-4 border-primary-2 p-0',
+                    'mx-auto h-16 w-16 -translate-y-1/3 transform cursor-pointer justify-center rounded-full p-0',
                     className
                 )}
             >
                 <Icon name="qr-code" width={40} height={40} />
             </Button>
+            <Modal
+                title={modalTitle}
+                visible={isModalOpen && !!modalContent}
+                onClose={() => setIsModalOpen(false)}
+                initialFocus={undefined}
+                preventClose={modalContent !== EModalType.QR_NOT_SUPPORTED}
+                className="items-center rounded-none"
+                classWrap="sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0"
+                classButtonClose="hidden"
+            >
+                {modalContent &&
+                    (() => {
+                        const ModalComponent = MODAL_CONTENTS[modalContent]
+                        return (
+                            <ModalComponent
+                                setModalContent={setModalContent}
+                                qrType={qrType!}
+                                setIsModalOpen={setIsModalOpen}
+                                redirectTo={redirectTo}
+                            />
+                        )
+                    })()}
+            </Modal>
             {isQRScannerOpen && (
                 <>
                     <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />

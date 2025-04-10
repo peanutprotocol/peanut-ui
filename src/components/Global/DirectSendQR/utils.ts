@@ -22,6 +22,16 @@ export enum EQrType {
     XRP_ADDRESS = 'XRP_ADDRESS',
 }
 
+export const NAME_BY_QR_TYPE: { [key in QrType]?: string } = {
+    [EQrType.MERCADO_PAGO]: 'Mercado Pago',
+    [EQrType.BITCOIN_ONCHAIN]: 'Bitcoin',
+    [EQrType.BITCOIN_INVOICE]: 'Bitcoin',
+    [EQrType.PIX]: 'PIX',
+    [EQrType.TRON_ADDRESS]: 'Tron',
+    [EQrType.SOLANA_ADDRESS]: 'Solana',
+    [EQrType.XRP_ADDRESS]: 'Ripple',
+}
+
 export type QrType = `${EQrType}`
 
 /**

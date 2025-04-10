@@ -9,7 +9,7 @@ import { useAuth } from './authContext'
 import * as Sentry from '@sentry/nextjs'
 
 interface PushContextType {
-    subscribe: () => void
+    subscribe: () => Promise<void>
     unsubscribe: () => void
     isSupported: boolean
     isSubscribing: boolean
@@ -74,7 +74,7 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
         }
     }, [])
 
-    const subscribe = async () => {
+    const subscribe = async (): Promise<void> => {
         if (!registration) {
             toast.error('Something went wrong while initializing notifications')
             return

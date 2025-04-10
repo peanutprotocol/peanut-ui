@@ -46,8 +46,6 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                 const result = await onScan(data)
                 if (result.success) {
                     toast.info('QR code recognized')
-                    // wait a little bit before closing the scanner
-                    setTimeout(closeScanner, 750)
                 } else {
                     toast.error(result.error || 'QR code processing failed')
                     // Resume scanning
@@ -59,7 +57,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                 setProcessingQR(false)
             }
         },
-        [closeScanner, onScan, processingQR, toast]
+        [onScan, processingQR]
     )
     const setupQRScanning = useCallback(() => {
         if (!videoRef.current || !canvasRef.current) return
@@ -162,10 +160,14 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
             }
         }
     }, [isScanning, startCamera])
-    // Handle initial isOpen prop
+
     useEffect(() => {
-        setIsScanning(isOpen)
-    }, [isOpen])
+        if (!isOpen) {
+            setTimeout(closeScanner, 750)
+        } else {
+            setIsScanning(isOpen)
+        }
+    }, [isOpen, closeScanner])
 
     if (!isScanning) {
         return null

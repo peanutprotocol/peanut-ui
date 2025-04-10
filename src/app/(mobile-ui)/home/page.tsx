@@ -226,10 +226,8 @@ export default function Home() {
                     <div className="h-22 px-6 md:pb-6">
                         {isAddWalletFocused ? null : focusedWalletId &&
                           wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
-                              WalletProviderType.REWARDS ? (
-                              null
-                        ) : wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
-                          WalletProviderType.PEANUT ? (
+                              WalletProviderType.REWARDS ? null : wallets.find((w) => w.id === focusedWalletId)
+                              ?.walletProviderType === WalletProviderType.PEANUT ? (
                             <PeanutWalletActions />
                         ) : focusedWalletId &&
                           wallets.find((w) => w.id === focusedWalletId) &&

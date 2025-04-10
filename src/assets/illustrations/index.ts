@@ -11,4 +11,4 @@ export { default as PEANUT_LOGO_BLACK } from './peanut-logo-dark.svg'
 export { default as PeanutsBG } from './peanuts-bg.svg'
 export { default as Sparkle } from './sparkle.svg'
 export { default as Star } from './star.svg'
-
+export { default as Winking } from './winking.svg'
