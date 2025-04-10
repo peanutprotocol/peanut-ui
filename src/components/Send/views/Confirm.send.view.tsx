@@ -7,22 +7,18 @@ import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import InfoRow from '@/components/Global/InfoRow'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
-import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
+import { LoadingStates, peanutTokenDetails, supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import {
-    areEvmAddressesEqual,
-    ErrorHandler,
-    formatTokenAmount,
-    saveCreatedLinkToLocalStorage,
-    updateUserPreferences,
-} from '@/utils'
+import { areEvmAddressesEqual, ErrorHandler, formatTokenAmount } from '@/utils'
 
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { captureException } from '@sentry/nextjs'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { createAndProcessLink } from '../utils/createLinkUtils'
 
 const ConfirmSendView = () => {
     const dispatch = useAppDispatch()
@@ -102,118 +98,67 @@ const ConfirmSendView = () => {
     }, [selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens])
 
     const handleConfirm = async () => {
-        const now = new Date().getTime()
-        console.log(`Starting at ${now}ms`)
-        setLoadingState('Loading')
-
-        dispatch(
-            sendFlowActions.setErrorState({
-                showError: false,
-                errorMessage: '',
-            })
-        )
-
         try {
-            let hash: string = ''
-            let fileUrl = ''
-
-            console.log(`Submitting claim link init at ${new Date().getTime() - now}ms`)
-            const data = await submitClaimLinkInit({
-                password: password ?? '',
-                attachmentOptions: {
-                    attachmentFile: attachmentOptions.rawFile,
-                    message: attachmentOptions.message,
+            await createAndProcessLink({
+                transactionType: transactionType as 'gasless' | 'not-gasless',
+                preparedDepositTxs: preparedDepositTxs as peanutInterfaces.IPrepareDepositTxsResponse | undefined,
+                gaslessPayload: gaslessPayload as peanutInterfaces.IGaslessDepositPayload | undefined,
+                gaslessPayloadMessage: gaslessPayloadMessage as peanutInterfaces.IPreparedEIP712Message | undefined,
+                linkDetails: linkDetails as peanutInterfaces.IPeanutLinkDetails | undefined,
+                password,
+                attachmentOptions: attachmentOptions || { rawFile: undefined, message: undefined, fileUrl: undefined },
+                address,
+                selectedChainID,
+                usdValue,
+                selectedTokenPrice,
+                estimatedPoints,
+                selectedTokenAddress,
+                selectedTokenDecimals,
+                feeOptions,
+                sendTransactions: async ({ preparedDepositTxs, feeOptions }) => {
+                    return (await sendTransactions({ preparedDepositTxs, feeOptions })) || ''
                 },
-                senderAddress: address ?? '',
-            })
-            console.log(`Claim link init response at ${new Date().getTime() - now}ms`)
-            fileUrl = data?.fileUrl
-
-            //  TODO: create typing enum for transactionType
-            if (transactionType === 'not-gasless') {
-                // this flow is followed for paying-gas txs, paying-gas userops AND
-                // gasless userops (what would be gasless as a tax) via Input.view.tsx which
-                // makes userops 'not-gasless' in the sense that we don't want
-                // Peanut's BE to make it gasless. The paymaster will make it by default
-                // once submitted, but as far as this flow is concerned, the userop is 'not-gasless'
-                if (!preparedDepositTxs) return
-                console.log(`Sending not-gasless transaction at ${new Date().getTime() - now}ms`)
-                hash =
-                    (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
-                console.log(`Not-gasless transaction response at ${new Date().getTime() - now}ms`)
-            } else {
-                if (!gaslessPayload || !gaslessPayloadMessage) return
-                setLoadingState('Sign in wallet')
-                console.log(`Signing in wallet at ${new Date().getTime() - now}ms`)
-                const signature = await signTypedData({ gaslessMessage: gaslessPayloadMessage })
-                console.log(`Signing in wallet response at ${new Date().getTime() - now}ms`)
-                if (!signature) return
-                setLoadingState('Executing transaction')
-                console.log(`Executing transaction at ${new Date().getTime() - now}ms`)
-                hash = await makeDepositGasless({ signature, payload: gaslessPayload })
-                console.log(`Executing transaction response at ${new Date().getTime() - now}ms`)
-            }
-
-            dispatch(sendFlowActions.setTxHash(hash))
-
-            setLoadingState('Creating link')
-
-            console.log(`Getting link from hash at ${new Date().getTime() - now}ms`)
-
-            if (!linkDetails) {
-                throw new Error('Link details not found.')
-            }
-
-            if (!password) {
-                throw new Error('Password not found.')
-            }
-
-            const link = await getLinkFromHash({ hash, linkDetails, password, walletType })
-            console.log(`Getting link from hash response at ${new Date().getTime() - now}ms`)
-
-            saveCreatedLinkToLocalStorage({
-                address: address ?? '',
-                data: {
-                    link: link[0],
-                    depositDate: new Date().toISOString(),
-                    USDTokenPrice: selectedTokenPrice ?? 0,
-                    points: estimatedPoints ?? 0,
-                    txHash: hash,
-                    message: attachmentOptions.message ?? '',
-                    attachmentUrl: fileUrl,
-                    ...linkDetails,
+                signTypedData: async ({ gaslessMessage }) => {
+                    return await signTypedData({ gaslessMessage })
                 },
+                makeDepositGasless: async ({ signature, payload }) => {
+                    return await makeDepositGasless({ signature, payload })
+                },
+                getLinkFromHash: async ({ hash, linkDetails, password, walletType }) => {
+                    return await getLinkFromHash({
+                        hash,
+                        linkDetails,
+                        password,
+                        walletType: walletType as 'blockscout',
+                    })
+                },
+                submitClaimLinkInit: async ({ password, attachmentOptions, senderAddress }) => {
+                    return await submitClaimLinkInit({ password, attachmentOptions, senderAddress })
+                },
+                submitClaimLinkConfirm: async ({
+                    chainId,
+                    link,
+                    password,
+                    txHash,
+                    senderAddress,
+                    amountUsd,
+                    transaction,
+                }) => {
+                    await submitClaimLinkConfirm({
+                        chainId,
+                        link,
+                        password,
+                        txHash,
+                        senderAddress,
+                        amountUsd,
+                        transaction,
+                    })
+                },
+                walletType: walletType as 'blockscout' | undefined,
+                refetchBalances: (address) => refetchBalances(address),
+                dispatch,
+                setLoadingState: (state) => setLoadingState(state as LoadingStates),
             })
-
-            dispatch(sendFlowActions.setLink(link[0]))
-            console.log(`Submitting claim link confirm at ${new Date().getTime() - now}ms`)
-            await submitClaimLinkConfirm({
-                chainId: selectedChainID,
-                link: link[0],
-                password: password ?? '',
-                txHash: hash,
-                senderAddress: address ?? '',
-                amountUsd: parseFloat(usdValue ?? '0'),
-                transaction:
-                    transactionType === 'not-gasless'
-                        ? preparedDepositTxs && preparedDepositTxs.unsignedTxs[0]
-                        : undefined,
-            })
-            console.log(`Submitting claim link confirm response at ${new Date().getTime() - now}ms`)
-
-            if (selectedChainID && selectedTokenAddress && selectedTokenDecimals) {
-                updateUserPreferences({
-                    lastUsedToken: {
-                        chainId: selectedChainID,
-                        address: selectedTokenAddress,
-                        decimals: selectedTokenDecimals,
-                    },
-                })
-            }
-
-            console.log(`Finished at ${new Date().getTime() - now}ms`)
-            dispatch(sendFlowActions.setView('SUCCESS'))
-            refetchBalances(address ?? '')
         } catch (error) {
             const errorString = ErrorHandler(error)
             dispatch(
