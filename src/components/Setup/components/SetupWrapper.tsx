@@ -2,12 +2,12 @@ import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import Icon from '@/components/Global/Icon'
+import { BeforeInstallPromptEvent, LayoutType, ScreenId } from '@/components/Setup/Setup.types'
+import InstallPWA from '@/components/Setup/Views/InstallPWA'
 import classNames from 'classnames'
 import Image from 'next/image'
-import { ReactNode, memo, Children, cloneElement, type ReactElement } from 'react'
+import { Children, ReactNode, cloneElement, memo, type ReactElement } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { LayoutType, ScreenId, BeforeInstallPromptEvent } from '@/components/Setup/Setup.types'
-import InstallPWA from '@/components/Setup/Views/InstallPWA'
 
 /**
  * props interface for the SetupWrapper component

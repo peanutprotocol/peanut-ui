@@ -9,24 +9,21 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { TransactionBadge } from '@/components/Global/TransactionBadge'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { IDashboardItem } from '@/interfaces'
 import {
     formatAmount,
     formatDate,
+    formatPaymentStatus,
     getChainLogo,
     getHeaderTitle,
     getHistoryTransactionStatus,
     getTokenLogo,
     isStableCoin,
-    printableAddress,
-    formatPaymentStatus,
 } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
-import { isAddress } from 'viem'
+import { useEffect, useRef } from 'react'
 
 const ITEMS_PER_PAGE = 10
 
@@ -34,24 +31,20 @@ const HistoryPage = () => {
     const pathname = usePathname()
     const { address } = useWallet()
     const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
-    const [dashboardData, setDashboardData] = useState<IDashboardItem[]>([])
-    const [isLoadingDashboard, setIsLoadingDashboard] = useState(true)
     const loaderRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => {
-        let isStale = false
-        setIsLoadingDashboard(true)
-        composeLinkDataArray(address ?? '').then((data) => {
-            if (isStale) return
-            setDashboardData(data)
-            setIsLoadingDashboard(false)
-        })
-        return () => {
-            isStale = true
-        }
-    }, [address])
+    const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
+        queryKey: ['dashboardData', address],
+        queryFn: () => composeLinkDataArray(address ?? ''),
+        enabled: !!address,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 10 * 60 * 1000, // 10 minutes
+        placeholderData: keepPreviousData,
+    })
 
     const fetchHistoryPage = async ({ pageParam = 0 }) => {
+        if (!dashboardData) return { items: [], nextPage: undefined }
+
         const start = pageParam * ITEMS_PER_PAGE
         const end = start + ITEMS_PER_PAGE
         const pageData = dashboardData.slice(start, end)
@@ -90,16 +83,19 @@ const HistoryPage = () => {
 
         return {
             items: formattedData,
-            nextPage: end < dashboardData.length ? pageParam + 1 : undefined,
+            nextPage: end < (dashboardData?.length || 0) ? pageParam + 1 : undefined,
         }
     }
 
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, isLoading, error } = useInfiniteQuery({
-        queryKey: ['history', address],
+        queryKey: ['history', address, dashboardData],
         queryFn: fetchHistoryPage,
         getNextPageParam: (lastPage) => lastPage.nextPage,
-        enabled: dashboardData.length > 0,
+        enabled: !!dashboardData && dashboardData.length > 0,
         initialPageParam: 0,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 10 * 60 * 1000, // 10 minutes
+        placeholderData: keepPreviousData,
     })
 
     useEffect(() => {
@@ -122,7 +118,7 @@ const HistoryPage = () => {
         return () => observer.disconnect()
     }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-    if (isLoadingDashboard || isLoading) {
+    if ((isLoadingDashboard || isLoading) && (!dashboardData || !data?.pages?.length)) {
         return <PeanutLoading />
     }
 
@@ -132,7 +128,7 @@ const HistoryPage = () => {
         return <div className="w-full py-4 text-center">Error loading history: {error?.message}</div>
     }
 
-    if (dashboardData.length === 0) {
+    if (!dashboardData || dashboardData.length === 0) {
         return (
             <div className="flex h-[80dvh] items-center justify-center">
                 <NoDataEmptyState
