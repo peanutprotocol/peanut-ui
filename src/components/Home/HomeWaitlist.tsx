@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { Card } from '../0_Bruddle'
 import RollingNumber from '../0_Bruddle/RollingNumber'
 import Title from '../0_Bruddle/Title'
+import PeanutLoading from '../Global/PeanutLoading'
 
 const HomeWaitlist = () => {
     const { push } = useRouter()
@@ -17,11 +18,7 @@ const HomeWaitlist = () => {
     }, [username, isFetchingUser, push])
 
     if (isFetchingUser) {
-        return (
-            <div className="flex h-full w-full flex-col items-center justify-center">
-                <img src={chillPeanutAnim.src} alt="peanut-club" className="w-[300px] object-cover" />
-            </div>
-        )
+        return <PeanutLoading />
     }
 
     return (

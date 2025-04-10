@@ -38,7 +38,7 @@ export default function Home() {
         return prefs?.balanceHidden ?? false
     })
 
-    const { username } = useAuth()
+    const { username, isFetchingUser } = useAuth()
 
     const { selectedWallet, wallets, isWalletConnected, isFetchingWallets } = useWallet()
     const { focusedWallet: focusedWalletId } = useWalletStore()
@@ -156,7 +156,9 @@ export default function Home() {
         return wallets.length <= focusedIndex
     }, [focusedIndex, wallets?.length])
 
-    if (isFetchingWallets) {
+    const isLoading = isFetchingWallets || isFetchingUser
+
+    if (isLoading) {
         return <PeanutLoading />
     }
 

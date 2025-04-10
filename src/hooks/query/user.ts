@@ -4,7 +4,7 @@ import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { userActions } from '@/redux/slices/user-slice'
 import { fetchWithSentry } from '@/utils'
 import { hitUserMetric } from '@/utils/metrics.utils'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { usePWAStatus } from '../usePWAStatus'
 
 export const useUserQuery = (dependsOn?: boolean) => {
@@ -45,5 +45,7 @@ export const useUserQuery = (dependsOn?: boolean) => {
         refetchOnMount: false,
         // add initial data from Redux if available
         initialData: authUser || undefined,
+        // keep previous data
+        placeholderData: keepPreviousData,
     })
 }
