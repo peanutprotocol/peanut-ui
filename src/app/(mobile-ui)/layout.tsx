@@ -20,7 +20,7 @@ const publicPathRegex = /^\/(request\/pay|claim)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
-    const { username, isFetchingUser, user } = useAuth()
+    const { isFetchingUser, user } = useAuth()
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
 

@@ -38,6 +38,9 @@ export default function Home() {
         return prefs?.balanceHidden ?? false
     })
 
+    // state to track if content is ready to show
+    const [contentReady, setContentReady] = useState(false)
+
     const { username, isFetchingUser } = useAuth()
 
     const { selectedWallet, wallets, isWalletConnected, isFetchingWallets } = useWallet()
@@ -156,10 +159,25 @@ export default function Home() {
         return wallets.length <= focusedIndex
     }, [focusedIndex, wallets?.length])
 
-    const isLoading = isFetchingWallets || isFetchingUser
+    const isLoading = (isFetchingWallets && !wallets.length) || (isFetchingUser && !username)
 
-    if (isLoading) {
-        return <PeanutLoading />
+    // use effect to delay showing content
+    useEffect(() => {
+        if (!isLoading) {
+            // small delay to ensure everything is loaded
+            const timer = setTimeout(() => {
+                setContentReady(true)
+            }, 100)
+
+            return () => clearTimeout(timer)
+        } else {
+            setContentReady(false)
+        }
+    }, [isLoading])
+
+    // show loading if we're loading or content isn't ready yet
+    if (isLoading || !contentReady) {
+        return <PeanutLoading coverFullScreen />
     }
 
     return (
@@ -175,6 +193,7 @@ export default function Home() {
                         </div>
                         <ProfileSection />
                     </div>
+
                     <div>
                         <div
                             className={classNames('relative h-[200px] p-4 sm:overflow-visible', {

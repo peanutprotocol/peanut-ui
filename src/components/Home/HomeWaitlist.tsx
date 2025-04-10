@@ -18,7 +18,7 @@ const HomeWaitlist = () => {
     }, [username, isFetchingUser, push])
 
     if (isFetchingUser) {
-        return <PeanutLoading />
+        return <PeanutLoading coverFullScreen />
     }
 
     return (
