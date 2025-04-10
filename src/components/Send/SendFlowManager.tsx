@@ -7,6 +7,7 @@ import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { fetchWithSentry } from '@/utils'
 import { useContext, useEffect } from 'react'
+import PageContainer from '../0_Bruddle/PageContainer'
 import ConfirmSendView from './views/Confirm.send.view'
 import InitialSendView from './views/Initial.send.view'
 import SuccessSendView from './views/Success.send.view'
@@ -44,11 +45,13 @@ const SendFlowManager = () => {
     }, [isPeanutWallet])
 
     return (
-        <div>
-            {view === 'INITIAL' && <InitialSendView />}
-            {view === 'CONFIRM' && <ConfirmSendView />}
-            {view === 'SUCCESS' && <SuccessSendView />}
-        </div>
+        <PageContainer>
+            <div className="max-w-xl">
+                {view === 'INITIAL' && <InitialSendView />}
+                {view === 'CONFIRM' && <ConfirmSendView />}
+                {view === 'SUCCESS' && <SuccessSendView />}
+            </div>
+        </PageContainer>
     )
 }
 
