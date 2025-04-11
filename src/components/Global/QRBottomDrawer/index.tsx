@@ -20,7 +20,7 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText }
             handleTitle={title}
             collapsedHeight={24}
             halfHeight={60}
-            expandedHeight={95}
+            expandedHeight={90}
             isOpen={true}
             onPositionChange={(position) => {
                 if (position === 'collapsed') {
