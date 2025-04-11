@@ -252,7 +252,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
                     {children}
                 </div>
                 <div
-                    className={`absolute bottom-0 left-0 right-0 items-center pb-4 text-center transition-all duration-300 ease-in-out ${
+                    className={`pointer-events-none absolute bottom-0 left-0 right-0 items-center pb-4 text-center transition-all duration-300 ease-in-out ${
                         position === 'expanded' ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
                     }`}
                 >
