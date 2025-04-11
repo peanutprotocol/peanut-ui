@@ -163,7 +163,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
 
     useEffect(() => {
         if (!isOpen) {
-            setTimeout(closeScanner, 750)
+            setTimeout(closeScanner, 1500)
         } else {
             setIsScanning(isOpen)
         }
