@@ -266,7 +266,6 @@ export default function DirectSendQr({ className = '' }: { className?: string })
         if (redirectUrl) {
             dispatch(paymentActions.setView('INITIAL'))
             router.push(redirectUrl)
-            setIsQRScannerOpen(false)
             return { success: true }
         }
 
