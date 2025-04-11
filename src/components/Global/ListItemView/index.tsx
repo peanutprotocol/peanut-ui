@@ -6,7 +6,6 @@ import { supportedPeanutChains } from '@/constants'
 import { IDashboardItem } from '@/interfaces'
 import { copyTextToClipboardWithFallback, getExplorerUrl } from '@/utils'
 import Image from 'next/image'
-import Link from 'next/link'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import CopyToClipboard from '../CopyToClipboard'
@@ -113,7 +112,8 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                     visible={modalVisible}
                     onClose={() => setModalVisible(false)}
                     title={
-                        transactionDetails?.type === 'Request Link' && !transactionDetails?.txHash
+                        (transactionDetails?.type === 'Request Link' && !transactionDetails?.txHash) ||
+                        (transactionDetails?.type === 'Link Sent' && transactionDetails?.status !== 'claimed')
                             ? 'Share this transaction'
                             : 'Options'
                     }
@@ -121,6 +121,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                 >
                     {transactionDetails?.type !== 'Link Received' &&
                         transactionDetails?.type !== 'Request Link' &&
+                        transactionDetails?.type !== 'Link Sent' &&
                         transactionDetails?.status === 'pending' && (
                             <div
                                 onClick={() => {
@@ -132,90 +133,100 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                                 Refund
                             </div>
                         )}
-                    {(transactionDetails?.type === 'Link Received' ||
-                        transactionDetails?.type === 'Link Sent' ||
-                        transactionDetails?.type === 'Request Link') &&
-                        !!transactionDetails?.txHash && (
-                            <div
-                                onClick={() => {
-                                    copyTextToClipboardWithFallback(transactionDetails?.link ?? '')
-                                }}
-                                className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                            >
-                                <label className="block">Copy link </label>
-                                <CopyToClipboard
-                                    fill="black"
-                                    textToCopy={transactionDetails?.link as string}
-                                    className="h-5 w-5"
-                                />
-                            </div>
-                        )}
-                    {(transactionDetails?.type === 'Link Received' ||
-                        transactionDetails?.type === 'Link Sent' ||
-                        transactionDetails?.type === 'Request Link') &&
-                        !!transactionDetails?.txHash && (
-                            <Link
-                                className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                                href={transactionDetails.link!}
-                            >
-                                <label className="block">See status</label>
-                                <Icon name="arrow-up-right" className="h-5 w-5" />
-                            </Link>
-                        )}
-                    {transactionDetails?.txHash && (
-                        <div
-                            onClick={() => {
-                                const chainId =
-                                    supportedPeanutChains.find((chain) => chain.name === transactionDetails?.chain)
-                                        ?.chainId ?? ''
-
-                                const explorerUrl = getExplorerUrl(chainId)
-                                window.open(
-                                    `${explorerUrl}/tx/${transactionDetails?.txHash ?? ''}`,
-                                    '_blank',
-                                    'noopener,noreferrer'
-                                )
-                            }}
-                            className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                        >
-                            <label className="block">Show in explorer </label>
-                            <Icon name="arrow-up-right" className="h-5 w-5" />
-                        </div>
-                    )}
-                    {transactionDetails?.attachmentUrl && !!transactionDetails?.txHash && (
-                        <div
-                            onClick={() => {
-                                window.open(transactionDetails.attachmentUrl, '_blank', 'noopener,noreferrer')
-                            }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                        >
-                            Download attachment
-                        </div>
-                    )}
-                    {transactionDetails?.type === 'Offramp Claim' && transactionDetails.status !== 'claimed' && (
-                        <a
-                            href={(() => {
-                                const url = new URL(transactionDetails?.link ?? '')
-                                url.pathname = '/cashout/status'
-                                return url.toString()
-                            })()}
-                            target="_blank"
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                        >
-                            Check Status
-                        </a>
-                    )}
-                    {transactionDetails?.type === 'Request Link' && !transactionDetails?.txHash && (
+                    {((transactionDetails?.type === 'Request Link' && !transactionDetails?.txHash) ||
+                        (transactionDetails?.type === 'Link Sent' && transactionDetails?.status !== 'claimed')) && (
                         <div className="p-6">
                             <QRCodeWrapper url={transactionDetails.link!} />
                             <div className="mx-auto mt-4 w-full p-2 text-center text-base text-gray-500">
                                 Show this QR to your friends!
                             </div>
                             <Divider className="text-gray-500" text="or" />
-                            <ShareButton url={transactionDetails.link!} title="Share your profile">
+                            <ShareButton url={transactionDetails.link!} title="Share your transaction">
                                 Share this transaction
                             </ShareButton>
                         </div>
+                    )}
+                    {!(
+                        (transactionDetails?.type === 'Request Link' && !transactionDetails?.txHash) ||
+                        (transactionDetails?.type === 'Link Sent' && transactionDetails?.status !== 'claimed')
+                    ) && (
+                        <>
+                            {transactionDetails?.link && (
+                                <div
+                                    onClick={() => {
+                                        copyTextToClipboardWithFallback(transactionDetails?.link ?? '')
+                                    }}
+                                    className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                                >
+                                    <label className="block">Copy link </label>
+                                    <CopyToClipboard
+                                        fill="black"
+                                        textToCopy={transactionDetails?.link as string}
+                                        className="h-5 w-5"
+                                    />
+                                </div>
+                            )}
+
+                            {(transactionDetails?.type === 'Link Received' ||
+                                transactionDetails?.type === 'Link Sent' ||
+                                transactionDetails?.type === 'Request Link') &&
+                                !!transactionDetails?.txHash && (
+                                    <a
+                                        className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                                        href={transactionDetails.link!}
+                                        target="_blank"
+                                    >
+                                        <label className="block">See status</label>
+                                        <Icon name="arrow-up-right" className="h-5 w-5" />
+                                    </a>
+                                )}
+
+                            {transactionDetails?.txHash && (
+                                <div
+                                    onClick={() => {
+                                        const chainId =
+                                            supportedPeanutChains.find(
+                                                (chain) => chain.name === transactionDetails?.chain
+                                            )?.chainId ?? ''
+
+                                        const explorerUrl = getExplorerUrl(chainId)
+                                        window.open(
+                                            `${explorerUrl}/tx/${transactionDetails?.txHash ?? ''}`,
+                                            '_blank',
+                                            'noopener,noreferrer'
+                                        )
+                                    }}
+                                    className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                                >
+                                    <label className="block">Show in explorer </label>
+                                    <Icon name="arrow-up-right" className="h-5 w-5" />
+                                </div>
+                            )}
+                            {transactionDetails?.attachmentUrl && !!transactionDetails?.txHash && (
+                                <div
+                                    onClick={() => {
+                                        window.open(transactionDetails.attachmentUrl, '_blank', 'noopener,noreferrer')
+                                    }}
+                                    className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                                >
+                                    Download attachment
+                                </div>
+                            )}
+                            {transactionDetails?.type === 'Offramp Claim' &&
+                                transactionDetails.status !== 'claimed' && (
+                                    <a
+                                        href={(() => {
+                                            const url = new URL(transactionDetails?.link ?? '')
+                                            url.pathname = '/cashout/status'
+                                            return url.toString()
+                                        })()}
+                                        target="_blank"
+                                        className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                                    >
+                                        Check Status
+                                    </a>
+                                )}
+                        </>
                     )}
                 </Modal>
             )}

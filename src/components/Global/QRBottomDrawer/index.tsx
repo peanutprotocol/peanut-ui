@@ -10,10 +10,9 @@ interface QRBottomDrawerProps {
     expandedTitle: string
     text: string
     buttonText: string
-    open?: boolean
 }
 
-const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, open }: QRBottomDrawerProps) => {
+const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText }: QRBottomDrawerProps) => {
     const [title, setTitle] = useState<string>(collapsedTitle)
     return (
         <BottomDrawer
@@ -22,7 +21,7 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
             collapsedHeight={23}
             halfHeight={75}
             expandedHeight={95}
-            isOpen={open ? open : true}
+            isOpen={true}
             onPositionChange={(position) => {
                 if (position === 'collapsed') {
                     setTitle(collapsedTitle)
