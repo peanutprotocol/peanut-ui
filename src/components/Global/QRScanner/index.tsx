@@ -92,7 +92,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                     console.error('Error scanning QR code:', err)
                 }
             }
-        }, 500)
+        }, 250)
     }, [handleQRScan, processingQR])
     const startCamera = useCallback(async () => {
         setError(null)
