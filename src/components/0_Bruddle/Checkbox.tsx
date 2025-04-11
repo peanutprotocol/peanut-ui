@@ -3,8 +3,8 @@ import Icon from '@/components/Global/Icon'
 type CheckboxProps = {
     className?: string
     label?: string
-    value: any
-    onChange: any
+    value: boolean
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 
 const Checkbox = ({ className, label, value, onChange }: CheckboxProps) => (
@@ -14,7 +14,6 @@ const Checkbox = ({ className, label, value, onChange }: CheckboxProps) => (
         <input
             className="invisible absolute left-0 top-0 opacity-0"
             type="checkbox"
-            value={value}
             onChange={onChange}
             checked={value}
         />
