@@ -4,20 +4,20 @@ import AddressInput from '@/components/Global/AddressInput'
 import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Loading from '@/components/Global/Loading'
+import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { InputUpdate } from '@/components/Global/ValidatedInput'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import * as context from '@/context'
+import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken, IUserBalance } from '@/interfaces'
-import { fetchTokenSymbol, isNativeCurrency } from '@/utils'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useCallback, useContext, useEffect, useState } from 'react'
-import * as _consts from '../Create.consts'
-import { fetchWithSentry, getRequestLink } from '@/utils'
+import { fetchTokenSymbol, fetchWithSentry, getRequestLink, isNativeCurrency } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
-import { useAuth } from '@/context/authContext'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import * as _consts from '../Create.consts'
 
 export const InitialView = ({
     onNext,
@@ -54,6 +54,19 @@ export const InitialView = ({
     const [_tokenValue, _setTokenValue] = useState<string>(
         (inputDenomination === 'TOKEN' ? tokenValue : usdValue) ?? ''
     )
+
+    const qrCodeLink = useMemo(() => {
+        return isPeanutWallet
+            ? `${window.location.origin}/${user?.user.username}${_tokenValue ? `/${_tokenValue}USDC` : ''}`
+            : `${window.location.origin}/${recipientAddress || selectedWallet?.address}@${selectedChainID}/${_tokenValue ?? ''}${selectedTokenData?.symbol ?? ''}`
+    }, [
+        recipientAddress,
+        selectedWallet?.address,
+        selectedChainID,
+        selectedTokenData?.symbol,
+        _tokenValue,
+        isPeanutWallet,
+    ])
 
     const handleOnNext = useCallback(
         async ({
@@ -209,6 +222,10 @@ export const InitialView = ({
                 </Card.Header>
                 <Card.Content>
                     <div className="flex w-full flex-col items-center justify-center gap-3">
+                        <div className="">
+                            <QRCodeWrapper url={qrCodeLink} hideborder />
+                            <div className="text-center text-sm text-gray-1">Show this QR to your friends!</div>
+                        </div>
                         <TokenAmountInput
                             className="w-full"
                             setTokenValue={(value) => {

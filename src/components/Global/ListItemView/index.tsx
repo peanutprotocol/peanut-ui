@@ -1,5 +1,7 @@
 'use client'
+import Divider from '@/components/0_Bruddle/Divider'
 import Modal from '@/components/Global/Modal'
+import ShareButton from '@/components/Global/ShareButton'
 import { supportedPeanutChains } from '@/constants'
 import { IDashboardItem } from '@/interfaces'
 import { copyTextToClipboardWithFallback, getExplorerUrl } from '@/utils'
@@ -9,6 +11,7 @@ import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import CopyToClipboard from '../CopyToClipboard'
 import Icon from '../Icon'
+import QRCodeWrapper from '../QRCodeWrapper'
 
 interface TokenBalance {
     chainId: string
@@ -109,10 +112,13 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                 <Modal
                     visible={modalVisible}
                     onClose={() => setModalVisible(false)}
-                    title="Options"
+                    title={
+                        transactionDetails?.type === 'Request Link' && !transactionDetails?.txHash
+                            ? 'Share this transaction'
+                            : 'Options'
+                    }
                     classWrap="bg-background"
                 >
-                    <div className="flex w-full flex-col items-center justify-center px-2"></div>
                     {transactionDetails?.type !== 'Link Received' &&
                         transactionDetails?.type !== 'Request Link' &&
                         transactionDetails?.status === 'pending' && (
@@ -128,32 +134,34 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                         )}
                     {(transactionDetails?.type === 'Link Received' ||
                         transactionDetails?.type === 'Link Sent' ||
-                        transactionDetails?.type === 'Request Link') && (
-                        <div
-                            onClick={() => {
-                                copyTextToClipboardWithFallback(transactionDetails?.link ?? '')
-                            }}
-                            className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                        >
-                            <label className="block">Copy link </label>
-                            <CopyToClipboard
-                                fill="black"
-                                textToCopy={transactionDetails?.link as string}
-                                className="h-5 w-5"
-                            />
-                        </div>
-                    )}
+                        transactionDetails?.type === 'Request Link') &&
+                        !!transactionDetails?.txHash && (
+                            <div
+                                onClick={() => {
+                                    copyTextToClipboardWithFallback(transactionDetails?.link ?? '')
+                                }}
+                                className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            >
+                                <label className="block">Copy link </label>
+                                <CopyToClipboard
+                                    fill="black"
+                                    textToCopy={transactionDetails?.link as string}
+                                    className="h-5 w-5"
+                                />
+                            </div>
+                        )}
                     {(transactionDetails?.type === 'Link Received' ||
                         transactionDetails?.type === 'Link Sent' ||
-                        transactionDetails?.type === 'Request Link') && (
-                        <Link
-                            className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                            href={transactionDetails.link!}
-                        >
-                            <label className="block">See status</label>
-                            <Icon name="arrow-up-right" className="h-5 w-5" />
-                        </Link>
-                    )}
+                        transactionDetails?.type === 'Request Link') &&
+                        !!transactionDetails?.txHash && (
+                            <Link
+                                className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                                href={transactionDetails.link!}
+                            >
+                                <label className="block">See status</label>
+                                <Icon name="arrow-up-right" className="h-5 w-5" />
+                            </Link>
+                        )}
                     {transactionDetails?.txHash && (
                         <div
                             onClick={() => {
@@ -174,7 +182,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                             <Icon name="arrow-up-right" className="h-5 w-5" />
                         </div>
                     )}
-                    {transactionDetails?.attachmentUrl && (
+                    {transactionDetails?.attachmentUrl && !!transactionDetails?.txHash && (
                         <div
                             onClick={() => {
                                 window.open(transactionDetails.attachmentUrl, '_blank', 'noopener,noreferrer')
@@ -196,6 +204,18 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                         >
                             Check Status
                         </a>
+                    )}
+                    {transactionDetails?.type === 'Request Link' && !transactionDetails?.txHash && (
+                        <div className="p-6">
+                            <QRCodeWrapper url={transactionDetails.link!} />
+                            <div className="mx-auto mt-4 w-full p-2 text-center text-base text-gray-500">
+                                Show this QR to your friends!
+                            </div>
+                            <Divider className="text-gray-500" text="or" />
+                            <ShareButton url={transactionDetails.link!} title="Share your profile">
+                                Share this transaction
+                            </ShareButton>
+                        </div>
                     )}
                 </Modal>
             )}

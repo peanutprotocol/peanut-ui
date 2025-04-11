@@ -1,16 +1,18 @@
 import { PEANUTMAN_PFP } from '@/assets'
-import QRCode from 'react-qr-code'
 import Image from 'next/image'
+import QRCode from 'react-qr-code'
+import { twMerge } from 'tailwind-merge'
 
 interface QRCodeWrapperProps {
     url: string
+    hideborder?: boolean
 }
 
-const QRCodeWrapper = ({ url }: QRCodeWrapperProps) => {
+const QRCodeWrapper = ({ url, hideborder }: QRCodeWrapperProps) => {
     return (
         <div className="mx-auto h-auto w-full max-w-[192px]">
             {/* Container with black border and rounded corners */}
-            <div className="relative rounded border-2 border-black bg-white p-4">
+            <div className={twMerge('relative rounded border-2 border-black bg-white p-4', hideborder && 'border-0')}>
                 {/* QR Code with white buffer */}
                 <div className="relative">
                     <QRCode
