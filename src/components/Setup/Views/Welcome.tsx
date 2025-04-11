@@ -29,21 +29,32 @@ const WelcomeStep = () => {
 
             if (!available) {
                 toast.error("Your device doesn't support passkeys. Please use a compatible device.")
-                setIsCheckingPasskey(false)
                 return
             }
 
             try {
                 await handleLogin()
             } catch (e) {
-                // if the error is related to missing passkeys, show a specific message
-                if (
-                    e instanceof Error &&
-                    (e.message?.includes('passkey') ||
-                        e.message?.includes('credential') ||
-                        e.message?.includes('authentication') ||
-                        e.name === 'NotFoundError')
-                ) {
+                console.error('Login error:', e)
+
+                // check for common passkey-related errors
+                const errorMessage = e instanceof Error ? e.message : String(e)
+                const errorName = e instanceof Error ? e.name : 'Unknown'
+
+                console.log('Error details:', { message: errorMessage, name: errorName })
+
+                // check for passkey-related errors
+                const isPasskeyError =
+                    errorMessage.toLowerCase().includes('passkey') ||
+                    errorMessage.toLowerCase().includes('credential') ||
+                    errorMessage.toLowerCase().includes('authentication') ||
+                    errorName === 'NotFoundError' ||
+                    errorMessage.toLowerCase().includes('not found') ||
+                    errorMessage.toLowerCase().includes('no credentials') ||
+                    errorMessage.toLowerCase().includes('abort') ||
+                    errorMessage.toLowerCase().includes('cancel')
+
+                if (isPasskeyError) {
                     toast.error('No passkey found. Please sign up first to create a passkey for this device.')
                 } else {
                     toast.error('Error logging in. Please try again.')
@@ -51,6 +62,7 @@ const WelcomeStep = () => {
                 }
             }
         } catch (e) {
+            console.error('Outer error:', e)
             toast.error('Error logging in. Please try again.')
             Sentry.captureException(e)
         } finally {
