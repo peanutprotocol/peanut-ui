@@ -16,9 +16,7 @@ import '../../sentry.server.config'
 
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
-        if (process.env.NODE_ENV !== 'development') {
-            ReactGA.initialize(process.env.NEXT_PUBLIC_GA_KEY ?? '')
-        }
+        ReactGA.initialize(process.env.NEXT_PUBLIC_GA_KEY ?? '')
         peanut.toggleVerbose(true)
         // LogRocket.init('x2zwq1/peanut-protocol')
         countries.registerLocale(enLocale)
