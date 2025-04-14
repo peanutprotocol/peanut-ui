@@ -18,6 +18,7 @@ type ModalProps = {
     classNameWrapperDiv?: string
     showPrev?: boolean
     onPrev?: () => void
+    preventClose?: boolean
 }
 
 const Modal = ({
@@ -35,13 +36,18 @@ const Modal = ({
     classNameWrapperDiv,
     showPrev,
     onPrev,
+    preventClose = false,
 }: ModalProps) => {
     return (
         <Transition show={visible} as={Fragment}>
             <Dialog
                 initialFocus={initialFocus}
                 className={`fixed inset-0 z-20 flex items-center overflow-auto scroll-smooth md:p-6 md:px-4 ${className}`}
-                onClose={onClose}
+                onClose={() => {
+                    if (!preventClose) {
+                        onClose()
+                    }
+                }}
             >
                 <Transition.Child
                     as={Fragment}

@@ -2,11 +2,11 @@
 
 import { PEANUT_LOGO_BLACK } from '@/assets'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
-import DirectSendQr from '@/components/Global/DirectSendQR'
 import LogoutButton from '@/components/Global/LogoutButton'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
 import { WalletCard } from '@/components/Home/WalletCard'
+import HomeHistory from '@/components/Home/HomeHistory'
 import PeanutWalletActions from '@/components/PeanutWalletActions'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
 import { useAuth } from '@/context/authContext'
@@ -247,10 +247,8 @@ export default function Home() {
                     <div className="h-22 px-6 md:pb-6">
                         {isAddWalletFocused ? null : focusedWalletId &&
                           wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
-                              WalletProviderType.REWARDS ? (
-                            <DirectSendQr />
-                        ) : wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
-                          WalletProviderType.PEANUT ? (
+                              WalletProviderType.REWARDS ? null : wallets.find((w) => w.id === focusedWalletId)
+                              ?.walletProviderType === WalletProviderType.PEANUT ? (
                             <PeanutWalletActions />
                         ) : focusedWalletId &&
                           wallets.find((w) => w.id === focusedWalletId) &&
@@ -271,6 +269,7 @@ export default function Home() {
                     </div>
                 </div>
             </div>
+            <HomeHistory />
             <RewardsModal />
         </div>
     )

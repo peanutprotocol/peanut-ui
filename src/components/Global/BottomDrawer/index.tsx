@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { Winking } from '@/assets'
 
 type DrawerPosition = 'collapsed' | 'half' | 'expanded'
 
@@ -238,7 +239,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
                     onMouseDown={handleMouseDown}
                     style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
                 >
-                    <div className="mx-auto mb-4 h-2 w-8 rounded-full bg-black"></div>
+                    <div className="mx-auto mb-4 mt-2 h-2 w-8 rounded-full bg-black"></div>
                     {handleTitle && <h2 className="mb-8 text-lg font-extrabold">{handleTitle}</h2>}
                 </div>
 
@@ -249,6 +250,14 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
                     style={{ maxHeight: `calc(${expandedHeight}vh - 70px)` }}
                 >
                     {children}
+                </div>
+                <div
+                    className={`pointer-events-none absolute bottom-0 left-0 right-0 items-center pb-4 text-center transition-all duration-300 ease-in-out ${
+                        position === 'expanded' ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+                    }`}
+                >
+                    <img src={Winking.src} className="mx-auto h-auto w-20" />
+                    <span className="mt-4 text-2xl font-bold">You found me!</span>
                 </div>
             </div>
         </div>,
