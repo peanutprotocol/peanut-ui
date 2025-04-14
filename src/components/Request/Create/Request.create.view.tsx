@@ -201,33 +201,33 @@ export const RequestCreateView = () => {
         }
     }, [isConnected, address])
 
-    // Debounce attachment options changes, especially for text messages
+    // debounce attachment options changes, especially for text messages
     useEffect(() => {
-        // Clear any existing timer
+        // clear any existing timer
         if (debounceTimerRef.current) {
             clearTimeout(debounceTimerRef.current)
         }
 
-        // Check if attachments are completely cleared
+        // check if attachments are completely cleared
         const hasNoAttachments = !attachmentOptions?.rawFile && !attachmentOptions?.message
 
         if (hasNoAttachments) {
-            // Reset generated link when attachments are completely cleared
+            // reset generated link when attachments are completely cleared
             setGeneratedLink(null)
         } else {
-            // Reset generated link when attachment options change (adding or modifying)
+            // reset generated link when attachment options change (adding or modifying)
             setGeneratedLink(null)
         }
 
-        // For file attachments, update immediately
+        // for file attachments, update immediately
         if (attachmentOptions?.rawFile) {
             setDebouncedAttachmentOptions(attachmentOptions)
             return
         }
 
-        // For text messages, debounce for 3 seconds
+        // for text messages, debounce for 3 seconds
         if (attachmentOptions?.message) {
-            // Set a timer for the debounced update
+            // set a timer for the debounced update
             debounceTimerRef.current = setTimeout(() => {
                 setDebouncedAttachmentOptions(attachmentOptions)
             }, 3000) // 3 second debounce
@@ -236,7 +236,7 @@ export const RequestCreateView = () => {
             setDebouncedAttachmentOptions(attachmentOptions)
         }
 
-        // Cleanup function
+        // cleanup function
         return () => {
             if (debounceTimerRef.current) {
                 clearTimeout(debounceTimerRef.current)
@@ -286,7 +286,7 @@ export const RequestCreateView = () => {
             <NavHeader title="Request" href="/home" />
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <div className="space-y-3">
-                    <QRCodeWrapper url={qrCodeLink} />
+                    <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
                     <div className="text-center text-gray-1">Show this QR to your friends!</div>
                 </div>
                 <TokenAmountInput
@@ -314,9 +314,9 @@ export const RequestCreateView = () => {
                 <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
 
                 {(hasAttachment && isCreatingLink) || isDebouncing ? (
-                    <Button disabled={true}>
+                    <Button disabled={true} shadowSize="4">
                         <div className="flex w-full flex-row items-center justify-center gap-2">
-                            <Loading /> {isDebouncing ? 'Waiting for you to finish typing...' : loadingState}
+                            <Loading /> {isLoading || isDebouncing ? 'Loading' : 'Creating link'}
                         </div>
                     </Button>
                 ) : (
