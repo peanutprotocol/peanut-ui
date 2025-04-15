@@ -1,6 +1,6 @@
+import Divider from '@/components/0_Bruddle/Divider'
 import BottomDrawer from '@/components/Global/BottomDrawer'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import Divider from '@/components/0_Bruddle/Divider'
 import ShareButton from '@/components/Global/ShareButton'
 import { useState } from 'react'
 

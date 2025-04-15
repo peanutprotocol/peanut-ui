@@ -1,16 +1,19 @@
 import { PEANUTMAN_PFP } from '@/assets'
-import QRCode from 'react-qr-code'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import Image from 'next/image'
+import QRCode from 'react-qr-code'
+import { twMerge } from 'tailwind-merge'
 
 interface QRCodeWrapperProps {
     url: string
+    isLoading?: boolean
 }
 
-const QRCodeWrapper = ({ url }: QRCodeWrapperProps) => {
+const QRCodeWrapper = ({ url, isLoading = false }: QRCodeWrapperProps) => {
     return (
-        <div className="mx-auto h-auto w-full max-w-[192px]">
+        <div className="relative mx-auto h-auto w-full max-w-[192px]">
             {/* Container with black border and rounded corners */}
-            <div className="relative rounded border-2 border-black bg-white p-4">
+            <div className={twMerge('relative rounded border-2 border-black bg-white p-4', isLoading && 'blur-sm')}>
                 {/* QR Code with white buffer */}
                 <div className="relative">
                     <QRCode
@@ -33,6 +36,13 @@ const QRCodeWrapper = ({ url }: QRCodeWrapperProps) => {
                     </div>
                 </div>
             </div>
+
+            {/* Loading overlay */}
+            {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <PeanutLoading />
+                </div>
+            )}
         </div>
     )
 }
