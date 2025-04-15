@@ -62,10 +62,16 @@ export const RequestCreateView = () => {
     const [debouncedTokenValue, setDebouncedTokenValue] = useState<string>(_tokenValue)
     const tokenDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
+    const hasAttachment = !!attachmentOptions?.rawFile || !!attachmentOptions?.message
+
     const qrCodeLink = useMemo(() => {
         if (generatedLink) return generatedLink
-        return `${window.location.origin}/${user?.user.username}${_tokenValue ? `/${_tokenValue}USDC` : ''}`
-    }, [user?.user.username, _tokenValue, generatedLink])
+
+        // use debouncedTokenValue when in the process of creating a link with attachment
+        const valueToShow = hasAttachment && isCreatingLink ? debouncedTokenValue : _tokenValue
+
+        return `${window.location.origin}/${user?.user.username}${valueToShow ? `/${valueToShow}USDC` : ''}`
+    }, [user?.user.username, _tokenValue, debouncedTokenValue, generatedLink, hasAttachment, isCreatingLink])
 
     const handleOnNext = useCallback(
         async ({
@@ -268,36 +274,30 @@ export const RequestCreateView = () => {
         }
     }, [_tokenValue])
 
-    const hasAttachment = !!attachmentOptions?.rawFile || !!attachmentOptions?.message
-
-    // automatically create link when attachment is added (using debouncedTokenValue)
+    // handle link creation based on input changes
     useEffect(() => {
-        // only create link if there's an attachment, valid recipient, token value, and no link already being created
-        if (hasAttachment && isValidRecipient && debouncedTokenValue && !isCreatingLink && !generatedLink) {
-            handleOnNext({
-                recipientAddress,
-                tokenAddress: selectedTokenAddress,
-                chainId: selectedChainID,
-                userBalances: selectedWallet?.balances ?? [],
-                tokenValue,
-                tokenData: selectedTokenData,
-                attachmentOptions: debouncedAttachmentOptions,
-            })
+        // only create link if there's an attachment, valid recipient, token value, and no link already being created and debounced token value matches the current token value
+        if (
+            hasAttachment &&
+            isValidRecipient &&
+            debouncedTokenValue &&
+            !isCreatingLink &&
+            debouncedTokenValue === _tokenValue
+        ) {
+            // check if we need to create a new link (either no link exists or token value changed)
+            if (!generatedLink) {
+                handleOnNext({
+                    recipientAddress,
+                    tokenAddress: selectedTokenAddress,
+                    chainId: selectedChainID,
+                    userBalances: selectedWallet?.balances ?? [],
+                    tokenValue,
+                    tokenData: selectedTokenData,
+                    attachmentOptions: debouncedAttachmentOptions,
+                })
+            }
         }
-    }, [
-        debouncedAttachmentOptions,
-        isValidRecipient,
-        debouncedTokenValue,
-        isCreatingLink,
-        generatedLink,
-        recipientAddress,
-        selectedTokenAddress,
-        selectedChainID,
-        selectedWallet?.balances,
-        tokenValue,
-        selectedTokenData,
-        handleOnNext,
-    ])
+    }, [debouncedAttachmentOptions, debouncedTokenValue, isValidRecipient, isCreatingLink, generatedLink, _tokenValue])
 
     // check for token value debouncing
     const isDebouncing =
