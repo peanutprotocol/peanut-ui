@@ -261,10 +261,6 @@ export default function Home() {
                                         title: 'Send',
                                         href: '/send',
                                     }}
-                                    rightButton={{
-                                        title: 'Receive',
-                                        href: '/request/create',
-                                    }}
                                 />
                             </div>
                         ) : null}
