@@ -1,5 +1,5 @@
 'use client'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useState, useMemo, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -178,6 +178,8 @@ export default function DirectSendQr({ className = '' }: { className?: string })
     const [redirectTo, setRedirectTo] = useState<string | undefined>(undefined)
     const [modalContent, setModalContent] = useState<ModalType | undefined>(undefined)
     const router = useRouter()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
     const dispatch = useAppDispatch()
     const toast = useToast()
     const { user } = useAuth()
@@ -189,14 +191,15 @@ export default function DirectSendQr({ className = '' }: { className?: string })
     const processQRCode = async (data: string): Promise<{ success: boolean; error?: string }> => {
         let redirectUrl: string | undefined = undefined
         let toConfirmUrl: string | undefined = undefined
+        const originalData = data
         data = data.toLowerCase()
         const qrType = recognizeQr(data)
-        hitUserMetric(user!.user.userId, 'scan-qr', { qrType, data })
+        hitUserMetric(user!.user.userId, 'scan-qr', { qrType, data: originalData })
         setQrType(qrType as EQrType)
         switch (qrType) {
             case EQrType.PEANUT_URL:
                 {
-                    let path = data
+                    let path = originalData
                     path = path.substring(BASE_URL.length)
                     if (!path.startsWith('/')) {
                         path = '/' + path
@@ -248,7 +251,7 @@ export default function DirectSendQr({ className = '' }: { className?: string })
                 return { success: true }
             }
             case EQrType.URL: {
-                setRedirectTo(data)
+                setRedirectTo(originalData)
                 setModalContent(EModalType.EXTERNAL_URL)
                 setIsModalOpen(true)
                 setIsQRScannerOpen(false)
@@ -265,7 +268,21 @@ export default function DirectSendQr({ className = '' }: { className?: string })
 
         if (redirectUrl) {
             dispatch(paymentActions.setView('INITIAL'))
-            router.push(redirectUrl)
+
+            const currentSearchParams = searchParams.toString()
+            let currentFullPath = pathname
+            currentFullPath = currentSearchParams ? `${currentFullPath}?${currentSearchParams}` : currentFullPath
+            currentFullPath += window.location.hash
+
+            if (
+                currentFullPath === redirectUrl ||
+                (redirectUrl.startsWith('/') && currentFullPath === redirectUrl.substring(1))
+            ) {
+                // We're already at this location, just close the scanner
+                setIsQRScannerOpen(false)
+            } else {
+                router.push(redirectUrl)
+            }
             return { success: true }
         }
 
