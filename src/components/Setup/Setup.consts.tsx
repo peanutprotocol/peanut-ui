@@ -9,7 +9,8 @@ export const setupSteps: ISetupStep[] = [
         screenId: 'unsupported-browser',
         layoutType: 'standard',
         title: 'Browser Not Supported',
-        description: "Please open Peanut in your device's main browser (Safari, Chrome, Firefox) to continue setup.",
+        description:
+            "Please open Peanut in your device's main browser (Safari, Chrome, Firefox) to continue setup. If you are already in your main browser your device may not support Peanut.",
         image: PEANUTMAN_MOBILE,
         component: InstallPWA,
         showBackButton: false,
