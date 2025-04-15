@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Winking } from '@/assets'
 
 type DrawerPosition = 'collapsed' | 'half' | 'expanded'
 
@@ -78,9 +77,28 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
         }
     }, [preventScroll, position])
 
-    // Notify parent component when position changes
+    // Handle position changes
     useEffect(() => {
+        // Notify parent component when position changes
         onPositionChange(position)
+
+        // Adjust height based on content in any position
+        if (contentRef.current && sheetRef.current) {
+            // Small delay to ensure content is rendered
+            setTimeout(() => {
+                if (sheetRef.current) {
+                    // If in expanded mode or if content is smaller than half-height requested
+                    const contentHeight = contentRef.current.scrollHeight + 120
+                    const viewportHeight = window.innerHeight
+                    const contentHeightPercent = (contentHeight / viewportHeight) * 100
+
+                    // In expanded position or if content height is less than expected height for position
+                    if (position === 'expanded' || (position === 'half' && contentHeightPercent < halfHeight)) {
+                        sheetRef.current.style.height = calculateHeight()
+                    }
+                }
+            }, 50)
+        }
     }, [position, onPositionChange])
 
     // Handle close when swiping down from collapsed position
@@ -108,14 +126,42 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
     const calculateHeight = (): string => {
         const baseHeight = getHeightPercentage()
 
-        if (!isDragging) return `${baseHeight}vh`
+        // Get content height limit
+        const contentHeightLimit = contentRef.current
+            ? ((contentRef.current.scrollHeight + 120) / window.innerHeight) * 100
+            : expandedHeight
+
+        // Use the smaller of expandedHeight and contentHeightLimit as maximum height
+        const maxHeight = Math.min(expandedHeight, contentHeightLimit)
+
+        if (!isDragging) {
+            // If in expanded mode, use content height
+            if (position === 'expanded') {
+                return `${maxHeight}vh`
+            }
+            // Otherwise use standard height but cap at content height
+            return `${Math.min(baseHeight, maxHeight)}vh`
+        }
 
         // Calculate drag offset as percentage of viewport height
         const dragOffset = ((startY - currentY) / window.innerHeight) * 100
         const newHeight = baseHeight + dragOffset
 
         // Constrain between minimum and maximum heights
-        return `${Math.max(collapsedHeight, Math.min(expandedHeight, newHeight))}vh`
+        return `${Math.max(collapsedHeight, Math.min(maxHeight, newHeight))}vh`
+    }
+
+    // Calculate content-aware height to ensure no extra whitespace
+    const calculateContentHeight = (): string => {
+        if (!contentRef.current) return `${expandedHeight}vh`
+
+        // Calculate the actual content height plus the drag handle height
+        const contentHeight = contentRef.current.scrollHeight + 120 // 120px accounts for the drag handle
+        const viewportHeight = window.innerHeight
+        const contentHeightPercent = (contentHeight / viewportHeight) * 100
+
+        // Cap at the maximum expanded height
+        return `${Math.min(contentHeightPercent, expandedHeight)}vh`
     }
 
     // Handle the end of drag and determine new position
@@ -125,16 +171,37 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
         const dragDistance = startY - currentY
         const dragPercentage = (dragDistance / window.innerHeight) * 100
 
+        // Get content height for comparison
+        const contentHeightLimit = contentRef.current
+            ? ((contentRef.current.scrollHeight + 120) / window.innerHeight) * 100
+            : expandedHeight
+
+        // Check if drawer is already at content height
+        const currentDrawerHeight = sheetRef.current?.style.height ? parseFloat(sheetRef.current.style.height) : 0
+
+        const currentHeightPercent = (currentDrawerHeight / window.innerHeight) * 100
+        const isAtContentMax = Math.abs(currentHeightPercent - contentHeightLimit) < 5 // Within 5% margin
+
         // Determine new position based on drag direction and distance
         if (dragPercentage > 10) {
             // Dragged significantly upward
-            if (position === 'collapsed') setPosition('half')
-            else if (position === 'half') setPosition('expanded')
-        } else if (dragPercentage < -10) {
-            // Dragged significantly downward
-            if (position === 'expanded') setPosition('half')
-            else if (position === 'half') setPosition('collapsed')
-            else if (position === 'collapsed') handleClose()
+            if (position === 'collapsed') {
+                setPosition('half')
+            } else if (position === 'half') {
+                // Only go to expanded if content height is greater than half height
+                if (contentHeightLimit > halfHeight) {
+                    setPosition('expanded')
+                }
+            }
+        } else if (dragPercentage < -10 || isAtContentMax) {
+            // Dragged significantly downward OR we're at content max (allow direct collapse)
+            if (position === 'expanded' || isAtContentMax) {
+                setPosition('half')
+            } else if (position === 'half') {
+                setPosition('collapsed')
+            } else if (position === 'collapsed') {
+                handleClose()
+            }
         }
 
         setIsDragging(false)
@@ -247,7 +314,11 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
                 <div
                     ref={contentRef}
                     className="overflow-y-auto px-6 pb-6"
-                    style={{ maxHeight: `calc(${expandedHeight}vh - 70px)` }}
+                    style={{
+                        maxHeight: `calc(${
+                            position === 'expanded' ? calculateContentHeight().replace('vh', '') : expandedHeight
+                        }vh - 70px)`,
+                    }}
                 >
                     {children}
                 </div>
@@ -255,10 +326,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
                     className={`pointer-events-none absolute bottom-0 left-0 right-0 items-center pb-4 text-center transition-all duration-300 ease-in-out ${
                         position === 'expanded' ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
                     }`}
-                >
-                    <img src={Winking.src} className="mx-auto h-auto w-20" />
-                    <span className="mt-4 text-2xl font-bold">You found me!</span>
-                </div>
+                ></div>
             </div>
         </div>,
         portalElement

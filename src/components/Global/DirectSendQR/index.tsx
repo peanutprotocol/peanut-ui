@@ -4,7 +4,6 @@ import { useState, useMemo, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
-import CopyField from '@/components/Global/CopyField'
 import Icon from '@/components/Global/Icon'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import QRScanner from '@/components/Global/QRScanner'
@@ -129,8 +128,7 @@ function DirectSendContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
 function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
     return (
         <div className="flex flex-col justify-center p-6">
-            <CopyField text={redirectTo!} shadowSize="4" />
-            <span className="mt-4 text-sm">Peanut doesn’t support this QR but you can open it with your browser. </span>
+            <span className="text-sm">Peanut doesn’t support this QR but you can open it with your browser. </span>
             <span className="text-sm">Make sure you trust this website!</span>
             <div className="flex items-center justify-center gap-2">
                 <Button
@@ -341,7 +339,7 @@ export default function DirectSendQr({ className = '' }: { className?: string })
                 shadowSize="4"
                 shadowType="primary"
                 className={twMerge(
-                    'mx-auto h-16 w-16 -translate-y-1/3 transform cursor-pointer justify-center rounded-full p-0',
+                    'mx-auto h-16 w-16 -translate-y-1/3 transform cursor-pointer justify-center rounded-full p-0 hover:bg-primary-1/100',
                     className
                 )}
             >
