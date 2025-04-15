@@ -58,6 +58,10 @@ export const RequestCreateView = () => {
         (inputDenomination === 'TOKEN' ? tokenValue : usdValue) ?? ''
     )
 
+    // debounced token value
+    const [debouncedTokenValue, setDebouncedTokenValue] = useState<string>(_tokenValue)
+    const tokenDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
     const qrCodeLink = useMemo(() => {
         if (generatedLink) return generatedLink
         return `${window.location.origin}/${user?.user.username}${_tokenValue ? `/${_tokenValue}USDC` : ''}`
@@ -244,12 +248,32 @@ export const RequestCreateView = () => {
         }
     }, [attachmentOptions])
 
-    // automatically create link when attachment is added (with a debounce)
+    // debounce token value
     useEffect(() => {
-        const hasAttachment = !!debouncedAttachmentOptions?.rawFile || !!debouncedAttachmentOptions?.message
+        // clear timer
+        if (tokenDebounceTimerRef.current) {
+            clearTimeout(tokenDebounceTimerRef.current)
+        }
 
+        // set timer for the debounced update
+        tokenDebounceTimerRef.current = setTimeout(() => {
+            setDebouncedTokenValue(_tokenValue)
+        }, 1000) // 1 second debounce
+
+        // cleanup function
+        return () => {
+            if (tokenDebounceTimerRef.current) {
+                clearTimeout(tokenDebounceTimerRef.current)
+            }
+        }
+    }, [_tokenValue])
+
+    const hasAttachment = !!attachmentOptions?.rawFile || !!attachmentOptions?.message
+
+    // automatically create link when attachment is added (using debouncedTokenValue)
+    useEffect(() => {
         // only create link if there's an attachment, valid recipient, token value, and no link already being created
-        if (hasAttachment && isValidRecipient && _tokenValue && !isCreatingLink && !generatedLink) {
+        if (hasAttachment && isValidRecipient && debouncedTokenValue && !isCreatingLink && !generatedLink) {
             handleOnNext({
                 recipientAddress,
                 tokenAddress: selectedTokenAddress,
@@ -263,7 +287,7 @@ export const RequestCreateView = () => {
     }, [
         debouncedAttachmentOptions,
         isValidRecipient,
-        _tokenValue,
+        debouncedTokenValue,
         isCreatingLink,
         generatedLink,
         recipientAddress,
@@ -275,11 +299,13 @@ export const RequestCreateView = () => {
         handleOnNext,
     ])
 
-    const hasAttachment = !!attachmentOptions?.rawFile || !!attachmentOptions?.message
+    // check for token value debouncing
     const isDebouncing =
-        hasAttachment &&
-        attachmentOptions?.message &&
-        (!debouncedAttachmentOptions?.message || debouncedAttachmentOptions.message !== attachmentOptions.message)
+        (hasAttachment &&
+            attachmentOptions?.message &&
+            (!debouncedAttachmentOptions?.message ||
+                debouncedAttachmentOptions.message !== attachmentOptions.message)) ||
+        (hasAttachment && _tokenValue !== debouncedTokenValue)
 
     return (
         <div className="space-y-4">
@@ -316,7 +342,7 @@ export const RequestCreateView = () => {
                 {(hasAttachment && isCreatingLink) || isDebouncing ? (
                     <Button disabled={true} shadowSize="4">
                         <div className="flex w-full flex-row items-center justify-center gap-2">
-                            <Loading /> {isLoading || isDebouncing ? 'Loading' : 'Creating link'}
+                            <Loading /> {' Loading'}
                         </div>
                     </Button>
                 ) : (
