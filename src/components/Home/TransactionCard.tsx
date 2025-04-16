@@ -1,8 +1,6 @@
-import Icon from '@/components/Global/Icon'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { formatExtendedNumber, printableUsdc } from '@/utils'
 import React from 'react'
-import { twMerge } from 'tailwind-merge'
-import { NavIcons } from '../0_Bruddle/icons'
 
 export type TransactionType = 'send' | 'withdraw' | 'add' | 'request'
 export type TransactionStatus = 'completed' | 'pending'
@@ -39,12 +37,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ type, name, amount, s
 
                     <div className="flex flex-col">
                         <div className="max-w-40 truncate font-roboto text-sm font-medium">{name}</div>
-                        <div className="flex items-center text-gray-500">
-                            <Icon
-                                name={getActionIcon(type)}
-                                className={twMerge('mr-1 h-3 w-3', type === 'withdraw' && 'rotate-180')}
-                                fill="currentColor"
-                            />
+                        <div className="flex items-center gap-1 text-gray-500">
+                            {getActionIcon(type)}
                             <span className="text-[10px] capitalize">{type}</span>
                         </div>
                     </div>
@@ -86,26 +80,24 @@ function renderIcon(type: TransactionType, initials: string): React.ReactNode {
         case 'request':
             return initials.substring(0, 2).toUpperCase()
         case 'withdraw':
-            return <Icon name="bank" className="h-6 w-6" fill="white" />
+            return <Icon name="bank" size={16} fill="white" />
         case 'add':
-            return <NavIcons name="wallet" size={24} fill="white" />
+            return <Icon name="arrow-down" size={14} fill="white" />
         default:
             return null
     }
 }
 
-function getActionIcon(type: TransactionType): string {
+function getActionIcon(type: TransactionType): React.ReactNode {
     switch (type) {
         case 'send':
-            return 'arrow-up-right'
-        case 'withdraw':
-            return 'arrow-up'
-        case 'add':
-            return 'arrow-up'
+            return <Icon name="arrow-up-right" size={6} fill="currentColor" />
         case 'request':
-            return 'arrow-down-left'
-        default:
-            return 'circle'
+            return <Icon name="arrow-down-left" size={6} fill="currentColor" />
+        case 'withdraw':
+            return <Icon name="arrow-up" size={8} fill="currentColor" />
+        case 'add':
+            return <Icon name="arrow-down" size={8} fill="currentColor" />
     }
 }
 
