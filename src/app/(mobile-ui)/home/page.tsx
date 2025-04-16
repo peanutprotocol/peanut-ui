@@ -1,71 +1,27 @@
 'use client'
 
-import { PEANUT_LOGO_BLACK } from '@/assets'
-import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
-import LogoutButton from '@/components/Global/LogoutButton'
+import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
+import Icon from '@/components/Global/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
-import { WalletCard } from '@/components/Home/WalletCard'
 import HomeHistory from '@/components/Home/HomeHistory'
-import PeanutWalletActions from '@/components/PeanutWalletActions'
-import ProfileSection from '@/components/Profile/Components/ProfileSection'
+import TransactionCard from '@/components/Home/TransactionCard'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
-import { WalletProviderType } from '@/interfaces'
-import { useAppDispatch, useWalletStore } from '@/redux/hooks'
-import { walletActions } from '@/redux/slices/wallet-slice'
-import { getUserPreferences, updateUserPreferences } from '@/utils'
-import { usePrimaryNameBatch } from '@justaname.id/react'
-import classNames from 'classnames'
-import { motion, useAnimation } from 'framer-motion'
-import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
-
-const cardWidth = 300
-const cardMargin = 16
+import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences } from '@/utils'
+import Link from 'next/link'
+import { useMemo, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 
 export default function Home() {
-    const dispatch = useAppDispatch()
-    const controls = useAnimation()
-    const router = useRouter()
-    const carouselRef = useRef<HTMLDivElement>(null)
-    const { connectWallet } = useWalletConnection()
+    const { peanutWalletDetails } = useWallet()
 
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
         return prefs?.balanceHidden ?? false
     })
 
-    // state to track if content is ready to show
-    const [contentReady, setContentReady] = useState(false)
-
     const { username, isFetchingUser } = useAuth()
-
-    const { selectedWallet, wallets, isWalletConnected, isFetchingWallets } = useWallet()
-    const { focusedWallet: focusedWalletId } = useWalletStore()
-
-    const [focusedIndex, setFocusedIndex] = useState(0)
-
-    // Fetch ENS names for all wallet addresses
-    const walletAddresses = useMemo(() => wallets.map((wallet) => wallet.address), [wallets])
-    const { allPrimaryNames } = usePrimaryNameBatch({
-        addresses: walletAddresses,
-        enabled: !!walletAddresses.length,
-    })
-
-    // update focusedIndex and focused wallet when selectedWallet changes
-    useEffect(() => {
-        const index = wallets.findIndex((wallet) => wallet.id === selectedWallet?.id)
-        if (index !== -1) {
-            setFocusedIndex(index)
-            dispatch(walletActions.setFocusedWallet(wallets[index]))
-        }
-    }, [selectedWallet, wallets])
-
-    const hasWallets = useMemo(() => wallets.length > 0, [wallets])
-    const totalCards = useMemo(() => (hasWallets ? wallets.length + 1 : 1), [hasWallets, wallets])
 
     const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation()
@@ -76,197 +32,155 @@ export default function Home() {
         })
     }
 
-    useEffect(() => {
-        if (!hasWallets || isFetchingWallets) return
-        controls.start({
-            x: -(focusedIndex * (cardWidth + cardMargin)),
-            transition: { type: 'spring', stiffness: 300, damping: 30 },
-        })
-    }, [focusedIndex, controls, hasWallets, isFetchingWallets])
+    const isLoading = isFetchingUser && !username
 
-    const handleCardClick = (index: number) => {
-        if (index < wallets.length) {
-            const wallet = wallets[index]
-
-            if (focusedIndex !== index) {
-                setFocusedIndex(index)
-                dispatch(walletActions.setFocusedWallet(wallet))
-                controls.start({
-                    x: -(index * (cardWidth + cardMargin)),
-                    transition: { type: 'spring', stiffness: 300, damping: 30 },
-                })
-
-                // check wallet type and ID
-                const isValidPeanutWallet =
-                    wallet.id.startsWith('peanut-wallet') && wallet.walletProviderType === WalletProviderType.PEANUT
-
-                const isValidRewardsWallet =
-                    wallet.id === 'pinta-wallet' && wallet.walletProviderType === WalletProviderType.REWARDS
-
-                const isValidExternalWallet =
-                    wallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(wallet)
-
-                if (isValidPeanutWallet || isValidRewardsWallet || isValidExternalWallet) {
-                    dispatch(walletActions.setSelectedWalletId(wallet.id))
-                }
-                return
-            }
-
-            if (focusedIndex === index) {
-                router.push('/wallet')
-            }
-        }
-    }
-
-    const handleDragEnd = (_e: any, { offset, velocity }: any) => {
-        const swipe = Math.abs(offset.x) * velocity.x
-        let targetIndex = focusedIndex
-
-        if (swipe < -10000) {
-            targetIndex = Math.min(focusedIndex + 1, totalCards - 1)
-        } else if (swipe > 10000) {
-            targetIndex = Math.max(focusedIndex - 1, 0)
-        }
-
-        setFocusedIndex(targetIndex)
-
-        if (targetIndex < wallets.length) {
-            const targetWallet = wallets[targetIndex]
-            dispatch(walletActions.setFocusedWallet(targetWallet))
-
-            // check wallet type and ID
-            const isValidPeanutWallet =
-                targetWallet.id.startsWith('peanut-wallet') &&
-                targetWallet.walletProviderType === WalletProviderType.PEANUT
-            const isValidRewardsWallet =
-                targetWallet.id === 'pinta-wallet' && targetWallet.walletProviderType === WalletProviderType.REWARDS
-            const isValidExternalWallet =
-                targetWallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(targetWallet)
-
-            if (isValidPeanutWallet || isValidRewardsWallet || isValidExternalWallet) {
-                dispatch(walletActions.setSelectedWalletId(targetWallet.id))
-            }
-        }
-
-        controls.start({
-            x: -(targetIndex * (cardWidth + cardMargin)),
-            transition: { type: 'spring', stiffness: 300, damping: 30 },
-        })
-    }
-
-    const isAddWalletFocused = useMemo<boolean>(() => {
-        if ((wallets?.length ?? 0) === 0) return true
-        return wallets.length <= focusedIndex
-    }, [focusedIndex, wallets?.length])
-
-    const isLoading = (isFetchingWallets && !wallets.length) || (isFetchingUser && !username)
-
-    // use effect to delay showing content
-    useEffect(() => {
-        if (!isLoading) {
-            // small delay to ensure everything is loaded
-            const timer = setTimeout(() => {
-                setContentReady(true)
-            }, 100)
-
-            return () => clearTimeout(timer)
-        } else {
-            setContentReady(false)
-        }
-    }, [isLoading])
-
-    // show loading if we're loading or content isn't ready yet
-    if (isLoading || !contentReady) {
+    if (isLoading) {
         return <PeanutLoading coverFullScreen />
     }
 
     return (
-        <div className="h-full w-full">
-            <div className="flex h-full w-full flex-row justify-center overflow-hidden py-6 md:py-0">
-                <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
-                    <div className="space-y-4 px-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex w-full items-center justify-between md:hidden">
-                                <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" className="w-20" />
-                                <LogoutButton />
-                            </div>
-                        </div>
-                        <ProfileSection />
-                    </div>
+        <div className="h-full w-full p-5">
+            <div className="space-y-4">
+                <ActionButtonGroup>
+                    <ActionButton label="Add money" action="add" href="/add" size="small" />
+                    <ActionButton label="Withdraw" action="withdraw" href="/withdraw" size="small" />
+                </ActionButtonGroup>
 
-                    <div>
-                        <div
-                            className={classNames('relative h-[200px] p-4 sm:overflow-visible', {
-                                'overflow-hidden': wallets.length > 0,
-                            })}
-                            style={{
-                                marginRight: -cardMargin,
-                                marginLeft: -cardMargin,
-                            }}
-                        >
-                            {hasWallets ? (
-                                <motion.div
-                                    ref={carouselRef}
-                                    className="absolute flex h-[calc(100%-32px)] px-4"
-                                    animate={controls}
-                                    drag="x"
-                                    dragConstraints={{
-                                        left: -((totalCards - 1) * (cardWidth + cardMargin)),
-                                        right: 0,
-                                    }}
-                                    dragElastic={0.2}
-                                    onDragEnd={handleDragEnd}
-                                >
-                                    {!!wallets.length &&
-                                        wallets.map((wallet, index) => (
-                                            <WalletCard
-                                                key={wallet.id}
-                                                type="wallet"
-                                                wallet={wallet}
-                                                username={username ?? ''}
-                                                primaryName={allPrimaryNames?.[wallet.address] || wallet.address}
-                                                selected={selectedWallet?.id === wallet.id}
-                                                onClick={() => handleCardClick(index)}
-                                                index={index}
-                                                isBalanceHidden={isBalanceHidden}
-                                                onToggleBalanceVisibility={handleToggleBalanceVisibility}
-                                                isFocused={focusedIndex === index}
-                                            />
-                                        ))}
+                <WalletBalance
+                    balance={peanutWalletDetails?.balance ?? BigInt(0)}
+                    isBalanceHidden={isBalanceHidden}
+                    onToggleBalanceVisibility={handleToggleBalanceVisibility}
+                />
 
-                                    <WalletCard type="add" onClick={connectWallet} />
-                                </motion.div>
-                            ) : (
-                                <div className="flex h-full w-full flex-grow flex-col justify-center">
-                                    <WalletCard type="add" onClick={connectWallet} />
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="h-22 px-6 md:pb-6">
-                        {isAddWalletFocused ? null : focusedWalletId &&
-                          wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
-                              WalletProviderType.REWARDS ? null : wallets.find((w) => w.id === focusedWalletId)
-                              ?.walletProviderType === WalletProviderType.PEANUT ? (
-                            <PeanutWalletActions />
-                        ) : focusedWalletId &&
-                          wallets.find((w) => w.id === focusedWalletId) &&
-                          isWalletConnected(wallets.find((w) => w.id === focusedWalletId)!) ? (
-                            <div className="flex w-full flex-row items-center justify-center gap-9">
-                                <DirectionalActionButtons
-                                    leftButton={{
-                                        title: 'Send',
-                                        href: '/send',
-                                    }}
-                                />
-                            </div>
-                        ) : null}
-                    </div>
-                </div>
+                <ActionButtonGroup>
+                    <ActionButton label="Send" action="send" href="/send" variant="purple" size="large" />
+                    <ActionButton
+                        label="Request"
+                        action="request"
+                        href="/request/create"
+                        variant="purple"
+                        size="large"
+                    />
+                </ActionButtonGroup>
             </div>
+
+            {/* Transaction cards - temperorary */}
+            <div className="mt-6 border-t border-black">
+                <TransactionCard
+                    type="send"
+                    name="Hugo Montenegro"
+                    amount={BigInt(6969000000)}
+                    status="completed"
+                    initials="HM"
+                />
+
+                <TransactionCard
+                    type="withdraw"
+                    name="Bank Account #1"
+                    amount={BigInt(6969000000)}
+                    status="completed"
+                />
+
+                <TransactionCard type="add" name="peanut.ens" amount={BigInt(6969000000)} status="completed" />
+
+                <TransactionCard
+                    type="request"
+                    name="dasdasdasdsa Montenegro"
+                    amount={BigInt(6969000000)}
+                    status="pending"
+                    initials="HM"
+                />
+            </div>
+
             <HomeHistory />
             <RewardsModal />
         </div>
     )
+}
+
+function WalletBalance({
+    balance,
+    isBalanceHidden,
+    onToggleBalanceVisibility,
+}: {
+    balance: bigint
+    isBalanceHidden: boolean
+    onToggleBalanceVisibility: (e: React.MouseEvent<HTMLButtonElement>) => void
+}) {
+    const balanceDisplay = useMemo(() => {
+        if (isBalanceHidden) {
+            return (
+                <span className="inline-flex items-center">
+                    <span className="relative top-1">* * * *</span>
+                </span>
+            )
+        }
+
+        return formatExtendedNumber(printableUsdc(balance))
+    }, [isBalanceHidden, balance])
+
+    return (
+        <div className="flex items-center gap-2">
+            <p className="flex items-end gap-2 text-4xl font-black leading-none sm:text-[2.5rem]">
+                {' '}
+                <span className="text-xl">$ </span>
+                {balanceDisplay}
+            </p>
+
+            <button onClick={onToggleBalanceVisibility}>
+                <Icon name={isBalanceHidden ? 'eye-slash' : 'eye'} className={'h-6 w-6'} fill={'black'} />
+            </button>
+        </div>
+    )
+}
+
+function ActionButton({
+    label,
+    action,
+    href,
+    variant = 'primary-soft',
+    size = 'small',
+}: {
+    label: string
+    action: 'add' | 'withdraw' | 'send' | 'request'
+    href: string
+    variant?: ButtonVariant
+    size?: ButtonSize
+}) {
+    // get icon based on action type
+    const renderIcon = () => {
+        switch (action) {
+            case 'send':
+                return <Icon name="arrow-up-right" className="h-4 w-4" fill="currentColor" />
+            case 'withdraw':
+                return <Icon name="arrow-up" className="h-4 w-4 rotate-180" fill="currentColor" />
+            case 'add':
+                return <Icon name="arrow-up" className="h-4 w-4" fill="currentColor" />
+            case 'request':
+                return <Icon name="arrow-down-left" className="h-4 w-4" fill="currentColor" />
+            default:
+                return null
+        }
+    }
+
+    return (
+        <Link href={href} className="block">
+            <Button
+                variant={variant}
+                className={twMerge(
+                    'flex cursor-pointer items-center justify-center rounded-full',
+                    size === 'large' ? 'min-w-[145px] px-6 py-3' : 'min-w-[120px] px-4 py-2'
+                )}
+                shadowSize="4"
+                size={size}
+            >
+                {renderIcon()}
+                <span className={twMerge('font-bold', size === 'small' ? 'text-xs' : 'text-sm')}>{label}</span>
+            </Button>
+        </Link>
+    )
+}
+
+function ActionButtonGroup({ children }: { children: React.ReactNode }) {
+    return <div className="flex items-center justify-normal gap-4">{children}</div>
 }

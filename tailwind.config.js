@@ -86,6 +86,7 @@ module.exports = {
                 },
                 success: {
                     1: '#16B413',
+                    2: '#C7F9C6',
                 },
                 white: '#FFFFFF',
                 red: '#FF0000',
