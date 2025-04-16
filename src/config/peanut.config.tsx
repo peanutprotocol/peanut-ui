@@ -1,5 +1,5 @@
 'use client'
-import { ContextProvider } from '@/config/wagmi.config'
+import { ContextProvider } from '@/config'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { Analytics } from '@vercel/analytics/react'
 import countries from 'i18n-iso-countries'
