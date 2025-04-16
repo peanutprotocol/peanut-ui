@@ -10,7 +10,7 @@ import { CrispButton } from '@/components/CrispChat'
 import Icon from '@/components/Global/Icon'
 import Loading from '@/components/Global/Loading'
 import RecipientInput from '@/components/Global/RecipientInput'
-import * as context from '@/context'
+import { loadingStateContext } from '@/context'
 import * as utils from '@/utils'
 import { ethers } from 'ethers'
 import { validate } from 'multicoin-address-validator'
@@ -31,7 +31,7 @@ export const CreateLinkInitialView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
     const handleInputValidation = async (value: string) => {
         //email check

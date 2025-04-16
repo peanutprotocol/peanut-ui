@@ -11,7 +11,7 @@ import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountCompon
 import Loading from '@/components/Global/Loading'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as consts from '@/constants'
-import * as context from '@/context'
+import { tokenSelectorContext, loadingStateContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import * as utils from '@/utils'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
@@ -66,7 +66,7 @@ export const OfframpConfirmView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const { claimLink, claimLinkXchain } = useClaimLink()
     const { fetchUser, user } = useAuth()
 
@@ -78,7 +78,7 @@ export const OfframpConfirmView = ({
 
     //////////////////////
     // state and context vars for cashout offramp
-    const { selectedChainID, selectedTokenAddress, selectedTokenData } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, selectedTokenData } = useContext(tokenSelectorContext)
     const [showRefund, setShowRefund] = useState(false)
     const { createLinkWrapper } = useCreateLink()
     const [createdLink, setCreatedLink] = useState<string | undefined>(undefined)

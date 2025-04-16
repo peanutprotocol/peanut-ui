@@ -1,6 +1,6 @@
 import StatusViewWrapper from '@/components/Global/StatusViewWrapper'
 import { fetchDestinationChain } from '@/components/utils/utils'
-import * as context from '@/context'
+import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as utils from '@/utils'
 import * as Sentry from '@sentry/nextjs'
@@ -14,7 +14,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     const { isConnected, address, chain: currentChain, isPeanutWallet } = useWallet()
     const { switchChainAsync } = useSwitchChain()
 
-    const { resetTokenContextProvider, selectedChainID } = useContext(context.tokenSelectorContext)
+    const { resetTokenContextProvider, selectedChainID } = useContext(tokenSelectorContext)
 
     const explorerUrlWithTx = useMemo(
         () => `${utils.getExplorerUrl(claimLinkData.chainId)}/tx/${transactionHash}`,

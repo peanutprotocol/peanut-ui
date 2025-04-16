@@ -1,4 +1,4 @@
-import * as context from '@/context'
+import { tokenSelectorContext } from '@/context'
 import * as utils from '@/utils'
 import { fetchTokenSymbol } from '@/utils'
 import { useContext, useEffect, useState } from 'react'
@@ -37,7 +37,7 @@ export const AdvancedTokenSelectorButton = ({
     type = 'send',
     onReset,
 }: IAdvancedTokenSelectorButtonProps) => {
-    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress } = useContext(tokenSelectorContext)
     const [_tokenSymbol, _setTokenSymbol] = useState<string | undefined>(tokenSymbol)
 
     useEffect(() => {

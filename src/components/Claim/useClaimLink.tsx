@@ -7,7 +7,7 @@ import { useContext } from 'react'
 import { useSwitchChain } from 'wagmi'
 
 import * as consts from '@/constants'
-import * as context from '@/context'
+import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as utils from '@/utils'
 import * as Sentry from '@sentry/nextjs'
@@ -16,7 +16,7 @@ const useClaimLink = () => {
     const { chain: currentChain, refetchBalances } = useWallet()
     const { switchChainAsync } = useSwitchChain()
 
-    const { setLoadingState } = useContext(context.loadingStateContext)
+    const { setLoadingState } = useContext(loadingStateContext)
 
     const claimLink = async ({ address, link }: { address: string; link: string }) => {
         setLoadingState('Executing transaction')

@@ -11,7 +11,7 @@ import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
-import * as context from '@/context'
+import { tokenSelectorContext, loadingStateContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -44,7 +44,7 @@ export const InitialCashoutView = ({
         setSelectedChainID,
         selectedTokenAddress,
         setSelectedTokenAddress,
-    } = useContext(context.tokenSelectorContext)
+    } = useContext(tokenSelectorContext)
 
     const { user, fetchUser, isFetchingUser } = useAuth()
     const [, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
@@ -63,7 +63,7 @@ export const InitialCashoutView = ({
         )
     }, [selectedChainID, crossChainDetails])
 
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string

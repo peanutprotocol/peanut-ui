@@ -8,7 +8,7 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { InputUpdate } from '@/components/Global/ValidatedInput'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
-import * as context from '@/context'
+import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken, IUserBalance } from '@/interfaces'
 import { fetchTokenSymbol, isNativeCurrency } from '@/utils'
@@ -42,8 +42,8 @@ export const InitialView = ({
         selectedTokenAddress,
         setSelectedTokenAddress,
         selectedTokenData,
-    } = useContext(context.tokenSelectorContext)
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    } = useContext(tokenSelectorContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string

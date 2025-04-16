@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { useConfig, useSendTransaction } from 'wagmi'
 
 import * as consts from '@/constants'
-import * as context from '@/context'
+import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as utils from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
@@ -29,7 +29,7 @@ export const Refund = () => {
     }>({ showError: false, errorMessage: '' })
     const [claimedExploredUrlWithHash, setClaimedExplorerUrlWithHash] = useState<string | undefined>(undefined)
 
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const refundForm = useForm<{
         chainId: string
         transactionHash: string

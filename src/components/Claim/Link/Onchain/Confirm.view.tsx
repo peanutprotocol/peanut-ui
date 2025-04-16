@@ -6,7 +6,7 @@ import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import * as consts from '@/constants'
-import * as context from '@/context'
+import { tokenSelectorContext, loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as utils from '@/utils'
 import * as Sentry from '@sentry/nextjs'
@@ -29,9 +29,9 @@ export const ConfirmClaimLinkView = ({
     const { address, refetchBalances } = useWallet()
     const { claimLinkXchain, claimLink } = useClaimLink()
     const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(
-        context.tokenSelectorContext
+        tokenSelectorContext
     )
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
