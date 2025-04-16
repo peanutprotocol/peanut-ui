@@ -99,7 +99,12 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
 
                 //  conditional request params
                 const requestParams: any = { recipient: recipientIdentifier }
-                if (parsedPaymentData.amount) requestParams.tokenAmount = parsedPaymentData.amount
+
+                // include amount only if it is explicitly provided in the URL
+                if (parsedPaymentData.amount && parsedPaymentData.amount !== '') {
+                    requestParams.tokenAmount = parsedPaymentData.amount
+                }
+
                 if (chainId) requestParams.chainId = chainId
                 if (tokenAddress) requestParams.tokenAddress = tokenAddress
 

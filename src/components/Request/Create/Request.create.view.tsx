@@ -62,19 +62,16 @@ export const RequestCreateView = () => {
     const [debouncedTokenValue, setDebouncedTokenValue] = useState<string>(_tokenValue)
     const tokenDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-    // state to track if the user has entered a value
-    const [userEnteredValue, setUserEnteredValue] = useState(false)
-
     const hasAttachment = !!attachmentOptions?.rawFile || !!attachmentOptions?.message
 
     const qrCodeLink = useMemo(() => {
         if (generatedLink) return generatedLink
 
-        // include the amount only if the user has explicitly entered a value in this session
-        const shouldShowAmount = userEnteredValue && _tokenValue
+        // use debouncedTokenValue when in the process of creating a link with attachment
+        const valueToShow = hasAttachment && isCreatingLink ? debouncedTokenValue : _tokenValue
 
-        return `${window.location.origin}/${user?.user.username}${shouldShowAmount ? `/${_tokenValue}USDC` : ''}`
-    }, [user?.user.username, _tokenValue, generatedLink, userEnteredValue])
+        return `${window.location.origin}/${user?.user.username}${valueToShow ? `/${valueToShow}USDC` : ''}`
+    }, [user?.user.username, _tokenValue, debouncedTokenValue, generatedLink, hasAttachment, isCreatingLink])
 
     const handleOnNext = useCallback(
         async ({
@@ -312,9 +309,7 @@ export const RequestCreateView = () => {
 
     return (
         <div className="space-y-4">
-            <div className="md:hidden">
-                <NavHeader title="Request" href="/home" />
-            </div>
+            <NavHeader title="Request" href="/home" />
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <div className="space-y-3">
                     <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
@@ -324,10 +319,6 @@ export const RequestCreateView = () => {
                     className="w-full"
                     setTokenValue={(value) => {
                         _setTokenValue(value ?? '')
-                        // Mark that user has entered a value in this session
-                        if (value) {
-                            setUserEnteredValue(true)
-                        }
                         // reset generated link when token value changes
                         setGeneratedLink(null)
                     }}
