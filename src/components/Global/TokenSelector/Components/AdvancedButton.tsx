@@ -1,5 +1,5 @@
 import { tokenSelectorContext } from '@/context'
-import * as utils from '@/utils'
+import { formatTokenAmount } from '@/utils'
 import { fetchTokenSymbol } from '@/utils'
 import { useContext, useEffect, useState } from 'react'
 import Icon from '../../Icon'
@@ -93,7 +93,7 @@ export const AdvancedTokenSelectorButton = ({
                 </div>
                 <div className="flex flex-col items-start justify-center gap-1">
                     <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
-                        {type === 'xchain' && tokenAmount && utils.formatTokenAmount(Number(tokenAmount) ?? 0, 4)}{' '}
+                        {type === 'xchain' && tokenAmount && formatTokenAmount(Number(tokenAmount) ?? 0, 4)}{' '}
                         {_tokenSymbol} on {chainName}
                     </div>
 
@@ -102,14 +102,14 @@ export const AdvancedTokenSelectorButton = ({
                             Balance:{' '}
                             {tokenUsdValue
                                 ? // usd value of token
-                                  `$${utils.formatTokenAmount(parseFloat(tokenUsdValue), 2)}`
+                                  `$${formatTokenAmount(parseFloat(tokenUsdValue), 2)}`
                                 : // format token balance with 4 decimals
-                                  `${utils.formatTokenAmount(tokenBalance ?? 0, 4)} ${tokenSymbol}`}
+                                  `${formatTokenAmount(tokenBalance ?? 0, 4)} ${tokenSymbol}`}
                         </p>
                     )}
                     {tokenAmount && tokenPrice && (
                         <p className="text-xs text-grey-1">
-                            ${utils.formatTokenAmount(Number(tokenAmount) * tokenPrice, 4)}
+                            ${formatTokenAmount(Number(tokenAmount) * tokenPrice, 4)}
                         </p>
                     )}
                 </div>

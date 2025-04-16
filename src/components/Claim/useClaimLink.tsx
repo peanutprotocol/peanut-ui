@@ -9,7 +9,7 @@ import { useSwitchChain } from 'wagmi'
 import * as consts from '@/constants'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import * as utils from '@/utils'
+import { isTestnetChain } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 
 const useClaimLink = () => {
@@ -54,7 +54,7 @@ const useClaimLink = () => {
     }) => {
         setLoadingState('Executing transaction')
         try {
-            const isTestnet = utils.isTestnetChain(destinationChainId)
+            const isTestnet = isTestnetChain(destinationChainId)
             const claimTx = await claimLinkXChainGasless({
                 link,
                 recipientAddress: address,

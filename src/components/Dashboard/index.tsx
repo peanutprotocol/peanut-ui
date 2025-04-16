@@ -9,7 +9,7 @@ import Sorting from '../Global/Sorting'
 import TablePagination from '../Global/TablePagination'
 
 import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
+import { formatDate, formatTokenAmount, getAllLinksFromLocalStorage, getAllRaffleLinksFromLocalstorage, printableAddress } from '@/utils'
 import * as _consts from './Dashboard.consts'
 import { SortComponent, OptionsItemComponent, MobileItemComponent } from './components'
 
@@ -51,13 +51,13 @@ export const Dashboard = () => {
             )
             if (address) {
                 const links: string[] = []
-                const legacyLinkObject = utils.getAllLinksFromLocalStorage({ address: address })
+                const legacyLinkObject = getAllLinksFromLocalStorage({ address: address })
                 if (legacyLinkObject) {
                     legacyLinkObject.forEach((obj) => {
                         links.push(obj.link)
                     })
                 }
-                const raffleLegacyLinkObject = utils.getAllRaffleLinksFromLocalstorage({ address: address })
+                const raffleLegacyLinkObject = getAllRaffleLinksFromLocalstorage({ address: address })
                 if (raffleLegacyLinkObject) {
                     raffleLegacyLinkObject.forEach((obj) => {
                         links.push(obj.link)
@@ -119,7 +119,7 @@ export const Dashboard = () => {
                     <label className="text-h2">Dashboard</label>
                     <label className="text-h7 font-normal">
                         {dashboardData.length > 0
-                            ? `See all links created and claimed  ${address ? `with ${utils.printableAddress(address)}` : 'on this device'}`
+                            ? `See all links created and claimed  ${address ? `with ${printableAddress(address)}` : 'on this device'}`
                             : 'You have not created or claimed any links yet.'}
                     </label>
                 </div>
@@ -186,10 +186,10 @@ export const Dashboard = () => {
                                             >
                                                 <td className="td-custom font-bold">{link.type}</td>
                                                 <td className="td-custom font-bold">
-                                                    {utils.formatTokenAmount(Number(link.amount), 4)} {link.tokenSymbol}
+                                                    {formatTokenAmount(Number(link.amount), 4)} {link.tokenSymbol}
                                                 </td>
                                                 <td className="td-custom font-bold">{link.chain}</td>
-                                                <td className="td-custom">{utils.formatDate(new Date(link.date))}</td>
+                                                <td className="td-custom">{formatDate(new Date(link.date))}</td>
                                                 <td className="td-custom">
                                                     <AddressLink address={link.address ?? address ?? ''} />
                                                 </td>
