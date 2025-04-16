@@ -88,7 +88,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
             setTimeout(() => {
                 if (contentRef.current && sheetRef.current) {
                     // If in expanded mode or if content is smaller than half-height requested
-                    const contentHeight = contentRef.current.scrollHeight + 120
+                    const contentHeight = (contentRef.current?.scrollHeight ?? 0) + 120
                     const viewportHeight = window.innerHeight
                     const contentHeightPercent = (contentHeight / viewportHeight) * 100
 
