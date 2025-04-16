@@ -280,6 +280,7 @@ export default function DirectSendQr({ className = '' }: { className?: string })
                 setIsQRScannerOpen(false)
             } else {
                 router.push(redirectUrl)
+                setIsQRScannerOpen(false)
             }
             return { success: true }
         }
