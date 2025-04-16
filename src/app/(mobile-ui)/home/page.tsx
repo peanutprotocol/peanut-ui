@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
-import Icon from '@/components/Global/Icon'
+import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
@@ -148,19 +148,25 @@ function ActionButton({
     size?: ButtonSize
 }) {
     // get icon based on action type
-    const renderIcon = () => {
-        switch (action) {
-            case 'send':
-                return <Icon name="arrow-up-right" className="h-4 w-4" fill="currentColor" />
-            case 'withdraw':
-                return <Icon name="arrow-up" className="h-4 w-4 rotate-180" fill="currentColor" />
-            case 'add':
-                return <Icon name="arrow-up" className="h-4 w-4" fill="currentColor" />
-            case 'request':
-                return <Icon name="arrow-down-left" className="h-4 w-4" fill="currentColor" />
-            default:
-                return null
-        }
+    const renderIcon = (): React.ReactNode => {
+        return (
+            <div className="flex size-5 items-center justify-center">
+                {(() => {
+                    switch (action) {
+                        case 'send':
+                            return <Icon name="arrow-up-right" size={8} fill="currentColor" />
+                        case 'withdraw':
+                            return <Icon name="arrow-down" size={8} fill="currentColor" />
+                        case 'add':
+                            return <Icon name="arrow-up" size={8} fill="currentColor" />
+                        case 'request':
+                            return <Icon name="arrow-down-left" size={8} fill="currentColor" />
+                        default:
+                            return null
+                    }
+                })()}
+            </div>
+        )
     }
 
     return (

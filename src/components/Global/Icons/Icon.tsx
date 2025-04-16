@@ -6,6 +6,8 @@ import { ArrowUpRightIcon } from './arrow-up-right'
 import { BankIcon } from './bank'
 import { CheckIcon } from './check'
 import { ExchangeIcon } from './exchange'
+import { EyeIcon } from './eye'
+import { EyeSlashIcon } from './eye-slash'
 import { FeesIcon } from './fees'
 import { HomeIcon } from './home'
 import { OpenIcon } from './open'
@@ -20,7 +22,10 @@ export type IconName =
     | 'arrow-down-left'
     | 'arrow-up'
     | 'arrow-up-right'
+    | 'bank'
     | 'check'
+    | 'eye'
+    | 'eye-slash'
     | 'exchange'
     | 'fees'
     | 'home'
@@ -28,7 +33,6 @@ export type IconName =
     | 'peanut-support'
     | 'search'
     | 'txn-off'
-    | 'bank'
     | 'wallet'
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
@@ -42,7 +46,10 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'arrow-down-left': ArrowDownLeftIcon,
     'arrow-up': ArrowUpIcon,
     'arrow-up-right': ArrowUpRightIcon,
+    bank: BankIcon,
     check: CheckIcon,
+    eye: EyeIcon,
+    'eye-slash': EyeSlashIcon,
     exchange: ExchangeIcon,
     fees: FeesIcon,
     home: HomeIcon,
@@ -50,7 +57,6 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'peanut-support': PeanutSupportIcon,
     search: SearchIcon,
     'txn-off': TxnOffIcon,
-    bank: BankIcon,
     wallet: WalletIcon,
 }
 
