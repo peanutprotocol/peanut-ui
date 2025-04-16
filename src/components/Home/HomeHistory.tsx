@@ -3,6 +3,7 @@
 import { useDashboard } from '@/components/Dashboard/useDashboard'
 import AddressLink from '@/components/Global/AddressLink'
 import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
+import Icon from '@/components/Global/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { TransactionBadge } from '@/components/Global/TransactionBadge'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -137,7 +138,10 @@ const HomeHistory = () => {
 
     return (
         <div className="mx-auto mt-6 w-full space-y-6 px-4 md:max-w-2xl md:space-y-3">
-            <h2 className="text-base font-bold">Recent Transactions</h2>
+            <Link href="/history" className="flex items-center justify-between">
+                <h2 className="text-base font-bold">Transactions</h2>
+                <Icon width={30} height={30} name="arrow-next" />
+            </Link>
             <div className="h-full w-full border-t border-n-1">
                 {!!data?.pages.length &&
                     data?.pages.map((page, pageIndex) => (
@@ -181,12 +185,6 @@ const HomeHistory = () => {
                             ))}
                         </div>
                     ))}
-
-                <div className="my-4 flex justify-center">
-                    <Link href="/history" className="text-sm text-purple-400">
-                        View all transactions
-                    </Link>
-                </div>
             </div>
         </div>
     )

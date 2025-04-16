@@ -241,7 +241,7 @@ type IconProps = {
 
 const Icon = ({ className, name, fill, onClick, width = 16, height = 16 }: IconProps) => (
     <svg
-        className={twMerge(`inline-block h-4 w-4`, className)}
+        className={twMerge('inline-block', className)}
         width={width}
         height={height}
         viewBox={customViewbox.find((box) => box.name === name)?.viewBox ?? `0 0 16 16`}
