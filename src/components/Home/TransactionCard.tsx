@@ -1,3 +1,4 @@
+import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { formatExtendedNumber, printableUsdc } from '@/utils'
 import React from 'react'
@@ -11,9 +12,19 @@ interface TransactionCardProps {
     amount: bigint
     status: TransactionStatus
     initials?: string
+    position?: CardPosition
+    onClick?: () => void
 }
 
-const TransactionCard: React.FC<TransactionCardProps> = ({ type, name, amount, status, initials = '' }) => {
+const TransactionCard: React.FC<TransactionCardProps> = ({
+    type,
+    name,
+    amount,
+    status,
+    initials = '',
+    position = 'middle',
+    onClick,
+}) => {
     // determine if amount should be displayed as positive or negative
     const isNegative = type === 'send' || type === 'withdraw'
     const displayAmount = isNegative
@@ -25,7 +36,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ type, name, amount, s
         type === 'request' || type === 'send' ? `$${formatExtendedNumber(printableUsdc(amount))}` : displayAmount
 
     return (
-        <div className="w-full overflow-hidden border border-t-0  border-black bg-white px-4 py-2">
+        <Card position={position} onClick={onClick}>
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     {/* Icon or Initials based on transaction type */}
@@ -55,7 +66,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ type, name, amount, s
                     </span>
                 </div>
             </div>
-        </div>
+        </Card>
     )
 }
 

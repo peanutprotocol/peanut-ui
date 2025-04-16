@@ -1,6 +1,8 @@
 'use client'
 
+import { PeanutArmHoldingBeer } from '@/assets'
 import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
+import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
@@ -9,12 +11,14 @@ import TransactionCard from '@/components/Home/TransactionCard'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences } from '@/utils'
+import Image from 'next/image'
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 export default function Home() {
-    const { peanutWalletDetails } = useWallet()
+    const { peanutWalletDetails, getRewardWalletBalance } = useWallet()
+    const [rewardsBalance, setRewardsBalance] = useState<string | undefined>(undefined)
 
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
@@ -33,6 +37,19 @@ export default function Home() {
     }
 
     const isLoading = isFetchingUser && !username
+
+    useEffect(() => {
+        const fetchRewardsBalance = async () => {
+            try {
+                const balance = await getRewardWalletBalance()
+                setRewardsBalance(balance)
+            } catch (error) {
+                console.error('Failed to fetch rewards balance:', error)
+            }
+        }
+
+        fetchRewardsBalance()
+    }, [getRewardWalletBalance])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -64,32 +81,47 @@ export default function Home() {
                 </ActionButtonGroup>
             </div>
 
-            {/* Transaction cards - temperorary */}
-            <div className="mt-6 border-t border-black">
-                <TransactionCard
-                    type="send"
-                    name="Hugo Montenegro"
-                    amount={BigInt(6969000000)}
-                    status="completed"
-                    initials="HM"
-                />
+            {/* Rewards Card - only shows if balance is non-zero */}
+            <RewardsCard balance={rewardsBalance} />
 
-                <TransactionCard
-                    type="withdraw"
-                    name="Bank Account #1"
-                    amount={BigInt(6969000000)}
-                    status="completed"
-                />
+            {/* Transaction cards - temporary */}
+            <div className="mt-6 space-y-3">
+                <h2 className="font-bold">Transactions</h2>
+                <div>
+                    <TransactionCard
+                        type="send"
+                        name="Hugo Montenegro"
+                        amount={BigInt(6969000000)}
+                        status="completed"
+                        initials="HM"
+                        position="first"
+                    />
 
-                <TransactionCard type="add" name="peanut.ens" amount={BigInt(6969000000)} status="completed" />
+                    <TransactionCard
+                        type="withdraw"
+                        name="Bank Account #1"
+                        amount={BigInt(6969000000)}
+                        status="completed"
+                        position="middle"
+                    />
 
-                <TransactionCard
-                    type="request"
-                    name="dasdasdasdsa Montenegro"
-                    amount={BigInt(6969000000)}
-                    status="pending"
-                    initials="HM"
-                />
+                    <TransactionCard
+                        type="add"
+                        name="peanut.ens"
+                        amount={BigInt(6969000000)}
+                        status="completed"
+                        position="middle"
+                    />
+
+                    <TransactionCard
+                        type="request"
+                        name="dasdasdasdsa Montenegro"
+                        amount={BigInt(6969000000)}
+                        status="pending"
+                        initials="HM"
+                        position="last"
+                    />
+                </div>
             </div>
 
             <HomeHistory />
@@ -189,4 +221,36 @@ function ActionButton({
 
 function ActionButtonGroup({ children }: { children: React.ReactNode }) {
     return <div className="flex items-center justify-normal gap-4">{children}</div>
+}
+
+function RewardsCard({ balance }: { balance: string | undefined }) {
+    if (!balance || balance === '0') return null
+
+    return (
+        <div className="mt-6 space-y-3">
+            <h2 className="font-bold">Rewards</h2>
+            <Card position="single">
+                <div className="flex w-full items-center justify-between font-roboto">
+                    <div className="flex items-center gap-3">
+                        <div
+                            className={
+                                'flex size-8 items-center justify-center rounded-full border border-black bg-white py-2.5 pl-3 pr-0.5'
+                            }
+                        >
+                            <Image
+                                src={PeanutArmHoldingBeer}
+                                alt="Peanut arm holding beer"
+                                className={twMerge('size-6 object-contain')}
+                                width={24}
+                                height={24}
+                            />
+                        </div>
+
+                        <span className="text-sm font-medium">Beers</span>
+                    </div>
+                    <span className="text-sm font-medium">{balance}</span>
+                </div>
+            </Card>
+        </div>
+    )
 }
