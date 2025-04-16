@@ -86,7 +86,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
         if (contentRef.current && sheetRef.current) {
             // Small delay to ensure content is rendered
             setTimeout(() => {
-                if (contentRef.current && sheetRef.current) {
+                if (sheetRef.current) {
                     // If in expanded mode or if content is smaller than half-height requested
                     const contentHeight = (contentRef.current?.scrollHeight ?? 0) + 120
                     const viewportHeight = window.innerHeight
