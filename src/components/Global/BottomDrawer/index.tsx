@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, ReactNode } from 'react'
+import React, { ReactNode, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 type DrawerPosition = 'collapsed' | 'half' | 'expanded'
