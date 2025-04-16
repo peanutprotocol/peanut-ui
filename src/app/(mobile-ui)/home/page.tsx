@@ -2,11 +2,11 @@
 
 import { PEANUT_LOGO_BLACK } from '@/assets'
 import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
-import DirectSendQr from '@/components/Global/DirectSendQR'
 import LogoutButton from '@/components/Global/LogoutButton'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
 import { WalletCard } from '@/components/Home/WalletCard'
+import HomeHistory from '@/components/Home/HomeHistory'
 import PeanutWalletActions from '@/components/PeanutWalletActions'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
 import { useAuth } from '@/context/authContext'
@@ -38,7 +38,10 @@ export default function Home() {
         return prefs?.balanceHidden ?? false
     })
 
-    const { username } = useAuth()
+    // state to track if content is ready to show
+    const [contentReady, setContentReady] = useState(false)
+
+    const { username, isFetchingUser } = useAuth()
 
     const { selectedWallet, wallets, isWalletConnected, isFetchingWallets } = useWallet()
     const { focusedWallet: focusedWalletId } = useWalletStore()
@@ -156,8 +159,25 @@ export default function Home() {
         return wallets.length <= focusedIndex
     }, [focusedIndex, wallets?.length])
 
-    if (isFetchingWallets) {
-        return <PeanutLoading />
+    const isLoading = (isFetchingWallets && !wallets.length) || (isFetchingUser && !username)
+
+    // use effect to delay showing content
+    useEffect(() => {
+        if (!isLoading) {
+            // small delay to ensure everything is loaded
+            const timer = setTimeout(() => {
+                setContentReady(true)
+            }, 100)
+
+            return () => clearTimeout(timer)
+        } else {
+            setContentReady(false)
+        }
+    }, [isLoading])
+
+    // show loading if we're loading or content isn't ready yet
+    if (isLoading || !contentReady) {
+        return <PeanutLoading coverFullScreen />
     }
 
     return (
@@ -173,6 +193,7 @@ export default function Home() {
                         </div>
                         <ProfileSection />
                     </div>
+
                     <div>
                         <div
                             className={classNames('relative h-[200px] p-4 sm:overflow-visible', {
@@ -226,10 +247,8 @@ export default function Home() {
                     <div className="h-22 px-6 md:pb-6">
                         {isAddWalletFocused ? null : focusedWalletId &&
                           wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
-                              WalletProviderType.REWARDS ? (
-                            <DirectSendQr />
-                        ) : wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
-                          WalletProviderType.PEANUT ? (
+                              WalletProviderType.REWARDS ? null : wallets.find((w) => w.id === focusedWalletId)
+                              ?.walletProviderType === WalletProviderType.PEANUT ? (
                             <PeanutWalletActions />
                         ) : focusedWalletId &&
                           wallets.find((w) => w.id === focusedWalletId) &&
@@ -240,16 +259,13 @@ export default function Home() {
                                         title: 'Send',
                                         href: '/send',
                                     }}
-                                    rightButton={{
-                                        title: 'Receive',
-                                        href: '/request/create',
-                                    }}
                                 />
                             </div>
                         ) : null}
                     </div>
                 </div>
             </div>
+            <HomeHistory />
             <RewardsModal />
         </div>
     )

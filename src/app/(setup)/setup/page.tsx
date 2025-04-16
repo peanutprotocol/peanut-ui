@@ -1,11 +1,12 @@
 'use client'
 
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
-import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useSetupStore, useAppDispatch } from '@/redux/hooks'
-import { useEffect, useState } from 'react'
 import { BeforeInstallPromptEvent } from '@/components/Setup/Setup.types'
+import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
+import { useEffect, useState } from 'react'
 
 export default function SetupPage() {
     const { steps } = useSetupStore()
@@ -17,10 +18,12 @@ export default function SetupPage() {
     const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('desktop')
     const dispatch = useAppDispatch()
     const [unsupportedBrowser, setUnsupportedBrowser] = useState(false)
+    const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         // Check if the browser supports passkeys
         const checkPasskeySupport = async () => {
+            setIsLoading(true)
             try {
                 const hasPasskeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
                 setUnsupportedBrowser(!hasPasskeySupport)
@@ -39,6 +42,8 @@ export default function SetupPage() {
                 if (unsupportedBrowserIndex !== -1) {
                     dispatch(setupActions.setStep(unsupportedBrowserIndex + 1))
                 }
+            } finally {
+                setIsLoading(false)
             }
         }
 
@@ -83,6 +88,13 @@ export default function SetupPage() {
             setCurrentStepIndex(newIndex)
         }
     }, [step, currentStepIndex, steps])
+
+    if (isLoading)
+        return (
+            <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+                <PeanutLoading />
+            </div>
+        )
 
     // todo: add loading state
     if (!step) return null

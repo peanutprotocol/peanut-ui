@@ -11,6 +11,7 @@ export type ButtonVariant =
     | 'green'
     | 'yellow'
     | 'transparent'
+    | 'primary-soft'
 type ButtonSize = 'small' | 'medium' | 'large' | 'xl' | 'xl-fixed'
 type ButtonShape = 'default' | 'square'
 type ShadowSize = '4' | '6' | '8'
@@ -33,6 +34,7 @@ const buttonVariants: Record<ButtonVariant, string> = {
     'transparent-dark': 'btn-transparent-dark',
     green: 'bg-green-1',
     yellow: 'bg-secondary-1',
+    'primary-soft': 'bg-primary-3',
     transparent:
         'bg-transparent border-none hover:bg-transparent !active:bg-transparent focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent',
 }
