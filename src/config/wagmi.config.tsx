@@ -62,7 +62,7 @@ createAppKit({
     },
 })
 
-export function ContextProvider({ children, cookies }: { children: React.ReactNode; cookies: string | null }) {
+export function ContextProvider({ children, cookies }: { children: React.ReactNode; cookies?: string | null }) {
     /**
      * converts the provided cookies into an initial state for the application.
      *

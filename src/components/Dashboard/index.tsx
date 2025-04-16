@@ -11,7 +11,7 @@ import TablePagination from '../Global/TablePagination'
 import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import * as _consts from './Dashboard.consts'
-import * as components from './components'
+import { SortComponent, OptionsItemComponent, MobileItemComponent } from './components'
 
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useDashboard } from './useDashboard'
@@ -137,7 +137,7 @@ export const Dashboard = () => {
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 {dashboardData.length > 0 && (
                     <div className="flex w-full flex-col-reverse items-center justify-center gap-3 sm:flex-row sm:items-end sm:justify-between">
-                        <components.SortComponent
+                        <SortComponent
                             sortingValue={sortingValue}
                             setSortingValue={(sortingValue: string) => {
                                 setSortingValue(sortingValue)
@@ -222,7 +222,7 @@ export const Dashboard = () => {
                                                     )}
                                                 </td>
                                                 <td className="td-custom text-center ">
-                                                    <components.OptionsItemComponent item={link} />
+                                                    <OptionsItemComponent item={link} />
                                                 </td>
                                             </tr>
                                         ))}
@@ -233,7 +233,7 @@ export const Dashboard = () => {
                                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                 .map((link) => (
                                     <div key={(link.link ?? link.txHash ?? '') + Math.random()}>
-                                        <components.MobileItemComponent linkDetail={link} address={address ?? ''} />
+                                        <MobileItemComponent linkDetail={link} address={address ?? ''} />
                                     </div>
                                 ))}
                         </div>

@@ -1,6 +1,6 @@
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
-import { PeanutProvider } from '@/config'
-import * as context from '@/context'
+import { ContextProvider } from '@/config/wagmi.config';
+import { PeanutProvider } from '@/config/peanut.config';
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
 import { Viewport } from 'next'
 import { Londrina_Solid, Roboto_Flex, Sniglet } from 'next/font/google'
@@ -62,11 +62,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} chakra-ui-light font-sans`}
             >
                 <PeanutProvider>
-                    <context.ContextProvider>
+                    <ContextProvider>
                         <FooterVisibilityProvider>
                             <TranslationSafeWrapper>{children}</TranslationSafeWrapper>
                         </FooterVisibilityProvider>
-                    </context.ContextProvider>
+                    </ContextProvider>
                 </PeanutProvider>
             </body>
         </html>

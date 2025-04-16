@@ -1,5 +1,5 @@
 import { IAttachmentOptions } from '@/components/Create/Create.consts'
-import * as views from './Views'
+import { InitialView, CreateRequestSuccessView } from './Views'
 
 type CreateScreens = 'INITIAL' | 'SUCCESS'
 export interface ICreateScreenState {
@@ -15,9 +15,9 @@ export const INIT_VIEW_STATE: ICreateScreenState = {
 export const CREATE_SCREEN_FLOW: CreateScreens[] = ['INITIAL', 'SUCCESS']
 
 export const CREATE_SCREEN_MAP: { [key in CreateScreens]: { comp: React.FC<any> } } = {
-    INITIAL: { comp: views.InitialView },
+    INITIAL: { comp: InitialView },
 
-    SUCCESS: { comp: views.CreateRequestSuccessView },
+    SUCCESS: { comp: CreateRequestSuccessView },
 }
 
 export interface ICreateScreenProps {
