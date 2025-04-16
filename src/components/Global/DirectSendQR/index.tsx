@@ -339,11 +339,11 @@ export default function DirectSendQr({ className = '' }: { className?: string })
                 shadowSize="4"
                 shadowType="primary"
                 className={twMerge(
-                    'mx-auto h-16 w-16 -translate-y-1/3 transform cursor-pointer justify-center rounded-full p-0 hover:bg-primary-1/100',
+                    'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-0 hover:bg-primary-1/100',
                     className
                 )}
             >
-                <Icon name="qr-code" width={40} height={40} />
+                <Icon name="qr-code" height={32} width={32} className="custom-size" />
             </Button>
             <Modal
                 title={modalTitle}

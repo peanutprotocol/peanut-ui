@@ -279,7 +279,10 @@ module.exports = {
                         {},
                 },
                 '.btn svg': {
-                    '@apply icon-18 fill-inherit first:mr-1.5 last:ml-1.5': {},
+                    '@apply fill-inherit first:mr-1.5 last:ml-1.5': {},
+                    '&:not(.custom-size)': {
+                        '@apply icon-18': {},
+                    },
                 },
                 '.btn-transparent-light': {
                     '@apply btn border-transparent text-white fill-white hover:text-primary-1 hover:fill-primary-1': {},
