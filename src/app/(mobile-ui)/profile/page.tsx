@@ -1,10 +1,9 @@
 import { Profile } from '@/components'
-
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-    title: 'Peanut Protocol',
-    description: 'Send to Anyone',
+    title: 'Profile | Peanut Protocol',
+    description: 'Manage your Peanut profile',
     metadataBase: new URL('https://peanut.me'),
 
     icons: {

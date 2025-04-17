@@ -1,16 +1,16 @@
+import StatusBadge, { StatusType } from '@/components/Global/Badges/StatusBadge'
 import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { formatExtendedNumber, printableUsdc } from '@/utils'
 import React from 'react'
 
 export type TransactionType = 'send' | 'withdraw' | 'add' | 'request'
-export type TransactionStatus = 'completed' | 'pending'
 
 interface TransactionCardProps {
     type: TransactionType
     name: string
     amount: bigint
-    status: TransactionStatus
+    status: StatusType
     initials?: string
     position?: CardPosition
     onClick?: () => void
@@ -57,13 +57,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
                 <div className="flex flex-col items-end space-y-0.5">
                     <span className="font-roboto text-xs font-medium">{finalAmount}</span>
-                    <span
-                        className={`rounded-full px-2 py-0.5 font-roboto text-[10px] font-semibold ${
-                            status === 'completed' ? 'bg-success-2 text-success-1' : 'bg-secondary-4 text-secondary-1'
-                        }`}
-                    >
-                        {status === 'completed' ? 'Completed' : 'Pending'}
-                    </span>
+                    <StatusBadge status={status} />
                 </div>
             </div>
         </Card>
