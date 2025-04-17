@@ -2,8 +2,11 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../0_Bruddle'
+import Divider from '../0_Bruddle/Divider'
 import AchievementsBadge from '../Global/Badges/AchievementsBadge'
-import QRBottomDrawer from '../Global/QRBottomDrawer'
+import BottomDrawer from '../Global/BottomDrawer'
+import QRCodeWrapper from '../Global/QRCodeWrapper'
+import ShareButton from '../Global/ShareButton'
 
 interface ProfileHeaderProps {
     name: string
@@ -54,13 +57,23 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials,
             </div>
             {isQRScannerOpen && (
                 <>
-                    <QRBottomDrawer
-                        url={profileUrl}
-                        collapsedTitle="Your Peanut profile is public"
-                        expandedTitle="Your Peanut profile is public"
-                        text="Let others scan this to see your profile"
-                        buttonText="Share Profile Link"
-                    />
+                    <BottomDrawer
+                        initialPosition="collapsed"
+                        handleTitle={'Your Peanut profile is public'}
+                        handleSubtitle="Share it to receive payments!"
+                        collapsedHeight={80}
+                        expandedHeight={90}
+                        isOpen={isQRScannerOpen}
+                        onClose={() => setIsQRScannerOpen(false)}
+                    >
+                        <div className="space-y-6">
+                            <QRCodeWrapper url={profileUrl} />
+                            <Divider className="text-gray-500" text="or" />
+                            <ShareButton url={profileUrl} title="Share your profile">
+                                Your Peanut profile is public
+                            </ShareButton>
+                        </div>
+                    </BottomDrawer>
                 </>
             )}
         </>
