@@ -20,6 +20,7 @@ import { ShareIcon } from './share'
 import { SmileIcon } from './smile'
 import { TxnOffIcon } from './txn-off'
 import { UserIcon } from './user'
+import { UserPlusIcon } from './user-plus'
 import { WalletIcon } from './wallet'
 
 // allowed icon names
@@ -46,6 +47,7 @@ export type IconName =
     | 'smile'
     | 'user'
     | 'share'
+    | 'user-plus'
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
@@ -76,6 +78,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     smile: SmileIcon,
     user: UserIcon,
     share: ShareIcon,
+    'user-plus': UserPlusIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

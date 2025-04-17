@@ -10,7 +10,7 @@ interface TransactionCardProps {
     type: TransactionType
     name: string
     amount: bigint
-    status: StatusType
+    status?: StatusType
     initials?: string
     position?: CardPosition
     onClick?: () => void
@@ -57,7 +57,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
                 <div className="flex flex-col items-end space-y-0.5">
                     <span className="font-roboto text-xs font-medium">{finalAmount}</span>
-                    <StatusBadge status={status} />
+                    {status && <StatusBadge status={status} />}
                 </div>
             </div>
         </Card>

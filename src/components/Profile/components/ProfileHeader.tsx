@@ -1,9 +1,9 @@
 import { Icon } from '@/components/Global/Icons/Icon'
 import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Button } from '../0_Bruddle'
-import AchievementsBadge from '../Global/Badges/AchievementsBadge'
-import QRBottomDrawer from '../Global/QRBottomDrawer'
+import { Button } from '../../0_Bruddle'
+import AchievementsBadge from '../../Global/Badges/AchievementsBadge'
+import QRBottomDrawer from '../../Global/QRBottomDrawer'
 
 interface ProfileHeaderProps {
     name: string

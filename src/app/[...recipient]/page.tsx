@@ -1,5 +1,6 @@
 'use client'
 
+import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import PaymentHistory from '@/components/Payment/History'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
@@ -7,6 +8,7 @@ import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Paym
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import PaymentStatusView from '@/components/Payment/Views/Payment.status.view'
 import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
+import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { useAuth } from '@/context/authContext'
 import { EParseUrlError, parsePaymentURL, ParseUrlError } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
@@ -28,6 +30,7 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
     const requestId = searchParams.get('id')
+    const [showPaymentView, setShowPaymentView] = useState(false)
 
     useEffect(() => {
         let isMounted = true
@@ -131,6 +134,11 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         }
     }, [requestId])
 
+    const handleSendClick = () => {
+        setShowPaymentView(true)
+        dispatch(paymentActions.setView('INITIAL'))
+    }
+
     if (error) {
         return (
             <div className="mx-auto h-full w-full space-y-8 self-center md:w-6/12">
@@ -143,6 +151,34 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     const isLoading = !isUrlParsed || (chargeId && !chargeDetails) || (requestId && !requestDetails)
     if (isLoading) {
         return <PeanutLoading />
+    }
+
+    // check if its is a profile view
+    // todo: qn we show profile view even for pinta token view?
+    if (
+        isUrlParsed &&
+        parsedPaymentData?.recipient?.recipientType === 'USERNAME' &&
+        !parsedPaymentData.amount &&
+        !chargeId &&
+        !requestId &&
+        !showPaymentView
+    ) {
+        const username = parsedPaymentData.recipient.identifier
+
+        return (
+            <PublicProfile
+                username={username}
+                fullName={username} // todo: replace with actual full name
+                initials={username.substring(0, 2).toUpperCase()}
+                isVerified={false}
+                isLoggedIn={!!user}
+                transactions={{
+                    sent: 0,
+                    received: 0,
+                }}
+                onSendClick={handleSendClick}
+            />
+        )
     }
 
     if (parsedPaymentData?.token?.symbol === 'PNT') {
@@ -160,7 +196,16 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
     return (
         <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
             <div>
-                {currentView === 'INITIAL' && <InitialPaymentView {...(parsedPaymentData as ParsedURL)} />}
+                {currentView === 'INITIAL' && (
+                    <div className="space-y-4">
+                        <NavHeader
+                            onclick={() => {
+                                setShowPaymentView(false)
+                            }}
+                        />
+                        <InitialPaymentView {...(parsedPaymentData as ParsedURL)} />
+                    </div>
+                )}
                 {currentView === 'CONFIRM' && <ConfirmPaymentView />}
                 {currentView === 'STATUS' && <PaymentStatusView />}
             </div>

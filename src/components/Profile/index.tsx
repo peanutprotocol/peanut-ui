@@ -7,8 +7,8 @@ import { useAuth } from '@/context/authContext'
 import { captureException } from '@sentry/nextjs'
 import { useContext } from 'react'
 import NavHeader from '../Global/NavHeader'
-import ProfileHeader from './ProfileHeader'
-import ProfileMenuItem from './ProfileMenuItem'
+import ProfileHeader from './components/ProfileHeader'
+import ProfileMenuItem from './components/ProfileMenuItem'
 
 export const Profile = () => {
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
