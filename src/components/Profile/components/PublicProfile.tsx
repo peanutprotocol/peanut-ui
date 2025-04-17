@@ -49,7 +49,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
         if (onSendClick) {
             onSendClick()
         } else {
-            console.log('Send button clicked')
             dispatch(paymentActions.setView('INITIAL'))
         }
     }
