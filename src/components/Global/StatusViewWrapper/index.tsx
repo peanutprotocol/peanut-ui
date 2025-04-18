@@ -30,7 +30,7 @@ const StatusViewWrapper: React.FC<StatusViewWrapperProps> = ({
                 </Card.Content>
             )}
             {!hideSupportCta && (
-                <label className="py-3 text-center text-h9 font-normal">
+                <label className="p-3 text-start text-h9 font-normal md:text-center">
                     {supportCtaText ? supportCtaText : 'We would like to hear from your experience.'}{' '}
                     <CrispButton className="text-black underline dark:text-white">Chat with support</CrispButton>
                 </label>
