@@ -4,7 +4,7 @@ import Loading from '@/components/Global/Loading'
 import Sorting from '@/components/Global/Sorting'
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
+import { copyTextToClipboardWithFallback, formatDate, formatTokenAmount, getExplorerUrl } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
 import { OptionsComponent } from './OptionsComponent'
@@ -100,11 +100,11 @@ export const TableComponent = ({
                                 <tr key={(data.dashboardItem.link ?? data.dashboardItem.txHash ?? '') + Math.random()}>
                                     <td className="td-custom font-bold">{data.dashboardItem.type}</td>
                                     <td className="td-custom font-bold">
-                                        {utils.formatTokenAmount(Number(data.dashboardItem.amount), 4)}{' '}
+                                        {formatTokenAmount(Number(data.dashboardItem.amount), 4)}{' '}
                                         {data.dashboardItem.tokenSymbol}
                                     </td>
                                     <td className="td-custom font-bold">{data.dashboardItem.chain}</td>
-                                    <td className="td-custom">{utils.formatDate(new Date(data.dashboardItem.date))}</td>
+                                    <td className="td-custom">{formatDate(new Date(data.dashboardItem.date))}</td>
                                     <td className="td-custom">
                                         <AddressLink address={data.dashboardItem.address ?? ''} />
                                     </td>
@@ -156,7 +156,7 @@ export const TableComponent = ({
                                                                     (chain) => chain.name === data.dashboardItem?.chain
                                                                 )?.chainId ?? ''
 
-                                                            const explorerUrl = utils.getExplorerUrl(chainId)
+                                                            const explorerUrl = getExplorerUrl(chainId)
                                                             window.open(
                                                                 `${explorerUrl}/tx/${data?.dashboardItem?.txHash ?? ''}`,
                                                                 '_blank'
@@ -169,7 +169,7 @@ export const TableComponent = ({
                                                         data.dashboardItem?.link && {
                                                             name: 'Copy link',
                                                             action: () => {
-                                                                utils.copyTextToClipboardWithFallback(
+                                                                copyTextToClipboardWithFallback(
                                                                     data.dashboardItem?.link ?? ''
                                                                 )
                                                             },

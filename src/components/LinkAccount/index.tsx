@@ -1,7 +1,7 @@
 'use client'
 
 import * as assets from '@/assets'
-import * as context from '@/context'
+import { loadingStateContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
 import { useContext, useState } from 'react'
@@ -17,7 +17,7 @@ export const LinkAccountComponent = () => {
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const handleLogout = async () => {
         try {
             setLoadingState('Logging out')

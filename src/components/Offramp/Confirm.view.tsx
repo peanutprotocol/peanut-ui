@@ -11,9 +11,24 @@ import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountCompon
 import Loading from '@/components/Global/Loading'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as consts from '@/constants'
-import * as context from '@/context'
+import { tokenSelectorContext, loadingStateContext } from '@/context'
 import { useAuth } from '@/context/authContext'
-import * as utils from '@/utils'
+import {
+    createLiquidationAddress,
+    ErrorHandler,
+    fetchRouteRaw,
+    formatAmount,
+    formatTokenAmount,
+    getBridgeChainName,
+    getBridgeTokenName,
+    getChainIdFromBridgeChainName,
+    getLiquidationAddresses,
+    getTokenAddressFromBridgeTokenName,
+    isNativeCurrency,
+    isTestnetChain,
+    saveOfframpLinkToLocalstorage,
+    submitCashoutLink,
+} from '@/utils'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import { getSquidTokenAddress } from '@/utils/token.utils'
 import peanut, { getLatestContractVersion, getLinkDetails } from '@squirrel-labs/peanut-sdk'
@@ -66,7 +81,7 @@ export const OfframpConfirmView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const { claimLink, claimLinkXchain } = useClaimLink()
     const { fetchUser, user } = useAuth()
 
@@ -78,7 +93,7 @@ export const OfframpConfirmView = ({
 
     //////////////////////
     // state and context vars for cashout offramp
-    const { selectedChainID, selectedTokenAddress, selectedTokenData } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, selectedTokenData } = useContext(tokenSelectorContext)
     const [showRefund, setShowRefund] = useState(false)
     const { createLinkWrapper } = useCreateLink()
     const [createdLink, setCreatedLink] = useState<string | undefined>(undefined)
@@ -121,7 +136,7 @@ export const OfframpConfirmView = ({
         }
 
         // determine token type: 0 for native currency, 1 for others
-        const tokenType = utils.isNativeCurrency(selectedTokenAddress) ? 0 : 1
+        const tokenType = isNativeCurrency(selectedTokenAddress) ? 0 : 1
         const contractVersion = await getLatestContractVersion({
             chainId: selectedChainID,
             type: 'normal',
@@ -150,7 +165,7 @@ export const OfframpConfirmView = ({
         }
 
         // fetch all liquidation addresses for the user
-        const allLiquidationAddresses = await utils.getLiquidationAddresses(bridgeCustomerId)
+        const allLiquidationAddresses = await getLiquidationAddresses(bridgeCustomerId)
 
         return {
             crossChainDetails,
@@ -196,8 +211,8 @@ export const OfframpConfirmView = ({
             }
 
             // get chainId and tokenAddress (default to optimism)
-            const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
-            const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
+            const chainId = getChainIdFromBridgeChainName(chainName) ?? ''
+            const tokenAddress = getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
 
             // Now that we have all the necessary information, create the link
             const link = await createLinkWrapper(preparedCreateLinkWrapperResponse)
@@ -267,8 +282,8 @@ export const OfframpConfirmView = ({
         accountType: string
     ) => {
         // get token and chain names from claim link data
-        let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
-        let chainName = utils.getBridgeChainName(claimLinkData.chainId)
+        let tokenName = getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
+        let chainName = getBridgeChainName(claimLinkData.chainId)
         let xchainNeeded = false
 
         // if token and chain names are not available, set up cross-chain transfer to optimism usdc
@@ -291,7 +306,7 @@ export const OfframpConfirmView = ({
         )
 
         if (!liquidationAddress) {
-            liquidationAddress = await utils.createLiquidationAddress(
+            liquidationAddress = await createLiquidationAddress(
                 bridgeCustomerId,
                 chainName as string,
                 tokenName as string,
@@ -308,7 +323,7 @@ export const OfframpConfirmView = ({
         setIsFetchingRoute(true)
         try {
             // fetch route details using link details to calculate slippage
-            const { route } = await utils.fetchRouteRaw(
+            const { route } = await fetchRouteRaw(
                 preparedCreateLinkWrapperResponse?.linkDetails.tokenAddress ?? '',
                 preparedCreateLinkWrapperResponse?.linkDetails.chainId ?? '',
                 usdcAddressOptimism,
@@ -355,7 +370,7 @@ export const OfframpConfirmView = ({
         linkDetails: any
     ): Promise<{ tokenName: string | undefined; chainName: string | undefined } | false> => {
         try {
-            const route = await utils.fetchRouteRaw(
+            const route = await fetchRouteRaw(
                 linkDetails.tokenAddress,
                 linkDetails.chainId,
                 usdcAddressOptimism,
@@ -380,8 +395,8 @@ export const OfframpConfirmView = ({
             }
 
             return {
-                tokenName: utils.getBridgeTokenName(optimismChainId, usdcAddressOptimism),
-                chainName: utils.getBridgeChainName(optimismChainId),
+                tokenName: getBridgeTokenName(optimismChainId, usdcAddressOptimism),
+                chainName: getBridgeChainName(optimismChainId),
             }
         } catch (error) {
             console.error('Error in cross-chain scenario:', error)
@@ -501,7 +516,7 @@ export const OfframpConfirmView = ({
         try {
             setLoadingState('Submitting Offramp')
             // save to localStorage first
-            utils.saveOfframpLinkToLocalstorage({
+            saveOfframpLinkToLocalstorage({
                 data: {
                     ...claimLinkData,
                     depositDate: new Date(),
@@ -520,7 +535,7 @@ export const OfframpConfirmView = ({
                 },
             })
 
-            const response = await utils.submitCashoutLink({
+            const response = await submitCashoutLink({
                 link: claimLinkData.link,
                 bridgeCustomerId: bridgeCustomerId,
                 liquidationAddressId: liquidationAddress.id,
@@ -544,7 +559,7 @@ export const OfframpConfirmView = ({
     }
 
     const handleError = (error: unknown) => {
-        const errorString = utils.ErrorHandler(error)
+        const errorString = ErrorHandler(error)
         console.error('Error in handleCashoutConfirm:', error)
         setErrorState({
             showError: true,
@@ -567,7 +582,7 @@ export const OfframpConfirmView = ({
     }) => {
         try {
             const crossChainDetails = await peanut.getXChainOptionsForLink({
-                isTestnet: utils.isTestnetChain(chainId.toString()),
+                isTestnet: isTestnetChain(chainId.toString()),
                 sourceChainId: chainId.toString(),
                 tokenType: tokenType,
             })
@@ -598,8 +613,8 @@ export const OfframpConfirmView = ({
             try {
                 setLoadingState('Submitting Offramp')
 
-                let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
-                let chainName = utils.getBridgeChainName(claimLinkData.chainId)
+                let tokenName = getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
+                let chainName = getBridgeChainName(claimLinkData.chainId)
                 let xchainNeeded = false
 
                 // If token isn't directly supported by bridge, route through USDC Optimism
@@ -611,7 +626,7 @@ export const OfframpConfirmView = ({
 
                     let route
                     try {
-                        route = await utils.fetchRouteRaw(
+                        route = await fetchRouteRaw(
                             fromToken,
                             claimLinkData.chainId.toString(),
                             usdcAddressOptimism,
@@ -638,8 +653,8 @@ export const OfframpConfirmView = ({
                         return
                     }
 
-                    tokenName = utils.getBridgeTokenName(optimismChainId, usdcAddressOptimism)
-                    chainName = utils.getBridgeChainName(optimismChainId)
+                    tokenName = getBridgeTokenName(optimismChainId, usdcAddressOptimism)
+                    chainName = getBridgeChainName(optimismChainId)
                 }
 
                 if (!user || !chainName || !tokenName) return
@@ -661,7 +676,7 @@ export const OfframpConfirmView = ({
                     return
                 }
 
-                const allLiquidationAddresses = await utils.getLiquidationAddresses(bridgeCustomerId)
+                const allLiquidationAddresses = await getLiquidationAddresses(bridgeCustomerId)
 
                 let liquidationAddress = allLiquidationAddresses.find(
                     (address) =>
@@ -670,7 +685,7 @@ export const OfframpConfirmView = ({
                         address.external_account_id === bridgeExternalAccountId
                 )
                 if (!liquidationAddress) {
-                    liquidationAddress = await utils.createLiquidationAddress(
+                    liquidationAddress = await createLiquidationAddress(
                         bridgeCustomerId,
                         chainName,
                         tokenName,
@@ -679,8 +694,8 @@ export const OfframpConfirmView = ({
                         recipientType === 'iban' ? 'eur' : 'usd'
                     )
                 }
-                const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
-                const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
+                const chainId = getChainIdFromBridgeChainName(chainName) ?? ''
+                const tokenAddress = getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
 
                 let hash
                 if (xchainNeeded) {
@@ -698,7 +713,7 @@ export const OfframpConfirmView = ({
                 }
 
                 if (hash) {
-                    utils.saveOfframpLinkToLocalstorage({
+                    saveOfframpLinkToLocalstorage({
                         data: {
                             ...claimLinkData,
                             depositDate: new Date(),
@@ -933,7 +948,7 @@ export const OfframpConfirmView = ({
                                             // return 0 if fees exceed amount, otherwise calculate expected receive
                                             return amount <= totalFees
                                                 ? '$0'
-                                                : `$${utils.formatTokenAmount(amount - totalFees)}` || '$0'
+                                                : `$${formatTokenAmount(amount - totalFees)}` || '$0'
                                         })()}
                                         moreInfoText="Expected amount you will receive in your bank account. You'll receive funds in your local currency."
                                     />
@@ -955,22 +970,18 @@ export const OfframpConfirmView = ({
                                             const totalFees = bankingFee + (calculatedSlippage?.expected ?? 0)
 
                                             // return 0 if fees exceed amount, otherwise calculate minimum receive
-                                            return amount <= totalFees
-                                                ? '0'
-                                                : utils.formatTokenAmount(amount - totalFees)
+                                            return amount <= totalFees ? '0' : formatTokenAmount(amount - totalFees)
                                         })()}
                                         slippageRange={{
-                                            max: utils.formatAmount(calculatedSlippage?.max || '0').toString() ?? '0',
-                                            min:
-                                                utils.formatAmount(calculatedSlippage?.expected || '0').toString() ??
-                                                '0',
+                                            max: formatAmount(calculatedSlippage?.max || '0').toString() ?? '0',
+                                            min: formatAmount(calculatedSlippage?.expected || '0').toString() ?? '0',
                                         }}
                                         accountType={accountType}
                                         accountTypeFee={(() => {
                                             // calculate banking fee based on promo code and account type
                                             const bankingFee = calculateBankingFee(accountType ?? 'iban')
 
-                                            return utils.formatAmount(bankingFee)
+                                            return formatAmount(bankingFee)
                                         })()}
                                         isPromoApplied={!!appliedPromoCode}
                                         loading={isFetchingRoute}

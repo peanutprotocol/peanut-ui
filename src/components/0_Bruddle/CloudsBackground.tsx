@@ -1,5 +1,6 @@
-'use cient'
+'use client'
 
+import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 
 const cloud1 = (
@@ -25,27 +26,44 @@ const cloud2 = (
 )
 
 interface CloudProps {
-    left: number
     top: number
     scale?: number
     variant: 1 | 2
+    side: 'left' | 'right'
+    speed: number
+    screenWidth: number
 }
 
-const Cloud: React.FC<CloudProps> = ({ left, top, scale = 1, variant }) => {
+const Cloud: React.FC<CloudProps> = ({ top, scale = 1, variant, side, speed, screenWidth }) => {
     const CloudSvg = variant === 1 ? cloud1 : cloud2
+    const cloudWidth = 210 // appx width of the cloud SVG in pixels
+
+    // calculate animation values based on screen width and side
+    const startX = side === 'left' ? -cloudWidth : screenWidth
+    const endX = side === 'left' ? screenWidth : -cloudWidth
+
+    const distance = Math.abs(endX - startX)
+    const duration = distance / speed
 
     return (
-        <div
+        <motion.div
             style={{
                 position: 'absolute',
-                left: `${left}%`,
                 top: `${top}%`,
                 transform: `scale(${scale})`,
                 zIndex: 0,
             }}
+            initial={{ x: startX }}
+            animate={{ x: endX }}
+            transition={{
+                duration,
+                repeat: Infinity,
+                ease: 'linear',
+                repeatType: 'loop',
+            }}
         >
             {CloudSvg}
-        </div>
+        </motion.div>
     )
 }
 
@@ -54,38 +72,7 @@ interface CloudsBackgroundProps {
 }
 
 const CloudsBackground: React.FC<CloudsBackgroundProps> = ({ minimal = false }) => {
-    // Separate cloud configurations for desktop and mobile
-    const desktopClouds = [
-        { left: -5, top: 10, scale: 1.2, variant: 1 as const },
-        { left: 20, top: 5, scale: 0.8, variant: 2 as const },
-        { left: 45, top: 15, scale: 1, variant: 1 as const },
-        { left: 70, top: 8, scale: 0.9, variant: 2 as const },
-        { left: 85, top: 12, scale: 1.1, variant: 1 as const },
-        { left: -8, top: 60, scale: 1, variant: 2 as const },
-        { left: 30, top: 65, scale: 1.2, variant: 1 as const },
-        { left: 60, top: 70, scale: 0.8, variant: 2 as const },
-        { left: 90, top: 55, scale: 1, variant: 1 as const },
-    ]
-
-    const mobileClouds = [
-        { left: -5, top: 10, scale: 0.8, variant: 1 as const },
-        { left: 30, top: 5, scale: 0.6, variant: 2 as const },
-        { left: 70, top: 15, scale: 0.7, variant: 1 as const },
-        { left: -8, top: 60, scale: 0.8, variant: 2 as const },
-        { left: 60, top: 70, scale: 0.6, variant: 1 as const },
-    ]
-
-    // minimal versions with just 2 clouds
-    const minimalDesktopClouds = [
-        { left: -5, top: 35, scale: 2.2, variant: 1 as const },
-        { left: 85, top: 50, scale: 2.2, variant: 1 as const },
-    ]
-
-    const minimalMobileClouds = [
-        { left: -15, top: 25, scale: 1.2, variant: 1 as const },
-        { left: 70, top: 45, scale: 1.2, variant: 1 as const },
-    ]
-
+    const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
     const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false)
 
     useEffect(() => {
@@ -94,6 +81,7 @@ const CloudsBackground: React.FC<CloudsBackgroundProps> = ({ minimal = false }) 
         const handleResize = () => {
             if (typeof window === 'undefined') return
             setIsMobile(window.innerWidth <= 768)
+            setScreenWidth(window.innerWidth)
         }
 
         handleResize()
@@ -103,6 +91,124 @@ const CloudsBackground: React.FC<CloudsBackgroundProps> = ({ minimal = false }) 
             return () => window.removeEventListener('resize', handleResize)
         }
     }, [])
+
+    // Separate cloud configurations for desktop and mobile
+    const desktopClouds = [
+        // right side cloud
+        {
+            top: 10,
+            scale: 2.0,
+            variant: 1 as const,
+            side: 'right' as const,
+            speed: 40,
+        },
+        {
+            top: 5,
+            scale: 1.5,
+            variant: 2 as const,
+            side: 'right' as const,
+            speed: 30,
+        },
+        {
+            top: 15,
+            scale: 1.8,
+            variant: 1 as const,
+            side: 'right' as const,
+            speed: 35,
+        },
+
+        // left side cloud
+        {
+            top: 15,
+            scale: 1.6,
+            variant: 2 as const,
+            side: 'left' as const,
+            speed: 25,
+        },
+        {
+            top: 45,
+            scale: 2.0,
+            variant: 1 as const,
+            side: 'left' as const,
+            speed: 30,
+        },
+        {
+            top: 75,
+            scale: 1.5,
+            variant: 2 as const,
+            side: 'left' as const,
+            speed: 35,
+        },
+    ]
+
+    const mobileClouds = [
+        // right side cloud
+        {
+            top: 10,
+            scale: 0.8,
+            variant: 1 as const,
+            side: 'right' as const,
+            speed: 30,
+        },
+        {
+            top: 5,
+            scale: 0.6,
+            variant: 2 as const,
+            side: 'right' as const,
+            speed: 25,
+        },
+
+        // left side cloud
+        {
+            top: 15,
+            scale: 0.7,
+            variant: 1 as const,
+            side: 'left' as const,
+            speed: 20,
+        },
+        {
+            top: 60,
+            scale: 0.6,
+            variant: 2 as const,
+            side: 'left' as const,
+            speed: 25,
+        },
+    ]
+
+    // minimal versions with larger clouds
+    const minimalDesktopClouds = [
+        {
+            top: 35,
+            scale: 3.0,
+            variant: 1 as const,
+            side: 'right' as const,
+            speed: 30,
+        },
+        {
+            top: 50,
+            scale: 3.0,
+            variant: 1 as const,
+            side: 'left' as const,
+            speed: 25,
+        },
+    ]
+
+    const minimalMobileClouds = [
+        {
+            top: 25,
+            scale: 1.2,
+            variant: 1 as const,
+            side: 'right' as const,
+            speed: 20,
+        },
+        {
+            top: 45,
+            scale: 1.2,
+            variant: 1 as const,
+            side: 'left' as const,
+            speed: 15,
+        },
+    ]
 
     const clouds = isMobile
         ? minimal
@@ -115,7 +221,7 @@ const CloudsBackground: React.FC<CloudsBackgroundProps> = ({ minimal = false }) 
     return (
         <div style={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden' }}>
             {clouds.map((cloud, index) => (
-                <Cloud key={index} {...cloud} />
+                <Cloud key={index} {...cloud} screenWidth={screenWidth} />
             ))}
         </div>
     )

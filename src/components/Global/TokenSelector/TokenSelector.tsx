@@ -1,7 +1,7 @@
 'use client'
 
 import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
-import * as context from '@/context'
+import { tokenSelectorContext } from '@/context'
 import { IToken, IUserBalance } from '@/interfaces'
 import { areEvmAddressesEqual, formatTokenAmount } from '@/utils'
 import { useContext, useEffect, useMemo, useRef, useState } from 'react'
@@ -19,9 +19,7 @@ import Icon from '../Icon'
 import { TokenSelectorProps } from './TokenSelector.consts'
 
 const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: IUserBalance) => void }) => {
-    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(
-        context.tokenSelectorContext
-    )
+    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
     const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
     const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
 
@@ -183,7 +181,7 @@ const TokenSelector = ({
         isXChain,
         supportedSquidChainsAndTokens,
         setSelectedTokenDecimals,
-    } = useContext(context.tokenSelectorContext)
+    } = useContext(tokenSelectorContext)
     const { safeInfo, walletType } = useWalletType()
 
     const selectedChainTokens = useMemo(() => {

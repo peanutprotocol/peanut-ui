@@ -1,6 +1,6 @@
 'use client'
 
-import * as context from '@/context'
+import { loadingStateContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { fetchWithSentry, areEvmAddressesEqual, createSiweMessage } from '@/utils'
@@ -17,7 +17,7 @@ import * as Sentry from '@sentry/nextjs'
 
 export const Profile = () => {
     const { address } = useWallet()
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const { signMessageAsync } = useSignMessage()
     const { user, fetchUser, isFetchingUser, logoutUser } = useAuth()
 

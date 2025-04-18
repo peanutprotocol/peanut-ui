@@ -24,7 +24,7 @@ import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, backgroundColorFromAddress, fetchWalletBalances, formatAmount } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo } from 'react'
 import { erc20Abi, formatUnits, getAddress, parseUnits } from 'viem'
 import { useAccount } from 'wagmi'
@@ -234,15 +234,18 @@ export const useWallet = () => {
         queryKey: ['wallets', user, user?.accounts, wagmiAddress],
         queryFn: mergeAndProcessWallets,
         enabled: !!wagmiAddress || !!user,
-        staleTime: 30 * 1000, // 30 seconds
-        gcTime: 1 * 60 * 1000, // 1 minute
+        staleTime: 60 * 1000, // 60 seconds
+        gcTime: 5 * 60 * 1000, // 5 minutes
+        placeholderData: keepPreviousData,
     })
 
     useEffect(() => {
-        if (isWalletsQueryLoading) {
+        if (isWalletsQueryLoading && !wallets.length) {
             dispatch(walletActions.setIsFetchingWallets(true))
+        } else if (!isWalletsQueryLoading) {
+            dispatch(walletActions.setIsFetchingWallets(false))
         }
-    }, [isWalletsQueryLoading])
+    }, [isWalletsQueryLoading, wallets.length])
 
     const selectedWallet = useMemo(() => {
         if (!selectedWalletId || !wallets.length) return undefined
