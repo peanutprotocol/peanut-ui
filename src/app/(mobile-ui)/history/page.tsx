@@ -163,7 +163,7 @@ const HistoryPage = () => {
                                                 <div className="flex flex-col items-start gap-2 md:flex-row md:items-center ">
                                                     <div className="font-bold">{item.transactionType}</div>
                                                     <div className="flex flex-col items-end justify-end gap-2 text-end">
-                                                        <TransactionBadge status={item.status as string} />
+                                                        <TransactionBadge status={item.status ?? ''} />
                                                     </div>
                                                 </div>
                                             ),
