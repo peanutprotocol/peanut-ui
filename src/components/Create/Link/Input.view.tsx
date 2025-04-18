@@ -13,7 +13,7 @@ import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
-import * as context from '@/context'
+import { tokenSelectorContext, loadingStateContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -73,12 +73,12 @@ export const CreateLinkInputView = ({
         setSelectedChainID,
         selectedTokenAddress,
         setSelectedTokenAddress,
-    } = useContext(context.tokenSelectorContext)
+    } = useContext(tokenSelectorContext)
     const { walletType, environmentInfo } = useWalletType()
     const { handleLogin } = useZeroDev()
     const toast = useToast()
 
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string

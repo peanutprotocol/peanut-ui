@@ -1,4 +1,4 @@
-import * as components from '@/components'
+import { LinkAccountComponent } from '@/components'
 
 import { Metadata } from 'next'
 
@@ -20,5 +20,5 @@ export const metadata: Metadata = {
 }
 
 export default function LinkAccountPage() {
-    return <components.LinkAccountComponent />
+    return <LinkAccountComponent />
 }

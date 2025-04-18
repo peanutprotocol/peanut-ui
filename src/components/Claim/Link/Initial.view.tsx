@@ -21,7 +21,7 @@ import { ActionType, estimatePoints } from '@/components/utils/utils'
 import * as consts from '@/constants'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TOOLTIPS } from '@/constants/tooltips'
-import * as context from '@/context'
+import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
@@ -85,7 +85,7 @@ export const InitialClaimLinkView = ({
     const [routes, setRoutes] = useState<any[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
 
-    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
         selectedChainID,
         setSelectedChainID,
@@ -96,7 +96,7 @@ export const InitialClaimLinkView = ({
         isXChain,
         setIsXChain,
         supportedSquidChainsAndTokens,
-    } = useContext(context.tokenSelectorContext)
+    } = useContext(tokenSelectorContext)
     const { claimLink } = useClaimLink()
     const {
         isConnected,

@@ -9,7 +9,7 @@ import Icon from '@/components/Global/Icon'
 import InfoRow from '@/components/Global/InfoRow'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
-import * as context from '@/context'
+import { tokenSelectorContext, loadingStateContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import {
@@ -55,7 +55,7 @@ export const CreateLinkConfirmView = ({
         selectedTokenPrice,
         selectedTokenDecimals,
         supportedSquidChainsAndTokens,
-    } = useContext(context.tokenSelectorContext)
+    } = useContext(tokenSelectorContext)
 
     const { walletType } = useWalletType()
 
@@ -72,7 +72,7 @@ export const CreateLinkConfirmView = ({
         submitClaimLinkConfirm,
         submitDirectTransfer,
     } = useCreateLink()
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
 
     const { address, refetchBalances, isPeanutWallet } = useWallet()
 

@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useState } from 'react'
-import validator from 'validator'
+import validator, { isNumeric } from 'validator'
 
 import { Button, Card } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
@@ -10,9 +10,9 @@ import { CrispButton } from '@/components/CrispChat'
 import Icon from '@/components/Global/Icon'
 import Loading from '@/components/Global/Loading'
 import RecipientInput from '@/components/Global/RecipientInput'
-import * as context from '@/context'
-import * as utils from '@/utils'
-import { ethers } from 'ethers'
+import { loadingStateContext } from '@/context'
+import { resolveFromEnsName } from '@/utils'
+import { utils } from 'ethers'
 import { validate } from 'multicoin-address-validator'
 import * as _consts from '../Create.consts'
 import { validateEnsName } from '@/utils'
@@ -31,7 +31,7 @@ export const CreateLinkInitialView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
     const handleInputValidation = async (value: string) => {
         //email check
@@ -39,11 +39,11 @@ export const CreateLinkInitialView = ({
             return 'email_link'
         }
         //phone number check
-        else if (value.startsWith('+') || (utils.isNumeric(value) && value.length > 4)) {
+        else if (value.startsWith('+') || (isNumeric(value) && value.length > 4)) {
             return 'sms_link'
         }
         //address check
-        else if (ethers.utils.isAddress(value)) {
+        else if (utils.isAddress(value)) {
             return 'direct'
         }
         //ENS check
@@ -117,7 +117,7 @@ export const CreateLinkInitialView = ({
                 case 'direct':
                     setCreateType('direct')
                     if (validateEnsName(inputValue)) {
-                        const _address = await utils.resolveFromEnsName(inputValue)
+                        const _address = await resolveFromEnsName(inputValue)
                         if (_address) setRecipient({ name: inputValue, address: _address })
                         else {
                             setErrorState({

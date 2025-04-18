@@ -1,8 +1,8 @@
 import StatusViewWrapper from '@/components/Global/StatusViewWrapper'
 import { fetchDestinationChain } from '@/components/utils/utils'
-import * as context from '@/context'
+import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import * as utils from '@/utils'
+import { getExplorerUrl, shortenAddressLong } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
@@ -14,10 +14,10 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     const { isConnected, address, chain: currentChain, isPeanutWallet } = useWallet()
     const { switchChainAsync } = useSwitchChain()
 
-    const { resetTokenContextProvider, selectedChainID } = useContext(context.tokenSelectorContext)
+    const { resetTokenContextProvider, selectedChainID } = useContext(tokenSelectorContext)
 
     const explorerUrlWithTx = useMemo(
-        () => `${utils.getExplorerUrl(claimLinkData.chainId)}/tx/${transactionHash}`,
+        () => `${getExplorerUrl(claimLinkData.chainId)}/tx/${transactionHash}`,
         [transactionHash, claimLinkData.chainId]
     )
     const explorerUrlAxelarWithTx = 'https://axelarscan.io/gmp/' + transactionHash
@@ -69,14 +69,14 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                         <div className="flex w-full flex-row items-center justify-between gap-1">
                             <label className="text-h9">Source chain:</label>
                             <Link className="cursor-pointer  underline" href={explorerUrlWithTx}>
-                                {utils.shortenAddressLong(transactionHash ?? '')}
+                                {shortenAddressLong(transactionHash ?? '')}
                             </Link>
                         </div>
                         <div className="flex w-full flex-row items-center justify-between gap-1">
                             <label className="text-h9">Cross-chain Routing via Axelar:</label>
 
                             <Link className="cursor-pointer  underline" href={explorerUrlAxelarWithTx}>
-                                {utils.shortenAddressLong(transactionHash ?? '')}
+                                {shortenAddressLong(transactionHash ?? '')}
                             </Link>
                         </div>
                         <div className="flex w-full flex-row  items-center justify-between gap-1">
@@ -88,7 +88,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                                     className="cursor-pointer underline"
                                     href={explorerUrlDestChainWithTxHash.transactionUrl}
                                 >
-                                    {utils.shortenAddressLong(explorerUrlDestChainWithTxHash.transactionId ?? '')}
+                                    {shortenAddressLong(explorerUrlDestChainWithTxHash.transactionId ?? '')}
                                 </Link>
                             )}
                         </div>
@@ -97,7 +97,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                 <div className="flex w-full flex-row items-center justify-between gap-1">
                     <label className="text-h9">Transaction hash:</label>
                     <Link className="cursor-pointer text-h9 font-normal underline" href={explorerUrlWithTx}>
-                        {utils.shortenAddressLong(transactionHash ?? '')}
+                        {shortenAddressLong(transactionHash ?? '')}
                     </Link>
                 </div>
             </div>

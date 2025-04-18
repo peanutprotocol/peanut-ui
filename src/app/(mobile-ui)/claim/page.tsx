@@ -1,5 +1,5 @@
 import { Claim } from '@/components'
-import * as utils from '@/utils'
+import { formatAmount } from '@/utils'
 import { Metadata } from 'next'
 import { getLinkDetails } from '@/app/actions/claimLinks'
 
@@ -43,7 +43,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
                     'You received ' +
                     (Number(linkDetails.tokenAmount) < 0.01
                         ? 'some '
-                        : utils.formatAmount(Number(linkDetails.tokenAmount)) + ' in ') +
+                        : formatAmount(Number(linkDetails.tokenAmount)) + ' in ') +
                     linkDetails.tokenSymbol +
                     '!'
             } else {

@@ -1,7 +1,7 @@
 import AddressLink from '@/components/Global/AddressLink'
 import Modal from '@/components/Global/Modal'
 import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
+import { copyTextToClipboardWithFallback, formatDate, formatTokenAmount } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -35,13 +35,13 @@ export const MobileItemComponent = ({
                     </span>
                 </div>
 
-                <label>{utils.formatDate(new Date(linkDetail.date))}</label>
+                <label>{formatDate(new Date(linkDetail.date))}</label>
             </div>
             <div className="flex w-full border-t border-dotted border-black" />
             <div className="flex w-full flex-row items-end justify-between">
                 <div className="flex flex-col items-start justify-end gap-2 text-start">
                     <label className="font-bold">
-                        {utils.formatTokenAmount(Number(linkDetail.amount), 4)} {linkDetail.tokenSymbol} - [
+                        {formatTokenAmount(Number(linkDetail.amount), 4)} {linkDetail.tokenSymbol} - [
                         {linkDetail.chain}]
                     </label>
 
@@ -80,7 +80,7 @@ export const MobileItemComponent = ({
                 )}
                 <div
                     onClick={() => {
-                        utils.copyTextToClipboardWithFallback(linkDetail?.link ?? linkDetail.txHash ?? '')
+                        copyTextToClipboardWithFallback(linkDetail?.link ?? linkDetail.txHash ?? '')
                     }}
                     className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                 >

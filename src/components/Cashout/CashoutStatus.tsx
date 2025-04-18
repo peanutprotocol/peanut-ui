@@ -1,6 +1,6 @@
 'use client'
 import PEANUTMAN_CRY from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif'
-import * as utils from '@/utils'
+import { CashoutStatusDescriptions, getCashoutStatus, CashoutTransaction } from '@/utils'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -11,11 +11,11 @@ import * as Sentry from '@sentry/nextjs'
 
 export const CashoutStatus = () => {
     const [cashoutStatus, setCashoutStatus] = useState<'FOUND' | 'NOT FOUND' | undefined>(undefined)
-    const [cashoutStatusData, setCashoutStatusData] = useState<utils.CashoutTransaction | undefined>(undefined)
+    const [cashoutStatusData, setCashoutStatusData] = useState<CashoutTransaction | undefined>(undefined)
 
     const getAndSetCashoutStatus = async () => {
         try {
-            const response = await utils.getCashoutStatus(window.location.href)
+            const response = await getCashoutStatus(window.location.href)
             setCashoutStatusData(response)
             setCashoutStatus('FOUND')
         } catch (error) {
@@ -41,7 +41,7 @@ export const CashoutStatus = () => {
                         <label className="text-h2">Cashout status</label>
                         <div className="flex flex-col justify-center gap-3">
                             <label className="text-start text-h8 font-light">
-                                {cashoutStatusData && utils.CashoutStatusDescriptions[cashoutStatusData?.status]} gm
+                                {cashoutStatusData && CashoutStatusDescriptions[cashoutStatusData?.status]} gm
                             </label>
                         </div>
                     </div>

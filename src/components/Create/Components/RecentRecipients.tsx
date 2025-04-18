@@ -1,5 +1,5 @@
 import Icon from '@/components/Global/Icon'
-import * as utils from '@/utils'
+import { shortenAddressLong } from '@/utils'
 
 type RecentRecipientsProps = {
     recentRecipients: { address: string; count: number }[]
@@ -46,7 +46,7 @@ const RecentRecipients = ({ recentRecipients, onClick, isLoading }: RecentRecipi
                                 <div className="rounded-full border border-n-1">
                                     <Icon name="profile" className="h-6 w-6" />
                                 </div>
-                                <div className="truncate">{utils.shortenAddressLong(recipient.address, 6)}</div>
+                                <div className="truncate">{shortenAddressLong(recipient.address, 6)}</div>
                             </div>
                             <label className="font-normal">
                                 {' '}
