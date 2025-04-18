@@ -8,9 +8,9 @@ import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { fetchWithSentry } from '@/utils'
 import { useContext, useEffect } from 'react'
 import PageContainer from '../0_Bruddle/PageContainer'
-import ConfirmSendView from './views/Confirm.send.view'
-import InitialSendView from './views/Initial.send.view'
-import SuccessSendView from './views/Success.send.view'
+import LinkSendConfirmView from './views/Confirm.link.send.view'
+import LinkSendInitialView from './views/Initial.link.send.view'
+import LinkSendSuccessView from './views/Success.link.send.view'
 
 const SendFlowManager = () => {
     const dispatch = useAppDispatch()
@@ -47,9 +47,9 @@ const SendFlowManager = () => {
     return (
         <PageContainer>
             <div className="max-w-xl">
-                {view === 'INITIAL' && <InitialSendView />}
-                {view === 'CONFIRM' && <ConfirmSendView />}
-                {view === 'SUCCESS' && <SuccessSendView />}
+                {view === 'INITIAL' && <LinkSendInitialView />}
+                {view === 'CONFIRM' && <LinkSendConfirmView />}
+                {view === 'SUCCESS' && <LinkSendSuccessView />}
             </div>
         </PageContainer>
     )

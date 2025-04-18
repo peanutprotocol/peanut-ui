@@ -6,7 +6,6 @@ import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import InfoRow from '@/components/Global/InfoRow'
-import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import { LoadingStates, peanutTokenDetails, supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
@@ -20,7 +19,7 @@ import { captureException } from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { createAndProcessLink } from '../utils/createLinkUtils'
 
-const ConfirmSendView = () => {
+const LinkSendConfirmView = () => {
     const dispatch = useAppDispatch()
     const {
         transactionType,
@@ -242,25 +241,22 @@ const ConfirmSendView = () => {
                                 )}
                             </div>
                         )}
-                        {transactionCostUSD !== undefined &&
-                            (!isPeanutWallet ? (
-                                <InfoRow
-                                    iconName="gas"
-                                    label="Network cost"
-                                    value={
-                                        transactionCostUSD < 0.01
-                                            ? '$<0.01'
-                                            : `$${formatTokenAmount(transactionCostUSD, 3) ?? 0}`
-                                    }
-                                    moreInfoText={`This transaction will cost you $${
-                                        transactionCostUSD < 0.01
-                                            ? '<0.01'
-                                            : `${formatTokenAmount(transactionCostUSD, 3) ?? 0}`
-                                    } in network fees.`}
-                                />
-                            ) : (
-                                <PeanutSponsored />
-                            ))}
+                        {transactionCostUSD !== undefined && (
+                            <InfoRow
+                                iconName="gas"
+                                label="Network cost"
+                                value={
+                                    transactionCostUSD < 0.01
+                                        ? '$<0.01'
+                                        : `$${formatTokenAmount(transactionCostUSD, 3) ?? 0}`
+                                }
+                                moreInfoText={`This transaction will cost you $${
+                                    transactionCostUSD < 0.01
+                                        ? '<0.01'
+                                        : `${formatTokenAmount(transactionCostUSD, 3) ?? 0}`
+                                } in network fees.`}
+                            />
+                        )}
                     </div>
 
                     <div className="my-4 flex flex-col gap-2 sm:flex-row-reverse">
@@ -287,4 +283,4 @@ const ConfirmSendView = () => {
     )
 }
 
-export default ConfirmSendView
+export default LinkSendConfirmView

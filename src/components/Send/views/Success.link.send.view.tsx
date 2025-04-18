@@ -12,7 +12,7 @@ import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { useContext, useMemo } from 'react'
 
-const SuccessSendView = () => {
+const LinkSendSuccessView = () => {
     const { selectedChainID } = useContext(tokenSelectorContext)
     const toast = useToast()
     const { link, txHash } = useSendFlowStore()
@@ -94,4 +94,4 @@ const SuccessSendView = () => {
     )
 }
 
-export default SuccessSendView
+export default LinkSendSuccessView
