@@ -1,6 +1,6 @@
 'use server'
 import { unstable_cache } from 'next/cache'
-import peanut from '@squirrel-labs/peanut-sdk'
+import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { type Address } from 'viem'
 import { getContract } from 'viem'
 
@@ -43,4 +43,26 @@ export const getLinkDetails = unstable_cache(
     {
         revalidate: 5, // 5 seconds this is only useful for loading the page and avoid calling this twice on metadata and pageload
     }
+)
+
+export const getLinkFromTx = unstable_cache(
+    async ({
+        linkDetails,
+        txHash,
+        password,
+    }: {
+        linkDetails: peanutInterfaces.IPeanutLinkDetails
+        txHash: string
+        password: string
+    }): Promise<string> => {
+        const { chainId, baseUrl, trackId } = linkDetails
+        const client = await getPublicClient(Number(chainId) as ChainId)
+        const txReceipt = await client.waitForTransactionReceipt({
+            hash: txHash as `0x${string}`,
+        })
+        const contractVersion = peanut.detectContractVersionFromTxReceipt(txReceipt, chainId)
+        const depositIdx = peanut.getDepositIdxs(txReceipt, chainId, contractVersion)[0]
+        return peanut.getLinkFromParams(chainId, contractVersion, depositIdx, password, baseUrl, trackId)
+    },
+    ['getLinkFromTx']
 )

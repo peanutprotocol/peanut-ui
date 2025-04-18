@@ -17,6 +17,7 @@ import { waitForTransactionReceipt } from 'wagmi/actions'
 import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
 import * as Sentry from '@sentry/nextjs'
 import { fetchTokenPrice } from '@/app/actions/tokens'
+import { getLinkFromTx } from '@/app/actions/claimLinks'
 
 interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
@@ -648,21 +649,16 @@ export const useCreateLink = () => {
         walletType: 'blockscout' | undefined
     }) => {
         try {
-            const getLinksFromTxResponse = await peanut.getLinksFromTx({
-                linkDetails,
-                txHash: hash,
-                passwords: [password],
-            })
-            let links: string[] = getLinksFromTxResponse.links
+            let link = await getLinkFromTx({ linkDetails, txHash: hash, password })
 
             if (walletType === 'blockscout') {
-                const _link = links[0]
+                const _link = link
                 const urlObj = new URL(_link)
                 urlObj.searchParams.append('path', 'claim')
                 const newUrl = urlObj.toString()
-                links = [newUrl]
+                link = newUrl
             }
-            return links
+            return link
         } catch (error) {
             throw error
         }
@@ -778,7 +774,7 @@ export const useCreateLink = () => {
             saveCreatedLinkToLocalStorage({
                 address: address ?? '',
                 data: {
-                    link: link[0],
+                    link,
                     depositDate: new Date().toISOString(),
                     USDTokenPrice: selectedTokenData?.price ?? 0,
                     points: 0,
@@ -791,7 +787,7 @@ export const useCreateLink = () => {
 
             await submitClaimLinkConfirm({
                 chainId: selectedChainID,
-                link: link[0],
+                link,
                 password: password ?? '',
                 txHash: hash,
                 senderAddress: address ?? '',
@@ -802,7 +798,7 @@ export const useCreateLink = () => {
             // refetch wallet balance after successful link creation
             refetchBalances(selectedWallet?.address || '')
 
-            return link[0]
+            return link
         } catch (error) {
             throw error
         }
