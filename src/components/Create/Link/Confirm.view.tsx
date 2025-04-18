@@ -195,7 +195,7 @@ export const CreateLinkConfirmView = ({
                 saveCreatedLinkToLocalStorage({
                     address: address ?? '',
                     data: {
-                        link: link[0],
+                        link: link,
                         depositDate: new Date().toISOString(),
                         USDTokenPrice: selectedTokenPrice ?? 0,
                         points: estimatedPoints ?? 0,
