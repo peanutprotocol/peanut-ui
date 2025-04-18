@@ -29,7 +29,7 @@ export const TransactionBadge = ({ status, className }: BadgeProps) => {
 
     return (
         <div className={twMerge('border p-0.5 text-center text-xs font-semibold capitalize', statusStyles, className)}>
-            {status?.toLowerCase() ?? ''} 
+            {status?.toLowerCase() ?? ''}
         </div>
     )
 }
