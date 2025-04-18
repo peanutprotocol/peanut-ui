@@ -1,12 +1,12 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
-import { useToast } from '@/components/0_Bruddle/Toast'
 import { sendNotification, subscribeUser } from '@/app/actions'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { urlBase64ToUint8Array } from '@/utils'
+import { captureException } from '@sentry/nextjs'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import webpush from 'web-push'
 import { useAuth } from './authContext'
-import * as Sentry from '@sentry/nextjs'
 
 interface PushContextType {
     subscribe: () => Promise<void>
@@ -47,9 +47,8 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
                 setIsSubscribed(true)
             }
         } catch (error) {
-            Sentry.captureException(error)
             console.error('Service Worker registration failed:', error)
-            toast.error('Failed to initialize notifications')
+            captureException(error)
         }
     }
 
@@ -65,7 +64,7 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
                 })
                 .catch((error) => {
                     console.error('Service Worker not ready:', error)
-                    Sentry.captureException(error)
+                    captureException(error)
                     toast.error('Failed to initialize notifications')
                 })
         } else {
@@ -111,7 +110,7 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
                     toast.error('Please allow notifications in your browser settings')
                 } else {
                     toast.error('Failed to enable notifications')
-                    Sentry.captureException(error)
+                    captureException(error)
                 }
                 console.error('Error subscribing to push notifications:', error.message)
             } else {
