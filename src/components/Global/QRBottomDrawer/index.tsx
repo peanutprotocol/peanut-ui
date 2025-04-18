@@ -1,6 +1,6 @@
+import Divider from '@/components/0_Bruddle/Divider'
 import BottomDrawer from '@/components/Global/BottomDrawer'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import Divider from '@/components/0_Bruddle/Divider'
 import ShareButton from '@/components/Global/ShareButton'
 import { useState } from 'react'
 
@@ -18,9 +18,9 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText }
         <BottomDrawer
             initialPosition="collapsed"
             handleTitle={title}
-            collapsedHeight={23}
-            halfHeight={75}
-            expandedHeight={95}
+            collapsedHeight={24}
+            halfHeight={60}
+            expandedHeight={90}
             isOpen={true}
             onPositionChange={(position) => {
                 if (position === 'collapsed') {

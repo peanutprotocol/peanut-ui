@@ -2,12 +2,14 @@
 
 import { GenericBanner } from '@/components/Global/Banner/GenericBanner'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import HomeWaitlist from '@/components/Home/HomeWaitlist'
 import { ThemeProvider } from '@/config'
 import { peanutWalletIsInPreview } from '@/constants'
 import { useAuth } from '@/context/authContext'
+import { hasValidJwtToken } from '@/utils/auth'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -18,12 +20,9 @@ const publicPathRegex = /^\/(request\/pay|claim)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
+    const { isFetchingUser, user } = useAuth()
     const [isReady, setIsReady] = useState(false)
-    const { user } = useAuth()
-
-    useEffect(() => {
-        setIsReady(true)
-    }, [])
+    const [hasToken, setHasToken] = useState(false)
 
     const isHome = pathName === '/home'
     const isHistory = pathName === '/history'
@@ -36,7 +35,20 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         return isPublicPath || (user?.user.hasPwAccess ?? false) || !peanutWalletIsInPreview
     }, [user, pathName])
 
-    if (!isReady) return null
+    useEffect(() => {
+        // check for JWT token
+        setHasToken(hasValidJwtToken())
+
+        setIsReady(true)
+    }, [])
+
+    if (!isReady || (isFetchingUser && !user && !hasToken))
+        return (
+            <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+                <PeanutLoading />
+            </div>
+        )
+
     return (
         <div className="flex h-[100dvh] w-full bg-background">
             {/* Wrapper div for desktop layout */}

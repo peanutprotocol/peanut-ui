@@ -401,10 +401,11 @@ export const InitialClaimLinkView = ({
 
     useEffect(() => {
         let isMounted = true
-        if (isReward || !claimLinkData.tokenAddress)
+        if (isReward || !claimLinkData.tokenAddress) {
             return () => {
                 isMounted = false
             }
+        }
 
         if (refetchXchainRoute) {
             setIsXchainLoading(true)
@@ -466,6 +467,10 @@ export const InitialClaimLinkView = ({
             if (isPeanutWallet) {
                 setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
                 setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+                if (Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+                    setRefetchXchainRoute(true)
+                    setIsXChain(true)
+                }
             } else {
                 setSelectedChainID(claimLinkData.chainId)
                 setSelectedTokenAddress(claimLinkData.tokenAddress)

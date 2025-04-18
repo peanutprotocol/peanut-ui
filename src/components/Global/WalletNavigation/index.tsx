@@ -4,6 +4,8 @@ import classNames from 'classnames'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Icon from '@/components/Global/Icon'
+import DirectSendQr from '@/components/Global/DirectSendQR'
 
 type NavPathProps = {
     name: string
@@ -14,12 +16,6 @@ type NavPathProps = {
 type DesktopPaths = {
     [key: string]: NavPathProps[]
 }
-
-const mobilePaths: NavPathProps[] = [
-    { name: 'Home', href: '/home', icon: 'home' },
-    { name: 'History', href: '/history', icon: 'history' },
-    { name: 'Support', href: '/support', icon: 'support' },
-]
 
 const desktopPaths: DesktopPaths = {
     'Money Transfer': [
@@ -57,7 +53,7 @@ const NavSection: React.FC<NavSectionProps> = ({ title, tabs, pathName, isLastSe
                     }
                 }}
             >
-                <NavIcons name={icon} className="block h-4 w-4" />
+                <Icon name={icon} className="block h-4 w-4" />
                 <span className="block w-fit pt-0.5 text-center text-base font-semibold">{name}</span>
             </Link>
         ))}
@@ -66,26 +62,39 @@ const NavSection: React.FC<NavSectionProps> = ({ title, tabs, pathName, isLastSe
 )
 
 type MobileNavProps = {
-    tabs: NavPathProps[]
     pathName: string
 }
 
-const MobileNav: React.FC<MobileNavProps> = ({ tabs, pathName }) => (
-    <div className="z-1 grid grid-cols-3 border-t border-black bg-background p-2 md:hidden">
-        {tabs.map(({ name, href, icon }) => (
-            <Link
-                href={href}
-                key={name}
-                translate="no"
-                className={classNames(
-                    'notranslate flex flex-col items-center justify-center object-contain py-2 hover:cursor-pointer',
-                    { 'text-primary-1': pathName === href }
-                )}
-            >
-                <NavIcons name={icon} size={24} className="h-7 w-7" />
-                <span className="mx-auto mt-1 block pl-1 text-center text-xs font-medium">{name}</span>
-            </Link>
-        ))}
+const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => (
+    <div className="z-1 grid h-16 grid-cols-3 border-t border-black bg-background md:hidden">
+        {/* Home Link */}
+        <Link
+            href="/home"
+            translate="no"
+            className={classNames(
+                'notranslate flex flex-col items-center justify-center object-contain hover:cursor-pointer',
+                { 'text-primary-1': pathName === '/home' }
+            )}
+        >
+            <NavIcons name="home" size={24} className="h-7 w-7" />
+            <span className="mx-auto mt-1 block pl-1 text-center text-xs font-medium">Home</span>
+        </Link>
+
+        {/* QR Button - Main Action */}
+        <DirectSendQr className="-translate-y-1/3 transform" />
+
+        {/* Support Link */}
+        <Link
+            href="/support"
+            translate="no"
+            className={classNames(
+                'notranslate flex flex-col items-center justify-center object-contain  hover:cursor-pointer',
+                { 'text-primary-1': pathName === '/support' }
+            )}
+        >
+            <NavIcons name="support" size={24} className="h-7 w-7" />
+            <span className="mx-auto mt-1 block pl-1 text-center text-xs font-medium">Support</span>
+        </Link>
     </div>
 )
 
@@ -103,7 +112,7 @@ const WalletNavigation: React.FC = () => {
                     <NavSection title="Others" tabs={desktopPaths['Others']} pathName={pathName} isLastSection />
                 </div>
             </div>
-            <MobileNav tabs={mobilePaths} pathName={pathName} />
+            <MobileNav pathName={pathName} />
         </div>
     )
 }

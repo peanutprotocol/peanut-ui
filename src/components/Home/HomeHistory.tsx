@@ -1,50 +1,49 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
 import { useDashboard } from '@/components/Dashboard/useDashboard'
 import AddressLink from '@/components/Global/AddressLink'
-import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
-import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { TransactionBadge } from '@/components/Global/TransactionBadge'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { IDashboardItem } from '@/interfaces'
 import {
     formatAmount,
     formatDate,
-    formatPaymentStatus,
     getChainLogo,
-    getHeaderTitle,
     getHistoryTransactionStatus,
     getTokenLogo,
     isStableCoin,
+    formatPaymentStatus,
 } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const ITEMS_PER_PAGE = 10
 
-const HistoryPage = () => {
-    const pathname = usePathname()
+const HomeHistory = () => {
     const { address } = useWallet()
     const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
+    const [dashboardData, setDashboardData] = useState<IDashboardItem[]>([])
+    const [isLoadingDashboard, setIsLoadingDashboard] = useState(true)
     const loaderRef = useRef<HTMLDivElement>(null)
 
-    const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
-        queryKey: ['dashboardData', address],
-        queryFn: () => composeLinkDataArray(address ?? ''),
-        enabled: !!address,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 10 * 60 * 1000, // 10 minutes
-        placeholderData: keepPreviousData,
-    })
+    useEffect(() => {
+        let isStale = false
+        setIsLoadingDashboard(true)
+        composeLinkDataArray(address ?? '').then((data) => {
+            if (isStale) return
+            setDashboardData(data)
+            setIsLoadingDashboard(false)
+        })
+        return () => {
+            isStale = true
+        }
+    }, [address])
 
     const fetchHistoryPage = async ({ pageParam = 0 }) => {
-        if (!dashboardData) return { items: [], nextPage: undefined }
-
         const start = pageParam * ITEMS_PER_PAGE
         const end = start + ITEMS_PER_PAGE
         const pageData = dashboardData.slice(start, end)
@@ -83,19 +82,16 @@ const HistoryPage = () => {
 
         return {
             items: formattedData,
-            nextPage: end < (dashboardData?.length || 0) ? pageParam + 1 : undefined,
+            nextPage: end < dashboardData.length ? pageParam + 1 : undefined,
         }
     }
 
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, isLoading, error } = useInfiniteQuery({
-        queryKey: ['history', address, dashboardData],
+        queryKey: ['history', address],
         queryFn: fetchHistoryPage,
         getNextPageParam: (lastPage) => lastPage.nextPage,
-        enabled: !!dashboardData && dashboardData.length > 0,
+        enabled: dashboardData.length > 0,
         initialPageParam: 0,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 10 * 60 * 1000, // 10 minutes
-        placeholderData: keepPreviousData,
     })
 
     useEffect(() => {
@@ -118,7 +114,7 @@ const HistoryPage = () => {
         return () => observer.disconnect()
     }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-    if ((isLoadingDashboard || isLoading) && (!dashboardData || !data?.pages?.length)) {
+    if (isLoadingDashboard || isLoading) {
         return <PeanutLoading />
     }
 
@@ -128,32 +124,25 @@ const HistoryPage = () => {
         return <div className="w-full py-4 text-center">Error loading history: {error?.message}</div>
     }
 
-    if (!dashboardData || dashboardData.length === 0) {
+    if (dashboardData.length === 0) {
         return (
-            <div className="flex h-[80dvh] items-center justify-center">
-                <NoDataEmptyState
-                    animSize="lg"
-                    message="You haven't done any transactions"
-                    cta={
-                        <Link href="/home" className="cursor-pointer">
-                            <Button shadowSize="4" size="medium" variant={'purple'} className="cursor-pointer">
-                                Go to Dashboard
-                            </Button>
-                        </Link>
-                    }
-                />
+            <div className="mx-auto mt-6 w-full space-y-2 px-4 md:max-w-2xl md:space-y-3">
+                <h2 className="text-baes font-bold">Recent Transactions</h2>
+                <div className="h-full w-full border-t border-n-1 py-8 text-center">
+                    <p className="text-sm text-gray-500">No transactions yet</p>
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
-            {!!data?.pages.length ? <NavHeader title={getHeaderTitle(pathname)} /> : null}
+        <div className="mx-auto mt-6 w-full space-y-6 px-4 md:max-w-2xl md:space-y-3">
+            <h2 className="text-base font-bold">Recent Transactions</h2>
             <div className="h-full w-full border-t border-n-1">
                 {!!data?.pages.length &&
                     data?.pages.map((page, pageIndex) => (
                         <div key={pageIndex}>
-                            {page.items.map((item) => (
+                            {page.items.slice(0, 5).map((item) => (
                                 <div key={item.id}>
                                     <ListItemView
                                         id={item.id}
@@ -193,12 +182,14 @@ const HistoryPage = () => {
                         </div>
                     ))}
 
-                <div ref={loaderRef} className="w-full py-4">
-                    {isFetchingNextPage && <div className="w-full text-center">Loading more...</div>}
+                <div className="my-4 flex justify-center">
+                    <Link href="/history" className="text-sm text-purple-400">
+                        View all transactions
+                    </Link>
                 </div>
             </div>
         </div>
     )
 }
 
-export default HistoryPage
+export default HomeHistory
