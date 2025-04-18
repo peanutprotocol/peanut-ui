@@ -66,13 +66,13 @@ type MobileNavProps = {
 }
 
 const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => (
-    <div className="z-1 grid h-16 grid-cols-3 border-t border-black bg-background md:hidden">
+    <div className="z-1 grid h-20 grid-cols-3 border-t border-black bg-background md:hidden">
         {/* Home Link */}
         <Link
             href="/home"
             translate="no"
             className={classNames(
-                'notranslate flex flex-col items-center justify-center object-contain hover:cursor-pointer',
+                'notranslate mb-4 flex flex-col items-center justify-center object-contain hover:cursor-pointer',
                 { 'text-primary-1': pathName === '/home' }
             )}
         >
@@ -88,7 +88,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => (
             href="/support"
             translate="no"
             className={classNames(
-                'notranslate flex flex-col items-center justify-center object-contain  hover:cursor-pointer',
+                'notranslate mb-4 flex flex-col items-center justify-center object-contain  hover:cursor-pointer',
                 { 'text-primary-1': pathName === '/support' }
             )}
         >

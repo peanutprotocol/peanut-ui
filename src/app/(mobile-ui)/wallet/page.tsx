@@ -160,7 +160,7 @@ const WalletDetailsPage = () => {
             {!isRewardsWallet && (
                 <>
                     <div className="flex w-full flex-row items-center justify-center gap-9">
-                        <AddFunds />
+                        {isPeanutWallet && <AddFunds />}
                         <DirectionalActionButtons leftButton={{ title: 'Cashout', href: '/cashout' }} />
                     </div>
 

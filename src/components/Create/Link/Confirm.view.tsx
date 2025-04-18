@@ -206,11 +206,11 @@ export const CreateLinkConfirmView = ({
                     },
                 })
 
-                setLink(link[0])
+                setLink(link)
                 console.log(`Submitting claim link confirm at ${new Date().getTime() - now}ms`)
                 await submitClaimLinkConfirm({
                     chainId: selectedChainID,
-                    link: link[0],
+                    link,
                     password: password ?? '',
                     txHash: hash,
                     senderAddress: address ?? '',
@@ -222,8 +222,8 @@ export const CreateLinkConfirmView = ({
                 })
                 console.log(`Submitting claim link confirm response at ${new Date().getTime() - now}ms`)
 
-                if (createType === 'email_link') shareToEmail(recipient.name ?? '', link[0], usdValue)
-                if (createType === 'sms_link') shareToSms(recipient.name ?? '', link[0], usdValue)
+                if (createType === 'email_link') shareToEmail(recipient.name ?? '', link, usdValue)
+                if (createType === 'sms_link') shareToSms(recipient.name ?? '', link, usdValue)
             }
 
             if (selectedChainID && selectedTokenAddress && selectedTokenDecimals) {

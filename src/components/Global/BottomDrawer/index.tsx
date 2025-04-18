@@ -88,7 +88,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
             setTimeout(() => {
                 if (sheetRef.current) {
                     // If in expanded mode or if content is smaller than half-height requested
-                    const contentHeight = (contentRef.current?.scrollHeight ?? 0) + 120
+                    const contentHeight = (contentRef.current?.scrollHeight ?? 0) + 150
                     const viewportHeight = window.innerHeight
                     const contentHeightPercent = (contentHeight / viewportHeight) * 100
 
@@ -128,7 +128,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
 
         // Get content height limit
         const contentHeightLimit = contentRef.current
-            ? ((contentRef.current.scrollHeight + 120) / window.innerHeight) * 100
+            ? ((contentRef.current.scrollHeight + 150) / window.innerHeight) * 100
             : expandedHeight
 
         // Use the smaller of expandedHeight and contentHeightLimit as maximum height
@@ -156,7 +156,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
         if (!contentRef.current) return `${expandedHeight}vh`
 
         // Calculate the actual content height plus the drag handle height
-        const contentHeight = contentRef.current.scrollHeight + 120 // 120px accounts for the drag handle
+        const contentHeight = contentRef.current.scrollHeight + 150 // 150px accounts for the drag handle
         const viewportHeight = window.innerHeight
         const contentHeightPercent = (contentHeight / viewportHeight) * 100
 
@@ -173,7 +173,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
 
         // Get content height for comparison
         const contentHeightLimit = contentRef.current
-            ? ((contentRef.current.scrollHeight + 120) / window.innerHeight) * 100
+            ? ((contentRef.current.scrollHeight + 150) / window.innerHeight) * 100
             : expandedHeight
 
         // Check if drawer is already at content height
@@ -307,7 +307,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
                     style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
                 >
                     <div className="mx-auto mb-4 mt-2 h-2 w-8 rounded-full bg-black"></div>
-                    {handleTitle && <h2 className="mb-8 text-lg font-extrabold">{handleTitle}</h2>}
+                    {handleTitle && <h2 className="mb-8 text-2xl font-extrabold">{handleTitle}</h2>}
                 </div>
 
                 {/* Content area */}
