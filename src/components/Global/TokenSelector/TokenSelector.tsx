@@ -19,9 +19,7 @@ import Icon from '../Icon'
 import { TokenSelectorProps } from './TokenSelector.consts'
 
 const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: IUserBalance) => void }) => {
-    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(
-        tokenSelectorContext
-    )
+    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
     const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
     const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
 

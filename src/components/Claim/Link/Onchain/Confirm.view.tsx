@@ -8,7 +8,14 @@ import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import * as consts from '@/constants'
 import { tokenSelectorContext, loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { saveClaimedLinkToLocalStorage, ErrorHandler, formatAmount, checkifImageType, formatAmountWithDecimals, formatTokenAmount } from '@/utils'
+import {
+    saveClaimedLinkToLocalStorage,
+    ErrorHandler,
+    formatAmount,
+    checkifImageType,
+    formatAmountWithDecimals,
+    formatTokenAmount,
+} from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
 import * as _consts from '../../Claim.consts'
@@ -28,9 +35,7 @@ export const ConfirmClaimLinkView = ({
 }: _consts.IClaimScreenProps) => {
     const { address, refetchBalances } = useWallet()
     const { claimLinkXchain, claimLink } = useClaimLink()
-    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(
-        tokenSelectorContext
-    )
+    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean

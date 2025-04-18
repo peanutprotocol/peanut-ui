@@ -1,6 +1,6 @@
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
-import { ContextProvider } from '@/context';
-import { PeanutProvider } from '@/config';
+import { ContextProvider } from '@/context'
+import { PeanutProvider } from '@/config'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
 import { Viewport } from 'next'
 import { Londrina_Solid, Roboto_Flex, Sniglet } from 'next/font/google'

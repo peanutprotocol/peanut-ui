@@ -9,7 +9,13 @@ import Sorting from '../Global/Sorting'
 import TablePagination from '../Global/TablePagination'
 
 import * as interfaces from '@/interfaces'
-import { formatDate, formatTokenAmount, getAllLinksFromLocalStorage, getAllRaffleLinksFromLocalstorage, printableAddress } from '@/utils'
+import {
+    formatDate,
+    formatTokenAmount,
+    getAllLinksFromLocalStorage,
+    getAllRaffleLinksFromLocalstorage,
+    printableAddress,
+} from '@/utils'
 import * as _consts from './Dashboard.consts'
 import { SortComponent, OptionsItemComponent, MobileItemComponent } from './components'
 

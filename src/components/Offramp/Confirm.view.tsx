@@ -13,7 +13,22 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import * as consts from '@/constants'
 import { tokenSelectorContext, loadingStateContext } from '@/context'
 import { useAuth } from '@/context/authContext'
-import { createLiquidationAddress, ErrorHandler, fetchRouteRaw, formatAmount, formatTokenAmount, getBridgeChainName, getBridgeTokenName, getChainIdFromBridgeChainName, getLiquidationAddresses, getTokenAddressFromBridgeTokenName, isNativeCurrency, isTestnetChain, saveOfframpLinkToLocalstorage, submitCashoutLink } from '@/utils'
+import {
+    createLiquidationAddress,
+    ErrorHandler,
+    fetchRouteRaw,
+    formatAmount,
+    formatTokenAmount,
+    getBridgeChainName,
+    getBridgeTokenName,
+    getChainIdFromBridgeChainName,
+    getLiquidationAddresses,
+    getTokenAddressFromBridgeTokenName,
+    isNativeCurrency,
+    isTestnetChain,
+    saveOfframpLinkToLocalstorage,
+    submitCashoutLink,
+} from '@/utils'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import { getSquidTokenAddress } from '@/utils/token.utils'
 import peanut, { getLatestContractVersion, getLinkDetails } from '@squirrel-labs/peanut-sdk'
@@ -955,15 +970,11 @@ export const OfframpConfirmView = ({
                                             const totalFees = bankingFee + (calculatedSlippage?.expected ?? 0)
 
                                             // return 0 if fees exceed amount, otherwise calculate minimum receive
-                                            return amount <= totalFees
-                                                ? '0'
-                                                : formatTokenAmount(amount - totalFees)
+                                            return amount <= totalFees ? '0' : formatTokenAmount(amount - totalFees)
                                         })()}
                                         slippageRange={{
                                             max: formatAmount(calculatedSlippage?.max || '0').toString() ?? '0',
-                                            min:
-                                                formatAmount(calculatedSlippage?.expected || '0').toString() ??
-                                                '0',
+                                            min: formatAmount(calculatedSlippage?.expected || '0').toString() ?? '0',
                                         }}
                                         accountType={accountType}
                                         accountTypeFee={(() => {

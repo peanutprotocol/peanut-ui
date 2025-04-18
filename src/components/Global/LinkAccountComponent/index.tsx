@@ -5,7 +5,13 @@ import { useForm } from 'react-hook-form'
 import { KYCComponent } from '@/components/Kyc'
 import { useAuth } from '@/context/authContext'
 import { IResponse } from '@/interfaces'
-import { createAccount, createExternalAccount, getCustomer, getThreeCharCountryCodeFromIban, validateBankAccount } from '@/utils'
+import {
+    createAccount,
+    createExternalAccount,
+    getCustomer,
+    getThreeCharCountryCodeFromIban,
+    validateBankAccount,
+} from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import Link from 'next/link'
 import { isIBAN } from 'validator'

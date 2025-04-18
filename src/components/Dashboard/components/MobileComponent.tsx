@@ -41,8 +41,8 @@ export const MobileItemComponent = ({
             <div className="flex w-full flex-row items-end justify-between">
                 <div className="flex flex-col items-start justify-end gap-2 text-start">
                     <label className="font-bold">
-                        {formatTokenAmount(Number(linkDetail.amount), 4)} {linkDetail.tokenSymbol} - [
-                        {linkDetail.chain}]
+                        {formatTokenAmount(Number(linkDetail.amount), 4)} {linkDetail.tokenSymbol} - [{linkDetail.chain}
+                        ]
                     </label>
 
                     <label>
