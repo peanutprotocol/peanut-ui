@@ -2,6 +2,8 @@
 
 import { isGaslessDepositPossible } from '@/components/Create/Create.utils'
 import { useCreateLink } from '@/components/Create/useCreateLink'
+import PeanutSponsored from '@/components/Global/PeanutSponsored'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { LoadingStates } from '@/constants/loadingStates.consts'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
@@ -134,7 +136,7 @@ const processStandardWalletTransaction = async (
     dispatch(sendFlowActions.setView('CONFIRM'))
 }
 
-const InitialSendView = () => {
+const LinkSendInitialView = () => {
     const dispatch = useAppDispatch()
     const { tokenValue, usdValue, attachmentOptions, crossChainDetails, errorState } = useSendFlowStore()
 
@@ -175,7 +177,7 @@ const InitialSendView = () => {
         const balance = balanceByToken(selectedWallet.balances, selectedChainID, selectedTokenAddress)
         if (!balance) return ''
         // 6 decimal places, prettier
-        return floorFixed(balance.amount, 6)
+        return floorFixed(balance.amount, PEANUT_WALLET_TOKEN_DECIMALS)
     }, [selectedChainID, selectedTokenAddress, selectedWallet?.balances, selectedWallet?.balance])
 
     const handleOnNext = async () => {
@@ -195,21 +197,23 @@ const InitialSendView = () => {
             // update token and usd values in redux based on user input
             updateTokenAndUsdValues(dispatch, currentInputValue, inputDenomination, selectedTokenPrice)
 
-            // wait for redux state to update before proceeding
-            await new Promise((resolve) => setTimeout(resolve, 0))
-
             // check wallet balance
             try {
                 // for native tokens, we need to consider gas fees
                 if (isNativeCurrency(selectedTokenAddress)) {
                     // Get a rough gas estimate - this could be optimized
                     const roughGasEstimate = 0.001 // A conservative estimate in native token units
-                    await checkUserHasEnoughBalance({
+                    checkUserHasEnoughBalance({
                         tokenValue: tokenValue!,
                         gasAmount: roughGasEstimate,
                     })
+                    // await checkUserHasEnoughBalance({
+                    //     tokenValue: tokenValue!,
+                    //     gasAmount: roughGasEstimate,
+                    // })
                 } else {
-                    await checkUserHasEnoughBalance({ tokenValue: tokenValue! })
+                    checkUserHasEnoughBalance({ tokenValue: tokenValue! })
+                    // await checkUserHasEnoughBalance({ tokenValue: tokenValue! })
                 }
             } catch (error) {
                 // if balance check fails, show error
@@ -374,7 +378,7 @@ const InitialSendView = () => {
 
     return (
         <div className="space-y-4">
-            <FlowHeader />
+            <FlowHeader disableWalletHeader={isLoading} />
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
                     <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
@@ -414,8 +418,10 @@ const InitialSendView = () => {
                             attachmentOptions={attachmentOptions}
                             setAttachmentOptions={sendFlowActions.setAttachmentOptions}
                         />
+
+                        {isPeanutWallet && <PeanutSponsored />}
                     </div>
-                    <div className="mb-4 flex flex-col gap-4 sm:flex-row-reverse">
+                    <div className="flex flex-col gap-4">
                         <Button
                             onClick={handleOnConfirm}
                             loading={isLoading}
@@ -423,12 +429,12 @@ const InitialSendView = () => {
                         >
                             {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
                         </Button>
+                        {errorState?.showError && (
+                            <div className="text-start">
+                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                            </div>
+                        )}
                     </div>
-                    {errorState?.showError && (
-                        <div className="text-start">
-                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                        </div>
-                    )}
                     {!crossChainDetails?.find(
                         (chain: any) => chain.chainId.toString() === selectedChainID.toString()
                     ) && (
@@ -458,4 +464,4 @@ const InitialSendView = () => {
     )
 }
 
-export default InitialSendView
+export default LinkSendInitialView
