@@ -6,6 +6,7 @@ import { getContract } from 'viem'
 
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { fetchTokenDetails } from '@/app/actions/tokens'
+import { getLinkFromReceipt } from '@/utils'
 
 export const getLinkDetails = unstable_cache(
     async (link: string): Promise<any> => {
@@ -60,9 +61,7 @@ export const getLinkFromTx = unstable_cache(
         const txReceipt = await client.waitForTransactionReceipt({
             hash: txHash as `0x${string}`,
         })
-        const contractVersion = peanut.detectContractVersionFromTxReceipt(txReceipt, chainId)
-        const depositIdx = peanut.getDepositIdxs(txReceipt, chainId, contractVersion)[0]
-        return peanut.getLinkFromParams(chainId, contractVersion, depositIdx, password, baseUrl, trackId)
+        return getLinkFromReceipt({ txReceipt, linkDetails, password })
     },
     ['getLinkFromTx']
 )

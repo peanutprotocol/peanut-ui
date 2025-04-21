@@ -9,16 +9,10 @@ import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { saveToLocalStorage } from '@/utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
-import { Abi, Address, encodeFunctionData, Hex } from 'viem'
+import { Hex } from 'viem'
+import type { TransactionReceipt } from 'viem'
 
 // types
-type UserOpNotEncodedParams = {
-    to: Address
-    value: number
-    abi: Abi
-    functionName: string
-    args: any[]
-}
 type UserOpEncodedParams = {
     to: Hex
     value?: bigint | undefined
@@ -88,7 +82,7 @@ export const useZeroDev = () => {
     }
 
     const handleSendUserOpEncoded = useCallback(
-        async (calls: UserOpEncodedParams[], chainId: string) => {
+        async (calls: UserOpEncodedParams[], chainId: string): Promise<TransactionReceipt> => {
             const client = getClientForChain(chainId)
             dispatch(zerodevActions.setIsSendingUserOp(true))
 
@@ -105,7 +99,7 @@ export const useZeroDev = () => {
 
                 dispatch(zerodevActions.setIsSendingUserOp(false))
 
-                return receipt.receipt.transactionHash
+                return receipt.receipt
             } catch (error) {
                 console.error('Error sending encoded UserOp:', error)
                 dispatch(zerodevActions.setIsSendingUserOp(false))
@@ -114,34 +108,6 @@ export const useZeroDev = () => {
         },
         [getClientForChain]
     )
-
-    const handleSendUserOpNotEncoded = useCallback(
-        async ({ to, value, abi, functionName, args }: UserOpNotEncodedParams, chainId: string) => {
-            const client = getClientForChain(chainId)
-            dispatch(zerodevActions.setIsSendingUserOp(true))
-            const userOpHash = await client.sendUserOperation({
-                account: client.account,
-                callData: await client.account!.encodeCalls([
-                    {
-                        to,
-                        value: BigInt(value),
-                        data: encodeFunctionData({
-                            abi,
-                            functionName,
-                            args,
-                        }),
-                    },
-                ]),
-            })
-            await client.waitForUserOperationReceipt({
-                hash: userOpHash,
-            })
-            dispatch(zerodevActions.setIsSendingUserOp(false))
-            return userOpHash
-        },
-        [getClientForChain]
-    )
-
     return {
         isKernelClientReady,
         setIsKernelClientReady: (value: boolean) => dispatch(zerodevActions.setIsKernelClientReady(value)),
@@ -154,7 +120,6 @@ export const useZeroDev = () => {
         handleRegister,
         handleLogin,
         handleSendUserOpEncoded,
-        handleSendUserOpNotEncoded,
         address,
     }
 }
