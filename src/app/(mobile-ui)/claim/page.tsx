@@ -1,41 +1,36 @@
+import { getLinkDetails } from '@/app/actions/claimLinks'
 import { Claim } from '@/components'
 import { formatAmount } from '@/utils'
 import { Metadata } from 'next'
-import { getLinkDetails } from '@/app/actions/claimLinks'
 
 export const dynamic = 'force-dynamic'
 
-type Props = {
-    params: { id: string }
-    searchParams: { [key: string]: string | string[] | undefined }
-}
+// This is correct for Next.js 15
+export async function generateMetadata({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ id?: string }>
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}): Promise<Metadata> {
+    const resolvedParams = await params
+    const resolvedSearchParams = await searchParams
 
-function createURL(host: string, searchParams: { [key: string]: string | string[] | undefined }): string {
-    const queryParams = new URLSearchParams()
-
-    host = `${host}/claim`
-
-    Object.keys(searchParams).forEach((key) => {
-        const value = searchParams[key]
-        if (Array.isArray(value)) {
-            value.forEach((item) => queryParams.append(key, item))
-        } else if (value) {
-            queryParams.append(key, value)
-        }
-    })
-
-    return `${host}?${queryParams.toString()}`
-}
-
-export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
     let title = 'Claim your tokens!'
     const host = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
 
     let linkDetails = undefined
-    // only if we have params
-    if (searchParams.i && searchParams.c) {
+    if (resolvedSearchParams.i && resolvedSearchParams.c) {
         try {
-            const url = createURL(host, searchParams)
+            const queryParams = new URLSearchParams()
+            Object.entries(resolvedSearchParams).forEach(([key, val]) => {
+                if (Array.isArray(val)) {
+                    val.forEach((v) => queryParams.append(key, v))
+                } else if (val) {
+                    queryParams.append(key, val)
+                }
+            })
+            const url = `${host}/claim?${queryParams.toString()}`
             linkDetails = await getLinkDetails(url)
 
             if (!linkDetails.claimed) {
@@ -57,22 +52,16 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     let previewUrl = '/claim-metadata-img.jpg'
     if (linkDetails && !linkDetails.claimed) {
         const url = new URL('/api/preview-image', host)
-        const params = new URLSearchParams()
-
-        params.append('amount', linkDetails.tokenAmount.toString())
-        params.append('tokenSymbol', linkDetails.tokenSymbol)
-        params.append('address', linkDetails.senderAddress)
-        params.append('previewType', 'CLAIM')
-
-        url.search = params.toString()
+        url.searchParams.append('amount', linkDetails.tokenAmount.toString())
+        url.searchParams.append('tokenSymbol', linkDetails.tokenSymbol)
+        url.searchParams.append('address', linkDetails.senderAddress)
+        url.searchParams.append('previewType', 'CLAIM')
         previewUrl = url.toString()
     }
 
     return {
-        title: title,
-        icons: {
-            icon: '/favicon.ico',
-        },
+        title,
+        icons: { icon: '/favicon.ico' },
         openGraph: {
             images: [
                 {

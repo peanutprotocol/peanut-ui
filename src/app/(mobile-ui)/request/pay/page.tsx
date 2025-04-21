@@ -1,15 +1,14 @@
-import { Metadata } from 'next'
 import { PreviewType } from '@/components/Global/ImageGeneration/LinkPreview'
-import { formatAmount, printableAddress } from '@/utils'
 import { PayRequestLink } from '@/components/Request/Pay/Pay'
 import { chargesApi } from '@/services/charges'
+import { formatAmount, printableAddress } from '@/utils'
+import { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-type Props = {
-    params: { id: string }
-    searchParams: { [key: string]: string | string[] | undefined }
-}
+// Next.js 15 requires params/searchParams to be Promises
+type Params = Promise<{ id?: string }>
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
 function getPreviewUrl(
     host: string,
@@ -36,10 +35,23 @@ function getPreviewUrl(
     return url.toString()
 }
 
-export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+export async function generateMetadata({
+    params,
+    searchParams,
+}: {
+    params: Params
+    searchParams: SearchParams
+}): Promise<Metadata> {
+    const resolvedSearchParams = await searchParams
+
     let title = 'Request Payment | Peanut'
     let previewUrl = '/metadata-img.jpg'
-    const uuid = searchParams.id ? (Array.isArray(searchParams.id) ? searchParams.id[0] : searchParams.id) : undefined
+    const uuid = resolvedSearchParams.id
+        ? Array.isArray(resolvedSearchParams.id)
+            ? resolvedSearchParams.id[0]
+            : resolvedSearchParams.id
+        : undefined
+
     if (uuid) {
         try {
             const charge = await chargesApi.get(uuid)
@@ -51,8 +63,11 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
                 ...charge,
                 recipientAddress: charge.requestLink.recipientAddress,
             })
-        } catch (e) {}
+        } catch (e) {
+            console.error('Failed to fetch charge for metadata:', e)
+        }
     }
+
     return {
         title,
         description: 'Request cryptocurrency from friends, family, or anyone else using Peanut on any chain.',

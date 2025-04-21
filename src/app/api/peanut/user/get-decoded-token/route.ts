@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
 export async function GET() {
     try {
-        const cookieStore = cookies()
+        const cookieStore = await cookies()
         const token = cookieStore.get('jwt-token')
 
         if (!token) {

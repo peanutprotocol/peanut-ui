@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
     const separator = '/api/proxy/get/'
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const endpointToCall = request.url.substring(indexOfSeparator + separator.length)
     const fullAPIUrl = `${PEANUT_API_URL}/${endpointToCall}`
 
-    const userIp = request.headers.get('x-forwarded-for') || request.ip
+    const userIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip')
     const headersToPass = {
         'Content-Type': 'application/json',
         'x-forwarded-for': userIp,
@@ -36,7 +36,7 @@ export async function HEAD(request: NextRequest) {
     const endpointToCall = request.url.substring(indexOfSeparator + separator.length)
     const fullAPIUrl = `${PEANUT_API_URL}/${endpointToCall}`
 
-    const userIp = request.headers.get('x-forwarded-for') || request.ip
+    const userIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip')
     const headersToPass = {
         'x-forwarded-for': userIp,
         'Api-Key': process.env.PEANUT_API_KEY!,

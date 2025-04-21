@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { fetchWithSentry } from '@/utils'
+import { NextRequest } from 'next/server'
 
 interface TransferDetails {
     id: string
@@ -79,7 +79,7 @@ const query = `
     }
   `
 
-export async function POST(request: NextRequest, response: NextResponse) {
+export async function POST(request: NextRequest, context: { params: Promise<Record<string, string>> }) {
     const body = await request.json()
 
     try {
@@ -103,20 +103,19 @@ export async function POST(request: NextRequest, response: NextResponse) {
 
         const responseJson = await response.text()
 
-        return new Response(responseJson, {
+        return Response.json(JSON.parse(responseJson), {
             status: 200,
-            headers: {
-                'Content-Type': 'application/json',
-            },
         })
     } catch (error: any) {
         console.error('Error occured while fetching recent transactions:', error)
 
-        return NextResponse.json({
-            status: 500,
-            body: {
+        return Response.json(
+            {
                 error: 'Error occured while fetching recent transactions',
             },
-        })
+            {
+                status: 500,
+            }
+        )
     }
 }

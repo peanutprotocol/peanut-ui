@@ -36,9 +36,11 @@ let nextConfig = {
             },
         ],
     },
-    webpack: (config, { isServer }) => {
-        if (isServer) {
-            config.ignoreWarnings = [{ module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ }]
+    webpack: (config, { isServer, dev }) => {
+        if (!dev || !process.env.NEXT_TURBO) {
+            if (isServer) {
+                config.ignoreWarnings = [{ module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ }]
+            }
         }
         return config
     },
@@ -104,6 +106,9 @@ let nextConfig = {
                 ],
             },
         ]
+    },
+    experimental: {
+        turbo: true, // Simple flag for Next.js 14
     },
 }
 

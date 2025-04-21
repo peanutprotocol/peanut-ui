@@ -1,8 +1,7 @@
 import * as consts from '@/constants'
-import { KYCStatus } from '@/utils'
+import { fetchWithSentry, KYCStatus } from '@/utils'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
-import { fetchWithSentry } from '@/utils'
 
 type UserPayload = {
     userId: string
@@ -20,7 +19,7 @@ export async function POST(request: NextRequest) {
         await request.json()
 
     const apiKey = process.env.PEANUT_API_KEY
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const token = cookieStore.get('jwt-token')
 
     if (!userId || !apiKey || !token) {
