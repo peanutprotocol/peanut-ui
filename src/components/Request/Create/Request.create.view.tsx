@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { IAttachmentOptions } from '@/components/Create/Create.consts'
+import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { getTokenDetails } from '@/components/Create/Create.utils'
 import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
 import Loading from '@/components/Global/Loading'
