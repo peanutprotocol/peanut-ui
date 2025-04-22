@@ -5,7 +5,6 @@ import { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-// This is correct for Next.js 15
 export async function generateMetadata({
     params,
     searchParams,
@@ -13,7 +12,6 @@ export async function generateMetadata({
     params: Promise<{ id?: string }>
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }): Promise<Metadata> {
-    const resolvedParams = await params
     const resolvedSearchParams = await searchParams
 
     let title = 'Claim your tokens!'

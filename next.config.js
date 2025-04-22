@@ -108,7 +108,7 @@ let nextConfig = {
         ]
     },
     experimental: {
-        turbo: true, // Simple flag for Next.js 14
+        turbo: true,
     },
 }
 

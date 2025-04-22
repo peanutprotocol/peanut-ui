@@ -6,7 +6,6 @@ import { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-// Next.js 15 requires params/searchParams to be Promises
 type Params = Promise<{ id?: string }>
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
