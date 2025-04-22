@@ -1,23 +1,23 @@
 'use client'
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { useState, useMemo, type ChangeEvent } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useMemo, useState, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
-import Icon from '@/components/Global/Icon'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
-import QRScanner from '@/components/Global/QRScanner'
-import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import Icon from '@/components/Global/Icon'
 import Modal from '@/components/Global/Modal'
-import { resolveFromEnsName } from '@/utils'
+import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
+import QRScanner from '@/components/Global/QRScanner'
+import { useAuth } from '@/context/authContext'
+import { usePush } from '@/context/pushProvider'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
-import { useAuth } from '@/context/authContext'
-import { recognizeQr, EQrType, parseEip681, NAME_BY_QR_TYPE } from './utils'
-import { useToast } from '@/components/0_Bruddle/Toast'
-import { usePush } from '@/context/pushProvider'
+import { resolveFromEnsName } from '@/utils'
 import { hitUserMetric } from '@/utils/metrics.utils'
 import * as Sentry from '@sentry/nextjs'
+import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
@@ -187,6 +187,9 @@ export default function DirectSendQr({ className = '' }: { className?: string })
     }, [user?.user.username])
 
     const processQRCode = async (data: string): Promise<{ success: boolean; error?: string }> => {
+        // reset payment state before processing new QR
+        dispatch(paymentActions.resetPaymentState())
+
         let redirectUrl: string | undefined = undefined
         let toConfirmUrl: string | undefined = undefined
         const originalData = data

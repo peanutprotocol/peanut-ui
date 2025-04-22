@@ -147,6 +147,13 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
         }
     }, [requestId])
 
+    // reset payment state when component unmounts or URL params change
+    useEffect(() => {
+        return () => {
+            dispatch(paymentActions.resetPaymentState())
+        }
+    }, [params.recipient])
+
     if (error) {
         return (
             <div className="mx-auto h-full w-full space-y-8 self-center md:w-6/12">
