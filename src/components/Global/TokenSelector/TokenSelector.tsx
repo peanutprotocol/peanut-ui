@@ -4,7 +4,7 @@ import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { IToken, IUserBalance } from '@/interfaces'
 import { areEvmAddressesEqual, formatTokenAmount } from '@/utils'
-import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState, memo, useCallback } from 'react'
 import ChainSelector from '../ChainSelector'
 import Modal from '../Modal'
 import Search from '../Search'
@@ -18,147 +18,151 @@ import Image from 'next/image'
 import Icon from '../Icon'
 import { TokenSelectorProps } from './TokenSelector.consts'
 
-const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: IUserBalance) => void }) => {
-    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
-    const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
-    const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
+const TokenList = memo(
+    ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: IUserBalance) => void }) => {
+        const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } =
+            useContext(tokenSelectorContext)
+        const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
+        const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
 
-    const containerRef = useRef<HTMLDivElement>(null)
-    const [visibleRange, setVisibleRange] = useState({ start: 0, end: 10 })
-    const ITEM_HEIGHT = 56
+        const containerRef = useRef<HTMLDivElement>(null)
+        const [visibleRange, setVisibleRange] = useState({ start: 0, end: 10 })
+        const ITEM_HEIGHT = 56
 
-    const handleScroll = () => {
-        if (!containerRef.current) return
+        const handleScroll = () => {
+            if (!containerRef.current) return
 
-        const element = containerRef.current
-        const scrollTop = element.scrollTop
-        const viewportHeight = element.clientHeight
+            const element = containerRef.current
+            const scrollTop = element.scrollTop
+            const viewportHeight = element.clientHeight
 
-        const start = Math.floor(scrollTop / ITEM_HEIGHT)
-        const visibleCount = Math.ceil(viewportHeight / ITEM_HEIGHT)
-        const end = Math.min(start + visibleCount + 3, balances.length)
+            const start = Math.floor(scrollTop / ITEM_HEIGHT)
+            const visibleCount = Math.ceil(viewportHeight / ITEM_HEIGHT)
+            const end = Math.min(start + visibleCount + 3, balances.length)
 
-        setVisibleRange({
-            start: Math.max(0, start - 3),
-            end,
-        })
-    }
-
-    useEffect(() => {
-        const element = containerRef.current
-        if (element) {
-            element.addEventListener('scroll', handleScroll)
-            handleScroll()
-            return () => element.removeEventListener('scroll', handleScroll)
+            setVisibleRange({
+                start: Math.max(0, start - 3),
+                end,
+            })
         }
-    }, [balances.length])
 
-    if (balances.length === 0) {
-        return <div className="w-full py-2 text-center">No balances to display!</div>
-    }
+        useEffect(() => {
+            const element = containerRef.current
+            if (element) {
+                element.addEventListener('scroll', handleScroll)
+                handleScroll()
+                return () => element.removeEventListener('scroll', handleScroll)
+            }
+        }, [balances.length])
 
-    const topSpacerHeight = visibleRange.start * ITEM_HEIGHT
-    const bottomSpacerHeight = (balances.length - visibleRange.end) * ITEM_HEIGHT
+        if (balances.length === 0) {
+            return <div className="w-full py-2 text-center">No balances to display!</div>
+        }
 
-    return (
-        <div ref={containerRef} className="overflow-auto">
-            {topSpacerHeight > 0 && <div style={{ height: topSpacerHeight }} />}
+        const topSpacerHeight = visibleRange.start * ITEM_HEIGHT
+        const bottomSpacerHeight = (balances.length - visibleRange.end) * ITEM_HEIGHT
 
-            <div className="relative">
-                {balances.slice(visibleRange.start, visibleRange.end).map((balance) => (
-                    <div
-                        key={`${balance.address}_${balance.chainId}`}
-                        className={`flex h-14 cursor-pointer items-center transition-colors hover:bg-grey-1/10 ${
-                            areEvmAddressesEqual(balance.address, selectedTokenAddress) &&
-                            balance.chainId === selectedChainID &&
-                            'bg-grey-1/10'
-                        }`}
-                        onClick={() => setToken(balance)}
-                    >
-                        <div className="w-16 py-2 pr-2">
-                            <div className="flex flex-row items-center justify-center gap-2 pl-1">
-                                <div className="relative h-6 w-6">
-                                    {!balance.logoURI || tokenPlaceholders[`${balance.address}_${balance.chainId}`] ? (
-                                        <Icon
-                                            name="token_placeholder"
-                                            className="absolute left-0 top-0 h-6 w-6"
-                                            fill="#999"
-                                        />
-                                    ) : (
-                                        <Image
-                                            src={balance.logoURI}
-                                            className="absolute left-0 top-0 h-6 w-6"
-                                            alt={`${balance.name} logo`}
-                                            width={24}
-                                            height={24}
-                                            unoptimized
-                                            onError={(e) => {
-                                                e.currentTarget.style.display = 'none'
-                                                setTokenPlaceholders((prev) => ({
-                                                    ...prev,
-                                                    [`${balance.address}_${balance.chainId}`]: true,
-                                                }))
-                                            }}
-                                        />
-                                    )}
-                                    {chainPlaceholders[`${balance.address}_${balance.chainId}`] ? (
-                                        <Icon
-                                            name="token_placeholder"
-                                            className="absolute -top-1 left-3 h-4 w-4 rounded-full"
-                                            fill="#999"
-                                        />
-                                    ) : (
-                                        <img
-                                            src={
-                                                supportedSquidChainsAndTokens[balance.chainId]?.chainIconURI ??
-                                                supportedPeanutChains.find((c) => c.chainId === balance.chainId)?.icon
-                                                    .url
-                                            }
-                                            className="absolute -top-1 left-3 h-4 w-4 rounded-full"
-                                            alt="logo"
-                                            onError={(_e) => {
-                                                setChainPlaceholders((prev) => ({
-                                                    ...prev,
-                                                    [`${balance.address}_${balance.chainId}`]: true,
-                                                }))
-                                            }}
-                                        />
-                                    )}
+        return (
+            <div ref={containerRef} className="overflow-auto">
+                {topSpacerHeight > 0 && <div style={{ height: topSpacerHeight }} />}
+
+                <div className="relative">
+                    {balances.slice(visibleRange.start, visibleRange.end).map((balance) => (
+                        <div
+                            key={`${balance.address}_${balance.chainId}`}
+                            className={`flex h-14 cursor-pointer items-center transition-colors hover:bg-grey-1/10 ${
+                                areEvmAddressesEqual(balance.address, selectedTokenAddress) &&
+                                balance.chainId === selectedChainID &&
+                                'bg-grey-1/10'
+                            }`}
+                            onClick={() => setToken(balance)}
+                        >
+                            <div className="w-16 py-2 pr-2">
+                                <div className="flex flex-row items-center justify-center gap-2 pl-1">
+                                    <div className="relative h-6 w-6">
+                                        {!balance.logoURI ||
+                                        tokenPlaceholders[`${balance.address}_${balance.chainId}`] ? (
+                                            <Icon
+                                                name="token_placeholder"
+                                                className="absolute left-0 top-0 h-6 w-6"
+                                                fill="#999"
+                                            />
+                                        ) : (
+                                            <Image
+                                                src={balance.logoURI}
+                                                className="absolute left-0 top-0 h-6 w-6"
+                                                alt={`${balance.name} logo`}
+                                                width={24}
+                                                height={24}
+                                                unoptimized
+                                                onError={(e) => {
+                                                    e.currentTarget.style.display = 'none'
+                                                    setTokenPlaceholders((prev) => ({
+                                                        ...prev,
+                                                        [`${balance.address}_${balance.chainId}`]: true,
+                                                    }))
+                                                }}
+                                            />
+                                        )}
+                                        {chainPlaceholders[`${balance.address}_${balance.chainId}`] ? (
+                                            <Icon
+                                                name="token_placeholder"
+                                                className="absolute -top-1 left-3 h-4 w-4 rounded-full"
+                                                fill="#999"
+                                            />
+                                        ) : (
+                                            <img
+                                                src={
+                                                    supportedSquidChainsAndTokens[balance.chainId]?.chainIconURI ??
+                                                    supportedPeanutChains.find((c) => c.chainId === balance.chainId)
+                                                        ?.icon.url
+                                                }
+                                                className="absolute -top-1 left-3 h-4 w-4 rounded-full"
+                                                alt="logo"
+                                                onError={(_e) => {
+                                                    setChainPlaceholders((prev) => ({
+                                                        ...prev,
+                                                        [`${balance.address}_${balance.chainId}`]: true,
+                                                    }))
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 py-2">
+                                <div className="flex flex-col items-start justify-center gap-1">
+                                    <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
+                                        {balance.symbol}
+                                    </div>
+                                    <div className="text-h9 font-normal">
+                                        {balance.amount ? formatTokenAmount(balance.amount) : ''}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="w-24 py-2 text-h8">
+                                {balance.value ? `$${formatTokenAmount(parseFloat(balance.value), 2)}` : balance.name}
+                            </div>
+
+                            <div className="w-32 py-2">
+                                <div className="flex flex-row items-center justify-end gap-2 pr-1">
+                                    <div className="text-h8 text-grey-1">
+                                        {supportedPeanutChains.find((chain) => chain.chainId === balance.chainId)
+                                            ?.name ?? ''}
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    ))}
+                </div>
 
-                        <div className="flex-1 py-2">
-                            <div className="flex flex-col items-start justify-center gap-1">
-                                <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
-                                    {balance.symbol}
-                                </div>
-                                <div className="text-h9 font-normal">
-                                    {balance.amount ? formatTokenAmount(balance.amount) : ''}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="w-24 py-2 text-h8">
-                            {balance.value ? `$${formatTokenAmount(parseFloat(balance.value), 2)}` : balance.name}
-                        </div>
-
-                        <div className="w-32 py-2">
-                            <div className="flex flex-row items-center justify-end gap-2 pr-1">
-                                <div className="text-h8 text-grey-1">
-                                    {supportedPeanutChains.find((chain) => chain.chainId === balance.chainId)?.name ??
-                                        ''}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ))}
+                {bottomSpacerHeight > 0 && <div style={{ height: bottomSpacerHeight }} />}
             </div>
-
-            {bottomSpacerHeight > 0 && <div style={{ height: bottomSpacerHeight }} />}
-        </div>
-    )
-}
+        )
+    }
+)
 
 const TokenSelector = ({
     classNameButton,
@@ -180,11 +184,14 @@ const TokenSelector = ({
         setSelectedChainID,
         isXChain,
         supportedSquidChainsAndTokens,
-        setSelectedTokenDecimals,
     } = useContext(tokenSelectorContext)
     const { safeInfo, walletType } = useWalletType()
 
     const selectedChainTokens = useMemo(() => {
+        // If we expect the user to be connected, then we just want to show the
+        // tokens where the user has a balance
+        if (shouldBeConnected) return []
+
         let tokens: Array<interfaces.ISquidToken | IToken> =
             supportedSquidChainsAndTokens[selectedChainID]?.tokens || []
         if (!showOnlySquidSupported) {
@@ -203,7 +210,7 @@ const TokenSelector = ({
             currency: '',
             value: '',
         }))
-    }, [selectedChainID, supportedSquidChainsAndTokens, showOnlySquidSupported])
+    }, [selectedChainID, supportedSquidChainsAndTokens, showOnlySquidSupported, shouldBeConnected])
 
     const _balancesToDisplay = useMemo(() => {
         let balancesToDisplay: IUserBalance[]
@@ -259,20 +266,23 @@ const TokenSelector = ({
         return _balancesToDisplay.filter(byChainAndText)
     }, [_balancesToDisplay, filterValue, selectedChainID, hasUserChangedChain])
 
-    function setToken(balance: IUserBalance): void {
+    const setToken = useCallback((balance: IUserBalance): void => {
         setSelectedChainID(balance.chainId)
         setSelectedTokenAddress(balance.address)
         setSelectedBalance(balance)
         setVisible(false)
-        setTimeout(() => {
-            setFilterValue('')
-            setUserChangedChain(false)
-        }, 200) // the modal takes 200ms to close (duration-200 on leave)
-    }
+    }, [])
 
     useEffect(() => {
         if (focusButtonRef.current) {
             focusButtonRef.current.focus()
+        }
+        if (!visible) {
+            const timer = setTimeout(() => {
+                setFilterValue('')
+                setUserChangedChain(false)
+            }, 200) // the modal takes 200ms to close (duration-200 on leave)
+            return () => clearTimeout(timer)
         }
     }, [visible])
 
@@ -340,9 +350,8 @@ const TokenSelector = ({
 
             <Modal
                 visible={visible}
-                onClose={async () => {
+                onClose={() => {
                     setVisible(false)
-                    setUserChangedChain(false)
                 }}
                 title={'Select Token'}
                 classNameWrapperDiv="px-2 pb-7 pt-8"
@@ -383,18 +392,20 @@ const TokenSelector = ({
                                 medium
                                 border
                             />
-                            <ChainSelector
-                                chainsToDisplay={
-                                    showOnlySquidSupported
-                                        ? supportedPeanutChains.filter(
-                                              (chain) => !!supportedSquidChainsAndTokens[chain.chainId]
-                                          )
-                                        : supportedPeanutChains
-                                }
-                                onChange={(_chainId) => {
-                                    setUserChangedChain(true)
-                                }}
-                            />
+                            {!shouldBeConnected && (
+                                <ChainSelector
+                                    chainsToDisplay={
+                                        showOnlySquidSupported
+                                            ? supportedPeanutChains.filter(
+                                                  (chain) => !!supportedSquidChainsAndTokens[chain.chainId]
+                                              )
+                                            : supportedPeanutChains
+                                    }
+                                    onChange={(_chainId) => {
+                                        setUserChangedChain(true)
+                                    }}
+                                />
+                            )}
                         </div>
                         <div className="h-full max-h-96 w-full overflow-auto">
                             <TokenList balances={filteredBalances} setToken={setToken} />
