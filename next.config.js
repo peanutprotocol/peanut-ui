@@ -107,9 +107,6 @@ let nextConfig = {
             },
         ]
     },
-    experimental: {
-        turbo: true,
-    },
 }
 
 if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD)) {
