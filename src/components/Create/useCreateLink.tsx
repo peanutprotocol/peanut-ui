@@ -1,9 +1,16 @@
 'use client'
+import { getLinkFromTx } from '@/app/actions/claimLinks'
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { PEANUT_API_URL, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
-import { balanceByToken, fetchWithSentry, isNativeCurrency, saveCreatedLinkToLocalStorage } from '@/utils'
+import {
+    balanceByToken,
+    fetchWithSentry,
+    getLinkFromReceipt,
+    isNativeCurrency,
+    saveCreatedLinkToLocalStorage,
+} from '@/utils'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import peanut, {
     generateKeysFromString,
@@ -12,6 +19,7 @@ import peanut, {
 } from '@squirrel-labs/peanut-sdk'
 import { BigNumber, ethers } from 'ethers'
 import { useCallback, useContext } from 'react'
+import type { TransactionReceipt } from 'viem'
 import { formatEther, parseEther, parseUnits } from 'viem'
 import { useAccount, useConfig, useSendTransaction, useSignTypedData, useSwitchChain } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
@@ -547,11 +555,9 @@ export const useCreateLink = () => {
         }: {
             preparedDepositTxs: peanutInterfaces.IPrepareDepositTxsResponse
             feeOptions: any | undefined
-        }) => {
+        }): Promise<TransactionReceipt[]> => {
             try {
-                if (!preparedDepositTxs) return
-                let idx = 0
-                const signedTxsResponse: string[] = []
+                if (!preparedDepositTxs) return []
 
                 if (isSmartAccount) {
                     setLoadingState('Approve transaction')
@@ -562,12 +568,12 @@ export const useCreateLink = () => {
                             data: tx.data as Hex | undefined,
                         })
                     )
-                    let hash = await handleSendUserOpEncoded(params, selectedChainID)
-                    signedTxsResponse.push(hash.toString())
-                    idx++
-                    return signedTxsResponse[signedTxsResponse.length - 1]
+                    let receipt = await handleSendUserOpEncoded(params, selectedChainID)
+                    return [receipt]
                 }
 
+                let idx = 0
+                const receipts: TransactionReceipt[] = []
                 for (const tx of preparedDepositTxs.unsignedTxs) {
                     setLoadingState('Sign in wallet')
 
@@ -608,11 +614,15 @@ export const useCreateLink = () => {
                         if (preparedDepositTxs.unsignedTxs.length === 2 && idx === 0) {
                             for (let attempt = 0; attempt < 3; attempt++) {
                                 try {
-                                    await waitForTransactionReceipt(config, {
+                                    const receipt = await waitForTransactionReceipt(config, {
                                         confirmations: 4,
                                         hash: hash,
                                         chainId: Number(selectedChainID),
                                     })
+                                    if (receipt) {
+                                        receipts.push(receipt)
+                                    }
+                                    receipts.push(receipt)
                                     break
                                 } catch (error) {
                                     if (attempt < 2) {
@@ -624,12 +634,10 @@ export const useCreateLink = () => {
                                 }
                             }
                         }
-
-                        signedTxsResponse.push(hash.toString())
                         idx++
                     }
                 }
-                return signedTxsResponse[signedTxsResponse.length - 1]
+                return receipts
             } catch (error) {
                 throw error
             }
@@ -648,21 +656,16 @@ export const useCreateLink = () => {
         walletType: 'blockscout' | undefined
     }) => {
         try {
-            const getLinksFromTxResponse = await peanut.getLinksFromTx({
-                linkDetails,
-                txHash: hash,
-                passwords: [password],
-            })
-            let links: string[] = getLinksFromTxResponse.links
+            let link = await getLinkFromTx({ linkDetails, txHash: hash, password })
 
             if (walletType === 'blockscout') {
-                const _link = links[0]
+                const _link = link
                 const urlObj = new URL(_link)
                 urlObj.searchParams.append('path', 'claim')
                 const newUrl = urlObj.toString()
-                links = [newUrl]
+                link = newUrl
             }
-            return links
+            return link
         } catch (error) {
             throw error
         }
@@ -765,20 +768,20 @@ export const useCreateLink = () => {
                 senderAddress: address ?? '',
             })
 
-            // TODO: this needs its own type
+            let link: string = ''
             if (type === 'deposit') {
-                hash = (await sendTransactions({ preparedDepositTxs: response, feeOptions: feeOptions })) ?? ''
+                const receipt = (await sendTransactions({ preparedDepositTxs: response, feeOptions: feeOptions }))[0]
+                link = getLinkFromReceipt({ txReceipt: receipt, linkDetails, password })
             } else if (type === 'gasless') {
                 const signature = await signTypedData({ gaslessMessage: response.message })
                 hash = await makeDepositGasless({ signature, payload: response.payload })
+                link = await getLinkFromHash({ hash, linkDetails, password, walletType })
             }
-
-            const link = await getLinkFromHash({ hash, linkDetails, password, walletType })
 
             saveCreatedLinkToLocalStorage({
                 address: address ?? '',
                 data: {
-                    link: link[0],
+                    link,
                     depositDate: new Date().toISOString(),
                     USDTokenPrice: selectedTokenData?.price ?? 0,
                     points: 0,
@@ -791,7 +794,7 @@ export const useCreateLink = () => {
 
             await submitClaimLinkConfirm({
                 chainId: selectedChainID,
-                link: link[0],
+                link,
                 password: password ?? '',
                 txHash: hash,
                 senderAddress: address ?? '',
@@ -802,7 +805,7 @@ export const useCreateLink = () => {
             // refetch wallet balance after successful link creation
             refetchBalances(selectedWallet?.address || '')
 
-            return link[0]
+            return link
         } catch (error) {
             throw error
         }

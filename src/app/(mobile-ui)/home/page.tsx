@@ -244,15 +244,17 @@ export default function Home() {
                         </div>
                     </div>
 
-                    <div className="h-22 px-6 md:pb-6">
-                        {isAddWalletFocused ? null : focusedWalletId &&
-                          wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
-                              WalletProviderType.REWARDS ? null : wallets.find((w) => w.id === focusedWalletId)
-                              ?.walletProviderType === WalletProviderType.PEANUT ? (
+                    {isAddWalletFocused ? null : focusedWalletId &&
+                      wallets.find((w) => w.id === focusedWalletId)?.walletProviderType ===
+                          WalletProviderType.REWARDS ? null : wallets.find((w) => w.id === focusedWalletId)
+                          ?.walletProviderType === WalletProviderType.PEANUT ? (
+                        <div className="h-22 px-6 md:pb-6">
                             <PeanutWalletActions />
-                        ) : focusedWalletId &&
-                          wallets.find((w) => w.id === focusedWalletId) &&
-                          isWalletConnected(wallets.find((w) => w.id === focusedWalletId)!) ? (
+                        </div>
+                    ) : focusedWalletId &&
+                      wallets.find((w) => w.id === focusedWalletId) &&
+                      isWalletConnected(wallets.find((w) => w.id === focusedWalletId)!) ? (
+                        <div className="h-22 px-6 md:pb-6">
                             <div className="flex w-full flex-row items-center justify-center gap-9">
                                 <DirectionalActionButtons
                                     leftButton={{
@@ -261,8 +263,8 @@ export default function Home() {
                                     }}
                                 />
                             </div>
-                        ) : null}
-                    </div>
+                        </div>
+                    ) : null}
                 </div>
             </div>
             <HomeHistory />

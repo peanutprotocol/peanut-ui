@@ -1,9 +1,10 @@
 import { LoadingStates } from '@/constants/loadingStates.consts'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
-import { saveCreatedLinkToLocalStorage, updateUserPreferences } from '@/utils'
+import { getLinkFromReceipt, saveCreatedLinkToLocalStorage, updateUserPreferences } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { Dispatch } from 'redux'
+import type { TransactionReceipt } from 'viem'
 
 interface CreateAndProcessLinkParams {
     transactionType: 'gasless' | 'not-gasless'
@@ -24,7 +25,7 @@ interface CreateAndProcessLinkParams {
     sendTransactions: (params: {
         preparedDepositTxs: peanutInterfaces.IPrepareDepositTxsResponse
         feeOptions?: any
-    }) => Promise<string>
+    }) => Promise<TransactionReceipt[]>
     signTypedData: (params: { gaslessMessage: peanutInterfaces.IPreparedEIP712Message }) => Promise<string>
     makeDepositGasless: (params: {
         signature: string
@@ -35,7 +36,7 @@ interface CreateAndProcessLinkParams {
         linkDetails: peanutInterfaces.IPeanutLinkDetails
         password: string
         walletType?: string
-    }) => Promise<string[]>
+    }) => Promise<string>
     submitClaimLinkInit: (params: {
         password: string
         attachmentOptions: {
@@ -96,6 +97,7 @@ export const createAndProcessLink = async ({
     try {
         let hash = ''
         let fileUrl = ''
+        let receipt: TransactionReceipt | undefined
 
         // step 1: initialize the claim link and upload any attachments
         console.log(`Submitting claim link init at ${new Date().getTime() - now}ms`)
@@ -115,7 +117,8 @@ export const createAndProcessLink = async ({
             // standard transaction flow
             if (!preparedDepositTxs) return false
             console.log(`Sending not-gasless transaction at ${new Date().getTime() - now}ms`)
-            hash = (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
+            receipt = (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions }))[0]
+            hash = receipt.transactionHash
             console.log(`Not-gasless transaction response at ${new Date().getTime() - now}ms`)
         } else {
             // gasless transaction flow
@@ -145,13 +148,18 @@ export const createAndProcessLink = async ({
             throw new Error('Password not found.')
         }
 
-        const link = await getLinkFromHash({ hash, linkDetails, password, walletType })
+        let link: string = ''
+        if (receipt) {
+            link = getLinkFromReceipt({ txReceipt: receipt, linkDetails, password })
+        } else {
+            link = await getLinkFromHash({ hash, linkDetails, password, walletType })
+        }
         console.log(`Getting link from hash response at ${new Date().getTime() - now}ms`)
 
         saveCreatedLinkToLocalStorage({
             address: address ?? '',
             data: {
-                link: link[0],
+                link,
                 depositDate: new Date().toISOString(),
                 USDTokenPrice: selectedTokenPrice ?? 0,
                 points: estimatedPoints ?? 0,
@@ -163,11 +171,11 @@ export const createAndProcessLink = async ({
         })
 
         // step 4: store link in redux and confirm the claim link
-        dispatch(sendFlowActions.setLink(link[0]))
+        dispatch(sendFlowActions.setLink(link))
         console.log(`Submitting claim link confirm at ${new Date().getTime() - now}ms`)
         await submitClaimLinkConfirm({
             chainId: selectedChainID,
-            link: link[0],
+            link,
             password: password ?? '',
             txHash: hash,
             senderAddress: address ?? '',

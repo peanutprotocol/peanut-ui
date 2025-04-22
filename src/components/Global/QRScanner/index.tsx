@@ -192,7 +192,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                         playsInline
                     />
                     <canvas ref={canvasRef} className="hidden" />
-                    <div className="fixed left-0 top-8 grid w-full grid-flow-col items-center bg-black bg-opacity-15 py-2 text-center text-white">
+                    <div className="fixed left-0 top-8 grid w-full grid-flow-col items-center py-2 text-center text-white">
                         <Button
                             variant="transparent-light"
                             className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
