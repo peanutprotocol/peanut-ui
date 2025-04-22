@@ -267,28 +267,30 @@ export default function ConfirmPaymentView() {
             }
 
             // sign and send transaction
-            const hash = await sendTransactions({
-                preparedDepositTxs: {
-                    unsignedTxs:
-                        isXChain || diffTokens
-                            ? (xChainUnsignedTxs as peanutInterfaces.IPeanutUnsignedTransaction[])
-                            : [unsignedTx as peanutInterfaces.IPeanutUnsignedTransaction],
-                },
-                feeOptions,
-            })
+            const receipt = (
+                await sendTransactions({
+                    preparedDepositTxs: {
+                        unsignedTxs:
+                            isXChain || diffTokens
+                                ? (xChainUnsignedTxs as peanutInterfaces.IPeanutUnsignedTransaction[])
+                                : [unsignedTx as peanutInterfaces.IPeanutUnsignedTransaction],
+                    },
+                    feeOptions,
+                })
+            )[0]
 
-            if (!hash) {
+            if (!receipt) {
                 throw new Error('Failed to send transaction')
             }
 
             // set the transaction hash
-            dispatch(paymentActions.setTransactionHash(hash))
+            dispatch(paymentActions.setTransactionHash(receipt.transactionHash))
 
             // update payment details in backend
             const paymentDetails = await chargesApi.createPayment({
                 chargeId: chargeDetails.uuid,
                 chainId: selectedChainID,
-                hash,
+                hash: receipt.transactionHash,
                 tokenAddress: selectedTokenData!.address,
             })
 

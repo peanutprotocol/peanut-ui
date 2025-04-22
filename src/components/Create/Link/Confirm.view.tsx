@@ -22,10 +22,12 @@ import {
     shareToSms,
     updateUserPreferences,
     validateEnsName,
+    getLinkFromReceipt,
 } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import * as _consts from '../Create.consts'
 import { useCreateLink } from '../useCreateLink'
+import type { TransactionReceipt } from 'viem'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -123,6 +125,7 @@ export const CreateLinkConfirmView = ({
 
         try {
             let hash: string = ''
+            let receipt: TransactionReceipt | undefined
             let fileUrl = ''
             if (createType != 'direct') {
                 console.log(`Submitting claim link init at ${new Date().getTime() - now}ms`)
@@ -147,8 +150,11 @@ export const CreateLinkConfirmView = ({
                 // once submitted, but as far as this flow is concerned, the userop is 'not-gasless'
                 if (!preparedDepositTxs) return
                 console.log(`Sending not-gasless transaction at ${new Date().getTime() - now}ms`)
-                hash =
-                    (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
+
+                receipt = (
+                    await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })
+                )[0]
+                hash = receipt.transactionHash
                 console.log(`Not-gasless transaction response at ${new Date().getTime() - now}ms`)
             } else {
                 if (!gaslessPayload || !gaslessPayloadMessage) return
@@ -189,7 +195,12 @@ export const CreateLinkConfirmView = ({
                 })
             } else {
                 console.log(`Getting link from hash at ${new Date().getTime() - now}ms`)
-                const link = await getLinkFromHash({ hash, linkDetails, password, walletType })
+                let link: string = ''
+                if (receipt) {
+                    link = getLinkFromReceipt({ txReceipt: receipt, linkDetails, password })
+                } else {
+                    link = await getLinkFromHash({ hash, linkDetails, password, walletType })
+                }
                 console.log(`Getting link from hash response at ${new Date().getTime() - now}ms`)
 
                 saveCreatedLinkToLocalStorage({
