@@ -2,6 +2,7 @@
 
 import { PeanutArmHoldingBeer } from '@/assets'
 import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
+import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -56,77 +57,79 @@ export default function Home() {
     }
 
     return (
-        <div className="h-full w-full p-5">
-            <div className="space-y-4">
-                <ActionButtonGroup>
-                    <ActionButton label="Add money" action="add" href="/add" size="small" />
-                    <ActionButton label="Withdraw" action="withdraw" href="/withdraw" size="small" />
-                </ActionButtonGroup>
+        <PageContainer>
+            <div className="h-full w-full p-5">
+                <div className="space-y-4">
+                    <ActionButtonGroup>
+                        <ActionButton label="Add money" action="add" href="/add" size="small" />
+                        <ActionButton label="Withdraw" action="withdraw" href="/withdraw" size="small" />
+                    </ActionButtonGroup>
 
-                <WalletBalance
-                    balance={peanutWalletDetails?.balance ?? BigInt(0)}
-                    isBalanceHidden={isBalanceHidden}
-                    onToggleBalanceVisibility={handleToggleBalanceVisibility}
-                />
-
-                <ActionButtonGroup>
-                    <ActionButton label="Send" action="send" href="/send" variant="purple" size="large" />
-                    <ActionButton
-                        label="Request"
-                        action="request"
-                        href="/request/create"
-                        variant="purple"
-                        size="large"
-                    />
-                </ActionButtonGroup>
-            </div>
-
-            {/* Rewards Card - only shows if balance is non-zero */}
-            <RewardsCard balance={rewardsBalance} />
-
-            {/* Transaction cards - temporary */}
-            <div className="mt-6 space-y-3">
-                <h2 className="font-bold">Transactions</h2>
-                <div>
-                    <TransactionCard
-                        type="send"
-                        name="Hugo Montenegro"
-                        amount={BigInt(6969000000)}
-                        status="completed"
-                        initials="HM"
-                        position="first"
+                    <WalletBalance
+                        balance={peanutWalletDetails?.balance ?? BigInt(0)}
+                        isBalanceHidden={isBalanceHidden}
+                        onToggleBalanceVisibility={handleToggleBalanceVisibility}
                     />
 
-                    <TransactionCard
-                        type="withdraw"
-                        name="Bank Account #1"
-                        amount={BigInt(6969000000)}
-                        status="completed"
-                        position="middle"
-                    />
-
-                    <TransactionCard
-                        type="add"
-                        name="peanut.ens"
-                        amount={BigInt(6969000000)}
-                        status="completed"
-                        position="middle"
-                    />
-
-                    <TransactionCard
-                        type="request"
-                        name="dasdasdasdsa Montenegro"
-                        amount={BigInt(6969000000)}
-                        status="pending"
-                        initials="HM"
-                        position="last"
-                    />
+                    <ActionButtonGroup>
+                        <ActionButton label="Send" action="send" href="/send" variant="purple" size="large" />
+                        <ActionButton
+                            label="Request"
+                            action="request"
+                            href="/request/create"
+                            variant="purple"
+                            size="large"
+                        />
+                    </ActionButtonGroup>
                 </div>
-            </div>
 
-            <HomeHistory />
-            <RewardsModal />
-        </div>
+                {/* Rewards Card - only shows if balance is non-zero */}
+                <RewardsCard balance={rewardsBalance} />
+
+                {/* Transaction cards - temporary */}
+                <div className="mt-6 space-y-3">
+                    <h2 className="font-bold">Transactions</h2>
+                    <div>
+                        <TransactionCard
+                            type="send"
+                            name="Hugo Montenegro"
+                            amount={BigInt(6969000000)}
+                            status="completed"
+                            initials="HM"
+                            position="first"
+                        />
+
+                        <TransactionCard
+                            type="withdraw"
+                            name="Bank Account #1"
+                            amount={BigInt(6969000000)}
+                            status="completed"
+                            position="middle"
+                        />
+
+                        <TransactionCard
+                            type="add"
+                            name="peanut.ens"
+                            amount={BigInt(6969000000)}
+                            status="completed"
+                            position="middle"
+                        />
+
+                        <TransactionCard
+                            type="request"
+                            name="dasdasdasdsa Montenegro"
+                            amount={BigInt(6969000000)}
+                            status="pending"
+                            initials="HM"
+                            position="last"
+                        />
+                    </div>
+                </div>
+
+                <HomeHistory />
+                <RewardsModal />
+            </div>
+        </PageContainer>
     )
 }
 
