@@ -1,16 +1,19 @@
 'use server'
 
-import webpush from 'web-push'
 import { PEANUT_API_URL } from '@/constants'
-import { cookies } from 'next/headers'
 import { fetchWithSentry } from '@/utils'
+import { cookies } from 'next/headers'
+import webpush from 'web-push'
 
 const updateSubscription = async ({ userId, pushSubscriptionId }: { userId: string; pushSubscriptionId: string }) => {
+    const cookieStore = cookies()
+    const jwtToken = (await cookieStore).get('jwt-token')?.value
+
     return await fetchWithSentry(`${PEANUT_API_URL}/update-user`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${cookies().get('jwt-token')?.value}`,
+            Authorization: `Bearer ${jwtToken}`,
             'api-key': process.env.PEANUT_API_KEY!,
         },
         body: JSON.stringify({
@@ -20,11 +23,37 @@ const updateSubscription = async ({ userId, pushSubscriptionId }: { userId: stri
     })
 }
 
-webpush.setVapidDetails(
-    process.env.NEXT_PUBLIC_VAPID_SUBJECT!,
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!
-)
+// add validation for VAPID environment variables
+const validateVapidEnv = () => {
+    const vapidSubject = process.env.NEXT_PUBLIC_VAPID_SUBJECT
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY
+
+    if (!vapidSubject || !vapidPublicKey || !vapidPrivateKey) {
+        throw new Error('VAPID environment variables are not set. Please check your environment configuration.')
+    }
+
+    return { vapidSubject, vapidPublicKey, vapidPrivateKey }
+}
+
+// initialize webpush with try-catch
+try {
+    const { vapidSubject, vapidPublicKey, vapidPrivateKey } = validateVapidEnv()
+
+    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
+} catch (error) {
+    console.error('Failed to initialize web push:', error)
+    // in development, provide more helpful error message
+    if (process.env.NODE_ENV === 'development') {
+        console.info(`
+            Please ensure you have the following environment variables set:
+            - NEXT_PUBLIC_VAPID_SUBJECT (usually a mailto: URL)
+            - NEXT_PUBLIC_VAPID_PUBLIC_KEY
+            - VAPID_PRIVATE_KEY
+        `)
+        console.log('VAPID Subject:', process.env.NEXT_PUBLIC_VAPID_SUBJECT)
+    }
+}
 
 let subscription: webpush.PushSubscription | null = null
 
