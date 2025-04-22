@@ -5,7 +5,13 @@ import { useForm } from 'react-hook-form'
 import { KYCComponent } from '@/components/Kyc'
 import { useAuth } from '@/context/authContext'
 import { IResponse } from '@/interfaces'
-import * as utils from '@/utils'
+import {
+    createAccount,
+    createExternalAccount,
+    getCustomer,
+    getThreeCharCountryCodeFromIban,
+    validateBankAccount,
+} from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import Link from 'next/link'
 import { isIBAN } from 'validator'
@@ -157,7 +163,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
 
             if (isIBAN(sanitizedAccountNumber)) {
                 setAccountDetailsValue('type', 'iban')
-                const isValid = await utils.validateBankAccount(sanitizedAccountNumber)
+                const isValid = await validateBankAccount(sanitizedAccountNumber)
                 if (!isValid) {
                     setIbanFormError('accountNumber', { message: 'Invalid IBAN' })
                     return
@@ -203,7 +209,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             // get customer ID and name
             let accountOwnerName = user.user.full_name
             if (!accountOwnerName) {
-                const bridgeCustomer = await utils.getCustomer(customerId)
+                const bridgeCustomer = await getCustomer(customerId)
                 accountOwnerName = `${bridgeCustomer.first_name} ${bridgeCustomer.last_name}`
             }
 
@@ -296,7 +302,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                     ? {
                           accountNumber: getIbanFormValue('accountNumber'),
                           bic: formData.BIC,
-                          country: utils.getThreeCharCountryCodeFromIban(getIbanFormValue('accountNumber') ?? ''),
+                          country: getThreeCharCountryCodeFromIban(getIbanFormValue('accountNumber') ?? ''),
                       }
                     : {
                           accountNumber: getIbanFormValue('accountNumber'),
@@ -304,7 +310,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                       }
 
             // Create the external account
-            const createExternalAccountRes: IResponse = await utils.createExternalAccount(
+            const createExternalAccountRes: IResponse = await createExternalAccount(
                 customerId,
                 formData.type as 'iban' | 'us',
                 accountDetails,
@@ -336,7 +342,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
 
                 if (!!bridgeAccountId) {
                     // add account to database
-                    await utils.createAccount(
+                    await createAccount(
                         user.user.userId,
                         customerId,
                         bridgeAccountId,

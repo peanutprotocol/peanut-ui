@@ -99,12 +99,28 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
 
                 //  conditional request params
                 const requestParams: any = { recipient: recipientIdentifier }
-                if (parsedPaymentData.amount) requestParams.tokenAmount = parsedPaymentData.amount
+
+                // only include amount in search params if explicitly provided in URL
+                if (parsedPaymentData.amount && parsedPaymentData.amount !== '') {
+                    requestParams.tokenAmount = parsedPaymentData.amount
+                }
+
                 if (chainId) requestParams.chainId = chainId
                 if (tokenAddress) requestParams.tokenAddress = tokenAddress
 
                 // fetch requests using the resolved address
                 const fetchedRequest = await requestsApi.search(requestParams)
+
+                // if we have a request and the URL didn't specify an amount,
+                // update the parsedPaymentData to include the amount from the request
+                if (fetchedRequest && (!parsedPaymentData.amount || parsedPaymentData.amount === '')) {
+                    dispatch(
+                        paymentActions.setParsedPaymentData({
+                            ...parsedPaymentData,
+                            amount: fetchedRequest.tokenAmount ? formatAmount(fetchedRequest.tokenAmount) : undefined,
+                        })
+                    )
+                }
 
                 dispatch(paymentActions.setRequestDetails(fetchedRequest))
             } catch (_error) {
@@ -130,6 +146,13 @@ export default function PaymentPage({ params }: { params: { recipient: string[] 
                 })
         }
     }, [requestId])
+
+    // reset payment state when component unmounts or URL params change
+    useEffect(() => {
+        return () => {
+            dispatch(paymentActions.resetPaymentState())
+        }
+    }, [params.recipient])
 
     if (error) {
         return (

@@ -236,7 +236,7 @@ const InstallPWA = ({
                 onClick={() => {
                     if (isUnsupportedBrowser || installComplete) {
                         // Open in default browser
-                        window.open(window.location.origin + '/setup', '_blank')
+                        window.open(window.location.origin + '/setup', '_system')
                     } else if (canInstall) {
                         handleInstall()
                     } else {

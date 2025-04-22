@@ -1,5 +1,5 @@
 import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
+import { formatTokenAmount } from '@/utils'
 
 export const tokenDisplay = (
     tokens: interfaces.IToken[],
@@ -27,7 +27,7 @@ export const tokenDisplay = (
                     </div>
                     {type === 'send' && (
                         <p className="text-xs text-grey-1 ">
-                            {utils.formatTokenAmount(
+                            {formatTokenAmount(
                                 balances.find(
                                     (balance) =>
                                         balance.address === token.address && balance.chainId === selectedChainID

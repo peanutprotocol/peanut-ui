@@ -21,7 +21,7 @@ const QRCode: React.FC<{ value: string }> = ({ value }) => {
                 border: '2px solid black',
                 borderRadius: '8px',
                 background: 'white',
-                padding: '16px',
+                padding: '12px',
                 width: '150px',
                 height: '150px',
                 margin: '0 auto',
@@ -101,7 +101,7 @@ function generateQRCodesPage(links: string[]): string {
                         flexDirection: 'column',
                         alignItems: 'center',
                         pageBreakInside: 'avoid',
-                        marginBottom: '20px',
+                        marginBottom: '15px',
                     },
                 },
                 [

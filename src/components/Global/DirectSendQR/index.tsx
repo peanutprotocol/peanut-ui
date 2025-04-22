@@ -1,24 +1,23 @@
 'use client'
-import { useRouter } from 'next/navigation'
-import { useState, useMemo, type ChangeEvent } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useMemo, useState, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
-import CopyField from '@/components/Global/CopyField'
-import Icon from '@/components/Global/Icon'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
-import QRScanner from '@/components/Global/QRScanner'
-import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import Icon from '@/components/Global/Icon'
 import Modal from '@/components/Global/Modal'
-import { resolveFromEnsName } from '@/utils'
+import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
+import QRScanner from '@/components/Global/QRScanner'
+import { useAuth } from '@/context/authContext'
+import { usePush } from '@/context/pushProvider'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
-import { useAuth } from '@/context/authContext'
-import { recognizeQr, EQrType, parseEip681, NAME_BY_QR_TYPE } from './utils'
-import { useToast } from '@/components/0_Bruddle/Toast'
-import { usePush } from '@/context/pushProvider'
+import { resolveFromEnsName } from '@/utils'
 import { hitUserMetric } from '@/utils/metrics.utils'
 import * as Sentry from '@sentry/nextjs'
+import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
@@ -129,8 +128,7 @@ function DirectSendContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
 function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
     return (
         <div className="flex flex-col justify-center p-6">
-            <CopyField text={redirectTo!} shadowSize="4" />
-            <span className="mt-4 text-sm">Peanut doesn’t support this QR but you can open it with your browser. </span>
+            <span className="text-sm">Peanut doesn’t support this QR but you can open it with your browser. </span>
             <span className="text-sm">Make sure you trust this website!</span>
             <div className="flex items-center justify-center gap-2">
                 <Button
@@ -178,6 +176,8 @@ export default function DirectSendQr({ className = '' }: { className?: string })
     const [redirectTo, setRedirectTo] = useState<string | undefined>(undefined)
     const [modalContent, setModalContent] = useState<ModalType | undefined>(undefined)
     const router = useRouter()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
     const dispatch = useAppDispatch()
     const toast = useToast()
     const { user } = useAuth()
@@ -187,16 +187,20 @@ export default function DirectSendQr({ className = '' }: { className?: string })
     }, [user?.user.username])
 
     const processQRCode = async (data: string): Promise<{ success: boolean; error?: string }> => {
+        // reset payment state before processing new QR
+        dispatch(paymentActions.resetPaymentState())
+
         let redirectUrl: string | undefined = undefined
         let toConfirmUrl: string | undefined = undefined
+        const originalData = data
         data = data.toLowerCase()
         const qrType = recognizeQr(data)
-        hitUserMetric(user!.user.userId, 'scan-qr', { qrType, data })
+        hitUserMetric(user!.user.userId, 'scan-qr', { qrType, data: originalData })
         setQrType(qrType as EQrType)
         switch (qrType) {
             case EQrType.PEANUT_URL:
                 {
-                    let path = data
+                    let path = originalData
                     path = path.substring(BASE_URL.length)
                     if (!path.startsWith('/')) {
                         path = '/' + path
@@ -248,7 +252,7 @@ export default function DirectSendQr({ className = '' }: { className?: string })
                 return { success: true }
             }
             case EQrType.URL: {
-                setRedirectTo(data)
+                setRedirectTo(originalData)
                 setModalContent(EModalType.EXTERNAL_URL)
                 setIsModalOpen(true)
                 setIsQRScannerOpen(false)
@@ -265,7 +269,22 @@ export default function DirectSendQr({ className = '' }: { className?: string })
 
         if (redirectUrl) {
             dispatch(paymentActions.setView('INITIAL'))
-            router.push(redirectUrl)
+
+            const currentSearchParams = searchParams.toString()
+            let currentFullPath = pathname
+            currentFullPath = currentSearchParams ? `${currentFullPath}?${currentSearchParams}` : currentFullPath
+            currentFullPath += window.location.hash
+
+            if (
+                currentFullPath === redirectUrl ||
+                (redirectUrl.startsWith('/') && currentFullPath === redirectUrl.substring(1))
+            ) {
+                // We're already at this location, just close the scanner
+                setIsQRScannerOpen(false)
+            } else {
+                router.push(redirectUrl)
+                setIsQRScannerOpen(false)
+            }
             return { success: true }
         }
 
@@ -324,11 +343,11 @@ export default function DirectSendQr({ className = '' }: { className?: string })
                 shadowSize="4"
                 shadowType="primary"
                 className={twMerge(
-                    'mx-auto h-16 w-16 -translate-y-1/3 transform cursor-pointer justify-center rounded-full p-0',
+                    'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-0 hover:bg-primary-1/100',
                     className
                 )}
             >
-                <Icon name="qr-code" width={40} height={40} />
+                <Icon name="qr-code" height={32} width={32} className="custom-size" />
             </Button>
             <Modal
                 title={modalTitle}

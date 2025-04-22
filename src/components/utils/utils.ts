@@ -1,5 +1,5 @@
 import * as consts from '@/constants'
-import * as utils from '@/utils'
+import { getExplorerUrl } from '@/utils'
 import { fetchWithSentry } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 
@@ -90,7 +90,7 @@ export async function fetchDestinationChain(
         const result = await checkTransactionStatus(txHash)
 
         if (result.squidTransactionStatus === 'success') {
-            const explorerUrl = utils.getExplorerUrl(result.toChain.chainData.chainId.toString())
+            const explorerUrl = getExplorerUrl(result.toChain.chainData.chainId.toString())
             if (explorerUrl) {
                 setExplorerUrlDestChainWithTxHash({
                     transactionUrl: explorerUrl + '/tx/' + result.toChain.transactionId,

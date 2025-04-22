@@ -8,7 +8,7 @@ import { CrispButton } from '@/components/CrispChat'
 import * as consts from '@/constants'
 import { useAuth } from '@/context/authContext'
 import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
+import { awaitStatusCompletion, convertPersonaUrl, getStatus, getUserLinks } from '@/utils'
 import { useToast } from '@chakra-ui/react'
 import { useForm } from 'react-hook-form'
 import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
@@ -109,7 +109,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
 
                 console.log('Creating bridge customer with:', { name, email })
 
-                let data = await utils.getUserLinks({
+                let data = await getUserLinks({
                     full_name: name,
                     email: email,
                 })
@@ -169,7 +169,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
 
             // @ts-ignore
             if (!customerObject || customerObject.code === 'invalid_parameters') {
-                _customerObject = await utils.getUserLinks({
+                _customerObject = await getUserLinks({
                     full_name: _offrampForm.name,
                     email: _offrampForm.email,
                 })
@@ -191,7 +191,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     visible: true,
                     closeConfirmMessage: undefined,
                 })
-                await utils.awaitStatusCompletion(
+                await awaitStatusCompletion(
                     id,
                     'tos',
                     tosStatus,
@@ -239,7 +239,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             }
 
             if (!customerObject) {
-                _customerObject = await utils.getUserLinks({
+                _customerObject = await getUserLinks({
                     full_name: _offrampForm.name,
                     email: _offrampForm.email,
                 })
@@ -280,7 +280,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             } else if (kycStatus !== 'approved') {
                 setLoadingState('Awaiting KYC confirmation')
                 console.log('Awaiting KYC confirmation...')
-                const kyclink = utils.convertPersonaUrl(kyc_link)
+                const kyclink = convertPersonaUrl(kyc_link)
                 setIframeOptions({
                     ...iframeOptions,
                     src: kyclink,
@@ -292,7 +292,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 })
 
                 try {
-                    await utils.awaitStatusCompletion(
+                    await awaitStatusCompletion(
                         id,
                         'kyc',
                         kycStatus,
@@ -317,7 +317,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             }
 
             // Get customer ID
-            const customer = await utils.getStatus(_customerObject.id, 'customer_id')
+            const customer = await getStatus(_customerObject.id, 'customer_id')
             setCustomerObject({ ..._customerObject, customer_id: customer.id })
 
             // Update peanut user with bridge customer id

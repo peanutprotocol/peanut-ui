@@ -9,7 +9,7 @@ import Icon from '@/components/Global/Icon'
 import InfoRow from '@/components/Global/InfoRow'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
-import * as context from '@/context'
+import { tokenSelectorContext, loadingStateContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import {
@@ -22,10 +22,12 @@ import {
     shareToSms,
     updateUserPreferences,
     validateEnsName,
+    getLinkFromReceipt,
 } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import * as _consts from '../Create.consts'
 import { useCreateLink } from '../useCreateLink'
+import type { TransactionReceipt } from 'viem'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -55,7 +57,7 @@ export const CreateLinkConfirmView = ({
         selectedTokenPrice,
         selectedTokenDecimals,
         supportedSquidChainsAndTokens,
-    } = useContext(context.tokenSelectorContext)
+    } = useContext(tokenSelectorContext)
 
     const { walletType } = useWalletType()
 
@@ -72,7 +74,7 @@ export const CreateLinkConfirmView = ({
         submitClaimLinkConfirm,
         submitDirectTransfer,
     } = useCreateLink()
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
 
     const { address, refetchBalances, isPeanutWallet } = useWallet()
 
@@ -123,6 +125,7 @@ export const CreateLinkConfirmView = ({
 
         try {
             let hash: string = ''
+            let receipt: TransactionReceipt | undefined
             let fileUrl = ''
             if (createType != 'direct') {
                 console.log(`Submitting claim link init at ${new Date().getTime() - now}ms`)
@@ -147,8 +150,11 @@ export const CreateLinkConfirmView = ({
                 // once submitted, but as far as this flow is concerned, the userop is 'not-gasless'
                 if (!preparedDepositTxs) return
                 console.log(`Sending not-gasless transaction at ${new Date().getTime() - now}ms`)
-                hash =
-                    (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
+
+                receipt = (
+                    await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })
+                )[0]
+                hash = receipt.transactionHash
                 console.log(`Not-gasless transaction response at ${new Date().getTime() - now}ms`)
             } else {
                 if (!gaslessPayload || !gaslessPayloadMessage) return
@@ -189,13 +195,18 @@ export const CreateLinkConfirmView = ({
                 })
             } else {
                 console.log(`Getting link from hash at ${new Date().getTime() - now}ms`)
-                const link = await getLinkFromHash({ hash, linkDetails, password, walletType })
+                let link: string = ''
+                if (receipt) {
+                    link = getLinkFromReceipt({ txReceipt: receipt, linkDetails, password })
+                } else {
+                    link = await getLinkFromHash({ hash, linkDetails, password, walletType })
+                }
                 console.log(`Getting link from hash response at ${new Date().getTime() - now}ms`)
 
                 saveCreatedLinkToLocalStorage({
                     address: address ?? '',
                     data: {
-                        link: link[0],
+                        link: link,
                         depositDate: new Date().toISOString(),
                         USDTokenPrice: selectedTokenPrice ?? 0,
                         points: estimatedPoints ?? 0,
@@ -206,11 +217,11 @@ export const CreateLinkConfirmView = ({
                     },
                 })
 
-                setLink(link[0])
+                setLink(link)
                 console.log(`Submitting claim link confirm at ${new Date().getTime() - now}ms`)
                 await submitClaimLinkConfirm({
                     chainId: selectedChainID,
-                    link: link[0],
+                    link,
                     password: password ?? '',
                     txHash: hash,
                     senderAddress: address ?? '',
@@ -222,8 +233,8 @@ export const CreateLinkConfirmView = ({
                 })
                 console.log(`Submitting claim link confirm response at ${new Date().getTime() - now}ms`)
 
-                if (createType === 'email_link') shareToEmail(recipient.name ?? '', link[0], usdValue)
-                if (createType === 'sms_link') shareToSms(recipient.name ?? '', link[0], usdValue)
+                if (createType === 'email_link') shareToEmail(recipient.name ?? '', link, usdValue)
+                if (createType === 'sms_link') shareToSms(recipient.name ?? '', link, usdValue)
             }
 
             if (selectedChainID && selectedTokenAddress && selectedTokenDecimals) {

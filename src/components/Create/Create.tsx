@@ -3,7 +3,7 @@
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { createElement, Suspense, useContext, useEffect, useState } from 'react'
 
-import * as context from '@/context'
+import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { fetchWithSentry, rankAddressesByInteractions } from '@/utils'
 import PageContainer from '../0_Bruddle/PageContainer'
@@ -53,9 +53,9 @@ export const Create = () => {
         }[]
     >([])
 
-    const { address, isPeanutWallet } = useWallet()
+    const { address } = useWallet()
 
-    const { resetTokenContextProvider } = useContext(context.tokenSelectorContext)
+    const { resetTokenContextProvider } = useContext(tokenSelectorContext)
 
     const handleOnNext = () => {
         if (step.idx === _consts.CREATE_SCREEN_FLOW.length - 1) return

@@ -2,7 +2,7 @@
 import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
 import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
-import * as utils from '@/utils'
+import { resolveFromEnsName, validateBankAccount } from '@/utils'
 import { isAddress } from 'viem'
 import * as interfaces from '@/interfaces'
 import { useRecentRecipients } from '@/hooks/useRecentRecipients'
@@ -48,14 +48,14 @@ const GeneralRecipientInput = ({
 
             if (isIBAN(sanitizedInput)) {
                 type = 'iban'
-                isValid = await utils.validateBankAccount(sanitizedInput)
+                isValid = await validateBankAccount(sanitizedInput)
                 if (!isValid) errorMessage.current = 'Invalid IBAN, country not supported'
             } else if (/^[0-9]{1,17}$/.test(sanitizedInput)) {
                 type = 'us'
                 isValid = true
             } else if (validateEnsName(trimmedInput)) {
                 type = 'ens'
-                const address = await utils.resolveFromEnsName(trimmedInput.toLowerCase())
+                const address = await resolveFromEnsName(trimmedInput.toLowerCase())
                 if (address) {
                     resolvedAddress.current = address
                     isValid = true

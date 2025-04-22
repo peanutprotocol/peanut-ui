@@ -18,7 +18,7 @@ import {
     PINTA_WALLET_TOKEN_DECIMALS,
     PINTA_WALLET_TOKEN_SYMBOL,
 } from '@/constants'
-import * as context from '@/context'
+import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, WalletProviderType } from '@/interfaces'
@@ -69,7 +69,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         setSelectedChainID,
         setSelectedTokenAddress,
         setSelectedTokenDecimals,
-    } = useContext(context.tokenSelectorContext)
+    } = useContext(tokenSelectorContext)
     const { open: openReownModal } = useAppKit()
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
