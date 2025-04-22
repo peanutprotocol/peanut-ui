@@ -159,7 +159,10 @@ export default function Home() {
         return wallets.length <= focusedIndex
     }, [focusedIndex, wallets?.length])
 
-    const isLoading = (isFetchingWallets && !wallets.length) || (isFetchingUser && !username)
+    const isLoading = useMemo<boolean>(
+        () => (isFetchingWallets && !wallets.length) || (isFetchingUser && !username),
+        [isFetchingWallets, isFetchingUser, username, wallets]
+    )
 
     // use effect to delay showing content
     useEffect(() => {
@@ -176,7 +179,7 @@ export default function Home() {
     }, [isLoading])
 
     // show loading if we're loading or content isn't ready yet
-    if (isLoading || !contentReady) {
+    if (!contentReady) {
         return <PeanutLoading coverFullScreen />
     }
 
