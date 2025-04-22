@@ -96,6 +96,9 @@ const sendFlowSlice = createSlice({
         setCrossChainDetails(state, action: { payload: [] | undefined }) {
             state.crossChainDetails = action.payload
         },
+        resetSendFlow: (state) => {
+            return initialState
+        },
     },
 })
 

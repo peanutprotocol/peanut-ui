@@ -44,6 +44,11 @@ const SendFlowManager = () => {
         }
     }, [isPeanutWallet])
 
+    // reset send flow state when component mounts
+    useEffect(() => {
+        dispatch(sendFlowActions.resetSendFlow())
+    }, [dispatch])
+
     return (
         <PageContainer>
             <div className="max-w-xl">
