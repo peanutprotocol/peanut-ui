@@ -1,6 +1,5 @@
 import { tokenSelectorContext } from '@/context'
-import { formatTokenAmount } from '@/utils'
-import { fetchTokenSymbol } from '@/utils'
+import { formatTokenAmount, fetchTokenSymbol, getTokenLogo } from '@/utils'
 import { useContext, useEffect, useState } from 'react'
 import Icon from '../../Icon'
 
@@ -39,6 +38,7 @@ export const AdvancedTokenSelectorButton = ({
 }: IAdvancedTokenSelectorButtonProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(tokenSelectorContext)
     const [_tokenSymbol, _setTokenSymbol] = useState<string | undefined>(tokenSymbol)
+    const [_tokenLogoUri, _setTokenLogoUri] = useState<string | undefined>(tokenLogoUri)
 
     useEffect(() => {
         let isMounted = true
@@ -56,6 +56,12 @@ export const AdvancedTokenSelectorButton = ({
         }
     }, [tokenSymbol, selectedTokenAddress, selectedChainID])
 
+    useEffect(() => {
+        if (!_tokenLogoUri && _tokenSymbol && selectedTokenAddress) {
+            _setTokenLogoUri(getTokenLogo(_tokenSymbol))
+        }
+    }, [_tokenLogoUri, _tokenSymbol, selectedTokenAddress])
+
     return (
         <section
             role="button"
@@ -72,8 +78,8 @@ export const AdvancedTokenSelectorButton = ({
         >
             <div className={'flex flex-row items-center justify-center gap-4'}>
                 <div className="relative h-8 w-8">
-                    {tokenLogoUri ? (
-                        <img src={tokenLogoUri} className="absolute left-0 top-0 h-8 w-8" alt="logo" />
+                    {_tokenLogoUri ? (
+                        <img src={_tokenLogoUri} className="absolute left-0 top-0 h-8 w-8" alt="logo" />
                     ) : (
                         <Icon name="token_placeholder" className="absolute left-0 top-0 h-8 w-8" fill="#999" />
                     )}
