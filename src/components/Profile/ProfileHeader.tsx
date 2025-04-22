@@ -17,7 +17,7 @@ interface ProfileHeaderProps {
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials, isVerified = false, className }) => {
-    const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     const profileUrl = `peanut.me/${username}`
 
@@ -48,14 +48,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials,
                     className="flex w-fit items-center justify-center gap-2 rounded-full px-4 py-2"
                     onClick={() => {
                         navigator.clipboard.writeText(profileUrl)
-                        setIsQRScannerOpen(true)
+                        setIsDrawerOpen(true)
                     }}
                 >
                     <span className="font-semibold">peanut.me/{username}</span>
                     <Icon name="share" size={16} fill="black" />
                 </Button>
             </div>
-            {isQRScannerOpen && (
+            {isDrawerOpen && (
                 <>
                     <BottomDrawer
                         initialPosition="collapsed"
@@ -63,8 +63,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials,
                         handleSubtitle="Share it to receive payments!"
                         collapsedHeight={80}
                         expandedHeight={90}
-                        isOpen={isQRScannerOpen}
-                        onClose={() => setIsQRScannerOpen(false)}
+                        isOpen={isDrawerOpen}
+                        onClose={() => setIsDrawerOpen(false)}
                     >
                         <div className="space-y-6">
                             <QRCodeWrapper url={profileUrl} />
