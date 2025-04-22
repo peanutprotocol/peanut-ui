@@ -60,6 +60,9 @@ const paymentSlice = createSlice({
         setBeerQuantity: (state, action: PayloadAction<number>) => {
             state.beerQuantity = action.payload
         },
+        resetPaymentState: (state) => {
+            return initialState
+        },
     },
 })
 
