@@ -132,7 +132,8 @@
         "moduleNameMapper": {
             "^@/(.*)$": "<rootDir>/src/$1",
             "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",
-            "^@squirrel-labs/peanut-sdk$": "<rootDir>/src/utils/__mocks__/peanut-sdk.ts"
+            "^@squirrel-labs/peanut-sdk$": "<rootDir>/src/utils/__mocks__/peanut-sdk.ts",
+            "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts"
         },
         "setupFilesAfterEnv": [
             "<rootDir>/jest.setup.ts"

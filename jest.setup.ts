@@ -4,6 +4,7 @@ import '@testing-library/jest-dom'
 const { TextEncoder, TextDecoder } = require('util')
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
+
 require('dotenv').config({ path: '.env.test' })
 
 // Add any global test setup here
@@ -15,3 +16,8 @@ global.console = {
     // warn: jest.fn(),
     // error: jest.fn(),
 }
+
+// Mock next/cache
+jest.mock('next/cache', () => ({
+    unstable_cache: (fn: Function) => fn,
+}))
