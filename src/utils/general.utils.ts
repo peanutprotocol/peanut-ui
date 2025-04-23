@@ -8,9 +8,9 @@ import * as Sentry from '@sentry/nextjs'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import chroma from 'chroma-js'
 import { SiweMessage } from 'siwe'
+import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
-import type { Address, TransactionReceipt } from 'viem'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -1148,4 +1148,13 @@ export function getLinkFromReceipt({
     const contractVersion = peanut.detectContractVersionFromTxReceipt(txReceipt, chainId)
     const depositIdx = peanut.getDepositIdxs(txReceipt, chainId, contractVersion)[0]
     return peanut.getLinkFromParams(chainId, contractVersion, depositIdx, password, baseUrl, trackId)
+}
+
+export const getInitialsFromName = (name: string): string => {
+    const nameParts = name.trim().split(/\s+/)
+    if (nameParts.length === 1) {
+        return nameParts[0].substring(0, 2).toUpperCase()
+    } else {
+        return nameParts[0].charAt(0).toUpperCase() + nameParts[1].charAt(0).toUpperCase()
+    }
 }
