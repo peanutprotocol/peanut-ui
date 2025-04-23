@@ -1,7 +1,7 @@
-import { cookies } from 'next/headers'
-import { NextRequest, NextResponse } from 'next/server'
 import * as consts from '@/constants'
 import { fetchWithSentry } from '@/utils'
+import { cookies } from 'next/headers'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
     const formData = await request.formData()
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     const apiKey = process.env.PEANUT_API_KEY
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const token = cookieStore.get('jwt-token')
 
     if (!apiKey || !token) {
