@@ -1,7 +1,8 @@
 import { isAddress } from 'viem'
 
 import { PEANUT_API_URL } from '@/constants'
-import { fetchWithSentry, resolveFromEnsName } from '@/utils'
+import { fetchWithSentry } from '@/utils'
+import { resolveEns } from '@/app/actions/ens'
 import * as Sentry from '@sentry/nextjs'
 import { RecipientValidationError } from '../url-parser/errors'
 import { RecipientType } from '../url-parser/types/payment'
@@ -16,7 +17,7 @@ export async function validateAndResolveRecipient(
     switch (recipientType) {
         case 'ENS':
             // resolve the ENS name to address
-            const resolvedAddress = await resolveFromEnsName(recipient)
+            const resolvedAddress = await resolveEns(recipient)
             if (!resolvedAddress) {
                 throw new RecipientValidationError('Error resolving ENS name')
             }

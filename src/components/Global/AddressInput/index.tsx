@@ -1,7 +1,8 @@
 'use client'
 import { isAddress } from 'viem'
 
-import { resolveFromEnsName, validateEnsName } from '@/utils'
+import { validateEnsName } from '@/utils'
+import { resolveEns } from '@/app/actions/ens'
 import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
 import * as Sentry from '@sentry/nextjs'
 
@@ -16,7 +17,7 @@ const AddressInput = ({ placeholder = 'Enter a valid address', value, onUpdate, 
     async function checkAddress(recipient: string): Promise<boolean> {
         try {
             if (validateEnsName(recipient)) {
-                const resolvedAddress = await resolveFromEnsName(recipient.toLowerCase())
+                const resolvedAddress = await resolveEns(recipient.toLowerCase())
                 return !!resolvedAddress
             } else {
                 return isAddress(recipient)

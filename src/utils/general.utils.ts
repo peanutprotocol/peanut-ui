@@ -340,53 +340,6 @@ export const formatAmountWithoutComma = (input: string) => {
     } else return ''
 }
 
-export async function resolveFromEnsNameAndProviderUrl(
-    ensName: string,
-    providerUrl?: string
-): Promise<string | undefined> {
-    try {
-        const records = await JustaName.init().subnames.getRecords({
-            ens: ensName,
-            chainId: 1,
-            providerUrl,
-        })
-
-        return sanitizeRecords(records).ethAddress.value
-    } catch (error) {
-        Sentry.captureException(error)
-        return undefined
-    }
-}
-
-export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
-    const mainProviderUrl = 'https://mainnet.infura.io/v3/' + INFURA_API_KEY
-    const fallbackProviderUrl = 'https://rpc.ankr.com/eth'
-
-    try {
-        const records = await JustaName.init().subnames.getRecords({
-            ens: ensName,
-            chainId: 1,
-            providerUrl: mainProviderUrl,
-        })
-
-        return records?.records?.coins?.find((coin) => coin.id === 60)?.value
-    } catch (error) {
-        console.error('Error resolving ENS name with main provider:', error)
-        try {
-            const records = await JustaName.init().subnames.getRecords({
-                ens: ensName,
-                chainId: 1,
-                providerUrl: fallbackProviderUrl,
-            })
-
-            return records?.records?.coins?.find((coin) => coin.id === 60)?.value
-        } catch (fallbackError) {
-            console.error('Error resolving ENS name with fallback provider:', fallbackError)
-            return undefined
-        }
-    }
-}
-
 export async function copyTextToClipboardWithFallback(text: string) {
     if (navigator.clipboard && window.isSecureContext) {
         try {
