@@ -1,9 +1,11 @@
 import { twMerge } from 'tailwind-merge'
 import { Icon, IconName } from '../Icons/Icon'
 
+export type AchievementsBadgeSize = 'extra-small' | 'small' | 'medium' | 'large'
+
 interface AchievementsBadgeProps {
     icon?: IconName
-    size?: 'small' | 'medium' | 'large'
+    size?: AchievementsBadgeSize
     color?: string
     className?: string
     position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
@@ -18,6 +20,8 @@ const AchievementsBadge = ({
 }: AchievementsBadgeProps) => {
     const getContainerSize = () => {
         switch (size) {
+            case 'extra-small':
+                return 'size-2.5'
             case 'small':
                 return 'size-4'
             case 'medium':
@@ -31,6 +35,8 @@ const AchievementsBadge = ({
 
     const getIconSize = () => {
         switch (size) {
+            case 'extra-small':
+                return 6
             case 'small':
                 return 8
             case 'medium':
@@ -44,6 +50,8 @@ const AchievementsBadge = ({
 
     const getPadding = () => {
         switch (size) {
+            case 'extra-small':
+                return 'p-0'
             case 'small':
                 return 'p-0.5'
             case 'medium':

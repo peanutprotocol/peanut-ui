@@ -1,5 +1,5 @@
+import { getTokenSymbol, validateEnsName } from '@/utils'
 import { isAddress } from 'viem'
-import { validateEnsName, getTokenSymbol } from '@/utils'
 
 // Constants
 const PINTA_MERCHANTS: Record<string, string> = {
@@ -67,7 +67,7 @@ const REGEXES_BY_TYPE: { [key in QrType]?: RegExp } = {
         /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/,
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
+export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
 export function recognizeQr(data: string): QrType | null {
     if (data.startsWith(BASE_URL)) {

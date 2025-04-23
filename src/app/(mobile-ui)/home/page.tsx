@@ -4,11 +4,13 @@ import { PeanutArmHoldingBeer } from '@/assets'
 import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card from '@/components/Global/Card'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
+import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
-import TransactionCard from '@/components/Home/TransactionCard'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences } from '@/utils'
@@ -26,7 +28,12 @@ export default function Home() {
         return prefs?.balanceHidden ?? false
     })
 
-    const { username, isFetchingUser } = useAuth()
+    const { username, isFetchingUser, user } = useAuth()
+
+    const userFullName = useMemo(() => {
+        if (!user) return
+        return user.user.full_name
+    }, [user])
 
     const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation()
@@ -58,7 +65,8 @@ export default function Home() {
 
     return (
         <PageContainer>
-            <div className="h-full w-full p-5">
+            <div className="h-full w-full space-y-6 p-5">
+                <UserHeader username={username!} fullName={userFullName} />
                 <div className="space-y-4">
                     <ActionButtonGroup>
                         <ActionButton label="Add money" action="add" href="/add" size="small" />
@@ -85,46 +93,6 @@ export default function Home() {
 
                 {/* Rewards Card - only shows if balance is non-zero */}
                 <RewardsCard balance={rewardsBalance} />
-
-                {/* Transaction cards - temporary */}
-                <div className="mt-6 space-y-3">
-                    <h2 className="font-bold">Transactions</h2>
-                    <div>
-                        <TransactionCard
-                            type="send"
-                            name="Hugo Montenegro"
-                            amount={BigInt(6969000000)}
-                            status="completed"
-                            initials="HM"
-                            position="first"
-                        />
-
-                        <TransactionCard
-                            type="withdraw"
-                            name="Bank Account #1"
-                            amount={BigInt(6969000000)}
-                            status="completed"
-                            position="middle"
-                        />
-
-                        <TransactionCard
-                            type="add"
-                            name="peanut.ens"
-                            amount={BigInt(6969000000)}
-                            status="completed"
-                            position="middle"
-                        />
-
-                        <TransactionCard
-                            type="request"
-                            name="dasdasdasdsa Montenegro"
-                            amount={BigInt(6969000000)}
-                            status="pending"
-                            initials="HM"
-                            position="last"
-                        />
-                    </div>
-                </div>
 
                 <HomeHistory />
                 <RewardsModal />
@@ -254,6 +222,36 @@ function RewardsCard({ balance }: { balance: string | undefined }) {
                     <span className="text-sm font-medium">{balance}</span>
                 </div>
             </Card>
+        </div>
+    )
+}
+
+function UserHeader({ username, fullName }: { username: string; fullName?: string }) {
+    const initals = useMemo(() => {
+        if (fullName) {
+            return fullName
+                .split(' ')
+                .map((part) => part[0])
+                .join('')
+                .toUpperCase()
+                .substring(0, 2)
+        }
+
+        return username
+            .split(' ')
+            .map((part) => part[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2)
+    }, [username])
+
+    return (
+        <div className="flex items-center gap-1.5">
+            <Link href={`/profile`} className="flex items-center gap-1.5">
+                <AvatarWithBadge size="extra-small" initials={initals} isVerified achievementsBadgeSize="extra-small" />
+                <div className="text-sm font-bold">{username}</div>
+            </Link>
+            <CopyToClipboard textToCopy={`${BASE_URL}/${username}`} fill="black" iconSize={'4'} />
         </div>
     )
 }

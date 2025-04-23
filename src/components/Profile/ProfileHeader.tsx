@@ -3,10 +3,11 @@ import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../0_Bruddle'
 import Divider from '../0_Bruddle/Divider'
-import AchievementsBadge from '../Global/Badges/AchievementsBadge'
+
 import BottomDrawer from '../Global/BottomDrawer'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
+import AvatarWithBadge from './AvatarWithBadge'
 
 interface ProfileHeaderProps {
     name: string
@@ -25,17 +26,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials,
         <>
             <div className={twMerge('flex flex-col items-center space-y-2', className)}>
                 {/* Avatar with initials */}
-                <div className="relative ">
-                    <div
-                        className={twMerge(
-                            'flex h-16 w-16 items-center justify-center rounded-full bg-yellow-5 text-2xl font-bold'
-                        )}
-                    >
-                        {initials}
-                    </div>
-
-                    {isVerified && <AchievementsBadge />}
-                </div>
+                <AvatarWithBadge initials={initials} isVerified={isVerified} />
 
                 {/* Name */}
                 <h1 className="mb-4 text-2xl font-bold">{name}</h1>

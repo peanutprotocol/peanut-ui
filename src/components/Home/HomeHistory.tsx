@@ -137,7 +137,7 @@ const HomeHistory = () => {
     }
 
     return (
-        <div className="mx-auto mt-6 w-full space-y-6 px-4 pb-28 md:max-w-2xl md:space-y-3">
+        <div className="mx-auto w-full space-y-3 pb-28 md:max-w-2xl md:space-y-3">
             <Link href="/history" className="flex items-center justify-between">
                 <h2 className="text-base font-bold">Transactions</h2>
                 <Icon width={30} height={30} name="arrow-next" />
