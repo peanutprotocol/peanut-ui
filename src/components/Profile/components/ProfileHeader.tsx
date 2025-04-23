@@ -1,9 +1,12 @@
+import { Button } from '@/components/0_Bruddle'
+import Divider from '@/components/0_Bruddle/Divider'
+import BottomDrawer from '@/components/Global/BottomDrawer'
 import { Icon } from '@/components/Global/Icons/Icon'
+import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
+import ShareButton from '@/components/Global/ShareButton'
 import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Button } from '../../0_Bruddle'
-import AchievementsBadge from '../../Global/Badges/AchievementsBadge'
-import QRBottomDrawer from '../../Global/QRBottomDrawer'
+import AvatarWithBadge from '../AvatarWithBadge'
 
 interface ProfileHeaderProps {
     name: string
@@ -14,7 +17,7 @@ interface ProfileHeaderProps {
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials, isVerified = false, className }) => {
-    const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     const profileUrl = `peanut.me/${username}`
 
@@ -22,17 +25,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials,
         <>
             <div className={twMerge('flex flex-col items-center space-y-2', className)}>
                 {/* Avatar with initials */}
-                <div className="relative ">
-                    <div
-                        className={twMerge(
-                            'flex h-16 w-16 items-center justify-center rounded-full bg-yellow-5 text-2xl font-bold'
-                        )}
-                    >
-                        {initials}
-                    </div>
-
-                    {isVerified && <AchievementsBadge />}
-                </div>
+                <AvatarWithBadge initials={initials} isVerified={isVerified} />
 
                 {/* Name */}
                 <h1 className="mb-4 text-2xl font-bold">{name}</h1>
@@ -45,22 +38,32 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials,
                     className="flex w-fit items-center justify-center gap-2 rounded-full px-4 py-2"
                     onClick={() => {
                         navigator.clipboard.writeText(profileUrl)
-                        setIsQRScannerOpen(true)
+                        setIsDrawerOpen(true)
                     }}
                 >
                     <span className="font-semibold">peanut.me/{username}</span>
                     <Icon name="share" size={16} fill="black" />
                 </Button>
             </div>
-            {isQRScannerOpen && (
+            {isDrawerOpen && (
                 <>
-                    <QRBottomDrawer
-                        url={profileUrl}
-                        collapsedTitle="Your Peanut profile is public"
-                        expandedTitle="Your Peanut profile is public"
-                        text="Let others scan this to see your profile"
-                        buttonText="Share Profile Link"
-                    />
+                    <BottomDrawer
+                        initialPosition="collapsed"
+                        handleTitle={'Your Peanut profile is public'}
+                        handleSubtitle="Share it to receive payments!"
+                        collapsedHeight={80}
+                        expandedHeight={90}
+                        isOpen={isDrawerOpen}
+                        onClose={() => setIsDrawerOpen(false)}
+                    >
+                        <div className="space-y-6">
+                            <QRCodeWrapper url={profileUrl} />
+                            <Divider className="text-gray-500" text="or" />
+                            <ShareButton url={profileUrl} title="Share your profile">
+                                Your Peanut profile is public
+                            </ShareButton>
+                        </div>
+                    </BottomDrawer>
                 </>
             )}
         </>

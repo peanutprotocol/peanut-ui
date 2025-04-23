@@ -3,7 +3,7 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { CreateScreens } from '../Create/Create.consts'
 import { OfframpConfirmView, OfframpSuccessView } from '../Offramp'
 import { OfframpType } from '../Offramp/Offramp.consts'
-import * as views from './Components'
+import { InitialCashoutView } from './Components'
 type CashoutScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
 
 export type CashoutType = 'bank_transfer' | undefined
@@ -21,7 +21,7 @@ export const INIT_VIEW_STATE: ICashoutScreenState = {
 export const CASHOUT_SCREEN_FLOW: CashoutScreens[] = ['INITIAL', 'CONFIRM', 'SUCCESS']
 
 export const CASHOUT_SCREEN_MAP: { [key in CashoutScreens]: { comp: React.FC<ICashoutScreenProps> } } = {
-    INITIAL: { comp: views.InitialCashoutView },
+    INITIAL: { comp: InitialCashoutView },
     CONFIRM: { comp: OfframpConfirmView },
     SUCCESS: { comp: OfframpSuccessView },
 }

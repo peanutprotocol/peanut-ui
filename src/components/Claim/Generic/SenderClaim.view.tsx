@@ -2,10 +2,10 @@
 
 import { Button } from '@/components/0_Bruddle'
 import StatusViewWrapper from '@/components/Global/StatusViewWrapper'
-import * as context from '@/context'
+import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
-import { ErrorHandler, shortenAddress } from '@/utils'
+import { ErrorHandler } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
 import * as _consts from '../Claim.consts'
@@ -28,7 +28,7 @@ export const SenderClaimLinkView = ({
     const { claimLink } = useClaimLink()
     const { address } = useWallet()
 
-    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string

@@ -1,5 +1,3 @@
-import { RecipientType } from '@/lib/url-parser/types/payment'
-import * as utils from '@/utils'
 import { usePrimaryName } from '@justaname.id/react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'

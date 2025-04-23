@@ -1,7 +1,7 @@
-import { NextResponse, NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
 import * as consts from '@/constants'
 import { fetchWithSentry } from '@/utils'
+import { cookies } from 'next/headers'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
     const { signature, message } = await request.json()
@@ -37,7 +37,8 @@ export async function POST(request: NextRequest) {
         const token = data.token
 
         // Set the JWT token in a cookie, nextjs requires to do this serverside
-        cookies().set('jwt-token', token, {
+        const cookieStore = await cookies()
+        cookieStore.set('jwt-token', token, {
             httpOnly: true,
             secure: true,
             path: '/',

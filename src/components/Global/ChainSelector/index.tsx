@@ -1,7 +1,7 @@
 'use client'
 
 import { supportedPeanutChains } from '@/constants'
-import * as context from '@/context'
+import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IPeanutChainDetails } from '@/interfaces'
 import { calculateValuePerChain, formatTokenAmount } from '@/utils'
@@ -29,7 +29,7 @@ const ChainSelector = ({ chainsToDisplay, onChange }: IChainSelectorProps) => {
     const [filterValue, setFilterValue] = useState('')
     const { selectedWallet } = useWallet()
 
-    const { selectedChainID, setSelectedChainID } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, setSelectedChainID } = useContext(tokenSelectorContext)
 
     const valuePerChain = useMemo(
         () => calculateValuePerChain(selectedWallet?.balances ?? []),

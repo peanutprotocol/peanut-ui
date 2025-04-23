@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const maxDuration = 300 // vercel timeout
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     jsonToPass.apiKey = process.env.PEANUT_API_KEY!
 
-    const userIp = request.headers.get('x-forwarded-for') || request.ip
+    const userIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip')
     const headersToPass = {
         'Content-Type': 'application/json',
         'x-forwarded-for': userIp,

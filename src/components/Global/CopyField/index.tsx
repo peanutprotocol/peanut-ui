@@ -1,7 +1,7 @@
 'use client'
 import { Button, ButtonVariant } from '@/components/0_Bruddle'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import * as utils from '@/utils'
+import { copyTextToClipboardWithFallback } from '@/utils'
 import { useCallback, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -24,7 +24,7 @@ const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: Cop
             return
         }
 
-        utils.copyTextToClipboardWithFallback(text)
+        copyTextToClipboardWithFallback(text)
         setIsCopied(true)
         setTimeout(() => setIsCopied(false), timeoutDuration)
     }, [disabled, onDisabledClick, text])

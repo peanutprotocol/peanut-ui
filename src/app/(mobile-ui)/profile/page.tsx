@@ -1,4 +1,5 @@
 import { Profile } from '@/components'
+import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -19,5 +20,9 @@ export const metadata: Metadata = {
 }
 
 export default function ProfilePage() {
-    return <Profile />
+    return (
+        <PageContainer>
+            <Profile />
+        </PageContainer>
+    )
 }

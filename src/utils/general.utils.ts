@@ -5,12 +5,12 @@ import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
 import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
 import * as Sentry from '@sentry/nextjs'
-import peanut from '@squirrel-labs/peanut-sdk'
+import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import chroma from 'chroma-js'
 import { SiweMessage } from 'siwe'
 import { getAddress, isAddress } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
-import type { Address } from 'viem'
+import type { Address, TransactionReceipt } from 'viem'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -1133,4 +1133,19 @@ export const formatPaymentStatus = (status: string): string => {
         default:
             return status
     }
+}
+
+export function getLinkFromReceipt({
+    txReceipt,
+    linkDetails,
+    password,
+}: {
+    txReceipt: TransactionReceipt
+    linkDetails: peanutInterfaces.IPeanutLinkDetails
+    password: string
+}): string {
+    const { chainId, baseUrl, trackId } = linkDetails
+    const contractVersion = peanut.detectContractVersionFromTxReceipt(txReceipt, chainId)
+    const depositIdx = peanut.getDepositIdxs(txReceipt, chainId, contractVersion)[0]
+    return peanut.getLinkFromParams(chainId, contractVersion, depositIdx, password, baseUrl, trackId)
 }

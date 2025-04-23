@@ -5,7 +5,7 @@ import useClaimLink from './useClaimLink'
 
 import * as assets from '@/assets'
 import * as consts from '@/constants'
-import * as context from '@/context'
+import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
@@ -44,7 +44,7 @@ export const Claim = ({}) => {
         recipient: '',
     })
 
-    const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
+    const { setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
 
     const [initialKYCStep, setInitialKYCStep] = useState<number>(0)
 

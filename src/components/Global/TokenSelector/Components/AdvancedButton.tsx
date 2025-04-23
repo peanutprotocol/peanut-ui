@@ -1,6 +1,5 @@
-import * as context from '@/context'
-import * as utils from '@/utils'
-import { fetchTokenSymbol } from '@/utils'
+import { tokenSelectorContext } from '@/context'
+import { formatTokenAmount, fetchTokenSymbol, getTokenLogo } from '@/utils'
 import { useContext, useEffect, useState } from 'react'
 import Icon from '../../Icon'
 
@@ -37,8 +36,9 @@ export const AdvancedTokenSelectorButton = ({
     type = 'send',
     onReset,
 }: IAdvancedTokenSelectorButtonProps) => {
-    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress } = useContext(tokenSelectorContext)
     const [_tokenSymbol, _setTokenSymbol] = useState<string | undefined>(tokenSymbol)
+    const [_tokenLogoUri, _setTokenLogoUri] = useState<string | undefined>(tokenLogoUri)
 
     useEffect(() => {
         let isMounted = true
@@ -56,6 +56,12 @@ export const AdvancedTokenSelectorButton = ({
         }
     }, [tokenSymbol, selectedTokenAddress, selectedChainID])
 
+    useEffect(() => {
+        if (!_tokenLogoUri && _tokenSymbol && selectedTokenAddress) {
+            _setTokenLogoUri(getTokenLogo(_tokenSymbol))
+        }
+    }, [_tokenLogoUri, _tokenSymbol, selectedTokenAddress])
+
     return (
         <section
             role="button"
@@ -72,8 +78,8 @@ export const AdvancedTokenSelectorButton = ({
         >
             <div className={'flex flex-row items-center justify-center gap-4'}>
                 <div className="relative h-8 w-8">
-                    {tokenLogoUri ? (
-                        <img src={tokenLogoUri} className="absolute left-0 top-0 h-8 w-8" alt="logo" />
+                    {_tokenLogoUri ? (
+                        <img src={_tokenLogoUri} className="absolute left-0 top-0 h-8 w-8" alt="logo" />
                     ) : (
                         <Icon name="token_placeholder" className="absolute left-0 top-0 h-8 w-8" fill="#999" />
                     )}
@@ -93,7 +99,7 @@ export const AdvancedTokenSelectorButton = ({
                 </div>
                 <div className="flex flex-col items-start justify-center gap-1">
                     <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
-                        {type === 'xchain' && tokenAmount && utils.formatTokenAmount(Number(tokenAmount) ?? 0, 4)}{' '}
+                        {type === 'xchain' && tokenAmount && formatTokenAmount(Number(tokenAmount) ?? 0, 4)}{' '}
                         {_tokenSymbol} on {chainName}
                     </div>
 
@@ -102,15 +108,13 @@ export const AdvancedTokenSelectorButton = ({
                             Balance:{' '}
                             {tokenUsdValue
                                 ? // usd value of token
-                                  `$${utils.formatTokenAmount(parseFloat(tokenUsdValue), 2)}`
+                                  `$${formatTokenAmount(parseFloat(tokenUsdValue), 2)}`
                                 : // format token balance with 4 decimals
-                                  `${utils.formatTokenAmount(tokenBalance ?? 0, 4)} ${tokenSymbol}`}
+                                  `${formatTokenAmount(tokenBalance ?? 0, 4)} ${tokenSymbol}`}
                         </p>
                     )}
                     {tokenAmount && tokenPrice && (
-                        <p className="text-xs text-grey-1">
-                            ${utils.formatTokenAmount(Number(tokenAmount) * tokenPrice, 4)}
-                        </p>
+                        <p className="text-xs text-grey-1">${formatTokenAmount(Number(tokenAmount) * tokenPrice, 4)}</p>
                     )}
                 </div>
             </div>
