@@ -3,6 +3,7 @@
 import { PeanutArmHoldingBeer } from '@/assets'
 import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import AddFunds from '@/components/AddFunds'
 import Card from '@/components/Global/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
@@ -69,8 +70,8 @@ export default function Home() {
                 <UserHeader username={username!} fullName={userFullName} />
                 <div className="space-y-4">
                     <ActionButtonGroup>
-                        <ActionButton label="Add money" action="add" href="/add" size="small" />
-                        <ActionButton label="Withdraw" action="withdraw" href="/withdraw" size="small" />
+                        <AddFunds cta={<ActionButton label="Add money" action="add" size="small" />} />
+                        <ActionButtonWithHref label="Withdraw" action="withdraw" href="/cashout" size="small" />
                     </ActionButtonGroup>
 
                     <WalletBalance
@@ -80,8 +81,8 @@ export default function Home() {
                     />
 
                     <ActionButtonGroup>
-                        <ActionButton label="Send" action="send" href="/send" variant="purple" size="large" />
-                        <ActionButton
+                        <ActionButtonWithHref label="Send" action="send" href="/send" variant="purple" size="large" />
+                        <ActionButtonWithHref
                             label="Request"
                             action="request"
                             href="/request/create"
@@ -137,19 +138,23 @@ function WalletBalance({
     )
 }
 
-function ActionButton({
-    label,
-    action,
-    href,
-    variant = 'primary-soft',
-    size = 'small',
-}: {
+interface ActionButtonProps {
     label: string
     action: 'add' | 'withdraw' | 'send' | 'request'
     href: string
     variant?: ButtonVariant
     size?: ButtonSize
-}) {
+}
+
+function ActionButtonWithHref({ label, action, href, variant = 'primary-soft', size = 'small' }: ActionButtonProps) {
+    return (
+        <Link href={href} className="block">
+            <ActionButton label={label} action={action} variant={variant} size={size} />
+        </Link>
+    )
+}
+
+function ActionButton({ label, action, variant = 'primary-soft', size = 'small' }: Omit<ActionButtonProps, 'href'>) {
     // get icon based on action type
     const renderIcon = (): React.ReactNode => {
         return (
@@ -171,22 +176,19 @@ function ActionButton({
             </div>
         )
     }
-
     return (
-        <Link href={href} className="block">
-            <Button
-                variant={variant}
-                className={twMerge(
-                    'flex cursor-pointer items-center justify-center rounded-full',
-                    size === 'large' ? 'min-w-[145px] px-6 py-3' : 'min-w-[120px] px-4 py-2'
-                )}
-                shadowSize="4"
-                size={size}
-            >
-                {renderIcon()}
-                <span className={twMerge('font-bold', size === 'small' ? 'text-xs' : 'text-sm')}>{label}</span>
-            </Button>
-        </Link>
+        <Button
+            variant={variant}
+            className={twMerge(
+                'flex cursor-pointer items-center justify-center rounded-full',
+                size === 'large' ? 'min-w-[145px] px-6 py-3' : 'min-w-[120px] px-4 py-2'
+            )}
+            shadowSize="4"
+            size={size}
+        >
+            {renderIcon()}
+            <span className={twMerge('font-bold', size === 'small' ? 'text-xs' : 'text-sm')}>{label}</span>
+        </Button>
     )
 }
 
