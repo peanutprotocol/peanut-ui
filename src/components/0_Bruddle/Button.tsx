@@ -12,7 +12,7 @@ export type ButtonVariant =
     | 'yellow'
     | 'transparent'
     | 'primary-soft'
-type ButtonSize = 'small' | 'medium' | 'large' | 'xl' | 'xl-fixed'
+export type ButtonSize = 'small' | 'medium' | 'large' | 'xl' | 'xl-fixed'
 type ButtonShape = 'default' | 'square'
 type ShadowSize = '4' | '6' | '8'
 type ShadowType = 'primary' | 'secondary'

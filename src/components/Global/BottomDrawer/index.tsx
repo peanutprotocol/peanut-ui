@@ -9,6 +9,7 @@ interface BottomDrawerProps {
     onClose?: () => void
     initialPosition?: DrawerPosition
     handleTitle?: string
+    handleSubtitle?: string
     collapsedHeight?: number
     halfHeight?: number
     expandedHeight?: number
@@ -22,6 +23,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
     onClose,
     initialPosition = 'half',
     handleTitle = '',
+    handleSubtitle = '',
     collapsedHeight = 15,
     halfHeight = 50,
     expandedHeight = 90,
@@ -307,7 +309,10 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
                     style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
                 >
                     <div className="mx-auto mb-4 mt-2 h-2 w-8 rounded-full bg-black"></div>
-                    {handleTitle && <h2 className="mb-8 text-2xl font-extrabold">{handleTitle}</h2>}
+                    <div className="mb-8 space-y-1">
+                        {handleTitle && <h2 className="text-lg font-extrabold">{handleTitle}</h2>}
+                        {handleSubtitle && <h2 className="mb-8">{handleSubtitle}</h2>}
+                    </div>
                 </div>
 
                 {/* Content area */}
