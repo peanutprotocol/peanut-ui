@@ -2,7 +2,8 @@
 import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
 import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
-import { resolveFromEnsName, validateBankAccount } from '@/utils'
+import { validateBankAccount } from '@/utils'
+import { resolveEns } from '@/app/actions/ens'
 import { isAddress } from 'viem'
 import * as interfaces from '@/interfaces'
 import { useRecentRecipients } from '@/hooks/useRecentRecipients'
@@ -55,7 +56,7 @@ const GeneralRecipientInput = ({
                 isValid = true
             } else if (validateEnsName(trimmedInput)) {
                 type = 'ens'
-                const address = await resolveFromEnsName(trimmedInput.toLowerCase())
+                const address = await resolveEns(trimmedInput.toLowerCase())
                 if (address) {
                     resolvedAddress.current = address
                     isValid = true
