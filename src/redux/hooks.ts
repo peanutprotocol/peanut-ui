@@ -1,3 +1,4 @@
+'use client'
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from './types'
 
@@ -10,3 +11,4 @@ export const useWalletStore = () => useAppSelector((state) => state.wallet)
 export const useZerodevStore = () => useAppSelector((state) => state.zeroDev)
 export const usePaymentStore = () => useAppSelector((state) => state.payment)
 export const useUserStore = () => useAppSelector((state) => state.user)
+export const useSendFlowStore = () => useAppSelector((state) => state.sendFlow)

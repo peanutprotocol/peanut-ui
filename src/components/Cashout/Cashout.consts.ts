@@ -1,6 +1,5 @@
 import * as consts from '@/constants'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { CreateScreens } from '../Create/Create.consts'
 import { OfframpConfirmView, OfframpSuccessView } from '../Offramp'
 import { OfframpType } from '../Offramp/Offramp.consts'
 import { InitialCashoutView } from './Components'
@@ -29,7 +28,6 @@ export const CASHOUT_SCREEN_MAP: { [key in CashoutScreens]: { comp: React.FC<ICa
 export interface ICashoutScreenProps {
     onPrev: () => void
     onNext: () => void
-    onCustom: (screen: CreateScreens) => void
     tokenValue: string | undefined
     setTokenValue: (value: string | undefined) => void
     recipient: { address: string | undefined; name: string | undefined }
