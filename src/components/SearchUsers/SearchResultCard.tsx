@@ -19,13 +19,12 @@ export const SearchResultCard = ({ username, fullName, position = 'middle' }: Se
         return getInitialsFromName(username)
     }, [fullName, username])
 
-    const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        e.stopPropagation()
+    const handleClick = () => {
         router.push(`/${username}`)
     }
 
     return (
-        <Card position={position} className="cursor-pointer hover:bg-gray-50">
+        <Card onClick={handleClick} position={position} className="cursor-pointer hover:bg-gray-50">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success-3 text-sm font-bold">
@@ -36,10 +35,7 @@ export const SearchResultCard = ({ username, fullName, position = 'middle' }: Se
                         <div className="text-sm text-grey-1">@{username}</div>
                     </div>
                 </div>
-                <div
-                    onClick={handleClick}
-                    className="flex size-6 items-center justify-center rounded-full border border-black bg-primary-1 p-0 shadow-[0.12rem_0.12rem_0_#000000]"
-                >
+                <div className="flex size-6 items-center justify-center rounded-full border border-black bg-primary-1 p-0 shadow-[0.12rem_0.12rem_0_#000000]">
                     <Icon name="chevron-up" size={20} className="rotate-90" />
                 </div>
             </div>

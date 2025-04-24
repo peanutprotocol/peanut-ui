@@ -28,11 +28,7 @@ export const usersApi = {
 
     search: async (query: string): Promise<UserSearchResponse> => {
         if (query.length < 3) throw new Error('Search query must be at least 3 characters')
-        const response = await fetch(`${PEANUT_API_URL}/users/search?q=${query}`, {
-            headers: {
-                'api-key': process.env.PEANUT_API_KEY!,
-            },
-        })
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/search?q=${query}`)
         return await response.json()
     },
 }

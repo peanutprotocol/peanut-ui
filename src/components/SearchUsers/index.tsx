@@ -5,6 +5,8 @@ import { ApiUser, usersApi } from '@/services/users'
 import { getInitialsFromName } from '@/utils'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Button } from '../0_Bruddle'
+import BaseInput from '../0_Bruddle/BaseInput'
 import PeanutLoading from '../Global/PeanutLoading'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import { SearchResultCard } from './SearchResultCard'
@@ -57,18 +59,22 @@ const SearchContent = ({
                     <div className="absolute left-4 top-1/2 -translate-y-1/2">
                         <Icon name="search" size={20} />
                     </div>
-                    <input
+                    <BaseInput
                         ref={inputRef}
                         type="text"
                         value={searchTerm}
                         onChange={onSearchChange}
                         placeholder="Name or username"
-                        className="w-full rounded-sm border border-black py-2 pl-12 pr-10"
+                        className="h-10 w-full rounded-sm border border-black pl-12 pr-10"
                     />
                     {searchTerm && (
-                        <button onClick={onClearSearch} className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <Button
+                            variant="transparent"
+                            onClick={onClearSearch}
+                            className="absolute right-4 top-1/2 h-8 w-6 -translate-y-1/2 p-0"
+                        >
                             <Icon name="cancel" size={16} />
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>
@@ -243,12 +249,13 @@ export const SearchUsers = () => {
 
     return (
         <>
-            <button
+            <Button
+                variant="transparent"
                 onClick={() => setIsExpanded(true)}
-                className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100"
+                className="flex h-10 w-10 items-center justify-center rounded-full p-0 hover:bg-gray-100"
             >
                 <Icon name="search" size={20} />
-            </button>
+            </Button>
 
             {isExpanded &&
                 createPortal(
