@@ -1,0 +1,116 @@
+import { ApiUser } from '@/services/users'
+import { twMerge } from 'tailwind-merge'
+import Card from '../Global/Card'
+import { Icon } from '../Global/Icons/Icon'
+import PeanutLoading from '../Global/PeanutLoading'
+import { SearchResultCard } from './SearchResultCard'
+
+interface SearchResultsProps {
+    searchTerm: string
+    results: ApiUser[]
+    isSearching: boolean
+    showMinCharError: boolean
+    showNoResults: boolean
+    className?: string
+    recentTransactions?: ApiUser[]
+}
+
+export const SearchResults = ({
+    searchTerm,
+    results,
+    isSearching,
+    showMinCharError,
+    showNoResults,
+    className,
+    recentTransactions = [],
+}: SearchResultsProps) => {
+    return (
+        <div className={twMerge('flex h-full flex-col overflow-hidden', className)}>
+            {showMinCharError && (
+                <div className="mt-4 text-center text-sm text-error">Enter at least 3 characters to search users</div>
+            )}
+
+            {searchTerm && results.length > 0 && (
+                <>
+                    <h2 className="mb-2 text-base font-bold">People</h2>
+                    <div className="flex-1 overflow-y-auto">
+                        {results.map((user, index) => (
+                            <SearchResultCard
+                                key={user.userId}
+                                username={user.username}
+                                fullName={user.fullName}
+                                position={
+                                    results.length === 1
+                                        ? 'single'
+                                        : index === 0
+                                          ? 'first'
+                                          : index === results.length - 1
+                                            ? 'last'
+                                            : 'middle'
+                                }
+                            />
+                        ))}
+                    </div>
+                </>
+            )}
+
+            {isSearching && (
+                <div className="flex flex-1 items-center justify-center">
+                    <PeanutLoading />
+                </div>
+            )}
+
+            {showNoResults && (
+                <Card position="single" className="mt-8 p-0">
+                    <div className="flex flex-col items-center justify-center gap-2 py-6">
+                        <div className="rounded-full bg-primary-1 p-2">
+                            <Icon name="user" size={16} />
+                        </div>
+                        <div className="text-center">
+                            <div className="font-medium">No users found</div>
+                            <div className="text-sm text-grey-1">Try searching with a different term</div>
+                        </div>
+                    </div>
+                </Card>
+            )}
+
+            {!searchTerm && (
+                <>
+                    <h2 className="mb-2 text-base font-bold">Recent transactions</h2>
+                    {recentTransactions.length > 0 ? (
+                        <div className="flex-1 overflow-y-auto">
+                            {recentTransactions.map((user, index) => (
+                                <SearchResultCard
+                                    key={user.userId}
+                                    username={user.username}
+                                    fullName={user.fullName}
+                                    position={
+                                        recentTransactions.length === 1
+                                            ? 'single'
+                                            : index === 0
+                                              ? 'first'
+                                              : index === recentTransactions.length - 1
+                                                ? 'last'
+                                                : 'middle'
+                                    }
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <Card position="single" className="p-0">
+                            <div className="flex flex-col items-center justify-center gap-2 py-6">
+                                <div className="rounded-full bg-primary-1 p-2">
+                                    <Icon name="txn-off" size={16} />
+                                </div>
+                                <div className="text-center">
+                                    <div className="font-medium">No transactions yet!</div>
+                                    <div className="text-sm text-grey-1">Start by sending or requesting money</div>
+                                </div>
+                            </div>
+                        </Card>
+                    )}
+                </>
+            )}
+        </div>
+    )
+}

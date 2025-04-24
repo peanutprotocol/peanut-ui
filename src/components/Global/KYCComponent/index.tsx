@@ -10,11 +10,11 @@ import { useAuth } from '@/context/authContext'
 import * as interfaces from '@/interfaces'
 import { awaitStatusCompletion, convertPersonaUrl, getStatus, getUserLinks } from '@/utils'
 import { useToast } from '@chakra-ui/react'
+import * as Sentry from '@sentry/nextjs'
 import { useForm } from 'react-hook-form'
 import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
 import Loading from '../Loading'
 import { UpdateUserComponent } from '../UpdateUserComponent'
-import * as Sentry from '@sentry/nextjs'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -424,10 +424,11 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                             onClick={() => {
                                 handleKYCStatus()
                             }}
+                            disabled={isLoading}
                             variant="purple"
                             size="small"
                         >
-                            {isLoading ? 'Reopen KYC' : 'Open KYC'}
+                            {isLoading ? 'KYC in process...' : 'Open KYC'}
                         </Button>
                         {isLoading && (
                             <span className="flex flex-row items-center justify-center gap-1">

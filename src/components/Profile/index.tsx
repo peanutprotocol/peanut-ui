@@ -4,6 +4,7 @@ import { Button } from '@/components/0_Bruddle'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { loadingStateContext } from '@/context'
 import { useAuth } from '@/context/authContext'
+import { getInitialsFromName } from '@/utils'
 import { captureException } from '@sentry/nextjs'
 import { useContext } from 'react'
 import NavHeader from '../Global/NavHeader'
@@ -26,18 +27,9 @@ export const Profile = () => {
         }
     }
 
-    const getInitials = (name: string) => {
-        return name
-            .split(' ')
-            .map((part) => part[0])
-            .join('')
-            .toUpperCase()
-            .substring(0, 2)
-    }
-
     const fullName = user?.user.full_name || user?.user?.username || 'Anonymous User'
     const username = user?.user.username || 'anonymous'
-    const initials = getInitials(fullName)
+    const initials = getInitialsFromName(fullName)
 
     return (
         <div className="h-full w-full bg-background">

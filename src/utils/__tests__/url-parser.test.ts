@@ -1,11 +1,11 @@
 import { EParseUrlError, parsePaymentURL } from '@/lib/url-parser/parser'
 
 // mock ENS resolution
-jest.mock('@/utils', () => {
-    const originalModule = jest.requireActual('@/utils')
+jest.mock('@/app/actions/ens', () => {
+    const originalModule = jest.requireActual('@/app/actions/ens')
     return {
         ...originalModule,
-        resolveFromEnsName: (name: string) => {
+        resolveEns: (name: string) => {
             if (name === 'vitalik.eth') {
                 return Promise.resolve('0x1234567890123456789012345678901234567890')
             }

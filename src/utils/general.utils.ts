@@ -8,9 +8,9 @@ import * as Sentry from '@sentry/nextjs'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import chroma from 'chroma-js'
 import { SiweMessage } from 'siwe'
+import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
-import type { Address, TransactionReceipt } from 'viem'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -338,53 +338,6 @@ export const formatAmountWithoutComma = (input: string) => {
     if (numericValue === '' || regex.test(numericValue)) {
         return numericValue
     } else return ''
-}
-
-export async function resolveFromEnsNameAndProviderUrl(
-    ensName: string,
-    providerUrl?: string
-): Promise<string | undefined> {
-    try {
-        const records = await JustaName.init().subnames.getRecords({
-            ens: ensName,
-            chainId: 1,
-            providerUrl,
-        })
-
-        return sanitizeRecords(records).ethAddress.value
-    } catch (error) {
-        Sentry.captureException(error)
-        return undefined
-    }
-}
-
-export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
-    const mainProviderUrl = 'https://mainnet.infura.io/v3/' + INFURA_API_KEY
-    const fallbackProviderUrl = 'https://rpc.ankr.com/eth'
-
-    try {
-        const records = await JustaName.init().subnames.getRecords({
-            ens: ensName,
-            chainId: 1,
-            providerUrl: mainProviderUrl,
-        })
-
-        return records?.records?.coins?.find((coin) => coin.id === 60)?.value
-    } catch (error) {
-        console.error('Error resolving ENS name with main provider:', error)
-        try {
-            const records = await JustaName.init().subnames.getRecords({
-                ens: ensName,
-                chainId: 1,
-                providerUrl: fallbackProviderUrl,
-            })
-
-            return records?.records?.coins?.find((coin) => coin.id === 60)?.value
-        } catch (fallbackError) {
-            console.error('Error resolving ENS name with fallback provider:', fallbackError)
-            return undefined
-        }
-    }
 }
 
 export async function copyTextToClipboardWithFallback(text: string) {
@@ -1148,4 +1101,13 @@ export function getLinkFromReceipt({
     const contractVersion = peanut.detectContractVersionFromTxReceipt(txReceipt, chainId)
     const depositIdx = peanut.getDepositIdxs(txReceipt, chainId, contractVersion)[0]
     return peanut.getLinkFromParams(chainId, contractVersion, depositIdx, password, baseUrl, trackId)
+}
+
+export const getInitialsFromName = (name: string): string => {
+    const nameParts = name.trim().split(/\s+/)
+    if (nameParts.length === 1) {
+        return nameParts[0].substring(0, 2).toUpperCase()
+    } else {
+        return nameParts[0].charAt(0).toUpperCase() + nameParts[1].charAt(0).toUpperCase()
+    }
 }
