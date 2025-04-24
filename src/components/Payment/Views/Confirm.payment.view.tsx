@@ -10,6 +10,7 @@ import Icon from '@/components/Global/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
+import { SQUID_API_URL } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
@@ -27,7 +28,7 @@ import {
 } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
-import { useContext, useEffect, useMemo, useState, useCallback } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useSwitchChain } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 
@@ -118,7 +119,7 @@ export default function ConfirmPaymentView() {
                 fromToken: tokenData.address,
                 fromChainId: tokenData.chainId,
                 senderAddress,
-                squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+                squidRouterUrl: `${SQUID_API_URL}/route`,
                 provider: await peanut.getDefaultProvider(tokenData.chainId),
                 tokenType: isAddressZero(tokenData.address)
                     ? peanutInterfaces.EPeanutLinkType.native

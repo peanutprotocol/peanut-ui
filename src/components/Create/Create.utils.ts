@@ -4,10 +4,6 @@ import { peanutTokenDetails } from '@/constants'
 import { IUserBalance } from '@/interfaces'
 import { areEvmAddressesEqual, isNativeCurrency } from '@/utils'
 
-const convertUSDTokenValue = ({ tokenValue, tokenPrice }: { tokenValue: number; tokenPrice: number }) => {
-    return tokenValue / tokenPrice
-}
-
 export const isGaslessDepositPossible = ({
     tokenAddress,
     latestContractVersion,

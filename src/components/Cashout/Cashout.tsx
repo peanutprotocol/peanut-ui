@@ -1,11 +1,11 @@
 'use client'
 import * as consts from '@/constants'
+import { fetchWithSentry } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { createElement, useEffect, useState } from 'react'
 import PageContainer from '../0_Bruddle/PageContainer'
 import { OfframpType } from '../Offramp/Offramp.consts'
 import * as _consts from './Cashout.consts'
-import { fetchWithSentry } from '@/utils'
 
 export const Cashout = ({}) => {
     const [step, setStep] = useState<_consts.ICashoutScreenState>(_consts.INIT_VIEW_STATE)
@@ -79,9 +79,9 @@ export const Cashout = ({}) => {
     const [crossChainDetails, setCrossChainDetails] = useState<[]>([])
 
     const fetchAndSetCrossChainDetails = async () => {
-        const response = await fetchWithSentry('https://apiplus.squidrouter.com/v2/chains', {
+        const response = await fetchWithSentry(`${consts.SQUID_API_URL}/chains`, {
             headers: {
-                'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C',
+                'x-integrator-id': consts.SQUID_INTEGRATOR_ID,
             },
         })
         if (!response.ok) {

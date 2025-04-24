@@ -1,9 +1,9 @@
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
-import { fetchWithSentry, areEvmAddressesEqual } from '@/utils'
+import { areEvmAddressesEqual, fetchWithSentry } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import { generateKeysFromString, getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import countries from 'i18n-iso-countries'
-import * as Sentry from '@sentry/nextjs'
 import { parseUnits } from 'viem'
 
 const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
@@ -706,7 +706,7 @@ export const fetchRouteRaw = async (
         const fromAmount = parseUnits(tokenAmount, tokenDecimals).toString()
 
         const route = await getSquidRouteRaw({
-            squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+            squidRouterUrl: `${consts.SQUID_API_URL}/route`,
             fromChain: fromChain,
             fromToken: fromToken.toLowerCase(),
             fromAmount,
