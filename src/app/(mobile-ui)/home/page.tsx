@@ -5,13 +5,12 @@ import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import AddFunds from '@/components/AddFunds'
 import Card from '@/components/Global/Card'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
-import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { SearchUsers } from '@/components/SearchUsers'
+import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences } from '@/utils'
@@ -67,7 +66,10 @@ export default function Home() {
     return (
         <PageContainer>
             <div className="h-full w-full space-y-6 p-5">
-                <UserHeader username={username!} fullName={userFullName} />
+                <div className="flex items-center justify-between gap-2">
+                    <UserHeader username={username!} fullName={userFullName} />
+                    <SearchUsers />
+                </div>
                 <div className="space-y-4">
                     <ActionButtonGroup>
                         <AddFunds cta={<ActionButton label="Add money" action="add" size="small" />} />
@@ -224,36 +226,6 @@ function RewardsCard({ balance }: { balance: string | undefined }) {
                     <span className="text-sm font-medium">{balance}</span>
                 </div>
             </Card>
-        </div>
-    )
-}
-
-function UserHeader({ username, fullName }: { username: string; fullName?: string }) {
-    const initals = useMemo(() => {
-        if (fullName) {
-            return fullName
-                .split(' ')
-                .map((part) => part[0])
-                .join('')
-                .toUpperCase()
-                .substring(0, 2)
-        }
-
-        return username
-            .split(' ')
-            .map((part) => part[0])
-            .join('')
-            .toUpperCase()
-            .substring(0, 2)
-    }, [username])
-
-    return (
-        <div className="flex items-center gap-1.5">
-            <Link href={`/profile`} className="flex items-center gap-1.5">
-                <AvatarWithBadge size="extra-small" initials={initals} isVerified achievementsBadgeSize="extra-small" />
-                <div className="text-sm font-bold">{username}</div>
-            </Link>
-            <CopyToClipboard textToCopy={`${BASE_URL}/${username}`} fill="black" iconSize={'4'} />
         </div>
     )
 }

@@ -5,6 +5,7 @@ import { ArrowDownLeftIcon } from './arrow-down-left'
 import { ArrowUpIcon } from './arrow-up'
 import { ArrowUpRightIcon } from './arrow-up-right'
 import { BankIcon } from './bank'
+import { CancelIcon } from './cancel'
 import { CheckIcon } from './check'
 import { ChevronUpIcon } from './chevron-up'
 import { CopyIcon } from './copy'
@@ -32,6 +33,8 @@ export type IconName =
     | 'bank'
     | 'check'
     | 'chevron-up'
+    | 'copy'
+    | 'cancel'
     | 'eye'
     | 'eye-slash'
     | 'exchange'
@@ -47,7 +50,6 @@ export type IconName =
     | 'smile'
     | 'user'
     | 'share'
-    | 'copy'
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
@@ -79,6 +81,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     user: UserIcon,
     share: ShareIcon,
     copy: CopyIcon,
+    cancel: CancelIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
