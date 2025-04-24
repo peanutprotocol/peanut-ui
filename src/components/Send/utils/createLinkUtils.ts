@@ -2,6 +2,7 @@ import { LoadingStates } from '@/constants/loadingStates.consts'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { getLinkFromReceipt, saveCreatedLinkToLocalStorage, updateUserPreferences } from '@/utils'
+import { captureException } from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { Dispatch } from 'redux'
 import type { TransactionReceipt } from 'viem'
@@ -173,17 +174,27 @@ export const createAndProcessLink = async ({
         // step 4: store link in redux and confirm the claim link
         dispatch(sendFlowActions.setLink(link))
         console.log(`Submitting claim link confirm at ${new Date().getTime() - now}ms`)
-        await submitClaimLinkConfirm({
-            chainId: selectedChainID,
-            link,
-            password: password ?? '',
-            txHash: hash,
-            senderAddress: address ?? '',
-            amountUsd: parseFloat(usdValue ?? '0'),
-            transaction:
-                transactionType === 'not-gasless' ? preparedDepositTxs && preparedDepositTxs.unsignedTxs[0] : undefined,
-        })
-        console.log(`Submitting claim link confirm response at ${new Date().getTime() - now}ms`)
+
+        try {
+            await submitClaimLinkConfirm({
+                chainId: selectedChainID,
+                link,
+                password: password ?? '',
+                txHash: hash,
+                senderAddress: address ?? '',
+                amountUsd: parseFloat(usdValue ?? '0'),
+                transaction: transactionType === 'not-gasless' ? preparedDepositTxs?.unsignedTxs[0] : undefined,
+            })
+            console.log(`Submitting claim link confirm response at ${new Date().getTime() - now}ms`)
+        } catch (error: any) {
+            captureException('Failed to submit claim link:', error)
+            console.error('Failed to submit claim link:', error)
+            // if the error is a response from the server, throw an error with the status and status text
+            if (error.status) {
+                throw new Error(`Failed to submit claim link: ${error.status} - ${error.statusText || error.message}`)
+            }
+            throw error
+        }
 
         if (selectedChainID && selectedTokenAddress && selectedTokenDecimals) {
             updateUserPreferences({

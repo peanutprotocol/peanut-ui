@@ -120,6 +120,7 @@ const LinkSendConfirmView = () => {
                 signTypedData: async ({ gaslessMessage }) => {
                     return await signTypedData({ gaslessMessage })
                 },
+                // todo: with zeroDev we dont need makeDepositGasless anymore, refactor this in future -- https://github.com/peanutprotocol/peanut-ui/pull/796/files#r2056607581
                 makeDepositGasless: async ({ signature, payload }) => {
                     return await makeDepositGasless({ signature, payload })
                 },
@@ -134,25 +135,7 @@ const LinkSendConfirmView = () => {
                 submitClaimLinkInit: async ({ password, attachmentOptions, senderAddress }) => {
                     return await submitClaimLinkInit({ password, attachmentOptions, senderAddress })
                 },
-                submitClaimLinkConfirm: async ({
-                    chainId,
-                    link,
-                    password,
-                    txHash,
-                    senderAddress,
-                    amountUsd,
-                    transaction,
-                }) => {
-                    await submitClaimLinkConfirm({
-                        chainId,
-                        link,
-                        password,
-                        txHash,
-                        senderAddress,
-                        amountUsd,
-                        transaction,
-                    })
-                },
+                submitClaimLinkConfirm,
                 walletType: walletType as 'blockscout' | undefined,
                 refetchBalances: (address) => refetchBalances(address),
                 dispatch,

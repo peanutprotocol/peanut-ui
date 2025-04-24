@@ -1,6 +1,6 @@
 'use client'
 
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, SQUID_API_URL, SQUID_INTEGRATOR_ID } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
@@ -19,12 +19,13 @@ const SendFlowManager = () => {
     const { resetTokenContextProvider, setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
 
     const fetchAndSetCrossChainDetails = async () => {
-        const response = await fetchWithSentry('https://apiplus.squidrouter.com/v2/chains', {
+        const response = await fetchWithSentry(`${SQUID_API_URL}/chains`, {
             headers: {
-                'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C',
+                'x-integrator-id': SQUID_INTEGRATOR_ID,
             },
         })
         if (!response.ok) {
+            console.log('Squid: Network response was not ok:', response)
             throw new Error('Squid: Network response was not ok')
         }
         const data = await response.json()

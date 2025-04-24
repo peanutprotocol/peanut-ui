@@ -360,7 +360,7 @@ export const InitialClaimLinkView = ({
                         : claimLinkData.tokenAddress.toLowerCase()
 
                 const route = await getSquidRouteRaw({
-                    squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+                    squidRouterUrl: `${consts.SQUID_API_URL}/route`,
                     fromChain: claimLinkData.chainId.toString(),
                     fromToken: fromToken,
                     fromAmount: tokenAmount.toString(),
