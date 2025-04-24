@@ -14,7 +14,7 @@ import { useAuth } from '@/context/authContext'
 import { usePush } from '@/context/pushProvider'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
-import { resolveFromEnsName } from '@/utils'
+import { resolveEns } from '@/app/actions/ens'
 import { hitUserMetric } from '@/utils/metrics.utils'
 import * as Sentry from '@sentry/nextjs'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
@@ -233,7 +233,7 @@ export default function DirectSendQr({ className = '' }: { className?: string })
                 break
             case EQrType.ENS_NAME:
                 {
-                    const resolvedAddress = await resolveFromEnsName(data)
+                    const resolvedAddress = await resolveEns(data)
                     if (!!resolvedAddress) {
                         toConfirmUrl = `/${data}@arbitrum/usdc`
                     }

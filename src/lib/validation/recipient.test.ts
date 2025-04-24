@@ -1,8 +1,8 @@
 import { getRecipientType, validateAndResolveRecipient, verifyPeanutUsername } from '@/lib/validation/recipient'
 
 // Mock the external dependencies
-jest.mock('@/utils', () => ({
-    resolveFromEnsName: (name: string) => {
+jest.mock('@/app/actions/ens', () => ({
+    resolveEns: (name: string) => {
         if (name === 'vitalik.eth') {
             return Promise.resolve('0x1234567890123456789012345678901234567890')
         }
@@ -11,6 +11,9 @@ jest.mock('@/utils', () => ({
         }
         return Promise.resolve(null)
     },
+}))
+
+jest.mock('@/utils', () => ({
     fetchWithSentry: jest.fn(),
 }))
 
