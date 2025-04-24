@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
 import * as consts from '@/constants'
-import { cookies } from 'next/headers'
 import { fetchWithSentry } from '@/utils'
+import { cookies } from 'next/headers'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
     const { email, hash } = await request.json()
@@ -34,7 +34,8 @@ export async function POST(request: NextRequest) {
 
         const token = data.token
 
-        cookies().set('jwt-token', token, {
+        const cookieStore = await cookies()
+        cookieStore.set('jwt-token', token, {
             httpOnly: true,
             path: '/',
             sameSite: 'strict',

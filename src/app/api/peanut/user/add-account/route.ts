@@ -1,8 +1,8 @@
 import * as consts from '@/constants'
+import { fetchWithSentry } from '@/utils'
 import { cookies } from 'next/headers'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import { fetchWithSentry } from '@/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
         const apiKey = process.env.PEANUT_API_KEY!
 
-        const cookieStore = cookies()
+        const cookieStore = await cookies()
         const token = cookieStore.get('jwt-token')
 
         if (!apiKey || !accountType || !accountIdentifier || !userId || !token) {

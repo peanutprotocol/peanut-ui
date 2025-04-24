@@ -1,11 +1,12 @@
 import { PEANUT_LOGO } from '@/assets'
-import { NavIcons, NavIconsName } from '@/components/0_Bruddle'
+import { NavIconsName } from '@/components/0_Bruddle'
+import DirectSendQr from '@/components/Global/DirectSendQR'
+import Icon from '@/components/Global/Icon'
+import { Icon as NavIcon } from '@/components/Global/Icons/Icon'
 import classNames from 'classnames'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import Icon from '@/components/Global/Icon'
-import DirectSendQr from '@/components/Global/DirectSendQR'
 
 type NavPathProps = {
     name: string
@@ -76,8 +77,8 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => (
                 { 'text-primary-1': pathName === '/home' }
             )}
         >
-            <NavIcons name="home" size={24} className="h-7 w-7" />
-            <span className="mx-auto mt-1 block pl-1 text-center text-xs font-medium">Home</span>
+            <NavIcon name="home" size={20} />
+            <span className="mx-auto mt-1 block text-center text-xs font-medium">Home</span>
         </Link>
 
         {/* QR Button - Main Action */}
@@ -92,7 +93,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => (
                 { 'text-primary-1': pathName === '/support' }
             )}
         >
-            <NavIcons name="support" size={24} className="h-7 w-7" />
+            <NavIcon name="peanut-support" size={20} />
             <span className="mx-auto mt-1 block pl-1 text-center text-xs font-medium">Support</span>
         </Link>
     </div>
