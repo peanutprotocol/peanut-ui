@@ -1,13 +1,12 @@
+import { Button } from '@/components/0_Bruddle'
+import Divider from '@/components/0_Bruddle/Divider'
+import BottomDrawer from '@/components/Global/BottomDrawer'
 import { Icon } from '@/components/Global/Icons/Icon'
+import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
+import ShareButton from '@/components/Global/ShareButton'
 import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Button } from '../0_Bruddle'
-import Divider from '../0_Bruddle/Divider'
-
-import BottomDrawer from '../Global/BottomDrawer'
-import QRCodeWrapper from '../Global/QRCodeWrapper'
-import ShareButton from '../Global/ShareButton'
-import AvatarWithBadge from './AvatarWithBadge'
+import AvatarWithBadge from '../AvatarWithBadge'
 
 interface ProfileHeaderProps {
     name: string

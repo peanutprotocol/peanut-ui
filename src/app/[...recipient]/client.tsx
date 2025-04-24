@@ -1,5 +1,6 @@
 'use client'
 
+import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import PaymentHistory from '@/components/Payment/History'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
@@ -7,6 +8,7 @@ import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Paym
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import PaymentStatusView from '@/components/Payment/Views/Payment.status.view'
 import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
+import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { useAuth } from '@/context/authContext'
 import { EParseUrlError, parsePaymentURL, ParseUrlError } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
@@ -23,7 +25,7 @@ interface Props {
     recipient: string[]
 }
 
-export default function PaymentClient({ recipient }: Props) {
+export default function PaymentPage({ recipient }: Props) {
     const dispatch = useAppDispatch()
     const { currentView, requestDetails, parsedPaymentData, chargeDetails } = usePaymentStore()
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
@@ -32,6 +34,7 @@ export default function PaymentClient({ recipient }: Props) {
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
     const requestId = searchParams.get('id')
+    const [showPaymentView, setShowPaymentView] = useState(false)
 
     useEffect(() => {
         let isMounted = true
@@ -151,6 +154,11 @@ export default function PaymentClient({ recipient }: Props) {
         }
     }, [requestId])
 
+    const handleSendClick = () => {
+        setShowPaymentView(true)
+        dispatch(paymentActions.setView('INITIAL'))
+    }
+
     if (error) {
         return (
             <div className="mx-auto h-full w-full space-y-8 self-center md:w-6/12">
@@ -163,6 +171,34 @@ export default function PaymentClient({ recipient }: Props) {
     const isLoading = !isUrlParsed || (chargeId && !chargeDetails) || (requestId && !requestDetails)
     if (isLoading) {
         return <PeanutLoading />
+    }
+
+    // check if its is a profile view
+    if (
+        isUrlParsed &&
+        parsedPaymentData?.recipient?.recipientType === 'USERNAME' &&
+        !parsedPaymentData.amount &&
+        !chargeId &&
+        !requestId &&
+        !showPaymentView
+    ) {
+        const username = parsedPaymentData.recipient.identifier
+
+        return (
+            <PublicProfile
+                username={username}
+                fullName={username} // todo: replace with actual full name, getByUsername only returns username
+                initials={username.substring(0, 2).toUpperCase()}
+                isVerified={false}
+                isLoggedIn={!!user}
+                // todo: to be implemented in history project
+                transactions={{
+                    sent: 0,
+                    received: 0,
+                }}
+                onSendClick={handleSendClick}
+            />
+        )
     }
 
     if (parsedPaymentData?.token?.symbol === 'PNT') {
@@ -180,7 +216,16 @@ export default function PaymentClient({ recipient }: Props) {
     return (
         <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
             <div>
-                {currentView === 'INITIAL' && <InitialPaymentView {...(parsedPaymentData as ParsedURL)} />}
+                {currentView === 'INITIAL' && (
+                    <div className="space-y-4">
+                        <NavHeader
+                            onPrev={() => {
+                                setShowPaymentView(false)
+                            }}
+                        />
+                        <InitialPaymentView {...(parsedPaymentData as ParsedURL)} />
+                    </div>
+                )}
                 {currentView === 'CONFIRM' && <ConfirmPaymentView />}
                 {currentView === 'STATUS' && <PaymentStatusView />}
             </div>
