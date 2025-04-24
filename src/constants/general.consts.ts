@@ -6,6 +6,9 @@ export const peanutWalletIsInPreview = true
 
 export const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
 
+export const SQUID_INTEGRATOR_ID = '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C'
+export const SQUID_API_URL = 'https://apiplus.squidrouter.com/v2'
+
 export const infuraRpcUrls: Record<number, string> = {
     [arbitrum.id]: `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_KEY}`,

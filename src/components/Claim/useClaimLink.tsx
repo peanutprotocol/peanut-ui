@@ -1,4 +1,4 @@
-'useClient'
+'use client'
 
 import { fetchWithSentry } from '@/utils'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
