@@ -1,5 +1,5 @@
 import { generateMetadata } from '@/app/metadata'
-import SendFlowManager from '@/components/Send/SendFlowManager'
+import { SendRouterView } from '@/components/Send/views/SendRouter.view'
 
 export const metadata = generateMetadata({
     title: 'Send Crypto | Peanut',
@@ -10,5 +10,5 @@ export const metadata = generateMetadata({
 })
 
 export default function SendPage() {
-    return <SendFlowManager />
+    return <SendRouterView />
 }
