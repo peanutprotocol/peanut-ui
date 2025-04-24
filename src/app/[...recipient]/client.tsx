@@ -191,6 +191,7 @@ export default function PaymentPage({ recipient }: Props) {
                 initials={username.substring(0, 2).toUpperCase()}
                 isVerified={false}
                 isLoggedIn={!!user}
+                // todo: to be implemented in history project
                 transactions={{
                     sent: 0,
                     received: 0,
