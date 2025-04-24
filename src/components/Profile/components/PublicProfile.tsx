@@ -91,7 +91,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                         <span className="font-bold">Send</span>
                     </Button>
 
-                    {/* todo: fix href */}
+                    {/* todo: request lon */}
                     <Link href={`/request/create?from=${username}`} className="w-1/2">
                         <Button
                             disabled
@@ -135,8 +135,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-bold">Transactions</h2>
-                                {/* todo: fix href */}
-                                <Link href={`/transactions?user=${username}`}>
+                                <Link href={`/history`}>
                                     <div className="flex items-center">
                                         <Icon name="chevron-up" size={16} fill="black" className="rotate-90" />
                                     </div>
