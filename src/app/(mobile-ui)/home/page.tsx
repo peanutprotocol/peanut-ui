@@ -50,7 +50,7 @@ export default function Home() {
         const fetchRewardsBalance = async () => {
             try {
                 const balance = await getRewardWalletBalance()
-                setRewardsBalance(balance)
+                setRewardsBalance(Math.floor(Number(balance || 0)).toString())
             } catch (error) {
                 console.error('Failed to fetch rewards balance:', error)
             }
