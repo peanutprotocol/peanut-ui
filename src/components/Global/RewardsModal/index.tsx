@@ -43,7 +43,7 @@ export const PartnerBarLocation = () => {
             target="_blank"
             className="font-semibold underline"
         >
-            partner bar.
+            partner bars.
         </Link>
     )
 }
