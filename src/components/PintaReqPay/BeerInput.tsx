@@ -15,18 +15,21 @@ const BeerInput: React.FC<BeerInputProps> = ({ min = 1, max = 99, disabled = fal
     const dispatch = useAppDispatch()
 
     const increment = () => {
-        if (beerQuantity < max) dispatch(paymentActions.setBeerQuantity(beerQuantity + 1))
+        if (beerQuantity < max) dispatch(paymentActions.setBeerQuantity(Math.floor(beerQuantity + 1)))
     }
 
     const decrement = () => {
-        if (beerQuantity > min) dispatch(paymentActions.setBeerQuantity(beerQuantity - 1))
+        if (beerQuantity > min) dispatch(paymentActions.setBeerQuantity(Math.floor(beerQuantity - 1)))
     }
+
+    // ensure beerQuantity is always a whole number
+    const displayQuantity = Math.floor(beerQuantity)
 
     return (
         <div className="relative flex w-full items-center justify-center border border-black p-3">
-            <div className={twMerge('mx-auto flex items-center gap-2', beerQuantity === 0 && 'text-gray-1')}>
-                <span className="text-h1">{beerQuantity}</span>
-                <span className="text-h5 font-bold">{beerQuantity > 1 ? 'Beers' : 'Beer'}</span>
+            <div className={twMerge('mx-auto flex items-center gap-2', displayQuantity === 0 && 'text-gray-1')}>
+                <span className="text-h1">{displayQuantity}</span>
+                <span className="text-h5 font-bold">{displayQuantity > 1 ? 'Beers' : 'Beer'}</span>
             </div>
             {!disabled && (
                 <div className="absolute right-4 flex flex-col ">

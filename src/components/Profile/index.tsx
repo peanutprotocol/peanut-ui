@@ -41,9 +41,9 @@ export const Profile = () => {
                     <ProfileMenuItem
                         icon="smile"
                         label="Invite friends to Peanut"
-                        href="/invite"
+                        href="https://docs.peanut.to/how-to-use-peanut-links/referrals"
                         position="single"
-                        comingSoon
+                        isExternalLink
                     />
                     {/* Menu Items - First Group */}
                     <div>
