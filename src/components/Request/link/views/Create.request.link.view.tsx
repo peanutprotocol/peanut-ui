@@ -4,6 +4,8 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { getTokenDetails } from '@/components/Create/Create.utils'
 import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
 import Loading from '@/components/Global/Loading'
+import NavHeader from '@/components/Global/NavHeader'
+import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
@@ -16,10 +18,12 @@ import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { fetchTokenSymbol, fetchWithSentry, getRequestLink, isNativeCurrency } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-export const RequestLinkInitialView = () => {
+export const CreateRequestLinkView = () => {
     const toast = useToast()
+    const router = useRouter()
     const { address, selectedWallet, isConnected } = useWallet()
     const { user } = useAuth()
     const {
@@ -307,12 +311,13 @@ export const RequestLinkInitialView = () => {
         (hasAttachment && _tokenValue !== debouncedTokenValue)
 
     return (
-        <div className="space-y-4">
-            <div className="flex w-full flex-col items-center justify-center gap-3">
-                <div className="space-y-3">
-                    <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
-                    <div className="text-center text-gray-1">Show this QR to your friends!</div>
-                </div>
+        <div className="w-full space-y-8">
+            <NavHeader onPrev={() => router.push('/request')} title="Request" />
+            <div className="w-full space-y-4">
+                <PeanutActionCard type="request" />
+
+                <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
+
                 <TokenAmountInput
                     className="w-full"
                     setTokenValue={(value) => {
@@ -346,12 +351,12 @@ export const RequestLinkInitialView = () => {
                 ) : (
                     <ShareButton url={qrCodeLink}>Share Link</ShareButton>
                 )}
+                {errorState.showError && (
+                    <div className="text-start">
+                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                    </div>
+                )}
             </div>
-            {errorState.showError && (
-                <div className="text-start">
-                    <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                </div>
-            )}
         </div>
     )
 }

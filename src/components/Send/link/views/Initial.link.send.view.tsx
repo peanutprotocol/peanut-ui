@@ -2,6 +2,7 @@
 
 import { isGaslessDepositPossible } from '@/components/Create/Create.utils'
 import { useCreateLink } from '@/components/Create/useCreateLink'
+import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { LoadingStates } from '@/constants/loadingStates.consts'
@@ -11,13 +12,13 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
 import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
+import { walletActions } from '@/redux/slices/wallet-slice'
 import { balanceByToken, ErrorHandler, floorFixed, isNativeCurrency, printableUsdc } from '@/utils'
 import { captureException } from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { Button, Card } from '../../../0_Bruddle'
+import { Button } from '../../../0_Bruddle'
 import FileUploadInput from '../../../Global/FileUploadInput'
-import FlowHeader from '../../../Global/FlowHeader'
 import Icon from '../../../Global/Icon'
 import MoreInfo from '../../../Global/MoreInfo'
 import TokenAmountInput from '../../../Global/TokenAmountInput'
@@ -167,8 +168,26 @@ const LinkSendInitialView = () => {
     const [currentInputValue, setCurrentInputValue] = useState<string | undefined>(
         (inputDenomination === 'TOKEN' ? tokenValue : usdValue) ?? ''
     )
-    const { selectedWallet, signInModal, isConnected, address, isExternalWallet, isPeanutWallet, refetchBalances } =
-        useWallet()
+    const {
+        selectedWallet,
+        signInModal,
+        isConnected,
+        address,
+        isExternalWallet,
+        isPeanutWallet,
+        refetchBalances,
+        wallets,
+    } = useWallet()
+
+    const peanutWallet = useMemo(
+        () => wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.PEANUT),
+        [wallets]
+    )
+
+    const peanutWalletBalance = useMemo(() => {
+        if (!peanutWallet?.balance) return undefined
+        return printableUsdc(peanutWallet.balance)
+    }, [peanutWallet?.balance])
 
     const maxValue = useMemo(() => {
         if (!selectedWallet?.balances) {
@@ -376,90 +395,77 @@ const LinkSendInitialView = () => {
         }
     }, [isConnected, handleOnNext])
 
+    useEffect(() => {
+        if (!!wallets.length && peanutWallet) dispatch(walletActions.setSelectedWalletId(peanutWallet.id))
+    }, [wallets])
+
     return (
-        <div className="space-y-4">
-            <FlowHeader disableWalletHeader={isLoading} />
-            <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Header>
-                    <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
-                        Send to Anyone
-                    </Card.Title>
-                    <Card.Description>
-                        Send funds without needing the recipient's wallet address. They'll get a link to claim in their
-                        preferred token and blockchain.
-                    </Card.Description>
-                </Card.Header>
-                <Card.Content className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-4">
-                        <TokenAmountInput
-                            className="w-full"
-                            tokenValue={currentInputValue}
-                            maxValue={maxValue}
-                            setTokenValue={setCurrentInputValue}
-                            onSubmit={handleOnConfirm}
-                        />
-                        {isExternalWallet && (
-                            <>
-                                <TokenSelector classNameButton="w-full" />
-                                {selectedWallet!.balances!.length === 0 && (
-                                    <div
-                                        onClick={() => {
-                                            open()
-                                        }}
-                                        className="cursor-pointer text-h9 underline"
-                                    >
-                                        ( Buy Tokens )
-                                    </div>
-                                )}
-                            </>
-                        )}
+        <div className="w-full space-y-4">
+            {/* <FlowHeader disableWalletHeader={isLoading} /> */}
 
-                        <FileUploadInput
-                            attachmentOptions={attachmentOptions}
-                            setAttachmentOptions={sendFlowActions.setAttachmentOptions}
-                        />
+            <PeanutActionCard type="send" />
 
-                        {isPeanutWallet && <PeanutSponsored />}
-                    </div>
-                    <div className="flex flex-col gap-4">
-                        <Button
-                            onClick={handleOnConfirm}
-                            loading={isLoading}
-                            disabled={isLoading || !currentInputValue}
+            <TokenAmountInput
+                className="w-full"
+                tokenValue={currentInputValue}
+                maxValue={maxValue}
+                setTokenValue={setCurrentInputValue}
+                onSubmit={handleOnConfirm}
+                walletBalance={peanutWalletBalance}
+            />
+            {isExternalWallet && (
+                <>
+                    <TokenSelector classNameButton="w-full" />
+                    {selectedWallet!.balances!.length === 0 && (
+                        <div
+                            onClick={() => {
+                                open()
+                            }}
+                            className="cursor-pointer text-h9 underline"
                         >
-                            {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
-                        </Button>
-                        {errorState?.showError && (
-                            <div className="text-start">
-                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                            </div>
-                        )}
-                    </div>
-                    {!crossChainDetails?.find(
-                        (chain: any) => chain.chainId.toString() === selectedChainID.toString()
-                    ) && (
-                        <span className=" text-start text-h8 font-normal">
-                            <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain
-                            claiming.
-                        </span>
+                            ( Buy Tokens )
+                        </div>
                     )}
+                </>
+            )}
 
-                    <span className="flex flex-row items-center justify-start gap-1 text-h8">
-                        Learn about Peanut cashout
-                        <MoreInfo
-                            text={
-                                <>
-                                    You can use Peanut to cash out your funds directly to your bank account! (US and EU
-                                    only)<br></br>{' '}
-                                    <a href="/cashout" className="hover:text-primary underline">
-                                        Learn more →
-                                    </a>
-                                </>
-                            }
-                        />
-                    </span>
-                </Card.Content>
-            </Card>
+            <FileUploadInput
+                attachmentOptions={attachmentOptions}
+                setAttachmentOptions={sendFlowActions.setAttachmentOptions}
+            />
+
+            {isPeanutWallet && <PeanutSponsored />}
+
+            <div className="flex flex-col gap-4">
+                <Button onClick={handleOnConfirm} loading={isLoading} disabled={isLoading || !currentInputValue}>
+                    {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Create link'}
+                </Button>
+                {errorState?.showError && (
+                    <div className="text-start">
+                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                    </div>
+                )}
+            </div>
+            {!crossChainDetails?.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
+                <span className=" text-start text-h8 font-normal">
+                    <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain claiming.
+                </span>
+            )}
+
+            <span className="flex flex-row items-center justify-start gap-1 text-h8">
+                Learn about Peanut cashout
+                <MoreInfo
+                    text={
+                        <>
+                            You can use Peanut to cash out your funds directly to your bank account! (US and EU only)
+                            <br></br>{' '}
+                            <a href="/cashout" className="hover:text-primary underline">
+                                Learn more →
+                            </a>
+                        </>
+                    }
+                />
+            </span>
         </div>
     )
 }

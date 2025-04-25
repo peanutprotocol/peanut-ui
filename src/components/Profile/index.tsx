@@ -38,7 +38,13 @@ export const Profile = () => {
                 <ProfileHeader name={fullName} username={username} initials={initials} isVerified={true} />
                 <div className="space-y-4">
                     {/* Menu Item - Invite Entry */}
-                    <ProfileMenuItem icon="smile" label="Invite friends to Peanut" href="/invite" position="single" />
+                    <ProfileMenuItem
+                        icon="smile"
+                        label="Invite friends to Peanut"
+                        href="/invite"
+                        position="single"
+                        comingSoon
+                    />
                     {/* Menu Items - First Group */}
                     <div>
                         <ProfileMenuItem
@@ -46,24 +52,33 @@ export const Profile = () => {
                             label="Personal details"
                             href="/profile/details"
                             position="first"
+                            comingSoon
                         />
                         <ProfileMenuItem
                             icon="bank"
                             label="Bank accounts"
                             href="/profile/bank-accounts"
                             position="middle"
+                            comingSoon
                         />
-                        <ProfileMenuItem icon="achievements" label="Achievements" position="last" comingSoon={true} />
+                        <ProfileMenuItem icon="achievements" label="Achievements" position="last" comingSoon />
                     </div>
                     {/* Menu Items - Second Group */}
                     <div>
-                        <ProfileMenuItem icon="fees" label="Fees" href="/profile/fees" position="first" />
-                        <ProfileMenuItem icon="currency" label="Currency" position="middle" comingSoon={true} />
+                        <ProfileMenuItem
+                            icon="fees"
+                            label="Fees"
+                            href="https://docs.peanut.to/fees"
+                            position="first"
+                            isExternalLink
+                        />
+                        <ProfileMenuItem icon="currency" label="Currency" position="middle" comingSoon />
                         <ProfileMenuItem
                             icon="exchange"
                             label="Exchange rates"
                             href="/profile/exchange-rates"
                             position="last"
+                            comingSoon
                         />
                     </div>
                     {/* Logout Button */}

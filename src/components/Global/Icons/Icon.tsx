@@ -16,6 +16,7 @@ import { EyeIcon } from './eye'
 import { EyeSlashIcon } from './eye-slash'
 import { FeesIcon } from './fees'
 import { HomeIcon } from './home'
+import { LinkIcon } from './link'
 import { LogoutIcon } from './logout'
 import { PaperClipIcon } from './paper-clip'
 import { PeanutSupportIcon } from './peanut-support'
@@ -50,6 +51,7 @@ export type IconName =
     | 'wallet'
     | 'currency'
     | 'achievements'
+    | 'link'
     | 'logout'
     | 'paperclip'
     | 'smile'
@@ -83,6 +85,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     wallet: WalletIcon,
     currency: CurrencyIcon,
     achievements: AchievementsIcon,
+    link: LinkIcon,
     logout: LogoutIcon,
     paperclip: PaperClipIcon,
     smile: SmileIcon,
