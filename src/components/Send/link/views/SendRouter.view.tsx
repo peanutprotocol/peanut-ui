@@ -7,8 +7,8 @@ import { SearchResults } from '@/components/SearchUsers/SearchResults'
 import { useUserSearch } from '@/hooks/useUserSearch'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useRef, useState } from 'react'
-import SendFlowManager from '../../SendFlowManager'
 import DirectSendInitialView from '../../direct-send/views/Initial.direct.send.view'
+import LinkSendFlowManager from '../LinkSendFlowManager'
 
 export const SendRouterView = () => {
     const router = useRouter()
@@ -37,7 +37,7 @@ export const SendRouterView = () => {
     }
 
     if (isSendingByLink) {
-        return <SendFlowManager onPrev={() => setIsSendingByLink(false)} />
+        return <LinkSendFlowManager onPrev={() => setIsSendingByLink(false)} />
     }
 
     // if type is direct and we have a username, show DirectSend
