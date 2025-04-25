@@ -3,13 +3,13 @@ import { Button } from '@/components/0_Bruddle'
 import { useAuth } from '@/context/authContext'
 import { rewardsApi } from '@/services/rewards'
 import { RewardLink } from '@/services/services.types'
+import { hitUserMetric } from '@/utils/metrics.utils'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Icon from '../Icon'
 import Modal from '../Modal'
-import { useRouter } from 'next/navigation'
-import { hitUserMetric } from '@/utils/metrics.utils'
 
 enum REWARD_ASSET_TYPE {
     'PNT' = 'aleph_pinta_mar_2025_welcome_pnt',
@@ -35,13 +35,15 @@ export const RewardDetails = () => {
 export const PartnerBarLocation = () => {
     return (
         <Link
-            // casa temple location
-            href={'https://maps.app.goo.gl/DmHaJzjKuCQLSRD27'}
+            // bars that accept pinta in Argentina
+            href={
+                'https://www.google.com/maps/d/u/0/viewer?mid=1knsvDBZKn-GIx_HADBmjAoVX8tYJTe8&ll=-32.83638330260323,-63.17937526475491&z=5'
+            }
             rel="noreferrer noopenner"
             target="_blank"
             className="font-semibold underline"
         >
-            partner bar.
+            partner bars.
         </Link>
     )
 }
