@@ -15,7 +15,7 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken, IUserBalance } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
-import { fetchTokenSymbol, fetchWithSentry, getRequestLink, isNativeCurrency } from '@/utils'
+import { fetchTokenSymbol, fetchWithSentry, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
@@ -24,7 +24,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 export const CreateRequestLinkView = () => {
     const toast = useToast()
     const router = useRouter()
-    const { address, selectedWallet, isConnected } = useWallet()
+    const { address, selectedWallet, isConnected, peanutWalletDetails } = useWallet()
     const { user } = useAuth()
     const {
         selectedTokenPrice,
@@ -35,7 +35,12 @@ export const CreateRequestLinkView = () => {
         setSelectedTokenAddress,
         selectedTokenData,
     } = useContext(context.tokenSelectorContext)
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState } = useContext(context.loadingStateContext)
+
+    const peanutWalletBalance = useMemo(() => {
+        if (!peanutWalletDetails?.balance) return undefined
+        return printableUsdc(peanutWalletDetails.balance)
+    }, [peanutWalletDetails?.balance])
 
     // component-specific states
     const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
@@ -339,6 +344,7 @@ export const CreateRequestLinkView = () => {
                             })
                         }
                     }}
+                    walletBalance={peanutWalletBalance}
                 />
                 <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
 

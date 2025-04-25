@@ -11,7 +11,6 @@ import { ActionType, estimatePoints } from '@/components/utils/utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { WalletProviderType } from '@/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
@@ -42,17 +41,17 @@ const DirectSendInitialView = ({ username }: DirectSendInitialViewProps) => {
     const [showSuccess, setShowSuccess] = useState(false)
     const [successTxHash, setSuccessTxHash] = useState('')
 
-    const { selectedWallet, signInModal, isConnected, wallets } = useWallet()
+    const { selectedWallet, signInModal, isConnected, peanutWalletDetails } = useWallet()
+
+    const peanutWalletBalance = useMemo(() => {
+        if (!peanutWalletDetails?.balance) return undefined
+        return printableUsdc(peanutWalletDetails.balance)
+    }, [peanutWalletDetails?.balance])
 
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const { selectedChainID, selectedTokenAddress, selectedTokenDecimals } = useContext(tokenSelectorContext)
 
     const { prepareDirectSendTx, sendTransactions, estimateGasFee } = useCreateLink()
-
-    const peanutWallet = useMemo(
-        () => wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.PEANUT),
-        [wallets]
-    )
 
     const maxValue = useMemo(() => {
         if (!selectedWallet?.balances) {
@@ -98,7 +97,7 @@ const DirectSendInitialView = ({ username }: DirectSendInitialViewProps) => {
             // todo: fix point estimation for direct send, probably requires change in the backend
             const estimatedPoints = await estimatePoints({
                 chainId: selectedChainID ?? 0,
-                address: peanutWallet?.address ?? '',
+                address: peanutWalletDetails?.address ?? '',
                 amountUSD: parseFloat(currentInputValue),
                 actionType: 'DIRECT_SEND' as ActionType,
             })
@@ -112,7 +111,7 @@ const DirectSendInitialView = ({ username }: DirectSendInitialViewProps) => {
             if (txHash) {
                 // save to local storage
                 saveDirectSendToLocalStorage({
-                    address: peanutWallet?.address ?? '',
+                    address: peanutWalletDetails?.address ?? '',
                     data: {
                         chainId: selectedChainID,
                         tokenAddress: selectedTokenAddress,
@@ -159,8 +158,8 @@ const DirectSendInitialView = ({ username }: DirectSendInitialViewProps) => {
     }, [username])
 
     useEffect(() => {
-        if (!!wallets.length && peanutWallet) dispatch(walletActions.setSelectedWalletId(peanutWallet.id))
-    }, [wallets])
+        if (!!peanutWalletDetails) dispatch(walletActions.setSelectedWalletId(peanutWalletDetails.id))
+    }, [peanutWalletDetails])
 
     return (
         <div className="space-y-4">
@@ -184,7 +183,7 @@ const DirectSendInitialView = ({ username }: DirectSendInitialViewProps) => {
                             maxValue={maxValue}
                             setTokenValue={handleTokenValueChange}
                             onSubmit={handleOnConfirm}
-                            walletBalance={peanutWallet?.balance ? printableUsdc(peanutWallet.balance) : ''}
+                            walletBalance={peanutWalletBalance}
                         />
 
                         {/* note: this only works on client side rn, we need to fix this, potentially in history project */}

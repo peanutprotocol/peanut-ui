@@ -176,18 +176,13 @@ const LinkSendInitialView = () => {
         isExternalWallet,
         isPeanutWallet,
         refetchBalances,
-        wallets,
+        peanutWalletDetails,
     } = useWallet()
 
-    const peanutWallet = useMemo(
-        () => wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.PEANUT),
-        [wallets]
-    )
-
     const peanutWalletBalance = useMemo(() => {
-        if (!peanutWallet?.balance) return undefined
-        return printableUsdc(peanutWallet.balance)
-    }, [peanutWallet?.balance])
+        if (!peanutWalletDetails?.balance) return undefined
+        return printableUsdc(peanutWalletDetails.balance)
+    }, [peanutWalletDetails?.balance])
 
     const maxValue = useMemo(() => {
         if (!selectedWallet?.balances) {
@@ -396,8 +391,8 @@ const LinkSendInitialView = () => {
     }, [isConnected, handleOnNext])
 
     useEffect(() => {
-        if (!!wallets.length && peanutWallet) dispatch(walletActions.setSelectedWalletId(peanutWallet.id))
-    }, [wallets])
+        if (!!peanutWalletDetails) dispatch(walletActions.setSelectedWalletId(peanutWalletDetails.id))
+    }, [peanutWalletDetails])
 
     return (
         <div className="w-full space-y-4">

@@ -71,7 +71,7 @@ const TokenAmountInput = ({
     return (
         <form
             ref={formRef}
-            className={`relative cursor-text rounded-none border border-n-1 px-2 py-4 dark:border-white ${className}`}
+            className={`relative cursor-text rounded-none border border-n-1 bg-white px-2 py-4 dark:border-white ${className}`}
             action=""
             onClick={handleContainerClick}
         >

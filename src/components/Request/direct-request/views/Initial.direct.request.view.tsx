@@ -6,7 +6,6 @@ import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import UserCard from '@/components/User/UserCard'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { WalletProviderType } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { ApiUser, usersApi } from '@/services/users'
 import { printableUsdc } from '@/utils'
@@ -21,7 +20,7 @@ interface DirectRequestInitialViewProps {
 
 const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) => {
     const router = useRouter()
-    const { wallets } = useWallet()
+    const { peanutWalletDetails } = useWallet()
     const [user, setUser] = useState<ApiUser | null>(null)
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
@@ -31,14 +30,10 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const [currentInputValue, setCurrentInputValue] = useState<string>('')
     const [view, setView] = useState<'initial' | 'confirm' | 'success'>('initial')
 
-    const peanutWallet = useMemo(
-        () => wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.PEANUT),
-        [wallets]
-    )
     const peanutWalletBalance = useMemo(() => {
-        if (!peanutWallet?.balance) return undefined
-        return printableUsdc(peanutWallet.balance)
-    }, [peanutWallet?.balance])
+        if (!peanutWalletDetails?.balance) return undefined
+        return printableUsdc(peanutWalletDetails.balance)
+    }, [peanutWalletDetails?.balance])
 
     const handleTokenValueChange = (value: string | undefined) => {
         setCurrentInputValue(value || '')
