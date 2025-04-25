@@ -17,7 +17,7 @@ import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { captureException } from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { createAndProcessLink } from '../utils/createLinkUtils'
+import { createAndProcessLink } from '../../utils/createLinkUtils'
 
 const LinkSendConfirmView = () => {
     const dispatch = useAppDispatch()

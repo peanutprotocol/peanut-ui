@@ -15,14 +15,14 @@ import { balanceByToken, ErrorHandler, floorFixed, isNativeCurrency, printableUs
 import { captureException } from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { Button, Card } from '../../0_Bruddle'
-import FileUploadInput from '../../Global/FileUploadInput'
-import FlowHeader from '../../Global/FlowHeader'
-import Icon from '../../Global/Icon'
-import MoreInfo from '../../Global/MoreInfo'
-import TokenAmountInput from '../../Global/TokenAmountInput'
-import TokenSelector from '../../Global/TokenSelector/TokenSelector'
-import { createAndProcessLink } from '../utils/createLinkUtils'
+import { Button, Card } from '../../../0_Bruddle'
+import FileUploadInput from '../../../Global/FileUploadInput'
+import FlowHeader from '../../../Global/FlowHeader'
+import Icon from '../../../Global/Icon'
+import MoreInfo from '../../../Global/MoreInfo'
+import TokenAmountInput from '../../../Global/TokenAmountInput'
+import TokenSelector from '../../../Global/TokenSelector/TokenSelector'
+import { createAndProcessLink } from '../../utils/createLinkUtils'
 
 // helper function to update both token and usd values in redux
 const updateTokenAndUsdValues = (

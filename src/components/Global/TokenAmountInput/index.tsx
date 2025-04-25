@@ -1,9 +1,9 @@
+import { PEANUT_WALLET_TOKEN } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { formatAmountWithoutComma, estimateIfIsStableCoinFromPrice, formatTokenAmount } from '@/utils'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { estimateIfIsStableCoinFromPrice, formatAmountWithoutComma, formatTokenAmount } from '@/utils'
 import { useContext, useEffect, useMemo, useRef } from 'react'
 import Icon from '../Icon'
-import { PEANUT_WALLET_TOKEN } from '@/constants'
-import { useWallet } from '@/hooks/wallet/useWallet'
 
 interface TokenAmountInputProps {
     className?: string
@@ -12,6 +12,7 @@ interface TokenAmountInputProps {
     onSubmit?: () => void
     maxValue?: string
     disabled?: boolean
+    walletBalance?: string
 }
 
 const TokenAmountInput = ({
@@ -21,6 +22,7 @@ const TokenAmountInput = ({
     onSubmit,
     maxValue,
     disabled,
+    walletBalance,
 }: TokenAmountInputProps) => {
     const { inputDenomination, setInputDenomination, selectedTokenData, selectedTokenAddress } =
         useContext(tokenSelectorContext)
@@ -121,6 +123,9 @@ const TokenAmountInput = ({
                     </button>
                 )}
             </div>
+            {walletBalance && (
+                <div className="mt-0.5 text-center text-xs text-grey-1">Your balance: ${walletBalance}</div>
+            )}
             {selectedTokenData?.price && !estimateIfIsStableCoinFromPrice(selectedTokenData.price) && (
                 <div className="flex w-full flex-row items-center justify-center gap-1">
                     <label className="text-base text-grey-1">

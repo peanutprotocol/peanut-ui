@@ -5,14 +5,20 @@ import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchUsers/SearchInput'
 import { SearchResults } from '@/components/SearchUsers/SearchResults'
 import { useUserSearch } from '@/hooks/useUserSearch'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useRef, useState } from 'react'
-import SendFlowManager from '../SendFlowManager'
+import SendFlowManager from '../../SendFlowManager'
+import DirectSendInitialView from '../../direct-send/views/Initial.direct.send.view'
 
 export const SendRouterView = () => {
+    const router = useRouter()
     const inputRef = useRef<HTMLInputElement>(null)
     const [isSendingByLink, setIsSendingByLink] = useState(false)
     const { searchTerm, setSearchTerm, searchResults, isSearching, error, showMinCharError, showNoResults } =
         useUserSearch()
+    const searchParams = useSearchParams()
+    const type = searchParams.get('type')
+    const toUsername = searchParams.get('to')
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value)
@@ -26,8 +32,22 @@ export const SendRouterView = () => {
         setIsSendingByLink(true)
     }
 
+    const handleUserSelect = (username: string) => {
+        router.push(`/send?type=direct&to=${username}`)
+    }
+
     if (isSendingByLink) {
         return <SendFlowManager onPrev={() => setIsSendingByLink(false)} />
+    }
+
+    // if type is direct and we have a username, show DirectSend
+    if (type === 'direct' && toUsername) {
+        return (
+            <div className=" flex h-full w-full flex-col justify-start gap-8 self-start">
+                <NavHeader onPrev={() => router.push('/send')} title="Send" />
+                <DirectSendInitialView username={toUsername} />
+            </div>
+        )
     }
 
     return (
@@ -66,7 +86,8 @@ export const SendRouterView = () => {
                             isSearching={isSearching}
                             showMinCharError={showMinCharError}
                             showNoResults={showNoResults}
-                            recentTransactions={[]} // Will be populated from history project
+                            recentTransactions={[]} // Will be populated in history project
+                            onUserSelect={handleUserSelect}
                         />
 
                         {error && <div className="mt-2 text-sm text-error">{error}</div>}

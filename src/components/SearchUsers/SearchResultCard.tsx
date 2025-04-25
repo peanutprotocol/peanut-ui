@@ -8,9 +8,10 @@ interface SearchResultCardProps {
     username: string
     fullName: string | null
     position?: CardPosition
+    onClick?: (username: string) => void
 }
 
-export const SearchResultCard = ({ username, fullName, position = 'middle' }: SearchResultCardProps) => {
+export const SearchResultCard = ({ username, fullName, position = 'middle', onClick }: SearchResultCardProps) => {
     const router = useRouter()
     const initials = useMemo(() => {
         if (fullName) {
@@ -20,7 +21,11 @@ export const SearchResultCard = ({ username, fullName, position = 'middle' }: Se
     }, [fullName, username])
 
     const handleClick = () => {
-        router.push(`/${username}`)
+        if (onClick) {
+            onClick(username)
+        } else {
+            router.push(`/${username}`)
+        }
     }
 
     return (

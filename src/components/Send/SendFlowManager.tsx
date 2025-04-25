@@ -9,9 +9,9 @@ import { fetchWithSentry } from '@/utils'
 import { useContext, useEffect } from 'react'
 import PageContainer from '../0_Bruddle/PageContainer'
 import NavHeader from '../Global/NavHeader'
-import LinkSendConfirmView from './views/Confirm.link.send.view'
-import LinkSendInitialView from './views/Initial.link.send.view'
-import LinkSendSuccessView from './views/Success.link.send.view'
+import LinkSendConfirmView from './link/views/Confirm.link.send.view'
+import LinkSendInitialView from './link/views/Initial.link.send.view'
+import LinkSendSuccessView from './link/views/Success.link.send.view'
 
 interface SendFlowManagerProps {
     onPrev?: () => void

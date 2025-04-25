@@ -13,6 +13,7 @@ interface SearchResultsProps {
     showNoResults: boolean
     className?: string
     recentTransactions?: ApiUser[]
+    onUserSelect?: (username: string) => void
 }
 
 export const SearchResults = ({
@@ -23,6 +24,7 @@ export const SearchResults = ({
     showNoResults,
     className,
     recentTransactions = [],
+    onUserSelect,
 }: SearchResultsProps) => {
     return (
         <div className={twMerge('flex h-full flex-col overflow-hidden', className)}>
@@ -48,6 +50,7 @@ export const SearchResults = ({
                                             ? 'last'
                                             : 'middle'
                                 }
+                                onClick={onUserSelect}
                             />
                         ))}
                     </div>

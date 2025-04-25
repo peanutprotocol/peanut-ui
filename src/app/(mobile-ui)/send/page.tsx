@@ -1,5 +1,5 @@
 import { generateMetadata } from '@/app/metadata'
-import { SendRouterView } from '@/components/Send/views/SendRouter.view'
+import { SendRouterView } from '@/components/Send/link/views/SendRouter.view'
 
 export const metadata = generateMetadata({
     title: 'Send Crypto | Peanut',
