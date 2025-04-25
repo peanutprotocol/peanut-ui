@@ -43,7 +43,6 @@ export const Profile = () => {
                         label="Invite friends to Peanut"
                         href="https://docs.peanut.to/how-to-use-peanut-links/referrals"
                         position="single"
-                        comingSoon
                         isExternalLink
                     />
                     {/* Menu Items - First Group */}
