@@ -1,7 +1,7 @@
 import { Button } from '@/components/0_Bruddle'
 import { useUserStore } from '@/redux/hooks'
 import { usePathname, useSearchParams } from 'next/navigation'
-import Icon from '../Icon'
+import { Icon } from '../Icons/Icon'
 import WalletHeader from '../WalletHeader'
 
 interface FlowHeaderProps {
@@ -41,8 +41,8 @@ const FlowHeader = ({
     return (
         <div className="flex w-full flex-row items-center justify-between pb-3">
             {onPrev && (
-                <Button variant="stroke" onClick={onPrev} disabled={disableBackBtn} className="h-11 w-11 p-0">
-                    <Icon name="arrow-prev" />
+                <Button variant="stroke" className="h-7 w-7 p-0" onClick={onPrev} disabled={disableBackBtn}>
+                    <Icon name="chevron-up" size={32} className="h-8 w-8 -rotate-90" />
                 </Button>
             )}
             {!hideWalletHeader && !!user?.user.userId && (

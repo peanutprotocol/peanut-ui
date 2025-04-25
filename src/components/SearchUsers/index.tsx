@@ -3,7 +3,7 @@ import { useAuth } from '@/context/authContext'
 import { useUserSearch } from '@/hooks/useUserSearch'
 import { ApiUser } from '@/services/users'
 import { getInitialsFromName } from '@/utils'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '../0_Bruddle'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
@@ -21,17 +21,25 @@ const SearchContent = ({ closePortal, recentTransactions }: SearchContentProps) 
     const { searchTerm, setSearchTerm, searchResults, isSearching, error, showMinCharError, showNoResults } =
         useUserSearch()
 
-    const initials = user?.user.full_name
-        ? getInitialsFromName(user.user.full_name)
-        : getInitialsFromName(user?.user.username || '')
+    const initials = useMemo(() => {
+        return user?.user.full_name
+            ? getInitialsFromName(user.user.full_name)
+            : getInitialsFromName(user?.user.username || '')
+    }, [user?.user.full_name, user?.user.username])
 
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value)
-    }
+    const handleSearchChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            const value = e.target.value
+            // prevent state updates if the only change is adding/removing spaces
+            if (value.trim() === searchTerm.trim()) return
+            setSearchTerm(value)
+        },
+        [searchTerm, setSearchTerm]
+    )
 
-    const handleClearSearch = () => {
+    const handleClearSearch = useCallback(() => {
         setSearchTerm('')
-    }
+    }, [setSearchTerm])
 
     return (
         <div className="flex h-full w-full flex-col gap-4">

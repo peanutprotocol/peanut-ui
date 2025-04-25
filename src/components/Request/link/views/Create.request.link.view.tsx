@@ -5,6 +5,7 @@ import { getTokenDetails } from '@/components/Create/Create.utils'
 import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
+import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
@@ -14,14 +15,16 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken, IUserBalance } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
-import { fetchTokenSymbol, fetchWithSentry, getRequestLink, isNativeCurrency } from '@/utils'
+import { fetchTokenSymbol, fetchWithSentry, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-export const RequestCreateView = () => {
+export const CreateRequestLinkView = () => {
     const toast = useToast()
-    const { address, selectedWallet, isConnected } = useWallet()
+    const router = useRouter()
+    const { address, selectedWallet, isConnected, peanutWalletDetails } = useWallet()
     const { user } = useAuth()
     const {
         selectedTokenPrice,
@@ -32,7 +35,12 @@ export const RequestCreateView = () => {
         setSelectedTokenAddress,
         selectedTokenData,
     } = useContext(context.tokenSelectorContext)
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState } = useContext(context.loadingStateContext)
+
+    const peanutWalletBalance = useMemo(() => {
+        if (!peanutWalletDetails?.balance) return undefined
+        return printableUsdc(peanutWalletDetails.balance)
+    }, [peanutWalletDetails?.balance])
 
     // component-specific states
     const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
@@ -308,13 +316,13 @@ export const RequestCreateView = () => {
         (hasAttachment && _tokenValue !== debouncedTokenValue)
 
     return (
-        <div className="space-y-4">
-            <NavHeader title="Request" href="/home" />
-            <div className="flex w-full flex-col items-center justify-center gap-3">
-                <div className="space-y-3">
-                    <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
-                    <div className="text-center text-gray-1">Show this QR to your friends!</div>
-                </div>
+        <div className="w-full space-y-8">
+            <NavHeader onPrev={() => router.push('/request')} title="Request" />
+            <div className="w-full space-y-4">
+                <PeanutActionCard type="request" />
+
+                <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
+
                 <TokenAmountInput
                     className="w-full"
                     setTokenValue={(value) => {
@@ -336,6 +344,7 @@ export const RequestCreateView = () => {
                             })
                         }
                     }}
+                    walletBalance={peanutWalletBalance}
                 />
                 <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
 
@@ -348,12 +357,12 @@ export const RequestCreateView = () => {
                 ) : (
                     <ShareButton url={qrCodeLink}>Share Link</ShareButton>
                 )}
+                {errorState.showError && (
+                    <div className="text-start">
+                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                    </div>
+                )}
             </div>
-            {errorState.showError && (
-                <div className="text-start">
-                    <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                </div>
-            )}
         </div>
     )
 }

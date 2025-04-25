@@ -87,7 +87,7 @@ export default function Home() {
                         <ActionButtonWithHref
                             label="Request"
                             action="request"
-                            href="/request/create"
+                            href="/request"
                             variant="purple"
                             size="large"
                         />

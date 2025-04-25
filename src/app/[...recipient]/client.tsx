@@ -219,7 +219,7 @@ export default function PaymentPage({ recipient }: Props) {
                 {currentView === 'INITIAL' && (
                     <div className="space-y-4">
                         <NavHeader
-                            onclick={() => {
+                            onPrev={() => {
                                 setShowPaymentView(false)
                             }}
                         />

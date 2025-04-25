@@ -24,11 +24,12 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     }
 
     return (
-        <div className={twMerge('relative', className)}>
+        <div className={'relative'}>
             <div
                 className={twMerge(
                     `flex items-center justify-center rounded-full bg-yellow-5 font-bold`,
-                    sizeClasses[size]
+                    sizeClasses[size],
+                    className
                 )}
             >
                 {initials}

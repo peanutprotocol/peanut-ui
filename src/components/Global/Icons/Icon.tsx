@@ -10,12 +10,15 @@ import { CheckIcon } from './check'
 import { ChevronUpIcon } from './chevron-up'
 import { CopyIcon } from './copy'
 import { CurrencyIcon } from './currency'
+import { DownloadIcon } from './download'
 import { ExchangeIcon } from './exchange'
 import { EyeIcon } from './eye'
 import { EyeSlashIcon } from './eye-slash'
 import { FeesIcon } from './fees'
 import { HomeIcon } from './home'
+import { LinkIcon } from './link'
 import { LogoutIcon } from './logout'
+import { PaperClipIcon } from './paper-clip'
 import { PeanutSupportIcon } from './peanut-support'
 import { SearchIcon } from './search'
 import { ShareIcon } from './share'
@@ -36,6 +39,7 @@ export type IconName =
     | 'chevron-up'
     | 'copy'
     | 'cancel'
+    | 'download'
     | 'eye'
     | 'eye-slash'
     | 'exchange'
@@ -47,7 +51,9 @@ export type IconName =
     | 'wallet'
     | 'currency'
     | 'achievements'
+    | 'link'
     | 'logout'
+    | 'paperclip'
     | 'smile'
     | 'user'
     | 'share'
@@ -67,6 +73,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     bank: BankIcon,
     check: CheckIcon,
     'chevron-up': ChevronUpIcon,
+    download: DownloadIcon,
     eye: EyeIcon,
     'eye-slash': EyeSlashIcon,
     exchange: ExchangeIcon,
@@ -78,7 +85,9 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     wallet: WalletIcon,
     currency: CurrencyIcon,
     achievements: AchievementsIcon,
+    link: LinkIcon,
     logout: LogoutIcon,
+    paperclip: PaperClipIcon,
     smile: SmileIcon,
     user: UserIcon,
     share: ShareIcon,

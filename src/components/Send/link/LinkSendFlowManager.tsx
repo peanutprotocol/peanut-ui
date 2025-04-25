@@ -7,12 +7,16 @@ import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { fetchWithSentry } from '@/utils'
 import { useContext, useEffect } from 'react'
-import PageContainer from '../0_Bruddle/PageContainer'
+import NavHeader from '../../Global/NavHeader'
 import LinkSendConfirmView from './views/Confirm.link.send.view'
 import LinkSendInitialView from './views/Initial.link.send.view'
 import LinkSendSuccessView from './views/Success.link.send.view'
 
-const SendFlowManager = () => {
+interface LinkSendFlowManagerProps {
+    onPrev?: () => void
+}
+
+const LinkSendFlowManager = ({ onPrev }: LinkSendFlowManagerProps) => {
     const dispatch = useAppDispatch()
     const { view } = useSendFlowStore()
     const { isPeanutWallet } = useWallet()
@@ -51,14 +55,17 @@ const SendFlowManager = () => {
     }, [dispatch])
 
     return (
-        <PageContainer>
-            <div className="max-w-xl">
-                {view === 'INITIAL' && <LinkSendInitialView />}
-                {view === 'CONFIRM' && <LinkSendConfirmView />}
-                {view === 'SUCCESS' && <LinkSendSuccessView />}
-            </div>
-        </PageContainer>
+        <div>
+            {view === 'INITIAL' && (
+                <div className="space-y-8">
+                    <NavHeader onPrev={onPrev} title="Send" />
+                    <LinkSendInitialView />
+                </div>
+            )}
+            {view === 'CONFIRM' && <LinkSendConfirmView />}
+            {view === 'SUCCESS' && <LinkSendSuccessView />}
+        </div>
     )
 }
 
-export default SendFlowManager
+export default LinkSendFlowManager

@@ -11,6 +11,7 @@ interface ProfileMenuItemProps {
     onClick?: () => void
     position?: CardPosition
     comingSoon?: boolean
+    isExternalLink?: boolean
 }
 
 const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
@@ -20,6 +21,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     onClick,
     position = 'middle',
     comingSoon = false,
+    isExternalLink,
 }) => {
     const content = (
         <div className="flex items-center justify-between py-1">
@@ -47,7 +49,12 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     }
 
     return (
-        <Link href={href} className="block">
+        <Link
+            href={href}
+            className="block"
+            target={isExternalLink ? '_blank' : undefined}
+            rel={isExternalLink ? 'noopener noreferrer' : undefined}
+        >
             <Card position={position} onClick={onClick} className="p-4 hover:bg-grey-4">
                 {content}
             </Card>
