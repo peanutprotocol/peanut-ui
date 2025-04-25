@@ -14,6 +14,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
+import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { ApiUser, usersApi } from '@/services/users'
 import { balanceByToken, ErrorHandler, floorFixed, printableUsdc, saveDirectSendToLocalStorage } from '@/utils'
 import { useRouter } from 'next/navigation'
@@ -33,11 +34,7 @@ const DirectSendInitialView = ({ username }: DirectSendInitialViewProps) => {
         showError: false,
         errorMessage: '',
     })
-    const [attachmentOptions, setAttachmentOptions] = useState<{
-        message: string | undefined
-        fileUrl: string | undefined
-        rawFile: File | undefined
-    }>({
+    const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
         fileUrl: undefined,
         rawFile: undefined,
@@ -52,7 +49,10 @@ const DirectSendInitialView = ({ username }: DirectSendInitialViewProps) => {
 
     const { prepareDirectSendTx, sendTransactions, estimateGasFee } = useCreateLink()
 
-    const peanutWallet = wallets && wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.PEANUT)
+    const peanutWallet = useMemo(
+        () => wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.PEANUT),
+        [wallets]
+    )
 
     const maxValue = useMemo(() => {
         if (!selectedWallet?.balances) {

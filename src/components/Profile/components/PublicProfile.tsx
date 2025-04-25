@@ -92,7 +92,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                     </Button>
 
                     {/* todo: request lon */}
-                    <Link href={`/request/create?from=${username}`} className="w-1/2">
+                    <Link href={`/request?type=direct&from=${username}`} className="w-1/2">
                         <Button
                             disabled
                             variant="purple"

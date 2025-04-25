@@ -1,6 +1,6 @@
 import { generateMetadata } from '@/app/metadata'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import { RequestCreateView } from '@/components/Request/Create/Request.create.view'
+import RequestLinkFlowManager from '@/components/Request/link/RequestLinkFlowManager'
 
 export const metadata = generateMetadata({
     title: 'Request Payment | Peanut',
@@ -11,8 +11,8 @@ export const metadata = generateMetadata({
 
 export default function RequestCreate() {
     return (
-        <PageContainer>
-            <RequestCreateView />
+        <PageContainer className="self-start">
+            <RequestLinkFlowManager />
         </PageContainer>
     )
 }

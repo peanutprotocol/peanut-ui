@@ -4,7 +4,6 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { getTokenDetails } from '@/components/Create/Create.utils'
 import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
 import Loading from '@/components/Global/Loading'
-import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
@@ -19,7 +18,7 @@ import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-export const RequestCreateView = () => {
+export const RequestLinkInitialView = () => {
     const toast = useToast()
     const { address, selectedWallet, isConnected } = useWallet()
     const { user } = useAuth()
@@ -309,7 +308,6 @@ export const RequestCreateView = () => {
 
     return (
         <div className="space-y-4">
-            <NavHeader title="Request" href="/home" />
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <div className="space-y-3">
                     <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
