@@ -10,8 +10,9 @@ type UserPayload = {
     fullName?: string
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { userId: string } }) {
-    const userId = params.userId
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
+    const resolvedParams = await params
+    const userId = resolvedParams.userId
     const requestData = await request.json()
     const { username, email, fullName } = requestData
 
@@ -38,7 +39,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { userId
         }
 
         const response = await fetchWithSentry(`${consts.PEANUT_API_URL}/update-user`, {
-            method: 'POST', // Keep using POST for the backend API
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token.value}`,
