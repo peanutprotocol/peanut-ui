@@ -35,6 +35,9 @@ export const ProfileEditView = () => {
         website: '',
     })
 
+    // check if email is already set
+    const isEmailSet = !!user?.user.email
+
     // populate name and surname from full_name
     useEffect(() => {
         if (user?.user.full_name) {
@@ -68,26 +71,26 @@ export const ProfileEditView = () => {
                 return
             }
 
-            // only validate email if it's provided
-            if (formData.email && !formData.email.trim()) {
-                setErrorMessage('Please provide a valid email address or leave it empty.')
-                return
-            }
-
             // combine name and surname for full_name
             const fullName = `${formData.name} ${formData.surname}`.trim()
 
+            // prepare request payload
+            const payload: Record<string, any> = {
+                fullName: fullName,
+            }
+
+            // only include email if it's not already set and has a value
+            if (!isEmailSet && formData.email?.trim()) {
+                payload.email = formData.email.trim()
+            }
+
             // update user profile
-            const response = await fetchWithSentry('/api/peanut/user/update-user', {
-                method: 'POST',
+            const response = await fetchWithSentry(`/api/peanut/user/${user?.user.userId}`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    userId: user?.user.userId,
-                    fullName: fullName,
-                    email: formData.email,
-                }),
+                body: JSON.stringify(payload),
             })
 
             if (!response.ok) {
@@ -110,7 +113,7 @@ export const ProfileEditView = () => {
         } finally {
             setIsLoading(false)
         }
-    }, [formData, user, fetchUser, router])
+    }, [formData, user, fetchUser, router, isEmailSet])
 
     const fullName = user?.user.full_name || user?.user?.username || ''
     const username = user?.user.username || ''
@@ -152,6 +155,7 @@ export const ProfileEditView = () => {
                     onChange={(value) => handleChange('email', value)}
                     placeholder="Add your email"
                     type="email"
+                    disabled={isEmailSet}
                 />
 
                 <ProfileEditField
