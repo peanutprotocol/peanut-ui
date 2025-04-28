@@ -267,17 +267,16 @@ export default function ConfirmPaymentView() {
             }
 
             // sign and send transaction
-            const receipt = (
-                await sendTransactions({
-                    preparedDepositTxs: {
-                        unsignedTxs:
-                            isXChain || diffTokens
-                                ? (xChainUnsignedTxs as peanutInterfaces.IPeanutUnsignedTransaction[])
-                                : [unsignedTx as peanutInterfaces.IPeanutUnsignedTransaction],
-                    },
-                    feeOptions,
-                })
-            )[0]
+            const receipts = await sendTransactions({
+                preparedDepositTxs: {
+                    unsignedTxs:
+                        isXChain || diffTokens
+                            ? (xChainUnsignedTxs as peanutInterfaces.IPeanutUnsignedTransaction[])
+                            : [unsignedTx as peanutInterfaces.IPeanutUnsignedTransaction],
+                },
+                feeOptions,
+            })
+            const receipt = receipts[receipts.length - 1]
 
             if (!receipt) {
                 throw new Error('Failed to send transaction')
