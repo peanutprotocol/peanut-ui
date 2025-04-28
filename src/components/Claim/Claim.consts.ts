@@ -1,10 +1,11 @@
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
-import { IOfframpConfirmScreenProps, IOfframpSuccessScreenProps } from '../Offramp/Offramp.consts'
+import { IOfframpSuccessScreenProps } from '../Offramp/Offramp.consts'
+import { ClaimLinkData } from '@/services/sendLinks'
 export type ClaimType = 'claim' | 'claimxchain'
 import { ClaimLinkData } from '@/services/sendLinks'
 
-export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
+export type ClaimScreens = 'INITIAL' | 'SUCCESS'
 
 export interface IClaimScreenState {
     screen: ClaimScreens
@@ -16,11 +17,10 @@ export const INIT_VIEW_STATE: IClaimScreenState = {
     idx: 0,
 }
 
-export const CLAIM_SCREEN_FLOW: ClaimScreens[] = ['INITIAL', 'CONFIRM', 'SUCCESS']
+export const CLAIM_SCREEN_FLOW: ClaimScreens[] = ['INITIAL', 'SUCCESS']
 
 export interface IFlowManagerClaimComponents {
     INITIAL: ({}: IClaimScreenProps) => {}
-    CONFIRM: (({}: IClaimScreenProps) => {}) | (({}: IOfframpConfirmScreenProps) => {})
     SUCCESS: (({}: IClaimScreenProps) => {}) | (({}: IOfframpSuccessScreenProps) => {})
 }
 
