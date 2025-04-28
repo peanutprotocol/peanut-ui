@@ -427,7 +427,7 @@ const LinkSendInitialView = () => {
 
             <FileUploadInput
                 attachmentOptions={attachmentOptions}
-                setAttachmentOptions={sendFlowActions.setAttachmentOptions}
+                setAttachmentOptions={(options) => dispatch(sendFlowActions.setAttachmentOptions(options))}
             />
 
             {isPeanutWallet && <PeanutSponsored />}

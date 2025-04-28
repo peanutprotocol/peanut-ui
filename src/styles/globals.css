@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+    body {
+        /* disable text selection */
+        @apply select-none;
+        /* disable tap highlight */
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
 @layer utilities {
     /* remove ios-specific button styling */
     button,
