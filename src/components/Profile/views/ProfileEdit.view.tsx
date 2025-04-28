@@ -1,0 +1,193 @@
+'use client'
+import { Button } from '@/components/0_Bruddle'
+import ErrorAlert from '@/components/Global/ErrorAlert'
+import NavHeader from '@/components/Global/NavHeader'
+import { useAuth } from '@/context/authContext'
+import { fetchWithSentry, getInitialsFromName } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
+import ProfileEditField from '../components/ProfileEditField'
+import ProfileHeader from '../components/ProfileHeader'
+
+export const ProfileEditView = () => {
+    const router = useRouter()
+    const { user, fetchUser } = useAuth()
+    const [isLoading, setIsLoading] = useState(false)
+    const [errorMessage, setErrorMessage] = useState('')
+
+    // split the full name into name and surname
+    const splitName = useCallback((fullName: string) => {
+        const parts = fullName.trim().split(' ')
+        if (parts.length === 1) return { name: parts[0], surname: '' }
+        const surname = parts.pop() || ''
+        const name = parts.join(' ')
+        return { name, surname }
+    }, [])
+
+    // form state for all fields
+    const [formData, setFormData] = useState({
+        name: '',
+        surname: '',
+        bio: '',
+        email: user?.user.email || '',
+        phone: '',
+        website: '',
+    })
+
+    // populate name and surname from full_name
+    useEffect(() => {
+        if (user?.user.full_name) {
+            const { name, surname } = splitName(user.user.full_name)
+            setFormData((prev) => ({
+                ...prev,
+                name,
+                surname,
+                email: user.user.email || '',
+            }))
+        }
+    }, [user?.user.full_name, user?.user.email, splitName])
+
+    // handle input field changes
+    const handleChange = useCallback((field: string, value: string) => {
+        setFormData((prev) => ({
+            ...prev,
+            [field]: value,
+        }))
+    }, [])
+
+    // handle form submission
+    const handleSave = useCallback(async () => {
+        try {
+            setIsLoading(true)
+            setErrorMessage('')
+
+            // validate form data
+            if (!formData.name?.trim()) {
+                setErrorMessage('Please provide your name.')
+                return
+            }
+
+            // only validate email if it's provided
+            if (formData.email && !formData.email.trim()) {
+                setErrorMessage('Please provide a valid email address or leave it empty.')
+                return
+            }
+
+            // combine name and surname for full_name
+            const fullName = `${formData.name} ${formData.surname}`.trim()
+
+            // update user profile
+            const response = await fetchWithSentry('/api/peanut/user/update-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: user?.user.userId,
+                    fullName: fullName,
+                    email: formData.email,
+                }),
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(
+                    typeof errorData === 'string'
+                        ? errorData
+                        : errorData.message || errorData.error || 'Failed to update profile'
+                )
+            }
+
+            // refresh user data
+            await fetchUser()
+
+            router.push('/profile')
+        } catch (error) {
+            console.error('Error updating profile:', error)
+            setErrorMessage('Something went wrong. Please try again or contact support.')
+            Sentry.captureException(error)
+        } finally {
+            setIsLoading(false)
+        }
+    }, [formData, user, fetchUser, router])
+
+    const fullName = user?.user.full_name || user?.user?.username || ''
+    const username = user?.user.username || ''
+    const initials = getInitialsFromName(fullName)
+
+    return (
+        <div className="space-y-8">
+            <NavHeader title="Edit Profile" onPrev={() => router.push('/profile')} />
+
+            <ProfileHeader name={fullName} username={username} initials={initials} isVerified={true} />
+
+            <div className="space-y-4">
+                <ProfileEditField
+                    label="Name"
+                    value={formData.name}
+                    onChange={(value) => handleChange('name', value)}
+                    placeholder="Add your name"
+                />
+
+                <ProfileEditField
+                    label="Surname"
+                    value={formData.surname}
+                    onChange={(value) => handleChange('surname', value)}
+                    placeholder="Add your surname"
+                />
+
+                <ProfileEditField
+                    label="Bio"
+                    value={formData.bio}
+                    onChange={(value) => handleChange('bio', value)}
+                    placeholder="Add a bio"
+                    badge="Soon!"
+                    disabled
+                />
+
+                <ProfileEditField
+                    label="Email"
+                    value={formData.email}
+                    onChange={(value) => handleChange('email', value)}
+                    placeholder="Add your email"
+                    type="email"
+                />
+
+                <ProfileEditField
+                    label="Phone number"
+                    value={formData.phone}
+                    onChange={(value) => handleChange('phone', value)}
+                    placeholder="Add your number"
+                    type="tel"
+                    badge="Soon!"
+                    disabled
+                />
+
+                <ProfileEditField
+                    label="Website"
+                    value={formData.website}
+                    onChange={(value) => handleChange('website', value)}
+                    placeholder="Add your website"
+                    type="url"
+                    badge="Soon!"
+                    disabled
+                />
+
+                <div className="pb-10">
+                    <Button
+                        disabled={isLoading}
+                        onClick={handleSave}
+                        className="w-full"
+                        shadowSize="4"
+                        loading={isLoading}
+                    >
+                        Save Changes
+                    </Button>
+
+                    {errorMessage && <ErrorAlert description={errorMessage} />}
+                </div>
+            </div>
+        </div>
+    )
+}
