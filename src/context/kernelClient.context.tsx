@@ -74,7 +74,16 @@ export const createKernelClientForChain = async <C extends Chain>(
     const kernelClient = createKernelAccountClient({
         account: kernelAccount,
         chain: chain,
-        bundlerTransport: http(bundlerUrl),
+        bundlerTransport: http(bundlerUrl + '?provider=ULTRA_RELAY'),
+        pollingInterval: 500,
+        userOperation: {
+            estimateFeesPerGas: async ({ bundlerClient: _ }) => {
+                return {
+                    maxFeePerGas: BigInt(0),
+                    maxPriorityFeePerGas: BigInt(0),
+                }
+            },
+        },
         paymaster: {
             getPaymasterData: async (userOperation) => {
                 const zerodevPaymaster = createZeroDevPaymasterClient({

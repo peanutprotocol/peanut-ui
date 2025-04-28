@@ -4,17 +4,17 @@ import { Button } from '@/components/0_Bruddle'
 import StatusViewWrapper from '@/components/Global/StatusViewWrapper'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import * as interfaces from '@/interfaces'
 import { ErrorHandler } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
 import AddressLink from '@/components/Global/AddressLink'
+import { SendLink } from '@/services/sendLinks'
 
 interface ISenderClaimLinkViewProps {
     changeToRecipientView: () => void
-    claimLinkData: interfaces.ILinkDetails | undefined
+    claimLinkData: (SendLink & { link: string; password: string }) | undefined
     setTransactionHash: (hash: string) => void
     onCustom: (screen: _consts.ClaimScreens) => void
 }
