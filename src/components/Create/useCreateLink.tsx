@@ -605,35 +605,12 @@ export const useCreateLink = () => {
                                 : undefined,
                             chainId: Number(selectedChainID), //TODO: (mentioning) chainId as number here
                         })
-
                         setLoadingState('Executing transaction')
-
-                        // Wait for the transaction to be mined using wagmi/actions
-                        // Only doing this for the approval transaction (the first tx)
-                        // Includes retry logic. If the hash isnt available yet, it retries after .5 seconds for 3 times
-                        if (preparedDepositTxs.unsignedTxs.length === 2 && idx === 0) {
-                            for (let attempt = 0; attempt < 3; attempt++) {
-                                try {
-                                    const receipt = await waitForTransactionReceipt(config, {
-                                        confirmations: 4,
-                                        hash: hash,
-                                        chainId: Number(selectedChainID),
-                                    })
-                                    if (receipt) {
-                                        receipts.push(receipt)
-                                    }
-                                    receipts.push(receipt)
-                                    break
-                                } catch (error) {
-                                    if (attempt < 2) {
-                                        await new Promise((resolve) => setTimeout(resolve, 500))
-                                    } else {
-                                        console.error('Failed to wait for transaction receipt after 3 attempts', error)
-                                        captureException(error)
-                                    }
-                                }
-                            }
-                        }
+                        const receipt = await waitForTransactionReceipt(config, {
+                            hash: hash,
+                            chainId: Number(selectedChainID),
+                        })
+                        receipts.push(receipt)
                         idx++
                     }
                 }
