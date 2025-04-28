@@ -2,8 +2,11 @@
 import { Button } from '@/components/0_Bruddle'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
+import Loading from '@/components/Global/Loading'
 import { ApiUser } from '@/services/users'
 import { getInitialsFromName } from '@/utils'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 interface DirectRequestSuccessViewProps {
     user: ApiUser
@@ -14,6 +17,25 @@ interface DirectRequestSuccessViewProps {
 
 const DirectRequestSuccessView = ({ user, amount, message, onBack }: DirectRequestSuccessViewProps) => {
     const initials = getInitialsFromName(user.fullName || user.username)
+    const router = useRouter()
+    const [showCheck, setShowCheck] = useState(false)
+
+    useEffect(() => {
+        // show loading for a brief moment, then show check mark
+        const checkTimeout = setTimeout(() => {
+            setShowCheck(true)
+        }, 800)
+
+        // redirect to home after 2 seconds
+        const redirectTimeout = setTimeout(() => {
+            router.push('/home')
+        }, 2000)
+
+        return () => {
+            clearTimeout(checkTimeout)
+            clearTimeout(redirectTimeout)
+        }
+    }, [router])
 
     return (
         <div className="flex flex-col gap-4">
@@ -32,7 +54,7 @@ const DirectRequestSuccessView = ({ user, amount, message, onBack }: DirectReque
 
             <Button onClick={onBack} shadowSize="4" className="mx-auto w-38 rounded-full">
                 <div className="flex size-7 items-center justify-center gap-0">
-                    <Icon name="check" size={24} />
+                    {showCheck ? <Icon name="check" size={24} className="animate-fadeIn" /> : <Loading />}
                 </div>
                 <div>Done!</div>
             </Button>
