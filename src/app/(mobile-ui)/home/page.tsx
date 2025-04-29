@@ -8,6 +8,7 @@ import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
+import NewTokenSelector from '@/components/Global/TokenSelector/NewTokenSelector'
 import HomeHistory from '@/components/Home/HomeHistory'
 import { SearchUsers } from '@/components/SearchUsers'
 import { UserHeader } from '@/components/UserHeader'
@@ -93,6 +94,8 @@ export default function Home() {
                         />
                     </ActionButtonGroup>
                 </div>
+
+                <NewTokenSelector />
 
                 {/* Rewards Card - only shows if balance is non-zero */}
                 <RewardsCard balance={rewardsBalance} />
