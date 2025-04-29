@@ -1,6 +1,7 @@
 'use client'
 
-import React, { ReactNode, useCallback, useState } from 'react'
+import Image from 'next/image'
+import React, { ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
@@ -8,18 +9,16 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import Divider from '@/components/0_Bruddle/Divider'
 import BottomDrawer from '@/components/Global/BottomDrawer'
 import Card, { CardPosition } from '@/components/Global/Card'
+import { tokenSelectorContext } from '@/context'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { IUserBalance } from '@/interfaces'
+import { formatAmount } from '@/utils'
 import { Icon } from '../Icons/Icon'
 
 const popularNetworks = [
     { name: 'ARB', icon: 'arbitrum' },
     { name: 'ETH', icon: 'ethereum' },
     { name: 'BASE', icon: 'base' },
-]
-
-const popularTokens = [
-    { name: 'USDC', icon: 'usdc' },
-    { name: 'USDT', icon: 'usdt' },
-    { name: 'ETH', icon: 'ethereum' },
 ]
 
 interface SectionProps {
@@ -60,48 +59,135 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({ name, icon, onClick, isSe
 )
 
 interface TokenListItemProps {
-    name: string
-    icon?: ReactNode
+    balance: IUserBalance
     onClick: () => void
     position?: CardPosition
     className?: string
 }
 
-const TokenListItem: React.FC<TokenListItemProps> = ({ name, icon, onClick, position = 'single', className }) => (
-    <Card
-        position={position}
-        className={twMerge('shadow-4 rounded-none border-black p-4', className)}
-        onClick={onClick}
-    >
-        <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-500 text-sm text-white">
-                    {icon || name.substring(0, 1).toUpperCase()}
+const TokenListItem: React.FC<TokenListItemProps> = ({ balance, onClick, position = 'single', className }) => {
+    const [tokenPlaceholder, setTokenPlaceholder] = useState(false)
+    const { supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
+
+    useEffect(() => {
+        setTokenPlaceholder(false)
+    }, [balance.address, balance.chainId])
+
+    const chainName = useMemo(() => {
+        return supportedSquidChainsAndTokens[balance.chainId]?.axelarChainName || `Chain ${balance.chainId}`
+    }, [supportedSquidChainsAndTokens, balance.chainId])
+
+    const formattedBalance = useMemo(() => {
+        const hasAmount = balance.amount !== undefined && balance.amount !== null
+        const isNumber = typeof balance.amount === 'number'
+        const hasDecimals = balance.decimals !== undefined && balance.decimals !== null
+        const isPositive = hasAmount && isNumber && balance.amount > 0
+
+        if (hasAmount && isNumber && hasDecimals && isPositive) {
+            try {
+                const displayDecimals = Math.min(balance.decimals ?? 6, 6)
+                const formatted = balance.amount.toFixed(displayDecimals)
+
+                return formatAmount(formatted)
+            } catch (error) {
+                console.error(`TokenListItem: Error formatting number for ${balance.symbol}:`, error, balance)
+                return 'N/A'
+            }
+        }
+        return null
+    }, [balance.amount, balance.decimals])
+
+    return (
+        <div className={twMerge('shadow-4 rounded-sm', className)}>
+            <Card
+                position={position}
+                className={twMerge('!overflow-visible border-black p-4', className)}
+                onClick={onClick}
+                border={true}
+            >
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <div className="relative">
+                            {!balance.logoURI || tokenPlaceholder ? (
+                                <Icon name="currency" size={24} />
+                            ) : (
+                                <Image
+                                    src={balance.logoURI}
+                                    alt={`${balance.symbol} logo`}
+                                    width={24}
+                                    height={24}
+                                    className="rounded-full"
+                                    onError={() => setTokenPlaceholder(true)}
+                                />
+                            )}
+                        </div>
+                        <div className="flex flex-col items-start">
+                            <span className="text-base font-semibold text-black">
+                                {balance.symbol}
+                                <span className="ml-1 text-sm font-medium text-grey-1">
+                                    on <span className="capitalize">{chainName}</span>
+                                </span>
+                            </span>
+                            {!!formattedBalance && (
+                                <span className="text-xs font-normal text-grey-1">
+                                    Balance: {formattedBalance} {balance.symbol}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                    <Icon name="chevron-up" size={32} className="h-8 w-8 flex-shrink-0 rotate-90 text-black" />
                 </div>
-                <span className="text-sm font-medium text-black">{name}</span>
-            </div>
-            <Icon name="chevron-up" size={32} className="h-8 w-8 rotate-90 text-black" />
+            </Card>
         </div>
-    </Card>
-)
+    )
+}
 
 interface NewTokenSelectorProps {
     classNameButton?: string
-    onTokenSelect?: (token: any) => void
+    onTokenSelect?: (token: IUserBalance) => void
     onNetworkSelect?: (network: any) => void
 }
 
 const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, onTokenSelect, onNetworkSelect }) => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [searchValue, setSearchValue] = useState('')
+    const { selectedWallet, isConnected } = useWallet()
+    const { supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
 
     const openDrawer = useCallback(() => setIsDrawerOpen(true), [])
-    const closeDrawer = useCallback(() => setIsDrawerOpen(false), [])
+    const closeDrawer = useCallback(() => {
+        setIsDrawerOpen(false)
+        const timer = setTimeout(() => setSearchValue(''), 200)
+        return () => clearTimeout(timer)
+    }, [])
+
+    const displayTokens = useMemo(() => {
+        if (!isConnected) {
+            return []
+        }
+        if (!selectedWallet?.balances) {
+            return []
+        }
+
+        const lowerSearchValue = searchValue.toLowerCase()
+
+        const filteredBalances = selectedWallet.balances.filter((balance) => {
+            const hasSymbol = !!balance.symbol
+            const symbolMatch = hasSymbol && balance.symbol.toLowerCase().includes(lowerSearchValue)
+            const nameMatch = balance.name && balance.name.toLowerCase().includes(lowerSearchValue)
+            const addressMatch = balance.address && balance.address.toLowerCase().includes(lowerSearchValue)
+
+            const shouldInclude = hasSymbol && (symbolMatch || nameMatch || addressMatch)
+
+            return shouldInclude
+        })
+
+        return filteredBalances
+    }, [isConnected, selectedWallet?.balances, searchValue])
 
     const handleTokenSelect = useCallback(
-        (token: any) => {
-            console.log('Token selected:', token.name)
-            onTokenSelect?.(token)
+        (balance: IUserBalance) => {
+            onTokenSelect?.(balance)
             closeDrawer()
         },
         [onTokenSelect, closeDrawer]
@@ -150,7 +236,7 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
                 <div className="flex flex-col space-y-6 pb-10">
                     <Section title="Free transaction token!">
                         <Card
-                            className="bg-purple-light shadow-4 border border-black p-3"
+                            className={twMerge('shadow-4 border border-black bg-white p-3')}
                             onClick={handleFreeTokenSelect}
                         >
                             <div className="flex items-center justify-between">
@@ -195,8 +281,8 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
                         <div className="relative">
                             <BaseInput
                                 variant="md"
-                                className="h-14 w-full border border-black px-10"
-                                placeholder="Search for a token"
+                                className="h-10 w-full border border-black px-10 text-sm font-normal"
+                                placeholder="Search for a token or paste address"
                                 value={searchValue}
                                 onChange={(e) => setSearchValue(e.target.value)}
                             />
@@ -212,19 +298,30 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
                             )}
                         </div>
 
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-1">
-                                <span className="text-sm font-semibold text-gray-600">⭐ Popular tokens</span>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-600">
+                                {searchValue ? <Icon name="search" size={16} /> : <Icon name="wallet" size={16} />}
+                                <div>{searchValue ? 'Search Results' : 'Your Tokens'}</div>
                             </div>
-                            <div className="flex flex-col gap-4">
-                                {popularTokens.map((token, index) => (
-                                    <TokenListItem
-                                        key={token.name + index}
-                                        name={token.name}
-                                        icon={token.name.substring(0, 1).toUpperCase()}
-                                        onClick={() => handleTokenSelect(token)}
-                                    />
-                                ))}
+
+                            <div className="flex flex-col gap-3">
+                                {displayTokens && !!displayTokens.length ? (
+                                    displayTokens.map((balance) => (
+                                        <TokenListItem
+                                            key={`${balance.address}_${balance.chainId}`}
+                                            balance={balance}
+                                            onClick={() => handleTokenSelect(balance)}
+                                        />
+                                    ))
+                                ) : (
+                                    <div className="py-4 text-center text-sm text-gray-500">
+                                        {!selectedWallet?.balances || selectedWallet.balances.length === 0
+                                            ? 'You have no token balances.'
+                                            : searchValue
+                                              ? 'No matching tokens found.'
+                                              : 'No tokens to display.'}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </Section>
