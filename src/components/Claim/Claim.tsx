@@ -84,8 +84,7 @@ export const Claim = ({}) => {
         try {
             const url = new URL(link)
             const password = url.hash.split('=')[1]
-            const sendLink = await sendLinksApi.get(link)
-            const attachmentInfo = await getAttachmentInfo(link)
+            const [sendLink, attachmentInfo] = await Promise.all([sendLinksApi.get(link), getAttachmentInfo(link)])
             setAttachment({
                 message: attachmentInfo?.message,
                 attachmentUrl: attachmentInfo?.fileUrl,
