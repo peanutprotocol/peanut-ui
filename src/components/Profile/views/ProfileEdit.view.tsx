@@ -1,9 +1,10 @@
 'use client'
+import { updateUserById } from '@/app/actions/users'
 import { Button } from '@/components/0_Bruddle'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
-import { fetchWithSentry, getInitialsFromName } from '@/utils'
+import { getInitialsFromName } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
@@ -76,6 +77,7 @@ export const ProfileEditView = () => {
 
             // prepare request payload
             const payload: Record<string, any> = {
+                userId: user?.user.userId,
                 fullName: fullName,
             }
 
@@ -84,23 +86,12 @@ export const ProfileEditView = () => {
                 payload.email = formData.email.trim()
             }
 
-            // update user profile
-            const response = await fetchWithSentry(`/api/peanut/user/${user?.user.userId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            })
-
-            if (!response.ok) {
-                const errorData = await response.json()
-                throw new Error(
-                    typeof errorData === 'string'
-                        ? errorData
-                        : errorData.message || errorData.error || 'Failed to update profile'
-                )
+            if (!user?.user.userId) {
+                throw new Error('User ID is undefined.')
             }
+
+            // update user profile
+            await updateUserById(payload)
 
             // refresh user data
             await fetchUser()
@@ -178,7 +169,7 @@ export const ProfileEditView = () => {
                     disabled
                 />
 
-                <div className="pb-10">
+                <div className="space-y-5 pb-10">
                     <Button
                         disabled={isLoading}
                         onClick={handleSave}
