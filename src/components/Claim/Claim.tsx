@@ -129,11 +129,12 @@ export const Claim = ({}) => {
             if (address) {
                 setRecipient({ name: '', address })
 
-                const amountUsd = formatUnits(sendLink.amount * BigInt(price), tokenDetails.decimals)
+                const tokenValue = formatUnits(sendLink.amount, tokenDetails.decimals)
+                const amountUsd = Number(tokenValue) * price
                 const estimatedPoints = await estimatePoints({
                     address: address ?? '',
                     chainId: sendLink.chainId,
-                    amountUSD: Number(amountUsd),
+                    amountUSD: amountUsd,
                     actionType: ActionType.CLAIM,
                 })
                 setEstimatedPoints(estimatedPoints)
