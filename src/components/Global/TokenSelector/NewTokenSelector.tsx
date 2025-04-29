@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import React, { ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { ReactNode, useCallback, useContext, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
@@ -9,6 +9,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import Divider from '@/components/0_Bruddle/Divider'
 import BottomDrawer from '@/components/Global/BottomDrawer'
 import Card, { CardPosition } from '@/components/Global/Card'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IUserBalance } from '@/interfaces'
@@ -61,20 +62,23 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({ name, icon, onClick, isSe
 interface TokenListItemProps {
     balance: IUserBalance
     onClick: () => void
+    isSelected: boolean
     position?: CardPosition
     className?: string
 }
 
-const TokenListItem: React.FC<TokenListItemProps> = ({ balance, onClick, position = 'single', className }) => {
+const TokenListItem: React.FC<TokenListItemProps> = ({
+    balance,
+    onClick,
+    isSelected,
+    position = 'single',
+    className,
+}) => {
     const [tokenPlaceholder, setTokenPlaceholder] = useState(false)
     const { supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
 
-    useEffect(() => {
-        setTokenPlaceholder(false)
-    }, [balance.address, balance.chainId])
-
     const chainName = useMemo(() => {
-        return supportedSquidChainsAndTokens[balance.chainId]?.axelarChainName || `Chain ${balance.chainId}`
+        return supportedSquidChainsAndTokens[String(balance.chainId)]?.axelarChainName || `Chain ${balance.chainId}`
     }, [supportedSquidChainsAndTokens, balance.chainId])
 
     const formattedBalance = useMemo(() => {
@@ -87,7 +91,6 @@ const TokenListItem: React.FC<TokenListItemProps> = ({ balance, onClick, positio
             try {
                 const displayDecimals = Math.min(balance.decimals ?? 6, 6)
                 const formatted = balance.amount.toFixed(displayDecimals)
-
                 return formatAmount(formatted)
             } catch (error) {
                 console.error(`TokenListItem: Error formatting number for ${balance.symbol}:`, error, balance)
@@ -98,11 +101,13 @@ const TokenListItem: React.FC<TokenListItemProps> = ({ balance, onClick, positio
     }, [balance.amount, balance.decimals])
 
     return (
-        <div className={twMerge('shadow-4 rounded-sm', className)}>
+        <div
+            className={twMerge('shadow-4 cursor-pointer rounded-sm', isSelected && 'bg-primary-3', className)}
+            onClick={onClick}
+        >
             <Card
                 position={position}
-                className={twMerge('!overflow-visible border-black p-4', className)}
-                onClick={onClick}
+                className={twMerge('!overflow-visible border-black p-4', isSelected ? 'bg-primary-3' : 'bg-white')}
                 border={true}
             >
                 <div className="flex items-center justify-between">
@@ -152,7 +157,13 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [searchValue, setSearchValue] = useState('')
     const { selectedWallet, isConnected } = useWallet()
-    const { supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
+    const {
+        supportedSquidChainsAndTokens,
+        setSelectedTokenAddress,
+        setSelectedChainID,
+        selectedTokenAddress,
+        selectedChainID,
+    } = useContext(tokenSelectorContext)
 
     const openDrawer = useCallback(() => setIsDrawerOpen(true), [])
     const closeDrawer = useCallback(() => {
@@ -187,41 +198,140 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
 
     const handleTokenSelect = useCallback(
         (balance: IUserBalance) => {
+            const addressToSet = balance.address
+            const chainIdToSet = String(balance.chainId)
+
+            setSelectedTokenAddress(addressToSet)
+            setSelectedChainID(chainIdToSet)
+
             onTokenSelect?.(balance)
             closeDrawer()
         },
-        [onTokenSelect, closeDrawer]
+        [onTokenSelect, closeDrawer, setSelectedTokenAddress, setSelectedChainID]
     )
 
     const handleNetworkSelect = useCallback(
         (network: any) => {
-            console.log('Network selected:', network.name)
             onNetworkSelect?.(network)
         },
         [onNetworkSelect]
     )
 
     const handleFreeTokenSelect = useCallback(() => {
-        console.log('Free token selected')
+        setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+        setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+
         closeDrawer()
-    }, [closeDrawer])
+    }, [closeDrawer, setSelectedTokenAddress, setSelectedChainID])
 
     const handleSearchNetwork = useCallback(() => {
         console.log('Search networks clicked')
     }, [])
 
+    let buttonSymbol: string | undefined
+    let buttonChainName: string | undefined
+    let buttonFormattedBalance: string | null = null
+    let buttonLogoURI: string | undefined
+
+    if (selectedTokenAddress && selectedChainID) {
+        let tokenDetails: IUserBalance | null = null
+
+        if (
+            selectedTokenAddress.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
+            selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
+        ) {
+            buttonSymbol = PEANUT_WALLET_TOKEN_SYMBOL
+            buttonChainName =
+                supportedSquidChainsAndTokens[PEANUT_WALLET_CHAIN.id]?.axelarChainName || PEANUT_WALLET_CHAIN.name
+            buttonLogoURI = ''
+        } else if (selectedWallet?.balances) {
+            tokenDetails =
+                selectedWallet.balances.find(
+                    (b) =>
+                        b.address.toLowerCase() === selectedTokenAddress.toLowerCase() &&
+                        String(b.chainId) === selectedChainID
+                ) || null
+
+            if (tokenDetails) {
+                buttonSymbol = tokenDetails.symbol
+                buttonChainName =
+                    supportedSquidChainsAndTokens[String(tokenDetails.chainId)]?.axelarChainName ||
+                    `Chain ${tokenDetails.chainId}`
+                buttonLogoURI = tokenDetails.logoURI
+
+                if (
+                    tokenDetails.amount &&
+                    typeof tokenDetails.amount === 'number' &&
+                    tokenDetails.decimals !== undefined &&
+                    tokenDetails.amount > 0
+                ) {
+                    try {
+                        const displayDecimals = Math.min(tokenDetails.decimals ?? 6, 6)
+                        buttonFormattedBalance = formatAmount(tokenDetails.amount.toFixed(displayDecimals))
+                    } catch (error) {
+                        console.error('Error formatting button balance:', error)
+                    }
+                }
+            }
+        }
+    } else {
+        console.log('Render: No selected token/chain in context for button display.')
+    }
+
     return (
         <>
             <Button
-                variant="primary-soft"
+                variant="stroke"
                 onClick={openDrawer}
-                className={twMerge('flex items-center justify-between', classNameButton)}
+                className={twMerge('flex min-h-16 w-full items-center justify-between bg-white p-4', classNameButton)}
+                shadowSize="4"
             >
-                <span>Select Token</span>
-                <Icon
-                    name="chevron-up"
-                    className={`h-4 w-4 transition-transform ${!isDrawerOpen ? 'rotate-180' : ''}`}
-                />
+                {buttonSymbol && buttonChainName ? (
+                    <div className="flex flex-grow items-center justify-between space-x-3 overflow-hidden">
+                        <div className="flex items-center space-x-2 overflow-hidden">
+                            <div className="relative flex-shrink-0">
+                                {buttonLogoURI ? (
+                                    <Image
+                                        src={buttonLogoURI}
+                                        alt={`${buttonSymbol} logo`}
+                                        width={24}
+                                        height={24}
+                                        className="rounded-full"
+                                    />
+                                ) : (
+                                    <Icon name="currency" size={24} />
+                                )}
+                            </div>
+                            <div className="flex flex-col items-start overflow-hidden">
+                                <span className="truncate text-base font-semibold text-black">
+                                    {buttonSymbol}
+                                    <span className="ml-1 text-sm font-medium text-grey-1">
+                                        on <span className="capitalize">{buttonChainName}</span>
+                                    </span>
+                                </span>
+                                {buttonFormattedBalance && (
+                                    <span className="truncate text-xs font-normal text-grey-1">
+                                        Balance: {buttonFormattedBalance} {buttonSymbol}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <Icon
+                            name="chevron-up"
+                            className={`h-4 w-4 flex-shrink-0 transition-transform ${
+                                !isDrawerOpen ? 'rotate-180' : ''
+                            }`}
+                        />
+                    </div>
+                ) : (
+                    <>
+                        <span>Select Token</span>
+                        <Icon
+                            name="chevron-up"
+                            className={`h-4 w-4 transition-transform ${!isDrawerOpen ? 'rotate-180' : ''}`}
+                        />
+                    </>
+                )}
             </Button>
 
             <BottomDrawer
@@ -236,7 +346,14 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
                 <div className="flex flex-col space-y-6 pb-10">
                     <Section title="Free transaction token!">
                         <Card
-                            className={twMerge('shadow-4 border border-black bg-white p-3')}
+                            className={twMerge(
+                                'shadow-4 cursor-pointer border border-black p-3',
+                                selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
+                                    selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
+                                    ? 'bg-primary-3'
+                                    : 'bg-white',
+                                classNameButton
+                            )}
                             onClick={handleFreeTokenSelect}
                         >
                             <div className="flex items-center justify-between">
@@ -306,13 +423,20 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
 
                             <div className="flex flex-col gap-3">
                                 {displayTokens && !!displayTokens.length ? (
-                                    displayTokens.map((balance) => (
-                                        <TokenListItem
-                                            key={`${balance.address}_${balance.chainId}`}
-                                            balance={balance}
-                                            onClick={() => handleTokenSelect(balance)}
-                                        />
-                                    ))
+                                    displayTokens.map((balance) => {
+                                        const isSelected =
+                                            selectedTokenAddress?.toLowerCase() === balance.address.toLowerCase() &&
+                                            selectedChainID === String(balance.chainId)
+
+                                        return (
+                                            <TokenListItem
+                                                key={`${balance.address}_${String(balance.chainId)}`}
+                                                balance={balance}
+                                                onClick={() => handleTokenSelect(balance)}
+                                                isSelected={isSelected}
+                                            />
+                                        )
+                                    })
                                 ) : (
                                     <div className="py-4 text-center text-sm text-gray-500">
                                         {!selectedWallet?.balances || selectedWallet.balances.length === 0
