@@ -99,6 +99,7 @@ export const sendLinksApi = {
             body: JSON.stringify(sendLink),
             headers: {
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                'Content-Type': 'application/json',
             },
         })
         if (!response.ok) {
