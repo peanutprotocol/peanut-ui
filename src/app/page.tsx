@@ -19,11 +19,11 @@ export default function LandingPage() {
             label: 'TRY NOW',
             href: '/setup',
         },
-        secondaryCta: {
-            label: 'CASHOUT',
-            href: 'https://peanut.to/cashout',
-            isExternal: true,
-        },
+        // secondaryCta: {
+        //     label: 'CASHOUT',
+        //     href: 'https://peanut.to/cashout',
+        //     isExternal: true,
+        // },
     }
 
     const faqs = {
@@ -65,7 +65,7 @@ export default function LandingPage() {
                 heading={hero.heading}
                 marquee={hero.marquee}
                 primaryCta={hero.primaryCta}
-                secondaryCta={hero.secondaryCta}
+                // secondaryCta={hero.secondaryCta}
                 buttonVisible={buttonVisible}
             />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
