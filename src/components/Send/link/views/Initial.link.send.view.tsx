@@ -16,26 +16,15 @@ import { Button } from '../../../0_Bruddle'
 import FileUploadInput from '../../../Global/FileUploadInput'
 import MoreInfo from '../../../Global/MoreInfo'
 import TokenAmountInput from '../../../Global/TokenAmountInput'
-import { parseUnits, encodeFunctionData, parseAbi, parseEventLogs, bytesToNumber, toBytes } from 'viem'
-import type { Hash } from 'viem'
+import { parseUnits } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
-import {
-    getLatestContractVersion,
-    getContractAbi,
-    getContractAddress,
-    generateKeysFromString,
-    getLinkFromParams,
-} from '@squirrel-labs/peanut-sdk'
-import { useZeroDev } from '@/hooks/useZeroDev'
 import { sendLinksApi } from '@/services/sendLinks'
 
 const LinkSendInitialView = () => {
     const dispatch = useAppDispatch()
     const { attachmentOptions, errorState } = useSendFlowStore()
 
-    const { generateLinkDetails, generatePassword } = useCreateLink()
-
-    const { handleSendUserOpEncoded } = useZeroDev()
+    const { createLink } = useCreateLink()
 
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
 
@@ -70,50 +59,8 @@ const LinkSendInitialView = () => {
                 })
             )
 
-            setLoadingState('Generating details')
-            const password = await generatePassword()
-            const generatedKeys = generateKeysFromString(password)
-
-            const amount = parseUnits(currentInputValue!, PEANUT_WALLET_TOKEN_DECIMALS)
-            const chainId = PEANUT_WALLET_CHAIN.id.toString()
-            const contractVersion = getLatestContractVersion({
-                chainId,
-                type: 'normal',
-            })
-            const contractAbi = getContractAbi(contractVersion)
-            const contractAddress: Hash = getContractAddress(chainId, contractVersion) as Hash
-
-            const approveData = encodeFunctionData({
-                abi: parseAbi(['function approve(address _spender, uint256 _amount) external returns (bool)']),
-                functionName: 'approve',
-                args: [contractAddress, amount],
-            })
-            const makeDepositData = encodeFunctionData({
-                abi: contractAbi,
-                functionName: 'makeDeposit',
-                args: [PEANUT_WALLET_TOKEN as Hash, 1, amount, 0, generatedKeys.address as Hash],
-            })
-            const receipt = await handleSendUserOpEncoded(
-                [
-                    { to: PEANUT_WALLET_TOKEN as Hash, value: 0n, data: approveData },
-                    { to: contractAddress, value: 0n, data: makeDepositData },
-                ],
-                chainId
-            )
-            const depositEvent = parseEventLogs({
-                abi: contractAbi,
-                eventName: 'DepositEvent',
-                logs: receipt.logs,
-            })[0]
-            const depositIdx = bytesToNumber(toBytes(depositEvent.topics[1]!))
-
-            const link = getLinkFromParams(
-                chainId,
-                contractVersion,
-                depositIdx,
-                password,
-                `${process.env.NEXT_PUBLIC_BASE_URL!}/claim`,
-                undefined
+            const { link, pubKey, chainId, contractVersion, depositIdx, txHash } = await createLink(
+                parseUnits(currentInputValue!, PEANUT_WALLET_TOKEN_DECIMALS)
             )
 
             dispatch(sendFlowActions.setLink(link))
@@ -124,9 +71,9 @@ const LinkSendInitialView = () => {
             setTimeout(async () => {
                 try {
                     await sendLinksApi.create({
-                        pubKey: generatedKeys.address,
+                        pubKey,
                         chainId,
-                        txHash: receipt.transactionHash,
+                        txHash,
                         contractVersion,
                         depositIdx,
                         reference: attachmentOptions?.message,
@@ -153,7 +100,7 @@ const LinkSendInitialView = () => {
         } finally {
             setLoadingState('Idle')
         }
-    }, [isLoading, currentInputValue, generateLinkDetails, handleSendUserOpEncoded, address])
+    }, [isLoading, currentInputValue, createLink, address])
 
     useEffect(() => {
         if (!!peanutWalletDetails) dispatch(walletActions.setSelectedWalletId(peanutWalletDetails.id))
