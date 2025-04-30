@@ -22,11 +22,11 @@ export const useWallet = () => {
     const { balance } = useWalletStore()
 
     const sendTransactions = useCallback(
-        async (unsignedTxs: any[]) => {
-            const params = unsignedTxs.map((tx: any) => ({
-                to: tx.to! as Hex,
+        async (unsignedTxs: { to: Hex; value?: bigint; data: Hex | undefined }[]) => {
+            const params = unsignedTxs.map((tx: { to: Hex; value?: bigint; data: Hex | undefined }) => ({
+                to: tx.to,
                 value: tx.value?.valueOf(),
-                data: tx.data as Hex | undefined,
+                data: tx.data,
             }))
             let receipt = await handleSendUserOpEncoded(params, PEANUT_WALLET_CHAIN.id.toString())
             return receipt
