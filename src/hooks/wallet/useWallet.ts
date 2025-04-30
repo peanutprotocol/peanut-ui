@@ -15,6 +15,7 @@ import { useCallback, useEffect } from 'react'
 import { erc20Abi, formatUnits, getAddress } from 'viem'
 import type { Hex } from 'viem'
 import { useZeroDev } from '../useZeroDev'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export const useWallet = () => {
     const dispatch = useAppDispatch()
@@ -22,11 +23,11 @@ export const useWallet = () => {
     const { balance } = useWalletStore()
 
     const sendTransactions = useCallback(
-        async (unsignedTxs: { to: Hex; value?: bigint; data: Hex | undefined }[]) => {
-            const params = unsignedTxs.map((tx: { to: Hex; value?: bigint; data: Hex | undefined }) => ({
-                to: tx.to,
+        async (unsignedTxs: peanutInterfaces.IPeanutUnsignedTransaction[]) => {
+            const params = unsignedTxs.map((tx: peanutInterfaces.IPeanutUnsignedTransaction) => ({
+                to: tx.to! as Hex,
                 value: tx.value?.valueOf(),
-                data: tx.data,
+                data: tx.data as Hex | undefined,
             }))
             let receipt = await handleSendUserOpEncoded(params, PEANUT_WALLET_CHAIN.id.toString())
             return receipt

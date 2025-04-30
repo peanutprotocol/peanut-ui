@@ -220,7 +220,7 @@ const TokenSelector = ({
         const fetchBalances = async () => {
             let balancesToDisplay: IUserBalance[] = []
             if (isWagmiConnected) {
-                balancesToDisplay = (await fetchWalletBalances(wagmiAddress)).balances
+                balancesToDisplay = (await fetchWalletBalances(wagmiAddress!)).balances
             }
 
             if (safeInfo && walletType === 'blockscout') {
