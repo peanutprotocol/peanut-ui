@@ -66,7 +66,7 @@ export const useWallet = () => {
         }
         fetchBalance()
         fetchRewardsWalletBalance()
-    }, [address, fetchBalance])
+    }, [address, fetchBalance, getRewardWalletBalance])
 
     return {
         address: address!,
