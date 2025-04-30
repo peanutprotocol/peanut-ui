@@ -85,28 +85,27 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
                     </Button>
                 )}
             </div>
-            <div className="flex flex-col gap-3">
-                <div className="flex h-full flex-col gap-2 overflow-y-auto">
-                    {filteredChains.length > 0 ? (
-                        filteredChains.map((chain) => (
-                            <NetworkListItem
-                                key={chain.chainId}
-                                chainId={chain.chainId}
-                                name={chain.name}
-                                iconUrl={chain.iconUrl}
-                                isSelected={!chain.isComingSoon && chain.chainId === selectedChainID}
-                                isComingSoon={chain.isComingSoon}
-                                onClick={() => onSelectChain(chain.chainId)}
-                            />
-                        ))
-                    ) : (
-                        <EmptyState
-                            icon="search"
-                            title={`No networks found matching ${searchValue}`}
-                            description="Try searching for a different network"
+
+            <div className="max-h-[calc(70vh-120px)] space-y-3 overflow-y-auto pr-1">
+                {filteredChains.length > 0 ? (
+                    filteredChains.map((chain) => (
+                        <NetworkListItem
+                            key={chain.chainId}
+                            chainId={chain.chainId}
+                            name={chain.name}
+                            iconUrl={chain.iconUrl}
+                            isSelected={!chain.isComingSoon && chain.chainId === selectedChainID}
+                            isComingSoon={chain.isComingSoon}
+                            onClick={() => onSelectChain(chain.chainId)}
                         />
-                    )}
-                </div>
+                    ))
+                ) : (
+                    <EmptyState
+                        icon="search"
+                        title={`No networks found matching ${searchValue}`}
+                        description="Try searching for a different network"
+                    />
+                )}
             </div>
         </div>
     )
