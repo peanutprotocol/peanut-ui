@@ -59,8 +59,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials,
                         <div className="space-y-6">
                             <QRCodeWrapper url={profileUrl} />
                             <Divider className="text-gray-500" text="or" />
-                            <ShareButton url={profileUrl} title="Share your profile">
-                                Your Peanut profile is public
+                            <ShareButton url={username} title="Share your profile">
+                                Share Profile link
                             </ShareButton>
                         </div>
                     </BottomDrawer>

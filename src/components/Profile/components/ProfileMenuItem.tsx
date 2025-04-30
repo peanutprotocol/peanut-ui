@@ -55,7 +55,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
             target={isExternalLink ? '_blank' : undefined}
             rel={isExternalLink ? 'noopener noreferrer' : undefined}
         >
-            <Card position={position} onClick={onClick} className="p-4 hover:bg-grey-4">
+            <Card position={position} onClick={onClick} className="p-4 active:bg-grey-4">
                 {content}
             </Card>
         </Link>
