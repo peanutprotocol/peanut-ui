@@ -1,3 +1,5 @@
+import { SOLANA_ICON, TRON_ICON } from '@/assets'
+import { networks } from '@/config'
 import * as interfaces from '@/interfaces'
 
 interface CombinedType extends interfaces.IPeanutChainDetails {
@@ -25,3 +27,47 @@ export interface TokenSelectorXChainProps extends TokenSelectorProps {
     onReset?: () => void
     isStatic?: boolean
 }
+
+// network configuration for the token selector
+export interface NetworkConfig {
+    chainId: string
+    name: string
+    iconUrl: string
+}
+
+// coming soon networks
+export const TOKEN_SELECTOR_COMING_SOON_NETWORKS: NetworkConfig[] = [
+    {
+        chainId: 'solana',
+        name: 'Solana',
+        iconUrl: SOLANA_ICON,
+    },
+    {
+        chainId: 'tron',
+        name: 'Tron',
+        iconUrl: TRON_ICON,
+    },
+]
+
+// popular networks mapping for the token selector
+export const TOKEN_SELECTOR_POPULAR_NETWORK_IDS = [
+    {
+        chainId: '42161',
+        name: 'ARB',
+    },
+    {
+        chainId: '1',
+        name: 'ETH',
+    },
+    {
+        chainId: '10',
+        name: 'OP',
+    },
+    {
+        chainId: '8453',
+        name: 'BASE',
+    },
+]
+
+// supported network ids for the network list, getting this from reown appkit config
+export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks.map((network) => network.id.toString())
