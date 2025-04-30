@@ -13,6 +13,7 @@ interface TokenListItemProps {
     isSelected: boolean
     position?: CardPosition
     className?: string
+    isPopularToken?: boolean
 }
 
 const TokenListItem: React.FC<TokenListItemProps> = ({
@@ -21,6 +22,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
     isSelected,
     position = 'single',
     className,
+    isPopularToken = false,
 }) => {
     const [tokenPlaceholder, setTokenPlaceholder] = useState(false)
     const { supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
@@ -73,7 +75,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                     on <span className="capitalize">{chainName}</span>
                                 </span>
                             </span>
-                            {!!formattedBalance && (
+                            {!isPopularToken && !!formattedBalance && (
                                 <span className="text-xs font-normal text-grey-1">
                                     Balance: {formattedBalance} {balance.symbol}
                                 </span>

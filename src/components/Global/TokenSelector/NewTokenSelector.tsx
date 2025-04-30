@@ -12,7 +12,7 @@ import Card from '@/components/Global/Card'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { IUserBalance } from '@/interfaces'
+import { IToken, IUserBalance } from '@/interfaces'
 import { fetchWalletBalances, formatAmount } from '@/utils'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import EmptyState from '../EmptyStates/EmptyState'
@@ -45,14 +45,20 @@ interface NewTokenSelectorProps {
 }
 
 const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other' }) => {
+    // local states for the component
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [searchValue, setSearchValue] = useState('')
     const [showNetworkList, setShowNetworkList] = useState(false)
     const [networkSearchValue, setNetworkSearchValue] = useState('')
+    // appkit hooks
     const { open: openAppkitModal } = useAppKit()
     const { disconnect: disconnectWallet } = useDisconnect()
     const { isConnected: isExternalWalletConnected, address: externalWalletAddress } = useAppKitAccount()
-
+    // external wallet balance states
+    const [externalBalances, setExternalBalances] = useState<IUserBalance[] | null>(null)
+    const [isLoadingExternalBalances, setIsLoadingExternalBalances] = useState(false)
+    const prevIsExternalConnected = useRef(isExternalWalletConnected)
+    // usewallet and token selector context
     const { selectedWallet, isConnected } = useWallet()
     const {
         supportedSquidChainsAndTokens,
@@ -62,16 +68,14 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
         selectedChainID,
     } = useContext(tokenSelectorContext)
 
-    const [externalBalances, setExternalBalances] = useState<IUserBalance[] | null>(null)
-    const [isLoadingExternalBalances, setIsLoadingExternalBalances] = useState(false)
-    const prevIsExternalConnected = useRef(isExternalWalletConnected)
-
+    // drawer utility functions
     const openDrawer = useCallback(() => setIsDrawerOpen(true), [])
     const closeDrawer = useCallback(() => {
         setIsDrawerOpen(false)
         setTimeout(() => setSearchValue(''), 200)
     }, [])
 
+    // external wallet balance fetching
     useEffect(() => {
         if (isExternalWalletConnected && !prevIsExternalConnected.current && externalWalletAddress) {
             setIsLoadingExternalBalances(true)
@@ -95,17 +99,15 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
         prevIsExternalConnected.current = isExternalWalletConnected
     }, [isExternalWalletConnected, externalWalletAddress])
 
+    // display tokens memo, for rendering tokens and balances from users wallet
     const displayTokens = useMemo(() => {
         let sourceBalances: IUserBalance[] | null | undefined = null
 
         if (isExternalWalletConnected && externalBalances !== null) {
-            console.log('Using manually fetched external balances.')
             sourceBalances = externalBalances
         } else if (isConnected && selectedWallet?.balances) {
-            console.log("Using balances from useWallet's selectedWallet.")
             sourceBalances = selectedWallet.balances
         } else {
-            console.log('No balances available.')
             sourceBalances = []
         }
 
@@ -141,6 +143,7 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
         externalBalances,
     ])
 
+    // handles token selection based on token balance
     const handleTokenSelect = useCallback(
         (balance: IUserBalance) => {
             const addressToSet = balance.address
@@ -154,6 +157,7 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
         [closeDrawer, setSelectedTokenAddress, setSelectedChainID]
     )
 
+    // handles network selection based on chain id
     const handleNetworkSelect = useCallback(
         (chain: { chainId: string; name: string; iconURI: string }) => {
             setSelectedChainID(chain.chainId)
@@ -162,6 +166,7 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
         [setSelectedChainID, setSelectedTokenAddress, supportedSquidChainsAndTokens]
     )
 
+    // handles free USDC on arb token selection
     const handleFreeTokenSelect = useCallback(() => {
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
@@ -169,11 +174,13 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
         closeDrawer()
     }, [closeDrawer, setSelectedTokenAddress, setSelectedChainID])
 
+    // renders network list
     const handleSearchNetwork = useCallback(() => {
         setShowNetworkList(true)
         setNetworkSearchValue('')
     }, [])
 
+    // handles chain selection based on chain id
     const handleChainSelect = useCallback(
         (chainId: string) => {
             setSelectedChainID(chainId)
@@ -184,6 +191,7 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
         [setSelectedChainID, setSelectedTokenAddress, supportedSquidChainsAndTokens]
     )
 
+    // checks if there are tokens on the selected network
     const hasTokensOnSelectedNetwork = useMemo(() => {
         if (!selectedChainID) return false
 
@@ -198,6 +206,7 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
         return sourceBalances.some((balance) => String(balance.chainId) === selectedChainID)
     }, [selectedChainID, selectedWallet?.balances, isConnected, isExternalWalletConnected, externalBalances])
 
+    // selected network name memo, being used ui
     const selectedNetworkName = useMemo(() => {
         if (!selectedChainID) return null
         const network = supportedSquidChainsAndTokens[selectedChainID]
@@ -210,50 +219,79 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
     let buttonLogoURI: string | undefined
 
     if (selectedTokenAddress && selectedChainID) {
-        let tokenDetails: IUserBalance | null = null
+        let userBalanceDetails: IUserBalance | null = null
+        let generalTokenDetails: IToken | undefined = undefined
 
+        // check if the selected token is peanut wallet token
         if (
             selectedTokenAddress.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
             selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
         ) {
+            // get chain info for the peanut wallet token
+            const freeTokenChain = supportedSquidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
+            // set button display values for the peanut wallet token
             buttonSymbol = PEANUT_WALLET_TOKEN_SYMBOL
-            buttonChainName =
-                supportedSquidChainsAndTokens[PEANUT_WALLET_CHAIN.id]?.axelarChainName || PEANUT_WALLET_CHAIN.name
-            buttonLogoURI = ''
-        } else if (selectedWallet?.balances) {
-            tokenDetails =
-                selectedWallet.balances.find(
-                    (b) =>
-                        b.address.toLowerCase() === selectedTokenAddress.toLowerCase() &&
-                        String(b.chainId) === selectedChainID
-                ) || null
+            buttonChainName = freeTokenChain?.axelarChainName || PEANUT_WALLET_CHAIN.name
+            buttonLogoURI =
+                freeTokenChain?.tokens?.find((t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase())
+                    ?.logoURI || ''
+            buttonFormattedBalance = null
+        } else {
+            // determine which balance source to use (external wallet or connected wallet)
+            let sourceBalances: IUserBalance[] | null | undefined = null
+            if (isExternalWalletConnected && externalBalances !== null) {
+                sourceBalances = externalBalances
+            } else if (isConnected && selectedWallet?.balances) {
+                sourceBalances = selectedWallet.balances
+            }
 
-            if (tokenDetails) {
-                buttonSymbol = tokenDetails.symbol
-                buttonChainName =
-                    supportedSquidChainsAndTokens[String(tokenDetails.chainId)]?.axelarChainName ||
-                    `Chain ${tokenDetails.chainId}`
-                buttonLogoURI = tokenDetails.logoURI
+            // find the user's balance for the selected token and chain
+            if (sourceBalances) {
+                userBalanceDetails =
+                    sourceBalances.find(
+                        (b) =>
+                            b.address.toLowerCase() === selectedTokenAddress.toLowerCase() &&
+                            String(b.chainId) === selectedChainID
+                    ) || null
+            }
 
-                if (
-                    tokenDetails.amount &&
-                    typeof tokenDetails.amount === 'number' &&
-                    tokenDetails.decimals !== undefined &&
-                    tokenDetails.amount > 0
-                ) {
-                    try {
-                        const displayDecimals = Math.min(tokenDetails.decimals ?? 6, 6)
-                        buttonFormattedBalance = formatAmount(tokenDetails.amount.toFixed(displayDecimals))
-                    } catch (error) {
-                        console.error('Error formatting button balance:', error)
-                    }
+            // if found balance details, use them for the button display
+            if (userBalanceDetails) {
+                buttonSymbol = userBalanceDetails.symbol
+                const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
+                buttonChainName = chainInfo?.axelarChainName || `Chain ${selectedChainID}`
+                buttonLogoURI = userBalanceDetails.logoURI
+                buttonFormattedBalance = formatAmount(
+                    userBalanceDetails.amount.toFixed(Math.min(userBalanceDetails.decimals ?? 6, 6))
+                )
+            } else {
+                // if no balance found, try to get token details from chain info
+                const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
+                if (chainInfo?.tokens) {
+                    generalTokenDetails = chainInfo.tokens.find(
+                        (t) => t.address.toLowerCase() === selectedTokenAddress.toLowerCase()
+                    )
+                }
+
+                // if other token details found, use them for the button display
+                if (generalTokenDetails) {
+                    buttonSymbol = generalTokenDetails.symbol
+                    buttonChainName = chainInfo?.axelarChainName || `Chain ${selectedChainID}`
+                    buttonLogoURI = generalTokenDetails.logoURI
+                    buttonFormattedBalance = null
+                } else {
+                    // fallback if no token details found at all
+                    console.warn(`Token details not found for ${selectedTokenAddress} on chain ${selectedChainID}`)
+                    buttonSymbol = '???'
+                    buttonChainName = `Chain ${selectedChainID}`
+                    buttonLogoURI = undefined
+                    buttonFormattedBalance = null
                 }
             }
         }
-    } else {
-        console.log('Render: No selected token/chain in context for button display.')
     }
 
+    // popular chains data from Squid data, using the popular chain ids mapping
     const popularChainIds = useMemo(
         () =>
             TOKEN_SELECTOR_POPULAR_NETWORK_IDS.map((chain) => ({
@@ -263,6 +301,7 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
         [supportedSquidChainsAndTokens]
     )
 
+    // allowed chain ids memo, using the supported network ids mapping
     const allowedChainIds = useMemo(() => {
         return new Set(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS)
     }, [])
@@ -285,6 +324,71 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
             .filter(Boolean) // remove null entries if any chain not found
     }, [supportedSquidChainsAndTokens, popularChainIds])
 
+    // popular tokens memo, for rendering popular tokens (eg, USDC, USDT and native tokens)
+    const popularTokens = useMemo(() => {
+        if (!supportedSquidChainsAndTokens || popularChains.length === 0) {
+            return []
+        }
+
+        const tokens: IUserBalance[] = []
+        const popularSymbolsToFind = ['USDC', 'USDT']
+        const nativeTokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' // note: native token address in squid data is 0xe.. and not 0x00..
+
+        // creates a placeholder balance popular tokens, note we dont show the balance amount for these tokens
+        const createPlaceholderBalance = (token: IToken, chainId: string): IUserBalance => ({
+            ...token,
+            chainId: chainId,
+            amount: 0,
+            price: 0,
+            currency: token.symbol,
+            value: '',
+        })
+
+        // find native token for each popular chain and save them in tokens array
+        popularChains.forEach((chain) => {
+            if (!chain?.chainId) return
+
+            const chainData = supportedSquidChainsAndTokens[chain.chainId]
+            if (!chainData?.tokens) {
+                return
+            }
+
+            const nativeToken = chainData.tokens.find((token) => token.address.toLowerCase() === nativeTokenAddress)
+            if (nativeToken) {
+                tokens.push(createPlaceholderBalance(nativeToken, chain.chainId))
+            } else {
+                console.warn(
+                    `Native token (${nativeTokenAddress}) not found in Squid data for chainId: ${chain.chainId}`
+                )
+            }
+
+            popularSymbolsToFind.forEach((symbol) => {
+                const popularToken = chainData.tokens.find(
+                    (token) => token.symbol.toUpperCase() === symbol.toUpperCase()
+                )
+                if (popularToken) {
+                    if (popularToken.address.toLowerCase() !== nativeTokenAddress) {
+                        tokens.push(createPlaceholderBalance(popularToken, chain.chainId))
+                    }
+                }
+            })
+        })
+
+        // filter out duplicate tokens based on address and chain id
+        const uniqueTokens = Array.from(new Map(tokens.map((t) => [`${t.address}-${t.chainId}`, t])).values())
+
+        // sort popular tokens in order of USDC, USDT and native tokens
+        uniqueTokens.sort((a, b) => {
+            const isANative = a.address.toLowerCase() === nativeTokenAddress
+            const isBNative = b.address.toLowerCase() === nativeTokenAddress
+            if (isANative && !isBNative) return -1
+            if (!isANative && isBNative) return 1
+            return a.symbol.localeCompare(b.symbol)
+        })
+
+        return uniqueTokens
+    }, [popularChains, supportedSquidChainsAndTokens])
+
     return (
         <>
             <Button
@@ -296,7 +400,7 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
                 )}
                 shadowSize="4"
             >
-                {buttonSymbol && buttonChainName ? (
+                {selectedTokenAddress && selectedChainID && buttonSymbol && buttonChainName ? (
                     <div className="flex flex-grow items-center justify-between space-x-3 overflow-hidden">
                         <div className="flex items-center space-x-2 overflow-hidden">
                             <div className="relative flex-shrink-0">
@@ -367,6 +471,7 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
                         />
                     ) : (
                         <div className="flex flex-col space-y-6 pb-10">
+                            {/* Free transaction token section - only rendered for withdraw view */}
                             {viewType === 'withdraw' && (
                                 <>
                                     <Section title="Free transaction token!">
@@ -411,157 +516,40 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
                                 </>
                             )}
 
-                            <Section title="Select a network">
-                                <div className="flex flex-col gap-4">
-                                    <div className="flex items-stretch justify-between space-x-2">
-                                        {popularChains.map((chain) => (
-                                            <NetworkButton
-                                                key={chain?.chainId}
-                                                chainName={chain?.name ?? ''}
-                                                chainIconURI={chain?.iconURI ?? ''}
-                                                onClick={() => chain && handleNetworkSelect(chain)}
-                                                isSelected={chain?.chainId === selectedChainID}
-                                            />
-                                        ))}
-                                        <NetworkButton
-                                            chainName="Search"
-                                            isSearch={true}
-                                            onClick={handleSearchNetwork}
-                                        />
-                                    </div>
-                                </div>
-                            </Section>
-
-                            <Divider className="p-0" dividerClassname="border-grey-1" />
-
-                            <Section title="Select a token" className="space-y-4">
-                                <div className="relative">
-                                    <BaseInput
-                                        variant="md"
-                                        className="h-10 w-full border border-black px-10 text-sm font-normal"
-                                        placeholder="Search for a token"
-                                        value={searchValue}
-                                        onChange={(e) => setSearchValue(e.target.value)}
-                                    />
-                                    <Icon name="search" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2" />
-                                    {searchValue && (
-                                        <Button
-                                            variant="transparent"
-                                            onClick={() => setSearchValue('')}
-                                            className="absolute right-2 top-1/2 w-fit -translate-y-1/2 p-0"
-                                        >
-                                            <div className="flex size-6 items-center justify-center">
-                                                <Icon name="cancel" className="h-5 w-5" />
-                                            </div>
-                                        </Button>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between gap-2 text-sm text-grey-1">
-                                        <div className="flex items-center gap-2">
-                                            {searchValue ? (
-                                                <Icon name="search" size={16} />
-                                            ) : (
-                                                <Icon name="wallet-outline" size={16} />
-                                            )}
-                                            <div>
-                                                {searchValue ? (
-                                                    'Search Results'
-                                                ) : (
-                                                    <div>
-                                                        Your Tokens{' '}
-                                                        {selectedNetworkName && (
-                                                            <span>
-                                                                <span>on </span>
-                                                                <span className="capitalize">
-                                                                    {selectedNetworkName}
-                                                                </span>
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                )}
+                            {/* Popular chains section - rendered for all views except withdraw view */}
+                            {viewType === 'other' && (
+                                <>
+                                    <Section title="Select a network">
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-stretch justify-between space-x-2">
+                                                {popularChains.map((chain) => (
+                                                    <NetworkButton
+                                                        key={chain?.chainId}
+                                                        chainName={chain?.name ?? ''}
+                                                        chainIconURI={chain?.iconURI ?? ''}
+                                                        onClick={() => chain && handleNetworkSelect(chain)}
+                                                        isSelected={chain?.chainId === selectedChainID}
+                                                    />
+                                                ))}
+                                                <NetworkButton
+                                                    chainName="Search"
+                                                    isSearch={true}
+                                                    onClick={handleSearchNetwork}
+                                                />
                                             </div>
                                         </div>
-                                        {selectedNetworkName && (
-                                            <Button
-                                                variant="transparent"
-                                                className="h-fit w-fit p-0"
-                                                onClick={() => setSelectedChainID('')}
-                                            >
-                                                <div className="flex size-6 items-center justify-center">
-                                                    <Icon name="cancel" className="h-4 w-4" />
-                                                </div>
-                                            </Button>
-                                        )}
-                                    </div>
+                                    </Section>
+                                    <Divider className="p-0" dividerClassname="border-grey-1" />
+                                </>
+                            )}
 
-                                    <div className="flex flex-col gap-3">
-                                        {isLoadingExternalBalances ? (
-                                            <div className="py-4 text-center text-sm text-gray-500">
-                                                Loading balances...
-                                            </div>
-                                        ) : !isExternalWalletConnected ? (
-                                            <EmptyState
-                                                title="Connect your wallet"
-                                                icon="txn-off"
-                                                cta={
-                                                    <Button
-                                                        variant="transparent"
-                                                        className="h-6 text-xs font-normal text-grey-1 underline"
-                                                        onClick={() => openAppkitModal()}
-                                                    >
-                                                        Connect wallet to see available tokens
-                                                    </Button>
-                                                }
-                                            />
-                                        ) : externalBalances && externalBalances.length === 0 ? (
-                                            <EmptyState
-                                                title="You have no token balances."
-                                                icon="txn-off"
-                                                cta={
-                                                    <Button
-                                                        variant="transparent"
-                                                        className="h-6 text-xs font-normal text-grey-1 underline"
-                                                        onClick={async () => {
-                                                            if (externalWalletAddress) {
-                                                                await disconnectWallet()
-                                                            }
-
-                                                            await openAppkitModal()
-                                                        }}
-                                                    >
-                                                        Try connecting to a different wallet.
-                                                    </Button>
-                                                }
-                                            />
-                                        ) : selectedChainID && !hasTokensOnSelectedNetwork ? (
-                                            <EmptyState
-                                                title={
-                                                    <span>
-                                                        You don't have any tokens on{' '}
-                                                        <span className="capitalize">{selectedNetworkName}</span>
-                                                    </span>
-                                                }
-                                                icon="wallet-cancel"
-                                                cta={
-                                                    <Button
-                                                        variant="transparent"
-                                                        className="h-6 text-xs font-normal text-grey-1 underline"
-                                                        onClick={() => setSelectedChainID('')}
-                                                    >
-                                                        Show available tokens on other networks
-                                                    </Button>
-                                                }
-                                            />
-                                        ) : searchValue && displayTokens.length === 0 ? (
-                                            <EmptyState
-                                                title="No matching tokens found."
-                                                icon="search"
-                                                description="Try searching for a different token."
-                                            />
-                                        ) : displayTokens && displayTokens.length > 0 ? (
-                                            displayTokens.map((balance) => {
+                            {/* Popular tokens section - only rendered for withdraw view */}
+                            {viewType === 'withdraw' && !!popularTokens.length && (
+                                <>
+                                    <Section title="Popular tokens" className="space-y-4">
+                                        <div className="flex flex-col gap-3">
+                                            {popularTokens.map((token) => {
+                                                const balance = token as IUserBalance
                                                 const isSelected =
                                                     selectedTokenAddress?.toLowerCase() ===
                                                         balance.address.toLowerCase() &&
@@ -569,34 +557,192 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
 
                                                 return (
                                                     <TokenListItem
-                                                        key={`${balance.address}_${String(balance.chainId)}`}
+                                                        key={`${balance.address}_${String(balance.chainId)}_popular`}
                                                         balance={balance}
                                                         onClick={() => handleTokenSelect(balance)}
                                                         isSelected={isSelected}
+                                                        isPopularToken={true}
                                                     />
                                                 )
-                                            })
-                                        ) : (
-                                            <EmptyState
-                                                title="You have no token balances."
-                                                icon="txn-off"
-                                                cta={
-                                                    <Button
-                                                        variant="transparent"
-                                                        className="h-6 text-xs font-normal text-grey-1 underline"
-                                                        onClick={() => {
-                                                            disconnectWallet()
-                                                            openAppkitModal()
-                                                        }}
-                                                    >
-                                                        Try connecting to a different wallet.
-                                                    </Button>
-                                                }
-                                            />
+                                            })}
+                                        </div>
+                                    </Section>
+                                    <Divider className="p-0" dividerClassname="border-grey-1" />
+                                </>
+                            )}
+
+                            {/* USER's wallet tokens section - rendered for all views except withdraw view */}
+                            {viewType === 'other' && (
+                                <Section title="Select a token" className="space-y-4">
+                                    {/* Search input for finding tokens */}
+                                    <div className="relative">
+                                        <BaseInput
+                                            variant="md"
+                                            className="h-10 w-full border border-black px-10 text-sm font-normal"
+                                            placeholder="Search for a token"
+                                            value={searchValue}
+                                            onChange={(e) => setSearchValue(e.target.value)}
+                                        />
+                                        <Icon
+                                            name="search"
+                                            className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2"
+                                        />
+                                        {searchValue && (
+                                            <Button
+                                                variant="transparent"
+                                                onClick={() => setSearchValue('')}
+                                                className="absolute right-2 top-1/2 w-fit -translate-y-1/2 p-0"
+                                            >
+                                                <div className="flex size-6 items-center justify-center">
+                                                    <Icon name="cancel" className="h-5 w-5" />
+                                                </div>
+                                            </Button>
                                         )}
                                     </div>
-                                </div>
-                            </Section>
+
+                                    <div className="space-y-2">
+                                        {/* Section title - based on search value or selected network name */}
+                                        <div className="flex items-center justify-between gap-2 text-sm text-grey-1">
+                                            <div className="flex items-center gap-2">
+                                                {searchValue ? (
+                                                    <Icon name="search" size={16} />
+                                                ) : (
+                                                    <Icon name="wallet-outline" size={16} />
+                                                )}
+                                                <div>
+                                                    {searchValue ? (
+                                                        'Search Results'
+                                                    ) : (
+                                                        <div>
+                                                            Your Tokens{' '}
+                                                            {selectedNetworkName && (
+                                                                <span>
+                                                                    <span>on </span>
+                                                                    <span className="capitalize">
+                                                                        {selectedNetworkName}
+                                                                    </span>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {selectedNetworkName && (
+                                                <Button
+                                                    variant="transparent"
+                                                    className="h-fit w-fit p-0"
+                                                    onClick={() => setSelectedChainID('')}
+                                                >
+                                                    <div className="flex size-6 items-center justify-center">
+                                                        <Icon name="cancel" className="h-4 w-4" />
+                                                    </div>
+                                                </Button>
+                                            )}
+                                        </div>
+
+                                        {/* Token list section with empty states for different scenarios */}
+                                        <div className="flex flex-col gap-3">
+                                            {isLoadingExternalBalances ? (
+                                                <div className="py-4 text-center text-sm text-gray-500">
+                                                    Loading balances...
+                                                </div>
+                                            ) : !isExternalWalletConnected ? (
+                                                <EmptyState
+                                                    title="Connect your wallet"
+                                                    icon="txn-off"
+                                                    cta={
+                                                        <Button
+                                                            variant="transparent"
+                                                            className="h-6 text-xs font-normal text-grey-1 underline"
+                                                            onClick={() => openAppkitModal()}
+                                                        >
+                                                            Connect wallet to see available tokens
+                                                        </Button>
+                                                    }
+                                                />
+                                            ) : externalBalances && externalBalances.length === 0 ? (
+                                                <EmptyState
+                                                    title="You have no token balances."
+                                                    icon="txn-off"
+                                                    cta={
+                                                        <Button
+                                                            variant="transparent"
+                                                            className="h-6 text-xs font-normal text-grey-1 underline"
+                                                            onClick={async () => {
+                                                                if (externalWalletAddress) {
+                                                                    await disconnectWallet()
+                                                                }
+
+                                                                await openAppkitModal()
+                                                            }}
+                                                        >
+                                                            Try connecting to a different wallet.
+                                                        </Button>
+                                                    }
+                                                />
+                                            ) : selectedChainID && !hasTokensOnSelectedNetwork ? (
+                                                <EmptyState
+                                                    title={
+                                                        <span>
+                                                            You don't have any tokens on{' '}
+                                                            <span className="capitalize">{selectedNetworkName}</span>
+                                                        </span>
+                                                    }
+                                                    icon="wallet-cancel"
+                                                    cta={
+                                                        <Button
+                                                            variant="transparent"
+                                                            className="h-6 text-xs font-normal text-grey-1 underline"
+                                                            onClick={() => setSelectedChainID('')}
+                                                        >
+                                                            Show available tokens on other networks
+                                                        </Button>
+                                                    }
+                                                />
+                                            ) : searchValue && displayTokens.length === 0 ? (
+                                                <EmptyState
+                                                    title="No matching tokens found."
+                                                    icon="search"
+                                                    description="Try searching for a different token."
+                                                />
+                                            ) : displayTokens && displayTokens.length > 0 ? (
+                                                displayTokens.map((balance) => {
+                                                    const isSelected =
+                                                        selectedTokenAddress?.toLowerCase() ===
+                                                            balance.address.toLowerCase() &&
+                                                        selectedChainID === String(balance.chainId)
+
+                                                    return (
+                                                        <TokenListItem
+                                                            key={`${balance.address}_${String(balance.chainId)}_balance`}
+                                                            balance={balance}
+                                                            onClick={() => handleTokenSelect(balance)}
+                                                            isSelected={isSelected}
+                                                        />
+                                                    )
+                                                })
+                                            ) : (
+                                                <EmptyState
+                                                    title="You have no token balances."
+                                                    icon="txn-off"
+                                                    cta={
+                                                        <Button
+                                                            variant="transparent"
+                                                            className="h-6 text-xs font-normal text-grey-1 underline"
+                                                            onClick={() => {
+                                                                disconnectWallet()
+                                                                openAppkitModal()
+                                                            }}
+                                                        >
+                                                            Try connecting to a different wallet.
+                                                        </Button>
+                                                    }
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                </Section>
+                            )}
                         </div>
                     )}
                 </div>

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 
 import { Button } from '@/components/0_Bruddle'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
+import EmptyState from '../EmptyStates/EmptyState'
 import { Icon } from '../Icons/Icon'
 import NavHeader from '../NavHeader'
 import NetworkListItem from './NetworkListItem'
@@ -31,6 +32,7 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
     const filteredChains = useMemo(() => {
         const lowerSearchValue = searchValue.toLowerCase()
 
+        // filter active chains that match the search term and are in the allowed chains list
         const activeChains = Object.values(chains)
             .filter((chain) => allowedChainIds.has(chain.chainId))
             .filter(
@@ -45,6 +47,7 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
                 isComingSoon: false,
             }))
 
+        // filter coming soon networks that match the search term
         const filteredComingSoon = comingSoonNetworks
             .filter((network) => network.name.toLowerCase().includes(lowerSearchValue))
             .map((network) => ({
@@ -54,6 +57,7 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
                 isComingSoon: true,
             }))
 
+        // combine active chains and coming soon networks into one list
         return [...activeChains, ...filteredComingSoon]
     }, [chains, searchValue, allowedChainIds, comingSoonNetworks])
 
@@ -96,9 +100,11 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
                             />
                         ))
                     ) : (
-                        <div className="py-4 text-center text-sm text-gray-500">
-                            No networks found matching "{searchValue}"
-                        </div>
+                        <EmptyState
+                            icon="search"
+                            title={`No networks found matching ${searchValue}`}
+                            description="Try searching for a different network"
+                        />
                     )}
                 </div>
             </div>

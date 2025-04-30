@@ -3,6 +3,8 @@ import React from 'react'
 import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { getInitialsFromName } from '@/utils'
 import { Icon } from '../Icons/Icon'
 
 interface NetworkButtonProps {
@@ -21,9 +23,10 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
     isSelected = false,
 }) => (
     <Button
+        variant="stroke"
         className={twMerge(
-            'shadow-2 flex h-fit min-w-14 flex-1 flex-col items-center justify-center gap-1 p-3 text-center hover:bg-grey-1/10',
-            isSelected ? 'bg-primary-3' : 'bg-white'
+            'shadow-2 flex h-fit min-w-14 flex-1 flex-col items-center justify-center gap-1 p-3 text-center text-black hover:text-black',
+            isSelected ? 'bg-primary-3 hover:bg-primary-3' : 'bg-white hover:bg-white'
         )}
         onClick={onClick}
     >
@@ -38,14 +41,14 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
             ) : chainIconURI ? (
                 <Image src={chainIconURI} alt={chainName} width={24} height={24} className="h-6 w-6 rounded-full" />
             ) : (
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-300 text-xs">
-                    {chainName.substring(0, 3).toUpperCase()}
-                </div>
+                <AvatarWithBadge
+                    size="extra-small"
+                    initials={getInitialsFromName(chainName)}
+                    achievementsBadgeSize="extra-small"
+                />
             )}
         </div>
-        <span className="text-sm font-medium">
-            {isSearch ? 'more' : chainName.length > 6 ? chainName.substring(0, 6) : chainName}
-        </span>
+        <span className="text-sm font-medium">{isSearch ? 'more' : chainName}</span>
     </Button>
 )
 
