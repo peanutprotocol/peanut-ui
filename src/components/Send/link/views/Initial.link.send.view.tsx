@@ -1,6 +1,7 @@
 'use client'
 
 import { useCreateLink } from '@/components/Create/useCreateLink'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
@@ -143,7 +144,7 @@ const LinkSendInitialView = () => {
 
             <FileUploadInput
                 attachmentOptions={attachmentOptions}
-                setAttachmentOptions={sendFlowActions.setAttachmentOptions}
+                setAttachmentOptions={(options) => dispatch(sendFlowActions.setAttachmentOptions(options))}
             />
 
             <PeanutSponsored />
@@ -156,11 +157,7 @@ const LinkSendInitialView = () => {
                 >
                     {isLoading ? loadingState : 'Create link'}
                 </Button>
-                {errorState?.showError && (
-                    <div className="text-start">
-                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                    </div>
-                )}
+                {errorState?.showError && <ErrorAlert description={errorState.errorMessage} />}
             </div>
 
             <span className="flex flex-row items-center justify-start gap-1 text-h8">
