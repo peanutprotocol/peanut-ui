@@ -47,13 +47,7 @@ export const Profile = () => {
                     />
                     {/* Menu Items - First Group */}
                     <div>
-                        <ProfileMenuItem
-                            icon="user"
-                            label="Personal details"
-                            href="/profile/details"
-                            position="first"
-                            comingSoon
-                        />
+                        <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
                         <ProfileMenuItem
                             icon="bank"
                             label="Bank accounts"

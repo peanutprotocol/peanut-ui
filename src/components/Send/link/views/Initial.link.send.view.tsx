@@ -2,6 +2,7 @@
 
 import { isGaslessDepositPossible } from '@/components/Create/Create.utils'
 import { useCreateLink } from '@/components/Create/useCreateLink'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
@@ -426,7 +427,7 @@ const LinkSendInitialView = () => {
 
             <FileUploadInput
                 attachmentOptions={attachmentOptions}
-                setAttachmentOptions={sendFlowActions.setAttachmentOptions}
+                setAttachmentOptions={(options) => dispatch(sendFlowActions.setAttachmentOptions(options))}
             />
 
             {isPeanutWallet && <PeanutSponsored />}
@@ -435,11 +436,7 @@ const LinkSendInitialView = () => {
                 <Button onClick={handleOnConfirm} loading={isLoading} disabled={isLoading || !currentInputValue}>
                     {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Create link'}
                 </Button>
-                {errorState?.showError && (
-                    <div className="text-start">
-                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                    </div>
-                )}
+                {errorState?.showError && <ErrorAlert description={errorState.errorMessage} />}
             </div>
             {!crossChainDetails?.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
                 <span className=" text-start text-h8 font-normal">
