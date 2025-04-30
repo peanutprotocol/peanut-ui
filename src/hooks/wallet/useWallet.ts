@@ -69,7 +69,7 @@ export const useWallet = () => {
 
     return {
         address: address!,
-        balance,
+        balance: BigInt(balance),
         isConnected: isKernelClientReady,
         sendTransactions,
         getRewardWalletBalance,
