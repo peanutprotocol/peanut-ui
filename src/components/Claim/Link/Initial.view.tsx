@@ -353,7 +353,7 @@ export const InitialClaimLinkView = ({
                     toChain: toChain ? toChain : selectedChainID.toString(),
                     toToken: toToken ? toToken : selectedTokenAddress,
                     slippage: 1,
-                    fromAddress: claimLinkData.senderAddress,
+                    fromAddress: claimLinkData.sender?.accounts[0].identifier ?? claimLinkData.senderAddress,
                     toAddress:
                         recipientType === 'us' || recipientType === 'iban'
                             ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'

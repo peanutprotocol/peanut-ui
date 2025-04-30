@@ -1,7 +1,6 @@
 'use client'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { useContext, useEffect, useState } from 'react'
-import useClaimLink from './useClaimLink'
 
 import * as assets from '@/assets'
 import * as consts from '@/constants'
@@ -56,7 +55,6 @@ export const Claim = ({}) => {
     const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useWallet()
     const { user } = useAuth()
-    const { getAttachmentInfo } = useClaimLink()
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
@@ -84,10 +82,10 @@ export const Claim = ({}) => {
         try {
             const url = new URL(link)
             const password = url.hash.split('=')[1]
-            const [sendLink, attachmentInfo] = await Promise.all([sendLinksApi.get(link), getAttachmentInfo(link)])
+            const sendLink = await sendLinksApi.get(link)
             setAttachment({
-                message: attachmentInfo?.message,
-                attachmentUrl: attachmentInfo?.fileUrl,
+                message: sendLink.textContent,
+                attachmentUrl: sendLink.fileUrl,
             })
 
             const tokenDetails = await fetchTokenDetails(sendLink.tokenAddress, sendLink.chainId)

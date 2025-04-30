@@ -1,6 +1,5 @@
 'use client'
 
-import { fetchWithSentry } from '@/utils'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { claimLinkGasless, claimLinkXChainGasless } from '@squirrel-labs/peanut-sdk'
 import { useContext } from 'react'
@@ -89,30 +88,6 @@ const useClaimLink = () => {
             console.log(`Switched to chain ${chainId}`)
         } catch (error) {
             console.error('Failed to switch network:', error)
-            Sentry.captureException(error)
-        }
-    }
-
-    const getAttachmentInfo = async (link: string) => {
-        try {
-            const response = await fetchWithSentry('/api/peanut/get-attachment-info', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ link }),
-            })
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
-            const data = await response.json()
-
-            return {
-                fileUrl: data.fileUrl,
-                message: data.message,
-            }
-        } catch (error) {
-            console.error('Failed to get attachment:', error)
             Sentry.captureException(error)
         }
     }

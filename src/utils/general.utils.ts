@@ -418,7 +418,7 @@ export const saveClaimedLinkToLocalStorage = ({
 
         dataArr.push(data)
 
-        localStorage.setItem(key, JSON.stringify(dataArr))
+        localStorage.setItem(key, jsonStringify(dataArr))
 
         console.log('Saved claimed link to localStorage:', data)
     } catch (error) {
