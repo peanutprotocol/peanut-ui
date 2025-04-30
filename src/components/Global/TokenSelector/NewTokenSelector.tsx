@@ -465,7 +465,7 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
                                             {searchValue ? (
                                                 <Icon name="search" size={16} />
                                             ) : (
-                                                <Icon name="wallet" size={16} />
+                                                <Icon name="wallet-outline" size={16} />
                                             )}
                                             <div>
                                                 {searchValue ? (
@@ -545,7 +545,7 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
                                                         <span className="capitalize">{selectedNetworkName}</span>
                                                     </span>
                                                 }
-                                                icon="txn-off"
+                                                icon="wallet-cancel"
                                                 cta={
                                                     <Button
                                                         variant="transparent"
@@ -557,9 +557,11 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
                                                 }
                                             />
                                         ) : searchValue && displayTokens.length === 0 ? (
-                                            <div className="py-4 text-center text-sm text-gray-500">
-                                                No matching tokens found.
-                                            </div>
+                                            <EmptyState
+                                                title="No matching tokens found."
+                                                icon="search"
+                                                description="Try searching for a different token."
+                                            />
                                         ) : displayTokens && displayTokens.length > 0 ? (
                                             displayTokens.map((balance) => {
                                                 const isSelected =
