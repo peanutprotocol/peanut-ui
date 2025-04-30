@@ -32,17 +32,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials,
 
                 {/* Username with share drawer */}
                 <Button
-                    size="small"
+                    size="large"
                     variant="primary-soft"
                     shadowSize="4"
-                    className="flex w-fit items-center justify-center gap-2 rounded-full px-4 py-2"
+                    className="flex h-10 w-fit items-center justify-center rounded-full py-3 pl-6 pr-4"
                     onClick={() => {
                         navigator.clipboard.writeText(profileUrl)
                         setIsDrawerOpen(true)
                     }}
                 >
-                    <span className="font-semibold">peanut.me/{username}</span>
-                    <Icon name="share" size={16} fill="black" />
+                    <div className="text-sm font-semibold">peanut.me/{username}</div>
+                    <div className="-ml-2">
+                        <Icon name="share" size={16} fill="black" />
+                    </div>
                 </Button>
             </div>
             {isDrawerOpen && (

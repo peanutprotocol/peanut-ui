@@ -114,7 +114,12 @@ export const ProfileEditView = () => {
         <div className="space-y-8">
             <NavHeader title="Edit Profile" onPrev={() => router.push('/profile')} />
 
-            <ProfileHeader name={fullName} username={username} initials={initials} isVerified={true} />
+            <ProfileHeader
+                name={fullName}
+                username={username}
+                initials={initials}
+                isVerified={user?.user.kycStatus === 'approved'}
+            />
 
             <div className="space-y-4">
                 <ProfileEditField
