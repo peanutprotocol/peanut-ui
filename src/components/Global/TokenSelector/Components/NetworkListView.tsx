@@ -2,11 +2,11 @@ import React, { useMemo } from 'react'
 
 import { Button } from '@/components/0_Bruddle'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import EmptyState from '../EmptyStates/EmptyState'
-import { Icon } from '../Icons/Icon'
-import NavHeader from '../NavHeader'
+import EmptyState from '../../EmptyStates/EmptyState'
+import { Icon } from '../../Icons/Icon'
+import NavHeader from '../../NavHeader'
+import { NetworkConfig } from '../TokenSelector.consts'
 import NetworkListItem from './NetworkListItem'
-import { NetworkConfig } from './TokenSelector.consts'
 
 interface NetworkListViewProps {
     chains: Record<string, any>

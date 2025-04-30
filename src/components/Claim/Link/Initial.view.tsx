@@ -586,15 +586,7 @@ export const InitialClaimLinkView = ({
                     {(!isConnected || isExternalWallet) &&
                         recipientType !== 'iban' &&
                         recipientType !== 'us' &&
-                        !isPeanutClaimOnlyMode() && (
-                            <TokenSelector
-                                shouldBeConnected={false}
-                                showOnlySquidSupported
-                                onReset={() => {
-                                    resetSelectedToken()
-                                }}
-                            />
-                        )}
+                        !isPeanutClaimOnlyMode() && <TokenSelector />}
                     {/* Route Information & Peanut Sponsored
                      * Shows when:
                      * - Has valid recipient

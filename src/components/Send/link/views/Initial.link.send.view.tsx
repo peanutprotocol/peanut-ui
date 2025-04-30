@@ -22,7 +22,6 @@ import FileUploadInput from '../../../Global/FileUploadInput'
 import Icon from '../../../Global/Icon'
 import MoreInfo from '../../../Global/MoreInfo'
 import TokenAmountInput from '../../../Global/TokenAmountInput'
-import TokenSelector from '../../../Global/TokenSelector/TokenSelector'
 import { createAndProcessLink } from '../../utils/createLinkUtils'
 
 // helper function to update both token and usd values in redux
@@ -168,16 +167,8 @@ const LinkSendInitialView = () => {
     const [currentInputValue, setCurrentInputValue] = useState<string | undefined>(
         (inputDenomination === 'TOKEN' ? tokenValue : usdValue) ?? ''
     )
-    const {
-        selectedWallet,
-        signInModal,
-        isConnected,
-        address,
-        isExternalWallet,
-        isPeanutWallet,
-        refetchBalances,
-        peanutWalletDetails,
-    } = useWallet()
+    const { selectedWallet, signInModal, isConnected, address, isPeanutWallet, refetchBalances, peanutWalletDetails } =
+        useWallet()
 
     const peanutWalletBalance = useMemo(() => {
         if (!peanutWalletDetails?.balance) return undefined
@@ -396,8 +387,6 @@ const LinkSendInitialView = () => {
 
     return (
         <div className="w-full space-y-4">
-            {/* <FlowHeader disableWalletHeader={isLoading} /> */}
-
             <PeanutActionCard type="send" />
 
             <TokenAmountInput
@@ -408,21 +397,6 @@ const LinkSendInitialView = () => {
                 onSubmit={handleOnConfirm}
                 walletBalance={peanutWalletBalance}
             />
-            {isExternalWallet && (
-                <>
-                    <TokenSelector classNameButton="w-full" />
-                    {selectedWallet!.balances!.length === 0 && (
-                        <div
-                            onClick={() => {
-                                open()
-                            }}
-                            className="cursor-pointer text-h9 underline"
-                        >
-                            ( Buy Tokens )
-                        </div>
-                    )}
-                </>
-            )}
 
             <FileUploadInput
                 attachmentOptions={attachmentOptions}

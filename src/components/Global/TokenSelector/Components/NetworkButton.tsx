@@ -5,7 +5,7 @@ import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getInitialsFromName } from '@/utils'
-import { Icon } from '../Icons/Icon'
+import { Icon } from '../../Icons/Icon'
 
 interface NetworkButtonProps {
     chainName: string

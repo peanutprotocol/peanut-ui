@@ -11,7 +11,7 @@ import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
-import { tokenSelectorContext, loadingStateContext } from '@/context'
+import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -311,7 +311,7 @@ export const InitialCashoutView = ({
                     )}
                     {isExternalWallet && (
                         <>
-                            <TokenSelector classNameButton="max-w-[100%]" />
+                            <TokenSelector />
                             {selectedWallet!.balances!.length === 0 && (
                                 <div
                                     onClick={() => {

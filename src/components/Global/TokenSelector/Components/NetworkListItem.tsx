@@ -3,8 +3,8 @@ import React from 'react'
 import { twMerge } from 'tailwind-merge'
 
 import Card from '@/components/Global/Card'
-import StatusBadge from '../Badges/StatusBadge'
-import { Icon } from '../Icons/Icon'
+import StatusBadge from '../../Badges/StatusBadge'
+import { Icon } from '../../Icons/Icon'
 
 interface NetworkListItemProps {
     chainId: string

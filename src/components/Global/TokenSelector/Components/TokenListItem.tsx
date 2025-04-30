@@ -5,7 +5,7 @@ import { formatAmount } from '@/utils'
 import Image from 'next/image'
 import React, { useContext, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Icon } from '../Icons/Icon'
+import { Icon } from '../../Icons/Icon'
 
 interface TokenListItemProps {
     balance: IUserBalance
