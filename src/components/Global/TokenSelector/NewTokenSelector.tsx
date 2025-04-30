@@ -41,18 +41,17 @@ const Section: React.FC<SectionProps> = ({ title, children, className }) => (
 
 interface NewTokenSelectorProps {
     classNameButton?: string
-    onTokenSelect?: (token: IUserBalance) => void
-    onNetworkSelect?: (network: any) => void
+    viewType?: 'withdraw' | 'other'
 }
 
-const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, onTokenSelect, onNetworkSelect }) => {
+const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other' }) => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [searchValue, setSearchValue] = useState('')
     const [showNetworkList, setShowNetworkList] = useState(false)
     const [networkSearchValue, setNetworkSearchValue] = useState('')
     const { open: openAppkitModal } = useAppKit()
     const { disconnect: disconnectWallet } = useDisconnect()
-    const { isConnected: isExternalWalletConnected, address: externalWalletAddress, status } = useAppKitAccount()
+    const { isConnected: isExternalWalletConnected, address: externalWalletAddress } = useAppKitAccount()
 
     const { selectedWallet, isConnected } = useWallet()
     const {
@@ -70,8 +69,7 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
     const openDrawer = useCallback(() => setIsDrawerOpen(true), [])
     const closeDrawer = useCallback(() => {
         setIsDrawerOpen(false)
-        const timer = setTimeout(() => setSearchValue(''), 200)
-        return () => clearTimeout(timer)
+        setTimeout(() => setSearchValue(''), 200)
     }, [])
 
     useEffect(() => {
@@ -151,22 +149,17 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
             setSelectedTokenAddress(addressToSet)
             setSelectedChainID(chainIdToSet)
 
-            onTokenSelect?.(balance)
             closeDrawer()
         },
-        [onTokenSelect, closeDrawer, setSelectedTokenAddress, setSelectedChainID]
+        [closeDrawer, setSelectedTokenAddress, setSelectedChainID]
     )
 
     const handleNetworkSelect = useCallback(
         (chain: { chainId: string; name: string; iconURI: string }) => {
             setSelectedChainID(chain.chainId)
-            setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
-
-            if (onNetworkSelect) {
-                onNetworkSelect(supportedSquidChainsAndTokens[chain.chainId])
-            }
+            setSelectedTokenAddress('')
         },
-        [setSelectedChainID, setSelectedTokenAddress, onNetworkSelect, supportedSquidChainsAndTokens]
+        [setSelectedChainID, setSelectedTokenAddress, supportedSquidChainsAndTokens]
     )
 
     const handleFreeTokenSelect = useCallback(() => {
@@ -184,16 +177,11 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
     const handleChainSelect = useCallback(
         (chainId: string) => {
             setSelectedChainID(chainId)
+            // set token address to native token chain is selected and token is not selected yet
             setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
             setShowNetworkList(false)
-            const selectedNetwork = Object.values(supportedSquidChainsAndTokens).find(
-                (chain) => chain.chainId === chainId
-            )
-            if (selectedNetwork && onNetworkSelect) {
-                onNetworkSelect(selectedNetwork)
-            }
         },
-        [setSelectedChainID, setSelectedTokenAddress, onNetworkSelect, supportedSquidChainsAndTokens]
+        [setSelectedChainID, setSelectedTokenAddress, supportedSquidChainsAndTokens]
     )
 
     const hasTokensOnSelectedNetwork = useMemo(() => {
@@ -379,39 +367,49 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, on
                         />
                     ) : (
                         <div className="flex flex-col space-y-6 pb-10">
-                            <Section title="Free transaction token!">
-                                <Card
-                                    className={twMerge(
-                                        'shadow-4 cursor-pointer border border-black p-3',
-                                        selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
-                                            selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
-                                            ? 'bg-primary-3'
-                                            : 'bg-white',
-                                        classNameButton
-                                    )}
-                                    onClick={handleFreeTokenSelect}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="relative h-8 w-8">
-                                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white">
-                                                    $
+                            {viewType === 'withdraw' && (
+                                <>
+                                    <Section title="Free transaction token!">
+                                        <Card
+                                            className={twMerge(
+                                                'shadow-4 cursor-pointer border border-black p-3',
+                                                selectedTokenAddress?.toLowerCase() ===
+                                                    PEANUT_WALLET_TOKEN.toLowerCase() &&
+                                                    selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
+                                                    ? 'bg-primary-3'
+                                                    : 'bg-white',
+                                                classNameButton
+                                            )}
+                                            onClick={handleFreeTokenSelect}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="relative h-8 w-8">
+                                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white">
+                                                            $
+                                                        </div>
+                                                        <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-gray-700 text-xs text-white">
+                                                            A
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-black">USDC on Arbitrum</p>
+                                                        <p className="text-sm text-gray-600">
+                                                            No gas fees with this token.
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-gray-700 text-xs text-white">
-                                                    A
-                                                </div>
+                                                <Icon
+                                                    name="chevron-up"
+                                                    size={32}
+                                                    className="h-8 w-8 rotate-90 text-black"
+                                                />
                                             </div>
-                                            <div>
-                                                <p className="font-semibold text-black">USDC on Arbitrum</p>
-                                                <p className="text-sm text-gray-600">No gas fees with this token.</p>
-                                            </div>
-                                        </div>
-                                        <Icon name="chevron-up" size={32} className="h-8 w-8 rotate-90 text-black" />
-                                    </div>
-                                </Card>
-                            </Section>
-
-                            <Divider className="p-0" />
+                                        </Card>
+                                    </Section>
+                                    <Divider className="p-0" />
+                                </>
+                            )}
 
                             <Section title="Select a network">
                                 <div className="flex flex-col gap-4">
