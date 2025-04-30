@@ -18,7 +18,7 @@ import Icon from '../Icon'
 import { TokenSelectorProps } from './TokenSelector.consts'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { useAppDispatch } from '@/redux/hooks'
-import { useAccount as useWagmiAccount } from 'wagmi'
+import { useAccount } from 'wagmi'
 
 const TokenList = memo(
     ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: IUserBalance) => void }) => {
@@ -180,7 +180,7 @@ const TokenSelector = ({
     const focusButtonRef = useRef<HTMLButtonElement>(null)
     const [_balancesToDisplay, setBalancesToDisplay] = useState<IUserBalance[]>([])
 
-    const { address: wagmiAddress } = useWagmiAccount()
+    const { address: wagmiAddress, isConnected: isWagmiConnected } = useAccount()
     const {
         selectedChainID,
         selectedTokenAddress,
@@ -219,7 +219,7 @@ const TokenSelector = ({
     useEffect(() => {
         const fetchBalances = async () => {
             let balancesToDisplay: IUserBalance[] = []
-            if (!!wagmiAddress) {
+            if (isWagmiConnected) {
                 balancesToDisplay = (await fetchWalletBalances(wagmiAddress)).balances
             }
 
@@ -251,7 +251,15 @@ const TokenSelector = ({
             return balancesToDisplay
         }
         fetchBalances().then(setBalancesToDisplay)
-    }, [wagmiAddress, safeInfo, selectedChainTokens, walletType, showOnlySquidSupported, supportedSquidChainsAndTokens])
+    }, [
+        wagmiAddress,
+        safeInfo,
+        selectedChainTokens,
+        walletType,
+        showOnlySquidSupported,
+        supportedSquidChainsAndTokens,
+        isWagmiConnected,
+    ])
 
     const filteredBalances = useMemo(() => {
         // initially show all balances and the tokens on the current chain
@@ -360,7 +368,7 @@ const TokenSelector = ({
                 classNameWrapperDiv="px-2 pb-7 pt-8"
                 classWrap="max-w-[32rem]"
             >
-                {!wagmiAddress && shouldBeConnected ? (
+                {!isWagmiConnected && shouldBeConnected ? (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-2 ">
                         <label className="text-center text-h5">Connect a wallet to select a token to send.</label>
                         <button

@@ -19,12 +19,12 @@ export const SuccessClaimLinkView = ({
 }: _consts.IClaimScreenProps) => {
     const connections = useConnections()
     const { isConnected: isPeanutWallet, address } = useWallet()
-    const { chain: currentChain, address: wagmiAddress } = useAccount()
+    const { chain: currentChain, address: wagmiAddress, isConnected: isWagmiConnected } = useAccount()
     const { switchChainAsync } = useSwitchChain()
 
     const { resetTokenContextProvider, selectedChainID } = useContext(tokenSelectorContext)
 
-    const isConnected = useMemo(() => isPeanutWallet || !!wagmiAddress, [isPeanutWallet, wagmiAddress])
+    const isConnected = useMemo(() => isPeanutWallet || isWagmiConnected, [isPeanutWallet, isWagmiConnected])
 
     const explorerUrlWithTx = useMemo(
         () => `${getExplorerUrl(claimLinkData.chainId)}/tx/${transactionHash}`,

@@ -50,7 +50,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     const { user } = useAuth()
     const { requestDetails, error, chargeDetails, beerQuantity } = usePaymentStore()
     const { isConnected: isPeanutWallet } = useWallet()
-    const { address: wagmiAddress } = useAccount()
+    const { address: wagmiAddress, isConnected: isWagmiConnected } = useAccount()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
@@ -76,8 +76,8 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     const requestId = searchParams.get('id')
     const isDepositRequest = searchParams.get('action') === 'deposit'
     const isConnected = useMemo<boolean>(() => {
-        return isPeanutWallet || !!wagmiAddress
-    }, [isPeanutWallet, wagmiAddress])
+        return isPeanutWallet || isWagmiConnected
+    }, [isPeanutWallet, isWagmiConnected])
 
     const recipientChainId = useMemo<string>(() => {
         if (!requestDetails) return ''

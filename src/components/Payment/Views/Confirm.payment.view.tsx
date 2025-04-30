@@ -63,9 +63,9 @@ export default function ConfirmPaymentView() {
     const { rewardWalletBalance } = useWalletStore()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
-    const { chain: currentChain, address: wagmiAddress } = useAccount()
+    const { chain: currentChain, address: wagmiAddress, isConnected: isWagmiConnected } = useAccount()
 
-    const isConnected = useMemo(() => isPeanutWallet || !!wagmiAddress, [isPeanutWallet, wagmiAddress])
+    const isConnected = useMemo(() => isPeanutWallet || isWagmiConnected, [isPeanutWallet, isWagmiConnected])
 
     const isInsufficientRewardsBalance = useMemo(() => {
         if (!isPintaReq) {
