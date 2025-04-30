@@ -9,7 +9,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import Divider from '@/components/0_Bruddle/Divider'
 import BottomDrawer from '@/components/Global/BottomDrawer'
 import Card from '@/components/Global/Card'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken, IUserBalance } from '@/interfaces'
@@ -213,80 +213,110 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
         return network?.axelarChainName || network?.axelarChainName || `Chain ${selectedChainID}`
     }, [selectedChainID, supportedSquidChainsAndTokens])
 
-    let buttonSymbol: string | undefined
-    let buttonChainName: string | undefined
-    let buttonFormattedBalance: string | null = null
-    let buttonLogoURI: string | undefined
+    const peanutWalletTokenDetails = useMemo(() => {
+        if (!supportedSquidChainsAndTokens) return null
 
+        const chainInfo = supportedSquidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
+        if (!chainInfo) return null
+
+        const token = chainInfo.tokens.find((t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase())
+        if (!token) return null
+
+        // check if we have a balance for this token
+        let balance: string | null = null
+
+        // first check external wallet balances
+        if (isExternalWalletConnected && externalBalances) {
+            const externalTokenBalance = externalBalances.find(
+                (b) =>
+                    b.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
+                    String(b.chainId) === PEANUT_WALLET_CHAIN.id.toString()
+            )
+
+            if (externalTokenBalance) {
+                balance = formatAmount(
+                    externalTokenBalance.amount.toFixed(Math.min(externalTokenBalance.decimals ?? 6, 6))
+                )
+            }
+        }
+
+        // if not found in external wallet, check connected wallet
+        if (!balance && isConnected && selectedWallet?.balances) {
+            const walletTokenBalance = selectedWallet.balances.find(
+                (b) =>
+                    b.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
+                    String(b.chainId) === PEANUT_WALLET_CHAIN.id.toString()
+            )
+
+            if (walletTokenBalance) {
+                balance = formatAmount(walletTokenBalance.amount.toFixed(Math.min(walletTokenBalance.decimals ?? 6, 6)))
+            }
+        }
+
+        return {
+            symbol: token.symbol,
+            chainName: chainInfo.axelarChainName,
+            logoURI: token.logoURI,
+            chainLogoURI: chainInfo.chainIconURI,
+            balance: balance,
+        }
+    }, [
+        supportedSquidChainsAndTokens,
+        isExternalWalletConnected,
+        externalBalances,
+        isConnected,
+        selectedWallet?.balances,
+    ])
+
+    // set default token on component initialization to peanut wallet token
+    useEffect(() => {
+        if (!selectedTokenAddress && !selectedChainID && peanutWalletTokenDetails) {
+            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+        }
+    }, [selectedTokenAddress, selectedChainID, peanutWalletTokenDetails, setSelectedTokenAddress, setSelectedChainID])
+
+    // button display variables with defaults from peanut wallet token
+    let buttonSymbol: string | undefined = peanutWalletTokenDetails?.symbol
+    let buttonChainName: string | undefined = peanutWalletTokenDetails?.chainName
+    let buttonFormattedBalance: string | null = peanutWalletTokenDetails?.balance || null
+    let buttonLogoURI: string | undefined = peanutWalletTokenDetails?.logoURI
+
+    // handles button display details based on token and chain selection
+    // only update button display if a token is actually selected
     if (selectedTokenAddress && selectedChainID) {
-        let userBalanceDetails: IUserBalance | null = null
-        let generalTokenDetails: IToken | undefined = undefined
-
-        // check if the selected token is peanut wallet token
+        // check if we're using the peanut wallet token
         if (
-            selectedTokenAddress.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
-            selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
+            selectedTokenAddress.toLowerCase() !== PEANUT_WALLET_TOKEN.toLowerCase() &&
+            selectedChainID !== PEANUT_WALLET_CHAIN.id.toString()
         ) {
-            // get chain info for the peanut wallet token
-            const freeTokenChain = supportedSquidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
-            // set button display values for the peanut wallet token
-            buttonSymbol = PEANUT_WALLET_TOKEN_SYMBOL
-            buttonChainName = freeTokenChain?.axelarChainName || PEANUT_WALLET_CHAIN.name
-            buttonLogoURI =
-                freeTokenChain?.tokens?.find((t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase())
-                    ?.logoURI || ''
-            buttonFormattedBalance = null
-        } else {
-            // determine which balance source to use (external wallet or connected wallet)
-            let sourceBalances: IUserBalance[] | null | undefined = null
-            if (isExternalWalletConnected && externalBalances !== null) {
-                sourceBalances = externalBalances
-            } else if (isConnected && selectedWallet?.balances) {
-                sourceBalances = selectedWallet.balances
-            }
+            // get the appropriate balance source
+            const sourceBalances =
+                isExternalWalletConnected && externalBalances !== null
+                    ? externalBalances
+                    : isConnected && selectedWallet?.balances
+                      ? selectedWallet.balances
+                      : null
 
-            // find the user's balance for the selected token and chain
-            if (sourceBalances) {
-                userBalanceDetails =
-                    sourceBalances.find(
-                        (b) =>
-                            b.address.toLowerCase() === selectedTokenAddress.toLowerCase() &&
-                            String(b.chainId) === selectedChainID
-                    ) || null
-            }
+            // try to find user's balance for this token
+            const userBalanceDetails =
+                sourceBalances?.find(
+                    (b) =>
+                        b.address.toLowerCase() === selectedTokenAddress.toLowerCase() &&
+                        String(b.chainId) === selectedChainID
+                ) || null
 
-            // if found balance details, use them for the button display
+            // get chain info for display
+            const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
+
             if (userBalanceDetails) {
+                // use user's balance details if available
                 buttonSymbol = userBalanceDetails.symbol
-                const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
                 buttonChainName = chainInfo?.axelarChainName || `Chain ${selectedChainID}`
                 buttonLogoURI = userBalanceDetails.logoURI
                 buttonFormattedBalance = formatAmount(
                     userBalanceDetails.amount.toFixed(Math.min(userBalanceDetails.decimals ?? 6, 6))
                 )
-            } else {
-                // if no balance found, try to get token details from chain info
-                const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
-                if (chainInfo?.tokens) {
-                    generalTokenDetails = chainInfo.tokens.find(
-                        (t) => t.address.toLowerCase() === selectedTokenAddress.toLowerCase()
-                    )
-                }
-
-                // if other token details found, use them for the button display
-                if (generalTokenDetails) {
-                    buttonSymbol = generalTokenDetails.symbol
-                    buttonChainName = chainInfo?.axelarChainName || `Chain ${selectedChainID}`
-                    buttonLogoURI = generalTokenDetails.logoURI
-                    buttonFormattedBalance = null
-                } else {
-                    // fallback if no token details found at all
-                    console.warn(`Token details not found for ${selectedTokenAddress} on chain ${selectedChainID}`)
-                    buttonSymbol = '???'
-                    buttonChainName = `Chain ${selectedChainID}`
-                    buttonLogoURI = undefined
-                    buttonFormattedBalance = null
-                }
             }
         }
     }
@@ -400,52 +430,42 @@ const NewTokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, vi
                 )}
                 shadowSize="4"
             >
-                {selectedTokenAddress && selectedChainID && buttonSymbol && buttonChainName ? (
-                    <div className="flex flex-grow items-center justify-between space-x-3 overflow-hidden">
-                        <div className="flex items-center space-x-2 overflow-hidden">
-                            <div className="relative flex-shrink-0">
-                                {buttonLogoURI ? (
-                                    <Image
-                                        src={buttonLogoURI}
-                                        alt={`${buttonSymbol} logo`}
-                                        width={24}
-                                        height={24}
-                                        className="rounded-full"
-                                    />
-                                ) : (
-                                    <Icon name="currency" size={24} />
-                                )}
-                            </div>
-                            <div className="flex flex-col items-start overflow-hidden">
-                                <span className="truncate text-base font-semibold text-black">
-                                    {buttonSymbol}
+                <div className="flex flex-grow items-center justify-between space-x-3 overflow-hidden">
+                    <div className="flex items-center space-x-2 overflow-hidden">
+                        <div className="relative flex-shrink-0">
+                            {buttonLogoURI ? (
+                                <Image
+                                    src={buttonLogoURI}
+                                    alt={`${buttonSymbol} logo`}
+                                    width={24}
+                                    height={24}
+                                    className="rounded-full"
+                                />
+                            ) : (
+                                <Icon name="currency" size={24} />
+                            )}
+                        </div>
+                        <div className="flex flex-col items-start overflow-hidden">
+                            <span className="truncate text-base font-semibold text-black">
+                                {buttonSymbol || 'Select Token'}
+                                {buttonChainName && (
                                     <span className="ml-1 text-sm font-medium text-grey-1">
                                         on <span className="capitalize">{buttonChainName}</span>
                                     </span>
-                                </span>
-                                {buttonFormattedBalance && (
-                                    <span className="truncate text-xs font-normal text-grey-1">
-                                        Balance: {buttonFormattedBalance} {buttonSymbol}
-                                    </span>
                                 )}
-                            </div>
+                            </span>
+                            {buttonFormattedBalance && (
+                                <span className="truncate text-xs font-normal text-grey-1">
+                                    Balance: {buttonFormattedBalance} {buttonSymbol}
+                                </span>
+                            )}
                         </div>
-                        <Icon
-                            name="chevron-up"
-                            className={`h-4 w-4 flex-shrink-0 transition-transform ${
-                                !isDrawerOpen ? 'rotate-180' : ''
-                            }`}
-                        />
                     </div>
-                ) : (
-                    <>
-                        <span>Select Token</span>
-                        <Icon
-                            name="chevron-up"
-                            className={`h-4 w-4 transition-transform ${!isDrawerOpen ? 'rotate-180' : ''}`}
-                        />
-                    </>
-                )}
+                    <Icon
+                        name="chevron-up"
+                        className={`h-4 w-4 flex-shrink-0 transition-transform ${!isDrawerOpen ? 'rotate-180' : ''}`}
+                    />
+                </div>
             </Button>
 
             <BottomDrawer
