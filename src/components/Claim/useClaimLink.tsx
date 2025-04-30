@@ -96,7 +96,6 @@ const useClaimLink = () => {
         claimLink,
         claimLinkXchain,
         switchNetwork,
-        getAttachmentInfo,
     }
 }
 

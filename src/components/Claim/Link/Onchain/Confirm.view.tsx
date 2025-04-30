@@ -20,6 +20,8 @@ import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
 import * as _consts from '../../Claim.consts'
 import useClaimLink from '../../useClaimLink'
+import { formatUnits } from 'viem'
+import { IExtendedLinkDetails } from '@/interfaces'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -82,7 +84,7 @@ export const ConfirmClaimLinkView = ({
                         txHash: claimTxHash,
                         message: attachment.message ? attachment.message : undefined,
                         attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
-                    },
+                    } as unknown as IExtendedLinkDetails,
                 })
                 setTransactionHash(claimTxHash)
                 onNext()
@@ -126,7 +128,7 @@ export const ConfirmClaimLinkView = ({
                     <Card.Title className="mx-auto text-center">
                         <AddressLink address={claimLinkData.senderAddress} /> <br /> sent you <br />
                         <label className="text-start text-h2">
-                            {formatAmount(claimLinkData.tokenAmount)} {claimLinkData.tokenSymbol} <br />
+                            {formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)} {claimLinkData.tokenSymbol}
                             <span className="text-lg">
                                 {' '}
                                 on {supportedSquidChainsAndTokens[claimLinkData.chainId]?.axelarChainName}
@@ -179,7 +181,7 @@ export const ConfirmClaimLinkView = ({
                         </div>
                     ) : (
                         <div className="flex w-full flex-row items-center justify-start gap-1 text-h7">
-                            {formatTokenAmount(Number(claimLinkData.tokenAmount))} {claimLinkData.tokenSymbol} on{' '}
+                            {formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)} {claimLinkData.tokenSymbol}{' '}
                             {
                                 consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
                                     ?.name

@@ -203,7 +203,7 @@ export const Claim = ({}) => {
                             setUserId,
                             initialKYCStep,
                             setInitialKYCStep,
-                        } as _consts.IClaimScreenProps
+                        } as unknown as _consts.IClaimScreenProps
                     }
                 />
             )}
