@@ -9,8 +9,7 @@ import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
-import { walletActions } from '@/redux/slices/wallet-slice'
-import { balanceByToken, ErrorHandler, floorFixed, printableUsdc } from '@/utils'
+import { ErrorHandler, printableUsdc } from '@/utils'
 import { captureException } from '@sentry/nextjs'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { Button } from '../../../0_Bruddle'
@@ -30,21 +29,11 @@ const LinkSendInitialView = () => {
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
 
     const [currentInputValue, setCurrentInputValue] = useState<string | undefined>('')
-    const { selectedWallet, address, refetchBalances, peanutWalletDetails } = useWallet()
+    const { address, fetchBalance, balance } = useWallet()
 
     const peanutWalletBalance = useMemo(() => {
-        if (!peanutWalletDetails?.balance) return undefined
-        return printableUsdc(peanutWalletDetails.balance)
-    }, [peanutWalletDetails?.balance])
-
-    const maxValue = useMemo(() => {
-        if (!selectedWallet?.balances) {
-            return selectedWallet?.balance ? printableUsdc(selectedWallet.balance) : ''
-        }
-        const balance = balanceByToken(selectedWallet.balances, PEANUT_WALLET_CHAIN.id.toString(), PEANUT_WALLET_TOKEN)
-        if (!balance) return ''
-        return floorFixed(balance.amount, PEANUT_WALLET_TOKEN_DECIMALS)
-    }, [selectedWallet?.balances, selectedWallet?.balance])
+        return printableUsdc(balance)
+    }, [balance])
 
     const handleOnNext = useCallback(async () => {
         try {
@@ -66,7 +55,7 @@ const LinkSendInitialView = () => {
 
             dispatch(sendFlowActions.setLink(link))
             dispatch(sendFlowActions.setView('SUCCESS'))
-            refetchBalances(address!)
+            fetchBalance()
 
             // We dont need to wait for this to finish in order to proceed
             setTimeout(async () => {
@@ -101,11 +90,7 @@ const LinkSendInitialView = () => {
         } finally {
             setLoadingState('Idle')
         }
-    }, [isLoading, currentInputValue, createLink, address])
-
-    useEffect(() => {
-        if (!!peanutWalletDetails) dispatch(walletActions.setSelectedWalletId(peanutWalletDetails.id))
-    }, [peanutWalletDetails])
+    }, [isLoading, currentInputValue, createLink, fetchBalance])
 
     useEffect(() => {
         if (!peanutWalletBalance || !currentInputValue) return
@@ -136,7 +121,7 @@ const LinkSendInitialView = () => {
             <TokenAmountInput
                 className="w-full"
                 tokenValue={currentInputValue}
-                maxValue={maxValue}
+                maxValue={peanutWalletBalance}
                 setTokenValue={setCurrentInputValue}
                 onSubmit={handleOnNext}
                 walletBalance={peanutWalletBalance}

@@ -21,7 +21,7 @@ import {
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { AccountType, WalletProviderType } from '@/interfaces'
+import { AccountType } from '@/interfaces'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
@@ -30,26 +30,27 @@ import { walletActions } from '@/redux/slices/wallet-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { CreateChargeRequest } from '@/services/services.types'
-import { ErrorHandler, formatAmount, getTokenDecimals, getTokenSymbol, isNativeCurrency } from '@/utils'
+import {
+    ErrorHandler,
+    formatAmount,
+    getTokenDecimals,
+    getTokenSymbol,
+    isNativeCurrency,
+    printableAddress,
+} from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { PaymentInfoRow } from '../PaymentInfoRow'
+import { useAccount } from 'wagmi'
 
 export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: ParsedURL & { isPintaReq?: boolean }) => {
     const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { requestDetails, error, chargeDetails, beerQuantity } = usePaymentStore()
-    const {
-        signInModal,
-        isPeanutWallet,
-        selectedWallet,
-        isExternalWallet,
-        isWalletConnected,
-        wallets,
-        selectPeanutWallet,
-    } = useWallet()
+    const { isConnected: isPeanutWallet } = useWallet()
+    const { address: wagmiAddress } = useAccount()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
@@ -75,8 +76,8 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     const requestId = searchParams.get('id')
     const isDepositRequest = searchParams.get('action') === 'deposit'
     const isConnected = useMemo<boolean>(() => {
-        return selectedWallet ? isWalletConnected(selectedWallet) : false
-    }, [isWalletConnected, selectedWallet])
+        return isPeanutWallet || !!wagmiAddress
+    }, [isPeanutWallet, wagmiAddress])
 
     const recipientChainId = useMemo<string>(() => {
         if (!requestDetails) return ''
@@ -243,7 +244,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         }
 
         if (!isConnected) {
-            signInModal.open()
+            dispatch(walletActions.setSignInModalVisible(true))
             return
         }
 
@@ -497,24 +498,10 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         }
     }, [isPintaReq, inputTokenAmount])
 
-    // handle auto-selection of rewards wallet if token is PNT
-    useEffect(() => {
-        if (!wallets?.length) return
-
-        if (token?.symbol === 'PNT') {
-            const rewardsWallet = wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.REWARDS)
-            if (rewardsWallet) {
-                dispatch(walletActions.setSelectedWalletId(rewardsWallet.id))
-            }
-        } else if (selectedWallet?.walletProviderType === WalletProviderType.REWARDS) {
-            selectPeanutWallet()
-        }
-    }, [token?.symbol, wallets, selectedWallet?.walletProviderType, selectPeanutWallet])
-
     if (isPintaReq) {
         return (
             <div className="space-y-4">
-                {!!user && <FlowHeader hideWalletHeader={!isConnected} isPintaReq />}
+                {!!user && <FlowHeader />}
                 <PintaReqViewWrapper view="INITIAL">
                     <BeerInput disabled={!!amount} />
                     <div className="space-y-2">
@@ -541,7 +528,15 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
 
     return (
         <div className="space-y-4">
-            <FlowHeader hideWalletHeader={!isConnected} isPintaReq={token?.symbol === 'PNT'} />
+            <FlowHeader
+                rightElement={
+                    !isPeanutWallet ? (
+                        <Button variant="dark" className="h-7 text-sm" onClick={() => openReownModal()}>
+                            {wagmiAddress ? printableAddress(wagmiAddress) : 'Connect Wallet'}
+                        </Button>
+                    ) : null
+                }
+            />
             {/* Show recipient from parsed data */}
             <div className="text-h6 font-bold">
                 Sending to <AddressLink address={recipient.identifier} />
@@ -553,7 +548,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                 disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
             />
             {renderRequestedPaymentDetails()}
-            {isExternalWallet && (
+            {!isPeanutWallet && (
                 <div>
                     <div className="mb-2 text-sm font-medium">Choose your payment method:</div>
                     <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />

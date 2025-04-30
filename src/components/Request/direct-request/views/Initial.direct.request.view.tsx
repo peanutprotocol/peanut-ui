@@ -20,7 +20,7 @@ interface DirectRequestInitialViewProps {
 
 const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) => {
     const router = useRouter()
-    const { peanutWalletDetails } = useWallet()
+    const { balance } = useWallet()
     const [user, setUser] = useState<ApiUser | null>(null)
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
@@ -31,9 +31,8 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const [view, setView] = useState<'initial' | 'confirm' | 'success'>('initial')
 
     const peanutWalletBalance = useMemo(() => {
-        if (!peanutWalletDetails?.balance) return undefined
-        return printableUsdc(peanutWalletDetails.balance)
-    }, [peanutWalletDetails?.balance])
+        return printableUsdc(balance)
+    }, [balance])
 
     const handleTokenValueChange = (value: string | undefined) => {
         setCurrentInputValue(value || '')

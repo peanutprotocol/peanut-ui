@@ -13,7 +13,6 @@ import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import { SQUID_API_URL } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { WalletProviderType } from '@/interfaces'
 import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
@@ -29,13 +28,16 @@ import {
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { useSwitchChain } from 'wagmi'
+import { useSwitchChain, useSendTransaction, useConfig } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
+import type { TransactionReceipt } from 'viem'
+import { waitForTransactionReceipt } from 'wagmi/actions'
+import { useAccount } from 'wagmi'
 
 export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
-    const { isConnected, chain: currentChain, address, isPeanutWallet, selectedWallet, isExternalWallet } = useWallet()
+    const { isConnected: isPeanutWallet, address, sendTransactions } = useWallet()
     const { attachmentOptions, parsedPaymentData, error, chargeDetails, beerQuantity } = usePaymentStore()
     const { selectedTokenData, selectedChainID, isXChain, setIsXChain, selectedTokenAddress } =
         useContext(tokenSelectorContext)
@@ -45,7 +47,7 @@ export default function ConfirmPaymentView() {
     const [isCalculatingFees, setIsCalculatingFees] = useState(false)
     const [isEstimatingGas, setIsEstimatingGas] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const { sendTransactions, checkUserHasEnoughBalance, estimateGasFee } = useCreateLink()
+    const { estimateGasFee } = useCreateLink()
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>()
     const [xChainUnsignedTxs, setXChainUnsignedTxs] = useState<
         peanutInterfaces.IPeanutUnsignedTransaction[] | undefined
@@ -59,13 +61,18 @@ export default function ConfirmPaymentView() {
     const [feeOptions, setFeeOptions] = useState<any | undefined>(undefined)
     const isPintaReq = parsedPaymentData?.token?.symbol === 'PNT'
     const { rewardWalletBalance } = useWalletStore()
+    const { sendTransactionAsync } = useSendTransaction()
+    const config = useConfig()
+    const { chain: currentChain, address: wagmiAddress } = useAccount()
+
+    const isConnected = useMemo(() => isPeanutWallet || !!wagmiAddress, [isPeanutWallet, wagmiAddress])
 
     const isInsufficientRewardsBalance = useMemo(() => {
-        if (!isPintaReq || selectedWallet?.walletProviderType !== WalletProviderType.REWARDS) {
+        if (!isPintaReq) {
             return false
         }
         return Number(rewardWalletBalance) < beerQuantity
-    }, [isPintaReq, selectedWallet, rewardWalletBalance, beerQuantity])
+    }, [isPintaReq, rewardWalletBalance, beerQuantity])
 
     // call charges service to get chargeDetails details
     useEffect(() => {
@@ -153,7 +160,7 @@ export default function ConfirmPaymentView() {
 
     // prepare transaction
     const prepareTransaction = async () => {
-        if (!chargeDetails || !address) return
+        if (!chargeDetails || (!address && !wagmiAddress)) return
 
         setIsSubmitting(true)
         dispatch(paymentActions.setError(null))
@@ -184,7 +191,7 @@ export default function ConfirmPaymentView() {
                         tokenDecimals: chargeDetails.tokenDecimals,
                         tokenType: chargeDetails.tokenType,
                     },
-                    address
+                    address ?? wagmiAddress
                 )
 
                 if (!txData?.unsignedTxs) {
@@ -228,7 +235,7 @@ export default function ConfirmPaymentView() {
     // prepare transaction when chargeDetails is ready
     useEffect(() => {
         prepareTransaction()
-    }, [chargeDetails, address, selectedChainID, selectedTokenData])
+    }, [chargeDetails, address, wagmiAddress, selectedChainID, selectedTokenData])
 
     // reset error when component mounts
     useEffect(() => {
@@ -237,7 +244,7 @@ export default function ConfirmPaymentView() {
 
     // handle payment
     const handlePayment = useCallback(async () => {
-        if (!isConnected || !address || !chargeDetails || !selectedTokenData) return
+        if (!isConnected || !chargeDetails || !selectedTokenData) return
         if ((isXChain || diffTokens) && !xChainUnsignedTxs) {
             dispatch(paymentActions.setError('Cross-chain transaction not ready'))
             return
@@ -253,10 +260,7 @@ export default function ConfirmPaymentView() {
         dispatch(paymentActions.setError(null))
 
         try {
-            // check balance and switch network
-            await checkUserHasEnoughBalance({ tokenValue: estimatedFromValue })
-
-            if (isExternalWallet && currentChain && selectedChainID !== String(currentChain?.id)) {
+            if (!isPeanutWallet && currentChain && selectedChainID !== String(currentChain?.id)) {
                 await switchNetworkUtil({
                     chainId: selectedChainID,
                     currentChainId: String(currentChain?.id),
@@ -267,17 +271,41 @@ export default function ConfirmPaymentView() {
                 })
             }
 
-            // sign and send transaction
-            const receipts = await sendTransactions({
-                preparedDepositTxs: {
-                    unsignedTxs:
-                        isXChain || diffTokens
-                            ? (xChainUnsignedTxs as peanutInterfaces.IPeanutUnsignedTransaction[])
-                            : [unsignedTx as peanutInterfaces.IPeanutUnsignedTransaction],
-                },
-                feeOptions,
-            })
-            const receipt = receipts[receipts.length - 1]
+            const transactions =
+                isXChain || diffTokens
+                    ? (xChainUnsignedTxs as peanutInterfaces.IPeanutUnsignedTransaction[])
+                    : [unsignedTx as peanutInterfaces.IPeanutUnsignedTransaction]
+            let receipt: TransactionReceipt
+            if (isPeanutWallet) {
+                receipt = await sendTransactions(transactions)
+            } else {
+                const receipts = []
+                for (const tx of transactions) {
+                    setLoadingState('Sign in wallet')
+
+                    let hash = await sendTransactionAsync({
+                        to: (tx.to ? tx.to : '') as `0x${string}`,
+                        value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                        data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                        gas: feeOptions?.gas ? BigInt(feeOptions.gas.toString()) : undefined,
+                        gasPrice: feeOptions?.gasPrice ? BigInt(feeOptions.gasPrice.toString()) : undefined,
+                        maxFeePerGas: feeOptions?.maxFeePerGas
+                            ? BigInt(feeOptions?.maxFeePerGas.toString())
+                            : undefined,
+                        maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
+                            ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
+                            : undefined,
+                        chainId: Number(selectedChainID), //TODO: (mentioning) chainId as number here
+                    })
+                    setLoadingState('Executing transaction')
+                    const receipt = await waitForTransactionReceipt(config, {
+                        hash: hash,
+                        chainId: Number(selectedChainID),
+                    })
+                    receipts.push(receipt)
+                }
+                receipt = receipts[receipts.length - 1]
+            }
 
             if (!receipt) {
                 throw new Error('Failed to send transaction')
@@ -305,18 +333,15 @@ export default function ConfirmPaymentView() {
             setIsSubmitting(false)
         }
     }, [
-        isConnected,
-        address,
+        isPeanutWallet,
         chargeDetails,
         selectedTokenData,
         isXChain,
         diffTokens,
         xChainUnsignedTxs,
         unsignedTx,
-        checkUserHasEnoughBalance,
         sendTransactions,
         selectedChainID,
-        isExternalWallet,
     ])
 
     // Get button text based on state
@@ -467,14 +492,11 @@ export default function ConfirmPaymentView() {
         return (
             <div className="space-y-4">
                 <FlowHeader
-                    hideWalletHeader={!isConnected}
-                    isPintaReq
                     onPrev={() => {
                         dispatch(paymentActions.setView('INITIAL'))
                         window.history.replaceState(null, '', `${window.location.pathname}`)
                         dispatch(paymentActions.setChargeDetails(null))
                     }}
-                    disableWalletHeader
                 />
                 <PintaReqViewWrapper view="CONFIRM">
                     <div className="flex flex-col items-center justify-center gap-3 pt-2">
@@ -524,7 +546,6 @@ export default function ConfirmPaymentView() {
                     window.history.replaceState(null, '', `${window.location.pathname}`)
                     dispatch(paymentActions.setChargeDetails(null))
                 }}
-                disableWalletHeader
             />
             <div className="text-start text-h4 font-bold">Confirm Details</div>
             <div className="">

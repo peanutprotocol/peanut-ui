@@ -24,9 +24,6 @@ import { TOOLTIPS } from '@/constants/tooltips'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { WalletProviderType } from '@/interfaces'
-import { useAppDispatch } from '@/redux/hooks'
-import { walletActions } from '@/redux/slices/wallet-slice'
 import {
     areEvmAddressesEqual,
     checkifImageType,
@@ -60,7 +57,6 @@ export const InitialClaimLinkView = ({
     tokenPrice,
     setClaimType,
     setEstimatedPoints,
-    estimatedPoints,
     attachment,
     setTransactionHash,
     onCustom,
@@ -74,7 +70,6 @@ export const InitialClaimLinkView = ({
     setUserType,
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
-    const dispatch = useAppDispatch()
     const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
@@ -98,15 +93,7 @@ export const InitialClaimLinkView = ({
         supportedSquidChainsAndTokens,
     } = useContext(tokenSelectorContext)
     const { claimLink } = useClaimLink()
-    const {
-        isConnected,
-        address,
-        isExternalWallet,
-        isPeanutWallet,
-        selectedWallet,
-        refetchBalances,
-        selectPeanutWallet,
-    } = useWallet()
+    const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
     const { user } = useAuth()
 
     const resetSelectedToken = useCallback(() => {
@@ -126,20 +113,19 @@ export const InitialClaimLinkView = ({
             errorMessage: '',
         })
 
-        if (recipient.address === '' || !address) return
+        if (recipient.address === '') return
 
         try {
             setLoadingState('Executing transaction')
             if (isPeanutWallet) {
-                const claimedLink = await sendLinksApi.claim(user?.user.username!, claimLinkData.link)
+                await sendLinksApi.claim(user?.user.username!, claimLinkData.link)
 
                 setClaimType('claim')
-                setTransactionHash(claimedLink.claim!.txHash)
                 onCustom('SUCCESS')
-                refetchBalances(address)
+                fetchBalance()
             } else {
                 const claimTxHash = await claimLink({
-                    address: recipient.address ?? '',
+                    address: recipient.address,
                     link: claimLinkData.link,
                 })
                 setClaimType('claim')
@@ -156,7 +142,7 @@ export const InitialClaimLinkView = ({
         } finally {
             setLoadingState('Idle')
         }
-    }, [claimLinkData.link, isPeanutWallet, address, refetchBalances, recipient.address])
+    }, [claimLinkData.link, isPeanutWallet, fetchBalance, recipient.address])
 
     useEffect(() => {
         if (isPeanutWallet) resetSelectedToken()
@@ -292,16 +278,6 @@ export const InitialClaimLinkView = ({
     }, [recipient.address, isValidRecipient, claimLinkData.amount, claimLinkData.chainId, tokenPrice])
 
     useEffect(() => {
-        if (recipient.address) return
-        if (isConnected && address) {
-            setRecipient({ name: undefined, address })
-        } else {
-            setRecipient({ name: undefined, address: '' })
-            setIsValidRecipient(false)
-        }
-    }, [address])
-
-    useEffect(() => {
         if (
             selectedChainID === claimLinkData.chainId &&
             areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
@@ -413,21 +389,6 @@ export const InitialClaimLinkView = ({
     }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute])
 
     useEffect(() => {
-        // set rewards wallet if user is connected and claim link is for Pinta
-        if (!user) return
-        if (isReward) {
-            dispatch(walletActions.setSelectedWalletId('pinta-wallet'))
-
-            if (address) {
-                setRecipient({ name: undefined, address })
-                setIsValidRecipient(true)
-            }
-        } else if (selectedWallet?.walletProviderType === WalletProviderType.REWARDS) {
-            selectPeanutWallet()
-        }
-    }, [isReward, user, address, selectedWallet?.walletProviderType, selectPeanutWallet])
-
-    useEffect(() => {
         if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
             return
         }
@@ -436,41 +397,38 @@ export const InitialClaimLinkView = ({
     }, [recipientType])
 
     useEffect(() => {
-        if (!isConnected) {
+        if (!isPeanutWallet) {
             setRecipient({ name: undefined, address: '' })
             setIsValidRecipient(false)
             return
         }
 
-        // only reset states if the wallet type changes or when selected wallet changes
-        if (selectedWallet && !address) {
-            // reset states
-            setRecipient({ name: undefined, address: '' })
-            setIsValidRecipient(false)
-            setSelectedRoute(null)
-            setHasFetchedRoute(false)
+        // reset states
+        setRecipient({ name: undefined, address: '' })
+        setIsValidRecipient(false)
+        setSelectedRoute(null)
+        setHasFetchedRoute(false)
 
-            if (isPeanutWallet) {
-                setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-                setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-                if (Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
-                    setRefetchXchainRoute(true)
-                    setIsXChain(true)
-                }
-            } else {
-                setSelectedChainID(claimLinkData.chainId)
-                setSelectedTokenAddress(claimLinkData.tokenAddress)
+        if (isPeanutWallet) {
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+            if (Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+                setRefetchXchainRoute(true)
+                setIsXChain(true)
             }
+        } else {
+            setSelectedChainID(claimLinkData.chainId)
+            setSelectedTokenAddress(claimLinkData.tokenAddress)
         }
 
         // set new recipient address after a short delay to ensure proper UI update
-        if (address && !recipient.address) {
+        if (address) {
             setTimeout(() => {
-                setRecipient({ name: undefined, address: address })
+                setRecipient({ name: undefined, address })
                 setIsValidRecipient(true)
             }, 100)
         }
-    }, [selectedWallet, isConnected, isPeanutWallet, address])
+    }, [isPeanutWallet, address])
 
     // handle xchain claim states
     useEffect(() => {
@@ -514,7 +472,7 @@ export const InitialClaimLinkView = ({
 
     return (
         <div>
-            {!!user && <FlowHeader isPintaClaim={isReward} disableWalletHeader={isReward} />}
+            {!!user && <FlowHeader />}
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
                     <Card.Title className="mx-auto">
@@ -523,7 +481,10 @@ export const InitialClaimLinkView = ({
                                 <span>You received</span>
                             ) : (
                                 <>
-                                    <AddressLink address={claimLinkData.senderAddress} /> sent you
+                                    <AddressLink
+                                        address={claimLinkData.sender?.username ?? claimLinkData.senderAddress}
+                                    />{' '}
+                                    sent you
                                 </>
                             )}
                             {!isReward && tokenPrice ? (
@@ -574,7 +535,7 @@ export const InitialClaimLinkView = ({
                     {/* Token Selector
                      * We don't want to show this if we're claiming to peanut wallet. Else its okay
                      */}
-                    {(!isConnected || isExternalWallet) &&
+                    {!isPeanutWallet &&
                         recipientType !== 'iban' &&
                         recipientType !== 'us' &&
                         !isPeanutClaimOnlyMode() && (
@@ -661,7 +622,7 @@ export const InitialClaimLinkView = ({
                             <>
                                 {/* Manual Input Section - Always visible in non-peanut-only mode */}
                                 <div className="flex w-full flex-col gap-4">
-                                    {(!isConnected || isExternalWallet) && (
+                                    {!isPeanutWallet && (
                                         <GeneralRecipientInput
                                             className="pl-8"
                                             placeholder="wallet address, ENS name or bank account"

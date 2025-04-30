@@ -1,5 +1,5 @@
 'use client'
-import React, { createContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useEffect, useState } from 'react'
 
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
 import {
@@ -47,7 +47,7 @@ export const tokenSelectorContext = createContext({
  * It handles fetching token prices, updating context values, and resetting the provider based on user preferences and wallet connection status.
  */
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
-    const { isPeanutWallet } = useWallet()
+    const { isConnected: isPeanutWallet } = useWallet()
 
     const peanutWalletTokenData = {
         price: 1,

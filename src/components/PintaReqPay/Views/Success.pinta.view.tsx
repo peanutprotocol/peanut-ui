@@ -67,7 +67,6 @@ const PintaReqPaySuccessView = () => {
                     onPrev={() => {
                         dispatch(paymentActions.setView('CONFIRM'))
                     }}
-                    disableWalletHeader
                 />
 
                 <PintaReqViewWrapper view="SUCCESS">

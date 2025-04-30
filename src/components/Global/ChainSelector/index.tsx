@@ -2,8 +2,7 @@
 
 import { supportedPeanutChains } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { IPeanutChainDetails } from '@/interfaces'
+import { IPeanutChainDetails, IUserBalance } from '@/interfaces'
 import { calculateValuePerChain, formatTokenAmount } from '@/utils'
 import { Menu, Transition } from '@headlessui/react'
 import { useContext, useMemo, useState } from 'react'
@@ -22,19 +21,16 @@ type Chain = {
 interface IChainSelectorProps {
     chainsToDisplay?: IPeanutChainDetails[]
     onChange?: (chainId: string) => void
+    balances: IUserBalance[]
 }
 
-const ChainSelector = ({ chainsToDisplay, onChange }: IChainSelectorProps) => {
+const ChainSelector = ({ chainsToDisplay, onChange, balances }: IChainSelectorProps) => {
     const [, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
-    const { selectedWallet } = useWallet()
 
     const { selectedChainID, setSelectedChainID } = useContext(tokenSelectorContext)
 
-    const valuePerChain = useMemo(
-        () => calculateValuePerChain(selectedWallet?.balances ?? []),
-        [selectedWallet?.balances]
-    )
+    const valuePerChain = useMemo(() => calculateValuePerChain(balances), [balances])
 
     const _chainsToDisplay = useMemo(() => {
         let chains

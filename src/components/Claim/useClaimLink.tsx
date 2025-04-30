@@ -10,9 +10,11 @@ import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { isTestnetChain } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
+import { useAccount } from 'wagmi'
 
 const useClaimLink = () => {
-    const { chain: currentChain, refetchBalances } = useWallet()
+    const { fetchBalance } = useWallet()
+    const { chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
 
     const { setLoadingState } = useContext(loadingStateContext)
@@ -27,8 +29,7 @@ const useClaimLink = () => {
                 APIKey: 'doesnt-matter',
             })
 
-            // refetch wallet balance after successful claim
-            refetchBalances(address)
+            fetchBalance()
 
             return claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''
         } catch (error) {

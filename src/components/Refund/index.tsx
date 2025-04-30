@@ -7,21 +7,21 @@ import * as consts from '@/constants'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { getExplorerUrl } from '@/utils'
-import { useAppKit } from '@reown/appkit/react'
 import { useContext, useState } from 'react'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { Button, Card } from '../0_Bruddle'
 import BaseInput from '../0_Bruddle/BaseInput'
 import PageContainer from '../0_Bruddle/PageContainer'
-import { useCreateLink } from '../Create/useCreateLink'
 import Select from '../Global/Select'
 import * as Sentry from '@sentry/nextjs'
+import { walletActions } from '../../redux/slices/wallet-slice'
+import { useAppDispatch } from '@/redux/hooks'
 
 export const Refund = () => {
-    const { isConnected, signInModal } = useWallet()
+    const { isConnected } = useWallet()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
-    const { open } = useAppKit()
+    const dispatch = useAppDispatch()
 
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -42,8 +42,6 @@ export const Refund = () => {
     })
     const refundFormWatch = refundForm.watch()
 
-    const { switchNetwork } = useCreateLink()
-
     const refundDeposit = async (refundFormData: { chainId: string; transactionHash: string }) => {
         try {
             if (refundFormData.chainId == '' || refundFormData.transactionHash == '') {
@@ -53,8 +51,6 @@ export const Refund = () => {
                 })
                 return
             }
-
-            await switchNetwork(refundFormData.chainId)
 
             setLoadingState('Getting deposit details')
 
@@ -173,7 +169,7 @@ export const Refund = () => {
                                 type={isConnected ? 'submit' : 'button'}
                                 onClick={() => {
                                     if (!isConnected) {
-                                        signInModal.open()
+                                        dispatch(walletActions.setSignInModalVisible(true))
                                     }
                                 }}
                                 disabled={isLoading || claimedExploredUrlWithHash ? true : false}

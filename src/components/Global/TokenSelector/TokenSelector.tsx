@@ -3,7 +3,7 @@
 import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { IToken, IUserBalance } from '@/interfaces'
-import { areEvmAddressesEqual, formatTokenAmount } from '@/utils'
+import { areEvmAddressesEqual, formatTokenAmount, fetchWalletBalances } from '@/utils'
 import { useContext, useEffect, useMemo, useRef, useState, memo, useCallback } from 'react'
 import ChainSelector from '../ChainSelector'
 import Modal from '../Modal'
@@ -12,11 +12,13 @@ import { AdvancedTokenSelectorButton } from './Components'
 
 import { CrispButton } from '@/components/CrispChat'
 import { useWalletType } from '@/hooks/useWalletType'
-import { useWallet } from '@/hooks/wallet/useWallet'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import Image from 'next/image'
 import Icon from '../Icon'
 import { TokenSelectorProps } from './TokenSelector.consts'
+import { walletActions } from '@/redux/slices/wallet-slice'
+import { useAppDispatch } from '@/redux/hooks'
+import { useAccount as useWagmiAccount } from 'wagmi'
 
 const TokenList = memo(
     ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: IUserBalance) => void }) => {
@@ -170,13 +172,15 @@ const TokenSelector = ({
     showOnlySquidSupported = false,
     onReset,
 }: TokenSelectorProps) => {
+    const dispatch = useAppDispatch()
     const [visible, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
     const [selectedBalance, setSelectedBalance] = useState<IUserBalance | undefined>(undefined)
     const [hasUserChangedChain, setUserChangedChain] = useState(false)
     const focusButtonRef = useRef<HTMLButtonElement>(null)
+    const [_balancesToDisplay, setBalancesToDisplay] = useState<IUserBalance[]>([])
 
-    const { isConnected, signInModal, selectedWallet } = useWallet()
+    const { address: wagmiAddress } = useWagmiAccount()
     const {
         selectedChainID,
         selectedTokenAddress,
@@ -212,43 +216,42 @@ const TokenSelector = ({
         }))
     }, [selectedChainID, supportedSquidChainsAndTokens, showOnlySquidSupported, shouldBeConnected])
 
-    const _balancesToDisplay = useMemo(() => {
-        let balancesToDisplay: IUserBalance[]
-        const balances = selectedWallet?.balances ?? []
+    useEffect(() => {
+        const fetchBalances = async () => {
+            let balancesToDisplay: IUserBalance[] = []
+            if (!!wagmiAddress) {
+                balancesToDisplay = (await fetchWalletBalances(wagmiAddress)).balances
+            }
 
-        if (safeInfo && walletType === 'blockscout') {
-            balancesToDisplay = balances.filter((balance) => balance.chainId.toString() === safeInfo.chainId.toString())
-        } else {
-            balancesToDisplay = balances
+            if (safeInfo && walletType === 'blockscout') {
+                balancesToDisplay = balancesToDisplay.filter(
+                    (balance) => balance.chainId.toString() === safeInfo.chainId.toString()
+                )
+            }
+
+            balancesToDisplay = [
+                ...balancesToDisplay.filter(
+                    (balance) =>
+                        !showOnlySquidSupported ||
+                        supportedSquidChainsAndTokens[balance.chainId]?.tokens.some((token) =>
+                            areEvmAddressesEqual(balance.address, token.address)
+                        )
+                ),
+                ...selectedChainTokens.filter(
+                    //remove tokens that are already in the balances
+                    (token) =>
+                        !balancesToDisplay.find(
+                            (balance) =>
+                                balance.chainId === token.chainId &&
+                                areEvmAddressesEqual(balance.address, token.address)
+                        )
+                ),
+            ]
+
+            return balancesToDisplay
         }
-
-        balancesToDisplay = [
-            ...balancesToDisplay.filter(
-                (balance) =>
-                    !showOnlySquidSupported ||
-                    supportedSquidChainsAndTokens[balance.chainId]?.tokens.some((token) =>
-                        areEvmAddressesEqual(balance.address, token.address)
-                    )
-            ),
-            ...selectedChainTokens.filter(
-                //remove tokens that are already in the balances
-                (token) =>
-                    !balancesToDisplay.find(
-                        (balance) =>
-                            balance.chainId === token.chainId && areEvmAddressesEqual(balance.address, token.address)
-                    )
-            ),
-        ]
-
-        return balancesToDisplay
-    }, [
-        selectedWallet?.balances,
-        safeInfo,
-        selectedChainTokens,
-        walletType,
-        showOnlySquidSupported,
-        supportedSquidChainsAndTokens,
-    ])
+        fetchBalances().then(setBalancesToDisplay)
+    }, [wagmiAddress, safeInfo, selectedChainTokens, walletType, showOnlySquidSupported, supportedSquidChainsAndTokens])
 
     const filteredBalances = useMemo(() => {
         // initially show all balances and the tokens on the current chain
@@ -357,13 +360,13 @@ const TokenSelector = ({
                 classNameWrapperDiv="px-2 pb-7 pt-8"
                 classWrap="max-w-[32rem]"
             >
-                {!isConnected && shouldBeConnected ? (
+                {!wagmiAddress && shouldBeConnected ? (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-2 ">
                         <label className="text-center text-h5">Connect a wallet to select a token to send.</label>
                         <button
                             className="btn btn-purple btn-xl w-full"
                             onClick={() => {
-                                signInModal.open()
+                                dispatch(walletActions.setSignInModalVisible(true))
                             }}
                         >
                             Connect Wallet
@@ -404,6 +407,7 @@ const TokenSelector = ({
                                     onChange={(_chainId) => {
                                         setUserChangedChain(true)
                                     }}
+                                    balances={filteredBalances}
                                 />
                             )}
                         </div>

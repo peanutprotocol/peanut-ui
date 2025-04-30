@@ -8,13 +8,23 @@ import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useConnections, useSwitchChain } from 'wagmi'
 import * as _consts from '../../Claim.consts'
+import { useAccount } from 'wagmi'
+import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
 
-export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
+export const SuccessClaimLinkView = ({
+    transactionHash,
+    setTransactionHash,
+    claimLinkData,
+    type,
+}: _consts.IClaimScreenProps) => {
     const connections = useConnections()
-    const { isConnected, address, chain: currentChain, isPeanutWallet } = useWallet()
+    const { isConnected: isPeanutWallet, address } = useWallet()
+    const { chain: currentChain, address: wagmiAddress } = useAccount()
     const { switchChainAsync } = useSwitchChain()
 
     const { resetTokenContextProvider, selectedChainID } = useContext(tokenSelectorContext)
+
+    const isConnected = useMemo(() => isPeanutWallet || !!wagmiAddress, [isPeanutWallet, wagmiAddress])
 
     const explorerUrlWithTx = useMemo(
         () => `${getExplorerUrl(claimLinkData.chainId)}/tx/${transactionHash}`,
@@ -52,6 +62,39 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
             fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
     }, [isPeanutWallet, transactionHash, type])
+
+    useEffect(() => {
+        if (!!transactionHash) return
+
+        const fetchClaimData = async () => {
+            try {
+                const link = await sendLinksApi.get(claimLinkData.link)
+                if (link.claim) {
+                    setTransactionHash(link.claim?.txHash)
+                    return true
+                } else if (link.status === ESendLinkStatus.FAILED) {
+                    return true
+                }
+                return false
+            } catch (error) {
+                console.error('Error fetching claim data:', error)
+                return false
+            }
+        }
+
+        const intervalId = setInterval(async () => {
+            const claimFound = await fetchClaimData()
+            if (claimFound) {
+                clearInterval(intervalId)
+            }
+        }, 250)
+
+        // Initial fetch attempt
+        fetchClaimData()
+
+        // Clean up the interval when component unmounts or transactionHash changes
+        return () => clearInterval(intervalId)
+    }, [transactionHash, claimLinkData.link])
 
     useEffect(() => {
         if (isw3mEmailWallet && isConnected) {
@@ -96,9 +139,13 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                 )}
                 <div className="flex w-full flex-row items-center justify-between gap-1">
                     <label className="text-h9">Transaction hash:</label>
-                    <Link className="cursor-pointer text-h9 font-normal underline" href={explorerUrlWithTx}>
-                        {shortenAddressLong(transactionHash ?? '')}
-                    </Link>
+                    {transactionHash ? (
+                        <Link className="cursor-pointer text-h9 font-normal underline" href={explorerUrlWithTx}>
+                            {shortenAddressLong(transactionHash ?? '')}
+                        </Link>
+                    ) : (
+                        <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                    )}
                 </div>
             </div>
         </StatusViewWrapper>
