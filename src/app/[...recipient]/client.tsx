@@ -22,9 +22,10 @@ import { twMerge } from 'tailwind-merge'
 
 interface Props {
     recipient: string[]
+    isDirectPay?: boolean
 }
 
-export default function PaymentPage({ recipient }: Props) {
+export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     const dispatch = useAppDispatch()
     const { currentView, requestDetails, parsedPaymentData, chargeDetails } = usePaymentStore()
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
@@ -179,7 +180,8 @@ export default function PaymentPage({ recipient }: Props) {
         !parsedPaymentData.amount &&
         !chargeId &&
         !requestId &&
-        !showPaymentView
+        !showPaymentView &&
+        !isDirectPay
     ) {
         const username = parsedPaymentData.recipient.identifier
 

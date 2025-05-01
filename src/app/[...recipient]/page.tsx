@@ -1,3 +1,4 @@
+import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { use } from 'react'
 import PaymentClient from './client'
 
@@ -8,5 +9,9 @@ type PageProps = {
 export default function Page(props: PageProps) {
     const params = use(props.params)
     const recipient = params.recipient ?? []
-    return <PaymentClient recipient={recipient} />
+    return (
+        <PageContainer className="self-start">
+            <PaymentClient recipient={recipient} />
+        </PageContainer>
+    )
 }
