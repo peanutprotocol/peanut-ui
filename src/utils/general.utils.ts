@@ -1,6 +1,13 @@
 import { TransactionType } from '@/components/Global/ListItemView'
 import * as consts from '@/constants'
-import { INFURA_API_KEY, STABLE_COINS } from '@/constants'
+import {
+    STABLE_COINS,
+    PINTA_WALLET_CHAIN,
+    PINTA_WALLET_TOKEN,
+    PINTA_WALLET_TOKEN_DECIMALS,
+    PINTA_WALLET_TOKEN_NAME,
+    PINTA_WALLET_TOKEN_SYMBOL,
+} from '@/constants'
 import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
 import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
@@ -856,6 +863,13 @@ export function getTokenDetails({ tokenAddress, chainId }: { tokenAddress: Addre
           decimals: number
       }
     | undefined {
+    if (chainId === PINTA_WALLET_CHAIN.id.toString() && areEvmAddressesEqual(tokenAddress, PINTA_WALLET_TOKEN)) {
+        return {
+            symbol: PINTA_WALLET_TOKEN_SYMBOL,
+            name: PINTA_WALLET_TOKEN_NAME,
+            decimals: PINTA_WALLET_TOKEN_DECIMALS,
+        }
+    }
     const chainTokens = consts.peanutTokenDetails.find((c) => c.chainId === chainId)?.tokens
     if (!chainTokens) return undefined
     const tokenDetails = chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
