@@ -2,11 +2,11 @@
 
 import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
-import { useCreateLink } from '@/components/Create/useCreateLink'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import UserCard from '@/components/User/UserCard'
@@ -16,9 +16,10 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
-import { areEvmAddressesEqual, formatAmount } from '@/utils'
+import { chargesApi } from '@/services/charges'
+import { ErrorHandler, formatAmount } from '@/utils'
 import { useSearchParams } from 'next/navigation'
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 
@@ -29,27 +30,49 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
     const { chargeDetails, parsedPaymentData, beerQuantity } = usePaymentStore()
     const {
         initiatePayment,
+        prepareTransactionDetails,
         isProcessing,
+        isPreparingTx,
         loadingStep,
         error: paymentError,
-        txFee,
-        slippagePercentage,
-        estimatedFromValue,
-        xChainUnsignedTxs,
-        unsignedTx,
+        feeCalculations,
+        isCalculatingFees,
+        isEstimatingGas,
+        isFeeEstimationError,
     } = usePaymentInitiator()
-    const { selectedTokenData, selectedChainID, isXChain, selectedTokenAddress } = useContext(tokenSelectorContext)
-    const { isConnected: isPeanutWallet } = useWallet()
-    const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
-    const { isConnected: isWagmiConnected } = useAccount()
-    const [isCalculatingFees, setIsCalculatingFees] = useState(false)
-    const [isEstimatingGas, setIsEstimatingGas] = useState(false)
-    const { estimateGasFee } = useCreateLink()
+    const { selectedTokenData, selectedChainID, selectedTokenAddress } = useContext(tokenSelectorContext)
+    const { isConnected: isPeanutWallet, address: peanutWalletAddress } = useWallet()
+    const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
 
-    console.log('isFeeEstimationError   ', isFeeEstimationError)
+    const walletAddress = useMemo(() => peanutWalletAddress ?? wagmiAddress, [peanutWalletAddress, wagmiAddress])
 
-    const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
-    const [feeOptions, setFeeOptions] = useState<any | undefined>(undefined)
+    useEffect(() => {
+        if (chargeIdFromUrl && !chargeDetails) {
+            chargesApi
+                .get(chargeIdFromUrl)
+                .then((fetchedChargeDetails) => {
+                    dispatch(paymentActions.setChargeDetails(fetchedChargeDetails))
+                })
+                .catch((error) => {
+                    const errorString = ErrorHandler(error)
+                    dispatch(paymentActions.setError(errorString))
+                    dispatch(paymentActions.setChargeDetails(null))
+                })
+        } else if (!chargeIdFromUrl && !chargeDetails) {
+            dispatch(paymentActions.setError('Payment details are missing. Please go back and try again.'))
+        }
+    }, [chargeIdFromUrl, chargeDetails, dispatch])
+
+    useEffect(() => {
+        if (chargeDetails && walletAddress && selectedTokenData && selectedChainID) {
+            if (!isPeanutWallet) {
+                prepareTransactionDetails(chargeDetails)
+            } else {
+                prepareTransactionDetails(chargeDetails)
+            }
+        }
+    }, [chargeDetails, walletAddress, selectedTokenData, selectedChainID, isPeanutWallet])
+
     const { rewardWalletBalance } = useWalletStore()
 
     const isConnected = useMemo(() => isPeanutWallet || isWagmiConnected, [isPeanutWallet, isWagmiConnected])
@@ -57,141 +80,21 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
         if (!isPintaReq) return false
         return Number(rewardWalletBalance) < beerQuantity
     }, [isPintaReq, rewardWalletBalance, beerQuantity])
-    const diffTokens = useMemo<boolean>(() => {
-        if (!selectedTokenData || !chargeDetails) return false
-        return !areEvmAddressesEqual(selectedTokenData.address, chargeDetails.tokenAddress)
-    }, [selectedTokenData, chargeDetails])
-    const calculatedSlippage = useMemo(() => {
-        if (!selectedTokenData?.price || !slippagePercentage || !estimatedFromValue) return null
 
-        const slippageAmount = (slippagePercentage / 100) * selectedTokenData.price * Number(estimatedFromValue)
-
-        return isNaN(slippageAmount) ? null : slippageAmount.toFixed(2)
-    }, [slippagePercentage, selectedTokenData?.price, estimatedFromValue])
-
-    // estimate gas fee when unsignedTx is ready
-    useEffect(() => {
-        if (!chargeDetails || (!unsignedTx && !xChainUnsignedTxs)) return
-
-        setIsEstimatingGas(true)
-        estimateGasFee({
-            chainId: isXChain ? selectedChainID : chargeDetails.chainId,
-            preparedTx: isXChain || diffTokens ? xChainUnsignedTxs : unsignedTx,
-        })
-            .then(({ transactionCostUSD, feeOptions: calculatedFeeOptions }) => {
-                if (transactionCostUSD) setEstimatedGasCost(transactionCostUSD)
-                if (calculatedFeeOptions) setFeeOptions(calculatedFeeOptions)
-            })
-            .catch((error) => {
-                console.error('Error calculating transaction cost:', error)
-                setIsFeeEstimationError(true)
-                dispatch(paymentActions.setError('Failed to estimate gas fee'))
-            })
-            .finally(() => {
-                setIsEstimatingGas(false)
-            })
-    }, [unsignedTx, xChainUnsignedTxs, chargeDetails, isXChain, selectedChainID, selectedTokenAddress, diffTokens])
-
-    // calculate fee details
-    const [feeCalculations, setFeeCalculations] = useState({
-        networkFee: { expected: '0.00', max: '0.00' },
-        slippage: undefined as { expected: string; max: string } | undefined,
-        estimatedFee: '0.00',
-        totalMax: '0.00',
-    })
-
-    useEffect(() => {
-        const EXPECTED_NETWORK_FEE_MULTIPLIER = 0.7
-        const EXPECTED_SLIPPAGE_MULTIPLIER = 0.1
-        setIsCalculatingFees(true)
-
-        try {
-            const networkFee = {
-                expected:
-                    (isXChain || diffTokens
-                        ? parseFloat(txFee) * EXPECTED_NETWORK_FEE_MULTIPLIER
-                        : isPeanutWallet
-                          ? 0
-                          : Number(estimatedGasCost || 0)) * EXPECTED_NETWORK_FEE_MULTIPLIER,
-                max: isXChain || diffTokens ? parseFloat(txFee) : isPeanutWallet ? 0 : Number(estimatedGasCost || 0),
-            }
-
-            const slippage =
-                (isXChain || diffTokens) && calculatedSlippage
-                    ? {
-                          expected: Number(calculatedSlippage) * EXPECTED_SLIPPAGE_MULTIPLIER,
-                          max: Number(calculatedSlippage),
-                      }
-                    : undefined
-
-            const totalMax =
-                Number(estimatedFromValue) * selectedTokenData!.price + networkFee.max + (slippage?.max || 0)
-
-            const formatNumberSafely = (num: number) => {
-                if (isNaN(num) || !isFinite(num)) return '0.00'
-                return num < 0.01 && num > 0 ? '0.01' : num.toFixed(2)
-            }
-
-            setFeeCalculations({
-                networkFee: {
-                    expected: formatNumberSafely(networkFee.expected),
-                    max: formatNumberSafely(networkFee.max),
-                },
-                slippage: slippage
-                    ? {
-                          expected: formatNumberSafely(slippage.expected),
-                          max: formatNumberSafely(slippage.max),
-                      }
-                    : undefined,
-                estimatedFee: formatNumberSafely(networkFee.expected + (slippage?.expected || 0)),
-                totalMax: formatNumberSafely(totalMax),
-            })
-
-            const timer = setTimeout(() => {
-                setIsCalculatingFees(false)
-            }, 300)
-            return () => clearTimeout(timer)
-        } catch (error) {
-            console.error('Error calculating fees:', error)
-            setIsFeeEstimationError(true)
-            setIsCalculatingFees(false)
-            setFeeCalculations({
-                networkFee: { expected: '0.00', max: '0.00' },
-                slippage: undefined,
-                estimatedFee: '0.00',
-                totalMax: '0.00',
-            })
-        }
-    }, [
-        isXChain,
-        txFee,
-        calculatedSlippage,
-        chargeDetails,
-        selectedTokenData,
-        isPeanutWallet,
-        estimatedGasCost,
-        estimatedFromValue,
-        selectedTokenData,
-        diffTokens,
-    ])
-
-    // handle payment confirmation
     const handlePayment = useCallback(async () => {
         if (!chargeDetails || !parsedPaymentData) return
 
-        // for PINTA requests, validate beer quantity
         if (isPintaReq && beerQuantity <= 0) {
             dispatch(paymentActions.setError('Please select at least 1 beer to continue.'))
             return
         }
 
-        // use existing charge details
         const result = await initiatePayment({
             recipient: parsedPaymentData.recipient,
             tokenAmount: isPintaReq ? beerQuantity.toString() : chargeDetails.tokenAmount,
             isPintaReq: isPintaReq,
             chargeId: chargeDetails.uuid,
-            skipChargeCreation: true, // always skip charge creation in confirmation view
+            skipChargeCreation: true,
         })
 
         if (result.success) {
@@ -199,22 +102,33 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
         }
     }, [chargeDetails, initiatePayment, parsedPaymentData, dispatch, isPintaReq, beerQuantity])
 
-    // get button text based on state
     const getButtonText = useCallback(() => {
+        if (isPreparingTx) return 'Preparing Transaction'
+        if (isEstimatingGas || isCalculatingFees) return 'Calculating Fee'
         if (isProcessing) {
-            return loadingStep === 'Idle' ? 'Processing' : loadingStep
+            return loadingStep === 'Idle' ? 'Paying' : loadingStep
         }
+        if (isPintaReq) return 'Confirm Payment'
         return 'Pay'
-    }, [isProcessing, loadingStep])
+    }, [isProcessing, loadingStep, isPreparingTx, isEstimatingGas, isCalculatingFees, isPintaReq])
 
-    // show error if charge details are missing
-    if (!chargeDetails) {
+    const isLoading = useMemo(
+        () => isProcessing || isPreparingTx || isCalculatingFees || isEstimatingGas,
+        [isProcessing, isPreparingTx, isCalculatingFees, isEstimatingGas]
+    )
+
+    if (!chargeDetails && !paymentError) {
+        return chargeIdFromUrl ? <PeanutLoading /> : null
+    }
+
+    if (!chargeDetails && paymentError) {
         const message = paymentError
-            ? paymentError
-            : chargeIdFromUrl
-              ? `Could not load details. Please go back and try again.`
-              : 'Payment details are missing. Please go back and try again.'
-        const handleGoBack = () => dispatch(paymentActions.setView('INITIAL'))
+        const handleGoBack = () => {
+            dispatch(paymentActions.setView('INITIAL'))
+            window.history.replaceState(null, '', `${window.location.pathname}`)
+            dispatch(paymentActions.setChargeDetails(null))
+            dispatch(paymentActions.setError(null))
+        }
         return (
             <div className="space-y-4 text-center">
                 <ErrorAlert description={message} />
@@ -231,6 +145,7 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
                         dispatch(paymentActions.setView('INITIAL'))
                         window.history.replaceState(null, '', `${window.location.pathname}`)
                         dispatch(paymentActions.setChargeDetails(null))
+                        dispatch(paymentActions.setError(null))
                     }}
                 />
                 <PintaReqViewWrapper view="CONFIRM">
@@ -248,8 +163,14 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
                     <Button
                         variant="purple"
                         onClick={handlePayment}
-                        disabled={!isConnected || isProcessing || isInsufficientRewardsBalance || beerQuantity <= 0}
-                        loading={isProcessing}
+                        disabled={
+                            !isConnected ||
+                            isLoading ||
+                            isInsufficientRewardsBalance ||
+                            beerQuantity <= 0 ||
+                            isFeeEstimationError
+                        }
+                        loading={isLoading}
                     >
                         {getButtonText()}
                     </Button>
@@ -272,48 +193,53 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
                     dispatch(paymentActions.setView('INITIAL'))
                     window.history.replaceState(null, '', `${window.location.pathname}`)
                     dispatch(paymentActions.setChargeDetails(null))
+                    dispatch(paymentActions.setError(null))
                 }}
             />
-            <UserCard
-                type="payment"
-                username={parsedPaymentData?.recipient?.identifier || chargeDetails?.requestLink?.recipientAddress}
-                recipientType={parsedPaymentData?.recipient?.recipientType}
-            />
+
+            {parsedPaymentData?.recipient && (
+                <UserCard
+                    type="payment"
+                    username={
+                        parsedPaymentData.recipient.identifier || chargeDetails?.requestLink?.recipientAddress || ''
+                    }
+                    recipientType={parsedPaymentData.recipient.recipientType}
+                />
+            )}
+
             <Card className="rounded-sm">
                 <PaymentInfoRow
                     label="Amount"
                     value={
                         <span className="font-bold">
-                            {formatAmount(Number(chargeDetails.tokenAmount))} {chargeDetails?.tokenSymbol}
+                            {formatAmount(Number(chargeDetails?.tokenAmount))} {chargeDetails?.tokenSymbol}
                         </span>
                     }
                 />
-
                 <PaymentInfoRow
                     label="To"
                     value={
                         <AddressLink
                             className="text-sm font-bold text-black"
                             address={
-                                parsedPaymentData?.recipient?.identifier || chargeDetails?.requestLink?.recipientAddress
+                                parsedPaymentData?.recipient?.identifier ||
+                                chargeDetails?.requestLink?.recipientAddress ||
+                                ''
                             }
                         />
                     }
                 />
 
-                <PaymentInfoRow
-                    loading={isProcessing}
-                    label="Network"
-                    value={`${getReadableChainName(selectedChainID)}`}
-                />
+                <PaymentInfoRow label="Network" value={`${getReadableChainName(selectedChainID)}`} />
 
-                {/* Fee Details Section */}
-                <PaymentInfoRow
-                    hideBottomBorder
-                    loading={isCalculatingFees || isEstimatingGas}
-                    label="Fee"
-                    value={`$${feeCalculations.estimatedFee}`}
-                />
+                {!isFeeEstimationError && !isPeanutWallet && (
+                    <PaymentInfoRow
+                        hideBottomBorder
+                        loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
+                        label="Fee"
+                        value={`$${feeCalculations.estimatedFee}`}
+                    />
+                )}
             </Card>
 
             <div className="flex flex-col gap-2">
@@ -323,9 +249,9 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
                     </div>
                 )}
                 <Button
-                    disabled={isProcessing}
+                    disabled={!isConnected || isLoading || isFeeEstimationError}
                     onClick={handlePayment}
-                    loading={isProcessing}
+                    loading={isLoading}
                     shadowSize="4"
                     className="w-full"
                 >
