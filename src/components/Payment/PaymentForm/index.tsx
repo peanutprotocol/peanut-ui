@@ -239,12 +239,6 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                 if (result.status === 'Success') {
                     dispatch(paymentActions.setView('STATUS'))
                 } else if (result.status === 'Charge Created') {
-                    // Pass isPintaReq directly to the ConfirmPaymentView component
-                    // by setting it in the URL as a query parameter
-                    const url = new URL(window.location.href)
-                    url.searchParams.set('isPintaReq', 'true')
-                    window.history.replaceState(null, '', url.toString())
-
                     dispatch(paymentActions.setView('CONFIRM'))
                 } else if (result.status === 'Error') {
                     console.error('PINTA payment initiation failed:', result.error)

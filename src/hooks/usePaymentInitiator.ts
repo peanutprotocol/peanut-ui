@@ -2,6 +2,7 @@ import { useCreateLink } from '@/components/Create/useCreateLink'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
+    PEANUT_WALLET_TOKEN_DECIMALS,
     PINTA_WALLET_CHAIN,
     PINTA_WALLET_TOKEN,
     PINTA_WALLET_TOKEN_DECIMALS,
@@ -392,9 +393,12 @@ export const usePaymentInitiator = () => {
             setPaymentDetails(null)
 
             let chargeDetailsToUse: TRequestChargeResponse | null = null
+            let chargeCreated = false
 
             try {
+                // 1. determine charge details
                 if (payload.skipChargeCreation && payload.chargeId) {
+                    // use existing charge from store or fetch if needed
                     chargeDetailsToUse = activeChargeDetails
                     if (!chargeDetailsToUse || chargeDetailsToUse.uuid !== payload.chargeId) {
                         setLoadingStep('Fetching Charge Details')
@@ -402,6 +406,7 @@ export const usePaymentInitiator = () => {
                         setCreatedChargeDetails(chargeDetailsToUse)
                     }
                 } else {
+                    // create a new charge
                     setLoadingStep('Creating Charge')
 
                     let validRequestId: string | undefined = payload.requestId
@@ -410,27 +415,42 @@ export const usePaymentInitiator = () => {
                             const request = await requestsApi.get(payload.requestId)
                             validRequestId = request.uuid
                         } catch (error) {
+                            console.error('Invalid request ID provided:', payload.requestId, error)
                             throw new Error('Invalid request ID')
                         }
                     } else if (!requestDetails) {
-                        if (payload.isPintaReq && payload.recipient.resolvedAddress) {
-                            const request = await requestsApi.create({
-                                recipientAddress: payload.recipient.resolvedAddress,
-                                chainId: PINTA_WALLET_CHAIN.id.toString(),
-                                tokenAddress: PINTA_WALLET_TOKEN,
-                                tokenType: String(peanutInterfaces.EPeanutLinkType.erc20),
-                                tokenSymbol: PINTA_WALLET_TOKEN_SYMBOL,
-                                tokenDecimals: PINTA_WALLET_TOKEN_DECIMALS.toString(),
-                            })
-                            validRequestId = request.uuid
+                        // handle case where requestDetails are missing, potentially create one for Pinta
+                        if (payload.isPintaReq && payload.recipient?.resolvedAddress) {
+                            console.log(
+                                'Request details missing, creating new Pinta request for:',
+                                payload.recipient.resolvedAddress
+                            )
+                            try {
+                                const request = await requestsApi.create({
+                                    recipientAddress: payload.recipient.resolvedAddress,
+                                    chainId: PINTA_WALLET_CHAIN.id.toString(),
+                                    tokenAddress: PINTA_WALLET_TOKEN,
+                                    tokenType: String(peanutInterfaces.EPeanutLinkType.erc20),
+                                    tokenSymbol: PINTA_WALLET_TOKEN_SYMBOL,
+                                    tokenDecimals: String(PINTA_WALLET_TOKEN_DECIMALS),
+                                })
+                                validRequestId = request.uuid
+                                console.log('Created new Pinta request:', validRequestId)
+                            } catch (creationError) {
+                                console.error('Failed to create Pinta request:', creationError)
+                                throw new Error('Failed to automatically create Pinta request.')
+                            }
                         } else {
-                            throw new Error('Request details not found and cannot create new one for this payment type')
+                            console.error('Request details not found and cannot create new one for this payment type.')
+                            throw new Error('Request details not found.')
                         }
                     } else {
+                        // use existing requestDetails from store
                         validRequestId = requestDetails.uuid
                     }
 
                     if (!validRequestId) {
+                        console.error('Could not determine request ID for charge creation.')
                         throw new Error('Could not determine request ID')
                     }
 
@@ -464,53 +484,94 @@ export const usePaymentInitiator = () => {
                                   ? peanutInterfaces.EPeanutLinkType.native
                                   : peanutInterfaces.EPeanutLinkType.erc20,
                             tokenSymbol: recipientTokenSymbol,
-                            tokenDecimals: recipientTokenDecimals,
-                            recipientAddress: payload.recipient.resolvedAddress,
+                            tokenDecimals: Number(recipientTokenDecimals),
+                            recipientAddress: payload.recipient?.resolvedAddress,
                         },
                     }
 
+                    console.log('Creating charge with payload:', createChargeRequestPayload)
                     const charge: TCharge = await chargesApi.create(createChargeRequestPayload)
+                    console.log('Charge created response:', charge)
 
                     if (!charge.data.id) {
-                        console.error('CRITICAL: Charge created but UUID is missing!', charge.data)
+                        console.error('CRITICAL: Charge created but UUID (ID) is missing!', charge.data)
                         throw new Error('Charge created successfully, but is missing a UUID.')
                     }
 
+                    // fetch the charge using the correct ID field from the response
                     chargeDetailsToUse = await chargesApi.get(charge.data.id)
-                    dispatch(paymentActions.setChargeDetails(chargeDetailsToUse))
-                    setCreatedChargeDetails(chargeDetailsToUse)
+                    console.log('Fetched charge details:', chargeDetailsToUse)
 
+                    dispatch(paymentActions.setChargeDetails(chargeDetailsToUse))
+                    setCreatedChargeDetails(chargeDetailsToUse) // keep track of the newly created charge
+                    chargeCreated = true
+
+                    // update URL
                     const currentUrl = new URL(window.location.href)
                     if (currentUrl.searchParams.get('chargeId') !== chargeDetailsToUse.uuid) {
                         const newUrl = new URL(window.location.href)
+                        if (payload.requestId) newUrl.searchParams.delete('id') // clean up request id
                         newUrl.searchParams.set('chargeId', chargeDetailsToUse.uuid)
                         window.history.replaceState(
                             { ...window.history.state, as: newUrl.href, url: newUrl.href },
                             '',
                             newUrl.href
                         )
+                        console.log('Updated URL with chargeId:', newUrl.href)
                     }
                 }
 
+                // ensure we have charge details to proceed
                 if (!chargeDetailsToUse) {
+                    console.error('Charge details are null after determination step.')
                     throw new Error('Failed to load or create charge details.')
                 }
+                console.log('Proceeding with charge details:', chargeDetailsToUse.uuid)
 
+                // 2. decide action based on wallet and whether charge was just created
+
+                // --- Case: Peanut Wallet ---
                 if (isPeanutWallet && peanutWalletAddress) {
-                    setLoadingStep('Preparing Transaction')
-
-                    const isSupportedChain =
-                        selectedChainID === PEANUT_WALLET_CHAIN.id.toString() ||
-                        selectedChainID === PINTA_WALLET_CHAIN.id.toString()
-                    const isSupportedToken =
-                        selectedTokenAddress.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() ||
-                        selectedTokenAddress.toLowerCase() === PINTA_WALLET_TOKEN.toLowerCase()
-
-                    if (!(isSupportedChain && isSupportedToken)) {
-                        throw new Error('Peanut Wallet only supports sending USDC on Arbitrum.')
+                    // if charge was just created AND it's a pinta request, go to confirm view.
+                    if (chargeCreated && payload.isPintaReq) {
+                        console.log('Peanut Wallet + Pinta Request: Charge created, proceeding to Confirm View.')
+                        setLoadingStep('Charge Created')
+                        return { status: 'Charge Created', charge: chargeDetailsToUse, success: false }
                     }
 
-                    // validate charge data before preparing transaction
+                    // otherwise (either called from confirm view OR initial view for non-pinta),
+                    // proceed directly to transaction execution.
+                    console.log(
+                        `Executing Peanut Wallet transaction (chargeCreated: ${chargeCreated}, isPintaReq: ${payload.isPintaReq})`
+                    )
+
+                    // charge already exists (called from confirm view with skipChargeCreation=true).
+                    // or it's a non-pinta payment called from initial view.
+                    // proceed with transaction preparation and sending.
+                    setLoadingStep('Preparing Transaction')
+
+                    // determine expected chain, token, and decimals based on whether it's a pinta request.
+                    const isPintaSpecific = payload.isPintaReq
+                    const expectedChainId = isPintaSpecific
+                        ? PINTA_WALLET_CHAIN.id.toString()
+                        : PEANUT_WALLET_CHAIN.id.toString()
+                    const expectedTokenAddress = isPintaSpecific ? PINTA_WALLET_TOKEN : PEANUT_WALLET_TOKEN
+                    const expectedTokenDecimals = isPintaSpecific
+                        ? PINTA_WALLET_TOKEN_DECIMALS
+                        : PEANUT_WALLET_TOKEN_DECIMALS
+
+                    // validate that the charge details match the expected parameters for payment
+                    if (
+                        chargeDetailsToUse.chainId !== expectedChainId ||
+                        chargeDetailsToUse.tokenAddress.toLowerCase() !== expectedTokenAddress.toLowerCase() ||
+                        chargeDetailsToUse.tokenDecimals !== expectedTokenDecimals
+                    ) {
+                        const errorMsg = `Charge details mismatch expected values for ${isPintaSpecific ? 'Pinta' : 'Peanut'} payment. Expected Chain: ${expectedChainId}, Token: ${expectedTokenAddress}, Decimals: ${expectedTokenDecimals}. Got Chain: ${chargeDetailsToUse.chainId}, Token: ${chargeDetailsToUse.tokenAddress}, Decimals: ${chargeDetailsToUse.tokenDecimals}`
+                        console.error(errorMsg)
+                        throw new Error(errorMsg)
+                    }
+
+                    // validate required properties for preparing the transaction.
                     if (
                         !chargeDetailsToUse.requestLink?.recipientAddress ||
                         !chargeDetailsToUse.tokenAddress ||
@@ -518,10 +579,14 @@ export const usePaymentInitiator = () => {
                         chargeDetailsToUse.tokenDecimals === undefined ||
                         chargeDetailsToUse.tokenType === undefined
                     ) {
+                        console.error(
+                            'Charge data is missing required properties for transaction preparation:',
+                            chargeDetailsToUse
+                        )
                         throw new Error('Charge data is missing required properties for transaction preparation.')
                     }
 
-                    // prepare transaction for Peanut Wallet
+                    // prepare the actual transaction using peanut sdk.
                     const tx = peanut.prepareRequestLinkFulfillmentTransaction({
                         recipientAddress: chargeDetailsToUse.requestLink.recipientAddress,
                         tokenAddress: chargeDetailsToUse.tokenAddress,
@@ -531,29 +596,45 @@ export const usePaymentInitiator = () => {
                     })
 
                     if (!tx?.unsignedTx) {
+                        console.error(
+                            'Failed to prepare Peanut Wallet transaction (SDK returned null/undefined unsignedTx).'
+                        )
                         throw new Error('Failed to prepare Peanut Wallet transaction')
                     }
                     const peanutUnsignedTx = tx.unsignedTx
 
-                    // send transaction and get receipt
-
+                    // send the prepared transaction via the usewallet hook.
                     setLoadingStep('Sending Transaction')
+
                     const receipt: TransactionReceipt = await sendTransactions([peanutUnsignedTx])
 
-                    // update payment status in backend
+                    // basic validation of the received receipt.
+                    if (!receipt || !receipt.transactionHash) {
+                        console.error('sendTransactions returned invalid receipt (missing hash?):', receipt)
+                        throw new Error('Transaction likely failed or was not submitted correctly by the wallet.')
+                    }
+                    if (receipt.status === 'reverted') {
+                        console.error('Transaction reverted according to receipt:', receipt)
+                        throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
+                    }
+
+                    // update payment status in the backend api.
                     setLoadingStep('Updating Payment Status')
+
                     const payment: PaymentCreationResponse = await chargesApi.createPayment({
                         chargeId: chargeDetailsToUse.uuid,
                         chainId: chargeDetailsToUse.chainId,
                         hash: receipt.transactionHash,
                         tokenAddress: chargeDetailsToUse.tokenAddress,
                     })
+                    console.log('Backend payment creation response:', payment)
 
                     setPaymentDetails(payment)
                     dispatch(paymentActions.setPaymentDetails(payment))
                     dispatch(paymentActions.setTransactionHash(receipt.transactionHash))
 
                     setLoadingStep('Success')
+                    console.log('Peanut Wallet payment successful.')
                     return {
                         status: 'Success',
                         charge: chargeDetailsToUse,
@@ -561,122 +642,150 @@ export const usePaymentInitiator = () => {
                         txHash: receipt.transactionHash,
                         success: true,
                     }
-                } else if (!isPeanutWallet && payload.skipChargeCreation) {
-                    if (!unsignedTx && !xChainUnsignedTxs) {
-                        console.warn('Transaction details not prepared, attempting now...')
-                        setLoadingStep('Preparing Transaction')
-                        await prepareTransactionDetails(chargeDetailsToUse)
-                        if (!unsignedTx && !xChainUnsignedTxs) {
-                            return handleError(
-                                new Error('Transaction details could not be prepared.'),
-                                'Preparing Transaction'
-                            )
+                }
+                // --- Case: External Wallet ---
+                else if (!isPeanutWallet) {
+                    console.log('Handling payment for External Wallet.')
+                    if (chargeCreated) {
+                        // Charge was just created, return status to go to Confirm view
+                        console.log('Charge just created for External Wallet. Returning Charge Created status.')
+                        setLoadingStep('Charge Created')
+                        return { status: 'Charge Created', charge: chargeDetailsToUse, success: false }
+                    } else {
+                        const sourceChainId = Number(selectedChainID)
+                        const connectedChainId = connectedWalletChain?.id
+                        console.log(`Selected chain: ${sourceChainId}, Connected chain: ${connectedChainId}`)
+
+                        if (connectedChainId !== undefined && sourceChainId !== connectedChainId) {
+                            console.log(`Switching network from ${connectedChainId} to ${sourceChainId}`)
+                            setLoadingStep('Switching Network')
+                            try {
+                                await switchChainAsync({ chainId: sourceChainId })
+                                console.log(`Network switched successfully to ${sourceChainId}`)
+                            } catch (switchError: any) {
+                                console.error('Wallet network switch failed:', switchError)
+                                const message =
+                                    switchError.shortMessage ||
+                                    `Failed to switch network to chain ${sourceChainId}. Please switch manually in your wallet.` // Removed getReadableChainName
+                                return handleError(new Error(message), 'Switching Network')
+                            }
                         }
-                        setLoadingStep('Idle')
-                    }
 
-                    const sourceChainId = Number(selectedChainID)
-                    const connectedChainId = connectedWalletChain?.id
+                        const transactionsToSend = xChainUnsignedTxs ?? (unsignedTx ? [unsignedTx] : null)
+                        if (!transactionsToSend || transactionsToSend.length === 0) {
+                            console.error('No transaction prepared to send for external wallet.')
+                            return handleError(new Error('No transaction prepared to send.'), 'Preparing Transaction')
+                        }
+                        console.log('Transactions prepared for sending:', transactionsToSend)
 
-                    if (connectedChainId !== undefined && sourceChainId !== connectedChainId) {
-                        setLoadingStep('Switching Network')
+                        setLoadingStep('Sending Transaction')
+                        let receipt: TransactionReceipt
+                        const receipts: TransactionReceipt[] = []
+
                         try {
-                            await switchChainAsync({ chainId: sourceChainId })
-                        } catch (switchError) {
-                            console.error('Wallet network switch failed:', switchError)
-                            return handleError(
-                                new Error(
-                                    `Failed to switch network to chain ${sourceChainId}. Please switch manually in your wallet.`
-                                ),
-                                'Switching Network'
-                            )
+                            for (let i = 0; i < transactionsToSend.length; i++) {
+                                const tx = transactionsToSend[i]
+                                console.log(`Sending transaction ${i + 1}/${transactionsToSend.length}:`, tx)
+                                setLoadingStep(`Sending Transaction`)
+
+                                const txGasOptions: any = {}
+                                if (feeOptions) {
+                                    if (feeOptions.gas) txGasOptions.gas = BigInt(feeOptions.gas.toString())
+                                    if (feeOptions.gasPrice)
+                                        txGasOptions.gasPrice = BigInt(feeOptions.gasPrice.toString())
+                                    if (feeOptions.maxFeePerGas)
+                                        txGasOptions.maxFeePerGas = BigInt(feeOptions.maxFeePerGas.toString())
+                                    if (feeOptions.maxPriorityFeePerGas)
+                                        txGasOptions.maxPriorityFeePerGas = BigInt(
+                                            feeOptions.maxPriorityFeePerGas.toString()
+                                        )
+                                }
+                                console.log('Using gas options:', txGasOptions)
+
+                                const hash = await sendTransactionAsync({
+                                    to: (tx.to ? tx.to : undefined) as `0x${string}` | undefined,
+                                    value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                                    data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                                    ...txGasOptions,
+                                    chainId: sourceChainId,
+                                })
+                                console.log(`Transaction ${i + 1} hash: ${hash}`)
+
+                                setLoadingStep(`Confirming Transaction`)
+
+                                const txReceipt = await waitForTransactionReceipt(config, {
+                                    hash: hash,
+                                    chainId: sourceChainId,
+                                    confirmations: 1,
+                                })
+                                console.log(`Transaction ${i + 1} receipt:`, txReceipt)
+                                receipts.push(txReceipt)
+
+                                if (txReceipt.status === 'reverted') {
+                                    console.error(`Transaction ${i + 1} reverted:`, txReceipt)
+                                    throw new Error(`Transaction ${i + 1} failed (reverted).`)
+                                }
+                            }
+                            // check if receipts were actually generated
+                            if (receipts.length === 0 || !receipts[receipts.length - 1]) {
+                                console.error('Transaction sequence completed, but failed to get final receipt.')
+                                throw new Error('Transaction sent but failed to get receipt.')
+                            }
+                            receipt = receipts[receipts.length - 1] // use the last receipt
+                        } catch (txError: any) {
+                            console.error(`Transaction failed during ${loadingStep}:`, txError)
+                            let error = ErrorHandler(txError) // default to original error
+
+                            return handleError(error, loadingStep)
                         }
-                        setLoadingStep('Idle')
-                    }
 
-                    const transactionsToSend = xChainUnsignedTxs ?? (unsignedTx ? [unsignedTx] : null)
-                    if (!transactionsToSend) {
-                        return handleError(new Error('No transaction prepared to send.'), loadingStep)
-                    }
+                        const txHash = receipt.transactionHash
+                        setTransactionHash(txHash)
+                        dispatch(paymentActions.setTransactionHash(txHash))
+                        console.log('External wallet final transaction hash:', txHash)
 
-                    setLoadingStep('Sending Transaction')
-                    let receipt: TransactionReceipt
-                    const receipts = []
-                    try {
-                        for (const tx of transactionsToSend) {
-                            setLoadingStep('Signing Transaction')
+                        setLoadingStep('Updating Payment Status')
+                        console.log('Updating payment status in backend for external wallet. Hash:', txHash)
+                        const payment = await chargesApi.createPayment({
+                            chargeId: chargeDetailsToUse.uuid,
+                            chainId: sourceChainId.toString(),
+                            hash: txHash,
+                            tokenAddress: selectedTokenData?.address || chargeDetailsToUse.tokenAddress,
+                        })
+                        console.log('Backend payment creation response:', payment)
 
-                            let hash = await sendTransactionAsync({
-                                to: (tx.to ? tx.to : '') as `0x${string}`,
-                                value: tx.value ? BigInt(tx.value.toString()) : undefined,
-                                data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                                gas: feeOptions?.gas ? BigInt(feeOptions.gas.toString()) : undefined,
-                                gasPrice: feeOptions?.gasPrice ? BigInt(feeOptions.gasPrice.toString()) : undefined,
-                                maxFeePerGas: feeOptions?.maxFeePerGas
-                                    ? BigInt(feeOptions?.maxFeePerGas.toString())
-                                    : undefined,
-                                maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
-                                    ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
-                                    : undefined,
-                                chainId: sourceChainId,
-                            })
+                        setPaymentDetails(payment)
+                        dispatch(paymentActions.setPaymentDetails(payment))
 
-                            setLoadingStep('Sending Transaction')
-
-                            const txReceipt = await waitForTransactionReceipt(config, {
-                                hash: hash,
-                                chainId: sourceChainId,
-                            })
-                            receipts.push(txReceipt)
+                        setLoadingStep('Success')
+                        console.log('External wallet payment successful.')
+                        return {
+                            status: 'Success',
+                            charge: chargeDetailsToUse,
+                            payment,
+                            txHash,
+                            success: true,
                         }
-                        receipt = receipts[receipts.length - 1]
-
-                        if (!receipt || !receipt.transactionHash) {
-                            throw new Error('Transaction sequence completed, but final hash not found')
-                        }
-                    } catch (txError: any) {
-                        console.error(`Transaction failed during ${loadingStep}:`, txError)
-                        if (txError.message?.includes('does not match the target chain')) {
-                            return handleError(
-                                new Error(
-                                    `Wallet connection issue: Ensure your wallet is connected to ${sourceChainId}.`
-                                ),
-                                loadingStep
-                            )
-                        }
-                        return handleError(txError, loadingStep)
                     }
-
-                    const txHash = receipt.transactionHash
-                    setTransactionHash(txHash)
-                    dispatch(paymentActions.setTransactionHash(txHash))
-
-                    setLoadingStep('Updating Payment Status')
-                    const payment = await chargesApi.createPayment({
-                        chargeId: chargeDetailsToUse.uuid,
-                        chainId: sourceChainId.toString(),
-                        hash: txHash,
-                        tokenAddress: selectedTokenData?.address || chargeDetailsToUse.tokenAddress,
-                    })
-
-                    setPaymentDetails(payment)
-                    dispatch(paymentActions.setPaymentDetails(payment))
-
-                    setLoadingStep('Success')
-                    return {
-                        status: 'Success',
-                        charge: chargeDetailsToUse,
-                        payment,
-                        txHash,
-                        success: true,
-                    }
-                } else if (!isPeanutWallet && !payload.skipChargeCreation) {
-                    setLoadingStep('Charge Created')
-                    return { status: 'Charge Created', charge: chargeDetailsToUse, success: false }
-                } else {
-                    throw new Error('Invalid payment state')
+                }
+                // --- Case: Invalid State ---
+                else {
+                    console.error('Invalid payment state: Could not determine wallet type or required action.')
+                    throw new Error('Invalid payment state: Could not determine wallet type or required action.')
                 }
             } catch (err) {
+                // Ensure chargeId is removed from URL if error occurs after creation attempt
+                if (chargeCreated && chargeDetailsToUse) {
+                    console.log('Error occurred after charge creation, removing chargeId from URL.')
+                    const currentUrl = new URL(window.location.href)
+                    if (currentUrl.searchParams.get('chargeId') === chargeDetailsToUse.uuid) {
+                        const newUrl = new URL(window.location.href)
+                        newUrl.searchParams.delete('chargeId')
+                        window.history.replaceState(null, '', newUrl.toString())
+                        console.log('URL updated, chargeId removed.')
+                    }
+                }
+                // handleError already logs the error and sets state
                 return handleError(err, loadingStep)
             }
         },
@@ -700,7 +809,7 @@ export const usePaymentInitiator = () => {
             prepareTransactionDetails,
             unsignedTx,
             xChainUnsignedTxs,
-            feeOptions,
+            feeOptions, // Make sure all dependent state/functions are listed
         ]
     )
 
