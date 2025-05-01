@@ -1,7 +1,6 @@
 'use client'
 
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import PaymentHistory from '@/components/Payment/History'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
@@ -225,7 +224,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                 {currentView === 'CONFIRM' && <ConfirmPaymentView />}
                 {currentView === 'STATUS' && <PaymentStatusView />}
             </div>
-            {currentView === 'INITIAL' && (
+            {/* {currentView === 'INITIAL' && (
                 <div>
                     {parsedPaymentData?.recipient && (
                         <PaymentHistory
@@ -234,7 +233,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                         />
                     )}
                 </div>
-            )}
+            )} */}
         </div>
     )
 }

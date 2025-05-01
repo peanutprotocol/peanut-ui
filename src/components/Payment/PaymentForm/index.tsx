@@ -14,6 +14,7 @@ import UserCard from '@/components/User/UserCard'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
+    PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_SYMBOL,
     PINTA_WALLET_CHAIN,
     PINTA_WALLET_TOKEN_DECIMALS,
@@ -34,13 +35,14 @@ import { useAppKit } from '@reown/appkit/react'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 
 export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: ParsedURL & { isPintaReq?: boolean }) => {
     const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { requestDetails, error, chargeDetails, beerQuantity } = usePaymentStore()
-    const { isConnected: isPeanutWallet } = useWallet()
+    const { isConnected: isPeanutWallet, balance } = useWallet()
     const { isConnected: isWagmiConnected } = useAccount()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -50,6 +52,10 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     const [usdValue, setUsdValue] = useState<string>('')
     const [requestedTokenPrice, setRequestedTokenPrice] = useState<number | null>(null)
     const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
+
+    const peanutWalletBalance = useMemo(() => {
+        return formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)
+    }, [balance])
 
     const {
         inputDenomination,
@@ -362,7 +368,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     const getButtonText = () => {
         if (!isConnected) return 'Connect Wallet'
         if (isSubmitting) {
-            return 'Processing...'
+            return 'Paying'
         }
         return 'Pay'
     }
@@ -487,6 +493,8 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                 setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
                 className="w-full"
                 disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
+                walletBalance={peanutWalletBalance}
+                maxValue={peanutWalletBalance}
             />
 
             {/* Token Selector Section */}
@@ -522,7 +530,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                     disabled={!canCreateCharge || isSubmitting || isPeanutWalletCrossChainRequest}
                     className="w-full"
                 >
-                    <Icon name="currency" />
+                    {!isSubmitting && <Icon name="currency" />}
                     {getButtonText()}
                 </Button>
 
