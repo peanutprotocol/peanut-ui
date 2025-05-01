@@ -2,18 +2,19 @@
 
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { Button } from '@/components/0_Bruddle'
-import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
 import GuestLoginCta from '@/components/Global/GuestLoginCta'
-import Icon from '@/components/Global/Icon'
+import { Icon } from '@/components/Global/Icons/Icon'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import BeerInput from '@/components/PintaReqPay/BeerInput'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
+import UserCard from '@/components/User/UserCard'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
+    PEANUT_WALLET_TOKEN_SYMBOL,
     PINTA_WALLET_CHAIN,
     PINTA_WALLET_TOKEN_DECIMALS,
     PINTA_WALLET_TOKEN_SYMBOL,
@@ -21,28 +22,18 @@ import {
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { AccountType } from '@/interfaces'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
-import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { CreateChargeRequest } from '@/services/services.types'
-import {
-    ErrorHandler,
-    formatAmount,
-    getTokenDecimals,
-    getTokenSymbol,
-    isNativeCurrency,
-    printableAddress,
-} from '@/utils'
+import { ErrorHandler, formatAmount, getTokenDecimals, getTokenSymbol, isNativeCurrency } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { PaymentInfoRow } from '../PaymentInfoRow'
 import { useAccount } from 'wagmi'
 
 export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: ParsedURL & { isPintaReq?: boolean }) => {
@@ -50,7 +41,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     const { user } = useAuth()
     const { requestDetails, error, chargeDetails, beerQuantity } = usePaymentStore()
     const { isConnected: isPeanutWallet } = useWallet()
-    const { address: wagmiAddress, isConnected: isWagmiConnected } = useAccount()
+    const { isConnected: isWagmiConnected } = useAccount()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
@@ -371,11 +362,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     const getButtonText = () => {
         if (!isConnected) return 'Connect Wallet'
         if (isSubmitting) {
-            return (
-                <div className="flex items-center justify-center gap-2">
-                    <span>Hang on...</span>
-                </div>
-            )
+            return 'Processing...'
         }
         return 'Pay'
     }
@@ -393,60 +380,6 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     useEffect(() => {
         if (isPeanutWallet) resetTokenAndChain()
     }, [resetTokenAndChain, isPeanutWallet])
-
-    const renderRequestedPaymentDetails = () => {
-        if (!requestDetails || !requestDetails.tokenAmount || !requestDetails.tokenSymbol || !requestId) return null
-
-        const tokenAmount = parseFloat(requestDetails.tokenAmount)
-        const tokenUsdValue =
-            requestedTokenPrice && tokenAmount > 0 ? formatAmount(tokenAmount * requestedTokenPrice) : ''
-
-        const tokenSymbol = requestDetails.tokenSymbol || token?.symbol
-
-        const displayAmount = tokenUsdValue
-            ? `$${tokenUsdValue} ( ${formatAmount(tokenAmount)} ${tokenSymbol} )`
-            : `${formatAmount(tokenAmount)} ${tokenSymbol}`
-
-        return (
-            <div className="mb-6 border border-dashed border-black p-4">
-                <div className="text-sm font-semibold text-black">
-                    {requestDetails.recipientAccount.type === AccountType.PEANUT_WALLET ? (
-                        <AddressLink address={requestDetails.recipientAccount.user.username} />
-                    ) : (
-                        <AddressLink address={requestDetails.recipientAddress} />
-                    )}{' '}
-                    is requesting:
-                </div>
-                <div className="flex flex-col">
-                    <PaymentInfoRow label="Amount" value={displayAmount} />
-                    {requestDetails.chainId && (
-                        <PaymentInfoRow label="Network" value={getReadableChainName(requestDetails.chainId)} />
-                    )}
-                    {requestDetails.reference && <PaymentInfoRow label="Message" value={requestDetails.reference} />}
-                    {requestDetails.attachmentUrl && (
-                        <PaymentInfoRow
-                            label="Attachment"
-                            value={
-                                <a
-                                    href={requestDetails.attachmentUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-0.5 text-sm font-semibold hover:underline"
-                                >
-                                    <span>Download</span>
-                                    <Icon name="download" className="h-4 fill-grey-1" />
-                                </a>
-                            }
-                        />
-                    )}
-                </div>
-                <div className="mt-4 text-xs text-grey-1">
-                    You can choose to pay with any token on any network. The payment will be automatically converted to
-                    the requested token.
-                </div>
-            </div>
-        )
-    }
 
     // check if this is a cross-chain request for Peanut Wallet
     const isPeanutWalletCrossChainRequest = useMemo(() => {
@@ -526,35 +459,50 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         )
     }
 
+    // get recipient display name
+    const recipientDisplayName = useMemo(() => {
+        // prioritize username if available (e.g., from requestDetails)
+        if (requestDetails?.recipientAccount?.user?.username) {
+            return requestDetails.recipientAccount.user.username
+        }
+        // fallback to the identifier from the parsed URL
+        return recipient.identifier
+    }, [recipient.identifier, requestDetails])
+
+    const isPeanutWalletUSDC = useMemo(() => {
+        return (
+            selectedTokenData?.symbol === PEANUT_WALLET_TOKEN_SYMBOL &&
+            Number(selectedChainID) === PEANUT_WALLET_CHAIN.id
+        )
+    }, [selectedTokenData, selectedChainID])
+
     return (
         <div className="space-y-4">
-            <FlowHeader
-                rightElement={
-                    !isPeanutWallet ? (
-                        <Button variant="dark" className="h-7 text-sm" onClick={() => openReownModal()}>
-                            {wagmiAddress ? printableAddress(wagmiAddress) : 'Connect Wallet'}
-                        </Button>
-                    ) : null
-                }
-            />
-            {/* Show recipient from parsed data */}
-            <div className="text-h6 font-bold">
-                Sending to <AddressLink address={recipient.identifier} />
-            </div>
+            {/* Recipient Info Card */}
+            <UserCard type="send" username={recipientDisplayName} />
+
+            {/* Amount Display Card */}
             <TokenAmountInput
                 tokenValue={inputTokenAmount}
                 setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
                 className="w-full"
                 disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
             />
-            {renderRequestedPaymentDetails()}
+
+            {/* Token Selector Section */}
             {!isPeanutWallet && (
                 <div>
-                    <div className="mb-2 text-sm font-medium">Choose your payment method:</div>
+                    <div className="mb-2 text-sm font-medium">Select token and chain to pay with</div>
                     <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
+                    {!isPeanutWalletUSDC && (
+                        <div className="mt-2 flex items-center space-x-1 text-xs text-grey-1">
+                            <span>Use USDC on Arbitrum for free transactions!</span>
+                        </div>
+                    )}
                 </div>
             )}
-            {/* Show Peanut Wallet cross-chain warning */}
+
+            {/* Peanut Wallet Cross-chain Warning */}
             {isPeanutWalletCrossChainRequest && (
                 <ErrorAlert
                     label="Note"
@@ -563,20 +511,18 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                     }
                 />
             )}
-            {!isPeanutWallet && !requestId && (
-                <div className="mt-4 text-xs text-grey-1">
-                    You can choose to pay with any token on any network. The payment will be automatically converted to
-                    the requested token.
-                </div>
-            )}
+
+            {/* Pay Button */}
             <div className="space-y-2">
                 <Button
+                    variant="purple"
                     loading={isSubmitting}
                     shadowSize="4"
                     onClick={handleCreateCharge}
                     disabled={!canCreateCharge || isSubmitting || isPeanutWalletCrossChainRequest}
                     className="w-full"
                 >
+                    <Icon name="currency" />
                     {getButtonText()}
                 </Button>
 
