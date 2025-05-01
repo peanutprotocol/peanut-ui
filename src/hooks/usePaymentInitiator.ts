@@ -499,8 +499,12 @@ export const usePaymentInitiator = () => {
                 if (isPeanutWallet && peanutWalletAddress) {
                     setLoadingStep('Preparing Transaction')
 
-                    const isSupportedChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
-                    const isSupportedToken = selectedTokenAddress.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
+                    const isSupportedChain =
+                        selectedChainID === PEANUT_WALLET_CHAIN.id.toString() ||
+                        selectedChainID === PINTA_WALLET_CHAIN.id.toString()
+                    const isSupportedToken =
+                        selectedTokenAddress.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() ||
+                        selectedTokenAddress.toLowerCase() === PINTA_WALLET_TOKEN.toLowerCase()
 
                     if (!(isSupportedChain && isSupportedToken)) {
                         throw new Error('Peanut Wallet only supports sending USDC on Arbitrum.')

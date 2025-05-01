@@ -17,11 +17,10 @@ interface DirectSendSuccessViewProps {
     user?: ApiUser
     amount?: string
     message?: string
-    onBack?: () => void
     recipientType?: RecipientType
 }
 
-const PaymentStatusView = ({ user, amount, message, onBack, recipientType }: DirectSendSuccessViewProps = {}) => {
+const PaymentStatusView = ({ user, amount, message, recipientType }: DirectSendSuccessViewProps = {}) => {
     const router = useRouter()
     const { chargeDetails, parsedPaymentData } = usePaymentStore()
     const dispatch = useDispatch()
@@ -50,11 +49,7 @@ const PaymentStatusView = ({ user, amount, message, onBack, recipientType }: Dir
         // reset payment state when done
         dispatch(paymentActions.resetPaymentState())
 
-        if (onBack) {
-            onBack()
-        } else {
-            router.push('/')
-        }
+        router.push('/home')
     }
 
     return (

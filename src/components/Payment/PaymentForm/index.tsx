@@ -29,7 +29,7 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { ErrorHandler, formatAmount, getTokenDecimals } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
@@ -37,7 +37,6 @@ import { useAccount } from 'wagmi'
 export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: ParsedURL & { isPintaReq?: boolean }) => {
     const dispatch = useAppDispatch()
     const { user } = useAuth()
-    const router = useRouter()
     const { requestDetails, chargeDetails, beerQuantity } = usePaymentStore()
     const { isConnected: isPeanutWallet, balance } = useWallet()
     const { isConnected: isWagmiConnected } = useAccount()
@@ -111,48 +110,67 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     useEffect(() => {
         if (initialSetupDone) return
 
-        const initialAmount = chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
-        if (initialAmount) {
-            setInputTokenAmount(initialAmount)
-            if (chargeDetails || requestDetails || token?.symbol) {
-                setInputDenomination('TOKEN')
-            } else if (amount) {
-                setInputDenomination('TOKEN')
+        if (amount) {
+            setInputTokenAmount(amount)
+            setInputDenomination(token?.symbol ? 'TOKEN' : 'USD')
+        }
+
+        if (chain) {
+            setSelectedChainID((chain.chainId || requestDetails?.chainId) ?? '')
+            if (!token && !requestDetails?.tokenAddress) {
+                const defaultToken = chain.tokens.find((t) => t.symbol.toLowerCase() === 'usdc')
+                if (defaultToken) {
+                    setSelectedTokenAddress(defaultToken.address)
+                    setSelectedTokenDecimals(defaultToken.decimals)
+                }
             }
         }
 
-        resetTokenAndChain()
+        if (token) {
+            setSelectedTokenAddress((token.address || requestDetails?.tokenAddress) ?? '')
+            if (token.decimals) {
+                setSelectedTokenDecimals(token.decimals)
+            }
+        }
 
         setInitialSetupDone(true)
-    }, [resetTokenAndChain, chargeDetails, requestDetails, amount, token, initialSetupDone])
+    }, [chain, token, amount, initialSetupDone, requestDetails])
 
+    // reset error when component mounts or recipient changes
     useEffect(() => {
-        if (isPintaReq || !requestDetails?.tokenAddress || !requestDetails?.chainId || !requestDetails?.tokenAmount)
-            return
+        dispatch(paymentActions.setError(null))
+    }, [dispatch, recipient])
+
+    // fetch token price
+    useEffect(() => {
+        if (isPintaReq) return
+        if (!requestDetails?.tokenAddress || !requestDetails?.chainId || !requestDetails?.tokenAmount) return
 
         const getTokenPriceData = async () => {
             setIsFetchingTokenPrice(true)
             try {
                 const priceData = await fetchTokenPrice(requestDetails.tokenAddress, requestDetails.chainId)
-                if (priceData?.price) {
-                    if (
-                        (!inputTokenAmount || inputTokenAmount === requestDetails.tokenAmount) &&
-                        inputDenomination === 'USD'
-                    ) {
-                        const usdVal = parseFloat(requestDetails.tokenAmount) * priceData.price
-                        setUsdValue(formatAmount(usdVal))
-                    }
+
+                if (priceData) {
+                    // calculate USD value
+                    const tokenAmount = parseFloat(requestDetails.tokenAmount)
+                    const usdValue = formatAmount(tokenAmount * priceData.price)
+
+                    setInputDenomination('USD')
+                    setInputTokenAmount(usdValue)
+                    setUsdValue(usdValue)
                 } else {
-                    console.log('Failed to fetch requested token price data')
+                    console.log('Failed to fetch token price data')
                 }
             } catch (error) {
-                console.error('Error fetching requested token price:', error)
+                console.error('Error fetching token price:', error)
             } finally {
                 setIsFetchingTokenPrice(false)
             }
         }
+
         getTokenPriceData()
-    }, [requestDetails, isPintaReq, inputDenomination, inputTokenAmount])
+    }, [requestDetails, isPintaReq])
 
     const canInitiatePayment = useMemo<boolean>(() => {
         let amountIsSet = false
@@ -292,24 +310,42 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     }
 
     useEffect(() => {
-        if (inputDenomination === 'TOKEN' && inputTokenAmount && selectedTokenPrice && selectedTokenPrice > 0) {
-            setUsdValue(formatAmount(parseFloat(inputTokenAmount) * selectedTokenPrice))
-        }
-    }, [inputTokenAmount, selectedTokenPrice, inputDenomination])
-
-    useEffect(() => {
-        if (inputDenomination === 'USD' && usdValue && selectedTokenPrice && selectedTokenPrice > 0) {
-            setInputTokenAmount(formatAmount(parseFloat(usdValue) / selectedTokenPrice))
-        } else if (inputDenomination === 'USD' && !usdValue) {
-            setInputTokenAmount('')
-        }
-    }, [usdValue, selectedTokenPrice, inputDenomination])
-
-    useEffect(() => {
         if (isPintaReq && inputTokenAmount) {
             dispatch(paymentActions.setBeerQuantity(Number(inputTokenAmount)))
         }
     }, [isPintaReq, inputTokenAmount, dispatch])
+
+    useEffect(() => {
+        if (!inputTokenAmount) return
+        if (inputDenomination === 'TOKEN') {
+            if (selectedTokenPrice) {
+                setInputDenomination('USD')
+                setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
+            }
+        } else if (inputDenomination === 'USD') {
+            setUsdValue(inputTokenAmount)
+        }
+    }, [inputTokenAmount, inputDenomination, selectedTokenPrice])
+
+    // Initialize inputTokenAmount
+    useEffect(() => {
+        if (amount && !inputTokenAmount && !initialSetupDone) {
+            setInputTokenAmount(amount)
+        }
+    }, [amount, inputTokenAmount, initialSetupDone])
+
+    // Initialize inputDenomination
+    useEffect(() => {
+        if (amount) setInputDenomination(token?.symbol ? 'TOKEN' : 'USD')
+    }, [amount, token])
+
+    // Init beer quantity
+    useEffect(() => {
+        if (!inputTokenAmount) return
+        if (isPintaReq) {
+            dispatch(paymentActions.setBeerQuantity(Number(inputTokenAmount)))
+        }
+    }, [isPintaReq, inputTokenAmount])
 
     const isXChainPeanutWalletReq = useMemo(() => {
         if (!isActivePeanutWallet || !selectedTokenData) return false
@@ -333,7 +369,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                             <Button
                                 variant="purple"
                                 onClick={handleInitiatePayment}
-                                disabled={beerQuantity === 0 || isProcessing || isXChainPeanutWalletReq}
+                                disabled={beerQuantity === 0 || isProcessing}
                                 loading={isProcessing}
                                 className="w-full"
                             >

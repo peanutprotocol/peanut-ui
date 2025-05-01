@@ -6,14 +6,13 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import PintaReqViewWrapper from '../PintaReqViewWrapper'
 
 const PintaReqPaySuccessView = () => {
     const dispatch = useAppDispatch()
     const { rewardWalletBalance } = useWalletStore()
     const [isPooling, setIsPolling] = useState(true)
-    // todo: fix in balance pr
     const remainingBeers = useMemo(() => Math.floor(Number(rewardWalletBalance)), [rewardWalletBalance])
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
@@ -59,6 +58,8 @@ const PintaReqPaySuccessView = () => {
             }
         }
     }, [chargeId, dispatch, isPooling])
+
+    console.log('remainingBeers', remainingBeers)
 
     return (
         <div>
