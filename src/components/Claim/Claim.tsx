@@ -1,7 +1,6 @@
 'use client'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { useContext, useEffect, useState } from 'react'
-import useClaimLink from './useClaimLink'
 
 import * as assets from '@/assets'
 import * as consts from '@/constants'
@@ -14,13 +13,17 @@ import { ActionType, estimatePoints } from '../utils/utils'
 import * as _consts from './Claim.consts'
 import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
-import { getLinkDetails } from '@/app/actions/claimLinks'
 import { fetchTokenPrice } from '@/app/actions/tokens'
+import { sendLinksApi, type ClaimLinkData, ESendLinkStatus } from '@/services/sendLinks'
+import { useAuth } from '@/context/authContext'
+import { fetchTokenDetails } from '@/app/actions/tokens'
+import { formatUnits } from 'viem'
+import { isStableCoin } from '@/utils'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.claimLinkStateType>(_consts.claimLinkStateType.LOADING)
-    const [claimLinkData, setClaimLinkData] = useState<interfaces.ILinkDetails | undefined>(undefined)
+    const [claimLinkData, setClaimLinkData] = useState<ClaimLinkData | undefined>(undefined)
     const [attachment, setAttachment] = useState<{ message: string | undefined; attachmentUrl: string | undefined }>({
         message: undefined,
         attachmentUrl: undefined,
@@ -51,7 +54,7 @@ export const Claim = ({}) => {
     const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
     const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useWallet()
-    const { getAttachmentInfo } = useClaimLink()
+    const { user } = useAuth()
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
@@ -79,56 +82,69 @@ export const Claim = ({}) => {
         try {
             const url = new URL(link)
             const password = url.hash.split('=')[1]
-            url.hash = ''
-            //TODO: discriminate by token type??
-            let linkDetails = await getLinkDetails(link)
-            linkDetails = { ...linkDetails, link, password }
-            const attachmentInfo = await getAttachmentInfo(linkDetails.link)
+            const sendLink = await sendLinksApi.get(link)
             setAttachment({
-                message: attachmentInfo?.message,
-                attachmentUrl: attachmentInfo?.fileUrl,
+                message: sendLink.textContent,
+                attachmentUrl: sendLink.fileUrl,
             })
 
-            setClaimLinkData(linkDetails)
-            setSelectedChainID(linkDetails.chainId)
-            setSelectedTokenAddress(linkDetails.tokenAddress)
-            const keyPair = peanut.generateKeysFromString(linkDetails.password)
+            const tokenDetails = await fetchTokenDetails(sendLink.tokenAddress, sendLink.chainId)
+            setClaimLinkData({
+                ...sendLink,
+                link,
+                password,
+                tokenSymbol: tokenDetails.symbol,
+                tokenDecimals: tokenDetails.decimals,
+            })
+            setSelectedChainID(sendLink.chainId)
+            setSelectedTokenAddress(sendLink.tokenAddress)
+            const keyPair = peanut.generateKeysFromString(password)
             const generatedPubKey = keyPair.address
 
-            const rawInfo = linkDetails.rawOnchainDepositInfo as any
-            const depositPubKey = rawInfo.pubKey20
+            const depositPubKey = sendLink.pubKey
 
             if (generatedPubKey !== depositPubKey) {
                 setLinkState(_consts.claimLinkStateType.WRONG_PASSWORD)
                 return
             }
 
-            if (linkDetails.claimed) {
+            if (sendLink.status === ESendLinkStatus.CLAIMED || sendLink.status === ESendLinkStatus.CANCELLED) {
                 setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
                 return
             }
 
-            const tokenPrice = await fetchTokenPrice(linkDetails.tokenAddress.toLowerCase(), linkDetails.chainId)
-            if (tokenPrice) setTokenPrice(tokenPrice.price)
+            let price = 0
+            if (isStableCoin(tokenDetails.symbol)) {
+                price = 1
+            } else {
+                const tokenPriceDetails = await fetchTokenPrice(sendLink.tokenAddress.toLowerCase(), sendLink.chainId)
+                if (tokenPriceDetails) {
+                    price = tokenPriceDetails.price
+                }
+            }
+            if (0 < price) setTokenPrice(price)
 
             if (address) {
                 setRecipient({ name: '', address })
 
+                const tokenValue = formatUnits(sendLink.amount, tokenDetails.decimals)
+                const amountUsd = Number(tokenValue) * price
                 const estimatedPoints = await estimatePoints({
                     address: address ?? '',
-                    chainId: linkDetails.chainId,
-                    amountUSD: Number(linkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
+                    chainId: sendLink.chainId,
+                    amountUSD: amountUsd,
                     actionType: ActionType.CLAIM,
                 })
                 setEstimatedPoints(estimatedPoints)
             }
 
-            if (address && linkDetails.senderAddress === address) {
+            if (user && user.user.userId === sendLink.sender.userId) {
                 setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
             } else {
                 setLinkState(_consts.claimLinkStateType.CLAIM)
             }
         } catch (error) {
+            console.error(error)
             setLinkState(_consts.claimLinkStateType.NOT_FOUND)
             Sentry.captureException(error)
         }
@@ -187,7 +203,7 @@ export const Claim = ({}) => {
                             setUserId,
                             initialKYCStep,
                             setInitialKYCStep,
-                        } as _consts.IClaimScreenProps
+                        } as unknown as _consts.IClaimScreenProps
                     }
                 />
             )}

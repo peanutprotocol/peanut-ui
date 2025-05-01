@@ -51,6 +51,7 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
         client: createPublicClient({
             transport: http(infuraRpcUrls[arbitrum.id]),
             chain: arbitrum,
+            pollingInterval: 500,
         }),
         chain: PEANUT_WALLET_CHAIN,
         bundlerUrl: BUNDLER_URL,
@@ -60,6 +61,7 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
         client: createPublicClient({
             transport: http(infuraRpcUrls[polygon.id]),
             chain: polygon,
+            pollingInterval: 2500,
         }),
         chain: polygon,
         bundlerUrl: process.env.NEXT_PUBLIC_POLYGON_BUNDLER_URL!,

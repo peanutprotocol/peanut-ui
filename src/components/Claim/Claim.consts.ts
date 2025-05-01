@@ -2,6 +2,7 @@ import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
 import { IOfframpConfirmScreenProps, IOfframpSuccessScreenProps } from '../Offramp/Offramp.consts'
 export type ClaimType = 'claim' | 'claimxchain'
+import { ClaimLinkData } from '@/services/sendLinks'
 
 export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
 
@@ -27,7 +28,7 @@ export interface IClaimScreenProps {
     onPrev: () => void
     onNext: () => void
     onCustom: (screen: ClaimScreens) => void
-    claimLinkData: interfaces.ILinkDetails
+    claimLinkData: ClaimLinkData
     type: ClaimType
     setClaimType: (type: ClaimType) => void
     recipient: { name: string | undefined; address: string }

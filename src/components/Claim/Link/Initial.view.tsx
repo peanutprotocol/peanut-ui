@@ -35,16 +35,16 @@ import {
     formatTokenAmount,
     getBridgeChainName,
     getBridgeTokenName,
-    saveClaimedLinkToLocalStorage,
 } from '@/utils'
-import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
+import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
 import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { parseUnits } from 'viem'
+import { formatUnits } from 'viem'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
+import { sendLinksApi } from '@/services/sendLinks'
 
 const isPeanutClaimOnlyMode = () => {
     if (typeof window === 'undefined') return false
@@ -119,45 +119,32 @@ export const InitialClaimLinkView = ({
         }
     }, [claimLinkData, isPeanutWallet])
 
-    const handleClaimLink = async () => {
+    const handleClaimLink = useCallback(async () => {
         setLoadingState('Loading')
         setErrorState({
             showError: false,
             errorMessage: '',
         })
 
-        if (recipient.address === '') return
+        if (recipient.address === '' || !address) return
 
         try {
             setLoadingState('Executing transaction')
-            const claimTxHash = await claimLink({
-                address: recipient.address ?? '',
-                link: claimLinkData.link,
-            })
+            if (isPeanutWallet) {
+                const claimedLink = await sendLinksApi.claim(user?.user.username!, claimLinkData.link)
 
-            // TODO: there is a mixup here between recipient.address and address - from
-            // the previous component (Claim.tsx) recipient.address is set to {address} = useWallet
-            // thought: anyway, we need to set address to useWallet here too
-
-            if (claimTxHash) {
-                saveClaimedLinkToLocalStorage({
-                    address: address ?? '',
-                    data: {
-                        ...claimLinkData,
-                        depositDate: new Date(),
-                        USDTokenPrice: tokenPrice,
-                        points: estimatedPoints,
-                        txHash: claimTxHash,
-                        message: attachment.message ? attachment.message : undefined,
-                        attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
-                    },
+                setClaimType('claim')
+                setTransactionHash(claimedLink.claim!.txHash)
+                onCustom('SUCCESS')
+                refetchBalances(address)
+            } else {
+                const claimTxHash = await claimLink({
+                    address: recipient.address ?? '',
+                    link: claimLinkData.link,
                 })
                 setClaimType('claim')
                 setTransactionHash(claimTxHash)
                 onCustom('SUCCESS')
-                refetchBalances(address ?? '')
-            } else {
-                throw new Error('Error claiming link')
             }
         } catch (error) {
             const errorString = ErrorHandler(error)
@@ -169,7 +156,7 @@ export const InitialClaimLinkView = ({
         } finally {
             setLoadingState('Idle')
         }
-    }
+    }, [claimLinkData.link, isPeanutWallet, address, refetchBalances, recipient.address])
 
     useEffect(() => {
         if (isPeanutWallet) resetSelectedToken()
@@ -184,7 +171,8 @@ export const InitialClaimLinkView = ({
             setLoadingState('Fetching route')
 
             if (tokenPrice) {
-                const cashoutUSDAmount = Number(claimLinkData.tokenAmount) * tokenPrice
+                const cashoutUSDAmount =
+                    Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
                 if (cashoutUSDAmount < MIN_CASHOUT_LIMIT) {
                     setErrorState({
                         showError: true,
@@ -204,8 +192,6 @@ export const InitialClaimLinkView = ({
 
             if (!tokenName || !chainName) {
                 console.log('Debug - Routing through USDC Optimism')
-                const fromToken = getSquidTokenAddress(claimLinkData.tokenAddress)
-
                 const route = await fetchRoute(usdcAddressOptimism, optimismChainId)
                 if (!route) {
                     setErrorState({
@@ -288,7 +274,7 @@ export const InitialClaimLinkView = ({
     useEffect(() => {
         let isMounted = true
         if (recipient?.address && isValidRecipient) {
-            const amountUSD = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
+            const amountUSD = Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * (tokenPrice ?? 0)
             estimatePoints({
                 address: recipient.address,
                 chainId: claimLinkData.chainId,
@@ -303,7 +289,7 @@ export const InitialClaimLinkView = ({
         return () => {
             isMounted = false
         }
-    }, [recipient.address, isValidRecipient, claimLinkData.tokenAmount, claimLinkData.chainId, tokenPrice])
+    }, [recipient.address, isValidRecipient, claimLinkData.amount, claimLinkData.chainId, tokenPrice])
 
     useEffect(() => {
         if (recipient.address) return
@@ -352,7 +338,7 @@ export const InitialClaimLinkView = ({
                     return undefined
                 }
 
-                const tokenAmount: BigInt = parseUnits(claimLinkData.tokenAmount, claimLinkData.tokenDecimals)
+                const tokenAmount = claimLinkData.amount
 
                 const fromToken =
                     claimLinkData.tokenAddress === '0x0000000000000000000000000000000000000000'
@@ -367,7 +353,7 @@ export const InitialClaimLinkView = ({
                     toChain: toChain ? toChain : selectedChainID.toString(),
                     toToken: toToken ? toToken : selectedTokenAddress,
                     slippage: 1,
-                    fromAddress: claimLinkData.senderAddress,
+                    fromAddress: claimLinkData.sender?.accounts[0].identifier ?? claimLinkData.senderAddress,
                     toAddress:
                         recipientType === 'us' || recipientType === 'iban'
                             ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
@@ -542,11 +528,16 @@ export const InitialClaimLinkView = ({
                             )}
                             {!isReward && tokenPrice ? (
                                 <label className="text-h2">
-                                    ${formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
+                                    $
+                                    {formatTokenAmount(
+                                        Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) *
+                                            tokenPrice
+                                    )}
                                 </label>
                             ) : (
                                 <label className="text-h2 ">
-                                    {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol}
+                                    {formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)}{' '}
+                                    {claimLinkData.tokenSymbol}
                                 </label>
                             )}
                         </div>

@@ -3,15 +3,16 @@
 import AddressLink from '@/components/Global/AddressLink'
 import StatusViewWrapper from '@/components/Global/StatusViewWrapper'
 import * as consts from '@/constants'
-import * as interfaces from '@/interfaces'
+import { ClaimLinkData } from '@/services/sendLinks'
+import { formatUnits } from 'viem'
 
-export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: interfaces.ILinkDetails | undefined }) => {
+export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: ClaimLinkData | undefined }) => {
     const chainName =
         consts.supportedPeanutChains &&
         consts.supportedPeanutChains.find((chain) => chain.chainId == claimLinkData?.chainId)?.name
 
     const tokenSymbolAvailable: boolean = claimLinkData?.tokenSymbol != undefined
-    const tokenAmountAvailable: boolean = claimLinkData?.tokenAmount != undefined
+    const tokenAmountAvailable: boolean = claimLinkData?.amount != undefined
     const chainAvailable: boolean = claimLinkData?.chainId != undefined
     const senderAddressAvailable: boolean = claimLinkData?.senderAddress != undefined
     const dataAvailable: boolean =
@@ -38,7 +39,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                                 <label className="font-bold">Amount</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {claimLinkData?.tokenAmount}
+                                {formatUnits(claimLinkData?.amount!, claimLinkData?.tokenDecimals!)}
                             </span>
                         </div>
                     )}
