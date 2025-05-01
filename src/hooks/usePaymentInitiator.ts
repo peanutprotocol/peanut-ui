@@ -498,27 +498,15 @@ export const usePaymentInitiator = () => {
 
                 if (isPeanutWallet && peanutWalletAddress) {
                     setLoadingStep('Preparing Transaction')
-                    // PINTA requests payment flow using peanut wallet
-                    if (payload.isPintaReq) {
-                        // PINTA requests use PNT token on Polygon, no validation needed
-                        const isSupportedChain = selectedChainID === PINTA_WALLET_CHAIN.id.toString()
-                        const isSupportedToken = selectedTokenAddress.toLowerCase() === PINTA_WALLET_TOKEN.toLowerCase()
 
-                        if (!(isSupportedChain && isSupportedToken)) {
-                            throw new Error('Peanut Wallet only supports sending PNT on Polygon.')
-                        }
-                    } else if (isPeanutWallet) {
-                        const isSupportedChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
-                        const isSupportedToken =
-                            selectedTokenAddress.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
+                    const isSupportedChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
+                    const isSupportedToken = selectedTokenAddress.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
 
-                        if (!(isSupportedChain && isSupportedToken)) {
-                            throw new Error('Peanut Wallet only supports sending USDC on Arbitrum.')
-                        }
+                    if (!(isSupportedChain && isSupportedToken)) {
+                        throw new Error('Peanut Wallet only supports sending USDC on Arbitrum.')
                     }
 
                     // validate charge data before preparing transaction
-
                     if (
                         !chargeDetailsToUse.requestLink?.recipientAddress ||
                         !chargeDetailsToUse.tokenAddress ||

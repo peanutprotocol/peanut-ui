@@ -399,7 +399,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                 />
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-4">
                 <Button
                     variant="purple"
                     loading={isProcessing}

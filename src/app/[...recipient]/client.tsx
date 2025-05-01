@@ -170,8 +170,13 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
 
     // show loading until URL is parsed and req/charge data is loaded
     const isLoading = !isUrlParsed || (chargeId && !chargeDetails) || (requestId && !requestDetails)
+
     if (isLoading) {
-        return <PeanutLoading />
+        return (
+            <div className="flex min-h-[calc(100dvh-180px)] w-full items-center justify-center ">
+                <PeanutLoading />
+            </div>
+        )
     }
 
     // check if its is a profile view
