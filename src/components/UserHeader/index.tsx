@@ -8,9 +8,10 @@ import { useMemo } from 'react'
 interface UserHeaderProps {
     username: string
     fullName?: string
+    isVerified?: boolean
 }
 
-export const UserHeader = ({ username, fullName }: UserHeaderProps) => {
+export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) => {
     const initals = useMemo(() => {
         if (fullName) {
             return getInitialsFromName(fullName)
@@ -22,8 +23,13 @@ export const UserHeader = ({ username, fullName }: UserHeaderProps) => {
     return (
         <div className="flex items-center gap-1.5">
             <Link href={`/profile`} className="flex items-center gap-1.5">
-                <AvatarWithBadge size="extra-small" initials={initals} isVerified achievementsBadgeSize="extra-small" />
-                <div className="text-sm font-bold">{username}</div>
+                <AvatarWithBadge
+                    size="extra-small"
+                    initials={initals}
+                    isVerified={isVerified}
+                    achievementsBadgeSize="extra-small"
+                />
+                <div className="text-sm font-bold">{`${BASE_URL.replace('https://', '')}/${username}`}</div>
             </Link>
             <CopyToClipboard textToCopy={`${BASE_URL}/${username}`} fill="black" iconSize={'4'} />
         </div>
