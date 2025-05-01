@@ -27,6 +27,7 @@ import { TxnOffIcon } from './txn-off'
 import { UserIcon } from './user'
 import { UserPlusIcon } from './user-plus'
 import { WalletIcon } from './wallet'
+import { WalletOutlineIcon } from './wallet-outline'
 
 // allowed icon names
 export type IconName =
@@ -49,6 +50,7 @@ export type IconName =
     | 'search'
     | 'txn-off'
     | 'wallet'
+    | 'wallet-outline'
     | 'currency'
     | 'achievements'
     | 'link'
@@ -83,6 +85,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     search: SearchIcon,
     'txn-off': TxnOffIcon,
     wallet: WalletIcon,
+    'wallet-outline': WalletOutlineIcon,
     currency: CurrencyIcon,
     achievements: AchievementsIcon,
     link: LinkIcon,

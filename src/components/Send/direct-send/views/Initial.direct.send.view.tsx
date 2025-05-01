@@ -17,7 +17,7 @@ import { ApiUser, usersApi } from '@/services/users'
 import { ErrorHandler, printableUsdc, saveDirectSendToLocalStorage } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import DirectSendSuccessView from './Success.direct.send.view'
+import DirectSendSuccessView from '../../../Payment/Views/Status.payment.view'
 
 interface DirectSendInitialViewProps {
     username: string
