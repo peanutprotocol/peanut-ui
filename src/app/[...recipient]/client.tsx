@@ -188,7 +188,7 @@ export default function PaymentPage({ recipient }: Props) {
                 username={username}
                 fullName={username} // todo: replace with actual full name, getByUsername only returns username
                 initials={username.substring(0, 2).toUpperCase()}
-                isVerified={false}
+                isVerified={user?.user.kycStatus === 'approved'}
                 isLoggedIn={!!user}
                 // todo: to be implemented in history project
                 transactions={{

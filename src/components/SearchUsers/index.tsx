@@ -6,7 +6,6 @@ import { getInitialsFromName } from '@/utils'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '../0_Bruddle'
-import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import { SearchInput } from './SearchInput'
 import { SearchResults } from './SearchResults'
 
@@ -44,14 +43,10 @@ const SearchContent = ({ closePortal, recentTransactions }: SearchContentProps) 
     return (
         <div className="flex h-full w-full flex-col gap-4">
             <div className="flex items-center justify-between">
-                <div onClick={closePortal}>
-                    <AvatarWithBadge
-                        size="extra-small"
-                        initials={initials}
-                        isVerified
-                        achievementsBadgeSize="extra-small"
-                    />
-                </div>
+                <Button onClick={closePortal} variant="stroke" className="h-7 w-7 p-0">
+                    <Icon name="chevron-up" size={32} className="h-8 w-8 -rotate-90" />
+                </Button>
+
                 <SearchInput
                     value={searchTerm}
                     onChange={handleSearchChange}

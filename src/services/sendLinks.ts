@@ -123,6 +123,18 @@ export const sendLinksApi = {
         return data
     },
 
+    getByPubKey: async (pubKey: string): Promise<SendLink> => {
+        const url = `${PEANUT_API_URL}/send-links/${pubKey}`
+        const response = await fetchWithSentry(url, {
+            method: 'GET',
+        })
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        const data: SendLink = jsonParse(await response.text())
+        return data
+    },
+
     /**
      * Claim a send link
      *
