@@ -13,7 +13,6 @@ import peanut, {
     getLinkFromParams,
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
-import { BigNumber, ethers } from 'ethers'
 import { useCallback, useContext } from 'react'
 import type { Hash } from 'viem'
 import {
@@ -150,7 +149,6 @@ export const useCreateLink = () => {
                 const feeOptions = await peanut.setFeeOptions({
                     chainId: chainId,
                     unsignedTx: preparedTx,
-                    gasLimit: BigNumber.from(100000),
                 })
 
                 let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
@@ -372,14 +370,17 @@ export const useCreateLink = () => {
 
         if (!isNativeCurrency(tokenAddress)) {
             // ERC20 Token transfer
-            const erc20Contract = new ethers.Contract(tokenAddress, peanut.ERC20_ABI)
             const amount = parseUnits(tokenValue, tokenDecimals)
-            const data = erc20Contract.interface.encodeFunctionData('transfer', [recipient, amount])
+            const data = encodeFunctionData({
+                abi: peanut.ERC20_ABI,
+                functionName: 'transfer',
+                args: [recipient, amount],
+            })
 
             transactionRequest = {
                 to: tokenAddress,
                 data,
-                value: BigInt(0), // Convert to BigInt
+                value: 0n,
             }
         } else {
             // Native token transfer

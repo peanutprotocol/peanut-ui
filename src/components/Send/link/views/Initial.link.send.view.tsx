@@ -17,7 +17,6 @@ import FileUploadInput from '../../../Global/FileUploadInput'
 import MoreInfo from '../../../Global/MoreInfo'
 import TokenAmountInput from '../../../Global/TokenAmountInput'
 import { parseUnits } from 'viem'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { sendLinksApi } from '@/services/sendLinks'
 
 const LinkSendInitialView = () => {
@@ -29,7 +28,7 @@ const LinkSendInitialView = () => {
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
 
     const [currentInputValue, setCurrentInputValue] = useState<string | undefined>('')
-    const { address, fetchBalance, balance } = useWallet()
+    const { fetchBalance, balance } = useWallet()
 
     const peanutWalletBalance = useMemo(() => {
         return printableUsdc(balance)

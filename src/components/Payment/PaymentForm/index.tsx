@@ -574,7 +574,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                     loading={isSubmitting}
                     shadowSize="4"
                     onClick={handleCreateCharge}
-                    disabled={!canCreateCharge || isSubmitting || isPeanutWalletCrossChainRequest}
+                    disabled={!canCreateCharge || isSubmitting || isPeanutWalletCrossChainRequest || !!error}
                     className="w-full"
                 >
                     {getButtonText()}

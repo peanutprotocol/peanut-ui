@@ -43,6 +43,7 @@ const DirectSendInitialView = ({ username }: DirectSendInitialViewProps) => {
     const { isConnected, balance, address, sendTransactions } = useWallet()
 
     const peanutWalletBalance = useMemo(() => {
+        if (!balance) return '0'
         return printableUsdc(balance)
     }, [balance])
 
