@@ -158,7 +158,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
         if (!chargeId) {
             dispatch(paymentActions.resetPaymentState())
         }
-    }, [dispatch])
+    }, [dispatch, chargeId])
 
     if (error) {
         return (

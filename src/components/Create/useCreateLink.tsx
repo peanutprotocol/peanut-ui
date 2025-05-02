@@ -1,37 +1,35 @@
 'use client'
 import { getLinkFromTx } from '@/app/actions/claimLinks'
 import { fetchTokenPrice } from '@/app/actions/tokens'
-import { PEANUT_API_URL, next_proxy_url } from '@/constants'
+import { PEANUT_API_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
-import { fetchWithSentry, isNativeCurrency } from '@/utils'
+import { useZeroDev } from '@/hooks/useZeroDev'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { fetchWithSentry, isNativeCurrency, saveToLocalStorage } from '@/utils'
+import { captureException } from '@sentry/nextjs'
 import peanut, {
     generateKeysFromString,
-    getRandomString,
-    getLatestContractVersion,
     getContractAbi,
     getContractAddress,
+    getLatestContractVersion,
     getLinkFromParams,
+    getRandomString,
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
+import { BigNumber } from 'ethers'
 import { useCallback, useContext } from 'react'
 import type { Hash } from 'viem'
 import {
-    formatEther,
-    parseEther,
-    parseUnits,
-    encodeFunctionData,
-    parseAbi,
-    parseEventLogs,
     bytesToNumber,
+    encodeFunctionData,
+    formatEther,
+    parseAbi,
+    parseEther,
+    parseEventLogs,
+    parseUnits,
     toBytes,
 } from 'viem'
 import { useAccount, useSignTypedData } from 'wagmi'
-import { saveToLocalStorage } from '@/utils'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
-
-import { useZeroDev } from '@/hooks/useZeroDev'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { captureException } from '@sentry/nextjs'
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
@@ -149,6 +147,7 @@ export const useCreateLink = () => {
                 const feeOptions = await peanut.setFeeOptions({
                     chainId: chainId,
                     unsignedTx: preparedTx,
+                    gasLimit: BigNumber.from(100000),
                 })
 
                 let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)

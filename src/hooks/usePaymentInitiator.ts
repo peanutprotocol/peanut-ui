@@ -185,16 +185,18 @@ export const usePaymentInitiator = () => {
         const EXPECTED_NETWORK_FEE_MULTIPLIER = 0.7
         const EXPECTED_SLIPPAGE_MULTIPLIER = 0.1
         setIsCalculatingFees(true)
+        let timerId: NodeJS.Timeout | undefined // Declare timerId here
 
         try {
+            // determine the base fee depending on the transaction type
+            const baseNetworkFee =
+                isXChain || diffTokens ? parseFloat(txFee) : isPeanutWallet ? 0 : Number(estimatedGasCost || 0)
+
             const networkFee = {
-                expected:
-                    (isXChain || diffTokens
-                        ? parseFloat(txFee) * EXPECTED_NETWORK_FEE_MULTIPLIER
-                        : isPeanutWallet
-                          ? 0
-                          : Number(estimatedGasCost || 0)) * EXPECTED_NETWORK_FEE_MULTIPLIER,
-                max: isXChain || diffTokens ? parseFloat(txFee) : isPeanutWallet ? 0 : Number(estimatedGasCost || 0),
+                // expected fee is always a fraction of the base fee
+                expected: baseNetworkFee * EXPECTED_NETWORK_FEE_MULTIPLIER,
+                // max fee is the full base fee determined above
+                max: baseNetworkFee,
             }
 
             const slippage =
@@ -238,10 +240,16 @@ export const usePaymentInitiator = () => {
                 totalMax: '0.00',
             })
         } finally {
-            const timer = setTimeout(() => {
+            // schedule setting isCalculatingFees to false
+            timerId = setTimeout(() => {
                 setIsCalculatingFees(false)
             }, 100)
-            return () => clearTimeout(timer)
+        }
+
+        return () => {
+            if (timerId) {
+                clearTimeout(timerId)
+            }
         }
     }, [
         isXChain,

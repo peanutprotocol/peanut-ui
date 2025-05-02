@@ -17,18 +17,18 @@ export const SuccessViewDetailsCard: React.FC<SuccessViewDetailsCardProps> = ({
     status = 'completed',
 }) => {
     return (
-        <Card className="p-4">
+        <Card className="p-6">
             <div className="flex items-start justify-between">
                 {/* Left side: Icon, Amount, Description */}
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                     <div
-                        className={`flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-secondary-7 font-bold`}
+                        className={`flex h-14 w-14 min-w-14 items-center justify-center rounded-full bg-secondary-7 font-bold`}
                     >
-                        <Icon name="link" size={24} />
+                        <Icon name="link" size={32} className="text-white" />
                     </div>
-                    <div className="space-y-0.5">
-                        <h1 className="text-h7 font-semibold">{title}</h1>
-                        {amountDisplay && <h2 className="text-h5 font-bold">${amountDisplay}</h2>}
+                    <div className="space-y-1">
+                        <h1 className="text-lg font-bold">{title}</h1>
+                        {amountDisplay && <h2 className="text-4xl font-extrabold">${amountDisplay}</h2>}
 
                         {description && <p className="line-clamp-3 text-sm text-grey-1">{description}</p>}
                     </div>

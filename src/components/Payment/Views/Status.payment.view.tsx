@@ -8,7 +8,7 @@ import { RecipientType } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
-import { getInitialsFromName } from '@/utils'
+import { getInitialsFromName, printableAddress } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 import { useDispatch } from 'react-redux'
@@ -32,11 +32,7 @@ const PaymentStatusView = ({ user, amount, message, recipientType }: DirectSendS
         if (parsedPaymentData?.recipient?.identifier) {
             return parsedPaymentData.recipient.identifier
         }
-        return (
-            chargeDetails?.requestLink?.recipientAddress?.slice(0, 6) +
-                '...' +
-                chargeDetails?.requestLink?.recipientAddress?.slice(-4) || ''
-        )
+        return printableAddress(chargeDetails?.requestLink?.recipientAddress || '')
     }, [user, parsedPaymentData, chargeDetails])
 
     const displayAmount = useMemo(() => {
@@ -47,9 +43,8 @@ const PaymentStatusView = ({ user, amount, message, recipientType }: DirectSendS
 
     const handleDone = () => {
         // reset payment state when done
-        dispatch(paymentActions.resetPaymentState())
-
         router.push('/home')
+        dispatch(paymentActions.resetPaymentState())
     }
 
     return (

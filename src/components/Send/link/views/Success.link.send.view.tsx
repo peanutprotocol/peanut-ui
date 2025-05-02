@@ -6,22 +6,12 @@ import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
-import { tokenSelectorContext } from '@/context'
 import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
-import { getExplorerUrl } from '@/utils'
-import Link from 'next/link'
-import { useContext, useMemo } from 'react'
 
 const LinkSendSuccessView = () => {
     const dispatch = useAppDispatch()
-    const { selectedChainID } = useContext(tokenSelectorContext)
-    const { link, txHash, attachmentOptions, tokenValue } = useSendFlowStore()
-
-    const explorerUrlWithTx = useMemo(
-        () => `${getExplorerUrl(selectedChainID)}/tx/${txHash}`,
-        [txHash, selectedChainID]
-    )
+    const { link, attachmentOptions, tokenValue } = useSendFlowStore()
 
     return (
         <div className="space-y-8">
@@ -62,16 +52,6 @@ const LinkSendSuccessView = () => {
                                 Cancel link <span className="text-xs">(Coming soon)</span>
                             </span>
                         </Button>
-
-                        {explorerUrlWithTx && (
-                            <Link
-                                className="w-full text-center font-semibold text-grey-1 underline"
-                                target="_blank"
-                                href={`${explorerUrlWithTx}`}
-                            >
-                                Transaction hash
-                            </Link>
-                        )}
                     </div>
                 )}
             </div>
