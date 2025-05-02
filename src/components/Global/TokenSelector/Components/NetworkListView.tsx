@@ -1,12 +1,10 @@
 import React, { useMemo } from 'react'
 
-import { Button } from '@/components/0_Bruddle'
-import BaseInput from '@/components/0_Bruddle/BaseInput'
 import EmptyState from '../../EmptyStates/EmptyState'
-import { Icon } from '../../Icons/Icon'
 import NavHeader from '../../NavHeader'
 import { NetworkConfig } from '../TokenSelector.consts'
 import NetworkListItem from './NetworkListItem'
+import SearchInput from './SearchInput'
 
 interface NetworkListViewProps {
     chains: Record<string, any>
@@ -63,29 +61,14 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
     return (
         <div className="relative flex flex-col space-y-4">
             <NavHeader title="More networks" onPrev={onBack} />
-            <div className="relative">
-                <BaseInput
-                    variant="md"
-                    className="h-10 w-full border border-black px-10 text-sm font-normal"
-                    placeholder="Search for a network"
-                    value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                />
-                <Icon name="search" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2" />
-                {searchValue && (
-                    <Button
-                        variant="transparent"
-                        onClick={() => setSearchValue('')}
-                        className="absolute right-2 top-1/2 w-fit -translate-y-1/2 p-0"
-                    >
-                        <div className="flex size-6 items-center justify-center">
-                            <Icon name="cancel" />
-                        </div>
-                    </Button>
-                )}
-            </div>
+            <SearchInput
+                value={searchValue}
+                onChange={setSearchValue}
+                onClear={() => setSearchValue('')}
+                placeholder="Search for a network"
+            />
 
-            <div className="flex max-h-[calc(70vh-120px)] flex-col gap-3 space-y-2 overflow-y-auto pr-1 pt-2">
+            <div className="flex max-h-[60vh] flex-col gap-3 space-y-2 overflow-y-auto pr-1 pt-2">
                 {filteredChains.length > 0 ? (
                     filteredChains.map((chain) => (
                         <NetworkListItem

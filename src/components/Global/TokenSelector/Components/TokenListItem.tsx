@@ -34,9 +34,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
 
     const formattedBalance = useMemo(() => {
         if (!balance.amount || !balance.decimals) return null
-        const displayDecimals = Math.min(balance.decimals ?? 6, 6)
-        const formatted = balance.amount.toFixed(displayDecimals)
-        return formatAmount(formatted)
+        return formatAmount(balance.amount)
     }, [balance.amount, balance.decimals])
 
     return (

@@ -23,6 +23,7 @@ import { PeanutSupportIcon } from './peanut-support'
 import { SearchIcon } from './search'
 import { ShareIcon } from './share'
 import { SmileIcon } from './smile'
+import { StarIcon } from './star'
 import { TxnOffIcon } from './txn-off'
 import { UserIcon } from './user'
 import { UserPlusIcon } from './user-plus'
@@ -59,6 +60,7 @@ export type IconName =
     | 'logout'
     | 'paperclip'
     | 'smile'
+    | 'star'
     | 'user'
     | 'share'
     | 'user-plus'
@@ -97,6 +99,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     smile: SmileIcon,
     user: UserIcon,
     share: ShareIcon,
+    star: StarIcon,
     'user-plus': UserPlusIcon,
     copy: CopyIcon,
     cancel: CancelIcon,

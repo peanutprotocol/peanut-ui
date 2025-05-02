@@ -5,20 +5,23 @@ import React, { ReactNode, useCallback, useContext, useEffect, useMemo, useRef, 
 import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
-import BaseInput from '@/components/0_Bruddle/BaseInput'
 import Divider from '@/components/0_Bruddle/Divider'
 import BottomDrawer from '@/components/Global/BottomDrawer'
 import Card from '@/components/Global/Card'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
+import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken, IUserBalance } from '@/interfaces'
 import { fetchWalletBalances, formatAmount } from '@/utils'
+import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import EmptyState from '../EmptyStates/EmptyState'
-import { Icon } from '../Icons/Icon'
+import { Icon, IconName } from '../Icons/Icon'
 import NetworkButton from './Components/NetworkButton'
 import NetworkListView from './Components/NetworkListView'
+import ScrollableList from './Components/ScrollableList'
+import SearchInput from './Components/SearchInput'
 import TokenListItem from './Components/TokenListItem'
 import {
     TOKEN_SELECTOR_COMING_SOON_NETWORKS,
@@ -30,11 +33,16 @@ interface SectionProps {
     title: string
     children: ReactNode
     className?: string
+    icon?: IconName
+    titleClassName?: string
 }
 
-const Section: React.FC<SectionProps> = ({ title, children, className }) => (
+const Section: React.FC<SectionProps> = ({ title, icon, children, className, titleClassName }) => (
     <div className={twMerge('space-y-2', className)}>
-        <h2 className="text-md font-bold text-black">{title}</h2>
+        <div className="flex items-center gap-2">
+            {icon && <Icon name={icon} size={16} className="text-grey-1" />}
+            <h2 className={twMerge('text-md font-bold text-black', titleClassName)}>{title}</h2>
+        </div>
         {children}
     </div>
 )
@@ -46,9 +54,8 @@ interface NewTokenSelectorProps {
 
 const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other' }) => {
     // state to track content height
-    const [contentHeight, setContentHeight] = useState(0)
     const contentRef = useRef<HTMLDivElement>(null)
-    // local states for the component
+    const drawerHeightVh = useDynamicHeight(contentRef, { maxHeightVh: 90, minHeightVh: 10, extraVhOffset: 5 })
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [searchValue, setSearchValue] = useState('')
     const [showNetworkList, setShowNetworkList] = useState(false)
@@ -166,7 +173,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             setSelectedChainID(chain.chainId)
             setSelectedTokenAddress('')
         },
-        [setSelectedChainID, setSelectedTokenAddress, supportedSquidChainsAndTokens]
+        [setSelectedChainID, setSelectedTokenAddress]
     )
 
     // handles free USDC on arb token selection
@@ -191,7 +198,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
             setShowNetworkList(false)
         },
-        [setSelectedChainID, setSelectedTokenAddress, supportedSquidChainsAndTokens]
+        [setSelectedChainID, setSelectedTokenAddress]
     )
 
     // checks if there are tokens on the selected network
@@ -378,7 +385,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
         const tokens: IUserBalance[] = []
         const popularSymbolsToFind = ['USDC', 'USDT']
-        const nativeTokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' // note: native token address in squid data is 0xe.. and not 0x00..
+        const nativeTokenAddress = SQUID_ETH_ADDRESS
 
         // creates a placeholder balance popular tokens, note we dont show the balance amount for these tokens
         const createPlaceholderBalance = (token: IToken, chainId: string): IUserBalance => ({
@@ -451,21 +458,122 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         return uniqueTokens
     }, [popularChains, supportedSquidChainsAndTokens])
 
-    // calculate content height for drawers dynamic height
-    useEffect(() => {
-        if (contentRef.current) {
-            const observer = new ResizeObserver((entries) => {
-                for (const entry of entries) {
-                    // Get the height as a percentage of viewport height
-                    const heightVh = Math.min(90, (entry.contentRect.height / window.innerHeight) * 100 + 5)
-                    setContentHeight(heightVh)
-                }
-            })
-
-            observer.observe(contentRef.current)
-            return () => observer.disconnect()
+    const renderTokenListContent = () => {
+        if (isLoadingExternalBalances) {
+            return <div className="py-4 text-center text-sm text-gray-500">Loading balances...</div>
         }
-    }, [])
+
+        if (!isExternalWalletConnected) {
+            return (
+                <EmptyState
+                    title="Connect your wallet"
+                    icon="txn-off"
+                    cta={
+                        <Button
+                            variant="transparent"
+                            className="h-6 text-xs font-normal text-grey-1 underline"
+                            onClick={() => openAppkitModal()}
+                        >
+                            Connect wallet to see available tokens
+                        </Button>
+                    }
+                />
+            )
+        }
+
+        if (externalBalances && externalBalances.length === 0) {
+            return (
+                <EmptyState
+                    title="You have no token balances."
+                    icon="txn-off"
+                    cta={
+                        <Button
+                            variant="transparent"
+                            className="h-6 text-xs font-normal text-grey-1 underline"
+                            onClick={async () => {
+                                if (externalWalletAddress) {
+                                    await disconnectWallet()
+                                }
+                                await openAppkitModal()
+                            }}
+                        >
+                            Try connecting to a different wallet.
+                        </Button>
+                    }
+                />
+            )
+        }
+
+        if (selectedChainID && !hasTokensOnSelectedNetwork) {
+            return (
+                <EmptyState
+                    title={
+                        <span>
+                            You don't have any tokens on <span className="capitalize">{selectedNetworkName}</span>
+                        </span>
+                    }
+                    icon="wallet-cancel"
+                    cta={
+                        <Button
+                            variant="transparent"
+                            className="h-6 text-xs font-normal text-grey-1 underline"
+                            onClick={() => setSelectedChainID('')}
+                        >
+                            Show available tokens on other networks
+                        </Button>
+                    }
+                />
+            )
+        }
+
+        if (searchValue && displayTokens.length === 0) {
+            return (
+                <EmptyState
+                    title="No matching tokens found."
+                    icon="search"
+                    description="Try searching for a different token."
+                />
+            )
+        }
+
+        if (displayTokens && displayTokens.length > 0) {
+            return displayTokens.map((balance) => {
+                const isSelected =
+                    selectedTokenAddress?.toLowerCase() === balance.address.toLowerCase() &&
+                    selectedChainID === String(balance.chainId)
+                return (
+                    <TokenListItem
+                        key={`${balance.address}_${String(balance.chainId)}_balance`}
+                        balance={balance}
+                        onClick={() => handleTokenSelect(balance)}
+                        isSelected={isSelected}
+                    />
+                )
+            })
+        }
+
+        return (
+            <EmptyState
+                title="You have no token balances."
+                icon="txn-off"
+                cta={
+                    <Button
+                        variant="transparent"
+                        className="h-6 text-xs font-normal text-grey-1 underline"
+                        onClick={() => {
+                            disconnectWallet()
+                            openAppkitModal()
+                        }}
+                    >
+                        Try connecting to a different wallet.
+                    </Button>
+                }
+            />
+        )
+    }
+
+    const currentExpandedHeight = drawerHeightVh ?? 80
+    const currentHalfHeight = Math.min(60, drawerHeightVh ?? 60)
 
     return (
         <>
@@ -523,8 +631,8 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 onClose={closeDrawer}
                 initialPosition="expanded"
                 handleTitle=""
-                expandedHeight={contentHeight || 80}
-                halfHeight={Math.min(60, contentHeight || 60)}
+                expandedHeight={currentExpandedHeight}
+                halfHeight={currentHalfHeight}
                 collapsedHeight={10}
             >
                 <div ref={contentRef} className="mx-auto md:max-w-2xl">
@@ -614,8 +722,13 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
                             {/* Popular tokens section - only rendered for withdraw view */}
                             {viewType === 'withdraw' && !!popularTokens.length && (
-                                <Section title="Popular tokens" className="space-y-4">
-                                    <div className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto pb-2 pr-1">
+                                <Section
+                                    title="Popular tokens"
+                                    icon="star"
+                                    titleClassName="text-grey-1 font-medium"
+                                    className="space-y-4"
+                                >
+                                    <ScrollableList>
                                         {popularTokens.map((token) => {
                                             const balance = token as IUserBalance
                                             const isSelected =
@@ -632,38 +745,19 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                                 />
                                             )
                                         })}
-                                    </div>
+                                    </ScrollableList>
                                 </Section>
                             )}
 
                             {/* USER's wallet tokens section - rendered for all views except withdraw view */}
                             {viewType === 'other' && (
                                 <Section title="Select a token" className="space-y-4">
-                                    {/* Search input for finding tokens */}
-                                    <div className="relative">
-                                        <BaseInput
-                                            variant="md"
-                                            className="h-10 w-full border border-black px-10 text-sm font-normal"
-                                            placeholder="Search for a token"
-                                            value={searchValue}
-                                            onChange={(e) => setSearchValue(e.target.value)}
-                                        />
-                                        <Icon
-                                            name="search"
-                                            className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2"
-                                        />
-                                        {searchValue && (
-                                            <Button
-                                                variant="transparent"
-                                                onClick={() => setSearchValue('')}
-                                                className="absolute right-2 top-1/2 w-fit -translate-y-1/2 p-0"
-                                            >
-                                                <div className="flex size-6 items-center justify-center">
-                                                    <Icon name="cancel" className="h-5 w-5" />
-                                                </div>
-                                            </Button>
-                                        )}
-                                    </div>
+                                    <SearchInput
+                                        value={searchValue}
+                                        onChange={setSearchValue}
+                                        onClear={() => setSearchValue('')}
+                                        placeholder="Search for a token"
+                                    />
 
                                     <div className="space-y-2">
                                         {/* Section title - based on search value or selected network name */}
@@ -705,110 +799,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             )}
                                         </div>
 
-                                        {/* Token list section with scrollable container */}
-                                        <div className="max-h-[50vh] overflow-y-auto pb-2 pr-1">
-                                            <div className="flex flex-col gap-3">
-                                                {isLoadingExternalBalances ? (
-                                                    <div className="py-4 text-center text-sm text-gray-500">
-                                                        Loading balances...
-                                                    </div>
-                                                ) : !isExternalWalletConnected ? (
-                                                    <EmptyState
-                                                        title="Connect your wallet"
-                                                        icon="txn-off"
-                                                        cta={
-                                                            <Button
-                                                                variant="transparent"
-                                                                className="h-6 text-xs font-normal text-grey-1 underline"
-                                                                onClick={() => openAppkitModal()}
-                                                            >
-                                                                Connect wallet to see available tokens
-                                                            </Button>
-                                                        }
-                                                    />
-                                                ) : externalBalances && externalBalances.length === 0 ? (
-                                                    <EmptyState
-                                                        title="You have no token balances."
-                                                        icon="txn-off"
-                                                        cta={
-                                                            <Button
-                                                                variant="transparent"
-                                                                className="h-6 text-xs font-normal text-grey-1 underline"
-                                                                onClick={async () => {
-                                                                    if (externalWalletAddress) {
-                                                                        await disconnectWallet()
-                                                                    }
-
-                                                                    await openAppkitModal()
-                                                                }}
-                                                            >
-                                                                Try connecting to a different wallet.
-                                                            </Button>
-                                                        }
-                                                    />
-                                                ) : selectedChainID && !hasTokensOnSelectedNetwork ? (
-                                                    <EmptyState
-                                                        title={
-                                                            <span>
-                                                                You don't have any tokens on{' '}
-                                                                <span className="capitalize">
-                                                                    {selectedNetworkName}
-                                                                </span>
-                                                            </span>
-                                                        }
-                                                        icon="wallet-cancel"
-                                                        cta={
-                                                            <Button
-                                                                variant="transparent"
-                                                                className="h-6 text-xs font-normal text-grey-1 underline"
-                                                                onClick={() => setSelectedChainID('')}
-                                                            >
-                                                                Show available tokens on other networks
-                                                            </Button>
-                                                        }
-                                                    />
-                                                ) : searchValue && displayTokens.length === 0 ? (
-                                                    <EmptyState
-                                                        title="No matching tokens found."
-                                                        icon="search"
-                                                        description="Try searching for a different token."
-                                                    />
-                                                ) : displayTokens && displayTokens.length > 0 ? (
-                                                    displayTokens.map((balance) => {
-                                                        const isSelected =
-                                                            selectedTokenAddress?.toLowerCase() ===
-                                                                balance.address.toLowerCase() &&
-                                                            selectedChainID === String(balance.chainId)
-
-                                                        return (
-                                                            <TokenListItem
-                                                                key={`${balance.address}_${String(balance.chainId)}_balance`}
-                                                                balance={balance}
-                                                                onClick={() => handleTokenSelect(balance)}
-                                                                isSelected={isSelected}
-                                                            />
-                                                        )
-                                                    })
-                                                ) : (
-                                                    <EmptyState
-                                                        title="You have no token balances."
-                                                        icon="txn-off"
-                                                        cta={
-                                                            <Button
-                                                                variant="transparent"
-                                                                className="h-6 text-xs font-normal text-grey-1 underline"
-                                                                onClick={() => {
-                                                                    disconnectWallet()
-                                                                    openAppkitModal()
-                                                                }}
-                                                            >
-                                                                Try connecting to a different wallet.
-                                                            </Button>
-                                                        }
-                                                    />
-                                                )}
-                                            </div>
-                                        </div>
+                                        <ScrollableList>{renderTokenListContent()}</ScrollableList>
                                     </div>
                                 </Section>
                             )}
