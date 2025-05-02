@@ -30,7 +30,7 @@ const NavHeader = ({ title, icon = 'chevron-up', href, hideLabel = false, onPrev
                     <Icon
                         name={icon}
                         size={32}
-                        className={twMerge('h-8 w-8 -rotate-90', icon === 'chevron-up' && ' -rotate-90')}
+                        className={twMerge('h-8 w-8', icon === 'chevron-up' && ' -rotate-90')}
                     />
                 </Button>
             )}
