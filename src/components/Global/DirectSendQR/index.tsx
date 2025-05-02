@@ -3,6 +3,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
 
+import { resolveEns } from '@/app/actions/ens'
 import { Button } from '@/components/0_Bruddle'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { useToast } from '@/components/0_Bruddle/Toast'
@@ -14,7 +15,6 @@ import { useAuth } from '@/context/authContext'
 import { usePush } from '@/context/pushProvider'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
-import { resolveEns } from '@/app/actions/ens'
 import { hitUserMetric } from '@/utils/metrics.utils'
 import * as Sentry from '@sentry/nextjs'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
@@ -128,7 +128,7 @@ function DirectSendContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
 function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">Peanut doesn’t support this QR but you can open it with your browser. </span>
+            <span className="text-sm">Peanut doesn't support this QR but you can open it with your browser. </span>
             <span className="text-sm">Make sure you trust this website!</span>
             <div className="flex items-center justify-center gap-2">
                 <Button
@@ -161,7 +161,7 @@ function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
 function UnrecognizedContent({ setIsModalOpen }: ModalContentProps) {
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">Sorry, this QR code couldn’t be recognized.</span>
+            <span className="text-sm">Sorry, this QR code couldn't be recognized.</span>
             <Button onClick={() => setIsModalOpen(false)} className="mt-4 w-full" shadowType="primary" shadowSize="4">
                 Okay
             </Button>
@@ -201,7 +201,7 @@ export default function DirectSendQr({ className = '' }: { className?: string })
             case EQrType.PEANUT_URL:
                 {
                     let path = originalData
-                    path = path.substring(BASE_URL.length)
+                    path = path.substring(BASE_URL.length - 1)
                     if (!path.startsWith('/')) {
                         path = '/' + path
                     }

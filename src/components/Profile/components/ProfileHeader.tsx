@@ -1,6 +1,7 @@
 import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
 import BottomDrawer from '@/components/Global/BottomDrawer'
+import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
@@ -19,7 +20,7 @@ interface ProfileHeaderProps {
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials, isVerified = false, className }) => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
-    const profileUrl = `peanut.me/${username}`
+    const profileUrl = `${BASE_URL}/${username}`
 
     return (
         <>
@@ -41,7 +42,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials,
                         setIsDrawerOpen(true)
                     }}
                 >
-                    <div className="text-sm font-semibold">peanut.me/{username}</div>
+                    <div className="text-sm font-semibold">{profileUrl.replace('https://', '')}</div>
                     <div className="-ml-2">
                         <Icon name="share" size={16} fill="black" />
                     </div>
@@ -61,7 +62,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials,
                         <div className="space-y-6">
                             <QRCodeWrapper url={profileUrl} />
                             <Divider className="text-gray-500" text="or" />
-                            <ShareButton url={username} title="Share your profile">
+                            <ShareButton url={profileUrl} title="Share your profile">
                                 Share Profile link
                             </ShareButton>
                         </div>
