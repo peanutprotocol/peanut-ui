@@ -1,8 +1,9 @@
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { ChainValue, IUserBalance } from '@/interfaces'
-import { isAddressZero, areEvmAddressesEqual, fetchWithSentry } from '@/utils'
-import { formatUnits } from 'viem'
+import { areEvmAddressesEqual, fetchWithSentry, isAddressZero } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
+import { formatUnits } from 'viem'
+import { NATIVE_TOKEN_ADDRESS } from './token.utils'
 
 export async function fetchWalletBalances(
     address: string
@@ -26,7 +27,7 @@ export async function fetchWalletBalances(
             .filter((balance: any) => balance.value > 0.009)
             .map((item: any) => ({
                 chainId: item?.chainId ? item.chainId.split(':')[1] : '1',
-                address: item?.address ? item.address.split(':')[2] : '0x0000000000000000000000000000000000000000',
+                address: item?.address ? item.address.split(':')[2] : NATIVE_TOKEN_ADDRESS,
                 name: item.name,
                 symbol: item.symbol,
                 decimals: parseInt(item.quantity.decimals),
