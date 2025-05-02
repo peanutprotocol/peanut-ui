@@ -2,7 +2,10 @@ import Image from 'next/image'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 
+import { Button } from '@/components/0_Bruddle'
 import Card from '@/components/Global/Card'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { getInitialsFromName } from '@/utils'
 import StatusBadge from '../../Badges/StatusBadge'
 import { Icon } from '../../Icons/Icon'
 
@@ -22,50 +25,56 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
     isSelected = false,
     isComingSoon = false,
     onClick,
-}) => (
-    <div
-        key={chainId}
-        className={twMerge('cursor-pointer rounded-sm shadow-sm', isSelected && !isComingSoon && 'bg-primary-3')}
-        onClick={isComingSoon ? undefined : onClick}
-    >
-        <Card
-            position="single"
+}) => {
+    return (
+        <Button
+            key={chainId}
+            type="button"
+            variant="transparent"
             className={twMerge(
-                '!overflow-visible border-black p-4',
-                isSelected && !isComingSoon ? 'bg-primary-3' : 'bg-white',
-                isComingSoon && 'bg-grey-4'
+                'w-full transform-none rounded-sm p-0 text-left shadow-sm hover:transform-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-1'
             )}
-            border={true}
+            onClick={isComingSoon ? undefined : onClick}
+            disabled={isComingSoon}
+            aria-pressed={isSelected}
         >
-            <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                    <div className="relative h-8 w-8">
-                        {iconUrl ? (
-                            <Image
-                                src={iconUrl}
-                                alt={`${name} logo`}
-                                width={32}
-                                height={32}
-                                className={twMerge(!isComingSoon && 'rounded-full')}
-                            />
-                        ) : (
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-black">
-                                {name?.substring(0, 2)?.toUpperCase() || 'CH'}
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-base font-semibold capitalize text-black">{name}</span>
-                    </div>
-                </div>
-                {isComingSoon ? (
-                    <StatusBadge status="soon" />
-                ) : (
-                    <Icon name="chevron-up" size={32} className="h-8 w-8 flex-shrink-0 rotate-90 text-black" />
+            <Card
+                position="single"
+                className={twMerge(
+                    'w-full !overflow-visible border-black p-4',
+                    isSelected && !isComingSoon ? 'bg-primary-3' : 'bg-white',
+                    isComingSoon && 'bg-grey-4'
                 )}
-            </div>
-        </Card>
-    </div>
-)
+                border={true}
+            >
+                <div className="relative flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <div className="relative h-8 w-8">
+                            {iconUrl ? (
+                                <Image
+                                    src={iconUrl}
+                                    alt={`${name} logo`}
+                                    width={32}
+                                    height={32}
+                                    className={twMerge(!isComingSoon && 'rounded-full')}
+                                />
+                            ) : (
+                                <AvatarWithBadge size="extra-small" initials={getInitialsFromName(name)} />
+                            )}
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-base font-semibold capitalize text-black">{name}</span>
+                        </div>
+                    </div>
+                    {isComingSoon ? (
+                        <StatusBadge status="soon" />
+                    ) : (
+                        <Icon name="chevron-up" className="size-6 rotate-90 text-black" />
+                    )}
+                </div>
+            </Card>
+        </Button>
+    )
+}
 
 export default NetworkListItem

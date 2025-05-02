@@ -615,7 +615,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             {/* Popular tokens section - only rendered for withdraw view */}
                             {viewType === 'withdraw' && !!popularTokens.length && (
                                 <Section title="Popular tokens" className="space-y-4">
-                                    <div className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto pr-1">
+                                    <div className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto pb-2 pr-1">
                                         {popularTokens.map((token) => {
                                             const balance = token as IUserBalance
                                             const isSelected =
@@ -706,7 +706,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                         </div>
 
                                         {/* Token list section with scrollable container */}
-                                        <div className="max-h-[50vh] overflow-y-auto pr-1">
+                                        <div className="max-h-[50vh] overflow-y-auto pb-2 pr-1">
                                             <div className="flex flex-col gap-3">
                                                 {isLoadingExternalBalances ? (
                                                     <div className="py-4 text-center text-sm text-gray-500">

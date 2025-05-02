@@ -29,7 +29,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
 
     const chainName = useMemo(() => {
         const chain = supportedSquidChainsAndTokens[String(balance.chainId)]
-        return chain?.axelarChainName || chain?.axelarChainName || `Chain ${balance.chainId}`
+        return chain?.axelarChainName || `Chain ${balance.chainId}`
     }, [supportedSquidChainsAndTokens, balance.chainId])
 
     const formattedBalance = useMemo(() => {

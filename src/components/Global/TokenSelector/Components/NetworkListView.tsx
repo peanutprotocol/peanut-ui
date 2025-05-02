@@ -34,7 +34,7 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
 
         // filter active chains that match the search term and are in the allowed chains list
         const activeChains = Object.values(chains)
-            .filter((chain) => allowedChainIds.has(chain.chainId))
+            .filter((chain) => allowedChainIds.has(String(chain.chainId)))
             .filter(
                 (chain) =>
                     chain.axelarChainName?.toLowerCase().includes(lowerSearchValue) ||
@@ -57,7 +57,6 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
                 isComingSoon: true,
             }))
 
-        // combine active chains and coming soon networks into one list
         return [...activeChains, ...filteredComingSoon]
     }, [chains, searchValue, allowedChainIds, comingSoonNetworks])
 
@@ -86,7 +85,7 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
                 )}
             </div>
 
-            <div className="max-h-[calc(70vh-120px)] space-y-3 overflow-y-auto pr-1">
+            <div className="flex max-h-[calc(70vh-120px)] flex-col gap-3 space-y-2 overflow-y-auto pr-1 pt-2">
                 {filteredChains.length > 0 ? (
                     filteredChains.map((chain) => (
                         <NetworkListItem

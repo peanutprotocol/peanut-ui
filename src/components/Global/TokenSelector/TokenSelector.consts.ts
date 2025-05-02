@@ -35,7 +35,6 @@ export interface NetworkConfig {
     iconUrl: string
 }
 
-// coming soon networks
 export const TOKEN_SELECTOR_COMING_SOON_NETWORKS: NetworkConfig[] = [
     {
         chainId: 'solana',
@@ -49,7 +48,7 @@ export const TOKEN_SELECTOR_COMING_SOON_NETWORKS: NetworkConfig[] = [
     },
 ]
 
-// popular networks mapping for the token selector
+// popular networks mapping for the token selector - using the chainId as the key to get chain details from squid within token selector component
 export const TOKEN_SELECTOR_POPULAR_NETWORK_IDS = [
     {
         chainId: '42161',

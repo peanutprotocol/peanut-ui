@@ -30,7 +30,7 @@ import { WalletIcon } from './wallet'
 import { WalletCancelIcon } from './wallet-cancel'
 import { WalletOutlineIcon } from './wallet-outline'
 
-// allowed icon names
+// available icon names
 export type IconName =
     | 'arrow-down'
     | 'arrow-down-left'

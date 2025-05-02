@@ -9,6 +9,7 @@ interface EmptyStateProps {
     cta?: React.ReactNode
 }
 
+// EmptyState component - Used for dispalying when there's no data in a certain scneario and we want to inform users with a cta (optional)
 export default function EmptyState({ title, description, icon, cta }: EmptyStateProps) {
     return (
         <Card position="single" className="p-0">
