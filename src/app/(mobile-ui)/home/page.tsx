@@ -3,25 +3,37 @@
 import { PeanutArmHoldingBeer } from '@/assets'
 import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import AddFunds from '@/components/AddFunds'
 import Card from '@/components/Global/Card'
+import { EQrType, recognizeQr } from '@/components/Global/DirectSendQR/utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import QRScanner from '@/components/Global/QRScanner'
 import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
+import RewardsCardModal from '@/components/Home/RewardsCardModal'
 import { SearchUsers } from '@/components/SearchUsers'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useAppDispatch } from '@/redux/hooks'
+import { paymentActions } from '@/redux/slices/payment-slice'
 import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences } from '@/utils'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 export default function Home() {
     const { balance, getRewardWalletBalance } = useWallet()
     const [rewardsBalance, setRewardsBalance] = useState<string | undefined>(undefined)
+    const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
+    const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
+    const router = useRouter()
+    const dispatch = useAppDispatch()
+    const toast = useToast()
 
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
@@ -58,6 +70,29 @@ export default function Home() {
 
         fetchRewardsBalance()
     }, [getRewardWalletBalance])
+
+    const handleOpenCamera = () => {
+        setIsRewardsModalOpen(false)
+        setIsQRScannerOpen(true)
+    }
+
+    const handleScanRewardQR = async (data: string): Promise<{ success: boolean; error?: string }> => {
+        dispatch(paymentActions.resetPaymentState())
+
+        const qrType = recognizeQr(data.toLowerCase())
+
+        if (qrType === EQrType.PINTA_MERCHANT) {
+            const redirectUrl = `/${data}@polygon/PNT`
+            console.log('Pinta merchant QR detected, redirecting to:', redirectUrl)
+            router.push(redirectUrl)
+            setIsQRScannerOpen(false)
+            return { success: true }
+        } else {
+            console.warn('Scanned QR is not a Pinta merchant QR:', data, 'Type:', qrType)
+            toast.error('Invalid QR code. Please scan the QR code provided by the bar.')
+            return { success: false, error: 'QR not recognized as Pinta Merchant' }
+        }
+    }
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -99,10 +134,24 @@ export default function Home() {
                 </div>
 
                 {/* Rewards Card - only shows if balance is non-zero */}
-                <RewardsCard balance={rewardsBalance} />
+                <div onClick={() => setIsRewardsModalOpen(true)} className="cursor-pointer">
+                    <RewardsCard balance={rewardsBalance} />
+                </div>
 
                 <HomeHistory />
                 <RewardsModal />
+
+                {/* Render the new Rewards Card Modal */}
+                <RewardsCardModal
+                    visible={isRewardsModalOpen}
+                    onClose={() => setIsRewardsModalOpen(false)}
+                    onOpenCamera={handleOpenCamera}
+                />
+
+                {/* Render QR Scanner when needed */}
+                {isQRScannerOpen && (
+                    <QRScanner onScan={handleScanRewardQR} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
+                )}
             </div>
         </PageContainer>
     )

@@ -5,6 +5,7 @@ import { ArrowDownLeftIcon } from './arrow-down-left'
 import { ArrowUpIcon } from './arrow-up'
 import { ArrowUpRightIcon } from './arrow-up-right'
 import { BankIcon } from './bank'
+import { CameraIcon } from './camera'
 import { CancelIcon } from './cancel'
 import { CheckIcon } from './check'
 import { ChevronUpIcon } from './chevron-up'
@@ -15,6 +16,7 @@ import { ExchangeIcon } from './exchange'
 import { EyeIcon } from './eye'
 import { EyeSlashIcon } from './eye-slash'
 import { FeesIcon } from './fees'
+import { GiftIcon } from './gift'
 import { HomeIcon } from './home'
 import { LinkIcon } from './link'
 import { LogoutIcon } from './logout'
@@ -36,6 +38,7 @@ export type IconName =
     | 'arrow-up'
     | 'arrow-up-right'
     | 'bank'
+    | 'camera'
     | 'check'
     | 'chevron-up'
     | 'copy'
@@ -45,6 +48,7 @@ export type IconName =
     | 'eye-slash'
     | 'exchange'
     | 'fees'
+    | 'gift'
     | 'home'
     | 'peanut-support'
     | 'search'
@@ -73,6 +77,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'arrow-up': ArrowUpIcon,
     'arrow-up-right': ArrowUpRightIcon,
     bank: BankIcon,
+    camera: CameraIcon,
     check: CheckIcon,
     'chevron-up': ChevronUpIcon,
     download: DownloadIcon,
@@ -80,6 +85,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'eye-slash': EyeSlashIcon,
     exchange: ExchangeIcon,
     fees: FeesIcon,
+    gift: GiftIcon,
     home: HomeIcon,
     'peanut-support': PeanutSupportIcon,
     search: SearchIcon,
