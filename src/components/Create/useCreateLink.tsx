@@ -818,6 +818,7 @@ export const useCreateLink = () => {
             })
             const contractAbi = getContractAbi(contractVersion)
             const contractAddress: Hash = getContractAddress(chainId, contractVersion) as Hash
+            const tokenAddress = PEANUT_WALLET_TOKEN as Hash
 
             const approveData = encodeFunctionData({
                 abi: parseAbi(['function approve(address _spender, uint256 _amount) external returns (bool)']),
@@ -827,11 +828,11 @@ export const useCreateLink = () => {
             const makeDepositData = encodeFunctionData({
                 abi: contractAbi,
                 functionName: 'makeDeposit',
-                args: [PEANUT_WALLET_TOKEN as Hash, 1, amount, 0, generatedKeys.address as Hash],
+                args: [tokenAddress, 1, amount, 0, generatedKeys.address as Hash],
             })
             const receipt = await handleSendUserOpEncoded(
                 [
-                    { to: PEANUT_WALLET_TOKEN as Hash, value: 0n, data: approveData },
+                    { to: tokenAddress, value: 0n, data: approveData },
                     { to: contractAddress, value: 0n, data: makeDepositData },
                 ],
                 chainId
@@ -858,6 +859,8 @@ export const useCreateLink = () => {
                 contractVersion,
                 depositIdx,
                 txHash: receipt.transactionHash,
+                amount,
+                tokenAddress,
             }
         },
         [handleSendUserOpEncoded]

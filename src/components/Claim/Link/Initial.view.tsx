@@ -131,10 +131,9 @@ export const InitialClaimLinkView = ({
         try {
             setLoadingState('Executing transaction')
             if (isPeanutWallet) {
-                const claimedLink = await sendLinksApi.claim(user?.user.username!, claimLinkData.link)
+                await sendLinksApi.claim(user?.user.username!, claimLinkData.link)
 
                 setClaimType('claim')
-                setTransactionHash(claimedLink.claim!.txHash)
                 onCustom('SUCCESS')
                 refetchBalances(address)
             } else {
