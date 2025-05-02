@@ -16,6 +16,7 @@ import {
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { type ITokenPriceData } from '@/interfaces'
 import { estimateIfIsStableCoinFromPrice, getUserPreferences } from '@/utils'
+import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 
@@ -96,7 +97,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     >({})
 
     const updateSelectedChainID = (chainID: string) => {
-        setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
+        setSelectedTokenAddress(NATIVE_TOKEN_ADDRESS)
         setSelectedChainID(chainID)
     }
 

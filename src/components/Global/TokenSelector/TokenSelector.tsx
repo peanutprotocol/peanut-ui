@@ -13,8 +13,8 @@ import { tokenSelectorContext } from '@/context'
 import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken, IUserBalance } from '@/interfaces'
-import { fetchWalletBalances, formatAmount } from '@/utils'
-import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
+import { areEvmAddressesEqual, fetchWalletBalances, formatAmount, isNativeCurrency } from '@/utils'
+import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import EmptyState from '../EmptyStates/EmptyState'
 import { Icon, IconName } from '../Icons/Icon'
@@ -67,7 +67,9 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // external wallet balance states
     const [externalBalances, setExternalBalances] = useState<IUserBalance[] | null>(null)
     const [isLoadingExternalBalances, setIsLoadingExternalBalances] = useState(false)
+    // refs to track previous state for useEffect logic
     const prevIsExternalConnected = useRef(isExternalWalletConnected)
+    const prevExternalAddress = useRef<string | null>(externalWalletAddress ?? null)
     // usewallet and token selector context
     const { selectedWallet, isConnected } = useWallet()
     const {
@@ -87,71 +89,80 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
     // external wallet balance fetching
     useEffect(() => {
-        if (isExternalWalletConnected && !prevIsExternalConnected.current && externalWalletAddress) {
-            setIsLoadingExternalBalances(true)
-            setExternalBalances(null)
+        // this effect fetches balances when an external wallet connects,
+        // refetches when the address changes while connected,
+        // and clears them when it disconnects.
+        if (isExternalWalletConnected && externalWalletAddress) {
+            // wallet is connected with an address.
+            const justConnected = !prevIsExternalConnected.current
+            const addressChanged = externalWalletAddress !== prevExternalAddress.current
 
-            fetchWalletBalances(externalWalletAddress)
-                .then((balances) => {
-                    setExternalBalances(balances.balances || [])
-                })
-                .catch((error) => {
-                    console.error('Manual balance fetch failed:', error)
-                    setExternalBalances([])
-                })
-                .finally(() => {
-                    setIsLoadingExternalBalances(false)
-                })
-        } else if (!isExternalWalletConnected && prevIsExternalConnected.current) {
-            setExternalBalances(null)
+            if (justConnected || addressChanged) {
+                // fetch balances if:
+                // 1. wallet just connected OR
+                // 2. address changed while connected
+                setIsLoadingExternalBalances(true)
+                setExternalBalances(null)
+
+                fetchWalletBalances(externalWalletAddress)
+                    .then((balances) => {
+                        setExternalBalances(balances.balances || [])
+                    })
+                    .catch((error) => {
+                        console.error('Manual balance fetch failed:', error)
+                        setExternalBalances([])
+                    })
+                    .finally(() => {
+                        setIsLoadingExternalBalances(false)
+                    })
+            }
+            // else: wallet is connected, address is the same as last check - do nothing.
+        } else {
+            // wallet is not connected
+            if (prevIsExternalConnected.current) {
+                // wallet was previously connected, now it's not: clear balances.
+                setExternalBalances(null)
+            }
+            // else: wallet was already disconnected - do nothing.
         }
 
+        // update refs for the next render
         prevIsExternalConnected.current = isExternalWalletConnected
+        prevExternalAddress.current = externalWalletAddress ?? null
     }, [isExternalWalletConnected, externalWalletAddress])
 
-    // display tokens memo, for rendering tokens and balances from users wallet
-    const displayTokens = useMemo(() => {
-        let sourceBalances: IUserBalance[] | null | undefined = null
-
+    const sourceBalances = useMemo(() => {
         if (isExternalWalletConnected && externalBalances !== null) {
-            sourceBalances = externalBalances
+            return externalBalances
         } else if (isConnected && selectedWallet?.balances) {
-            sourceBalances = selectedWallet.balances
+            return selectedWallet.balances
         } else {
-            sourceBalances = []
+            return [] // return empty array if no source is available
         }
+    }, [isExternalWalletConnected, externalBalances, isConnected, selectedWallet?.balances])
 
-        if (!sourceBalances) {
-            return []
+    // memoize the list of tokens filtered only by the selected network
+    const tokensOnSelectedNetwork = useMemo(() => {
+        if (!selectedChainID) {
+            return sourceBalances // no network selected, return all source balances
         }
+        return sourceBalances.filter((balance) => String(balance.chainId) === selectedChainID)
+    }, [sourceBalances, selectedChainID])
 
+    // display tokens memo, filters tokensOnSelectedNetwork by search value
+    const displayTokens = useMemo(() => {
         const lowerSearchValue = searchValue.toLowerCase()
-
-        let filteredByChain = sourceBalances
-        if (selectedChainID) {
-            filteredByChain = sourceBalances.filter((balance) => {
-                const balanceChainId = String(balance.chainId)
-                return balanceChainId === selectedChainID
-            })
+        if (!lowerSearchValue) {
+            return tokensOnSelectedNetwork // no search value, return all tokens on the network
         }
-
-        const filteredBalances = filteredByChain.filter((balance) => {
+        return tokensOnSelectedNetwork.filter((balance) => {
             const hasSymbol = !!balance.symbol
             const symbolMatch = hasSymbol && balance.symbol.toLowerCase().includes(lowerSearchValue)
             const nameMatch = balance.name?.toLowerCase().includes(lowerSearchValue) ?? false
             const addressMatch = balance.address?.toLowerCase().includes(lowerSearchValue) ?? false
             return hasSymbol && (symbolMatch || nameMatch || addressMatch)
         })
-
-        return filteredBalances
-    }, [
-        isConnected,
-        selectedWallet?.balances,
-        searchValue,
-        selectedChainID,
-        isExternalWalletConnected,
-        externalBalances,
-    ])
+    }, [tokensOnSelectedNetwork, searchValue])
 
     // handles token selection based on token balance
     const handleTokenSelect = useCallback(
@@ -167,8 +178,8 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         [closeDrawer, setSelectedTokenAddress, setSelectedChainID]
     )
 
-    // handles network selection based on chain id
-    const handleNetworkSelect = useCallback(
+    // handles network selection from the quick "Popular Network" buttons
+    const handlePopularNetworkSelection = useCallback(
         (chain: { chainId: string; name: string; iconURI: string }) => {
             setSelectedChainID(chain.chainId)
             setSelectedTokenAddress('')
@@ -176,51 +187,60 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         [setSelectedChainID, setSelectedTokenAddress]
     )
 
-    // handles free USDC on arb token selection
-    const handleFreeTokenSelect = useCallback(() => {
+    // handles default chain/token selection - USDC on arb
+    const handleDefaultTokenSelect = useCallback(() => {
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
 
         closeDrawer()
     }, [closeDrawer, setSelectedTokenAddress, setSelectedChainID])
 
-    // renders network list
+    // renders network list view
     const handleSearchNetwork = useCallback(() => {
         setShowNetworkList(true)
         setNetworkSearchValue('')
     }, [])
 
-    // handles chain selection based on chain id
+    // handles chain selection from the detailed NetworkListView
     const handleChainSelect = useCallback(
         (chainId: string) => {
+            let firstTokenAddressWithBalance: string | undefined = undefined
+
+            // determine the source of balances
+            const sourceBalances =
+                isExternalWalletConnected && externalBalances
+                    ? externalBalances
+                    : isConnected && selectedWallet?.balances
+                      ? selectedWallet.balances
+                      : null
+
+            if (sourceBalances) {
+                // find the first token on the selected chain with a balance > 0
+                const tokenWithBalance = sourceBalances.find(
+                    (balance) => String(balance.chainId) === chainId && balance.amount > 0
+                )
+                firstTokenAddressWithBalance = tokenWithBalance?.address
+            }
+
             setSelectedChainID(chainId)
-            // set token address to native token chain is selected and token is not selected yet
-            setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
+            setSelectedTokenAddress(firstTokenAddressWithBalance ?? NATIVE_TOKEN_ADDRESS)
             setShowNetworkList(false)
         },
-        [setSelectedChainID, setSelectedTokenAddress]
+        [
+            setSelectedChainID,
+            setSelectedTokenAddress,
+            isExternalWalletConnected,
+            externalBalances,
+            isConnected,
+            selectedWallet?.balances,
+        ]
     )
-
-    // checks if there are tokens on the selected network
-    const hasTokensOnSelectedNetwork = useMemo(() => {
-        if (!selectedChainID) return false
-
-        let sourceBalances: IUserBalance[] | null | undefined = null
-        if (isExternalWalletConnected && externalBalances !== null) {
-            sourceBalances = externalBalances
-        } else if (isConnected && selectedWallet?.balances) {
-            sourceBalances = selectedWallet.balances
-        }
-
-        if (!sourceBalances || sourceBalances.length === 0) return false
-        return sourceBalances.some((balance) => String(balance.chainId) === selectedChainID)
-    }, [selectedChainID, selectedWallet?.balances, isConnected, isExternalWalletConnected, externalBalances])
 
     // selected network name memo, being used ui
     const selectedNetworkName = useMemo(() => {
         if (!selectedChainID) return null
         const network = supportedSquidChainsAndTokens[selectedChainID]
-        return network?.axelarChainName || network?.axelarChainName || `Chain ${selectedChainID}`
+        return network?.axelarChainName || `Chain ${selectedChainID}`
     }, [selectedChainID, supportedSquidChainsAndTokens])
 
     const peanutWalletTokenDetails = useMemo(() => {
@@ -229,7 +249,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         const chainInfo = supportedSquidChainsAndTokens[PEANUT_WALLET_CHAIN.id]
         if (!chainInfo) return null
 
-        const token = chainInfo.tokens.find((t) => t.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase())
+        const token = chainInfo.tokens.find((t) => areEvmAddressesEqual(t.address, PEANUT_WALLET_TOKEN))
         if (!token) return null
 
         // check if we have a balance for this token
@@ -239,7 +259,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         if (isExternalWalletConnected && externalBalances) {
             const externalTokenBalance = externalBalances.find(
                 (b) =>
-                    b.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
+                    areEvmAddressesEqual(b.address, PEANUT_WALLET_TOKEN) &&
                     String(b.chainId) === PEANUT_WALLET_CHAIN.id.toString()
             )
 
@@ -254,7 +274,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         if (!balance && isConnected && selectedWallet?.balances) {
             const walletTokenBalance = selectedWallet.balances.find(
                 (b) =>
-                    b.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
+                    areEvmAddressesEqual(b.address, PEANUT_WALLET_TOKEN) &&
                     String(b.chainId) === PEANUT_WALLET_CHAIN.id.toString()
             )
 
@@ -297,23 +317,16 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     if (selectedTokenAddress && selectedChainID) {
         // check if we're using the peanut wallet token
         if (
-            selectedTokenAddress.toLowerCase() !== PEANUT_WALLET_TOKEN.toLowerCase() ||
+            !areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN) ||
             selectedChainID !== PEANUT_WALLET_CHAIN.id.toString()
         ) {
-            // get the appropriate balance source
-            const sourceBalances =
-                isExternalWalletConnected && externalBalances !== null
-                    ? externalBalances
-                    : isConnected && selectedWallet?.balances
-                      ? selectedWallet.balances
-                      : null
+            // get the appropriate balance source (using already defined sourceBalances memo)
 
             // try to find user's balance for this token
             const userBalanceDetails =
                 sourceBalances?.find(
                     (b) =>
-                        b.address.toLowerCase() === selectedTokenAddress.toLowerCase() &&
-                        String(b.chainId) === selectedChainID
+                        areEvmAddressesEqual(b.address, selectedTokenAddress) && String(b.chainId) === selectedChainID
                 ) || null
 
             // get chain info for display
@@ -324,13 +337,11 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 buttonSymbol = userBalanceDetails.symbol
                 buttonChainName = chainInfo?.axelarChainName || `Chain ${selectedChainID}`
                 buttonLogoURI = userBalanceDetails.logoURI
-                buttonFormattedBalance = formatAmount(
-                    userBalanceDetails.amount.toFixed(Math.min(userBalanceDetails.decimals ?? 6, 6))
-                )
+                buttonFormattedBalance = formatAmount(userBalanceDetails.amount)
             } else if (chainInfo?.tokens) {
                 // if no balance found, try to get token details from chain info
-                const generalTokenDetails = chainInfo.tokens.find(
-                    (t) => t.address.toLowerCase() === selectedTokenAddress.toLowerCase()
+                const generalTokenDetails = chainInfo.tokens.find((t) =>
+                    areEvmAddressesEqual(t.address, selectedTokenAddress)
                 )
 
                 if (generalTokenDetails) {
@@ -344,16 +355,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         }
     }
 
-    // popular chains data from Squid data, using the popular chain ids mapping
-    const popularChainIds = useMemo(
-        () =>
-            TOKEN_SELECTOR_POPULAR_NETWORK_IDS.map((chain) => ({
-                chainId: chain.chainId,
-                name: chain.name || supportedSquidChainsAndTokens[chain.chainId]?.axelarChainName,
-            })),
-        [supportedSquidChainsAndTokens]
-    )
-
     // allowed chain ids memo, using the supported network ids mapping
     const allowedChainIds = useMemo(() => {
         return new Set(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS)
@@ -363,19 +364,18 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const popularChains = useMemo(() => {
         if (!supportedSquidChainsAndTokens) return []
 
-        return popularChainIds
-            .map((popularChain) => {
-                const chain = supportedSquidChainsAndTokens[popularChain.chainId]
-                if (!chain) return null
+        return TOKEN_SELECTOR_POPULAR_NETWORK_IDS.map((popularNetwork) => {
+            const chain = supportedSquidChainsAndTokens[popularNetwork.chainId]
+            // skip if the chain ID from popular list isn't found in squid data
+            if (!chain) return null
 
-                return {
-                    chainId: chain.chainId,
-                    name: popularChain.name || chain.axelarChainName,
-                    iconURI: chain.chainIconURI || '',
-                }
-            })
-            .filter(Boolean) // remove null entries if any chain not found
-    }, [supportedSquidChainsAndTokens, popularChainIds])
+            return {
+                chainId: chain.chainId,
+                name: popularNetwork.name || chain.axelarChainName || `Chain ${chain.chainId}`,
+                iconURI: chain.chainIconURI || '',
+            }
+        }).filter((chain): chain is { chainId: string; name: string; iconURI: string } => Boolean(chain)) // type guard filter nulls
+    }, [supportedSquidChainsAndTokens])
 
     // popular tokens memo, for rendering popular tokens (eg, USDC, USDT and native tokens)
     const popularTokens = useMemo(() => {
@@ -385,10 +385,11 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
         const tokens: IUserBalance[] = []
         const popularSymbolsToFind = ['USDC', 'USDT']
-        const nativeTokenAddress = SQUID_ETH_ADDRESS
 
-        // creates a placeholder balance popular tokens, note we dont show the balance amount for these tokens
-        const createPlaceholderBalance = (token: IToken, chainId: string): IUserBalance => ({
+        // Note: We use the IUserBalance structure here primarily to reuse the TokenListItem component.
+        // for these popular token entries, the amount, price, and value fields are just placeholders and are ignored.
+        // the TokenListItem component correctly hides the balance display when `isPopularToken` is true.
+        const createPopularTokenEntry = (token: IToken, chainId: string): IUserBalance => ({
             ...token,
             chainId: chainId,
             amount: 0,
@@ -406,12 +407,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 return
             }
 
-            const nativeToken = chainData.tokens.find((token) => token.address.toLowerCase() === nativeTokenAddress)
+            const nativeToken = chainData.tokens.find((token) => areEvmAddressesEqual(token.address, SQUID_ETH_ADDRESS))
             if (nativeToken) {
-                tokens.push(createPlaceholderBalance(nativeToken, chain.chainId))
+                tokens.push(createPopularTokenEntry(nativeToken, chain.chainId))
             } else {
                 console.warn(
-                    `Native token (${nativeTokenAddress}) not found in Squid data for chainId: ${chain.chainId}`
+                    `Native token (${SQUID_ETH_ADDRESS}) not found in Squid data for chainId: ${chain.chainId}`
                 )
             }
 
@@ -420,20 +421,22 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                     (token) => token.symbol.toUpperCase() === symbol.toUpperCase()
                 )
                 if (popularToken) {
-                    if (popularToken.address.toLowerCase() !== nativeTokenAddress) {
-                        tokens.push(createPlaceholderBalance(popularToken, chain.chainId))
+                    if (!areEvmAddressesEqual(popularToken.address, SQUID_ETH_ADDRESS)) {
+                        tokens.push(createPopularTokenEntry(popularToken, chain.chainId))
                     }
                 }
             })
         })
 
         // filter out duplicate tokens based on address and chain id
-        const uniqueTokens = Array.from(new Map(tokens.map((t) => [`${t.address}-${t.chainId}`, t])).values())
+        const uniqueTokens = Array.from(
+            new Map(tokens.map((t) => [`${t.address.toLowerCase()}-${t.chainId}`, t])).values()
+        )
 
         // sort popular tokens in order of USDC, native tokens, and USDT
         uniqueTokens.sort((a, b) => {
-            const isANative = a.address.toLowerCase() === nativeTokenAddress
-            const isBNative = b.address.toLowerCase() === nativeTokenAddress
+            const isANative = isNativeCurrency(a.address)
+            const isBNative = isNativeCurrency(b.address)
             const isAUsdc = a.symbol.toUpperCase() === 'USDC'
             const isBUsdc = b.symbol.toUpperCase() === 'USDC'
             const isAUsdt = a.symbol.toUpperCase() === 'USDT'
@@ -481,7 +484,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             )
         }
 
-        if (externalBalances && externalBalances.length === 0) {
+        if (sourceBalances.length === 0) {
             return (
                 <EmptyState
                     title="You have no token balances."
@@ -504,7 +507,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             )
         }
 
-        if (selectedChainID && !hasTokensOnSelectedNetwork) {
+        if (selectedChainID && tokensOnSelectedNetwork.length === 0) {
             return (
                 <EmptyState
                     title={
@@ -536,10 +539,10 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             )
         }
 
-        if (displayTokens && displayTokens.length > 0) {
+        if (displayTokens.length > 0) {
             return displayTokens.map((balance) => {
                 const isSelected =
-                    selectedTokenAddress?.toLowerCase() === balance.address.toLowerCase() &&
+                    areEvmAddressesEqual(selectedTokenAddress, balance.address) &&
                     selectedChainID === String(balance.chainId)
                 return (
                     <TokenListItem
@@ -661,7 +664,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             : 'bg-white',
                                         classNameButton
                                     )}
-                                    onClick={handleFreeTokenSelect}
+                                    onClick={handleDefaultTokenSelect}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center space-x-3">
@@ -701,11 +704,11 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             <div className="flex items-stretch justify-between space-x-2">
                                                 {popularChains.map((chain) => (
                                                     <NetworkButton
-                                                        key={chain?.chainId}
-                                                        chainName={chain?.name ?? ''}
-                                                        chainIconURI={chain?.iconURI ?? ''}
-                                                        onClick={() => chain && handleNetworkSelect(chain)}
-                                                        isSelected={chain?.chainId === selectedChainID}
+                                                        key={chain.chainId}
+                                                        chainName={chain.name}
+                                                        chainIconURI={chain.iconURI}
+                                                        onClick={() => setSelectedChainID(chain.chainId)}
+                                                        isSelected={chain.chainId === selectedChainID}
                                                     />
                                                 ))}
                                                 <NetworkButton

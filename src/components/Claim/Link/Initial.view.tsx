@@ -27,6 +27,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { WalletProviderType } from '@/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
+import { sendLinksApi } from '@/services/sendLinks'
 import {
     areEvmAddressesEqual,
     checkifImageType,
@@ -36,7 +37,7 @@ import {
     getBridgeChainName,
     getBridgeTokenName,
 } from '@/utils'
-import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
+import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
 import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
@@ -44,7 +45,6 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
-import { sendLinksApi } from '@/services/sendLinks'
 
 const isPeanutClaimOnlyMode = () => {
     if (typeof window === 'undefined') return false
@@ -341,7 +341,7 @@ export const InitialClaimLinkView = ({
                 const tokenAmount = claimLinkData.amount
 
                 const fromToken =
-                    claimLinkData.tokenAddress === '0x0000000000000000000000000000000000000000'
+                    claimLinkData.tokenAddress === NATIVE_TOKEN_ADDRESS
                         ? SQUID_ETH_ADDRESS
                         : claimLinkData.tokenAddress.toLowerCase()
 

@@ -1,7 +1,7 @@
 'use client'
 import { getLinkFromTx } from '@/app/actions/claimLinks'
 import { fetchTokenPrice } from '@/app/actions/tokens'
-import { PEANUT_API_URL, next_proxy_url } from '@/constants'
+import { PEANUT_API_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
 import {
@@ -10,35 +10,34 @@ import {
     getLinkFromReceipt,
     isNativeCurrency,
     saveCreatedLinkToLocalStorage,
+    saveToLocalStorage,
 } from '@/utils'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import peanut, {
     generateKeysFromString,
-    getRandomString,
-    getLatestContractVersion,
     getContractAbi,
     getContractAddress,
+    getLatestContractVersion,
     getLinkFromParams,
+    getRandomString,
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
 import { BigNumber, ethers } from 'ethers'
 import { useCallback, useContext } from 'react'
-import type { TransactionReceipt, Hash } from 'viem'
+import type { Hash, TransactionReceipt } from 'viem'
 import {
-    formatEther,
-    parseEther,
-    parseUnits,
-    encodeFunctionData,
-    parseAbi,
-    parseEventLogs,
     bytesToNumber,
+    encodeFunctionData,
+    formatEther,
+    parseAbi,
+    parseEther,
+    parseEventLogs,
+    parseUnits,
     toBytes,
 } from 'viem'
 import { useAccount, useConfig, useSendTransaction, useSignTypedData, useSwitchChain } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
-import { saveToLocalStorage } from '@/utils'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 
 interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
@@ -49,6 +48,7 @@ import { Hex } from 'viem'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { captureException } from '@sentry/nextjs'
 
 export const useCreateLink = () => {
@@ -261,7 +261,7 @@ export const useCreateLink = () => {
 
             let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
             let transactionCostNative = formatEther(transactionCostWei)
-            const nativeTokenPrice = await fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
+            const nativeTokenPrice = await fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId)
             if (!nativeTokenPrice || typeof nativeTokenPrice.price !== 'number' || isNaN(nativeTokenPrice.price)) {
                 throw new Error('Failed to fetch token price')
             }
@@ -281,7 +281,7 @@ export const useCreateLink = () => {
 
                 let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
                 let transactionCostNative = formatEther(transactionCostWei)
-                const nativeTokenPrice = await fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
+                const nativeTokenPrice = await fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId)
                 if (!nativeTokenPrice) {
                     throw new Error('Failed to fetch token price')
                 }
