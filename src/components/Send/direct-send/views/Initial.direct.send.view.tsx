@@ -167,8 +167,6 @@ const DirectSendInitialView = ({ username }: DirectSendInitialViewProps) => {
                 <DirectSendSuccessView
                     user={user!}
                     amount={currentInputValue}
-                    txHash={successTxHash}
-                    chainId={selectedChainID ?? ''}
                     message={attachmentOptions.message}
                     onBack={() => router.push('/send')}
                 />

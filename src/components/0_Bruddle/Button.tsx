@@ -1,6 +1,6 @@
-import { PEANUTMAN_LOGO } from '@/assets'
 import React, { forwardRef, useEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
+import Loading from '../Global/Loading'
 
 export type ButtonVariant =
     | 'purple'
@@ -83,12 +83,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
         return (
             <button className={twMerge(buttonClasses, 'notranslate')} ref={buttonRef} translate="no" {...props}>
-                {loading && (
-                    <span className="animate-spin">
-                        <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-4" />
-                    </span>
-                )}
-
+                {loading && <Loading />}
                 {children}
             </button>
         )

@@ -35,7 +35,12 @@ export const Profile = () => {
         <div className="h-full w-full bg-background">
             <NavHeader hideLabel />
             <div className="space-y-8">
-                <ProfileHeader name={fullName} username={username} initials={initials} isVerified={true} />
+                <ProfileHeader
+                    name={fullName}
+                    username={username}
+                    initials={initials}
+                    isVerified={user?.user.kycStatus === 'approved'}
+                />
                 <div className="space-y-4">
                     {/* Menu Item - Invite Entry */}
                     <ProfileMenuItem
@@ -47,13 +52,7 @@ export const Profile = () => {
                     />
                     {/* Menu Items - First Group */}
                     <div>
-                        <ProfileMenuItem
-                            icon="user"
-                            label="Personal details"
-                            href="/profile/details"
-                            position="first"
-                            comingSoon
-                        />
+                        <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
                         <ProfileMenuItem
                             icon="bank"
                             label="Bank accounts"

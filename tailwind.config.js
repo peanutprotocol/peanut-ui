@@ -157,9 +157,14 @@ module.exports = {
                     '0%, 100%': { backgroundColor: '#F2F3F4', boxShadow: '0 0 0px 0px color1' },
                     '50%': { backgroundColor: '#DADEDF', boxShadow: '0 0 0px 15px color2' },
                 },
+                fadeIn: {
+                    '0%': { opacity: '0' },
+                    '100%': { opacity: '1' },
+                },
             },
             animation: {
                 colorPulse: 'colorPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                fadeIn: 'fadeIn 0.3s ease-in-out',
             },
             opacity: {
                 85: '.85',

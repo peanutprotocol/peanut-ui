@@ -15,15 +15,30 @@ import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import peanut, {
     generateKeysFromString,
     getRandomString,
+    getLatestContractVersion,
+    getContractAbi,
+    getContractAddress,
+    getLinkFromParams,
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
 import { BigNumber, ethers } from 'ethers'
 import { useCallback, useContext } from 'react'
-import type { TransactionReceipt } from 'viem'
-import { formatEther, parseEther, parseUnits } from 'viem'
+import type { TransactionReceipt, Hash } from 'viem'
+import {
+    formatEther,
+    parseEther,
+    parseUnits,
+    encodeFunctionData,
+    parseAbi,
+    parseEventLogs,
+    bytesToNumber,
+    toBytes,
+} from 'viem'
 import { useAccount, useConfig, useSendTransaction, useSignTypedData, useSwitchChain } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
+import { saveToLocalStorage } from '@/utils'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 
 interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
@@ -99,8 +114,8 @@ export const useCreateLink = () => {
             envInfo,
         }: {
             tokenValue: string | undefined
-            walletType: 'blockscout' | undefined
-            envInfo: any
+            walletType?: 'blockscout' | undefined
+            envInfo?: any
         }) => {
             try {
                 // get tokenDetails (type and decimals)
@@ -718,6 +733,7 @@ export const useCreateLink = () => {
         ]
     )
 
+    //TODO: this will be removed when removing external wallets
     const createLinkWrapper = async ({
         type,
         response,
@@ -788,6 +804,65 @@ export const useCreateLink = () => {
         }
     }
 
+    const createLink = useCallback(
+        async (amount: bigint) => {
+            setLoadingState('Generating details')
+            const password = await generatePassword()
+            const generatedKeys = generateKeysFromString(password)
+            saveToLocalStorage(`sendLink::password::${generatedKeys.address}`, password)
+
+            const chainId = PEANUT_WALLET_CHAIN.id.toString()
+            const contractVersion = getLatestContractVersion({
+                chainId,
+                type: 'normal',
+            })
+            const contractAbi = getContractAbi(contractVersion)
+            const contractAddress: Hash = getContractAddress(chainId, contractVersion) as Hash
+
+            const approveData = encodeFunctionData({
+                abi: parseAbi(['function approve(address _spender, uint256 _amount) external returns (bool)']),
+                functionName: 'approve',
+                args: [contractAddress, amount],
+            })
+            const makeDepositData = encodeFunctionData({
+                abi: contractAbi,
+                functionName: 'makeDeposit',
+                args: [PEANUT_WALLET_TOKEN as Hash, 1, amount, 0, generatedKeys.address as Hash],
+            })
+            const receipt = await handleSendUserOpEncoded(
+                [
+                    { to: PEANUT_WALLET_TOKEN as Hash, value: 0n, data: approveData },
+                    { to: contractAddress, value: 0n, data: makeDepositData },
+                ],
+                chainId
+            )
+            const depositEvent = parseEventLogs({
+                abi: contractAbi,
+                eventName: 'DepositEvent',
+                logs: receipt.logs,
+            })[0]
+            const depositIdx = bytesToNumber(toBytes(depositEvent.topics[1]!))
+
+            const link = getLinkFromParams(
+                chainId,
+                contractVersion,
+                depositIdx,
+                password,
+                `${process.env.NEXT_PUBLIC_BASE_URL!}/claim`,
+                undefined
+            )
+            return {
+                link,
+                pubKey: generatedKeys.address,
+                chainId,
+                contractVersion,
+                depositIdx,
+                txHash: receipt.transactionHash,
+            }
+        },
+        [handleSendUserOpEncoded]
+    )
+
     return {
         checkUserHasEnoughBalance,
         generateLinkDetails,
@@ -807,5 +882,6 @@ export const useCreateLink = () => {
         submitDirectTransfer,
         prepareCreateLinkWrapper,
         createLinkWrapper,
+        createLink,
     }
 }
