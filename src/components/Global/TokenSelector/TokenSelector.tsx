@@ -315,42 +315,41 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // handles button display details based on token and chain selection
     // only update button display if a token is actually selected
     if (selectedTokenAddress && selectedChainID) {
-        // check if we're using the peanut wallet token
-        if (
-            !areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN) ||
-            selectedChainID !== PEANUT_WALLET_CHAIN.id.toString()
-        ) {
-            // get the appropriate balance source (using already defined sourceBalances memo)
+        // check if we're using the default Peanut wallet token
+        const isDefaultPeanutToken =
+            areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN) &&
+            selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
 
-            // try to find user's balance for this token
-            const userBalanceDetails =
-                sourceBalances?.find(
-                    (b) =>
-                        areEvmAddressesEqual(b.address, selectedTokenAddress) && String(b.chainId) === selectedChainID
-                ) || null
-
-            // get chain info for display
+        if (!isDefaultPeanutToken) {
             const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
+            // find general token details from static list first
+            const generalTokenDetails = chainInfo?.tokens.find((t) =>
+                areEvmAddressesEqual(t.address, selectedTokenAddress)
+            )
+
+            // prioritize static data for symbol, logo, and chain name
+            if (generalTokenDetails && chainInfo) {
+                buttonSymbol = generalTokenDetails.symbol
+                buttonLogoURI = generalTokenDetails.logoURI
+                buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
+            } else {
+                // fallback if static data not found (should be rare)
+                buttonSymbol = peanutWalletTokenDetails?.symbol
+                buttonChainName = peanutWalletTokenDetails?.chainName
+                buttonLogoURI = peanutWalletTokenDetails?.logoURI
+            }
+
+            // check user balance *only* for the amount
+            const userBalanceDetails = sourceBalances?.find(
+                (b) => areEvmAddressesEqual(b.address, selectedTokenAddress) && String(b.chainId) === selectedChainID
+            )
 
             if (userBalanceDetails) {
-                // use user's balance details if available
-                buttonSymbol = userBalanceDetails.symbol
-                buttonChainName = chainInfo?.axelarChainName || `Chain ${selectedChainID}`
-                buttonLogoURI = userBalanceDetails.logoURI
+                // we have a balance, format and display it
                 buttonFormattedBalance = formatAmount(userBalanceDetails.amount)
-            } else if (chainInfo?.tokens) {
-                // if no balance found, try to get token details from chain info
-                const generalTokenDetails = chainInfo.tokens.find((t) =>
-                    areEvmAddressesEqual(t.address, selectedTokenAddress)
-                )
-
-                if (generalTokenDetails) {
-                    buttonSymbol = generalTokenDetails.symbol
-                    buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
-                    buttonLogoURI = generalTokenDetails.logoURI
-                    // Don't show balance for tokens without balance data
-                    buttonFormattedBalance = null
-                }
+            } else {
+                // no balance found for this specific token/chain
+                buttonFormattedBalance = null
             }
         }
     }
@@ -652,7 +651,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                         />
                     ) : (
                         <div className="flex flex-col space-y-6">
-                            {/* Free transaction token section  */}
+                            {/* Default transaction token section  */}
 
                             <Section title="Free transaction token!">
                                 <Card
