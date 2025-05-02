@@ -3,7 +3,6 @@
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
-import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -16,7 +15,6 @@ import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { parseUnits } from 'viem'
 import { Button } from '../../../0_Bruddle'
 import FileUploadInput from '../../../Global/FileUploadInput'
-import MoreInfo from '../../../Global/MoreInfo'
 import TokenAmountInput from '../../../Global/TokenAmountInput'
 
 const LinkSendInitialView = () => {
@@ -131,8 +129,6 @@ const LinkSendInitialView = () => {
                 setAttachmentOptions={(options) => dispatch(sendFlowActions.setAttachmentOptions(options))}
             />
 
-            <PeanutSponsored />
-
             <div className="flex flex-col gap-4">
                 <Button
                     onClick={handleOnNext}
@@ -143,21 +139,6 @@ const LinkSendInitialView = () => {
                 </Button>
                 {errorState?.showError && <ErrorAlert description={errorState.errorMessage} />}
             </div>
-
-            <span className="flex flex-row items-center justify-start gap-1 text-h8">
-                Learn about Peanut cashout
-                <MoreInfo
-                    text={
-                        <>
-                            You can use Peanut to cash out your funds directly to your bank account! (US and EU only)
-                            <br></br>{' '}
-                            <a href="/cashout" className="hover:text-primary underline">
-                                Learn more →
-                            </a>
-                        </>
-                    }
-                />
-            </span>
         </div>
     )
 }

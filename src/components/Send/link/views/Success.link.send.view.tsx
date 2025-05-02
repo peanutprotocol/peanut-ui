@@ -8,18 +8,20 @@ import ShareButton from '@/components/Global/ShareButton'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
 import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
-
+import { useRouter } from 'next/navigation'
 const LinkSendSuccessView = () => {
     const dispatch = useAppDispatch()
+    const router = useRouter()
     const { link, attachmentOptions, tokenValue } = useSendFlowStore()
 
     return (
         <div className="space-y-8">
             <NavHeader
+                icon="cancel"
                 title="Send"
                 onPrev={() => {
+                    router.push('/home')
                     dispatch(sendFlowActions.resetSendFlow())
-                    dispatch(sendFlowActions.setView('INITIAL'))
                 }}
             />
             <div className="flex flex-col gap-6">
