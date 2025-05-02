@@ -1,5 +1,5 @@
 import { PEANUT_API_URL } from '@/constants'
-import { fetchWithSentry, jsonParse } from '@/utils'
+import { fetchWithSentry, jsonParse, jsonStringify } from '@/utils'
 import { claimSendLink } from '@/app/actions/claimLinks'
 import Cookies from 'js-cookie'
 import { getParamsFromLink, generateKeysFromString } from '@squirrel-labs/peanut-sdk'
@@ -66,6 +66,8 @@ type CreateLinkBody = {
     chainId?: string
     depositIdx?: number
     contractVersion?: string
+    amount?: bigint
+    tokenAddress?: string
 }
 
 type UpdateLinkBody = {
@@ -74,13 +76,15 @@ type UpdateLinkBody = {
     chainId: string
     depositIdx: number
     contractVersion: string
+    amount: bigint
+    tokenAddress: string
 }
 
 export const sendLinksApi = {
     create: async (sendLink: CreateLinkBody): Promise<SendLink> => {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links`, {
             method: 'POST',
-            body: JSON.stringify(sendLink),
+            body: jsonStringify(sendLink),
             headers: {
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,
                 'Content-Type': 'application/json',
@@ -96,7 +100,7 @@ export const sendLinksApi = {
     update: async (sendLink: UpdateLinkBody): Promise<SendLink> => {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links/${sendLink.pubKey}`, {
             method: 'PATCH',
-            body: JSON.stringify(sendLink),
+            body: jsonStringify(sendLink),
             headers: {
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,
                 'Content-Type': 'application/json',

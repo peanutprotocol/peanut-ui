@@ -48,9 +48,8 @@ const LinkSendInitialView = () => {
                 })
             )
 
-            const { link, pubKey, chainId, contractVersion, depositIdx, txHash } = await createLink(
-                parseUnits(currentInputValue!, PEANUT_WALLET_TOKEN_DECIMALS)
-            )
+            const { link, pubKey, chainId, contractVersion, depositIdx, txHash, amount, tokenAddress } =
+                await createLink(parseUnits(currentInputValue!, PEANUT_WALLET_TOKEN_DECIMALS))
 
             dispatch(sendFlowActions.setLink(link))
             dispatch(sendFlowActions.setView('SUCCESS'))
@@ -65,6 +64,8 @@ const LinkSendInitialView = () => {
                         txHash,
                         contractVersion,
                         depositIdx,
+                        amount,
+                        tokenAddress,
                         reference: attachmentOptions?.message,
                         attachment: attachmentOptions?.rawFile,
                         filename: attachmentOptions?.rawFile?.name,

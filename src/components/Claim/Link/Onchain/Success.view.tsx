@@ -19,7 +19,7 @@ export const SuccessClaimLinkView = ({
 }: _consts.IClaimScreenProps) => {
     const connections = useConnections()
     const { isConnected: isPeanutWallet, address } = useWallet()
-    const { chain: currentChain, address: wagmiAddress, isConnected: isWagmiConnected } = useAccount()
+    const { chain: currentChain, isConnected: isWagmiConnected } = useAccount()
     const { switchChainAsync } = useSwitchChain()
 
     const { resetTokenContextProvider, selectedChainID } = useContext(tokenSelectorContext)
