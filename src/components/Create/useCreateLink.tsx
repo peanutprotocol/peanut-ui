@@ -13,7 +13,6 @@ import peanut, {
     getLinkFromParams,
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
-import { BigNumber, ethers } from 'ethers'
 import { useCallback, useContext } from 'react'
 import type { Hash } from 'viem'
 import {
@@ -150,7 +149,6 @@ export const useCreateLink = () => {
                 const feeOptions = await peanut.setFeeOptions({
                     chainId: chainId,
                     unsignedTx: preparedTx,
-                    gasLimit: BigNumber.from(100000),
                 })
 
                 let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
@@ -372,14 +370,17 @@ export const useCreateLink = () => {
 
         if (!isNativeCurrency(tokenAddress)) {
             // ERC20 Token transfer
-            const erc20Contract = new ethers.Contract(tokenAddress, peanut.ERC20_ABI)
             const amount = parseUnits(tokenValue, tokenDecimals)
-            const data = erc20Contract.interface.encodeFunctionData('transfer', [recipient, amount])
+            const data = encodeFunctionData({
+                abi: peanut.ERC20_ABI,
+                functionName: 'transfer',
+                args: [recipient, amount],
+            })
 
             transactionRequest = {
                 to: tokenAddress,
                 data,
-                value: BigInt(0), // Convert to BigInt
+                value: 0n,
             }
         } else {
             // Native token transfer
@@ -478,6 +479,7 @@ export const useCreateLink = () => {
             })
             const contractAbi = getContractAbi(contractVersion)
             const contractAddress: Hash = getContractAddress(chainId, contractVersion) as Hash
+            const tokenAddress = PEANUT_WALLET_TOKEN as Hash
 
             const approveData = encodeFunctionData({
                 abi: parseAbi(['function approve(address _spender, uint256 _amount) external returns (bool)']),
@@ -487,11 +489,11 @@ export const useCreateLink = () => {
             const makeDepositData = encodeFunctionData({
                 abi: contractAbi,
                 functionName: 'makeDeposit',
-                args: [PEANUT_WALLET_TOKEN as Hash, 1, amount, 0, generatedKeys.address as Hash],
+                args: [tokenAddress, 1, amount, 0, generatedKeys.address as Hash],
             })
             const receipt = await handleSendUserOpEncoded(
                 [
-                    { to: PEANUT_WALLET_TOKEN as Hash, value: 0n, data: approveData },
+                    { to: tokenAddress, value: 0n, data: approveData },
                     { to: contractAddress, value: 0n, data: makeDepositData },
                 ],
                 chainId
@@ -518,6 +520,8 @@ export const useCreateLink = () => {
                 contractVersion,
                 depositIdx,
                 txHash: receipt.transactionHash,
+                amount,
+                tokenAddress,
             }
         },
         [handleSendUserOpEncoded]

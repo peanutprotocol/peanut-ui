@@ -17,7 +17,6 @@ import FileUploadInput from '../../../Global/FileUploadInput'
 import MoreInfo from '../../../Global/MoreInfo'
 import TokenAmountInput from '../../../Global/TokenAmountInput'
 import { parseUnits } from 'viem'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { sendLinksApi } from '@/services/sendLinks'
 
 const LinkSendInitialView = () => {
@@ -29,7 +28,7 @@ const LinkSendInitialView = () => {
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
 
     const [currentInputValue, setCurrentInputValue] = useState<string | undefined>('')
-    const { address, fetchBalance, balance } = useWallet()
+    const { fetchBalance, balance } = useWallet()
 
     const peanutWalletBalance = useMemo(() => {
         return printableUsdc(balance)
@@ -49,9 +48,8 @@ const LinkSendInitialView = () => {
                 })
             )
 
-            const { link, pubKey, chainId, contractVersion, depositIdx, txHash } = await createLink(
-                parseUnits(currentInputValue!, PEANUT_WALLET_TOKEN_DECIMALS)
-            )
+            const { link, pubKey, chainId, contractVersion, depositIdx, txHash, amount, tokenAddress } =
+                await createLink(parseUnits(currentInputValue!, PEANUT_WALLET_TOKEN_DECIMALS))
 
             dispatch(sendFlowActions.setLink(link))
             dispatch(sendFlowActions.setView('SUCCESS'))
@@ -66,6 +64,8 @@ const LinkSendInitialView = () => {
                         txHash,
                         contractVersion,
                         depositIdx,
+                        amount,
+                        tokenAddress,
                         reference: attachmentOptions?.message,
                         attachment: attachmentOptions?.rawFile,
                         filename: attachmentOptions?.rawFile?.name,
