@@ -1,5 +1,3 @@
-import { NATIVE_TOKEN_ADDRESS } from '../token.utils'
-
 // Mock CHAIN_DETAILS and TOKEN_DETAILS from peanut-sdk
 export const CHAIN_DETAILS = {
     1: {
@@ -22,7 +20,7 @@ export const TOKEN_DETAILS = {
             name: 'Ethereum',
             symbol: 'ETH',
             decimals: 18,
-            address: NATIVE_TOKEN_ADDRESS,
+            address: '0x0000000000000000000000000000000000000000',
         },
     },
     11155111: {
@@ -30,7 +28,7 @@ export const TOKEN_DETAILS = {
             name: 'Sepolia Ether',
             symbol: 'ETH',
             decimals: 18,
-            address: NATIVE_TOKEN_ADDRESS,
+            address: '0x0000000000000000000000000000000000000000',
         },
     },
 }

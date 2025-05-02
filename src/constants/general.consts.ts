@@ -34,23 +34,6 @@ export const PEANUT_API_URL = (
 ).replace(/\/$/, '') // remove any accidental trailing slash
 export const next_proxy_url = '/api/proxy'
 
-const supportedWalletconnectChains = <{ chainId: string; name: string }[]>[
-    { chainId: '1', name: 'Ethereum' },
-    { chainId: '10', name: 'Optimism' },
-    { chainId: '56', name: 'Binance Smart Chain' },
-    { chainId: '100', name: 'Gnosis Chain' },
-    { chainId: '137', name: 'Polygon' },
-    { chainId: '324', name: 'zkSync Era' },
-    { chainId: '1101', name: 'Polygon Zkevm' },
-    { chainId: '5000', name: 'Mantle 1' }, //
-    { chainId: '8217', name: 'Klaytn Mainnet' },
-    { chainId: '8453', name: 'Base' },
-    { chainId: '42161', name: 'Arbitrum' },
-    { chainId: '42220', name: 'Celo' },
-    { chainId: '43114', name: 'Avalanche C-Chain' },
-    { chainId: '7777777', name: 'Zora 1' },
-    { chainId: '1313161554', name: 'Aurora 1' },
-]
 export const supportedMobulaChains = <{ name: string; chainId: string }[]>[
     {
         name: 'Fantom',
