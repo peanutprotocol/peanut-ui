@@ -3,7 +3,7 @@ import { getLinkFromTx } from '@/app/actions/claimLinks'
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { PEANUT_API_URL, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
-import { fetchWithSentry, isNativeCurrency } from '@/utils'
+import { fetchWithSentry, isNativeCurrency, jsonParse } from '@/utils'
 import peanut, {
     generateKeysFromString,
     getRandomString,
@@ -14,7 +14,7 @@ import peanut, {
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext } from 'react'
-import type { Hash } from 'viem'
+import type { Hash, Hex } from 'viem'
 import {
     formatEther,
     parseEther,
@@ -28,6 +28,7 @@ import {
 import { useAccount, useSignTypedData } from 'wagmi'
 import { saveToLocalStorage } from '@/utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { getFeeOptions, type ChainId, type FeeOptions } from '@/app/actions/clients'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -112,27 +113,28 @@ export const useCreateLink = () => {
         if (!name) return false
         return name.toLowerCase().includes('safe')
     }
-    const estimateGasFee = useCallback(async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
-        // Return early with default values for Safe connector
-        // TODO: request / cashout flows abstract this
-        // requirement for internut (injects AA with zero gas fees)
-        if (isSafeConnector({ name: connector?.name })) {
-            return {
-                feeOptions: {
-                    gasLimit: BigInt(0),
-                    maxFeePerGas: BigInt(0),
-                    gasPrice: BigInt(0),
-                },
-                transactionCostUSD: 0,
+    const estimateGasFee = useCallback(
+        async ({ from, chainId, preparedTx }: { from: Hex; chainId: string; preparedTx: any }) => {
+            // Return early with default values for Safe connector
+            // requirement for internut (injects AA with zero gas fees)
+            if (isSafeConnector({ name: connector?.name })) {
+                return {
+                    feeOptions: {
+                        gasLimit: BigInt(0),
+                        maxFeePerGas: BigInt(0),
+                        gasPrice: BigInt(0),
+                    },
+                    transactionCostUSD: 0,
+                }
             }
-        }
-        try {
-            const feeOptions = await peanut.setFeeOptions({
-                chainId: chainId,
-                unsignedTx: preparedTx,
-            })
-
-            let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
+            const feeOptions = jsonParse<FeeOptions>(
+                await getFeeOptions(Number(chainId) as ChainId, {
+                    ...preparedTx,
+                    value: preparedTx.value?.toString() ?? '0',
+                    account: from,
+                })
+            )
+            let transactionCostWei = feeOptions.gas * feeOptions.maxFeePerGas
             let transactionCostNative = formatEther(transactionCostWei)
             const nativeTokenPrice = await fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
             if (!nativeTokenPrice || typeof nativeTokenPrice.price !== 'number' || isNaN(nativeTokenPrice.price)) {
@@ -144,31 +146,9 @@ export const useCreateLink = () => {
                 feeOptions,
                 transactionCostUSD,
             }
-        } catch (error) {
-            try {
-                const feeOptions = await peanut.setFeeOptions({
-                    chainId: chainId,
-                    unsignedTx: preparedTx,
-                })
-
-                let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
-                let transactionCostNative = formatEther(transactionCostWei)
-                const nativeTokenPrice = await fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
-                if (!nativeTokenPrice) {
-                    throw new Error('Failed to fetch token price')
-                }
-                const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice.price
-
-                return {
-                    feeOptions,
-                    transactionCostUSD,
-                }
-            } catch (error) {
-                console.error('Failed to estimate gas fee:', error)
-                throw error
-            }
-        }
-    }, [])
+        },
+        []
+    )
 
     const estimatePoints = async ({
         chainId,

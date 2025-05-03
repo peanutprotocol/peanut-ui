@@ -7,6 +7,7 @@ import {
     PINTA_WALLET_TOKEN_DECIMALS,
     PINTA_WALLET_TOKEN_NAME,
     PINTA_WALLET_TOKEN_SYMBOL,
+    PEANUT_WALLET_SUPPORTED_TOKENS,
 } from '@/constants'
 import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
@@ -1109,4 +1110,10 @@ export const getInitialsFromName = (name: string): string => {
     } else {
         return nameParts[0].charAt(0).toUpperCase() + nameParts[1].charAt(0).toUpperCase()
     }
+}
+
+export function isPeanutWalletToken(tokenAddress: string, chainId: string): boolean {
+    const supportedTokens: string[] | undefined = PEANUT_WALLET_SUPPORTED_TOKENS[chainId]
+    if (!supportedTokens) return false
+    return supportedTokens.some((t) => areEvmAddressesEqual(t, tokenAddress))
 }

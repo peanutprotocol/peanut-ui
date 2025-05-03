@@ -23,13 +23,14 @@ export const useWallet = () => {
     const { balance } = useWalletStore()
 
     const sendTransactions = useCallback(
-        async (unsignedTxs: peanutInterfaces.IPeanutUnsignedTransaction[]) => {
+        async (unsignedTxs: peanutInterfaces.IPeanutUnsignedTransaction[], chainId?: string) => {
             const params = unsignedTxs.map((tx: peanutInterfaces.IPeanutUnsignedTransaction) => ({
                 to: tx.to! as Hex,
                 value: tx.value?.valueOf(),
                 data: tx.data as Hex | undefined,
             }))
-            let receipt = await handleSendUserOpEncoded(params, PEANUT_WALLET_CHAIN.id.toString())
+            chainId = chainId ?? PEANUT_WALLET_CHAIN.id.toString()
+            let receipt = await handleSendUserOpEncoded(params, chainId)
             return receipt
         },
         [handleSendUserOpEncoded]
@@ -54,18 +55,14 @@ export const useWallet = () => {
             functionName: 'balanceOf',
             args: [getAddress(address)],
         })
-
-        return formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
+        const formatedBalance = formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
+        dispatch(walletActions.setRewardWalletBalance(formatedBalance))
     }, [address])
 
     useEffect(() => {
         if (!address) return
-        const fetchRewardsWalletBalance = async () => {
-            const balance = await getRewardWalletBalance()
-            dispatch(walletActions.setRewardWalletBalance(balance))
-        }
         fetchBalance()
-        fetchRewardsWalletBalance()
+        getRewardWalletBalance()
     }, [address, fetchBalance, getRewardWalletBalance])
 
     return {

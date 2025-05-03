@@ -24,20 +24,21 @@ import {
     getTokenSymbol,
     isAddressZero,
     switchNetwork as switchNetworkUtil,
+    isPeanutWalletToken,
 } from '@/utils'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useSwitchChain, useSendTransaction, useConfig } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
-import type { TransactionReceipt } from 'viem'
+import type { TransactionReceipt, Hex } from 'viem'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { useAccount } from 'wagmi'
 
 export default function ConfirmPaymentView() {
     const dispatch = useAppDispatch()
     const [showMessage, setShowMessage] = useState<boolean>(false)
-    const { isConnected: isPeanutWallet, address, sendTransactions } = useWallet()
+    const { isConnected: isPeanutWallet, address, sendTransactions, getRewardWalletBalance } = useWallet()
     const { attachmentOptions, parsedPaymentData, error, chargeDetails, beerQuantity } = usePaymentStore()
     const { selectedTokenData, selectedChainID, isXChain, setIsXChain, selectedTokenAddress } =
         useContext(tokenSelectorContext)
@@ -92,13 +93,15 @@ export default function ConfirmPaymentView() {
     // Check if cross-chain based on chargeDetails
     const isXChainTx = useMemo(() => {
         if (!chargeDetails || !selectedChainID) return false
+        if (isPeanutWallet) return !isPeanutWalletToken(chargeDetails.tokenAddress, chargeDetails.chainId)
         return selectedChainID !== chargeDetails.chainId
-    }, [chargeDetails, selectedChainID])
+    }, [chargeDetails, selectedChainID, isPeanutWallet])
 
     const diffTokens = useMemo<boolean>(() => {
         if (!selectedTokenData || !chargeDetails) return false
+        if (isPeanutWallet) return !isPeanutWalletToken(chargeDetails.tokenAddress, chargeDetails.chainId)
         return !areEvmAddressesEqual(selectedTokenData.address, chargeDetails.tokenAddress)
-    }, [selectedTokenData, chargeDetails])
+    }, [selectedTokenData, chargeDetails, isPeanutWallet])
 
     const createXChainUnsignedTx = async (tokenData: any, requestLink: any, senderAddress: string) => {
         console.log('Creating cross-chain tx with:', { tokenData, requestLink, senderAddress })
@@ -159,7 +162,7 @@ export default function ConfirmPaymentView() {
     }
 
     // prepare transaction
-    const prepareTransaction = async () => {
+    const prepareTransaction = useCallback(async () => {
         if (!chargeDetails || (!address && !wagmiAddress)) return
 
         setIsSubmitting(true)
@@ -169,10 +172,7 @@ export default function ConfirmPaymentView() {
             setIsXChain(isXChainTx)
 
             // prepare cross-chain tx
-            if (
-                isXChainTx ||
-                (selectedTokenData && !areEvmAddressesEqual(selectedTokenData.address, chargeDetails.tokenAddress))
-            ) {
+            if (isXChainTx || diffTokens) {
                 if (!selectedTokenData) {
                     throw new Error('Token data not found')
                 }
@@ -230,12 +230,12 @@ export default function ConfirmPaymentView() {
             setIsCalculatingFees(false)
         }
         return true
-    }
+    }, [chargeDetails, address, wagmiAddress, isXChainTx, diffTokens, selectedTokenData])
 
     // prepare transaction when chargeDetails is ready
     useEffect(() => {
         prepareTransaction()
-    }, [chargeDetails, address, wagmiAddress, selectedChainID, selectedTokenData])
+    }, [prepareTransaction])
 
     // reset error when component mounts
     useEffect(() => {
@@ -277,7 +277,10 @@ export default function ConfirmPaymentView() {
                     : [unsignedTx as peanutInterfaces.IPeanutUnsignedTransaction]
             let receipt: TransactionReceipt
             if (isPeanutWallet) {
-                receipt = await sendTransactions(transactions)
+                receipt = await sendTransactions(transactions, chargeDetails.chainId)
+                if (isPintaReq) {
+                    getRewardWalletBalance()
+                }
             } else {
                 const receipts = []
                 for (const tx of transactions) {
@@ -342,6 +345,8 @@ export default function ConfirmPaymentView() {
         unsignedTx,
         sendTransactions,
         selectedChainID,
+        isPintaReq,
+        getRewardWalletBalance,
     ])
 
     // Get button text based on state
@@ -383,10 +388,11 @@ export default function ConfirmPaymentView() {
 
     // estimate gas fee when unsignedTx is ready
     useEffect(() => {
-        if (!chargeDetails || (!unsignedTx && !xChainUnsignedTxs)) return
+        if (!chargeDetails || (!unsignedTx && !xChainUnsignedTxs) || (!address && !wagmiAddress)) return
 
         setIsEstimatingGas(true)
         estimateGasFee({
+            from: (address ?? wagmiAddress) as Hex,
             chainId: isXChain ? selectedChainID : chargeDetails.chainId,
             preparedTx: isXChain || diffTokens ? xChainUnsignedTxs : unsignedTx,
         })
@@ -402,7 +408,17 @@ export default function ConfirmPaymentView() {
             .finally(() => {
                 setIsEstimatingGas(false)
             })
-    }, [unsignedTx, xChainUnsignedTxs, chargeDetails, isXChain, selectedChainID, selectedTokenAddress, diffTokens])
+    }, [
+        unsignedTx,
+        xChainUnsignedTxs,
+        chargeDetails,
+        isXChain,
+        selectedChainID,
+        selectedTokenAddress,
+        diffTokens,
+        address,
+        wagmiAddress,
+    ])
 
     // calculate fee details
     const [feeCalculations, setFeeCalculations] = useState({

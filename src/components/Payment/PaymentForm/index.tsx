@@ -37,6 +37,7 @@ import {
     getTokenSymbol,
     isNativeCurrency,
     printableAddress,
+    isPeanutWalletToken,
 } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
@@ -451,12 +452,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     // check if this is a cross-chain request for Peanut Wallet
     const isPeanutWalletCrossChainRequest = useMemo(() => {
         if (!requestDetails?.chainId || !requestDetails?.tokenAddress || !isPeanutWallet) return false
-
-        // check if requested chain and token match Peanut Wallet's supported chain/token
-        return (
-            requestDetails.chainId !== PEANUT_WALLET_CHAIN.id.toString() ||
-            requestDetails.tokenAddress.toLowerCase() !== PEANUT_WALLET_TOKEN.toLowerCase()
-        )
+        return !isPeanutWalletToken(requestDetails.tokenAddress, requestDetails.chainId)
     }, [requestDetails, isPeanutWallet])
 
     useEffect(() => {
