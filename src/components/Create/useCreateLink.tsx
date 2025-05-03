@@ -1,37 +1,36 @@
 'use client'
 import { getLinkFromTx } from '@/app/actions/claimLinks'
 import { fetchTokenPrice } from '@/app/actions/tokens'
-import { PEANUT_API_URL, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
-import { fetchWithSentry, isNativeCurrency, jsonParse } from '@/utils'
+import { fetchWithSentry, isNativeCurrency, jsonParse, saveToLocalStorage } from '@/utils'
 import peanut, {
     generateKeysFromString,
-    getRandomString,
-    getLatestContractVersion,
     getContractAbi,
     getContractAddress,
+    getLatestContractVersion,
     getLinkFromParams,
+    getRandomString,
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext } from 'react'
-import type { Hash, Hex } from 'viem'
+import type { Hash, Hex, TransactionReceipt } from 'viem'
 import {
-    formatEther,
-    parseEther,
-    parseUnits,
-    encodeFunctionData,
-    parseAbi,
-    parseEventLogs,
     bytesToNumber,
+    encodeFunctionData,
+    formatEther,
+    parseAbi,
+    parseEther,
+    parseEventLogs,
+    parseUnits,
     toBytes,
 } from 'viem'
 import { useAccount, useSignTypedData } from 'wagmi'
-import { saveToLocalStorage } from '@/utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { getFeeOptions, type ChainId, type FeeOptions } from '@/app/actions/clients'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { captureException } from '@sentry/nextjs'
 
 export const useCreateLink = () => {
@@ -136,7 +135,7 @@ export const useCreateLink = () => {
             )
             let transactionCostWei = feeOptions.gas * feeOptions.maxFeePerGas
             let transactionCostNative = formatEther(transactionCostWei)
-            const nativeTokenPrice = await fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
+            const nativeTokenPrice = await fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId)
             if (!nativeTokenPrice || typeof nativeTokenPrice.price !== 'number' || isNaN(nativeTokenPrice.price)) {
                 throw new Error('Failed to fetch token price')
             }

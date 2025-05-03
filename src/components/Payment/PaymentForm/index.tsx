@@ -547,7 +547,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
             {!isPeanutWallet && (
                 <div>
                     <div className="mb-2 text-sm font-medium">Choose your payment method:</div>
-                    <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
+                    <TokenSelector />
                 </div>
             )}
             {/* Show Peanut Wallet cross-chain warning */}

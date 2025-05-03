@@ -23,12 +23,15 @@ import { PeanutSupportIcon } from './peanut-support'
 import { SearchIcon } from './search'
 import { ShareIcon } from './share'
 import { SmileIcon } from './smile'
+import { StarIcon } from './star'
 import { TxnOffIcon } from './txn-off'
 import { UserIcon } from './user'
 import { UserPlusIcon } from './user-plus'
 import { WalletIcon } from './wallet'
+import { WalletCancelIcon } from './wallet-cancel'
+import { WalletOutlineIcon } from './wallet-outline'
 
-// allowed icon names
+// available icon names
 export type IconName =
     | 'arrow-down'
     | 'arrow-down-left'
@@ -49,12 +52,15 @@ export type IconName =
     | 'search'
     | 'txn-off'
     | 'wallet'
+    | 'wallet-cancel'
+    | 'wallet-outline'
     | 'currency'
     | 'achievements'
     | 'link'
     | 'logout'
     | 'paperclip'
     | 'smile'
+    | 'star'
     | 'user'
     | 'share'
     | 'user-plus'
@@ -83,6 +89,8 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     search: SearchIcon,
     'txn-off': TxnOffIcon,
     wallet: WalletIcon,
+    'wallet-cancel': WalletCancelIcon,
+    'wallet-outline': WalletOutlineIcon,
     currency: CurrencyIcon,
     achievements: AchievementsIcon,
     link: LinkIcon,
@@ -91,6 +99,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     smile: SmileIcon,
     user: UserIcon,
     share: ShareIcon,
+    star: StarIcon,
     'user-plus': UserPlusIcon,
     copy: CopyIcon,
     cancel: CancelIcon,

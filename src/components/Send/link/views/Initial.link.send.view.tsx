@@ -12,11 +12,11 @@ import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { ErrorHandler, printableUsdc } from '@/utils'
 import { captureException } from '@sentry/nextjs'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { parseUnits } from 'viem'
 import { Button } from '../../../0_Bruddle'
 import FileUploadInput from '../../../Global/FileUploadInput'
 import MoreInfo from '../../../Global/MoreInfo'
 import TokenAmountInput from '../../../Global/TokenAmountInput'
-import { parseUnits } from 'viem'
 import { sendLinksApi } from '@/services/sendLinks'
 
 const LinkSendInitialView = () => {
