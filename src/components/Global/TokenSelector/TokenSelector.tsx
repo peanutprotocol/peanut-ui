@@ -11,7 +11,6 @@ import Card from '@/components/Global/Card'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
 import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
-import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken, IUserBalance } from '@/interfaces'
 import { areEvmAddressesEqual, fetchWalletBalances, formatAmount, isNativeCurrency } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
@@ -70,8 +69,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // refs to track previous state for useEffect logic
     const prevIsExternalConnected = useRef(isExternalWalletConnected)
     const prevExternalAddress = useRef<string | null>(externalWalletAddress ?? null)
-    // usewallet and token selector context
-    const { selectedWallet, isConnected } = useWallet()
     const {
         supportedSquidChainsAndTokens,
         setSelectedTokenAddress,
@@ -134,12 +131,10 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const sourceBalances = useMemo(() => {
         if (isExternalWalletConnected && externalBalances !== null) {
             return externalBalances
-        } else if (isConnected && selectedWallet?.balances) {
-            return selectedWallet.balances
         } else {
             return [] // return empty array if no source is available
         }
-    }, [isExternalWalletConnected, externalBalances, isConnected, selectedWallet?.balances])
+    }, [isExternalWalletConnected, externalBalances])
 
     // memoize the list of tokens filtered only by the selected network
     const tokensOnSelectedNetwork = useMemo(() => {
@@ -206,34 +201,16 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         (chainId: string) => {
             let firstTokenAddressWithBalance: string | undefined = undefined
 
-            // determine the source of balances
-            const sourceBalances =
-                isExternalWalletConnected && externalBalances
-                    ? externalBalances
-                    : isConnected && selectedWallet?.balances
-                      ? selectedWallet.balances
-                      : null
-
-            if (sourceBalances) {
-                // find the first token on the selected chain with a balance > 0
-                const tokenWithBalance = sourceBalances.find(
-                    (balance) => String(balance.chainId) === chainId && balance.amount > 0
-                )
-                firstTokenAddressWithBalance = tokenWithBalance?.address
-            }
+            const tokenWithBalance = sourceBalances.find(
+                (balance) => String(balance.chainId) === chainId && balance.amount > 0
+            )
+            firstTokenAddressWithBalance = tokenWithBalance?.address
 
             setSelectedChainID(chainId)
             setSelectedTokenAddress(firstTokenAddressWithBalance ?? NATIVE_TOKEN_ADDRESS)
             setShowNetworkList(false)
         },
-        [
-            setSelectedChainID,
-            setSelectedTokenAddress,
-            isExternalWalletConnected,
-            externalBalances,
-            isConnected,
-            selectedWallet?.balances,
-        ]
+        [setSelectedChainID, setSelectedTokenAddress, isExternalWalletConnected, externalBalances, sourceBalances]
     )
 
     // selected network name memo, being used ui
@@ -270,19 +247,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             }
         }
 
-        // if not found in external wallet, check connected wallet
-        if (!balance && isConnected && selectedWallet?.balances) {
-            const walletTokenBalance = selectedWallet.balances.find(
-                (b) =>
-                    areEvmAddressesEqual(b.address, PEANUT_WALLET_TOKEN) &&
-                    String(b.chainId) === PEANUT_WALLET_CHAIN.id.toString()
-            )
-
-            if (walletTokenBalance) {
-                balance = formatAmount(walletTokenBalance.amount.toFixed(Math.min(walletTokenBalance.decimals ?? 6, 6)))
-            }
-        }
-
         return {
             symbol: token.symbol,
             chainName: chainInfo.axelarChainName,
@@ -290,13 +254,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             chainLogoURI: chainInfo.chainIconURI,
             balance: balance,
         }
-    }, [
-        supportedSquidChainsAndTokens,
-        isExternalWalletConnected,
-        externalBalances,
-        isConnected,
-        selectedWallet?.balances,
-    ])
+    }, [supportedSquidChainsAndTokens, isExternalWalletConnected, externalBalances])
 
     // set default token on component initialization to peanut wallet token
     useEffect(() => {

@@ -13,7 +13,7 @@ import peanut, {
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext } from 'react'
-import type { Hash, Hex, TransactionReceipt } from 'viem'
+import type { Hash, Hex } from 'viem'
 import {
     bytesToNumber,
     encodeFunctionData,
@@ -25,7 +25,7 @@ import {
     toBytes,
 } from 'viem'
 import { useAccount, useSignTypedData } from 'wagmi'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_API_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
 import { getFeeOptions, type ChainId, type FeeOptions } from '@/app/actions/clients'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
