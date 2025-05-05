@@ -401,12 +401,6 @@ export const InitialClaimLinkView = ({
     }, [recipientType])
 
     useEffect(() => {
-        if (!isPeanutWallet) {
-            setRecipient({ name: undefined, address: '' })
-            return
-        }
-
-        // reset states
         setRecipient({ name: undefined, address: '' })
         setSelectedRoute(null)
         setHasFetchedRoute(false)
@@ -423,11 +417,8 @@ export const InitialClaimLinkView = ({
             setSelectedTokenAddress(claimLinkData.tokenAddress)
         }
 
-        // set new recipient address after a short delay to ensure proper UI update
         if (address) {
-            setTimeout(() => {
-                setRecipient({ name: undefined, address })
-            }, 100)
+            setRecipient({ name: undefined, address })
         }
     }, [isPeanutWallet, address])
 
