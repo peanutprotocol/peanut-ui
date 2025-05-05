@@ -186,7 +186,7 @@ export const usePaymentInitiator = () => {
         const EXPECTED_NETWORK_FEE_MULTIPLIER = 0.7
         const EXPECTED_SLIPPAGE_MULTIPLIER = 0.1
         setIsCalculatingFees(true)
-        let timerId: NodeJS.Timeout | undefined // Declare timerId here
+        let timerId: NodeJS.Timeout | undefined
 
         try {
             // determine the base fee depending on the transaction type

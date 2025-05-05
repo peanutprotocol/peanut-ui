@@ -63,7 +63,7 @@ export const useWallet = () => {
         })
         const formatedBalance = formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
         dispatch(walletActions.setRewardWalletBalance(formatedBalance))
-    }, [address])
+    }, [address, dispatch])
 
     useEffect(() => {
         if (!address) return

@@ -1,15 +1,14 @@
-import { Button } from '@/components/0_Bruddle'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Modal from '@/components/Global/Modal'
+import DirectSendQr from '../Global/DirectSendQR'
 import { PartnerBarLocation } from '../Global/RewardsModal'
 
 interface RewardsCardModalProps {
     visible: boolean
     onClose: () => void
-    onOpenCamera: () => void
 }
 
-export default function RewardsCardModal({ visible, onClose, onOpenCamera }: RewardsCardModalProps) {
+export default function RewardsCardModal({ visible, onClose }: RewardsCardModalProps) {
     return (
         <Modal
             visible={visible}
@@ -37,10 +36,12 @@ export default function RewardsCardModal({ visible, onClose, onOpenCamera }: Rew
 
                 {/* Button */}
                 <div className="w-full pt-2">
-                    <Button onClick={onOpenCamera} variant="purple" shadowSize="4" className="w-full">
-                        <Icon name="camera" className="size-4" />
-                        Open Camera
-                    </Button>
+                    <DirectSendQr
+                        icon="camera"
+                        ctaTitle="Open Camera"
+                        className="h-10 w-full rounded-sm font-bold"
+                        iconClassName="size-4"
+                    />
                 </div>
             </div>
         </Modal>

@@ -1,13 +1,8 @@
 'use client'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useMemo, useState, type ChangeEvent } from 'react'
-import { twMerge } from 'tailwind-merge'
-
 import { resolveEns } from '@/app/actions/ens'
 import { Button } from '@/components/0_Bruddle'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import Icon from '@/components/Global/Icon'
 import Modal from '@/components/Global/Modal'
 import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 import QRScanner from '@/components/Global/QRScanner'
@@ -17,6 +12,10 @@ import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { hitUserMetric } from '@/utils/metrics.utils'
 import * as Sentry from '@sentry/nextjs'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useMemo, useState, type ChangeEvent } from 'react'
+import { twMerge } from 'tailwind-merge'
+import { Icon, IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
@@ -169,7 +168,17 @@ function UnrecognizedContent({ setIsModalOpen }: ModalContentProps) {
     )
 }
 
-export default function DirectSendQr({ className = '' }: { className?: string }) {
+export default function DirectSendQr({
+    icon = 'qr-code',
+    className = '',
+    ctaTitle,
+    iconClassName,
+}: {
+    className?: string
+    ctaTitle?: string
+    icon?: IconName
+    iconClassName?: string
+}) {
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [qrType, setQrType] = useState<EQrType | undefined>(undefined)
@@ -347,8 +356,10 @@ export default function DirectSendQr({ className = '' }: { className?: string })
                     className
                 )}
             >
-                <Icon name="qr-code" height={32} width={32} className="custom-size" />
+                <Icon name={icon} className={twMerge('custom-size', iconClassName)} />
+                {ctaTitle && ctaTitle}
             </Button>
+
             <Modal
                 title={modalTitle}
                 visible={isModalOpen && !!modalContent}
