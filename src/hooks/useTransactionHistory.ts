@@ -116,9 +116,9 @@ export function useTransactionHistory({
             ...data,
             entries: data.entries.map((entry: HistoryEntry) => {
                 const extraData = entry.extraData ?? {}
-                let link: string
-                let tokenSymbol: string
-                let usdAmount: string
+                let link: string = ''
+                let tokenSymbol: string = ''
+                let usdAmount: string = ''
                 switch (entry.type) {
                     case 'SEND_LINK':
                         const password = getFromLocalStorage(`sendLink::password::${entry.uuid}`)
@@ -137,7 +137,7 @@ export function useTransactionHistory({
                         usdAmount = entry.amount.toString()
                         break
                     default:
-                        return
+                        break
                 }
                 return {
                     ...entry,
