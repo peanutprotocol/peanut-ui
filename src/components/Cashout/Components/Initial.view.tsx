@@ -91,15 +91,6 @@ export const InitialCashoutView = ({
         return !isNaN(numericValue) && numericValue > MAX_CASHOUT_LIMIT
     }, [usdValue])
 
-    const maxValue = useMemo(() => {
-        if (!selectedWallet?.balances) {
-            return selectedWallet?.balance ? printableUsdc(selectedWallet.balance) : ''
-        }
-        const balance = balanceByToken(selectedWallet.balances, selectedChainID, selectedTokenAddress)
-        if (!balance) return ''
-        return formatAmount(balance.amount)
-    }, [selectedChainID, selectedTokenAddress, selectedWallet?.balances, selectedWallet?.balance])
-
     const isDisabled = useMemo(() => {
         return (
             !_tokenValue ||
@@ -213,13 +204,10 @@ export const InitialCashoutView = ({
         }
     }
 
-<<<<<<< HEAD
     const maxValue = useMemo(() => {
         return printableUsdc(balance)
     }, [balance])
 
-=======
->>>>>>> origin/peanut-wallet-dev
     useEffect(() => {
         if (!_tokenValue) return
         if (inputDenomination === 'TOKEN') {
