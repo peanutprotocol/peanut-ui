@@ -42,13 +42,15 @@ type PreparedTx = {
 export const getFeeOptions = unstable_cache(
     async (chainId: ChainId, preparedTx: PreparedTx): Promise<string> => {
         const client = await getPublicClient(chainId)
-        const feeEstimates = await client.estimateFeesPerGas()
-        const gas = await client.estimateGas({
-            account: preparedTx.account,
-            data: preparedTx.data,
-            to: preparedTx.to,
-            value: BigInt(preparedTx.value),
-        })
+        const [feeEstimates, gas] = await Promise.all([
+            client.estimateFeesPerGas(),
+            client.estimateGas({
+                account: preparedTx.account,
+                data: preparedTx.data,
+                to: preparedTx.to,
+                value: BigInt(preparedTx.value),
+            }),
+        ])
         return jsonStringify({
             gas,
             maxFeePerGas: feeEstimates.maxFeePerGas,
