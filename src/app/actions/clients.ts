@@ -1,6 +1,6 @@
 'use server'
 import { unstable_cache } from 'next/cache'
-import type { PublicClient, Chain } from 'viem'
+import type { PublicClient, Chain, Hash } from 'viem'
 import { createPublicClient, http, extractChain } from 'viem'
 import * as chains from 'viem/chains'
 import { jsonStringify } from '@/utils'
@@ -33,8 +33,14 @@ export const getPublicClient = unstable_cache(
     }
 )
 
+type PreparedTx = {
+    account: Hash
+    data: Hash
+    to: Hash
+    value: string
+}
 export const getFeeOptions = unstable_cache(
-    async (chainId: ChainId, preparedTx: any): Promise<string> => {
+    async (chainId: ChainId, preparedTx: PreparedTx): Promise<string> => {
         const client = await getPublicClient(chainId)
         const feeEstimates = await client.estimateFeesPerGas()
         const gas = await client.estimateGas({
