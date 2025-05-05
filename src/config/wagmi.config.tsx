@@ -1,18 +1,7 @@
 'use client'
 import { JustaNameContext } from '@/config/justaname.config'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
-import {
-    AppKitNetwork,
-    arbitrum,
-    base,
-    bsc,
-    gnosis,
-    mainnet,
-    mantle,
-    optimism,
-    polygon,
-    scroll,
-} from '@reown/appkit/networks'
+import { AppKitNetwork, arbitrum, base, bsc, gnosis, mainnet, optimism, polygon, scroll } from '@reown/appkit/networks'
 import { createAppKit } from '@reown/appkit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider, cookieToInitialState, type Config } from 'wagmi'
@@ -31,7 +20,7 @@ const metadata = {
     icons: [`${process.env.NEXT_PUBLIC_BASE_URL}/favicon.ico`],
 }
 
-export const networks = [arbitrum, mainnet, optimism, polygon, gnosis, base, scroll, mantle, bsc] as [
+export const networks = [arbitrum, mainnet, optimism, polygon, gnosis, base, scroll, bsc] as [
     AppKitNetwork,
     ...AppKitNetwork[],
 ]

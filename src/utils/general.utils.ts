@@ -1,12 +1,13 @@
 import { TransactionType } from '@/components/Global/ListItemView'
 import * as consts from '@/constants'
 import {
-    STABLE_COINS,
     PINTA_WALLET_CHAIN,
     PINTA_WALLET_TOKEN,
     PINTA_WALLET_TOKEN_DECIMALS,
     PINTA_WALLET_TOKEN_NAME,
     PINTA_WALLET_TOKEN_SYMBOL,
+    PEANUT_WALLET_SUPPORTED_TOKENS,
+    STABLE_COINS,
 } from '@/constants'
 import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
@@ -16,6 +17,7 @@ import { SiweMessage } from 'siwe'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
+import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -370,17 +372,15 @@ export const isTestnetChain = (chainId: string) => {
 
 export const areEvmAddressesEqual = (address1: string, address2: string): boolean => {
     if (!isAddress(address1) || !isAddress(address2)) return false
-    if (address1.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
-        address1 = '0x0000000000000000000000000000000000000000'
-    if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
-        address2 = '0x0000000000000000000000000000000000000000'
+    if (address1.toLowerCase() === SQUID_ETH_ADDRESS.toLocaleLowerCase()) address1 = NATIVE_TOKEN_ADDRESS
+    if (address2.toLowerCase() === SQUID_ETH_ADDRESS.toLocaleLowerCase()) address2 = NATIVE_TOKEN_ADDRESS
     // By using getAddress we are safe from different cases
     // and other address formatting
     return getAddress(address1) === getAddress(address2)
 }
 
 export const isAddressZero = (address: string): boolean => {
-    return areEvmAddressesEqual(address, '0x0000000000000000000000000000000000000000')
+    return areEvmAddressesEqual(address, NATIVE_TOKEN_ADDRESS)
 }
 
 export const isNativeCurrency = (address: string) => {
@@ -1109,4 +1109,10 @@ export const getInitialsFromName = (name: string): string => {
     } else {
         return nameParts[0].charAt(0).toUpperCase() + nameParts[1].charAt(0).toUpperCase()
     }
+}
+
+export function isPeanutWalletToken(tokenAddress: string, chainId: string): boolean {
+    const supportedTokens: string[] | undefined = PEANUT_WALLET_SUPPORTED_TOKENS[chainId]
+    if (!supportedTokens) return false
+    return supportedTokens.some((t) => areEvmAddressesEqual(t, tokenAddress))
 }

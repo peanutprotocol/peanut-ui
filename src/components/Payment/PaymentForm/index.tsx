@@ -411,7 +411,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
             {!isActivePeanutWallet && (
                 <div>
                     <div className="mb-2 text-sm font-medium">Select token and chain to pay with</div>
-                    <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
+                    <TokenSelector />
                     {!isPeanutWalletUSDC && (
                         <div className="mt-2 flex items-center space-x-1 text-xs text-grey-1">
                             <span>Use USDC on Arbitrum for free transactions!</span>

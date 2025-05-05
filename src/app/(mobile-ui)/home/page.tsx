@@ -17,18 +17,18 @@ import { SearchUsers } from '@/components/SearchUsers'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useAppDispatch } from '@/redux/hooks'
+import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences } from '@/utils'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 export default function Home() {
-    const { balance, getRewardWalletBalance } = useWallet()
-    const [rewardsBalance, setRewardsBalance] = useState<string | undefined>(undefined)
+    const { balance } = useWallet()
+    const { rewardWalletBalance } = useWalletStore()
     const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
     const router = useRouter()
@@ -57,19 +57,6 @@ export default function Home() {
     }
 
     const isLoading = isFetchingUser && !username
-
-    useEffect(() => {
-        const fetchRewardsBalance = async () => {
-            try {
-                const balance = await getRewardWalletBalance()
-                setRewardsBalance(Math.floor(Number(balance || 0)).toString())
-            } catch (error) {
-                console.error('Failed to fetch rewards balance:', error)
-            }
-        }
-
-        fetchRewardsBalance()
-    }, [getRewardWalletBalance])
 
     const handleOpenCamera = () => {
         setIsRewardsModalOpen(false)
@@ -135,7 +122,7 @@ export default function Home() {
 
                 {/* Rewards Card - only shows if balance is non-zero */}
                 <div onClick={() => setIsRewardsModalOpen(true)} className="cursor-pointer">
-                    <RewardsCard balance={rewardsBalance} />
+                    <RewardsCard balance={Math.floor(Number(rewardWalletBalance) ?? 0).toString() ?? '0'} />
                 </div>
 
                 <HomeHistory />

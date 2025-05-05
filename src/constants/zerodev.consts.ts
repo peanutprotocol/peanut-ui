@@ -29,6 +29,11 @@ export const PINTA_WALLET_TOKEN = '0x9Ae69fDfF2FA97e34B680752D8E70dfD529Ea6ca'
 export const PINTA_WALLET_TOKEN_NAME = 'PINTA'
 export const PINTA_WALLET_TOKEN_SYMBOL = 'PNT'
 
+export const PEANUT_WALLET_SUPPORTED_TOKENS: Record<string, string[]> = {
+    [PEANUT_WALLET_CHAIN.id.toString()]: [PEANUT_WALLET_TOKEN],
+    [PINTA_WALLET_CHAIN.id.toString()]: [PINTA_WALLET_TOKEN],
+}
+
 /**
  * Zerodev needs these to be passed explicitly to avoid breaking changes
  * when upgrading the SDK. At moment of feature development this is

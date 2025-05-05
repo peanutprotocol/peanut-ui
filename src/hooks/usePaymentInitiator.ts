@@ -26,7 +26,7 @@ import { areEvmAddressesEqual, ErrorHandler, isAddressZero, isNativeCurrency } f
 import { useAppKitAccount, useAppKitNetwork } from '@reown/appkit/react'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import type { TransactionReceipt } from 'viem'
+import type { Hex, TransactionReceipt } from 'viem'
 import { useConfig, useSendTransaction, useSwitchChain, useAccount as useWagmiAccount } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 
@@ -159,6 +159,7 @@ export const usePaymentInitiator = () => {
         setIsEstimatingGas(true)
         setIsFeeEstimationError(false)
         estimateGasFee({
+            from: (peanutWalletAddress ?? wagmiAddress) as Hex,
             chainId: isXChain ? selectedChainID : activeChargeDetails.chainId,
             preparedTx: isXChain || diffTokens ? xChainUnsignedTxs : unsignedTx,
         })
@@ -614,7 +615,10 @@ export const usePaymentInitiator = () => {
                     // send the prepared transaction via the usewallet hook.
                     setLoadingStep('Sending Transaction')
 
-                    const receipt: TransactionReceipt = await sendTransactions([peanutUnsignedTx])
+                    const receipt: TransactionReceipt = await sendTransactions(
+                        [peanutUnsignedTx],
+                        chargeDetailsToUse.chainId
+                    )
 
                     // basic validation of the received receipt.
                     if (!receipt || !receipt.transactionHash) {

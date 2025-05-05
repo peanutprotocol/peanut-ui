@@ -1,6 +1,7 @@
 import { ApiUser } from '@/services/users'
 import { twMerge } from 'tailwind-merge'
 import Card from '../Global/Card'
+import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
 import PeanutLoading from '../Global/PeanutLoading'
 import { SearchResultCard } from './SearchResultCard'
@@ -100,17 +101,11 @@ export const SearchResults = ({
                             ))}
                         </div>
                     ) : (
-                        <Card position="single" className="p-0">
-                            <div className="flex flex-col items-center justify-center gap-2 py-6">
-                                <div className="rounded-full bg-primary-1 p-2">
-                                    <Icon name="txn-off" size={16} />
-                                </div>
-                                <div className="text-center">
-                                    <div className="font-medium">No transactions yet!</div>
-                                    <div className="text-sm text-grey-1">Start by sending or requesting money</div>
-                                </div>
-                            </div>
-                        </Card>
+                        <EmptyState
+                            title="No transactions yet!"
+                            description="Start by sending or requesting money"
+                            icon="txn-off"
+                        />
                     )}
                 </>
             )}

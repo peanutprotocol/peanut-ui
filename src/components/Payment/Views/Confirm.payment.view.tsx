@@ -40,9 +40,10 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
         isEstimatingGas,
         isFeeEstimationError,
     } = usePaymentInitiator()
-    const { selectedTokenData, selectedChainID, selectedTokenAddress } = useContext(tokenSelectorContext)
+    const { selectedTokenData, selectedChainID } = useContext(tokenSelectorContext)
     const { isConnected: isPeanutWallet, address: peanutWalletAddress } = useWallet()
     const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
+    const { rewardWalletBalance } = useWalletStore()
 
     const walletAddress = useMemo(() => peanutWalletAddress ?? wagmiAddress, [peanutWalletAddress, wagmiAddress])
 
@@ -65,15 +66,9 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
 
     useEffect(() => {
         if (chargeDetails && walletAddress && selectedTokenData && selectedChainID) {
-            if (!isPeanutWallet) {
-                prepareTransactionDetails(chargeDetails)
-            } else {
-                prepareTransactionDetails(chargeDetails)
-            }
+            prepareTransactionDetails(chargeDetails)
         }
-    }, [chargeDetails, walletAddress, selectedTokenData, selectedChainID, isPeanutWallet])
-
-    const { rewardWalletBalance } = useWalletStore()
+    }, [chargeDetails, walletAddress, selectedTokenData, selectedChainID, prepareTransactionDetails])
 
     const isConnected = useMemo(() => isPeanutWallet || isWagmiConnected, [isPeanutWallet, isWagmiConnected])
     const isInsufficientRewardsBalance = useMemo(() => {

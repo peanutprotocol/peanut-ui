@@ -443,6 +443,10 @@ module.exports = {
                 '.icon-28': {
                     '@apply !w-7 !h-7': {},
                 },
+                '.shadow-2': {
+                    '@apply shadow-[0.125rem_0.125rem_0_#000000] dark:shadow-[0.125rem_0.125rem_0_rgba(255,255,255,.25)]':
+                        {},
+                },
                 '.shadow-4': {
                     '@apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)]':
                         {},

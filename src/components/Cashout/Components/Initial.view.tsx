@@ -9,7 +9,7 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
-import { tokenSelectorContext, loadingStateContext } from '@/context'
+import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -120,6 +120,16 @@ export const InitialCashoutView = ({
             }
             if (!_tokenValue) return
 
+            // check if user has sufficient balance
+            if (parseFloat(_tokenValue) > parseFloat(maxValue || '0')) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Insufficient balance. Please enter a smaller amount.',
+                })
+                setLoadingState('Idle')
+                return
+            }
+
             if (!user) {
                 await fetchUser()
             }
@@ -219,6 +229,13 @@ export const InitialCashoutView = ({
         setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
     }, [])
+
+    // reset error state when token, chain, or amount changes
+    useEffect(() => {
+        if (errorState.showError && errorState.errorMessage.includes('Insufficient balance')) {
+            setErrorState({ showError: false, errorMessage: '' })
+        }
+    }, [_tokenValue, selectedTokenAddress, selectedChainID])
 
     // Update the bank account selection handler
     const handleBankAccountSelect = (accountIdentifier: string) => {
