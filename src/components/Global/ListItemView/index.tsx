@@ -2,7 +2,6 @@
 import Divider from '@/components/0_Bruddle/Divider'
 import Modal from '@/components/Global/Modal'
 import ShareButton from '@/components/Global/ShareButton'
-import { supportedPeanutChains } from '@/constants'
 import { copyTextToClipboardWithFallback, getExplorerUrl } from '@/utils'
 import Image from 'next/image'
 import { useState } from 'react'
@@ -185,13 +184,9 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                             {historyItem?.txHash && (
                                 <div
                                     onClick={() => {
-                                        const chainId =
-                                            supportedPeanutChains.find((chain) => chain.name === historyItem.chainId)
-                                                ?.chainId ?? ''
-
-                                        const explorerUrl = getExplorerUrl(chainId)
+                                        const explorerUrl = getExplorerUrl(historyItem.chainId ?? '')
                                         window.open(
-                                            `${explorerUrl}/tx/${historyItem?.txHash ?? ''}`,
+                                            `${explorerUrl}/tx/${historyItem.txHash ?? ''}`,
                                             '_blank',
                                             'noopener,noreferrer'
                                         )
