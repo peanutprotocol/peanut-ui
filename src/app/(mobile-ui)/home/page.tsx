@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 export default function Home() {
-    const { peanutWalletDetails, getRewardWalletBalance } = useWallet()
+    const { balance, getRewardWalletBalance } = useWallet()
     const [rewardsBalance, setRewardsBalance] = useState<string | undefined>(undefined)
 
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
@@ -81,7 +81,7 @@ export default function Home() {
                     </ActionButtonGroup>
 
                     <WalletBalance
-                        balance={peanutWalletDetails?.balance ?? BigInt(0)}
+                        balance={balance}
                         isBalanceHidden={isBalanceHidden}
                         onToggleBalanceVisibility={handleToggleBalanceVisibility}
                     />
@@ -126,7 +126,7 @@ function WalletBalance({
             )
         }
 
-        return formatExtendedNumber(printableUsdc(balance))
+        return formatExtendedNumber(printableUsdc(balance ?? 0))
     }, [isBalanceHidden, balance])
 
     return (

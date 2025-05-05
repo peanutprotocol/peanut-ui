@@ -14,7 +14,6 @@ import {
     formatAmount,
     checkifImageType,
     formatAmountWithDecimals,
-    formatTokenAmount,
 } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
@@ -35,7 +34,7 @@ export const ConfirmClaimLinkView = ({
     attachment,
     selectedRoute,
 }: _consts.IClaimScreenProps) => {
-    const { address, refetchBalances } = useWallet()
+    const { address, fetchBalance } = useWallet()
     const { claimLinkXchain, claimLink } = useClaimLink()
     const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
@@ -88,7 +87,7 @@ export const ConfirmClaimLinkView = ({
                 })
                 setTransactionHash(claimTxHash)
                 onNext()
-                refetchBalances(address ?? '')
+                fetchBalance()
             } else {
                 throw new Error('Error claiming link')
             }
@@ -122,7 +121,7 @@ export const ConfirmClaimLinkView = ({
 
     return (
         <div>
-            <FlowHeader onPrev={onPrev} disableBackBtn={isLoading} disableWalletHeader />
+            <FlowHeader onPrev={onPrev} disableBackBtn={isLoading} />
             <Card>
                 <Card.Header>
                     <Card.Title className="mx-auto text-center">

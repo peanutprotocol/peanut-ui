@@ -11,6 +11,7 @@ import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountCompon
 import Loading from '@/components/Global/Loading'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as consts from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { tokenSelectorContext, loadingStateContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import {
@@ -31,13 +32,13 @@ import {
 } from '@/utils'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import { getSquidTokenAddress } from '@/utils/token.utils'
-import peanut, { getLatestContractVersion, getLinkDetails } from '@squirrel-labs/peanut-sdk'
+import peanut, { getLatestContractVersion } from '@squirrel-labs/peanut-sdk'
 import { useSteps } from 'chakra-ui-steps'
 import Link from 'next/link'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { parseUnits } from 'viem'
 
 import {
-    CrossChainDetails,
     IOfframpConfirmScreenProps,
     LiquidationAddress,
     OfframpType,
@@ -50,6 +51,10 @@ import { FAQComponent } from '../Cashout/Components/Faq.comp'
 import FlowHeader from '../Global/FlowHeader'
 import PromoCodeChecker from './PromoCodeChecker'
 import * as Sentry from '@sentry/nextjs'
+import { sendLinksApi } from '@/services/sendLinks'
+
+const TOKEN_NAME = getBridgeTokenName(PEANUT_WALLET_CHAIN.id.toString(), PEANUT_WALLET_TOKEN)!
+const CHAIN_NAME = getBridgeChainName(PEANUT_WALLET_CHAIN.id.toString())!
 
 export const OfframpConfirmView = ({
     onNext, // available on all offramps
@@ -95,7 +100,7 @@ export const OfframpConfirmView = ({
     // state and context vars for cashout offramp
     const { selectedChainID, selectedTokenAddress, selectedTokenData } = useContext(tokenSelectorContext)
     const [showRefund, setShowRefund] = useState(false)
-    const { createLinkWrapper } = useCreateLink()
+    const { createLink } = useCreateLink()
     const [createdLink, setCreatedLink] = useState<string | undefined>(undefined)
     const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
     const [isFetchingRoute, setIsFetchingRoute] = useState(false)
@@ -182,40 +187,34 @@ export const OfframpConfirmView = ({
         setErrorState({ showError: false, errorMessage: '' })
 
         try {
-            if (!preparedCreateLinkWrapperResponse) return
+            if (!usdValue) return
 
             // Fetch all necessary details before creating the link
-            const {
-                crossChainDetails,
-                peanutAccount,
-                bridgeCustomerId,
-                bridgeExternalAccountId,
-                allLiquidationAddresses,
-            } = await fetchNecessaryDetails()
+            const { peanutAccount, bridgeCustomerId, bridgeExternalAccountId, allLiquidationAddresses } =
+                await fetchNecessaryDetails()
 
             console.log('peanutAccount', peanutAccount)
-
-            // Process link details and determine if cross-chain transfer is needed
-            // TODO: type safety
-            const { tokenName, chainName, xchainNeeded, liquidationAddress } = await processLinkDetails(
-                preparedCreateLinkWrapperResponse.linkDetails,
-                crossChainDetails as CrossChainDetails[],
-                allLiquidationAddresses,
-                bridgeCustomerId,
-                bridgeExternalAccountId,
-                peanutAccount.account_type
+            let liquidationAddress = allLiquidationAddresses.find(
+                (address) =>
+                    address.chain === CHAIN_NAME &&
+                    address.currency === TOKEN_NAME &&
+                    address.external_account_id === bridgeExternalAccountId
             )
 
-            if (!tokenName || !chainName) {
-                throw new Error('Unable to determine token or chain information')
+            if (!liquidationAddress) {
+                liquidationAddress = await createLiquidationAddress(
+                    bridgeCustomerId,
+                    CHAIN_NAME,
+                    TOKEN_NAME,
+                    bridgeExternalAccountId,
+                    accountType === 'iban' ? 'sepa' : 'ach',
+                    accountType === 'iban' ? 'eur' : 'usd'
+                )
             }
 
-            // get chainId and tokenAddress (default to optimism)
-            const chainId = getChainIdFromBridgeChainName(chainName) ?? ''
-            const tokenAddress = getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
-
             // Now that we have all the necessary information, create the link
-            const link = await createLinkWrapper(preparedCreateLinkWrapperResponse)
+            const amount = parseUnits(usdValue!, PEANUT_WALLET_TOKEN_DECIMALS)
+            const { link } = await createLink(amount)
             setCreatedLink(link)
             console.log(`created claimlink: ${link}`)
 
@@ -230,40 +229,24 @@ export const OfframpConfirmView = ({
             )
             console.log(`Temporarily saved link in localStorage with key: ${tempKey}`)
 
-            const claimLinkData = await getLinkDetails({ link: link })
-
-            const srcChainId = claimLinkData.chainId
-            const destChainId = chainId
-            const isSameChain = srcChainId === destChainId
-            const { sourceTxHash, destinationTxHash } = await claimAndProcessLink(
-                xchainNeeded,
-                liquidationAddress.address,
-                claimLinkData,
-                chainId,
-                tokenAddress,
-                isSameChain
-            )
-
-            console.log(
-                `finalized claimAndProcessLink, sourceTxHash: ${sourceTxHash}, destinationTxHash: ${destinationTxHash}`
-            )
+            const claimedLink = await sendLinksApi.claim(liquidationAddress.address, link)
 
             localStorage.removeItem(tempKey)
             console.log(`Removed temporary link from localStorage: ${tempKey}`)
 
             await saveAndSubmitCashoutLink(
                 claimLinkData,
-                destinationTxHash,
+                claimedLink.claim!.txHash,
                 liquidationAddress,
                 bridgeCustomerId,
                 bridgeExternalAccountId,
-                chainId,
-                tokenName,
+                claimedLink.chainId,
+                TOKEN_NAME,
                 peanutAccount
             )
 
-            setTransactionHash(destinationTxHash)
-            console.log('Transaction hash:', destinationTxHash)
+            setTransactionHash(claimedLink.claim!.txHash)
+            console.log('Transaction hash:', claimedLink.claim!.txHash)
 
             onNext()
         } catch (error) {
@@ -271,52 +254,6 @@ export const OfframpConfirmView = ({
         } finally {
             setLoadingState('Idle')
         }
-    }
-
-    const processLinkDetails = async (
-        claimLinkData: any, // TODO: fix type
-        crossChainDetails: CrossChainDetails[],
-        allLiquidationAddresses: LiquidationAddress[],
-        bridgeCustomerId: string,
-        bridgeExternalAccountId: string,
-        accountType: string
-    ) => {
-        // get token and chain names from claim link data
-        let tokenName = getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
-        let chainName = getBridgeChainName(claimLinkData.chainId)
-        let xchainNeeded = false
-
-        // if token and chain names are not available, set up cross-chain transfer to optimism usdc
-        if (!tokenName || !chainName) {
-            xchainNeeded = true
-            const result = await handleCrossChainScenario(claimLinkData)
-            if (!result) {
-                throw new Error('Failed to setup cross-chain transfer')
-            }
-            tokenName = result.tokenName
-            chainName = result.chainName
-        }
-
-        // find or create a liquidation address for the user
-        let liquidationAddress = allLiquidationAddresses.find(
-            (address) =>
-                address.chain === chainName &&
-                address.currency === tokenName &&
-                address.external_account_id === bridgeExternalAccountId
-        )
-
-        if (!liquidationAddress) {
-            liquidationAddress = await createLiquidationAddress(
-                bridgeCustomerId,
-                chainName as string,
-                tokenName as string,
-                bridgeExternalAccountId,
-                accountType === 'iban' ? 'sepa' : 'ach',
-                accountType === 'iban' ? 'eur' : 'usd'
-            )
-        }
-
-        return { tokenName, chainName, xchainNeeded, liquidationAddress }
     }
 
     const getRouteDetails = async () => {
@@ -364,144 +301,6 @@ export const OfframpConfirmView = ({
             max: Number(slippage),
         }
     }, [slippagePercentage, tokenPrice, tokenValue])
-
-    // TODO: fix type
-    const handleCrossChainScenario = async (
-        linkDetails: any
-    ): Promise<{ tokenName: string | undefined; chainName: string | undefined } | false> => {
-        try {
-            const route = await fetchRouteRaw(
-                linkDetails.tokenAddress,
-                linkDetails.chainId,
-                usdcAddressOptimism,
-                optimismChainId,
-                linkDetails.tokenDecimals,
-                linkDetails.tokenAmount,
-                linkDetails.senderAddress
-            )
-
-            if (!route) {
-                console.error('No route found for token:', {
-                    fromToken: linkDetails.tokenAddress,
-                    fromChain: linkDetails.chainId,
-                    toToken: usdcAddressOptimism,
-                    toChain: optimismChainId,
-                })
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'This token does not support cross-chain transfers. Please try a different token.',
-                })
-                return false
-            }
-
-            return {
-                tokenName: getBridgeTokenName(optimismChainId, usdcAddressOptimism),
-                chainName: getBridgeChainName(optimismChainId),
-            }
-        } catch (error) {
-            console.error('Error in cross-chain scenario:', error)
-            let errorMessage = 'Failed to setup cross-chain transfer'
-
-            // Check for specific error messages
-            if (error instanceof Error) {
-                const errorBody = error.message.includes('{"message":') ? JSON.parse(error.message) : null
-
-                if (errorBody?.message === 'Unable to fetch token data') {
-                    errorMessage =
-                        'This token is not supported for cross-chain transfers. Please try a different token.'
-                } else if (errorBody?.message) {
-                    errorMessage = errorBody.message
-                }
-            }
-
-            setErrorState({
-                showError: true,
-                errorMessage,
-            })
-            Sentry.captureException(error)
-            return false
-        }
-    }
-
-    const claimAndProcessLink = async (
-        xchainNeeded: boolean,
-        address: string,
-        claimLinkData: any, // TODO: fix type
-        chainId: string,
-        tokenAddress: string,
-        isSameChain?: boolean // e.g. for opt ETH -> opt USDC
-    ): Promise<{ sourceTxHash: string; destinationTxHash: string }> => {
-        if (xchainNeeded) {
-            // In a cross-chain scenario, the src tx hash is different than the dest tx hash. It takes a while for us
-            // to fetch it, since the destination chain tx is not available immediately. We query squid in intervals until we get it or we bail.
-            // exception is a same chain swap, where the tx is atomic and available immediately
-            const sourceTxHash = await claimLinkXchain({
-                address,
-                link: claimLinkData.link,
-                destinationChainId: chainId,
-                destinationToken: tokenAddress,
-            })
-
-            if (isSameChain) {
-                return {
-                    sourceTxHash,
-                    destinationTxHash: sourceTxHash,
-                }
-            }
-
-            // @dev this code has been removed, we go straight to success screen. Cross-chain status is checked in backend
-            // todo: revist, not a good idea to wait for the tx to be available, look for better soln
-            // const maxAttempts = 15
-            // let attempts = 0
-
-            // while (attempts < maxAttempts) {
-            // try {
-            //     const status = await checkTransactionStatus(sourceTxHash)
-            //     if (status.squidTransactionStatus === 'success') {
-            //         return {
-            //             sourceTxHash,
-            //             destinationTxHash: status.toChain.transactionId,
-            //         }
-            //     }
-            // } catch (error) {
-            //     console.warn('Error checking transaction status:', error)
-            // }
-
-            // attempts++
-            // if (attempts < maxAttempts) {
-            //     await new Promise((resolve) => setTimeout(resolve, 2000))
-            // }
-            // }
-
-            // console.warn('Transaction status check timed out. Using sourceTxHash as destinationTxHash.')
-
-            //
-            // try {
-            //     const status = await checkTransactionStatus(sourceTxHash)
-            //     if (status.squidTransactionStatus === 'success') {
-            //         return {
-            //             sourceTxHash,
-            //             destinationTxHash: status.toChain.transactionId,
-            //         }
-            //     }
-            // } catch (error) {
-            //     console.warn('Error checking transaction status:', error)
-            // }
-
-            // fallback: use source hash if status check fails or transaction not yet successful
-            return {
-                sourceTxHash,
-                destinationTxHash: sourceTxHash,
-            }
-        } else {
-            // same chain and same token scenario
-            const sourceTxHash = await claimLink({
-                address,
-                link: claimLinkData.link,
-            })
-            return { sourceTxHash, destinationTxHash: sourceTxHash }
-        }
-    }
 
     const saveAndSubmitCashoutLink = async (
         claimLinkData: any,
@@ -826,7 +625,6 @@ export const OfframpConfirmView = ({
                     fetchUser()
                 }}
                 disableBackBtn={isLoading}
-                disableWalletHeader
             />
 
             <Card className="shadow-none sm:shadow-primary-4">

@@ -1,402 +1,76 @@
 'use client'
 
-import { PeanutArmHoldingBeer } from '@/assets'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
-    PEANUT_WALLET_TOKEN_DECIMALS,
     peanutPublicClient,
     PINTA_WALLET_TOKEN,
     PINTA_WALLET_TOKEN_DECIMALS,
     pintaPublicClient,
 } from '@/constants'
-import { useAuth } from '@/context/authContext'
-import {
-    AccountType,
-    IDBWallet,
-    IUserBalance,
-    IUserProfile,
-    IWallet,
-    WalletProtocolType,
-    WalletProviderType,
-} from '@/interfaces'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { areEvmAddressesEqual, backgroundColorFromAddress, fetchWalletBalances, formatAmount } from '@/utils'
-import * as Sentry from '@sentry/nextjs'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo } from 'react'
-import { erc20Abi, formatUnits, getAddress, parseUnits } from 'viem'
-import { useAccount } from 'wagmi'
+import { formatAmount } from '@/utils'
+import { useCallback, useEffect } from 'react'
+import { erc20Abi, formatUnits, getAddress } from 'viem'
+import type { Hex } from 'viem'
 import { useZeroDev } from '../useZeroDev'
-
-// utility functions
-const isPeanut = (wallet?: IDBWallet): boolean => wallet?.walletProviderType === WalletProviderType.PEANUT
-
-const isExternalWallet = (wallet?: IDBWallet): boolean => wallet?.walletProviderType === WalletProviderType.BYOW
-
-const isSmartAccount = (wallet?: IDBWallet): boolean =>
-    wallet?.walletProviderType === WalletProviderType.PEANUT ||
-    wallet?.walletProviderType === WalletProviderType.REWARDS
-
-const idForWallet = (wallet: Pick<IDBWallet, 'walletProviderType' | 'address'>) =>
-    `${wallet.walletProviderType}-${wallet.address}`
-
-export const byTypeAndConnectionStatus = (a: IWallet, b: IWallet) => {
-    if (a.walletProviderType === WalletProviderType.PEANUT) {
-        return -1
-    } else if (b.walletProviderType === WalletProviderType.PEANUT) {
-        return 1
-    }
-    if (a.connected && !b.connected) {
-        return -1
-    } else if (!a.connected && b.connected) {
-        return 1
-    }
-    return 0
-}
-
-const createDefaultDBWallet = (
-    address: string,
-    walletProviderType: WalletProviderType,
-    protocolType: WalletProtocolType,
-    connector: { iconUrl: string; name: string }
-): IDBWallet => ({
-    walletProviderType,
-    protocolType,
-    address,
-    connector: {
-        iconUrl: connector.iconUrl,
-        name: connector.name,
-    },
-})
-
-const REWARD_WALLETS: Omit<IWallet, 'address'>[] = [
-    {
-        walletProviderType: WalletProviderType.REWARDS,
-        protocolType: WalletProtocolType.EVM,
-        connector: {
-            iconUrl: PeanutArmHoldingBeer,
-            name: 'Beer Wallet',
-        },
-        balance: BigInt(0),
-        connected: true,
-        balances: [],
-        id: 'pinta-wallet',
-    },
-]
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export const useWallet = () => {
     const dispatch = useAppDispatch()
-    const { user } = useAuth()
-    const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
-    const {
-        addresses: wagmiAddress,
-        connector,
-        isConnected: isWagmiConnected,
-        address: externalWalletAddress,
-        chain: wagmiChain,
-    } = useAccount()
+    const { address, isKernelClientReady, handleSendUserOpEncoded } = useZeroDev()
+    const { balance } = useWalletStore()
 
-    const { selectedWalletId, wallets, signInModalVisible, walletColor, isFetchingWallets } = useWalletStore()
-
-    const getUserAccount = useCallback(
-        (user: IUserProfile, address: string) =>
-            user?.accounts.find((acc: any) => acc.account_identifier.toLowerCase() === address.toLowerCase()),
-        [user]
-    )
-
-    const isWalletConnected = useCallback(
-        (wallet: IDBWallet): boolean => {
-            if (!wallet) return false
-
-            // check for rewards wallet first
-            if (wallet.walletProviderType === WalletProviderType.REWARDS) {
-                return true // always connected
-            }
-
-            // check for Peanut wallet
-            if (wallet.walletProviderType === WalletProviderType.PEANUT && kernelClientAddress) {
-                return isKernelClientReady && areEvmAddressesEqual(kernelClientAddress, wallet.address)
-            }
-
-            // check for external wallets
-            if (wagmiAddress && wallet.walletProviderType === WalletProviderType.BYOW) {
-                return isWagmiConnected && wagmiAddress.some((addr) => areEvmAddressesEqual(addr, wallet.address))
-            }
-
-            return false
+    const sendTransactions = useCallback(
+        async (unsignedTxs: peanutInterfaces.IPeanutUnsignedTransaction[], chainId?: string) => {
+            const params = unsignedTxs.map((tx: peanutInterfaces.IPeanutUnsignedTransaction) => ({
+                to: tx.to! as Hex,
+                value: tx.value?.valueOf(),
+                data: tx.data as Hex | undefined,
+            }))
+            chainId = chainId ?? PEANUT_WALLET_CHAIN.id.toString()
+            let receipt = await handleSendUserOpEncoded(params, chainId)
+            return receipt
         },
-        [isKernelClientReady, kernelClientAddress, isWagmiConnected, wagmiAddress]
+        [handleSendUserOpEncoded]
     )
 
-    const fetchWalletDetails = useCallback(
-        async (address: string, walletProviderType: WalletProviderType): Promise<IWallet> => {
-            // get connector details from user accounts
-            const userAccount = user ? getUserAccount(user, address) : null
-
-            const dbWallet: IDBWallet = createDefaultDBWallet(
-                address,
-                walletProviderType,
-                WalletProtocolType.EVM,
-                userAccount?.connector || {
-                    iconUrl: connector?.icon || '',
-                    name: connector?.name || 'External Wallet',
-                }
-            )
-
-            let balance = BigInt(0)
-            let balances: IUserBalance[] | undefined
-
-            if (isPeanut(dbWallet)) {
-                balance = await peanutPublicClient.readContract({
-                    address: PEANUT_WALLET_TOKEN,
-                    abi: erc20Abi,
-                    functionName: 'balanceOf',
-                    args: [getAddress(address)],
-                })
-            } else {
-                // check if balance is in redux store
-                const existingWallet = wallets.find((w) => w.address.toLowerCase() === address.toLowerCase())
-                if (existingWallet?.balances) {
-                    // use existing balance from store
-                    balances = existingWallet.balances
-                    balance = existingWallet.balance
-                } else {
-                    // only fetch if balance is not in store
-                    const { balances: fetchedBalances, totalBalance } = await fetchWalletBalances(address)
-                    balances = fetchedBalances
-                    balance = parseUnits(totalBalance.toString(), PEANUT_WALLET_TOKEN_DECIMALS)
-                }
-            }
-
-            return {
-                ...dbWallet,
-                balance,
-                balances,
-                connected: isWalletConnected(dbWallet as IWallet),
-                id: idForWallet(dbWallet),
-            }
-        },
-        [connector, isWalletConnected, user?.accounts, wallets]
-    )
-
-    const mergeAndProcessWallets = useCallback(async () => {
-        dispatch(walletActions.setIsFetchingWallets(true))
-        const userAccounts = user?.accounts || []
-        const wagmiAddressesList = wagmiAddress || []
-
-        // process user accounts
-        const processedAccounts = await Promise.all(
-            userAccounts
-                .filter((account) =>
-                    Object.values(WalletProviderType).includes(account.account_type as unknown as WalletProviderType)
-                )
-                .sort((a, b) => {
-                    if (AccountType.PEANUT_WALLET === a.account_type) {
-                        return -1
-                    } else if (AccountType.PEANUT_WALLET === b.account_type) {
-                        return 1
-                    }
-                    const dateA = new Date(a.created_at)
-                    const dateB = new Date(b.created_at)
-                    return dateA.getTime() - dateB.getTime()
-                })
-                .map((account) =>
-                    fetchWalletDetails(
-                        account.account_identifier,
-                        account.account_type as unknown as WalletProviderType
-                    )
-                )
-        )
-        const processedExternalWallets = await Promise.all(
-            wagmiAddressesList
-                .filter((address) => {
-                    return !processedAccounts.some((w) => areEvmAddressesEqual(w.address, address))
-                })
-                .map((address) => fetchWalletDetails(address, WalletProviderType.BYOW))
-        )
-
-        const mergedWallets: IWallet[] = [...processedAccounts, ...processedExternalWallets]
-
-        const peanutWallet = mergedWallets.find((w) => w.walletProviderType === WalletProviderType.PEANUT)
-        if (peanutWallet) {
-            mergedWallets.push(...REWARD_WALLETS.map((w) => ({ ...w, address: peanutWallet.address })))
-        }
-
-        mergedWallets.sort(byTypeAndConnectionStatus)
-        dispatch(walletActions.setWallets(mergedWallets))
-        dispatch(walletActions.setIsFetchingWallets(false))
-        return mergedWallets
-    }, [fetchWalletDetails, wagmiAddress, user, user?.accounts])
-
-    const { isLoading: isWalletsQueryLoading } = useQuery({
-        queryKey: ['wallets', user, user?.accounts, wagmiAddress],
-        queryFn: mergeAndProcessWallets,
-        enabled: !!wagmiAddress || !!user,
-        staleTime: 60 * 1000, // 60 seconds
-        gcTime: 5 * 60 * 1000, // 5 minutes
-        placeholderData: keepPreviousData,
-    })
-
-    useEffect(() => {
-        if (isWalletsQueryLoading && !wallets.length) {
-            dispatch(walletActions.setIsFetchingWallets(true))
-        } else if (!isWalletsQueryLoading) {
-            dispatch(walletActions.setIsFetchingWallets(false))
-        }
-    }, [isWalletsQueryLoading, wallets.length])
-
-    const selectedWallet = useMemo(() => {
-        if (!selectedWalletId || !wallets.length) return undefined
-        const wallet = wallets.find((w) => w.id === selectedWalletId)
-        if (!wallet) {
-            dispatch(walletActions.setSelectedWalletId(undefined))
-            return undefined
-        }
-        return { ...wallet, connected: isWalletConnected(wallet) }
-    }, [selectedWalletId, wallets, isWalletConnected])
-
-    useEffect(() => {
-        const connectedExternalWallet = wallets.find(
-            (wallet) => wallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(wallet)
-        )
-
-        const isValidSelection =
-            selectedWallet &&
-            ((selectedWallet.id.startsWith('peanut-wallet') &&
-                selectedWallet.walletProviderType === WalletProviderType.PEANUT) ||
-                (selectedWallet.id === 'pinta-wallet' &&
-                    selectedWallet.walletProviderType === WalletProviderType.REWARDS) ||
-                (selectedWallet.walletProviderType === WalletProviderType.BYOW && isWalletConnected(selectedWallet)))
-
-        if (!selectedWallet || !isValidSelection) {
-            if (connectedExternalWallet) {
-                dispatch(walletActions.setSelectedWalletId(connectedExternalWallet.id))
-            } else {
-                const peanutWallet = wallets.find(
-                    (wallet) =>
-                        wallet.id.startsWith('peanut-wallet') && wallet.walletProviderType === WalletProviderType.PEANUT
-                )
-                if (peanutWallet) {
-                    dispatch(walletActions.setSelectedWalletId(peanutWallet.id))
-                }
-            }
-        }
-    }, [wallets, isWalletConnected, selectedWallet])
-
-    useEffect(() => {
-        if (selectedWallet?.address) {
-            dispatch(walletActions.setWalletColor(backgroundColorFromAddress(selectedWallet.address)))
-        }
-    }, [selectedWallet])
-
-    const refetchBalances = useCallback(
-        async (address: string) => {
-            const wallet = wallets.find((w) => w.address === address)
-            if (!wallet) return
-
-            try {
-                if (isPeanut(wallet)) {
-                    const balance = await peanutPublicClient.readContract({
-                        address: PEANUT_WALLET_TOKEN,
-                        abi: erc20Abi,
-                        functionName: 'balanceOf',
-                        args: [getAddress(address)],
-                    })
-                    dispatch(walletActions.updateWalletBalance({ address, balance }))
-                } else {
-                    const { balances, totalBalance } = await fetchWalletBalances(address)
-                    dispatch(
-                        walletActions.updateWalletBalance({
-                            address,
-                            balances,
-                            balance: parseUnits(totalBalance.toString(), PEANUT_WALLET_TOKEN_DECIMALS),
-                        })
-                    )
-                }
-            } catch (error) {
-                Sentry.captureException(error)
-                console.error('Error refetching balance:', error)
-            }
-        },
-        [wallets]
-    )
-
-    const selectExternalWallet = useCallback(() => {
-        if (wagmiAddress?.length) {
-            dispatch(
-                walletActions.setSelectedWalletId(
-                    idForWallet({ address: wagmiAddress[0], walletProviderType: WalletProviderType.BYOW })
-                )
-            )
-        }
-    }, [wagmiAddress])
-
-    const selectPeanutWallet = useCallback(() => {
-        if (kernelClientAddress) {
-            dispatch(
-                walletActions.setSelectedWalletId(
-                    idForWallet({ address: kernelClientAddress, walletProviderType: WalletProviderType.PEANUT })
-                )
-            )
-        }
-    }, [kernelClientAddress])
-
-    const getRewardWalletBalance = async () => {
-        const address = wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.REWARDS)?.address
-
+    const fetchBalance = useCallback(async () => {
         if (!address) return
+        const balance = await peanutPublicClient.readContract({
+            address: PEANUT_WALLET_TOKEN,
+            abi: erc20Abi,
+            functionName: 'balanceOf',
+            args: [address as Hex],
+        })
+        dispatch(walletActions.setBalance(balance))
+    }, [address])
 
+    const getRewardWalletBalance = useCallback(async () => {
+        if (!address) return ''
         const balance = await pintaPublicClient.readContract({
             address: PINTA_WALLET_TOKEN,
             abi: erc20Abi,
             functionName: 'balanceOf',
             args: [getAddress(address)],
         })
-
-        return formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
-    }
-
-    const peanutWalletDetails = useMemo(() => {
-        if (!wallets.length) return undefined
-        return wallets.find((wallet) => wallet.walletProviderType === WalletProviderType.PEANUT)
-    }, [wallets])
+        const formatedBalance = formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
+        dispatch(walletActions.setRewardWalletBalance(formatedBalance))
+    }, [address])
 
     useEffect(() => {
-        const fetchRewardsWalletBalance = async () => {
-            const balance = await getRewardWalletBalance()
-            dispatch(walletActions.setRewardWalletBalance(balance))
-        }
-        fetchRewardsWalletBalance()
-    }, [])
+        if (!address) return
+        fetchBalance()
+        getRewardWalletBalance()
+    }, [address, fetchBalance, getRewardWalletBalance])
 
     return {
-        wallets,
-        selectedWallet,
-        setSelectedWallet: (wallet: IWallet) => {
-            dispatch(walletActions.setSelectedWalletId(wallet.id))
-        },
-        address: selectedWallet?.address || externalWalletAddress,
-        chain: isPeanut(selectedWallet) ? PEANUT_WALLET_CHAIN : wagmiChain,
-        isConnected: !!selectedWallet?.connected || !!isWagmiConnected,
-        signInModal: {
-            visible: signInModalVisible,
-            open: () => dispatch(walletActions.setSignInModalVisible(true)),
-            close: () => dispatch(walletActions.setSignInModalVisible(false)),
-        },
-        walletColor,
-        refetchBalances,
-        isPeanutWallet: isPeanut(selectedWallet),
-        isExternalWallet: isExternalWallet(selectedWallet),
-        isSmartAccount: isSmartAccount(selectedWallet),
-        selectExternalWallet,
-        selectPeanutWallet,
-        isWalletConnected,
-        isFetchingWallets: isFetchingWallets || isWalletsQueryLoading,
-        byTypeAndConnectionStatus,
+        address: address!,
+        balance: BigInt(balance),
+        isConnected: isKernelClientReady,
+        sendTransactions,
         getRewardWalletBalance,
-        refetchSelectedWalletBalance: () => selectedWallet && refetchBalances(selectedWallet.address),
-        peanutWalletDetails,
+        fetchBalance,
     }
 }

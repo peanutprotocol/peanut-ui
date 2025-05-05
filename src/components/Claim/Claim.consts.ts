@@ -1,8 +1,8 @@
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
-import { IOfframpConfirmScreenProps, IOfframpSuccessScreenProps } from '../Offramp/Offramp.consts'
-export type ClaimType = 'claim' | 'claimxchain'
+import { IOfframpSuccessScreenProps, IOfframpConfirmScreenProps } from '../Offramp/Offramp.consts'
 import { ClaimLinkData } from '@/services/sendLinks'
+export type ClaimType = 'claim' | 'claimxchain'
 
 export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
 

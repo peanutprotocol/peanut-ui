@@ -138,11 +138,7 @@ const InfoMessage = ({ children }: { children: ReactNode }) => (
 const UsingExchange = () => {
     const [userAcknowledged, setUserAcknowledged] = useState(false)
     const [showWarning, setShowWarning] = useState(false)
-    const { peanutWalletDetails } = useWallet()
-
-    const peanutWalletAddress = useMemo(() => {
-        return peanutWalletDetails?.address ?? ''
-    }, [peanutWalletDetails])
+    const { address } = useWallet()
 
     const handleDisabledCopy = () => {
         if (!userAcknowledged) {
@@ -162,12 +158,12 @@ const UsingExchange = () => {
                     !userAcknowledged && 'blur-md'
                 )}
             >
-                <QRCodeWrapper url={peanutWalletAddress} />
+                <QRCodeWrapper url={address} />
             </div>
 
             {/* Copy Address Field */}
             <CopyField
-                text={peanutWalletAddress}
+                text={address}
                 shadowSize="4"
                 disabled={!userAcknowledged}
                 onDisabledClick={handleDisabledCopy}

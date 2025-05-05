@@ -6,13 +6,13 @@ import {
     PINTA_WALLET_TOKEN_DECIMALS,
     PINTA_WALLET_TOKEN_NAME,
     PINTA_WALLET_TOKEN_SYMBOL,
+    PEANUT_WALLET_SUPPORTED_TOKENS,
     STABLE_COINS,
 } from '@/constants'
 import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import chroma from 'chroma-js'
 import { SiweMessage } from 'siwe'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress } from 'viem'
@@ -37,19 +37,6 @@ export const colorMap = {
     pink: '#FF90E7',
     green: '#98E9AB',
     yellow: '#FFC900',
-}
-
-export const backgroundColorFromAddress = (address: string): string => {
-    // Hash the Ethereum address to a number
-    const hash = Array.from(address).reduce((acc, char) => acc + char.charCodeAt(0), 0)
-
-    const choices = Object.values(colorMap)
-
-    // Generate color with a lightness range to avoid dark colors
-    const colorScale = chroma.scale(choices).mode('lab').domain([0, 255])
-
-    // Get color from scale
-    return colorScale(hash % 255).hex()
 }
 
 export const shortenAddress = (address?: string) => {
@@ -1122,4 +1109,10 @@ export const getInitialsFromName = (name: string): string => {
     } else {
         return nameParts[0].charAt(0).toUpperCase() + nameParts[1].charAt(0).toUpperCase()
     }
+}
+
+export function isPeanutWalletToken(tokenAddress: string, chainId: string): boolean {
+    const supportedTokens: string[] | undefined = PEANUT_WALLET_SUPPORTED_TOKENS[chainId]
+    if (!supportedTokens) return false
+    return supportedTokens.some((t) => areEvmAddressesEqual(t, tokenAddress))
 }

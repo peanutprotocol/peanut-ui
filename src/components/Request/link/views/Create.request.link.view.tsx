@@ -1,7 +1,6 @@
 'use client'
 import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { getTokenDetails } from '@/components/Create/Create.utils'
 import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
@@ -13,18 +12,19 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { IToken, IUserBalance } from '@/interfaces'
+import { IToken } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { fetchTokenSymbol, fetchWithSentry, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { fetchTokenDetails } from '@/app/actions/tokens'
 
 export const CreateRequestLinkView = () => {
     const toast = useToast()
     const router = useRouter()
-    const { address, selectedWallet, isConnected, peanutWalletDetails } = useWallet()
+    const { address, isConnected, balance } = useWallet()
     const { user } = useAuth()
     const {
         selectedTokenPrice,
@@ -38,9 +38,8 @@ export const CreateRequestLinkView = () => {
     const { setLoadingState } = useContext(context.loadingStateContext)
 
     const peanutWalletBalance = useMemo(() => {
-        if (!peanutWalletDetails?.balance) return undefined
-        return printableUsdc(peanutWalletDetails.balance)
-    }, [peanutWalletDetails?.balance])
+        return printableUsdc(balance)
+    }, [balance])
 
     // component-specific states
     const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
@@ -86,7 +85,6 @@ export const CreateRequestLinkView = () => {
             recipientAddress,
             tokenAddress,
             chainId,
-            userBalances,
             tokenValue,
             tokenData,
             attachmentOptions,
@@ -94,7 +92,6 @@ export const CreateRequestLinkView = () => {
             recipientAddress: string | undefined
             tokenAddress: string
             chainId: string
-            userBalances: IUserBalance[]
             tokenValue: string | undefined
             tokenData: Pick<IToken, 'chainId' | 'address' | 'decimals' | 'symbol'> | undefined
             attachmentOptions: IFileUploadInputProps['attachmentOptions']
@@ -118,12 +115,12 @@ export const CreateRequestLinkView = () => {
             setLoadingState('Creating link')
 
             if (!tokenData) {
-                const tokenDetails = getTokenDetails(tokenAddress, chainId, userBalances)
+                const tokenDetails = await fetchTokenDetails(tokenAddress, chainId)
                 tokenData = {
                     address: tokenAddress,
                     chainId,
                     symbol: (await fetchTokenSymbol(tokenAddress, chainId)) ?? '',
-                    decimals: tokenDetails.tokenDecimals,
+                    decimals: tokenDetails.decimals,
                 }
             }
             try {
@@ -298,7 +295,6 @@ export const CreateRequestLinkView = () => {
                     recipientAddress,
                     tokenAddress: selectedTokenAddress,
                     chainId: selectedChainID,
-                    userBalances: selectedWallet?.balances ?? [],
                     tokenValue,
                     tokenData: selectedTokenData,
                     attachmentOptions: debouncedAttachmentOptions,
@@ -337,7 +333,6 @@ export const CreateRequestLinkView = () => {
                                 recipientAddress,
                                 tokenAddress: selectedTokenAddress,
                                 chainId: selectedChainID,
-                                userBalances: selectedWallet?.balances ?? [],
                                 tokenValue,
                                 tokenData: selectedTokenData,
                                 attachmentOptions,

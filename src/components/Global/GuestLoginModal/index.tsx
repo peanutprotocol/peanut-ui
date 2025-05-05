@@ -2,31 +2,31 @@ import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import Modal from '@/components/Global/Modal'
 import { useZeroDev } from '@/hooks/useZeroDev'
-import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppKit } from '@reown/appkit/react'
 import Link from 'next/link'
+import { useAppDispatch, useWalletStore } from '@/redux/hooks'
+import { walletActions } from '@/redux/slices/wallet-slice'
 
 const GuestLoginModal = () => {
-    const { signInModal, selectExternalWallet } = useWallet()
+    const dispatch = useAppDispatch()
+    const { signInModalVisible } = useWalletStore()
     const web3Modal = useAppKit()
     const { handleLogin, isLoggingIn } = useZeroDev()
     const toast = useToast()
 
+    const closeModal = () => {
+        dispatch(walletActions.setSignInModalVisible(false))
+    }
+
     return (
-        <Modal
-            visible={signInModal.visible}
-            onClose={() => {
-                signInModal.close()
-            }}
-            title={'Sign in with your Peanut Wallet'}
-        >
+        <Modal visible={signInModalVisible} onClose={closeModal} title={'Sign in with your Peanut Wallet'}>
             <div className="flex flex-col items-center gap-2 p-5">
                 <Button
                     loading={isLoggingIn}
                     disabled={isLoggingIn}
                     onClick={() => {
                         handleLogin()
-                            .then(signInModal.close)
+                            .then(closeModal)
                             .catch((e) => {
                                 console.error(e)
                                 toast.error('Error logging in')
@@ -35,7 +35,7 @@ const GuestLoginModal = () => {
                 >
                     Sign In
                 </Button>
-                <Link href={'/setup'} className="text-h8 underline" onClick={signInModal.close}>
+                <Link href={'/setup'} className="text-h8 underline" onClick={closeModal}>
                     Don't have a Peanut wallet? Get one now.
                 </Link>
                 <div className="my-2 flex w-full items-center gap-4">
@@ -50,12 +50,11 @@ const GuestLoginModal = () => {
                     onClick={() => {
                         web3Modal
                             .open()
-                            .then(selectExternalWallet)
                             .catch((e) => {
                                 console.error(e)
                                 toast.error('Error connecting wallet')
                             })
-                            .finally(signInModal.close)
+                            .finally(closeModal)
                     }}
                 >
                     Connect External Wallet

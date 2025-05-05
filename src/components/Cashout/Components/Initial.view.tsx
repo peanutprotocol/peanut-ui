@@ -3,11 +3,9 @@
 import * as assets from '@/assets'
 import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { useCreateLink } from '@/components/Create/useCreateLink'
 import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
@@ -15,7 +13,7 @@ import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { balanceByToken, fetchWithSentry, formatAmount, formatIban, printableUsdc, validateBankAccount } from '@/utils'
+import { fetchWithSentry, formatIban, printableUsdc, validateBankAccount } from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
@@ -31,7 +29,6 @@ export const InitialCashoutView = ({
     usdValue,
     setUsdValue,
     setTokenValue,
-    setPreparedCreateLinkWrapperResponse,
     setInitialKYCStep,
     setOfframpForm,
     crossChainDetails,
@@ -79,9 +76,7 @@ export const InitialCashoutView = ({
     const { handleLogin } = useZeroDev()
     const toast = useToast()
 
-    const { prepareCreateLinkWrapper, estimateGasFee } = useCreateLink()
-
-    const { isConnected, signInModal, selectedWallet, isExternalWallet, isPeanutWallet } = useWallet()
+    const { isConnected, balance } = useWallet()
     const { open: appkitModal } = useAppKit()
 
     const isBelowMinLimit = useMemo(() => {
@@ -95,15 +90,6 @@ export const InitialCashoutView = ({
         const numericValue = parseFloat(usdValue)
         return !isNaN(numericValue) && numericValue > MAX_CASHOUT_LIMIT
     }, [usdValue])
-
-    const maxValue = useMemo(() => {
-        if (!selectedWallet?.balances) {
-            return selectedWallet?.balance ? printableUsdc(selectedWallet.balance) : ''
-        }
-        const balance = balanceByToken(selectedWallet.balances, selectedChainID, selectedTokenAddress)
-        if (!balance) return ''
-        return formatAmount(balance.amount)
-    }, [selectedChainID, selectedTokenAddress, selectedWallet?.balances, selectedWallet?.balance])
 
     const isDisabled = useMemo(() => {
         return (
@@ -147,30 +133,6 @@ export const InitialCashoutView = ({
             if (!user) {
                 await fetchUser()
             }
-
-            const preparedCreateLinkWrapperResponse = await prepareCreateLinkWrapper({
-                tokenValue: tokenValue ?? '',
-            })
-
-            // calculate and set estimated gas cost using estimateGasFee
-            if (
-                preparedCreateLinkWrapperResponse?.response &&
-                'unsignedTxs' in preparedCreateLinkWrapperResponse.response &&
-                preparedCreateLinkWrapperResponse.response.unsignedTxs[0]
-            ) {
-                try {
-                    const { transactionCostUSD } = await estimateGasFee({
-                        chainId: selectedChainID,
-                        preparedTx: preparedCreateLinkWrapperResponse.response.unsignedTxs[0],
-                    })
-                    setEstimatedGasCost?.(transactionCostUSD.toFixed(2))
-                } catch (error) {
-                    console.error('Failed to estimate gas fee:', error)
-                    setEstimatedGasCost?.('0')
-                }
-            }
-
-            setPreparedCreateLinkWrapperResponse(preparedCreateLinkWrapperResponse)
 
             if (!user) {
                 const userIdResponse = await fetchWithSentry('/api/peanut/user/get-user-id', {
@@ -242,6 +204,10 @@ export const InitialCashoutView = ({
         }
     }
 
+    const maxValue = useMemo(() => {
+        return printableUsdc(balance)
+    }, [balance])
+
     useEffect(() => {
         if (!_tokenValue) return
         if (inputDenomination === 'TOKEN') {
@@ -257,12 +223,12 @@ export const InitialCashoutView = ({
         }
     }, [_tokenValue, inputDenomination])
 
+    // TODO: is this needed? after removing external wallets and token selector
+    // rework
     useEffect(() => {
-        if (isPeanutWallet) {
-            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-        }
-    }, [isPeanutWallet])
+        setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+        setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+    }, [])
 
     // reset error state when token, chain, or amount changes
     useEffect(() => {
@@ -324,22 +290,6 @@ export const InitialCashoutView = ({
                             <Icon name="warning" className="-mt-0.5 mr-1" />
                             Minimum amount is ${MIN_CASHOUT_LIMIT}
                         </div>
-                    )}
-
-                    {isExternalWallet && (
-                        <>
-                            <TokenSelector />
-                            {selectedWallet!.balances!.length === 0 && (
-                                <div
-                                    onClick={() => {
-                                        appkitModal()
-                                    }}
-                                    className="cursor-pointer text-h9 underline"
-                                >
-                                    ( Buy Tokens )
-                                </div>
-                            )}
-                        </>
                     )}
                     <div className="flex w-full flex-col justify-center gap-4">
                         {!!user &&
@@ -452,22 +402,18 @@ export const InitialCashoutView = ({
                     <Button
                         onClick={() => {
                             if (!isConnected) {
-                                if (isPeanutWallet) {
-                                    setLoadingState('Logging in')
-                                    handleLogin()
-                                        .then(() => {
-                                            handleOnNext()
-                                        })
-                                        .catch((error) => {
-                                            Sentry.captureException(error)
-                                            toast.error('Error logging in')
-                                        })
-                                        .finally(() => {
-                                            setLoadingState('Idle')
-                                        })
-                                } else {
-                                    appkitModal()
-                                }
+                                setLoadingState('Logging in')
+                                handleLogin()
+                                    .then(() => {
+                                        handleOnNext()
+                                    })
+                                    .catch((error) => {
+                                        Sentry.captureException(error)
+                                        toast.error('Error logging in')
+                                    })
+                                    .finally(() => {
+                                        setLoadingState('Idle')
+                                    })
                             } else {
                                 handleOnNext()
                             }
@@ -476,7 +422,7 @@ export const InitialCashoutView = ({
                         // Only allow the user to proceed if they are connected and the form is valid
                         disabled={(isConnected && isDisabled) || isLoading}
                     >
-                        {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Proceed'}
+                        {isLoading ? loadingState : 'Proceed'}
                     </Button>
                     {errorState.showError && (
                         <div className="text-start">

@@ -139,6 +139,13 @@ export const sendLinksApi = {
         return data
     },
 
+    /**
+     * Claim a send link
+     *
+     * @param recipient - The recipient's address or username
+     * @param link - The link to claim
+     * @returns The claim link data
+     */
     claim: async (recipient: string, link: string): Promise<SendLink> => {
         const params = getParamsFromLink(link)
         const pubKey = generateKeysFromString(params.password).address

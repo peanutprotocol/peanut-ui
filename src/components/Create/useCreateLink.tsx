@@ -1,18 +1,8 @@
 'use client'
 import { getLinkFromTx } from '@/app/actions/claimLinks'
 import { fetchTokenPrice } from '@/app/actions/tokens'
-import { PEANUT_API_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
-import { useWalletType } from '@/hooks/useWalletType'
-import {
-    balanceByToken,
-    fetchWithSentry,
-    getLinkFromReceipt,
-    isNativeCurrency,
-    saveCreatedLinkToLocalStorage,
-    saveToLocalStorage,
-} from '@/utils'
-import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
+import { fetchWithSentry, isNativeCurrency, jsonParse, saveToLocalStorage } from '@/utils'
 import peanut, {
     generateKeysFromString,
     getContractAbi,
@@ -22,9 +12,8 @@ import peanut, {
     getRandomString,
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
-import { BigNumber, ethers } from 'ethers'
 import { useCallback, useContext } from 'react'
-import type { Hash, TransactionReceipt } from 'viem'
+import type { Hash, Hex } from 'viem'
 import {
     bytesToNumber,
     encodeFunctionData,
@@ -35,16 +24,9 @@ import {
     parseUnits,
     toBytes,
 } from 'viem'
-import { useAccount, useConfig, useSendTransaction, useSignTypedData, useSwitchChain } from 'wagmi'
-import { waitForTransactionReceipt } from 'wagmi/actions'
-import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
-
-interface ICheckUserHasEnoughBalanceProps {
-    tokenValue: string | undefined
-    gasAmount?: number
-}
-
-import { Hex } from 'viem'
+import { useAccount, useSignTypedData } from 'wagmi'
+import { PEANUT_API_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
+import { getFeeOptions, type ChainId, type FeeOptions } from '@/app/actions/clients'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -53,105 +35,12 @@ import { captureException } from '@sentry/nextjs'
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
-    const { selectedChainID, selectedTokenData, selectedTokenAddress } = useContext(tokenSelectorContext)
+    const { selectedChainID } = useContext(tokenSelectorContext)
 
-    const {
-        chain: currentChain,
-        address,
-        selectedWallet,
-        refetchBalances,
-        isExternalWallet,
-        isSmartAccount,
-    } = useWallet()
+    const { address } = useWallet()
     const { connector } = useAccount()
-    const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
-    const { sendTransactionAsync } = useSendTransaction()
-    const config = useConfig()
-    const { walletType, environmentInfo } = useWalletType()
     const { handleSendUserOpEncoded } = useZeroDev()
-
-    // step 1
-    const checkUserHasEnoughBalance = useCallback(
-        async ({ tokenValue, gasAmount }: ICheckUserHasEnoughBalanceProps) => {
-            // the selectedChainID and selectedTokenAddress have to be defined
-            if (!selectedChainID || !selectedTokenAddress) {
-                throw new Error('Please ensure that the correct token and chain are defined')
-            }
-            // if the userbalances are know, the user must have a balance of the selected token
-            if ((selectedWallet?.balances?.length ?? 0) > 0) {
-                let balanceAmount = balanceByToken(
-                    selectedWallet!.balances!,
-                    selectedChainID,
-                    selectedTokenAddress
-                )?.amount
-
-                // consider gas fees in the balance check for native/non-stable tokens
-                const totalNativeTokenAmount =
-                    isNativeCurrency(selectedTokenAddress) && gasAmount
-                        ? Number(tokenValue) + gasAmount
-                        : Number(tokenValue)
-
-                if (!balanceAmount || (balanceAmount && balanceAmount < totalNativeTokenAmount)) {
-                    throw new Error(
-                        'Please ensure that you have sufficient balance of the token you are trying to send'
-                    )
-                }
-            }
-
-            // the selected tokenvalue has to be a number higher then .0001
-            if (!tokenValue || (tokenValue && Number(tokenValue) < 0.000001)) {
-                throw new Error('The minimum amount to send is 0.000001')
-            }
-        },
-        [selectedChainID, selectedTokenAddress, selectedWallet?.balances, address]
-    )
-
-    const generateLinkDetails = useCallback(
-        ({
-            tokenValue,
-            walletType,
-            envInfo,
-        }: {
-            tokenValue: string | undefined
-            walletType?: 'blockscout' | undefined
-            envInfo?: any
-        }) => {
-            try {
-                // get tokenDetails (type and decimals)
-                const tokenDetails = getTokenDetails(
-                    selectedTokenAddress,
-                    selectedChainID,
-                    selectedWallet?.balances ?? []
-                )
-
-                // baseUrl
-                let baseUrl = ''
-                if (walletType === 'blockscout') {
-                    baseUrl = `${envInfo.origin}/apps/peanut-protocol`
-                } else if (typeof window !== 'undefined') {
-                    baseUrl = `${window.location.origin}/claim`
-                }
-
-                // create linkDetails and save to state
-                const linkDetails = {
-                    chainId: selectedChainID,
-                    tokenAmount: parseFloat(Number(tokenValue).toFixed(6)),
-                    tokenType: tokenDetails.tokenType,
-                    tokenAddress: selectedTokenAddress,
-                    tokenDecimals: tokenDetails.tokenDecimals,
-                    baseUrl: baseUrl,
-                    trackId: 'ui',
-                }
-
-                return linkDetails
-            } catch (error) {
-                console.error('error generating linkdetails', error)
-                throw new Error('Error getting the linkDetails.')
-            }
-        },
-        [selectedTokenAddress, selectedChainID, selectedWallet?.balances]
-    )
 
     const generatePassword = async () => {
         try {
@@ -218,48 +107,33 @@ export const useCreateLink = () => {
         },
         [address]
     )
-    const switchNetwork = async (chainId: string) => {
-        try {
-            await switchNetworkUtil({
-                chainId,
-                currentChainId: String(currentChain?.id),
-                setLoadingState,
-                switchChainAsync: async ({ chainId }) => {
-                    await switchChainAsync({ chainId: chainId as number })
-                },
-            })
-            console.log(`Switched to chain ${chainId}`)
-        } catch (error) {
-            captureException(error)
-            console.error('Failed to switch network:', error)
-        }
-    }
     const isSafeConnector = (connector?: { name?: string }): boolean => {
         const name = connector?.name
         if (!name) return false
         return name.toLowerCase().includes('safe')
     }
-    const estimateGasFee = useCallback(async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
-        // Return early with default values for Safe connector
-        // TODO: request / cashout flows abstract this
-        // requirement for internut (injects AA with zero gas fees)
-        if (isSafeConnector({ name: connector?.name })) {
-            return {
-                feeOptions: {
-                    gasLimit: BigInt(0),
-                    maxFeePerGas: BigInt(0),
-                    gasPrice: BigInt(0),
-                },
-                transactionCostUSD: 0,
+    const estimateGasFee = useCallback(
+        async ({ from, chainId, preparedTx }: { from: Hex; chainId: string; preparedTx: any }) => {
+            // Return early with default values for Safe connector
+            // requirement for internut (injects AA with zero gas fees)
+            if (isSafeConnector({ name: connector?.name })) {
+                return {
+                    feeOptions: {
+                        gasLimit: BigInt(0),
+                        maxFeePerGas: BigInt(0),
+                        gasPrice: BigInt(0),
+                    },
+                    transactionCostUSD: 0,
+                }
             }
-        }
-        try {
-            const feeOptions = await peanut.setFeeOptions({
-                chainId: chainId,
-                unsignedTx: preparedTx,
-            })
-
-            let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
+            const feeOptions = jsonParse<FeeOptions>(
+                await getFeeOptions(Number(chainId) as ChainId, {
+                    ...preparedTx,
+                    value: preparedTx.value?.toString() ?? '0',
+                    account: from,
+                })
+            )
+            let transactionCostWei = feeOptions.gas * feeOptions.maxFeePerGas
             let transactionCostNative = formatEther(transactionCostWei)
             const nativeTokenPrice = await fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId)
             if (!nativeTokenPrice || typeof nativeTokenPrice.price !== 'number' || isNaN(nativeTokenPrice.price)) {
@@ -271,32 +145,9 @@ export const useCreateLink = () => {
                 feeOptions,
                 transactionCostUSD,
             }
-        } catch (error) {
-            try {
-                const feeOptions = await peanut.setFeeOptions({
-                    chainId: chainId,
-                    unsignedTx: preparedTx,
-                    gasLimit: BigNumber.from(100000),
-                })
-
-                let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
-                let transactionCostNative = formatEther(transactionCostWei)
-                const nativeTokenPrice = await fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId)
-                if (!nativeTokenPrice) {
-                    throw new Error('Failed to fetch token price')
-                }
-                const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice.price
-
-                return {
-                    feeOptions,
-                    transactionCostUSD,
-                }
-            } catch (error) {
-                console.error('Failed to estimate gas fee:', error)
-                throw error
-            }
-        }
-    }, [])
+        },
+        []
+    )
 
     const estimatePoints = async ({
         chainId,
@@ -498,14 +349,17 @@ export const useCreateLink = () => {
 
         if (!isNativeCurrency(tokenAddress)) {
             // ERC20 Token transfer
-            const erc20Contract = new ethers.Contract(tokenAddress, peanut.ERC20_ABI)
             const amount = parseUnits(tokenValue, tokenDecimals)
-            const data = erc20Contract.interface.encodeFunctionData('transfer', [recipient, amount])
+            const data = encodeFunctionData({
+                abi: peanut.ERC20_ABI,
+                functionName: 'transfer',
+                args: [recipient, amount],
+            })
 
             transactionRequest = {
                 to: tokenAddress,
                 data,
-                value: BigInt(0), // Convert to BigInt
+                value: 0n,
             }
         } else {
             // Native token transfer
@@ -563,79 +417,6 @@ export const useCreateLink = () => {
         }
     }
 
-    const sendTransactions = useCallback(
-        async ({
-            preparedDepositTxs,
-            feeOptions,
-        }: {
-            preparedDepositTxs: peanutInterfaces.IPrepareDepositTxsResponse
-            feeOptions: any | undefined
-        }): Promise<TransactionReceipt[]> => {
-            try {
-                if (!preparedDepositTxs) return []
-
-                if (isSmartAccount) {
-                    setLoadingState('Approve transaction')
-                    const params = preparedDepositTxs.unsignedTxs.map(
-                        (tx: peanutInterfaces.IPeanutUnsignedTransaction) => ({
-                            to: tx.to! as Hex,
-                            value: tx.value?.valueOf(),
-                            data: tx.data as Hex | undefined,
-                        })
-                    )
-                    let receipt = await handleSendUserOpEncoded(params, selectedChainID)
-                    return [receipt]
-                }
-
-                let idx = 0
-                const receipts: TransactionReceipt[] = []
-                for (const tx of preparedDepositTxs.unsignedTxs) {
-                    setLoadingState('Sign in wallet')
-
-                    // Set fee options using our SDK
-                    if (!feeOptions) {
-                        try {
-                            feeOptions = await peanut.setFeeOptions({
-                                chainId: selectedChainID,
-                            })
-                        } catch (error: any) {
-                            console.log('error setting fee options, fallback to default')
-                            captureException(error)
-                        }
-                    }
-                    if (isExternalWallet) {
-                        // Send the transaction using wagmi
-                        // current stage is encoded but NOT signed
-                        let hash = await sendTransactionAsync({
-                            to: (tx.to ? tx.to : '') as `0x${string}`,
-                            value: tx.value ? BigInt(tx.value.toString()) : undefined,
-                            data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                            gas: feeOptions?.gas ? BigInt(feeOptions.gas.toString()) : undefined,
-                            gasPrice: feeOptions?.gasPrice ? BigInt(feeOptions.gasPrice.toString()) : undefined,
-                            maxFeePerGas: feeOptions?.maxFeePerGas
-                                ? BigInt(feeOptions?.maxFeePerGas.toString())
-                                : undefined,
-                            maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
-                                ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
-                                : undefined,
-                            chainId: Number(selectedChainID), //TODO: (mentioning) chainId as number here
-                        })
-                        setLoadingState('Executing transaction')
-                        const receipt = await waitForTransactionReceipt(config, {
-                            hash: hash,
-                            chainId: Number(selectedChainID),
-                        })
-                        receipts.push(receipt)
-                        idx++
-                    }
-                }
-                return receipts
-            } catch (error) {
-                throw error
-            }
-        },
-        [selectedChainID, sendTransactionAsync, config, isSmartAccount, isExternalWallet, handleSendUserOpEncoded]
-    )
     const getLinkFromHash = async ({
         hash,
         linkDetails,
@@ -657,147 +438,6 @@ export const useCreateLink = () => {
                 const newUrl = urlObj.toString()
                 link = newUrl
             }
-            return link
-        } catch (error) {
-            throw error
-        }
-    }
-
-    const prepareCreateLinkWrapper = useCallback(
-        async ({ tokenValue }: { tokenValue: string }) => {
-            await checkUserHasEnoughBalance({ tokenValue })
-            const linkDetails = generateLinkDetails({ tokenValue, walletType, envInfo: environmentInfo })
-            const password = await generatePassword()
-            await switchNetwork(selectedChainID)
-
-            const _isGaslessDepositPossible = isGaslessDepositPossible({
-                chainId: selectedChainID,
-                tokenAddress: selectedTokenAddress,
-            })
-            if (_isGaslessDepositPossible && !isSmartAccount) {
-                // routing only gasless BYOW txs through here
-                const makeGaslessDepositResponse = await makeGaslessDepositPayload({
-                    _linkDetails: linkDetails,
-                    _password: password,
-                })
-
-                if (
-                    !makeGaslessDepositResponse ||
-                    !makeGaslessDepositResponse.payload ||
-                    !makeGaslessDepositResponse.message
-                )
-                    return
-
-                return { type: 'gasless', response: makeGaslessDepositResponse, linkDetails, password }
-            } else {
-                let prepareDepositTxsResponse: peanutInterfaces.IPrepareDepositTxsResponse | undefined =
-                    await prepareDepositTxs({
-                        _linkDetails: linkDetails,
-                        _password: password,
-                    })
-
-                const feeOptions = await estimateGasFee({
-                    chainId: selectedChainID,
-                    preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
-                })
-                // If the selected token is native currency, we need to check
-                // the user's balance to ensure they have enough to cover the
-                // gas fees.
-                if (isNativeCurrency(selectedTokenAddress)) {
-                    const maxGasAmount = Number(
-                        formatEther(
-                            feeOptions.feeOptions.gasLimit.mul(
-                                feeOptions.feeOptions.maxFeePerGas || feeOptions.feeOptions.gasPrice
-                            )
-                        )
-                    )
-                    await checkUserHasEnoughBalance({
-                        tokenValue: String(Number(tokenValue) + maxGasAmount),
-                    })
-                }
-
-                return { type: 'deposit', response: prepareDepositTxsResponse, linkDetails, password, feeOptions }
-            }
-        },
-        [
-            checkUserHasEnoughBalance,
-            generateLinkDetails,
-            walletType,
-            environmentInfo,
-            makeGaslessDepositPayload,
-            prepareDepositTxs,
-            estimateGasFee,
-            selectedChainID,
-            selectedTokenAddress,
-            isSmartAccount,
-        ]
-    )
-
-    //TODO: this will be removed when removing external wallets
-    const createLinkWrapper = async ({
-        type,
-        response,
-        linkDetails,
-        password,
-        feeOptions,
-        usdValue,
-    }: {
-        type: string
-        response: any
-        linkDetails: peanutInterfaces.IPeanutLinkDetails
-        password: string
-        feeOptions?: any
-        usdValue?: string
-    }) => {
-        try {
-            let hash: string = ''
-
-            await submitClaimLinkInit({
-                password: password ?? '',
-                attachmentOptions: {
-                    attachmentFile: undefined,
-                    message: undefined,
-                },
-                senderAddress: address ?? '',
-            })
-
-            let link: string = ''
-            if (type === 'deposit') {
-                const receipt = (await sendTransactions({ preparedDepositTxs: response, feeOptions: feeOptions }))[0]
-                link = getLinkFromReceipt({ txReceipt: receipt, linkDetails, password })
-            } else if (type === 'gasless') {
-                const signature = await signTypedData({ gaslessMessage: response.message })
-                hash = await makeDepositGasless({ signature, payload: response.payload })
-                link = await getLinkFromHash({ hash, linkDetails, password, walletType })
-            }
-
-            saveCreatedLinkToLocalStorage({
-                address: address ?? '',
-                data: {
-                    link,
-                    depositDate: new Date().toISOString(),
-                    USDTokenPrice: selectedTokenData?.price ?? 0,
-                    points: 0,
-                    txHash: hash,
-                    message: '',
-                    attachmentUrl: undefined,
-                    ...linkDetails,
-                },
-            })
-
-            await submitClaimLinkConfirm({
-                chainId: selectedChainID,
-                link,
-                password: password ?? '',
-                txHash: hash,
-                senderAddress: address ?? '',
-                amountUsd: parseFloat(usdValue ?? '0'),
-                transaction: type === 'deposit' ? response && response.unsignedTxs[0] : undefined,
-            })
-
-            // refetch wallet balance after successful link creation
-            refetchBalances(selectedWallet?.address || '')
-
             return link
         } catch (error) {
             throw error
@@ -867,24 +507,18 @@ export const useCreateLink = () => {
     )
 
     return {
-        checkUserHasEnoughBalance,
-        generateLinkDetails,
         generatePassword,
         makeGaslessDepositPayload,
         signTypedData,
         makeDepositGasless,
         prepareDepositTxs,
-        sendTransactions,
         getLinkFromHash,
-        switchNetwork,
         estimateGasFee,
         estimatePoints,
         submitClaimLinkInit,
         submitClaimLinkConfirm,
         prepareDirectSendTx,
         submitDirectTransfer,
-        prepareCreateLinkWrapper,
-        createLinkWrapper,
         createLink,
     }
 }

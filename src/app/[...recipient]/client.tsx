@@ -1,6 +1,5 @@
 'use client'
 
-import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import PaymentHistory from '@/components/Payment/History'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
@@ -218,11 +217,6 @@ export default function PaymentPage({ recipient }: Props) {
             <div>
                 {currentView === 'INITIAL' && (
                     <div className="space-y-4">
-                        <NavHeader
-                            onPrev={() => {
-                                setShowPaymentView(false)
-                            }}
-                        />
                         <InitialPaymentView {...(parsedPaymentData as ParsedURL)} />
                     </div>
                 )}

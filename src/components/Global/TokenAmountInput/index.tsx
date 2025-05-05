@@ -28,7 +28,7 @@ const TokenAmountInput = ({
         useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
-    const { isPeanutWallet } = useWallet()
+    const { isConnected: isPeanutWallet } = useWallet()
 
     const onChange = (tokenvalue: string) => {
         setTokenValue(tokenvalue)

@@ -1,6 +1,6 @@
 'use client'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useCallback } from 'react'
 
 import * as assets from '@/assets'
 import * as consts from '@/constants'
@@ -9,7 +9,6 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import PageContainer from '../0_Bruddle/PageContainer'
-import { ActionType, estimatePoints } from '../utils/utils'
 import * as _consts from './Claim.consts'
 import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
@@ -17,7 +16,6 @@ import { fetchTokenPrice } from '@/app/actions/tokens'
 import { sendLinksApi, type ClaimLinkData, ESendLinkStatus } from '@/services/sendLinks'
 import { useAuth } from '@/context/authContext'
 import { fetchTokenDetails } from '@/app/actions/tokens'
-import { formatUnits } from 'viem'
 import { isStableCoin } from '@/utils'
 
 export const Claim = ({}) => {
@@ -78,84 +76,82 @@ export const Claim = ({}) => {
             idx: _consts.CLAIM_SCREEN_FLOW.indexOf(screen),
         }))
     }
-    const checkLink = async (link: string) => {
-        try {
-            const url = new URL(link)
-            const password = url.hash.split('=')[1]
-            const sendLink = await sendLinksApi.get(link)
-            setAttachment({
-                message: sendLink.textContent,
-                attachmentUrl: sendLink.fileUrl,
-            })
-
-            const tokenDetails = await fetchTokenDetails(sendLink.tokenAddress, sendLink.chainId)
-            setClaimLinkData({
-                ...sendLink,
-                link,
-                password,
-                tokenSymbol: tokenDetails.symbol,
-                tokenDecimals: tokenDetails.decimals,
-            })
-            setSelectedChainID(sendLink.chainId)
-            setSelectedTokenAddress(sendLink.tokenAddress)
-            const keyPair = peanut.generateKeysFromString(password)
-            const generatedPubKey = keyPair.address
-
-            const depositPubKey = sendLink.pubKey
-
-            if (generatedPubKey !== depositPubKey) {
-                setLinkState(_consts.claimLinkStateType.WRONG_PASSWORD)
-                return
-            }
-
-            if (sendLink.status === ESendLinkStatus.CLAIMED || sendLink.status === ESendLinkStatus.CANCELLED) {
-                setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
-                return
-            }
-
-            let price = 0
-            if (isStableCoin(tokenDetails.symbol)) {
-                price = 1
-            } else {
-                const tokenPriceDetails = await fetchTokenPrice(sendLink.tokenAddress.toLowerCase(), sendLink.chainId)
-                if (tokenPriceDetails) {
-                    price = tokenPriceDetails.price
-                }
-            }
-            if (0 < price) setTokenPrice(price)
-
-            if (address) {
-                setRecipient({ name: '', address })
-
-                const tokenValue = formatUnits(sendLink.amount, tokenDetails.decimals)
-                const amountUsd = Number(tokenValue) * price
-                const estimatedPoints = await estimatePoints({
-                    address: address ?? '',
-                    chainId: sendLink.chainId,
-                    amountUSD: amountUsd,
-                    actionType: ActionType.CLAIM,
+    const checkLink = useCallback(
+        async (link: string) => {
+            try {
+                const url = new URL(link)
+                const password = url.hash.split('=')[1]
+                const sendLink = await sendLinksApi.get(link)
+                setAttachment({
+                    message: sendLink.textContent,
+                    attachmentUrl: sendLink.fileUrl,
                 })
-                setEstimatedPoints(estimatedPoints)
-            }
 
-            if (user && user.user.userId === sendLink.sender.userId) {
-                setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
-            } else {
-                setLinkState(_consts.claimLinkStateType.CLAIM)
+                const tokenDetails = await fetchTokenDetails(sendLink.tokenAddress, sendLink.chainId)
+                setClaimLinkData({
+                    ...sendLink,
+                    link,
+                    password,
+                    tokenSymbol: tokenDetails.symbol,
+                    tokenDecimals: tokenDetails.decimals,
+                })
+                setSelectedChainID(sendLink.chainId)
+                setSelectedTokenAddress(sendLink.tokenAddress)
+                const keyPair = peanut.generateKeysFromString(password)
+                const generatedPubKey = keyPair.address
+
+                const depositPubKey = sendLink.pubKey
+
+                if (generatedPubKey !== depositPubKey) {
+                    setLinkState(_consts.claimLinkStateType.WRONG_PASSWORD)
+                    return
+                }
+
+                if (sendLink.status === ESendLinkStatus.CLAIMED || sendLink.status === ESendLinkStatus.CANCELLED) {
+                    setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
+                    return
+                }
+
+                let price = 0
+                if (isStableCoin(tokenDetails.symbol)) {
+                    price = 1
+                } else {
+                    const tokenPriceDetails = await fetchTokenPrice(
+                        sendLink.tokenAddress.toLowerCase(),
+                        sendLink.chainId
+                    )
+                    if (tokenPriceDetails) {
+                        price = tokenPriceDetails.price
+                    }
+                }
+                if (0 < price) setTokenPrice(price)
+
+                if (user && user.user.userId === sendLink.sender.userId) {
+                    setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
+                } else {
+                    setLinkState(_consts.claimLinkStateType.CLAIM)
+                }
+            } catch (error) {
+                console.error(error)
+                setLinkState(_consts.claimLinkStateType.NOT_FOUND)
+                Sentry.captureException(error)
             }
-        } catch (error) {
-            console.error(error)
-            setLinkState(_consts.claimLinkStateType.NOT_FOUND)
-            Sentry.captureException(error)
+        },
+        [user]
+    )
+
+    useEffect(() => {
+        if (address) {
+            setRecipient({ name: '', address })
         }
-    }
+    }, [address])
 
     useEffect(() => {
         const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
         if (pageUrl) {
             checkLink(pageUrl)
         }
-    }, [])
+    }, [user])
 
     return (
         <PageContainer>
