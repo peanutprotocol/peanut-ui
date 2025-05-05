@@ -15,7 +15,7 @@ import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { balanceByToken, fetchWithSentry, floorFixed, formatIban, printableUsdc, validateBankAccount } from '@/utils'
+import { balanceByToken, fetchWithSentry, formatAmount, formatIban, printableUsdc, validateBankAccount } from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
@@ -96,6 +96,15 @@ export const InitialCashoutView = ({
         return !isNaN(numericValue) && numericValue > MAX_CASHOUT_LIMIT
     }, [usdValue])
 
+    const maxValue = useMemo(() => {
+        if (!selectedWallet?.balances) {
+            return selectedWallet?.balance ? printableUsdc(selectedWallet.balance) : ''
+        }
+        const balance = balanceByToken(selectedWallet.balances, selectedChainID, selectedTokenAddress)
+        if (!balance) return ''
+        return formatAmount(balance.amount)
+    }, [selectedChainID, selectedTokenAddress, selectedWallet?.balances, selectedWallet?.balance])
+
     const isDisabled = useMemo(() => {
         return (
             !_tokenValue ||
@@ -124,6 +133,16 @@ export const InitialCashoutView = ({
                 return
             }
             if (!_tokenValue) return
+
+            // check if user has sufficient balance
+            if (parseFloat(_tokenValue) > parseFloat(maxValue || '0')) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Insufficient balance. Please enter a smaller amount.',
+                })
+                setLoadingState('Idle')
+                return
+            }
 
             if (!user) {
                 await fetchUser()
@@ -223,16 +242,6 @@ export const InitialCashoutView = ({
         }
     }
 
-    const maxValue = useMemo(() => {
-        if (!selectedWallet?.balances) {
-            return selectedWallet?.balance ? printableUsdc(selectedWallet.balance) : ''
-        }
-        const balance = balanceByToken(selectedWallet.balances, selectedChainID, selectedTokenAddress)
-        if (!balance) return ''
-        // 6 decimal places, prettier
-        return floorFixed(balance.amount, 6)
-    }, [selectedChainID, selectedTokenAddress, selectedWallet?.balances, selectedWallet?.balance])
-
     useEffect(() => {
         if (!_tokenValue) return
         if (inputDenomination === 'TOKEN') {
@@ -254,6 +263,13 @@ export const InitialCashoutView = ({
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         }
     }, [isPeanutWallet])
+
+    // reset error state when token, chain, or amount changes
+    useEffect(() => {
+        if (errorState.showError && errorState.errorMessage.includes('Insufficient balance')) {
+            setErrorState({ showError: false, errorMessage: '' })
+        }
+    }, [_tokenValue, selectedTokenAddress, selectedChainID])
 
     // Update the bank account selection handler
     const handleBankAccountSelect = (accountIdentifier: string) => {
@@ -309,6 +325,7 @@ export const InitialCashoutView = ({
                             Minimum amount is ${MIN_CASHOUT_LIMIT}
                         </div>
                     )}
+
                     {isExternalWallet && (
                         <>
                             <TokenSelector />
