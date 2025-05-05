@@ -11,7 +11,7 @@ import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountCompon
 import Loading from '@/components/Global/Loading'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as consts from '@/constants'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { tokenSelectorContext, loadingStateContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import {
@@ -213,7 +213,7 @@ export const OfframpConfirmView = ({
             }
 
             // Now that we have all the necessary information, create the link
-            const amount = parseUnits(usdValue!, 6)
+            const amount = parseUnits(usdValue!, PEANUT_WALLET_TOKEN_DECIMALS)
             const { link } = await createLink(amount)
             setCreatedLink(link)
             console.log(`created claimlink: ${link}`)
