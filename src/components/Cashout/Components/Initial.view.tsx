@@ -91,6 +91,15 @@ export const InitialCashoutView = ({
         return !isNaN(numericValue) && numericValue > MAX_CASHOUT_LIMIT
     }, [usdValue])
 
+    const maxValue = useMemo(() => {
+        if (!selectedWallet?.balances) {
+            return selectedWallet?.balance ? printableUsdc(selectedWallet.balance) : ''
+        }
+        const balance = balanceByToken(selectedWallet.balances, selectedChainID, selectedTokenAddress)
+        if (!balance) return ''
+        return formatAmount(balance.amount)
+    }, [selectedChainID, selectedTokenAddress, selectedWallet?.balances, selectedWallet?.balance])
+
     const isDisabled = useMemo(() => {
         return (
             !_tokenValue ||
@@ -119,6 +128,16 @@ export const InitialCashoutView = ({
                 return
             }
             if (!_tokenValue) return
+
+            // check if user has sufficient balance
+            if (parseFloat(_tokenValue) > parseFloat(maxValue || '0')) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Insufficient balance. Please enter a smaller amount.',
+                })
+                setLoadingState('Idle')
+                return
+            }
 
             if (!user) {
                 await fetchUser()
@@ -194,10 +213,13 @@ export const InitialCashoutView = ({
         }
     }
 
+<<<<<<< HEAD
     const maxValue = useMemo(() => {
         return printableUsdc(balance)
     }, [balance])
 
+=======
+>>>>>>> origin/peanut-wallet-dev
     useEffect(() => {
         if (!_tokenValue) return
         if (inputDenomination === 'TOKEN') {
@@ -219,6 +241,13 @@ export const InitialCashoutView = ({
         setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
     }, [])
+
+    // reset error state when token, chain, or amount changes
+    useEffect(() => {
+        if (errorState.showError && errorState.errorMessage.includes('Insufficient balance')) {
+            setErrorState({ showError: false, errorMessage: '' })
+        }
+    }, [_tokenValue, selectedTokenAddress, selectedChainID])
 
     // Update the bank account selection handler
     const handleBankAccountSelect = (accountIdentifier: string) => {
