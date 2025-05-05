@@ -296,9 +296,12 @@ export const InitialClaimLinkView = ({
             setRecipient({ name: undefined, address })
         } else {
             setRecipient({ name: undefined, address: '' })
-            setIsValidRecipient(false)
         }
-    }, [address])
+    }, [address, isConnected, recipient.address])
+
+    useEffect(() => {
+        setIsValidRecipient(!!recipient.address)
+    }, [recipient.address])
 
     useEffect(() => {
         if (
@@ -419,7 +422,6 @@ export const InitialClaimLinkView = ({
 
             if (address) {
                 setRecipient({ name: undefined, address })
-                setIsValidRecipient(true)
             }
         } else if (selectedWallet?.walletProviderType === WalletProviderType.REWARDS) {
             selectPeanutWallet()
@@ -437,7 +439,6 @@ export const InitialClaimLinkView = ({
     useEffect(() => {
         if (!isConnected) {
             setRecipient({ name: undefined, address: '' })
-            setIsValidRecipient(false)
             return
         }
 
@@ -445,7 +446,6 @@ export const InitialClaimLinkView = ({
         if (selectedWallet && !address) {
             // reset states
             setRecipient({ name: undefined, address: '' })
-            setIsValidRecipient(false)
             setSelectedRoute(null)
             setHasFetchedRoute(false)
 
@@ -466,7 +466,6 @@ export const InitialClaimLinkView = ({
         if (address && !recipient.address) {
             setTimeout(() => {
                 setRecipient({ name: undefined, address: address })
-                setIsValidRecipient(true)
             }, 100)
         }
     }, [selectedWallet, isConnected, isPeanutWallet, address])
