@@ -3,7 +3,6 @@ import Divider from '@/components/0_Bruddle/Divider'
 import Modal from '@/components/Global/Modal'
 import ShareButton from '@/components/Global/ShareButton'
 import { supportedPeanutChains } from '@/constants'
-import { IDashboardItem } from '@/interfaces'
 import { copyTextToClipboardWithFallback, getExplorerUrl } from '@/utils'
 import Image from 'next/image'
 import { useState } from 'react'
@@ -11,6 +10,8 @@ import { twMerge } from 'tailwind-merge'
 import CopyToClipboard from '../CopyToClipboard'
 import Icon from '../Icon'
 import QRCodeWrapper from '../QRCodeWrapper'
+import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import type { HistoryEntry } from '@/hooks/useTransactionHistory'
 
 interface TokenBalance {
     chainId: string
@@ -42,13 +43,13 @@ interface ListItemViewProps {
         tokenLogo?: string
         chainLogo?: string
     }
-    details?: IDashboardItem | TokenBalance
+    details?: HistoryEntry | TokenBalance
 }
 
 export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata, details }: ListItemViewProps) => {
     const [modalVisible, setModalVisible] = useState(false)
     const isHistory = variant === 'history'
-    const transactionDetails = isHistory ? (details as IDashboardItem) : null
+    const historyItem = isHistory ? (details as HistoryEntry) : null
 
     return (
         <div
@@ -107,73 +108,73 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
             </div>
 
             {/* modal only for history variant */}
-            {isHistory && transactionDetails && (
+            {isHistory && historyItem && (
                 <Modal
                     visible={modalVisible}
                     onClose={() => setModalVisible(false)}
                     title={
-                        (transactionDetails?.type === 'Request Link' && !transactionDetails?.txHash) ||
-                        (transactionDetails?.type === 'Link Sent' && transactionDetails?.status !== 'claimed')
+                        (historyItem.type === EHistoryEntryType.REQUEST && !historyItem.txHash) ||
+                        (historyItem.type === EHistoryEntryType.SEND_LINK &&
+                            historyItem.userRole === EHistoryUserRole.SENDER &&
+                            historyItem?.status !== 'claimed')
                             ? 'Share this transaction'
                             : 'Options'
                     }
                     classWrap="bg-background"
                 >
-                    {transactionDetails?.type !== 'Link Received' &&
-                        transactionDetails?.type !== 'Request Link' &&
-                        transactionDetails?.type !== 'Link Sent' &&
-                        transactionDetails?.status === 'pending' && (
+                    {historyItem.type !== EHistoryEntryType.SEND_LINK &&
+                        historyItem.type !== EHistoryEntryType.REQUEST &&
+                        historyItem.status === 'pending' && (
                             <div
                                 onClick={() => {
-                                    transactionDetails.link &&
-                                        window.open(transactionDetails?.link ?? '', '_blank', 'noopener,noreferrer')
+                                    historyItem.extraData?.link &&
+                                        window.open(historyItem.extraData?.link ?? '', '_blank', 'noopener,noreferrer')
                                 }}
                                 className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                             >
                                 Refund
                             </div>
                         )}
-                    {((transactionDetails?.type === 'Request Link' && !transactionDetails?.txHash) ||
-                        (transactionDetails?.type === 'Link Sent' && transactionDetails?.status !== 'claimed')) && (
+                    {((historyItem.type === EHistoryEntryType.REQUEST && !historyItem.txHash) ||
+                        (historyItem.type === EHistoryEntryType.SEND_LINK && historyItem.status !== 'claimed')) && (
                         <div className="p-6">
-                            <QRCodeWrapper url={transactionDetails.link!} />
+                            <QRCodeWrapper url={historyItem.extraData?.link} />
                             <div className="mx-auto mt-4 w-full p-2 text-center text-base text-gray-500">
                                 Show this QR to your friends!
                             </div>
                             <Divider className="text-gray-500" text="or" />
-                            <ShareButton url={transactionDetails.link!} title="Share your transaction">
+                            <ShareButton url={historyItem.extraData?.link} title="Share your transaction">
                                 Share this transaction
                             </ShareButton>
                         </div>
                     )}
                     {!(
-                        (transactionDetails?.type === 'Request Link' && !transactionDetails?.txHash) ||
-                        (transactionDetails?.type === 'Link Sent' && transactionDetails?.status !== 'claimed')
+                        (historyItem.type === EHistoryEntryType.REQUEST && !historyItem.txHash) ||
+                        (historyItem.type === EHistoryEntryType.SEND_LINK && historyItem.status !== 'claimed')
                     ) && (
                         <>
-                            {transactionDetails?.link && (
+                            {historyItem.extraData?.link && (
                                 <div
                                     onClick={() => {
-                                        copyTextToClipboardWithFallback(transactionDetails?.link ?? '')
+                                        copyTextToClipboardWithFallback(historyItem.extraData?.link ?? '')
                                     }}
                                     className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                                 >
                                     <label className="block">Copy link </label>
                                     <CopyToClipboard
                                         fill="black"
-                                        textToCopy={transactionDetails?.link as string}
+                                        textToCopy={historyItem.extraData?.link}
                                         className="h-5 w-5"
                                     />
                                 </div>
                             )}
 
-                            {(transactionDetails?.type === 'Link Received' ||
-                                transactionDetails?.type === 'Link Sent' ||
-                                transactionDetails?.type === 'Request Link') &&
-                                !!transactionDetails?.txHash && (
+                            {(historyItem.type === EHistoryEntryType.SEND_LINK ||
+                                historyItem.type === EHistoryEntryType.REQUEST) &&
+                                !!historyItem?.txHash && (
                                     <a
                                         className="flex h-12 w-full cursor-pointer items-center justify-between gap-2 px-4 text-h8 font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                                        href={transactionDetails.link!}
+                                        href={historyItem.extraData?.link}
                                         target="_blank"
                                     >
                                         <label className="block">See status</label>
@@ -181,17 +182,16 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                                     </a>
                                 )}
 
-                            {transactionDetails?.txHash && (
+                            {historyItem?.txHash && (
                                 <div
                                     onClick={() => {
                                         const chainId =
-                                            supportedPeanutChains.find(
-                                                (chain) => chain.name === transactionDetails?.chain
-                                            )?.chainId ?? ''
+                                            supportedPeanutChains.find((chain) => chain.name === historyItem.chainId)
+                                                ?.chainId ?? ''
 
                                         const explorerUrl = getExplorerUrl(chainId)
                                         window.open(
-                                            `${explorerUrl}/tx/${transactionDetails?.txHash ?? ''}`,
+                                            `${explorerUrl}/tx/${historyItem?.txHash ?? ''}`,
                                             '_blank',
                                             'noopener,noreferrer'
                                         )
@@ -202,21 +202,22 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                                     <Icon name="arrow-up-right" className="h-5 w-5" />
                                 </div>
                             )}
-                            {transactionDetails?.attachmentUrl && !!transactionDetails?.txHash && (
+                            {historyItem?.attachmentUrl && !!historyItem?.txHash && (
                                 <div
                                     onClick={() => {
-                                        window.open(transactionDetails.attachmentUrl, '_blank', 'noopener,noreferrer')
+                                        window.open(historyItem.attachmentUrl, '_blank', 'noopener,noreferrer')
                                     }}
                                     className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                                 >
                                     Download attachment
                                 </div>
                             )}
-                            {transactionDetails?.type === 'Offramp Claim' &&
-                                transactionDetails.status !== 'claimed' && (
+                            {/* TODO: cashout
+                            {historyItem?.type === 'Offramp Claim' &&
+                                historyItem.status !== 'claimed' && (
                                     <a
                                         href={(() => {
-                                            const url = new URL(transactionDetails?.link ?? '')
+                                            const url = new URL(historyItem?.link ?? '')
                                             url.pathname = '/cashout/status'
                                             return url.toString()
                                         })()}
@@ -226,6 +227,7 @@ export const ListItemView = ({ id, variant, primaryInfo, secondaryInfo, metadata
                                         Check Status
                                     </a>
                                 )}
+                            */}
                         </>
                     )}
                 </Modal>

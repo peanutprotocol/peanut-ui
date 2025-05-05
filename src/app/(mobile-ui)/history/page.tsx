@@ -1,101 +1,31 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
-import { useDashboard } from '@/components/Dashboard/useDashboard'
 import AddressLink from '@/components/Global/AddressLink'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
-import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
+import { ListItemView } from '@/components/Global/ListItemView'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { TransactionBadge } from '@/components/Global/TransactionBadge'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import {
-    formatAmount,
-    formatDate,
-    formatPaymentStatus,
-    getChainLogo,
-    getHeaderTitle,
-    getHistoryTransactionStatus,
-    getTokenLogo,
-    isStableCoin,
-} from '@/utils'
+import { formatDate, getChainLogo, getHeaderTitle, getTokenLogo, getChainName } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
-
-const ITEMS_PER_PAGE = 10
+import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 
 const HistoryPage = () => {
     const pathname = usePathname()
-    const { address } = useWallet()
-    const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
     const loaderRef = useRef<HTMLDivElement>(null)
-
-    const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
-        queryKey: ['dashboardData', address],
-        queryFn: () => composeLinkDataArray(address ?? ''),
-        enabled: !!address,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 10 * 60 * 1000, // 10 minutes
-        placeholderData: keepPreviousData,
-    })
-
-    const fetchHistoryPage = async ({ pageParam = 0 }) => {
-        if (!dashboardData) return { items: [], nextPage: undefined }
-
-        const start = pageParam * ITEMS_PER_PAGE
-        const end = start + ITEMS_PER_PAGE
-        const pageData = dashboardData.slice(start, end)
-
-        // fetch link details for the current page
-        const updatedData = await fetchLinkDetailsAsync(pageData)
-
-        const formattedData = pageData.map((data) => {
-            const linkDetails = updatedData.find((item) => item.link === data.link)
-
-            const transactionStatus =
-                (linkDetails?.status ?? data.status)
-                    ? formatPaymentStatus(
-                          getHistoryTransactionStatus(data?.type as TransactionType, linkDetails?.status ?? data.status)
-                      )
-                    : undefined
-
-            return {
-                id: `${data.link ?? ''}-${data.txHash ?? ''}-${data.date}`,
-                transactionType: data.type,
-                amount: `${isStableCoin(data.tokenSymbol) ? `$${formatAmount(data.amount)}` : `${formatAmount(data.amount)} ${data.tokenSymbol}`}`,
-                recipientAddress: data.address ?? '',
-                recipientAddressFormatter: (address: string) => {
-                    return (
-                        <>
-                            To <AddressLink address={address} />
-                        </>
-                    )
-                },
-                status: transactionStatus,
-                transactionDetails: {
-                    ...data,
-                },
-            }
-        })
-
-        return {
-            items: formattedData,
-            nextPage: end < (dashboardData?.length || 0) ? pageParam + 1 : undefined,
-        }
-    }
-
-    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, isLoading, error } = useInfiniteQuery({
-        queryKey: ['history', address, dashboardData],
-        queryFn: fetchHistoryPage,
-        getNextPageParam: (lastPage) => lastPage.nextPage,
-        enabled: !!dashboardData && dashboardData.length > 0,
-        initialPageParam: 0,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 10 * 60 * 1000, // 10 minutes
-        placeholderData: keepPreviousData,
+    const {
+        data: historyData,
+        hasNextPage,
+        fetchNextPage,
+        isFetchingNextPage,
+        isLoading,
+        error,
+        isError,
+    } = useTransactionHistory({
+        mode: 'infinite',
+        limit: 20,
     })
 
     useEffect(() => {
@@ -118,75 +48,65 @@ const HistoryPage = () => {
         return () => observer.disconnect()
     }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-    if ((isLoadingDashboard || isLoading) && (!dashboardData || !data?.pages?.length)) {
+    if (isLoading && !historyData?.pages?.length) {
         return <PeanutLoading />
     }
 
-    if (status === 'error') {
+    if (isError) {
         console.error(error)
         Sentry.captureException(error)
         return <div className="w-full py-4 text-center">Error loading history: {error?.message}</div>
     }
 
-    if (!dashboardData || dashboardData.length === 0) {
+    if (!historyData || historyData.pages.length === 0) {
         return (
             <div className="flex h-[80dvh] items-center justify-center">
-                <NoDataEmptyState
-                    animSize="lg"
-                    message="You haven't done any transactions"
-                    cta={
-                        <Link href="/home" className="cursor-pointer">
-                            <Button shadowSize="4" size="medium" variant={'purple'} className="cursor-pointer">
-                                Go to Dashboard
-                            </Button>
-                        </Link>
-                    }
-                />
+                <NoDataEmptyState animSize="lg" message="You haven't done any transactions" />
             </div>
         )
     }
 
     return (
         <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
-            {!!data?.pages.length ? <NavHeader title={getHeaderTitle(pathname)} /> : null}
+            {!!historyData?.pages.length ? <NavHeader title={getHeaderTitle(pathname)} /> : null}
             <div className="h-full w-full border-t border-n-1">
-                {!!data?.pages.length &&
-                    data?.pages.map((page, pageIndex) => (
+                {!!historyData?.pages.length &&
+                    historyData?.pages.map((page, pageIndex) => (
                         <div key={pageIndex}>
-                            {page.items.map((item) => (
-                                <div key={item.id}>
+                            {page.entries.map((item) => (
+                                <div key={item.uuid}>
                                     <ListItemView
-                                        id={item.id}
+                                        id={item.uuid}
                                         variant="history"
                                         primaryInfo={{
                                             title: (
                                                 <div className="flex flex-col items-start gap-2 md:flex-row md:items-center ">
-                                                    <div className="font-bold">{item.transactionType}</div>
+                                                    <div className="font-bold">
+                                                        {item.type} {item.userRole}
+                                                    </div>
                                                     <div className="flex flex-col items-end justify-end gap-2 text-end">
-                                                        <TransactionBadge status={item.status ?? ''} />
+                                                        <TransactionBadge status={item.status as string} />
                                                     </div>
                                                 </div>
                                             ),
-                                            subtitle: !!item.recipientAddress && (
+                                            subtitle: !!item.recipientAccount.identifier && (
                                                 <div
                                                     className="text-xs text-gray-1"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
-                                                    To: <AddressLink address={item.recipientAddress} />
+                                                    To: <AddressLink address={item.recipientAccount.identifier} />
                                                 </div>
                                             ),
                                         }}
                                         secondaryInfo={{
-                                            mainText: item.amount,
-                                            subText: item.transactionDetails.date
-                                                ? formatDate(new Date(item.transactionDetails.date))
-                                                : '',
+                                            mainText: item.extraData?.usdAmount,
+                                            subText: item.timestamp ? formatDate(new Date(item.timestamp)) : '',
                                         }}
                                         metadata={{
-                                            tokenLogo: getTokenLogo(item.transactionDetails.tokenSymbol),
-                                            chainLogo: getChainLogo(item.transactionDetails.chain),
+                                            tokenLogo: getTokenLogo(item.tokenSymbol),
+                                            chainLogo: getChainLogo(getChainName(item.chainId) ?? ''),
                                         }}
-                                        details={item.transactionDetails}
+                                        details={item}
                                     />
                                 </div>
                             ))}

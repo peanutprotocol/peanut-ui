@@ -133,42 +133,6 @@ export interface IExtendedPeanutLinkDetails extends peanutInterfaces.IPeanutLink
     attachmentUrl: string | undefined
 }
 
-export interface IDashboardItem {
-    link: string | undefined
-    type: 'Link Sent' | 'Direct Sent' | 'Link Received' | 'Offramp Claim' | 'Request Link' | 'Request Link Fulfillment'
-    amount: string
-    tokenSymbol: string
-    date: string
-    chain: string
-    address: string | undefined
-    // TODO: this is duplicaet with src/utils/CashoutStatus
-    status:
-        | 'claimed'
-        | 'pending'
-        | 'transfer'
-        | 'paid'
-        | 'REFUNDED'
-        | 'READY'
-        | 'AWAITING_TX'
-        | 'AWAITING_FIAT'
-        | 'FUNDS_IN_BRIDGE'
-        | 'FUNDS_MOVED_AWAY'
-        | 'FUNDS_IN_BANK'
-        | 'AWAITING_FUNDS'
-        | 'IN_REVIEW'
-        | 'FUNDS_RECEIVED'
-        | 'PAYMENT_SUBMITTED'
-        | 'PAYMENT_PROCESSED'
-        | 'CANCELED'
-        | 'ERROR'
-        | 'RETURNED'
-        | undefined
-    message: string | undefined
-    attachmentUrl: string | undefined
-    points: number
-    txHash: string | undefined
-}
-
 export interface IExtendedLinkDetails extends ILinkDetails {
     USDTokenPrice: number
     points: number
@@ -313,21 +277,6 @@ export interface IBridgeLiquidationAddress {
     destination_currency: string
     created_at: string
     updated_at: string
-}
-
-export interface IProfileTableData {
-    primaryText: string
-    secondaryText: string
-    tertiaryText: string
-    quaternaryText: string
-    itemKey: string
-    type: 'history' | 'contacts' | 'accounts'
-    address?: string
-    avatar: {
-        iconName?: string
-        avatarUrl?: string
-    }
-    dashboardItem?: IDashboardItem
 }
 
 interface Transaction {
