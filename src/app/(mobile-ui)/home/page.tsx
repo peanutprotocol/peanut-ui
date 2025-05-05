@@ -13,17 +13,15 @@ import { SearchUsers } from '@/components/SearchUsers'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences, jsonStringify } from '@/utils'
+import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences } from '@/utils'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 
 export default function Home() {
     const { balance, getRewardWalletBalance } = useWallet()
     const [rewardsBalance, setRewardsBalance] = useState<string | undefined>(undefined)
-    const { data } = useTransactionHistory({ mode: 'latest', limit: 5 })
 
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
