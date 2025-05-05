@@ -278,6 +278,10 @@ export const InitialClaimLinkView = ({
     }, [recipient.address, isValidRecipient, claimLinkData.amount, claimLinkData.chainId, tokenPrice])
 
     useEffect(() => {
+        setIsValidRecipient(!!recipient.address)
+    }, [recipient.address])
+
+    useEffect(() => {
         if (
             selectedChainID === claimLinkData.chainId &&
             areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
@@ -399,13 +403,11 @@ export const InitialClaimLinkView = ({
     useEffect(() => {
         if (!isPeanutWallet) {
             setRecipient({ name: undefined, address: '' })
-            setIsValidRecipient(false)
             return
         }
 
         // reset states
         setRecipient({ name: undefined, address: '' })
-        setIsValidRecipient(false)
         setSelectedRoute(null)
         setHasFetchedRoute(false)
 
@@ -425,7 +427,6 @@ export const InitialClaimLinkView = ({
         if (address) {
             setTimeout(() => {
                 setRecipient({ name: undefined, address })
-                setIsValidRecipient(true)
             }, 100)
         }
     }, [isPeanutWallet, address])
