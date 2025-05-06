@@ -11,7 +11,7 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const shadowClasses: Record<ShadowColor, Record<ShadowSize, string>> = {
     primary: {
-        '4': 'shadow-primary-4',
+        '4': 'shadow-4',
         '6': 'shadow-primary-6',
         '8': 'shadow-primary-8',
     },

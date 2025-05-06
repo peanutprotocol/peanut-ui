@@ -49,7 +49,7 @@ const buttonSizes: Record<ButtonSize, string> = {
 
 const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
     primary: {
-        '4': 'btn-shadow-primary-4',
+        '4': 'btn-shadow-4',
         '6': 'btn-shadow-primary-6',
         '8': 'btn-shadow-primary-8',
     },
