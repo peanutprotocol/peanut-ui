@@ -277,6 +277,8 @@ export default function DirectSendQr({
         }
 
         if (redirectUrl) {
+            dispatch(paymentActions.setView('INITIAL'))
+
             const currentSearchParams = searchParams.toString()
             let currentFullPath = pathname
             currentFullPath = currentSearchParams ? `${currentFullPath}?${currentSearchParams}` : currentFullPath
@@ -289,7 +291,6 @@ export default function DirectSendQr({
                 // We're already at this location, just close the scanner
                 setIsQRScannerOpen(false)
             } else {
-                dispatch(paymentActions.setView('INITIAL'))
                 router.push(redirectUrl)
                 setIsQRScannerOpen(false)
             }
