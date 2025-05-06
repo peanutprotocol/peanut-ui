@@ -43,6 +43,18 @@ const nextConfig = {
                 basePath: false,
             },
             {
+                source: '/claim',
+                destination: 'https://peanut.me/claim',
+                permanent: true,
+                basePath: false,
+            },
+            {
+                source: '/request/create',
+                destination: 'https://peanut.me/request/create',
+                permanent: true,
+                basePath: false,
+            },
+            {
                 source: '/packet',
                 destination: '/raffle/claim',
                 permanent: true,

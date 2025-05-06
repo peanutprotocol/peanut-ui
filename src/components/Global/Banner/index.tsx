@@ -1,9 +1,13 @@
-import { usePathname } from 'next/navigation'
 import { GenericBanner } from './GenericBanner'
-import { MaintenanceBanner } from './MaintenanceBanner'
-import { MAINTAINABLE_ROUTES } from '@/config/routesUnderMaintenance'
 
 export function Banner() {
+    return (
+        <GenericBanner
+            message="⚠️ UNMAINTAINED: This version is no longer supported. For the latest version with ongoing updates, please visit: peanut.me"
+            backgroundColor="bg-purple-1"
+        />
+    )
+    /*
     const pathname = usePathname()
     if (!pathname) return null
 
@@ -17,6 +21,8 @@ export function Banner() {
     }
 
     return null
+
+    */
 }
 
 export { GenericBanner } from './GenericBanner'

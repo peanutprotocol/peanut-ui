@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react'
 import { Roboto_Flex } from 'next/font/google'
 import Modal from '../Modal'
 import { Widget } from '@typeform/embed-react'
-import { FooterVisibilityProvider, useFooterVisibility } from '@/context/footerVisibility'
+import { useFooterVisibility } from '@/context/footerVisibility'
 type LayoutProps = {
     children: React.ReactNode
     className?: string
