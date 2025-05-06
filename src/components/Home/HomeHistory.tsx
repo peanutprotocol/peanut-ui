@@ -23,7 +23,7 @@ const HomeHistory = () => {
         return <div className="w-full py-4 text-center">Error loading history: {error?.message}</div>
     }
 
-    if ((historyData?.entries.length ?? 0) === 0) {
+    if (!historyData?.entries.length) {
         return (
             <div className="mx-auto mt-6 w-full space-y-2 md:max-w-2xl md:space-y-3">
                 <h2 className="text-baes font-bold">Recent Transactions</h2>
@@ -41,7 +41,7 @@ const HomeHistory = () => {
                 <Icon width={30} height={30} name="arrow-next" />
             </Link>
             <div className="h-full w-full border-t border-n-1">
-                {0 < (historyData?.entries.length ?? 0) &&
+                {!!historyData?.entries.length &&
                     historyData!.entries.map((item) => (
                         <div key={item.uuid}>
                             <ListItemView
