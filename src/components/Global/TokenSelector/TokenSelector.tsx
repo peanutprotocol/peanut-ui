@@ -94,16 +94,22 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             const justConnected = !prevIsExternalConnected.current
             const addressChanged = externalWalletAddress !== prevExternalAddress.current
 
-            if (justConnected || addressChanged) {
+            if (justConnected || addressChanged || !externalBalances) {
                 // fetch balances if:
                 // 1. wallet just connected OR
-                // 2. address changed while connected
+                // 2. address changed while connected OR
+                // 3. balances are empty/null (prevents empty state loops)
                 setIsLoadingExternalBalances(true)
-                setExternalBalances(null)
 
                 fetchWalletBalances(externalWalletAddress)
                     .then((balances) => {
-                        setExternalBalances(balances.balances || [])
+                        if (balances.balances && balances.balances.length > 0) {
+                            setExternalBalances(balances.balances)
+                        } else {
+                            console.log('Wallet balances fetch returned empty array', balances)
+                            // Set empty array instead of null to prevent refetch loops
+                            setExternalBalances([])
+                        }
                     })
                     .catch((error) => {
                         console.error('Manual balance fetch failed:', error)
@@ -119,6 +125,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             if (prevIsExternalConnected.current) {
                 // wallet was previously connected, now it's not: clear balances.
                 setExternalBalances(null)
+                setIsLoadingExternalBalances(false)
             }
             // else: wallet was already disconnected - do nothing.
         }
@@ -142,7 +149,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             return sourceBalances // no network selected, return all source balances
         }
         return sourceBalances.filter((balance) => String(balance.chainId) === selectedChainID)
-    }, [sourceBalances, selectedChainID])
+    }, [sourceBalances, selectedChainID, isExternalWalletConnected])
 
     // display tokens memo, filters tokensOnSelectedNetwork by search value
     const displayTokens = useMemo(() => {
@@ -157,7 +164,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             const addressMatch = balance.address?.toLowerCase().includes(lowerSearchValue) ?? false
             return hasSymbol && (symbolMatch || nameMatch || addressMatch)
         })
-    }, [tokensOnSelectedNetwork, searchValue])
+    }, [tokensOnSelectedNetwork, searchValue, isExternalWalletConnected])
 
     // handles token selection based on token balance
     const handleTokenSelect = useCallback(
@@ -635,7 +642,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 isOpen={isDrawerOpen}
                 onClose={closeDrawer}
                 initialPosition="expanded"
-                handleTitle=""
                 expandedHeight={currentExpandedHeight}
                 halfHeight={currentHalfHeight}
                 collapsedHeight={10}
@@ -653,7 +659,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             comingSoonNetworks={TOKEN_SELECTOR_COMING_SOON_NETWORKS}
                         />
                     ) : (
-                        <div className="flex flex-col space-y-6">
+                        <div className="relative flex flex-col space-y-4">
                             {/* Default transaction token section  */}
 
                             <Section title="Free transaction token!">
@@ -726,12 +732,14 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                     </>
                                 ))}
 
-                            <SearchInput
-                                value={searchValue}
-                                onChange={setSearchValue}
-                                onClear={() => setSearchValue('')}
-                                placeholder="Search for a token"
-                            />
+                            <div className="sticky -top-1 z-10 bg-background py-3">
+                                <SearchInput
+                                    value={searchValue}
+                                    onChange={setSearchValue}
+                                    onClear={() => setSearchValue('')}
+                                    placeholder="Search for a token"
+                                />
+                            </div>
 
                             {/* Popular tokens section - only rendered for withdraw view */}
                             {(viewType === 'withdraw' || viewType === 'claim') && !!popularTokens && (

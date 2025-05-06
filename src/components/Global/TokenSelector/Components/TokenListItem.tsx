@@ -73,14 +73,22 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                     on <span className="capitalize">{chainName}</span>
                                 </span>
                             </span>
-                            {!isPopularToken && !!formattedBalance && (
-                                <span className="text-xs font-normal text-grey-1">
-                                    Balance: {formattedBalance} {balance.symbol}
-                                </span>
-                            )}
                         </div>
                     </div>
-                    <Icon name="chevron-up" size={32} className="h-8 w-8 flex-shrink-0 rotate-90 text-black" />
+
+                    {!isPopularToken && !!formattedBalance ? (
+                        <div className="flex flex-col items-end">
+                            <div className="text-base font-medium text-black">{formattedBalance}</div>
+                            <div className="text-xs font-normal text-grey-1">
+                                {/* token value in usd */}
+                                {balance.price && balance.price * Number(formattedBalance) > 0
+                                    ? `$ ${formatAmount(balance.price * Number(formattedBalance))}`
+                                    : '-'}
+                            </div>
+                        </div>
+                    ) : (
+                        <Icon name="chevron-up" size={32} className="h-8 w-8 flex-shrink-0 rotate-90 text-black" />
+                    )}
                 </div>
             </Card>
         </div>
