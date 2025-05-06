@@ -99,7 +99,7 @@ const MethodCard = ({
     <button
         onClick={onClick}
         className={twMerge(
-            'shadow-primary-4 w-full border border-black p-4 text-left transition-all',
+            'shadow-4 w-full border border-black p-4 text-left transition-all',
             variant === 'primary' ? 'bg-primary-1 hover:bg-primary-1/80' : 'bg-secondary-1 hover:bg-secondary-1/80'
         )}
     >
@@ -130,7 +130,7 @@ const WalletGrid = ({ wallets }: { wallets: Wallet[] }) => (
 )
 
 const InfoMessage = ({ children }: { children: ReactNode }) => (
-    <div className="shadow-primary-4 flex items-center justify-center border border-black bg-primary-1/10 p-4">
+    <div className="shadow-4 flex items-center justify-center border border-black bg-primary-1/10 p-4">
         <p className="text-sm">{children}</p>
     </div>
 )
