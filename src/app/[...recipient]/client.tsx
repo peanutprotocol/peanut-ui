@@ -1,11 +1,10 @@
 'use client'
 
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import PaymentHistory from '@/components/Payment/History'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
-import PaymentStatusView from '@/components/Payment/Views/Payment.status.view'
+import PaymentStatusView from '@/components/Payment/Views/Status.payment.view'
 import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { useAuth } from '@/context/authContext'
@@ -16,15 +15,16 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { formatAmount } from '@/utils'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 interface Props {
     recipient: string[]
+    isDirectPay?: boolean
 }
 
-export default function PaymentPage({ recipient }: Props) {
+export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     const dispatch = useAppDispatch()
     const { currentView, requestDetails, parsedPaymentData, chargeDetails } = usePaymentStore()
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
@@ -33,7 +33,7 @@ export default function PaymentPage({ recipient }: Props) {
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
     const requestId = searchParams.get('id')
-    const [showPaymentView, setShowPaymentView] = useState(false)
+    const router = useRouter()
 
     useEffect(() => {
         let isMounted = true
@@ -153,10 +153,12 @@ export default function PaymentPage({ recipient }: Props) {
         }
     }, [requestId])
 
-    const handleSendClick = () => {
-        setShowPaymentView(true)
-        dispatch(paymentActions.setView('INITIAL'))
-    }
+    // reset payment state when navigating to a new payment page
+    useEffect(() => {
+        if (!chargeId) {
+            dispatch(paymentActions.resetPaymentState())
+        }
+    }, [dispatch, chargeId])
 
     if (error) {
         return (
@@ -168,8 +170,13 @@ export default function PaymentPage({ recipient }: Props) {
 
     // show loading until URL is parsed and req/charge data is loaded
     const isLoading = !isUrlParsed || (chargeId && !chargeDetails) || (requestId && !requestDetails)
+
     if (isLoading) {
-        return <PeanutLoading />
+        return (
+            <div className="flex min-h-[calc(100dvh-180px)] w-full items-center justify-center ">
+                <PeanutLoading />
+            </div>
+        )
     }
 
     // check if its is a profile view
@@ -179,9 +186,13 @@ export default function PaymentPage({ recipient }: Props) {
         !parsedPaymentData.amount &&
         !chargeId &&
         !requestId &&
-        !showPaymentView
+        !isDirectPay
     ) {
         const username = parsedPaymentData.recipient.identifier
+
+        const handleSendClick = () => {
+            router.push(`/pay/${username}`)
+        }
 
         return (
             <PublicProfile
@@ -204,8 +215,8 @@ export default function PaymentPage({ recipient }: Props) {
         return (
             <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
                 <div>
-                    {currentView === 'INITIAL' && <InitialPaymentView {...parsedPaymentData} />}
-                    {currentView === 'CONFIRM' && <ConfirmPaymentView />}
+                    {currentView === 'INITIAL' && <InitialPaymentView {...parsedPaymentData} isPintaReq={true} />}
+                    {currentView === 'CONFIRM' && <ConfirmPaymentView isPintaReq={true} />}
                     {currentView === 'STATUS' && <PintaReqPaySuccessView />}
                 </div>
             </div>
@@ -220,19 +231,19 @@ export default function PaymentPage({ recipient }: Props) {
                         <InitialPaymentView {...(parsedPaymentData as ParsedURL)} />
                     </div>
                 )}
-                {currentView === 'CONFIRM' && <ConfirmPaymentView />}
-                {currentView === 'STATUS' && <PaymentStatusView />}
+                {currentView === 'CONFIRM' && (
+                    <ConfirmPaymentView isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'} />
+                )}
+                {currentView === 'STATUS' && (
+                    <>
+                        {parsedPaymentData?.token?.symbol === 'PNT' ? (
+                            <PintaReqPaySuccessView />
+                        ) : (
+                            <PaymentStatusView recipientType={parsedPaymentData?.recipient?.recipientType} />
+                        )}
+                    </>
+                )}
             </div>
-            {currentView === 'INITIAL' && (
-                <div>
-                    {parsedPaymentData?.recipient && (
-                        <PaymentHistory
-                            history={requestDetails?.history || []}
-                            recipient={parsedPaymentData.recipient}
-                        />
-                    )}
-                </div>
-            )}
         </div>
     )
 }

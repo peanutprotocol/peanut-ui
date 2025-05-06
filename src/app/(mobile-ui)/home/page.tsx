@@ -9,19 +9,22 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
+import RewardsCardModal from '@/components/Home/RewardsCardModal'
 import { SearchUsers } from '@/components/SearchUsers'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useWalletStore } from '@/redux/hooks'
 import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences } from '@/utils'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 export default function Home() {
-    const { balance, getRewardWalletBalance } = useWallet()
-    const [rewardsBalance, setRewardsBalance] = useState<string | undefined>(undefined)
+    const { balance } = useWallet()
+    const { rewardWalletBalance } = useWalletStore()
+    const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
 
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
@@ -45,19 +48,6 @@ export default function Home() {
     }
 
     const isLoading = isFetchingUser && !username
-
-    useEffect(() => {
-        const fetchRewardsBalance = async () => {
-            try {
-                const balance = await getRewardWalletBalance()
-                setRewardsBalance(Math.floor(Number(balance || 0)).toString())
-            } catch (error) {
-                console.error('Failed to fetch rewards balance:', error)
-            }
-        }
-
-        fetchRewardsBalance()
-    }, [getRewardWalletBalance])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -99,10 +89,15 @@ export default function Home() {
                 </div>
 
                 {/* Rewards Card - only shows if balance is non-zero */}
-                <RewardsCard balance={rewardsBalance} />
+                <div onClick={() => setIsRewardsModalOpen(true)} className="cursor-pointer">
+                    <RewardsCard balance={Math.floor(Number(rewardWalletBalance) ?? 0).toString() ?? '0'} />
+                </div>
 
                 <HomeHistory />
                 <RewardsModal />
+
+                {/* Render the new Rewards Card Modal */}
+                <RewardsCardModal visible={isRewardsModalOpen} onClose={() => setIsRewardsModalOpen(false)} />
             </div>
         </PageContainer>
     )

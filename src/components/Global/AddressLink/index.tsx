@@ -1,8 +1,9 @@
+import { printableAddress } from '@/utils'
 import { usePrimaryName } from '@justaname.id/react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
-import { printableAddress } from '@/utils'
 
 interface AddressLinkProps {
     address: string
@@ -41,7 +42,7 @@ const AddressLink = ({ address, className = '' }: AddressLinkProps) => {
     const url = `/${urlAddress}`
 
     return (
-        <Link className={`cursor-pointer underline ${className}`} href={url} target="_blank">
+        <Link className={twMerge('cursor-pointer text-xs text-grey-1 underline', className)} href={url} target="_blank">
             {displayAddress}
         </Link>
     )

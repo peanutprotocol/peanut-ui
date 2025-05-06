@@ -1,6 +1,8 @@
 'use client'
 import { getLinkFromTx } from '@/app/actions/claimLinks'
+import { getFeeOptions, type ChainId, type FeeOptions } from '@/app/actions/clients'
 import { fetchTokenPrice } from '@/app/actions/tokens'
+import { PEANUT_API_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { fetchWithSentry, isNativeCurrency, jsonParse, saveToLocalStorage } from '@/utils'
 import peanut, {
@@ -25,8 +27,6 @@ import {
     toBytes,
 } from 'viem'
 import { useAccount, useSignTypedData } from 'wagmi'
-import { PEANUT_API_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
-import { getFeeOptions, type ChainId, type FeeOptions } from '@/app/actions/clients'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'

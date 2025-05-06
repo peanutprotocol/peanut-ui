@@ -3,31 +3,28 @@
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
-import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
+import { sendLinksApi } from '@/services/sendLinks'
 import { ErrorHandler, printableUsdc } from '@/utils'
 import { captureException } from '@sentry/nextjs'
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { parseUnits } from 'viem'
 import { Button } from '../../../0_Bruddle'
 import FileUploadInput from '../../../Global/FileUploadInput'
-import MoreInfo from '../../../Global/MoreInfo'
 import TokenAmountInput from '../../../Global/TokenAmountInput'
-import { sendLinksApi } from '@/services/sendLinks'
 
 const LinkSendInitialView = () => {
     const dispatch = useAppDispatch()
-    const { attachmentOptions, errorState } = useSendFlowStore()
+    const { attachmentOptions, errorState, tokenValue } = useSendFlowStore()
 
     const { createLink } = useCreateLink()
 
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
 
-    const [currentInputValue, setCurrentInputValue] = useState<string | undefined>('')
     const { fetchBalance, balance } = useWallet()
 
     const peanutWalletBalance = useMemo(() => {
@@ -36,7 +33,7 @@ const LinkSendInitialView = () => {
 
     const handleOnNext = useCallback(async () => {
         try {
-            if (isLoading || !currentInputValue) return
+            if (isLoading || !tokenValue) return
 
             setLoadingState('Loading')
 
@@ -49,7 +46,7 @@ const LinkSendInitialView = () => {
             )
 
             const { link, pubKey, chainId, contractVersion, depositIdx, txHash, amount, tokenAddress } =
-                await createLink(parseUnits(currentInputValue!, PEANUT_WALLET_TOKEN_DECIMALS))
+                await createLink(parseUnits(tokenValue!, PEANUT_WALLET_TOKEN_DECIMALS))
 
             dispatch(sendFlowActions.setLink(link))
             dispatch(sendFlowActions.setView('SUCCESS'))
@@ -90,13 +87,13 @@ const LinkSendInitialView = () => {
         } finally {
             setLoadingState('Idle')
         }
-    }, [isLoading, currentInputValue, createLink, fetchBalance])
+    }, [isLoading, tokenValue, createLink, fetchBalance])
 
     useEffect(() => {
-        if (!peanutWalletBalance || !currentInputValue) return
+        if (!peanutWalletBalance || !tokenValue) return
         if (
             parseUnits(peanutWalletBalance, PEANUT_WALLET_TOKEN_DECIMALS) <
-            parseUnits(currentInputValue, PEANUT_WALLET_TOKEN_DECIMALS)
+            parseUnits(tokenValue, PEANUT_WALLET_TOKEN_DECIMALS)
         ) {
             dispatch(
                 sendFlowActions.setErrorState({
@@ -112,7 +109,7 @@ const LinkSendInitialView = () => {
                 })
             )
         }
-    }, [peanutWalletBalance, currentInputValue])
+    }, [peanutWalletBalance, tokenValue])
 
     return (
         <div className="w-full space-y-4">
@@ -120,9 +117,9 @@ const LinkSendInitialView = () => {
 
             <TokenAmountInput
                 className="w-full"
-                tokenValue={currentInputValue}
+                tokenValue={tokenValue}
+                setTokenValue={(value) => dispatch(sendFlowActions.setTokenValue(value))}
                 maxValue={peanutWalletBalance}
-                setTokenValue={setCurrentInputValue}
                 onSubmit={handleOnNext}
                 walletBalance={peanutWalletBalance}
             />
@@ -132,33 +129,16 @@ const LinkSendInitialView = () => {
                 setAttachmentOptions={(options) => dispatch(sendFlowActions.setAttachmentOptions(options))}
             />
 
-            <PeanutSponsored />
-
             <div className="flex flex-col gap-4">
                 <Button
                     onClick={handleOnNext}
                     loading={isLoading}
-                    disabled={isLoading || !currentInputValue || !!errorState?.showError}
+                    disabled={isLoading || !tokenValue || !!errorState?.showError}
                 >
                     {isLoading ? loadingState : 'Create link'}
                 </Button>
                 {errorState?.showError && <ErrorAlert description={errorState.errorMessage} />}
             </div>
-
-            <span className="flex flex-row items-center justify-start gap-1 text-h8">
-                Learn about Peanut cashout
-                <MoreInfo
-                    text={
-                        <>
-                            You can use Peanut to cash out your funds directly to your bank account! (US and EU only)
-                            <br></br>{' '}
-                            <a href="/cashout" className="hover:text-primary underline">
-                                Learn more →
-                            </a>
-                        </>
-                    }
-                />
-            </span>
         </div>
     )
 }
