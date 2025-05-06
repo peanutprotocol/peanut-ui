@@ -361,15 +361,15 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
 
     return (
         <div className="space-y-4">
-            <FlowHeader
-                rightElement={
-                    isWagmiConnected ? (
+            {isWagmiConnected && (
+                <FlowHeader
+                    rightElement={
                         <Button variant="dark" className="h-7 text-sm" onClick={() => openReownModal()}>
                             {printableAddress(wagmiAddress!)}
                         </Button>
-                    ) : null
-                }
-            />
+                    }
+                />
+            )}
             <div className="text-center text-lg font-bold">Pay</div>
             {/* Recipient Info Card */}
             {recipient && (
