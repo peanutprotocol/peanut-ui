@@ -70,9 +70,8 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     const isDepositRequest = searchParams.get('action') === 'deposit'
 
     const isConnected = useMemo<boolean>(() => {
-        if (user) return isPeanutWallet
-        return isWagmiConnected
-    }, [user, isPeanutWallet, isWagmiConnected])
+        return isPeanutWallet || isWagmiConnected
+    }, [isPeanutWallet, isWagmiConnected])
 
     const isActivePeanutWallet = useMemo(() => !!user && isPeanutWallet, [user, isPeanutWallet])
 
@@ -361,7 +360,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
 
     return (
         <div className="space-y-4">
-            {isWagmiConnected && (
+            {!isPeanutWallet && isWagmiConnected && (
                 <FlowHeader
                     rightElement={
                         <Button variant="dark" className="h-7 text-sm" onClick={() => openReownModal()}>
