@@ -705,32 +705,31 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             <Divider className="p-0" />
 
                             {/* Popular chains section - rendered for all views except withdraw view */}
-                            {viewType === 'other' ||
-                                (viewType === 'claim' && (
-                                    <>
-                                        <Section title="Select a network">
-                                            <div className="flex flex-col gap-4">
-                                                <div className="flex items-stretch justify-between space-x-2">
-                                                    {popularChains.map((chain) => (
-                                                        <NetworkButton
-                                                            key={chain.chainId}
-                                                            chainName={chain.name}
-                                                            chainIconURI={chain.iconURI}
-                                                            onClick={() => setSelectedChainID(chain.chainId)}
-                                                            isSelected={chain.chainId === selectedChainID}
-                                                        />
-                                                    ))}
+                            {(viewType === 'other' || viewType === 'claim') && (
+                                <>
+                                    <Section title="Select a network">
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-stretch justify-between space-x-2">
+                                                {popularChains.map((chain) => (
                                                     <NetworkButton
-                                                        chainName="Search"
-                                                        isSearch={true}
-                                                        onClick={handleSearchNetwork}
+                                                        key={chain.chainId}
+                                                        chainName={chain.name}
+                                                        chainIconURI={chain.iconURI}
+                                                        onClick={() => setSelectedChainID(chain.chainId)}
+                                                        isSelected={chain.chainId === selectedChainID}
                                                     />
-                                                </div>
+                                                ))}
+                                                <NetworkButton
+                                                    chainName="Search"
+                                                    isSearch={true}
+                                                    onClick={handleSearchNetwork}
+                                                />
                                             </div>
-                                        </Section>
-                                        <Divider className="p-0" dividerClassname="border-grey-1" />
-                                    </>
-                                ))}
+                                        </div>
+                                    </Section>
+                                    <Divider className="p-0" dividerClassname="border-grey-1" />
+                                </>
+                            )}
 
                             <div className="sticky -top-1 z-10 bg-background py-3">
                                 <SearchInput
