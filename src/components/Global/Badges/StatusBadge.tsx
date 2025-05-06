@@ -1,7 +1,7 @@
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 
-export type StatusType = 'completed' | 'pending' | 'failed' | 'cancelled' | 'soon'
+export type StatusType = 'completed' | 'pending' | 'failed' | 'cancelled' | 'soon' | 'processing'
 
 interface StatusBadgeProps {
     status: StatusType
@@ -13,16 +13,17 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
     const getStatusStyles = () => {
         switch (status) {
             case 'completed':
-                return 'bg-success-2 text-success-1'
+                return 'bg-success-2 text-success-4 border border-success-5'
             case 'pending':
-                return 'bg-secondary-4 text-secondary-1'
+            case 'processing':
+                return 'bg-secondary-4 text-yellow-6 border border-yellow-7'
             case 'failed':
             case 'cancelled':
-                return 'bg-error-1 text-error'
+                return 'bg-error-1 text-error border border-error-2'
             case 'soon':
                 return 'bg-primary-3 text-primary-4'
             default:
-                return 'bg-gray-200 text-gray-700'
+                return 'bg-grey-2 text-grey-1'
         }
     }
 
@@ -32,6 +33,8 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
                 return 'Completed'
             case 'pending':
                 return 'Pending'
+            case 'processing':
+                return 'Processing'
             case 'failed':
                 return 'Failed'
             case 'cancelled':
@@ -59,7 +62,8 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
     return (
         <span
             className={twMerge(
-                'rounded-full font-roboto font-semibold',
+                'inline-block whitespace-nowrap rounded-full',
+                'font-roboto font-semibold',
                 getSizeClasses(),
                 getStatusStyles(),
                 className

@@ -52,6 +52,8 @@ module.exports = {
                     3: '#fbfdd8',
                     4: '#FAE8A4',
                     5: '#FFD25C',
+                    6: '#885B00',
+                    7: '#FFE6B3',
                 },
                 pink: {
                     1: '#FF90E8',
@@ -89,6 +91,8 @@ module.exports = {
                     1: '#16B413',
                     2: '#C7F9C6',
                     3: '#29CC6A',
+                    4: '#1C6A50',
+                    5: '#88D987',
                 },
                 white: '#FFFFFF',
                 red: '#FF0000',
@@ -103,6 +107,7 @@ module.exports = {
                 error: {
                     DEFAULT: '#B3261E',
                     1: '#FFD8D8',
+                    2: '#EA8282',
                 },
             },
             zIndex: {
