@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, useCallback, useContext } from 'react'
 import DirectRequestSuccessView from './Success.direct.request.view'
 import { loadingStateContext } from '@/context'
+import { captureException } from '@sentry/nextjs'
 
 interface DirectRequestInitialViewProps {
     username: string
@@ -48,13 +49,19 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             throw new Error('Username or amount is missing')
         }
         setLoadingState('Requesting')
-        await usersApi.requestByUsername({
-            username: user!.username,
-            amount: currentInputValue,
-            toAddress: address,
-        })
-        setLoadingState('Idle')
-        setView('success')
+        try {
+            await usersApi.requestByUsername({
+                username: user!.username,
+                amount: currentInputValue,
+                toAddress: address,
+            })
+            setLoadingState('Idle')
+            setView('success')
+        } catch (error) {
+            console.error('Error creating request charge:', error)
+            captureException(error)
+            setLoadingState('Idle')
+        }
     }, [isDisabled, user?.username, currentInputValue, address])
 
     useEffect(() => {
