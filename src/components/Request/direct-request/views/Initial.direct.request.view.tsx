@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/components/0_Bruddle'
 import FileUploadInput from '@/components/Global/FileUploadInput'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { ArrowDownLeftIcon } from '@/components/Global/Icons/arrow-down-left'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import UserCard from '@/components/User/UserCard'
@@ -10,9 +10,9 @@ import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { ApiUser, usersApi } from '@/services/users'
 import { printableUsdc } from '@/utils'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
-import DirectRequestConfirmView from './Confirm.direct.request.view'
+import { useEffect, useMemo, useState, useCallback, useContext } from 'react'
 import DirectRequestSuccessView from './Success.direct.request.view'
+import { loadingStateContext } from '@/context'
 
 interface DirectRequestInitialViewProps {
     username: string
@@ -20,7 +20,7 @@ interface DirectRequestInitialViewProps {
 
 const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) => {
     const router = useRouter()
-    const { balance } = useWallet()
+    const { balance, address } = useWallet()
     const [user, setUser] = useState<ApiUser | null>(null)
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
@@ -29,6 +29,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     })
     const [currentInputValue, setCurrentInputValue] = useState<string>('')
     const [view, setView] = useState<'initial' | 'confirm' | 'success'>('initial')
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
 
     const peanutWalletBalance = useMemo(() => {
         return printableUsdc(balance)
@@ -37,6 +38,24 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const handleTokenValueChange = (value: string | undefined) => {
         setCurrentInputValue(value || '')
     }
+
+    const isDisabled = useMemo(() => {
+        return !user?.username || !currentInputValue || !address
+    }, [user?.username, currentInputValue])
+
+    const createRequestCharge = useCallback(async () => {
+        if (isDisabled) {
+            throw new Error('Username or amount is missing')
+        }
+        setLoadingState('Requesting')
+        await usersApi.requestByUsername({
+            username: user!.username,
+            amount: currentInputValue,
+            toAddress: address,
+        })
+        setLoadingState('Idle')
+        setView('success')
+    }, [isDisabled, user?.username, currentInputValue, address])
 
     useEffect(() => {
         async function fetchUser() {
@@ -51,21 +70,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     }, [username])
 
     if (!user) return null
-
-    if (view === 'confirm') {
-        return (
-            <div className="space-y-8">
-                <NavHeader onPrev={() => setView('initial')} title="Request" />
-                <DirectRequestConfirmView
-                    user={user}
-                    amount={currentInputValue}
-                    attachmentOptions={attachmentOptions}
-                    onConfirm={() => setView('success')}
-                    walletBalance={peanutWalletBalance}
-                />
-            </div>
-        )
-    }
 
     if (view === 'success') {
         return (
@@ -101,11 +105,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         setAttachmentOptions={setAttachmentOptions}
                     />
 
-                    <Button onClick={() => setView('confirm')} disabled={!currentInputValue} shadowSize="4">
+                    <Button onClick={createRequestCharge} disabled={isDisabled || isLoading} loading={isLoading}>
                         <div className="flex size-6 items-center justify-center">
-                            <Icon name="arrow-down-left" size={20} />
+                            <ArrowDownLeftIcon />
                         </div>
-                        Request
+                        {isLoading ? loadingState : 'Request'}
                     </Button>
                 </div>
             </div>

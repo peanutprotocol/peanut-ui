@@ -1,30 +1,22 @@
 import { Icon } from '@/components/Global/Icons/Icon'
-import { useAuth } from '@/context/authContext'
 import { useUserSearch } from '@/hooks/useUserSearch'
 import { ApiUser } from '@/services/users'
-import { getInitialsFromName } from '@/utils'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '../0_Bruddle'
 import { SearchInput } from './SearchInput'
 import { SearchResults } from './SearchResults'
+import { useRecentUsers } from '@/hooks/useRecentUsers'
 
 interface SearchContentProps {
     closePortal: () => void
-    recentTransactions: ApiUser[]
+    recentTransactions: Pick<ApiUser, 'userId' | 'username' | 'fullName'>[]
 }
 
 const SearchContent = ({ closePortal, recentTransactions }: SearchContentProps) => {
     const inputRef = useRef<HTMLInputElement>(null)
-    const { user } = useAuth()
     const { searchTerm, setSearchTerm, searchResults, isSearching, error, showMinCharError, showNoResults } =
         useUserSearch()
-
-    const initials = useMemo(() => {
-        return user?.user.full_name
-            ? getInitialsFromName(user.user.full_name)
-            : getInitialsFromName(user?.user.username || '')
-    }, [user?.user.full_name, user?.user.username])
 
     const handleSearchChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,8 +67,7 @@ const SearchContent = ({ closePortal, recentTransactions }: SearchContentProps) 
 export const SearchUsers = () => {
     const [isExpanded, setIsExpanded] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
-    // todo: to be implemented in hisotry project
-    const [recentTransactions, setRecentTransactions] = useState<ApiUser[]>([])
+    const recentTransactions = useRecentUsers()
 
     // focus input when expanded
     useEffect(() => {

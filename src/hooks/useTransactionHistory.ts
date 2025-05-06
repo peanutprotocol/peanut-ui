@@ -14,6 +14,7 @@ export enum EHistoryEntryType {
     CASHOUT = 'CASHOUT',
     DEPOSIT = 'DEPOSIT',
     SEND_LINK = 'SEND_LINK',
+    DIRECT_SEND = 'DIRECT_SEND',
 }
 
 export enum EHistoryUserRole {
@@ -44,6 +45,8 @@ export type HistoryEntry = {
               type: string
               isUser: boolean
               username?: string | undefined
+              fullName?: string
+              userId?: string
           }
         | undefined
     recipientAccount: {
@@ -51,6 +54,8 @@ export type HistoryEntry = {
         type: string
         isUser: boolean
         username?: string | undefined
+        fullName?: string
+        userId?: string
     }
     extraData?: Record<string, any>
 }

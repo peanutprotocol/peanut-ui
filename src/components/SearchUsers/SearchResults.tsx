@@ -13,7 +13,7 @@ interface SearchResultsProps {
     showMinCharError: boolean
     showNoResults: boolean
     className?: string
-    recentTransactions?: ApiUser[]
+    recentTransactions?: Pick<ApiUser, 'userId' | 'username' | 'fullName'>[]
     onUserSelect?: (username: string) => void
 }
 
