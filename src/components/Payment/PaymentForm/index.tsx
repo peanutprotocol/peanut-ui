@@ -27,7 +27,7 @@ import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { ErrorHandler, formatAmount, getTokenDecimals } from '@/utils'
+import { ErrorHandler, formatAmount, printableAddress } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -39,7 +39,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     const { user } = useAuth()
     const { requestDetails, chargeDetails, beerQuantity } = usePaymentStore()
     const { isConnected: isPeanutWallet, balance } = useWallet()
-    const { isConnected: isWagmiConnected } = useAccount()
+    const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
@@ -75,37 +75,6 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     }, [user, isPeanutWallet, isWagmiConnected])
 
     const isActivePeanutWallet = useMemo(() => !!user && isPeanutWallet, [user, isPeanutWallet])
-
-    const resetTokenAndChain = useCallback(() => {
-        if (isActivePeanutWallet) {
-            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-            setSelectedTokenDecimals(PEANUT_WALLET_TOKEN_DECIMALS)
-        } else {
-            const initialChainId = requestDetails?.chainId || chain?.chainId || ''
-            const initialTokenAddress = requestDetails?.tokenAddress || token?.address || ''
-            const initialTokenDecimals = requestDetails?.tokenDecimals || token?.decimals
-
-            setSelectedChainID(initialChainId)
-            setSelectedTokenAddress(initialTokenAddress)
-
-            if (initialTokenAddress && initialChainId) {
-                setSelectedTokenDecimals(
-                    initialTokenDecimals ?? getTokenDecimals(initialTokenAddress, initialChainId) ?? 18
-                )
-            } else {
-                setSelectedTokenDecimals(18)
-            }
-        }
-    }, [
-        requestDetails,
-        chain,
-        token,
-        isActivePeanutWallet,
-        setSelectedChainID,
-        setSelectedTokenAddress,
-        setSelectedTokenDecimals,
-    ])
 
     useEffect(() => {
         if (initialSetupDone) return
@@ -203,8 +172,6 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     ])
 
     const handleInitiatePayment = useCallback(async () => {
-        if (!canInitiatePayment) return
-
         if (isDepositRequest && !isConnected) {
             openReownModal()
             return
@@ -214,6 +181,8 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
             dispatch(walletActions.setSignInModalVisible(true))
             return
         }
+
+        if (!canInitiatePayment) return
 
         // for PINTA requests, validate beer quantity first
         if (isPintaReq) {
@@ -392,6 +361,15 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
 
     return (
         <div className="space-y-4">
+            <FlowHeader
+                rightElement={
+                    isWagmiConnected ? (
+                        <Button variant="dark" className="h-7 text-sm" onClick={() => openReownModal()}>
+                            {printableAddress(wagmiAddress!)}
+                        </Button>
+                    ) : null
+                }
+            />
             <div className="text-center text-lg font-bold">Pay</div>
             {/* Recipient Info Card */}
             {recipient && (
@@ -435,7 +413,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                     loading={isProcessing}
                     shadowSize="4"
                     onClick={handleInitiatePayment}
-                    disabled={!canInitiatePayment || isProcessing || isXChainPeanutWalletReq}
+                    disabled={isConnected && (!canInitiatePayment || isProcessing || isXChainPeanutWalletReq)}
                     className="w-full"
                 >
                     {!isProcessing && <Icon name="currency" />}
