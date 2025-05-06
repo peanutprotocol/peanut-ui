@@ -9,6 +9,7 @@ import { AccountType } from '@/interfaces'
 import { fetchWithSentry } from '@/utils'
 import { chargesApi } from './charges'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { TCharge } from './services.types'
 
 type ApiAccount = {
     identifier: string
@@ -48,7 +49,7 @@ export const usersApi = {
         username: string
         amount: string
         toAddress: string
-    }): Promise<any> => {
+    }): Promise<TCharge> => {
         return chargesApi.create({
             pricing_type: 'fixed_price',
             local_price: { amount, currency: 'USD' },
