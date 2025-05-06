@@ -49,12 +49,6 @@ const nextConfig = {
                 basePath: false,
             },
             {
-                source: '/send',
-                destination: 'https://peanut.me/send',
-                permanent: true,
-                basePath: false,
-            },
-            {
                 source: '/request/create',
                 destination: 'https://peanut.me/request/create',
                 permanent: true,
