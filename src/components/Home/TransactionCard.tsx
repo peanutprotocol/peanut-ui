@@ -1,6 +1,8 @@
 import StatusBadge, { StatusType } from '@/components/Global/Badges/StatusBadge'
 import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { TransactionDetails, TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { formatExtendedNumber, printableUsdc } from '@/utils'
 import React from 'react'
 
@@ -9,11 +11,11 @@ export type TransactionType = 'send' | 'withdraw' | 'add' | 'request'
 interface TransactionCardProps {
     type: TransactionType
     name: string
-    amount: bigint
+    amount: number
     status?: StatusType
     initials?: string
     position?: CardPosition
-    onClick?: () => void
+    transaction: TransactionDetails
 }
 
 const TransactionCard: React.FC<TransactionCardProps> = ({
@@ -23,44 +25,62 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     status,
     initials = '',
     position = 'middle',
-    onClick,
+    transaction,
 }) => {
+    const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
+        useTransactionDetailsDrawer()
+
     // determine if amount should be displayed as positive or negative
     const isNegative = type === 'send' || type === 'withdraw'
     const displayAmount = isNegative
-        ? `-$${formatExtendedNumber(printableUsdc(amount))}`
-        : `+$${formatExtendedNumber(printableUsdc(amount))}`
+        ? `-$${formatExtendedNumber(printableUsdc(BigInt(amount)))}`
+        : `+$${formatExtendedNumber(printableUsdc(BigInt(amount)))}`
 
     // for request and send type, show the raw amount without sign
     const finalAmount =
-        type === 'request' || type === 'send' ? `$${formatExtendedNumber(printableUsdc(amount))}` : displayAmount
+        type === 'request' || type === 'send'
+            ? `$${formatExtendedNumber(printableUsdc(BigInt(amount)))}`
+            : displayAmount
+
+    const handleClick = () => {
+        openTransactionDetails(transaction)
+    }
 
     return (
-        <Card position={position} onClick={onClick}>
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    {/* Icon or Initials based on transaction type */}
-                    <div
-                        className={`flex h-8 w-8 items-center justify-center rounded-full p-2 text-xs font-bold ${getIconBackgroundColor(type)}`}
-                    >
-                        {renderIcon(type, initials)}
-                    </div>
+        <>
+            <Card position={position} onClick={handleClick}>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        {/* Icon or Initials based on transaction type */}
+                        <div
+                            className={`flex h-8 w-8 items-center justify-center rounded-full p-2 text-xs font-bold ${getIconBackgroundColor(type)}`}
+                        >
+                            {renderIcon(type, initials)}
+                        </div>
 
-                    <div className="flex flex-col">
-                        <div className="max-w-40 truncate font-roboto text-sm font-medium">{name}</div>
-                        <div className="flex items-center gap-1 text-gray-500">
-                            {getActionIcon(type)}
-                            <span className="text-[10px] capitalize">{type}</span>
+                        <div className="flex flex-col">
+                            <div className="max-w-40 truncate font-roboto text-sm font-medium">{name}</div>
+                            <div className="flex items-center gap-1 text-gray-500">
+                                {getActionIcon(type)}
+                                <span className="text-[10px] capitalize">{type}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="flex flex-col items-end space-y-0.5">
-                    <span className="font-roboto text-xs font-medium">{finalAmount}</span>
-                    {status && <StatusBadge status={status} />}
+                    <div className="flex flex-col items-end space-y-0.5">
+                        <span className="font-roboto text-xs font-medium">{finalAmount}</span>
+                        {status && <StatusBadge status={status} />}
+                    </div>
                 </div>
-            </div>
-        </Card>
+            </Card>
+
+            {/* Transaction Details Drawer */}
+            <TransactionDetailsDrawer
+                isOpen={isDrawerOpen && selectedTransaction?.id === transaction.id}
+                onClose={closeTransactionDetails}
+                transaction={selectedTransaction}
+            />
+        </>
     )
 }
 

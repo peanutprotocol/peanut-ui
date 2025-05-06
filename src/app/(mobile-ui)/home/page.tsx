@@ -9,8 +9,10 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
+import MockHistoryEntries from '@/components/Home/MockHistoryEntries'
 import RewardsCardModal from '@/components/Home/RewardsCardModal'
 import { SearchUsers } from '@/components/SearchUsers'
+import { TransactionDetails } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -21,11 +23,95 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
+const mockTransactions: TransactionDetails[] = [
+    {
+        id: '1',
+        direction: 'send',
+        userName: 'Hugo Montenegro',
+        amount: 6969.69,
+        currencySymbol: '$',
+        initials: 'HM',
+        status: 'processing',
+        isVerified: false,
+        date: new Date('2025-03-31T16:20:00Z'),
+        fee: 0,
+        memo: 'Freelance Design Job',
+        issueReportLink: '/support/1',
+    },
+    {
+        id: '2',
+        direction: 'receive',
+        userName: 'Alice Wonderland',
+        amount: 150.0,
+        currencySymbol: '$',
+        initials: 'AW',
+        status: 'completed',
+        isVerified: true,
+        date: new Date('2024-07-15T10:30:00Z'),
+        fee: 0,
+        memo: 'Coffee catch up',
+        txHash: '0x123456789abcdef',
+        explorerUrl: 'https://etherscan.io/tx/0x123456789abcdef',
+        issueReportLink: '/support/2',
+    },
+    {
+        id: '3',
+        direction: 'request_sent',
+        userName: 'Bob The Builder',
+        amount: 50.0,
+        currencySymbol: '$',
+        initials: 'BB',
+        status: 'pending',
+        isVerified: false,
+        date: new Date('2024-07-14T09:00:00Z'),
+        memo: 'Lunch money request',
+        issueReportLink: '/support/3',
+    },
+    {
+        id: '4',
+        direction: 'withdraw',
+        userName: 'My Bank Account',
+        amount: 500.0,
+        currencySymbol: '$',
+        initials: 'MB',
+        status: 'completed',
+        isVerified: false,
+        date: new Date('2024-07-13T18:45:00Z'),
+        fee: 1.5,
+        issueReportLink: '/support/4',
+    },
+    {
+        id: '5',
+        direction: 'add',
+        userName: 'External Wallet',
+        amount: 1000.0,
+        currencySymbol: '$',
+        initials: 'EW',
+        status: 'failed',
+        isVerified: false,
+        date: new Date('2024-07-12T12:00:00Z'),
+        memo: 'Funding account - network issue',
+        issueReportLink: '/support/5',
+    },
+    {
+        id: '5',
+        direction: 'withdraw',
+        userName: 'External Wallet',
+        amount: 1000.0,
+        currencySymbol: '$',
+        initials: 'EW',
+        status: 'completed',
+        isVerified: false,
+        date: new Date('2024-07-12T12:00:00Z'),
+        memo: 'Funding account - network issue',
+        issueReportLink: '/support/5',
+    },
+]
+
 export default function Home() {
     const { balance } = useWallet()
     const { rewardWalletBalance } = useWalletStore()
     const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
-
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
         return prefs?.balanceHidden ?? false
@@ -92,6 +178,9 @@ export default function Home() {
                 <div onClick={() => setIsRewardsModalOpen(true)} className="cursor-pointer">
                     <RewardsCard balance={Math.floor(Number(rewardWalletBalance) ?? 0).toString() ?? '0'} />
                 </div>
+
+                {/* temp mock history entries */}
+                <MockHistoryEntries transactions={mockTransactions} />
 
                 <HomeHistory />
                 <RewardsModal />
