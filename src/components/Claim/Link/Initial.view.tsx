@@ -530,7 +530,7 @@ export const InitialClaimLinkView = ({
                     {!isPeanutWallet &&
                         recipientType !== 'iban' &&
                         recipientType !== 'us' &&
-                        !isPeanutClaimOnlyMode() && <TokenSelector />}
+                        !isPeanutClaimOnlyMode() && <TokenSelector viewType="claim" />}
                     {/* Route Information & Peanut Sponsored
                      * Shows when:
                      * - Has valid recipient
