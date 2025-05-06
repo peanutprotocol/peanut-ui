@@ -157,6 +157,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     useEffect(() => {
         if (!chargeId) {
             dispatch(paymentActions.resetPaymentState())
+            setIsUrlParsed(false)
         }
     }, [dispatch, chargeId])
 
