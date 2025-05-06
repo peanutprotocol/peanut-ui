@@ -346,10 +346,8 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     }
 
     const recipientDisplayName = useMemo(() => {
-        return (
-            requestDetails?.recipientAccount?.user?.username || (recipient ? recipient.identifier : 'Unknown Recipient')
-        )
-    }, [recipient, requestDetails])
+        return recipient ? recipient.identifier : 'Unknown Recipient'
+    }, [recipient])
 
     const isPeanutWalletUSDC = useMemo(() => {
         return (
