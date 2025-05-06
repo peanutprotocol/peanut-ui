@@ -3,7 +3,7 @@ import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { TransactionDetails, TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { formatExtendedNumber, printableUsdc } from '@/utils'
+import { formatAmount } from '@/utils'
 import React from 'react'
 
 export type TransactionType = 'send' | 'withdraw' | 'add' | 'request'
@@ -32,15 +32,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
     // determine if amount should be displayed as positive or negative
     const isNegative = type === 'send' || type === 'withdraw'
-    const displayAmount = isNegative
-        ? `-$${formatExtendedNumber(printableUsdc(BigInt(amount)))}`
-        : `+$${formatExtendedNumber(printableUsdc(BigInt(amount)))}`
+    const displayAmount = isNegative ? `-$${formatAmount(amount)}` : `+$${formatAmount(amount)}`
 
     // for request and send type, show the raw amount without sign
-    const finalAmount =
-        type === 'request' || type === 'send'
-            ? `$${formatExtendedNumber(printableUsdc(BigInt(amount)))}`
-            : displayAmount
+    const finalAmount = type === 'request' || type === 'send' ? `$${formatAmount(amount)}` : displayAmount
 
     const handleClick = () => {
         openTransactionDetails(transaction)

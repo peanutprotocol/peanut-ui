@@ -94,7 +94,7 @@ const mockTransactions: TransactionDetails[] = [
         issueReportLink: '/support/5',
     },
     {
-        id: '5',
+        id: '6',
         direction: 'withdraw',
         userName: 'External Wallet',
         amount: 1000.0,

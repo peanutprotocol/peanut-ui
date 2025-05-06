@@ -15,13 +15,13 @@ const MockHistoryEntries: React.FC<MockHistoryEntriesProps> = ({ transactions })
                     <TransactionCard
                         key={tx.id}
                         type={
-                            tx.direction === 'send' ||
-                            tx.direction === 'withdraw' ||
-                            tx.direction === 'request_received'
+                            tx.direction === 'send' || tx.direction === 'request_received'
                                 ? 'send'
                                 : tx.direction === 'request_sent'
                                   ? 'request'
-                                  : 'add'
+                                  : tx.direction === 'withdraw'
+                                    ? 'withdraw'
+                                    : 'add'
                         }
                         name={tx.userName}
                         amount={Number(tx.amount)}
