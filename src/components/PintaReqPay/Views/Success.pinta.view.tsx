@@ -1,19 +1,21 @@
 import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
 import FlowHeader from '@/components/Global/FlowHeader'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
+import { walletActions } from '@/redux/slices/wallet-slice'
 import { chargesApi } from '@/services/charges'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import PintaReqViewWrapper from '../PintaReqViewWrapper'
 
 const PintaReqPaySuccessView = () => {
     const dispatch = useAppDispatch()
     const { rewardWalletBalance } = useWalletStore()
+    const { getRewardWalletBalance } = useWallet()
     const [isPooling, setIsPolling] = useState(true)
-    // todo: fix in balance pr
     const remainingBeers = useMemo(() => Math.floor(Number(rewardWalletBalance)), [rewardWalletBalance])
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
@@ -30,13 +32,17 @@ const PintaReqPaySuccessView = () => {
                 dispatch(paymentActions.setChargeDetails(updatedCharge))
 
                 // stop polling if payment is in final state
-                if (
-                    updatedCharge.payments?.[0]?.status === 'SUCCESSFUL' ||
-                    updatedCharge.payments?.[0]?.status === 'FAILED'
-                ) {
+                const finalStatus = updatedCharge.payments?.[0]?.status
+                if (finalStatus === 'SUCCESSFUL' || finalStatus === 'FAILED') {
                     setIsPolling(false)
                     if (intervalId) {
                         clearInterval(intervalId)
+                    }
+
+                    // if successful, refetch the reward balance
+                    if (finalStatus === 'SUCCESSFUL') {
+                        const updatedBalance = await getRewardWalletBalance()
+                        dispatch(walletActions.setRewardWalletBalance(updatedBalance))
                     }
                 }
             } catch (error) {
@@ -58,7 +64,7 @@ const PintaReqPaySuccessView = () => {
                 clearInterval(intervalId)
             }
         }
-    }, [chargeId, dispatch, isPooling])
+    }, [chargeId, dispatch, isPooling, getRewardWalletBalance])
 
     return (
         <div>

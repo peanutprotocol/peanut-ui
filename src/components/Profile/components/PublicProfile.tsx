@@ -91,10 +91,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                         <span className="font-bold">Send</span>
                     </Button>
 
-                    {/* todo: request lon */}
-                    <Link href={`/request?type=direct&from=${username}`} className="w-1/2">
+                    <Link href={`/request/${username}`} className="w-1/2">
                         <Button
-                            disabled
                             variant="purple"
                             shadowSize="4"
                             className="flex items-center justify-center gap-2 rounded-full py-3"
@@ -211,7 +209,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                             className="absolute left-0 top-0 flex w-full justify-center"
                             style={{ transform: 'translateY(-15%)' }}
                         >
-                            <div className="relative h-42 w-[65%] md:h-44">
+                            <div className="relative h-42 w-[65%] md:h-44 md:w-[45%]">
                                 <Image
                                     src={chillPeanutAnim.src}
                                     alt="Peanut Mascot"

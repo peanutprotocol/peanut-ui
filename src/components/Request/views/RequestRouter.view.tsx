@@ -1,17 +1,9 @@
 'use client'
 import RouterViewWrapper from '@/components/RouterViewWrapper'
-import { useRouter, useSearchParams } from 'next/navigation'
-import DirectRequestInitialView from '../direct-request/views/Initial.direct.request.view'
+import { useRouter } from 'next/navigation'
 
 export const RequestRouterView = () => {
     const router = useRouter()
-    const searchParams = useSearchParams()
-    const type = searchParams.get('type')
-    const fromUsername = searchParams.get('from')
-
-    if (type === 'direct' && fromUsername) {
-        return <DirectRequestInitialView username={fromUsername} />
-    }
 
     return (
         <RouterViewWrapper
@@ -19,7 +11,7 @@ export const RequestRouterView = () => {
             linkCardTitle="Request via link"
             linkCardDescription="They don't need a Peanut account to pay you"
             onLinkCardClick={() => router.push('/request/create')}
-            onUserSelect={(username) => router.push(`/request?type=direct&from=${username}`)}
+            onUserSelect={(username) => router.push(`/request/${username}`)}
         />
     )
 }

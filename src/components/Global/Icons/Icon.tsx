@@ -5,6 +5,7 @@ import { ArrowDownLeftIcon } from './arrow-down-left'
 import { ArrowUpIcon } from './arrow-up'
 import { ArrowUpRightIcon } from './arrow-up-right'
 import { BankIcon } from './bank'
+import { CameraIcon } from './camera'
 import { CancelIcon } from './cancel'
 import { CheckIcon } from './check'
 import { ChevronUpIcon } from './chevron-up'
@@ -15,11 +16,13 @@ import { ExchangeIcon } from './exchange'
 import { EyeIcon } from './eye'
 import { EyeSlashIcon } from './eye-slash'
 import { FeesIcon } from './fees'
+import { GiftIcon } from './gift'
 import { HomeIcon } from './home'
 import { LinkIcon } from './link'
 import { LogoutIcon } from './logout'
 import { PaperClipIcon } from './paper-clip'
 import { PeanutSupportIcon } from './peanut-support'
+import { QrCodeIcon } from './qr-code'
 import { SearchIcon } from './search'
 import { ShareIcon } from './share'
 import { SmileIcon } from './smile'
@@ -38,6 +41,7 @@ export type IconName =
     | 'arrow-up'
     | 'arrow-up-right'
     | 'bank'
+    | 'camera'
     | 'check'
     | 'chevron-up'
     | 'copy'
@@ -47,6 +51,7 @@ export type IconName =
     | 'eye-slash'
     | 'exchange'
     | 'fees'
+    | 'gift'
     | 'home'
     | 'peanut-support'
     | 'search'
@@ -64,7 +69,7 @@ export type IconName =
     | 'user'
     | 'share'
     | 'user-plus'
-
+    | 'qr-code'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -77,6 +82,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'arrow-up': ArrowUpIcon,
     'arrow-up-right': ArrowUpRightIcon,
     bank: BankIcon,
+    camera: CameraIcon,
     check: CheckIcon,
     'chevron-up': ChevronUpIcon,
     download: DownloadIcon,
@@ -84,6 +90,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'eye-slash': EyeSlashIcon,
     exchange: ExchangeIcon,
     fees: FeesIcon,
+    gift: GiftIcon,
     home: HomeIcon,
     'peanut-support': PeanutSupportIcon,
     search: SearchIcon,
@@ -103,6 +110,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'user-plus': UserPlusIcon,
     copy: CopyIcon,
     cancel: CancelIcon,
+    'qr-code': QrCodeIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

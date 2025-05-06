@@ -1,6 +1,7 @@
 import { Button } from '@/components/0_Bruddle'
 import Link from 'next/link'
-import { Icon } from '../Icons/Icon'
+import { twMerge } from 'tailwind-merge'
+import { Icon, IconName } from '../Icons/Icon'
 
 interface NavHeaderProps {
     onPrev?: () => void
@@ -8,20 +9,29 @@ interface NavHeaderProps {
     title?: string
     href?: string
     hideLabel?: boolean
+    icon?: IconName
 }
 
-const NavHeader = ({ title, href, hideLabel = false, onPrev, disableBackBtn }: NavHeaderProps) => {
+const NavHeader = ({ title, icon = 'chevron-up', href, hideLabel = false, onPrev, disableBackBtn }: NavHeaderProps) => {
     return (
         <div className="relative flex w-full flex-row items-center justify-between md:block">
             {!onPrev ? (
                 <Link href={href ?? '/home'} className="md:hidden">
                     <Button variant="stroke" className="h-7 w-7 p-0">
-                        <Icon name="chevron-up" size={32} className="h-8 w-8 -rotate-90" />
+                        <Icon
+                            name={icon}
+                            size={32}
+                            className={twMerge('h-8 w-8', icon === 'chevron-up' && ' -rotate-90')}
+                        />
                     </Button>
                 </Link>
             ) : (
                 <Button variant="stroke" className="h-7 w-7 p-0" onClick={onPrev} disabled={disableBackBtn}>
-                    <Icon name="chevron-up" size={32} className="h-8 w-8 -rotate-90" />
+                    <Icon
+                        name={icon}
+                        size={32}
+                        className={twMerge('h-8 w-8', icon === 'chevron-up' && ' -rotate-90')}
+                    />
                 </Button>
             )}
             {!hideLabel && (

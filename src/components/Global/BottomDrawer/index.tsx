@@ -301,7 +301,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
             >
                 {/* Drag handle */}
                 <div
-                    className="cursor-grab touch-none px-6 pb-2 pt-2"
+                    className="mx-auto cursor-grab touch-none px-6 pb-2 pt-2 md:max-w-2xl"
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleDragEnd}
@@ -318,7 +318,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
                 {/* Content area */}
                 <div
                     ref={contentRef}
-                    className="overflow-y-auto px-6 pb-6"
+                    className="mx-auto overflow-y-auto px-6 pb-6 md:max-w-2xl "
                     style={{
                         maxHeight: `calc(${
                             position === 'expanded' ? calculateContentHeight().replace('vh', '') : expandedHeight
