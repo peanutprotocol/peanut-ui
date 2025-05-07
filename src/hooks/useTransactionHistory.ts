@@ -141,6 +141,10 @@ export function useTransactionHistory({
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break
+                    case 'DEPOSIT':
+                        tokenSymbol = 'USDC'
+                        usdAmount = formatUnits(BigInt(entry.amount), 6)
+                        break
                     default:
                         break
                 }
