@@ -2,6 +2,7 @@
 
 import StatusBadge, { StatusType } from '@/components/Global/Badges/StatusBadge'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
+import { TransactionType } from '@/components/TransactionDetails/TransactionCard'
 import { printableAddress } from '@/utils'
 import React from 'react'
 import { isAddress as isWalletAddress } from 'viem'
@@ -17,6 +18,7 @@ interface TransactionDetailsHeaderCardProps {
     status?: StatusType
     isVerified?: boolean
     isLinkTransaction?: boolean
+    transactionType?: TransactionType
 }
 
 const getTitle = (direction: TransactionDirection, userName: string, isLinkTransaction?: boolean): React.ReactNode => {
@@ -38,27 +40,28 @@ const getTitle = (direction: TransactionDirection, userName: string, isLinkTrans
         }
     } else {
         const isAddress = isWalletAddress(userName)
-        userName = isAddress ? printableAddress(userName) : userName
+        const displayName = isAddress ? printableAddress(userName) : userName
         switch (direction) {
             case 'send':
-                titleText = `Sending to ${userName}`
+                titleText = `Sending to ${displayName}`
                 break
             case 'request_received':
-                titleText = `Paid request to ${userName}`
+                titleText = `Paid request to ${displayName}`
                 break
             case 'receive':
-                titleText = `Received from ${userName}`
+                titleText = `Received from ${displayName}`
                 break
             case 'request_sent':
-                titleText = `Requested from ${userName}`
+                titleText = `Requested from ${displayName}`
                 break
             case 'withdraw':
-                titleText = `Withdrawing to ${userName}`
+                titleText = `Withdrawing to ${displayName}`
                 break
             case 'add':
-                titleText = `Added from ${userName}`
+                titleText = `Added from ${displayName}`
                 break
             default:
+                titleText = displayName
                 break
         }
     }
@@ -74,7 +77,11 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     status,
     isVerified = false,
     isLinkTransaction = false,
+    transactionType,
 }) => {
+    const typeForAvatar =
+        transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
+
     return (
         <Card className="relative p-4 md:p-6" position="single">
             <div className="flex items-center gap-3">
@@ -83,6 +90,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     userName={userName}
                     isLinkTransaction={isLinkTransaction}
                     isVerified={isVerified}
+                    transactionType={typeForAvatar}
+                    context="header"
                     size="medium"
                 />
                 <div className="space-y-1">

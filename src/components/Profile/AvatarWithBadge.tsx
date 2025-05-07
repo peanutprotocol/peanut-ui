@@ -16,6 +16,8 @@ interface AvatarWithBadgeProps {
     size?: AvatarSize
     achievementsBadgeSize?: AchievementsBadgeSize
     inlineStyle?: React.CSSProperties // for dynamic background colors based on username (hex codes)
+    textColor?: string
+    iconFillColor?: string
 }
 
 /**
@@ -30,6 +32,8 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     size = 'medium',
     achievementsBadgeSize = 'small',
     inlineStyle,
+    textColor,
+    iconFillColor,
 }) => {
     const sizeClasses: Record<AvatarSize, string> = {
         'extra-small': 'h-8 w-8 text-xs',
@@ -50,15 +54,23 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
             {/* the main avatar circle */}
             <div
                 className={twMerge(
-                    `flex items-center justify-center rounded-full font-bold text-black`,
+                    `flex items-center justify-center rounded-full font-bold`,
                     sizeClasses[size],
                     className
                 )}
                 // apply dynamic styles (e.g., background color)
-                style={{ ...inlineStyle }}
+
+                style={{
+                    ...inlineStyle,
+                    color: !icon ? textColor : undefined,
+                }}
             >
                 {/* display icon if provided, otherwise display initials */}
-                {icon ? <Icon name={icon} size={iconSizeMap[size]} /> : initials}
+                {icon ? (
+                    <Icon name={icon} size={iconSizeMap[size]} fill={iconFillColor} style={{ color: textColor }} />
+                ) : (
+                    initials
+                )}
             </div>
             {/* display verification badge if isverified is true */}
             {isVerified && <AchievementsBadge size={achievementsBadgeSize} />}

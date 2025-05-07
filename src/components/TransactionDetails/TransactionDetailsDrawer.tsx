@@ -89,6 +89,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                     status={transaction.status}
                     isVerified={transaction.isVerified}
                     isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
+                    transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 />
 
                 {/* details card (date, fee, memo) */}
@@ -114,10 +115,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                         {' '}
                         {/* added space-y for button separation */}
                         <ShareButton url={transaction.extraDataForDrawer.link} title="share transaction">
-                            {/* use a full-width button inside sharebutton */}
-                            <Button variant="purple" className="w-full">
-                                share link
-                            </Button>
+                            Share Link
                         </ShareButton>
                         {/* show cancel button only if the current user sent the link/request */}
                         {(transaction.extraDataForDrawer.originalType === EHistoryEntryType.SEND_LINK ||

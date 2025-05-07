@@ -32,6 +32,7 @@ export interface TransactionDetails {
         originalUserRole: EHistoryUserRole
         link?: string
         isLinkTransaction?: boolean
+        transactionCardType?: TransactionCardType
     }
 }
 
@@ -204,6 +205,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry, currentUserUser
             originalUserRole: entry.userRole as EHistoryUserRole,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
+            transactionCardType: transactionCardType,
         },
     }
 

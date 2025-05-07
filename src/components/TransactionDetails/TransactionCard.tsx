@@ -9,7 +9,7 @@ import { formatAmount, printableAddress } from '@/utils'
 import React from 'react'
 import { isAddress } from 'viem'
 
-export type TransactionType = 'send' | 'withdraw' | 'add' | 'request'
+export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -64,6 +64,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             initials={initials}
                             userName={userNameForAvatar}
                             isLinkTransaction={isLinkTx}
+                            transactionType={type}
+                            context="card"
                             size="extra-small"
                         />
                         <div className="flex flex-col">
