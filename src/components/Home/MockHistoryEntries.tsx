@@ -1,6 +1,6 @@
+import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import React from 'react'
-import TransactionCard from './TransactionCard'
-import { TransactionDetails } from '../TransactionDetails/TransactionDetailsDrawer'
+import TransactionCard from '../TransactionDetails/TransactionCard'
 
 interface MockHistoryEntriesProps {
     transactions: TransactionDetails[]

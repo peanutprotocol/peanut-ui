@@ -1,20 +1,26 @@
 'use client'
 
-import AddressLink from '@/components/Global/AddressLink'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
-import { ListItemView } from '@/components/Global/ListItemView'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { TransactionBadge } from '@/components/Global/TransactionBadge'
-import { formatDate, getChainLogo, getHeaderTitle, getTokenLogo, getChainName } from '@/utils'
+import TransactionCard from '@/components/TransactionDetails/TransactionCard'
+import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
+import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { useUserStore } from '@/redux/hooks'
+import { getHeaderTitle } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
-import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 
+/**
+ * displays the user's transaction history with infinite scrolling.
+ */
 const HistoryPage = () => {
     const pathname = usePathname()
     const loaderRef = useRef<HTMLDivElement>(null)
+    const { user } = useUserStore()
+    const currentUserUsername = user?.user.username
+
     const {
         data: historyData,
         hasNextPage,
@@ -58,60 +64,64 @@ const HistoryPage = () => {
         return <div className="w-full py-4 text-center">Error loading history: {error?.message}</div>
     }
 
-    if (!historyData || historyData.pages.length === 0) {
+    const noEntries = !historyData || historyData.pages.every((page) => page.entries.length === 0)
+
+    if (noEntries) {
         return (
-            <div className="flex h-[80dvh] items-center justify-center">
-                <NoDataEmptyState animSize="lg" message="You haven't done any transactions" />
+            <div className="flex h-[80dvh] flex-col items-center justify-center">
+                <NavHeader title={getHeaderTitle(pathname)} />
+                <div className="flex flex-grow items-center justify-center">
+                    <NoDataEmptyState animSize="lg" message="You haven't done any transactions" />
+                </div>
             </div>
         )
     }
 
     return (
         <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
-            {!!historyData?.pages.length ? <NavHeader title={getHeaderTitle(pathname)} /> : null}
-            <div className="h-full w-full border-t border-n-1">
-                {!!historyData?.pages.length &&
-                    historyData?.pages.map((page, pageIndex) => (
-                        <div key={pageIndex}>
-                            {page.entries.map((item) => (
-                                <div key={item.uuid}>
-                                    <ListItemView
-                                        id={item.uuid}
-                                        variant="history"
-                                        primaryInfo={{
-                                            title: (
-                                                <div className="flex flex-col items-start gap-2 md:flex-row md:items-center ">
-                                                    <div className="font-bold">
-                                                        {item.type} {item.userRole}
-                                                    </div>
-                                                    <div className="flex flex-col items-end justify-end gap-2 text-end">
-                                                        <TransactionBadge status={item.status as string} />
-                                                    </div>
-                                                </div>
-                                            ),
-                                            subtitle: !!item.recipientAccount.identifier && (
-                                                <div
-                                                    className="text-xs text-gray-1"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    To: <AddressLink address={item.recipientAccount.identifier} />
-                                                </div>
-                                            ),
-                                        }}
-                                        secondaryInfo={{
-                                            mainText: item.extraData?.usdAmount,
-                                            subText: item.timestamp ? formatDate(new Date(item.timestamp)) : '',
-                                        }}
-                                        metadata={{
-                                            tokenLogo: getTokenLogo(item.tokenSymbol),
-                                            chainLogo: getChainLogo(getChainName(item.chainId) ?? ''),
-                                        }}
-                                        details={item}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    ))}
+            {!!historyData?.pages.length && <NavHeader title={getHeaderTitle(pathname)} />}
+            <div className="h-full w-full">
+                {historyData?.pages.map((page, pageIndex) => (
+                    <div key={pageIndex} className="space-y-0">
+                        {page.entries.map((item, itemIndex) => {
+                            const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(
+                                item,
+                                currentUserUsername || ''
+                            )
+
+                            const totalItemsAcrossAllPages = historyData.pages.reduce(
+                                (acc, currPage) => acc + currPage.entries.length,
+                                0
+                            )
+                            const currentItemAbsoluteIndex =
+                                historyData.pages
+                                    .slice(0, pageIndex)
+                                    .reduce((acc, currPage) => acc + currPage.entries.length, 0) + itemIndex
+
+                            let position: 'first' | 'middle' | 'last' | undefined = 'middle'
+                            if (totalItemsAcrossAllPages === 1) {
+                                position = undefined
+                            } else if (currentItemAbsoluteIndex === 0) {
+                                position = 'first'
+                            } else if (currentItemAbsoluteIndex === totalItemsAcrossAllPages - 1) {
+                                position = 'last'
+                            }
+
+                            return (
+                                <TransactionCard
+                                    key={item.uuid}
+                                    type={transactionCardType}
+                                    name={transactionDetails.userName}
+                                    amount={Number(transactionDetails.amount)}
+                                    status={transactionDetails.status}
+                                    initials={transactionDetails.initials}
+                                    transaction={transactionDetails}
+                                    position={position}
+                                />
+                            )
+                        })}
+                    </div>
+                ))}
 
                 <div ref={loaderRef} className="w-full py-4">
                     {isFetchingNextPage && <div className="w-full text-center">Loading more...</div>}

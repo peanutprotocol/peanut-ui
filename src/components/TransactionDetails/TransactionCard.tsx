@@ -1,10 +1,13 @@
 import StatusBadge, { StatusType } from '@/components/Global/Badges/StatusBadge'
 import Card, { CardPosition } from '@/components/Global/Card'
-import { Icon } from '@/components/Global/Icons/Icon'
-import { TransactionDetails, TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { Icon, IconName } from '@/components/Global/Icons/Icon'
+import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
+import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { formatAmount } from '@/utils'
+import { formatAmount, printableAddress } from '@/utils'
 import React from 'react'
+import { isAddress } from 'viem'
 
 export type TransactionType = 'send' | 'withdraw' | 'add' | 'request'
 
@@ -18,6 +21,11 @@ interface TransactionCardProps {
     transaction: TransactionDetails
 }
 
+/**
+ * component to display a single transaction entry in a list format.
+ * it handles displaying the avatar/icon, name, amount, status,
+ * and opens a transaction details drawer when clicked.
+ */
 const TransactionCard: React.FC<TransactionCardProps> = ({
     type,
     name,
@@ -27,34 +35,43 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     position = 'middle',
     transaction,
 }) => {
+    // hook to manage the state of the details drawer (open/closed, selected transaction)
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
         useTransactionDetailsDrawer()
 
-    // determine if amount should be displayed as positive or negative
+    // determine if amount should be positive or negative based on card type
     const isNegative = type === 'send' || type === 'withdraw'
     const displayAmount = isNegative ? `-$${formatAmount(amount)}` : `+$${formatAmount(amount)}`
 
-    // for request and send type, show the raw amount without sign
+    // for request/send types, always show positive amount with dollar sign
     const finalAmount = type === 'request' || type === 'send' ? `$${formatAmount(amount)}` : displayAmount
 
     const handleClick = () => {
         openTransactionDetails(transaction)
     }
 
+    const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
+    const userNameForAvatar = transaction.userName // used by avatar for color hashing or type checking
+
     return (
         <>
+            {/* the clickable card */}
             <Card position={position} onClick={handleClick}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        {/* Icon or Initials based on transaction type */}
-                        <div
-                            className={`flex h-8 w-8 items-center justify-center rounded-full p-2 text-xs font-bold ${getIconBackgroundColor(type)}`}
-                        >
-                            {renderIcon(type, initials)}
-                        </div>
-
+                        {/* txn avatar component handles icon/initials/colors */}
+                        <TransactionAvatarBadge
+                            initials={initials}
+                            userName={userNameForAvatar}
+                            isLinkTransaction={isLinkTx}
+                            size="extra-small"
+                        />
                         <div className="flex flex-col">
-                            <div className="max-w-40 truncate font-roboto text-sm font-medium">{name}</div>
+                            {/* display formatted name (address or username) */}
+                            <div className="max-w-40 truncate font-roboto text-sm font-medium">
+                                {isAddress(name) ? printableAddress(name) : name}
+                            </div>
+                            {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-gray-500">
                                 {getActionIcon(type)}
                                 <span className="text-[10px] capitalize">{type}</span>
@@ -62,6 +79,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         </div>
                     </div>
 
+                    {/* amount and status on the right side */}
                     <div className="flex flex-col items-end space-y-0.5">
                         <span className="font-roboto text-xs font-medium">{finalAmount}</span>
                         {status && <StatusBadge status={status} />}
@@ -80,45 +98,29 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 }
 
 // helper functions
-function getIconBackgroundColor(type: TransactionType): string {
-    switch (type) {
-        case 'send':
-        case 'request':
-            return 'bg-success-1 text-black'
-        case 'withdraw':
-            return 'bg-black text-white'
-        case 'add':
-            return 'bg-black text-white'
-        default:
-            return 'bg-gray-200'
-    }
-}
+function getActionIcon(type: TransactionType): React.ReactNode {
+    let iconName: IconName | null = null
+    let iconSize = 6
 
-function renderIcon(type: TransactionType, initials: string): React.ReactNode {
     switch (type) {
         case 'send':
+            iconName = 'arrow-up-right'
+            break
         case 'request':
-            return initials.substring(0, 2).toUpperCase()
+            iconName = 'arrow-down-left'
+            break
         case 'withdraw':
-            return <Icon name="bank" size={16} fill="white" />
+            iconName = 'arrow-up'
+            iconSize = 8
+            break
         case 'add':
-            return <Icon name="arrow-down" size={14} fill="white" />
+            iconName = 'arrow-down'
+            iconSize = 8
+            break
         default:
             return null
     }
-}
-
-function getActionIcon(type: TransactionType): React.ReactNode {
-    switch (type) {
-        case 'send':
-            return <Icon name="arrow-up-right" size={6} fill="currentColor" />
-        case 'request':
-            return <Icon name="arrow-down-left" size={6} fill="currentColor" />
-        case 'withdraw':
-            return <Icon name="arrow-up" size={8} fill="currentColor" />
-        case 'add':
-            return <Icon name="arrow-down" size={8} fill="currentColor" />
-    }
+    return <Icon name={iconName} size={iconSize} fill="currentColor" />
 }
 
 export default TransactionCard

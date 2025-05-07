@@ -1,39 +1,66 @@
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 import AchievementsBadge, { AchievementsBadgeSize } from '../Global/Badges/AchievementsBadge'
+import { Icon, IconName } from '../Global/Icons/Icon'
 
+type AvatarSize = 'extra-small' | 'small' | 'medium' | 'large'
+
+/**
+ * props for the avatarwithbadge component.
+ */
 interface AvatarWithBadgeProps {
-    initials: string
+    initials?: string
+    icon?: IconName
     isVerified?: boolean
     className?: string
-    size?: 'extra-small' | 'small' | 'medium' | 'large'
+    size?: AvatarSize
     achievementsBadgeSize?: AchievementsBadgeSize
+    inlineStyle?: React.CSSProperties // for dynamic background colors based on username (hex codes)
 }
+
+/**
+ * component to display an avatar circle with either initials or an icon,
+ * and optionally a verification badge.
+ */
 const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     initials,
+    icon,
     isVerified = false,
     className,
     size = 'medium',
     achievementsBadgeSize = 'small',
+    inlineStyle,
 }) => {
-    const sizeClasses = {
-        'extra-small': 'h-8 w-8 text-sm',
-        small: 'h-8 w-8 text-lg',
+    const sizeClasses: Record<AvatarSize, string> = {
+        'extra-small': 'h-8 w-8 text-xs',
+        small: 'h-10 w-10 text-sm',
         medium: 'h-16 w-16 text-2xl',
         large: 'h-24 w-24 text-3xl',
     }
 
+    const iconSizeMap: Record<AvatarSize, number> = {
+        'extra-small': 16,
+        small: 18,
+        medium: 32,
+        large: 48,
+    }
+
     return (
         <div className={'relative'}>
+            {/* the main avatar circle */}
             <div
                 className={twMerge(
-                    `flex items-center justify-center rounded-full bg-yellow-5 font-bold`,
+                    `flex items-center justify-center rounded-full font-bold text-black`,
                     sizeClasses[size],
                     className
                 )}
+                // apply dynamic styles (e.g., background color)
+                style={{ ...inlineStyle }}
             >
-                {initials}
+                {/* display icon if provided, otherwise display initials */}
+                {icon ? <Icon name={icon} size={iconSizeMap[size]} /> : initials}
             </div>
+            {/* display verification badge if isverified is true */}
             {isVerified && <AchievementsBadge size={achievementsBadgeSize} />}
         </div>
     )

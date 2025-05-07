@@ -45,6 +45,7 @@ module.exports = {
                     3: '#fffae8',
                     4: '#AE7AFF',
                     5: '#EDE4FD',
+                    6: '#9D7EFE',
                 },
                 yellow: {
                     1: '#FFC900',
@@ -85,7 +86,10 @@ module.exports = {
                     9: '#F1EBF8',
                 },
                 cyan: {
-                    8: '#A0E6E0',
+                    1: '#4CCCEF',
+                },
+                orange: {
+                    1: '#FE8E3E',
                 },
                 success: {
                     1: '#16B413',
@@ -108,6 +112,7 @@ module.exports = {
                     DEFAULT: '#B3261E',
                     1: '#FFD8D8',
                     2: '#EA8282',
+                    3: '#FF4A4A',
                 },
             },
             zIndex: {

@@ -1,7 +1,10 @@
-import React from 'react'
+'use client'
+
 import StatusBadge, { StatusType } from '@/components/Global/Badges/StatusBadge'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { Icon } from '@/components/Global/Icons/Icon'
+import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
+import { printableAddress } from '@/utils'
+import React from 'react'
+import { isAddress as isWalletAddress } from 'viem'
 import Card from '../Global/Card'
 
 export type TransactionDirection = 'send' | 'receive' | 'request_sent' | 'request_received' | 'withdraw' | 'add'
@@ -13,40 +16,54 @@ interface TransactionDetailsHeaderCardProps {
     initials: string
     status?: StatusType
     isVerified?: boolean
+    isLinkTransaction?: boolean
 }
 
-const getTitle = (direction: TransactionDirection, userName: string): React.ReactNode => {
-    switch (direction) {
-        case 'send':
-        case 'request_received':
-            return (
-                <span className="flex items-center gap-1">
-                    <Icon name="arrow-up-right" size={12} className="text-grey-1" /> Sending to {userName}
-                </span>
-            )
-        case 'receive':
-        case 'request_sent':
-            return (
-                <span className="flex items-center gap-1">
-                    <Icon name="arrow-down-left" size={12} className="text-grey-1" /> Received from {userName}
-                </span>
-            )
-        case 'withdraw':
-            return (
-                <span className="flex items-center gap-1">
-                    <Icon name="arrow-up" size={12} className="text-grey-1" /> Withdrawing to
-                </span>
-            )
-        case 'add':
-            return (
-                <span className="flex items-center gap-1">
-                    <Icon name="arrow-down" size={12} className="text-grey-1" /> Added from
-                </span>
-            )
+const getTitle = (direction: TransactionDirection, userName: string, isLinkTransaction?: boolean): React.ReactNode => {
+    let titleText = userName
 
-        default:
-            return userName
+    if (isLinkTransaction) {
+        switch (direction) {
+            case 'send':
+            case 'request_sent':
+                titleText = 'Sent via Link'
+                break
+            case 'receive':
+            case 'request_received':
+                titleText = 'Received via Link'
+                break
+            default:
+                titleText = 'Link Transaction'
+                break
+        }
+    } else {
+        const isAddress = isWalletAddress(userName)
+        userName = isAddress ? printableAddress(userName) : userName
+        switch (direction) {
+            case 'send':
+                titleText = `Sending to ${userName}`
+                break
+            case 'request_received':
+                titleText = `Paid request to ${userName}`
+                break
+            case 'receive':
+                titleText = `Received from ${userName}`
+                break
+            case 'request_sent':
+                titleText = `Requested from ${userName}`
+                break
+            case 'withdraw':
+                titleText = `Withdrawing to ${userName}`
+                break
+            case 'add':
+                titleText = `Added from ${userName}`
+                break
+            default:
+                break
+        }
     }
+
+    return <span className="flex items-center gap-1">{titleText}</span>
 }
 
 export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCardProps> = ({
@@ -56,18 +73,22 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     initials,
     status,
     isVerified = false,
+    isLinkTransaction = false,
 }) => {
     return (
         <Card className="relative p-4 md:p-6" position="single">
             <div className="flex items-center gap-3">
-                <AvatarWithBadge
+                <TransactionAvatarBadge
                     initials={initials}
+                    userName={userName}
+                    isLinkTransaction={isLinkTransaction}
                     isVerified={isVerified}
                     size="medium"
-                    achievementsBadgeSize="small"
                 />
                 <div className="space-y-1">
-                    <h2 className="text-sm font-medium text-grey-1">{getTitle(direction, userName)}</h2>
+                    <h2 className="text-sm font-medium text-grey-1">
+                        {getTitle(direction, userName, isLinkTransaction)}
+                    </h2>
                     <h1 className="text-3xl font-extrabold md:text-4xl">{amountDisplay}</h1>
                 </div>
             </div>
