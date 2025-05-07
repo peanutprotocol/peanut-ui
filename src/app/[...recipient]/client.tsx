@@ -55,11 +55,14 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
             }
         }
 
-        fetchParsedURL()
+        if (!isUrlParsed) {
+            fetchParsedURL()
+        }
+
         return () => {
             isMounted = false
         }
-    }, [recipient, user])
+    }, [recipient, user, isUrlParsed, dispatch])
 
     // handle validation and charge creation
     useEffect(() => {
