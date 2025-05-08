@@ -7,13 +7,19 @@ import { twMerge } from 'tailwind-merge'
 interface QRCodeWrapperProps {
     url: string
     isLoading?: boolean
+    disabled?: boolean
 }
 
-const QRCodeWrapper = ({ url, isLoading = false }: QRCodeWrapperProps) => {
+const QRCodeWrapper = ({ url, isLoading = false, disabled = false }: QRCodeWrapperProps) => {
     return (
         <div className="relative mx-auto h-auto w-full max-w-[192px]">
             {/* Container with black border and rounded corners */}
-            <div className={twMerge('relative rounded border-2 border-black bg-white p-4', isLoading && 'blur-sm')}>
+            <div
+                className={twMerge(
+                    'relative rounded border-2 border-black bg-white p-4',
+                    (isLoading || disabled) && 'blur-sm'
+                )}
+            >
                 {/* QR Code with white buffer */}
                 <div className="relative">
                     <QRCode
