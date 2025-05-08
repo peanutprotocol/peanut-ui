@@ -88,7 +88,7 @@ const ChainSelector = ({ chainsToDisplay, onChange, balances }: IChainSelectorPr
                             leaveFrom="transform scale-100 opacity-100"
                             leaveTo="transform scale-95 opacity-0"
                         >
-                            <Menu.Items className="shadow-primary-4 mt-2.5 max-h-64 w-[14.69rem] divide-y divide-black overflow-auto rounded-lg bg-white dark:divide-white dark:bg-n-1">
+                            <Menu.Items className="shadow-4 mt-2.5 max-h-64 w-[14.69rem] divide-y divide-black overflow-auto rounded-lg bg-white dark:divide-white dark:bg-n-1">
                                 <div className="sticky top-0 bg-white p-2 dark:bg-n-1">
                                     <Search
                                         className="px-1"

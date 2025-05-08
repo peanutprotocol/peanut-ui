@@ -2,7 +2,7 @@ import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { PaymentCreationResponse, TCharge, TRequestChargeResponse, TRequestResponse } from '@/services/services.types'
 import { IAttachmentOptions } from './send-flow.types'
 
-export type TPaymentView = 'INITIAL' | 'CONFIRM' | 'STATUS'
+export type TPaymentView = 'INITIAL' | 'CONFIRM' | 'STATUS' | 'PUBLIC_PROFILE'
 
 export interface IPaymentState {
     currentView: TPaymentView

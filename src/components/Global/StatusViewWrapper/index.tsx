@@ -19,7 +19,7 @@ const StatusViewWrapper: React.FC<StatusViewWrapperProps> = ({
     supportCtaText,
 }) => {
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
+        <Card className="shadow-none sm:shadow-4">
             <Card.Header className="space-y-2 border-0">
                 <Card.Title className="mx-auto">{title}</Card.Title>
                 {description && <Card.Description className="mx-auto">{description}</Card.Description>}

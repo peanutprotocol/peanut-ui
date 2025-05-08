@@ -7,7 +7,6 @@ import { Button } from '@/components/0_Bruddle'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import TransactionCard from '@/components/Home/TransactionCard'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { formatExtendedNumber } from '@/utils'
@@ -140,8 +139,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                                 </Link>
                             </div>
 
+                            {/* todo: show real transactions from the user */}
                             {/* Example transaction - todo: replace with actual transaction data */}
-                            <div>
+                            {/* <div>
                                 <TransactionCard
                                     type="send"
                                     name="Hugo Montenegro"
@@ -171,7 +171,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                                     initials="HM"
                                     position="last"
                                 />
-                            </div>
+                            </div> */}
                         </div>
                     )}
                 </div>

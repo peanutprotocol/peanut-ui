@@ -42,7 +42,7 @@ const Toast: React.FC<ToastMessage> = ({ type = 'info', message }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 80 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className={twMerge(`border-2 px-6 py-1`, 'card shadow-primary-4 min-w-fit', colors[type])}
+            className={twMerge(`border-2 px-6 py-1`, 'card shadow-4 min-w-fit', colors[type])}
         >
             <p className="text-sm font-bold">{message}</p>
         </motion.div>

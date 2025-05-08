@@ -210,7 +210,7 @@ export default function DirectSendQr({
             case EQrType.PEANUT_URL:
                 {
                     let path = originalData
-                    path = path.substring(BASE_URL.length - 1)
+                    path = path.substring(BASE_URL.length)
                     if (!path.startsWith('/')) {
                         path = '/' + path
                     }

@@ -6,16 +6,16 @@ import { useConfig, useSendTransaction } from 'wagmi'
 import * as consts from '@/constants'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useAppDispatch } from '@/redux/hooks'
 import { getExplorerUrl } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
 import { waitForTransactionReceipt } from 'wagmi/actions'
+import { walletActions } from '../../redux/slices/wallet-slice'
 import { Button, Card } from '../0_Bruddle'
 import BaseInput from '../0_Bruddle/BaseInput'
 import PageContainer from '../0_Bruddle/PageContainer'
 import Select from '../Global/Select'
-import * as Sentry from '@sentry/nextjs'
-import { walletActions } from '../../redux/slices/wallet-slice'
-import { useAppDispatch } from '@/redux/hooks'
 
 export const Refund = () => {
     const { isConnected } = useWallet()
@@ -118,7 +118,7 @@ export const Refund = () => {
 
     return (
         <PageContainer>
-            <Card className="shadow-none sm:shadow-primary-4">
+            <Card className="shadow-none sm:shadow-4">
                 <Card.Header className="mx-auto text-center">
                     <Card.Title className="text-center">Refund</Card.Title>
                     <Card.Description className="mx-auto text-center">

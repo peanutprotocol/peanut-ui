@@ -7,6 +7,11 @@ export const SOCIALS = [
         logoSrc: icons.TWITTER_ICON.src,
     },
     {
+        name: 'telegram',
+        url: 'https://t.me/clubpeanut',
+        logoSrc: icons.TELEGRAM_ICON.src,
+    },
+    {
         name: 'discord',
         url: 'https://discord.gg/BX9Ak7AW28',
         logoSrc: icons.DISCORD_ICON.src,

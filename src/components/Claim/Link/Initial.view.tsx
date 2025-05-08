@@ -465,7 +465,7 @@ export const InitialClaimLinkView = ({
     return (
         <div>
             {!!user && <FlowHeader />}
-            <Card className="shadow-none sm:shadow-primary-4">
+            <Card className="shadow-none sm:shadow-4">
                 <Card.Header>
                     <Card.Title className="mx-auto">
                         <div className="flex w-full flex-col items-center justify-center gap-2">
@@ -530,7 +530,7 @@ export const InitialClaimLinkView = ({
                     {!isPeanutWallet &&
                         recipientType !== 'iban' &&
                         recipientType !== 'us' &&
-                        !isPeanutClaimOnlyMode() && <TokenSelector />}
+                        !isPeanutClaimOnlyMode() && <TokenSelector viewType="claim" />}
                     {/* Route Information & Peanut Sponsored
                      * Shows when:
                      * - Has valid recipient

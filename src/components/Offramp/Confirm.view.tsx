@@ -12,7 +12,7 @@ import Loading from '@/components/Global/Loading'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as consts from '@/constants'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
-import { tokenSelectorContext, loadingStateContext } from '@/context'
+import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import {
     createLiquidationAddress,
@@ -46,12 +46,12 @@ import {
     PeanutAccount,
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
+import { sendLinksApi } from '@/services/sendLinks'
+import * as Sentry from '@sentry/nextjs'
 import { Button, Card } from '../0_Bruddle'
 import { FAQComponent } from '../Cashout/Components/Faq.comp'
 import FlowHeader from '../Global/FlowHeader'
 import PromoCodeChecker from './PromoCodeChecker'
-import * as Sentry from '@sentry/nextjs'
-import { sendLinksApi } from '@/services/sendLinks'
 
 const TOKEN_NAME = getBridgeTokenName(PEANUT_WALLET_CHAIN.id.toString(), PEANUT_WALLET_TOKEN)!
 const CHAIN_NAME = getBridgeChainName(PEANUT_WALLET_CHAIN.id.toString())!
@@ -627,7 +627,7 @@ export const OfframpConfirmView = ({
                 disableBackBtn={isLoading}
             />
 
-            <Card className="shadow-none sm:shadow-primary-4">
+            <Card className="shadow-none sm:shadow-4">
                 <Card.Header>
                     <Card.Title>Confirm your details</Card.Title>
                     <Card.Description>

@@ -51,7 +51,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials,
             {isDrawerOpen && (
                 <>
                     <BottomDrawer
-                        initialPosition="collapsed"
+                        initialPosition="expanded"
                         handleTitle={'Your Peanut profile is public'}
                         handleSubtitle="Share it to receive payments!"
                         collapsedHeight={80}

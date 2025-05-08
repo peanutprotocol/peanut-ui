@@ -70,9 +70,8 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     const isDepositRequest = searchParams.get('action') === 'deposit'
 
     const isConnected = useMemo<boolean>(() => {
-        if (user) return isPeanutWallet
-        return isWagmiConnected
-    }, [user, isPeanutWallet, isWagmiConnected])
+        return isPeanutWallet || isWagmiConnected
+    }, [isPeanutWallet, isWagmiConnected])
 
     const isActivePeanutWallet = useMemo(() => !!user && isPeanutWallet, [user, isPeanutWallet])
 
@@ -347,10 +346,8 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     }
 
     const recipientDisplayName = useMemo(() => {
-        return (
-            requestDetails?.recipientAccount?.user?.username || (recipient ? recipient.identifier : 'Unknown Recipient')
-        )
-    }, [recipient, requestDetails])
+        return recipient ? recipient.identifier : 'Unknown Recipient'
+    }, [recipient])
 
     const isPeanutWalletUSDC = useMemo(() => {
         return (
@@ -361,15 +358,15 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
 
     return (
         <div className="space-y-4">
-            <FlowHeader
-                rightElement={
-                    isWagmiConnected ? (
+            {!isPeanutWallet && isWagmiConnected && (
+                <FlowHeader
+                    rightElement={
                         <Button variant="dark" className="h-7 text-sm" onClick={() => openReownModal()}>
                             {printableAddress(wagmiAddress!)}
                         </Button>
-                    ) : null
-                }
-            />
+                    }
+                />
+            )}
             <div className="text-center text-lg font-bold">Pay</div>
             {/* Recipient Info Card */}
             {recipient && (

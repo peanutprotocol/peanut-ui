@@ -1,20 +1,28 @@
 'use client'
 
-import AddressLink from '@/components/Global/AddressLink'
+import { CardPosition } from '@/components/Global/Card'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
-import { ListItemView } from '@/components/Global/ListItemView'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { TransactionBadge } from '@/components/Global/TransactionBadge'
-import { formatDate, getChainLogo, getHeaderTitle, getTokenLogo, getChainName } from '@/utils'
+import TransactionCard from '@/components/TransactionDetails/TransactionCard'
+import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
+import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { useUserStore } from '@/redux/hooks'
+import { getHeaderTitle } from '@/utils'
+import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef } from 'react'
-import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import React, { useEffect, useMemo, useRef } from 'react'
 
+/**
+ * displays the user's transaction history with infinite scrolling and date grouping.
+ */
 const HistoryPage = () => {
     const pathname = usePathname()
     const loaderRef = useRef<HTMLDivElement>(null)
+    const { user } = useUserStore()
+    const currentUserUsername = user?.user.username
+
     const {
         data: historyData,
         hasNextPage,
@@ -40,15 +48,20 @@ const HistoryPage = () => {
                 threshold: 0.1,
             }
         )
-
-        if (loaderRef.current) {
-            observer.observe(loaderRef.current)
+        const currentLoaderRef = loaderRef.current
+        if (currentLoaderRef) {
+            observer.observe(currentLoaderRef)
         }
-
-        return () => observer.disconnect()
+        return () => {
+            if (currentLoaderRef) {
+                observer.unobserve(currentLoaderRef)
+            }
+        }
     }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-    if (isLoading && !historyData?.pages?.length) {
+    const allEntries = useMemo(() => historyData?.pages.flatMap((page) => page.entries) ?? [], [historyData])
+
+    if (isLoading && allEntries.length === 0) {
         return <PeanutLoading />
     }
 
@@ -58,60 +71,72 @@ const HistoryPage = () => {
         return <div className="w-full py-4 text-center">Error loading history: {error?.message}</div>
     }
 
-    if (!historyData || historyData.pages.length === 0) {
+    if (allEntries.length === 0) {
         return (
-            <div className="flex h-[80dvh] items-center justify-center">
-                <NoDataEmptyState animSize="lg" message="You haven't done any transactions" />
+            <div className="flex h-[80dvh] flex-col items-center justify-center">
+                <NavHeader title={getHeaderTitle(pathname)} />
+                <div className="flex flex-grow items-center justify-center">
+                    <NoDataEmptyState animSize="lg" message="You haven't done any transactions" />
+                </div>
             </div>
         )
     }
 
+    let lastGroupHeaderKey: string | null = null
+    const today = new Date()
+
     return (
         <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
-            {!!historyData?.pages.length ? <NavHeader title={getHeaderTitle(pathname)} /> : null}
-            <div className="h-full w-full border-t border-n-1">
-                {!!historyData?.pages.length &&
-                    historyData?.pages.map((page, pageIndex) => (
-                        <div key={pageIndex}>
-                            {page.entries.map((item) => (
-                                <div key={item.uuid}>
-                                    <ListItemView
-                                        id={item.uuid}
-                                        variant="history"
-                                        primaryInfo={{
-                                            title: (
-                                                <div className="flex flex-col items-start gap-2 md:flex-row md:items-center ">
-                                                    <div className="font-bold">
-                                                        {item.type} {item.userRole}
-                                                    </div>
-                                                    <div className="flex flex-col items-end justify-end gap-2 text-end">
-                                                        <TransactionBadge status={item.status as string} />
-                                                    </div>
-                                                </div>
-                                            ),
-                                            subtitle: !!item.recipientAccount.identifier && (
-                                                <div
-                                                    className="text-xs text-gray-1"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    To: <AddressLink address={item.recipientAccount.identifier} />
-                                                </div>
-                                            ),
-                                        }}
-                                        secondaryInfo={{
-                                            mainText: item.extraData?.usdAmount,
-                                            subText: item.timestamp ? formatDate(new Date(item.timestamp)) : '',
-                                        }}
-                                        metadata={{
-                                            tokenLogo: getTokenLogo(item.tokenSymbol),
-                                            chainLogo: getChainLogo(getChainName(item.chainId) ?? ''),
-                                        }}
-                                        details={item}
-                                    />
+            <NavHeader title={getHeaderTitle(pathname)} />
+            <div className="h-full w-full">
+                {allEntries.map((item, index) => {
+                    const itemDate = new Date(item.timestamp)
+                    const group = getDateGroup(itemDate, today)
+                    const currentGroupHeaderKey = getDateGroupKey(itemDate, group)
+                    const showHeader = currentGroupHeaderKey !== lastGroupHeaderKey
+                    if (showHeader) {
+                        lastGroupHeaderKey = currentGroupHeaderKey
+                    }
+
+                    const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(
+                        item,
+                        currentUserUsername || ''
+                    )
+
+                    let position: CardPosition = 'middle'
+                    const isFirstOverall = index === 0
+                    const isLastOverall = index === allEntries.length - 1
+                    const isFirstInGroup = showHeader
+
+                    if (allEntries.length === 1) {
+                        position = 'single'
+                    } else if (isFirstInGroup && isLastOverall) {
+                        position = 'single'
+                    } else if (isFirstInGroup || isFirstOverall) {
+                        position = 'first'
+                    } else if (isLastOverall) {
+                        position = 'last'
+                    }
+
+                    return (
+                        <React.Fragment key={item.uuid}>
+                            {showHeader && (
+                                <div className="mb-2 mt-4 px-1 text-sm font-semibold capitalize">
+                                    {formatGroupHeaderDate(itemDate, group, today)}
                                 </div>
-                            ))}
-                        </div>
-                    ))}
+                            )}
+                            <TransactionCard
+                                type={transactionCardType}
+                                name={transactionDetails.userName}
+                                amount={transactionDetails.amount ? Number(transactionDetails.amount) : 0}
+                                status={transactionDetails.status}
+                                initials={transactionDetails.initials}
+                                transaction={transactionDetails}
+                                position={position}
+                            />
+                        </React.Fragment>
+                    )
+                })}
 
                 <div ref={loaderRef} className="w-full py-4">
                     {isFetchingNextPage && <div className="w-full text-center">Loading more...</div>}

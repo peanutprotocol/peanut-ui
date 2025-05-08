@@ -6,7 +6,8 @@ export default function PeanutLoading({ coverFullScreen = false }: { coverFullSc
         <div
             className={twMerge(
                 'relative flex w-full items-center justify-center self-center',
-                coverFullScreen && 'fixed top-0 z-50 flex h-screen w-full items-center justify-center bg-background'
+                coverFullScreen &&
+                    'fixed left-0 top-0 z-50 flex h-screen w-full items-center justify-center bg-background'
             )}
         >
             <div className={twMerge('animate-spin')}>

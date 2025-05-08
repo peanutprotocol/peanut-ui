@@ -9,7 +9,7 @@ export default function PaymentError({ error, reset }: { error: Error & { digest
     }, [error])
 
     return (
-        <Card className="shadow-primary-4">
+        <Card className="shadow-4">
             <Card.Header>
                 <Card.Title>Something went wrong!</Card.Title>
                 <Card.Description>

@@ -13,7 +13,7 @@ type SearchProps = {
 
 const Search = ({ className, placeholder, value, onChange, onSubmit, large, medium, border }: SearchProps) => {
     return (
-        <div className={`relative ${className} ${large ? 'shadow-primary-4 w-full' : ''}`}>
+        <div className={`relative ${className} ${large ? 'shadow-4 w-full' : ''}`}>
             <input
                 className={`w-full rounded-none bg-transparent text-base outline-none
                 transition-colors placeholder:text-base focus:border-primary-1 dark:border-white dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1 ${

@@ -25,7 +25,6 @@ export default function Home() {
     const { balance } = useWallet()
     const { rewardWalletBalance } = useWalletStore()
     const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
-
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
         return prefs?.balanceHidden ?? false
