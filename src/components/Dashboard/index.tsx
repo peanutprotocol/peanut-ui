@@ -97,9 +97,9 @@ export const Dashboard = () => {
 
     useEffect(() => {
         if (filterValue) {
-            const filteredDashboarData = filterDashboardData(filterValue, dashboardData, itemsPerPage)
-            setFilteredDashboardData(filteredDashboarData)
-            setTotalPages(Math.ceil(filteredDashboarData.length / itemsPerPage))
+            const filteredDashboardData = filterDashboardData(filterValue, dashboardData, itemsPerPage)
+            setFilteredDashboardData(filteredDashboardData)
+            setTotalPages(Math.ceil(filteredDashboardData.length / itemsPerPage))
             setCurrentPage(1)
         } else {
             setFilteredDashboardData(dashboardData)

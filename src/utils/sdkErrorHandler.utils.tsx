@@ -54,7 +54,7 @@ export const ErrorHandler = (error: any) => {
         } else if (error.toString().includes('User rejected the request')) {
             return 'Please confirm the request in your wallet.'
         } else if (error.toString().includes('NETWORK_ERROR')) {
-            return 'A network error occured. Please refresh and try again.'
+            return 'A network error occurred. Please refresh and try again.'
         } else if (error.toString().includes('NONCE_EXPIRED')) {
             return 'Nonce expired, please try again.'
         } else if (error.toString().includes('Failed to get wallet client')) {
