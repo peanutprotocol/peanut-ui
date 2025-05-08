@@ -1,15 +1,15 @@
 'use client'
 
 import * as assets from '@/assets'
-import * as context from '@/context'
+import { loadingStateContext } from '@/context'
 import { useAuth } from '@/context/authContext'
+import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { useContext, useState } from 'react'
 import { Button, Card } from '../0_Bruddle'
 import Divider from '../0_Bruddle/Divider'
 import PageContainer from '../0_Bruddle/PageContainer'
 import { GlobaLinkAccountComponent } from '../Global/LinkAccountComponent'
-import * as Sentry from '@sentry/nextjs'
 
 export const LinkAccountComponent = () => {
     const { user, logoutUser, isFetchingUser } = useAuth()
@@ -17,7 +17,7 @@ export const LinkAccountComponent = () => {
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const handleLogout = async () => {
         try {
             setLoadingState('Logging out')
@@ -47,7 +47,7 @@ export const LinkAccountComponent = () => {
 
     return (
         <PageContainer>
-            <Card className="shadow-none sm:shadow-primary-4">
+            <Card className="shadow-none sm:shadow-4">
                 <Card.Header className="mx-auto text-center">
                     <Card.Title className="text-center">
                         Welcome back, {user?.user?.username ?? user?.user?.email}

@@ -6,8 +6,8 @@
         "node": ">=21.1.0 <22.0.0 || ^18.18.0 || ^20.9.0"
     },
     "scripts": {
-        "dev": "next dev",
-        "dev:tunnel": "ngrok http 3000",
+        "dev": "NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
+        "dev:fallback": "next dev",
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
@@ -49,7 +49,6 @@
         "auto-text-size": "^0.2.3",
         "autoprefixer": "^10.4.20",
         "chakra-ui-steps": "^2.1.0",
-        "chroma-js": "^3.1.2",
         "classnames": "^2.5.1",
         "ethers": "5.7.2",
         "framer-motion": "^11.11.17",
@@ -58,10 +57,10 @@
         "jsqr": "^1.4.0",
         "lottie-react": "^2.4.0",
         "multicoin-address-validator": "^0.5.22",
-        "next": "^14.2.18",
-        "react": "^18.3.1",
+        "next": "15.3.1",
+        "react": "^19.1.0",
         "react-csv": "^2.2.2",
-        "react-dom": "^18.3.1",
+        "react-dom": "^19.1.0",
         "react-fast-marquee": "^1.6.5",
         "react-ga4": "^2.1.0",
         "react-hook-form": "^7.53.2",
@@ -132,7 +131,8 @@
         "moduleNameMapper": {
             "^@/(.*)$": "<rootDir>/src/$1",
             "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",
-            "^@squirrel-labs/peanut-sdk$": "<rootDir>/src/utils/__mocks__/peanut-sdk.ts"
+            "^@squirrel-labs/peanut-sdk$": "<rootDir>/src/utils/__mocks__/peanut-sdk.ts",
+            "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts"
         },
         "setupFilesAfterEnv": [
             "<rootDir>/jest.setup.ts"

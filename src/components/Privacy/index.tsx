@@ -1,11 +1,12 @@
-import * as assets from '@/assets'
+import { PeanutGuyGIF } from '@/assets'
+
 export function Privacy() {
     return (
-        <div className="flex h-full flex-col-reverse text-black dark:text-white lg:flex-row">
-            <div className="-ml-16 w-4/5 md:w-1/2 ">
-                <img src={assets.PEANUTMAN_CHEERING.src} className="h-full w-auto" />
+        <div className="flex h-full flex-col-reverse items-center justify-center lg:flex-row">
+            <div className="w-4/5 md:w-1/2">
+                <img src={PeanutGuyGIF.src} className="h-full w-auto md:h-fit md:w-fit" />
             </div>
-            <div className="my-32 inline flex w-3/4 flex-col justify-center gap-0 self-end px-8 lg:self-auto">
+            <div className="px-12 md:px-0">
                 <div className="font-display text-xl lg:text-3xl">{'<'} Hey there! This is how we treat ur data.</div>
                 <div className="font-display text-2xl md:text-4xl lg:text-7xl">Privacy Policy</div>
 

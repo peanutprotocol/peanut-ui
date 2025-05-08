@@ -1,23 +1,24 @@
 'use client'
-import React, { createContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useEffect, useState } from 'react'
 
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
+import { fetchTokenPrice } from '@/app/actions/tokens'
 import {
-    PEANUT_WALLET_TOKEN,
-    PEANUT_WALLET_TOKEN_IMG_URL,
-    PEANUT_WALLET_TOKEN_SYMBOL,
-    PEANUT_WALLET_TOKEN_NAME,
     PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
     PEANUT_WALLET_TOKEN_DECIMALS,
+    PEANUT_WALLET_TOKEN_IMG_URL,
+    PEANUT_WALLET_TOKEN_NAME,
+    PEANUT_WALLET_TOKEN_SYMBOL,
     STABLE_COINS,
     supportedMobulaChains,
 } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { type ITokenPriceData } from '@/interfaces'
+import { estimateIfIsStableCoinFromPrice, getUserPreferences } from '@/utils'
+import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
-import { estimateIfIsStableCoinFromPrice, getUserPreferences } from '@/utils'
-import { fetchTokenPrice } from '@/app/actions/tokens'
 
 type inputDenominationType = 'USD' | 'TOKEN'
 
@@ -28,6 +29,7 @@ export const tokenSelectorContext = createContext({
     setSelectedTokenDecimals: (decimals: number | undefined) => {},
     setSelectedTokenAddress: (address: string) => {},
     setSelectedChainID: (chainID: string) => {},
+    updateSelectedChainID: (chainID: string) => {},
     selectedTokenPrice: 0 as number | undefined,
     setSelectedTokenPrice: (price: number | undefined) => {},
     inputDenomination: 'TOKEN' as inputDenominationType,
@@ -47,7 +49,7 @@ export const tokenSelectorContext = createContext({
  * It handles fetching token prices, updating context values, and resetting the provider based on user preferences and wallet connection status.
  */
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
-    const { isPeanutWallet } = useWallet()
+    const { isConnected: isPeanutWallet } = useWallet()
 
     const peanutWalletTokenData = {
         price: 1,
@@ -60,9 +62,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     } as ITokenPriceData
 
     const peanutDefaultTokenData = {
-        // address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC
-        // chainId: '10', // Optimism
-        // decimals: 6,
         address: PEANUT_WALLET_TOKEN,
         chainId: PEANUT_WALLET_CHAIN.id.toString(),
         decimals: PEANUT_WALLET_TOKEN_DECIMALS,
@@ -98,7 +97,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     >({})
 
     const updateSelectedChainID = (chainID: string) => {
-        setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
+        setSelectedTokenAddress(NATIVE_TOKEN_ADDRESS)
         setSelectedChainID(chainID)
     }
 
@@ -228,7 +227,8 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 setSelectedTokenAddress,
                 selectedTokenDecimals,
                 selectedChainID,
-                setSelectedChainID: updateSelectedChainID,
+                setSelectedChainID: setSelectedChainID,
+                updateSelectedChainID,
                 selectedTokenPrice,
                 setSelectedTokenPrice,
                 inputDenomination,

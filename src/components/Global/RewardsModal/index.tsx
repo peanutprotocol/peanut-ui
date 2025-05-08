@@ -32,7 +32,7 @@ export const RewardDetails = () => {
     )
 }
 
-export const PartnerBarLocation = () => {
+export const PartnerBarLocation = ({ text = 'partner bars.' }: { text?: string }) => {
     return (
         <Link
             // bars that accept pinta in Argentina
@@ -43,7 +43,7 @@ export const PartnerBarLocation = () => {
             target="_blank"
             className="font-semibold underline"
         >
-            partner bars.
+            {text}
         </Link>
     )
 }

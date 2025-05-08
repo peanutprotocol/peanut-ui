@@ -16,7 +16,7 @@ type FundingMethod = 'exchange' | 'request_link' | null
 type Wallet = { name: string; logo: string }
 
 // main component
-const AddFunds = () => {
+const AddFunds = ({ cta }: { cta?: ReactNode }) => {
     const [fundingMethod, setFundingMethod] = useState<FundingMethod>(null)
     const [showModal, setShowModal] = useState(false)
     const timerRef = useRef<NodeJS.Timeout>()
@@ -47,10 +47,16 @@ const AddFunds = () => {
     return (
         <div>
             <div onClick={() => setShowModal(true)} className="flex flex-col items-center gap-2.5">
-                <Button variant="purple" className={twMerge('h-14 w-14 rounded-full p-0')} shadowSize="4">
-                    <Icon name="plus" className="h-5 w-5" />
-                </Button>
-                <div className="font-semibold">Add</div>
+                {cta ? (
+                    cta
+                ) : (
+                    <>
+                        <Button variant="purple" className={twMerge('h-14 w-14 rounded-full p-0')} shadowSize="4">
+                            <Icon name="plus" className="h-5 w-5" />
+                        </Button>
+                        <div className="font-semibold">Add</div>
+                    </>
+                )}
             </div>
 
             <Modal
@@ -93,7 +99,7 @@ const MethodCard = ({
     <button
         onClick={onClick}
         className={twMerge(
-            'shadow-primary-4 w-full border border-black p-4 text-left transition-all',
+            'shadow-4 w-full border border-black p-4 text-left transition-all',
             variant === 'primary' ? 'bg-primary-1 hover:bg-primary-1/80' : 'bg-secondary-1 hover:bg-secondary-1/80'
         )}
     >
@@ -124,7 +130,7 @@ const WalletGrid = ({ wallets }: { wallets: Wallet[] }) => (
 )
 
 const InfoMessage = ({ children }: { children: ReactNode }) => (
-    <div className="shadow-primary-4 flex items-center justify-center border border-black bg-primary-1/10 p-4">
+    <div className="shadow-4 flex items-center justify-center border border-black bg-primary-1/10 p-4">
         <p className="text-sm">{children}</p>
     </div>
 )
@@ -132,11 +138,7 @@ const InfoMessage = ({ children }: { children: ReactNode }) => (
 const UsingExchange = () => {
     const [userAcknowledged, setUserAcknowledged] = useState(false)
     const [showWarning, setShowWarning] = useState(false)
-    const { peanutWalletDetails } = useWallet()
-
-    const peanutWalletAddress = useMemo(() => {
-        return peanutWalletDetails?.address ?? ''
-    }, [peanutWalletDetails])
+    const { address } = useWallet()
 
     const handleDisabledCopy = () => {
         if (!userAcknowledged) {
@@ -156,12 +158,12 @@ const UsingExchange = () => {
                     !userAcknowledged && 'blur-md'
                 )}
             >
-                <QRCodeWrapper url={peanutWalletAddress} />
+                <QRCodeWrapper url={address} />
             </div>
 
             {/* Copy Address Field */}
             <CopyField
-                text={peanutWalletAddress}
+                text={address}
                 shadowSize="4"
                 disabled={!userAcknowledged}
                 onDisabledClick={handleDisabledCopy}

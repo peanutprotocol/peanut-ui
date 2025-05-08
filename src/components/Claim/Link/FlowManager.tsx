@@ -3,11 +3,11 @@ import * as onchainViews from './Onchain'
 import { InitialClaimLinkView } from './Initial.view'
 import * as _consts from '../Claim.consts'
 import * as interfaces from '@/interfaces'
-import { OfframpConfirmView, OfframpSuccessView } from '@/components/Offramp'
+import { OfframpSuccessView, OfframpConfirmView } from '@/components/Offramp'
 import {
-    IOfframpConfirmScreenProps,
     IOfframpSuccessScreenProps,
     OfframpType,
+    IOfframpConfirmScreenProps,
 } from '@/components/Offramp/Offramp.consts'
 
 type ClaimPropsType = _consts.IClaimScreenProps | IOfframpSuccessScreenProps | IOfframpConfirmScreenProps

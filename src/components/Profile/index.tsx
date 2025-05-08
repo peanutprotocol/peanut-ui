@@ -1,190 +1,88 @@
 'use client'
 
-import * as context from '@/context'
+import { Button } from '@/components/0_Bruddle'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { fetchWithSentry, areEvmAddressesEqual, createSiweMessage } from '@/utils'
-import { useContext, useState } from 'react'
-import { useSignMessage } from 'wagmi'
-import { Button } from '../0_Bruddle'
-import AddressLink from '../Global/AddressLink'
-import Icon from '../Global/Icon'
-import Modal from '../Global/Modal'
-import ProfileHeader from './Components/ProfileHeader'
-import ProfileSection from './Components/ProfileSection'
-import ProfileWalletBalance from './Components/ProfileWalletBalance'
-import * as Sentry from '@sentry/nextjs'
+import { getInitialsFromName } from '@/utils'
+import NavHeader from '../Global/NavHeader'
+import ProfileHeader from './components/ProfileHeader'
+import ProfileMenuItem from './components/ProfileMenuItem'
 
 export const Profile = () => {
-    const { address } = useWallet()
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { signMessageAsync } = useSignMessage()
-    const { user, fetchUser, isFetchingUser, logoutUser } = useAuth()
+    const { logoutUser, isLoggingOut, user } = useAuth()
 
-    const [_isLoading, _setIsLoading] = useState(false)
-    const [modalVisible, setModalVisible] = useState(false)
-    const [modalType, setModalType] = useState<'Boost' | 'Invites' | undefined>(undefined)
-    const [errorState, setErrorState] = useState<{
-        showError: boolean
-        errorMessage: string
-    }>({ showError: false, errorMessage: '' })
-
-    const handleSiwe = async () => {
-        try {
-            _setIsLoading(true)
-            setErrorState({
-                showError: false,
-                errorMessage: '',
-            })
-            if (!address) return
-
-            const userIdResponse = await fetchWithSentry('/api/peanut/user/get-user-id', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    accountIdentifier: address,
-                }),
-            })
-
-            const response = await userIdResponse.json()
-
-            const siwemsg = createSiweMessage({
-                address: address ?? '',
-                statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
-            })
-
-            const signature = await signMessageAsync({
-                message: siwemsg,
-            })
-
-            await fetchWithSentry('/api/peanut/user/get-jwt-token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    signature: signature,
-                    message: siwemsg,
-                }),
-            })
-
-            fetchUser()
-        } catch (error) {
-            console.error('Authentication error:', error)
-            setErrorState({
-                showError: true,
-                errorMessage: 'Error while authenticating. Please try again later.',
-            })
-            Sentry.captureException(error)
-        } finally {
-            _setIsLoading(false)
-        }
+    const logout = async () => {
+        await logoutUser()
     }
 
-    const handleLogout = async () => {
-        try {
-            setLoadingState('Logging out')
-            await logoutUser()
-        } catch (error) {
-            console.error('Error logging out', error)
-            setErrorState({
-                showError: true,
-                errorMessage: 'Error logging out',
-            })
-            Sentry.captureException(error)
-        } finally {
-            setLoadingState('Idle')
-        }
-    }
+    const fullName = user?.user.full_name || user?.user?.username || 'Anonymous User'
+    const username = user?.user.username || 'anonymous'
+    const initials = getInitialsFromName(fullName)
 
-    if (!user) {
-        // TODO: Sign In User Here
-        return (
-            <div className="flex h-full w-full flex-col items-center justify-center">
-                <Button disabled className="w-[80%] sm:w-[120px]">
-                    Sign In
-                </Button>
-            </div>
-        )
-    } else
-        return (
-            <div className="col h-full w-full  items-center justify-start gap-4">
-                <div className={`col w-full items-center justify-center gap-2`}>
-                    <div className="col w-full items-center justify-center gap-2 sm:flex-row sm:justify-between">
-                        <div className="col w-full gap-5">
-                            <ProfileHeader />
-                            <ProfileSection />
-                            <ProfileWalletBalance />
-                        </div>
+    return (
+        <div className="h-full w-full bg-background">
+            <NavHeader hideLabel />
+            <div className="space-y-8">
+                <ProfileHeader
+                    name={fullName}
+                    username={username}
+                    initials={initials}
+                    isVerified={user?.user.kycStatus === 'approved'}
+                />
+                <div className="space-y-4">
+                    {/* Menu Item - Invite Entry */}
+                    <ProfileMenuItem
+                        icon="smile"
+                        label="Invite friends to Peanut"
+                        href="https://docs.peanut.to/how-to-use-peanut-links/referrals"
+                        position="single"
+                        isExternalLink
+                    />
+                    {/* Menu Items - First Group */}
+                    <div>
+                        <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
+                        <ProfileMenuItem
+                            icon="bank"
+                            label="Bank accounts"
+                            href="/profile/bank-accounts"
+                            position="middle"
+                            comingSoon
+                        />
+                        <ProfileMenuItem icon="achievements" label="Achievements" position="last" comingSoon />
                     </div>
-                    <Modal
-                        visible={modalVisible}
-                        onClose={() => {
-                            setModalVisible(false)
-                        }}
-                        title={modalType}
-                        classNameWrapperDiv="px-5 pb-7 pt-8"
-                    >
-                        {
-                            <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
-                                <div>
-                                    <label className="w-[42%] text-h9">Address</label>
-                                    <label className="w-[28%] text-h9">Referred Users</label>
-                                    <label className="w-[30%] text-right text-h9">Points</label>
-                                </div>
-                                {user?.referredUsers > 0 &&
-                                    user?.pointsPerReferral.map(
-                                        (
-                                            referral: { address: string; points: number; totalReferrals: number },
-                                            index: number
-                                        ) => (
-                                            <div key={index} className="flex w-full items-center justify-between">
-                                                <label
-                                                    className="w-[40%] cursor-pointer truncate text-h8"
-                                                    onClick={() => {
-                                                        window.open(
-                                                            `https://debank.com/profile/${referral.address}/history`,
-                                                            '_blank'
-                                                        )
-                                                    }}
-                                                >
-                                                    <Icon
-                                                        name={'external'}
-                                                        className="mb-1 cursor-pointer"
-                                                        onClick={() => {
-                                                            window.open(
-                                                                `https://debank.com/profile/${referral.address}/history`,
-                                                                '_blank'
-                                                            )
-                                                        }}
-                                                    />
-                                                    <AddressLink address={referral.address} />
-                                                </label>
-                                                <label className="w-[30%] text-center text-h8">
-                                                    {referral?.totalReferrals ?? 0}
-                                                </label>
-                                                <label className="w-[30%] text-right text-h8">
-                                                    {Math.floor(
-                                                        user.pointsPerReferral?.find((ref) =>
-                                                            areEvmAddressesEqual(ref.address, referral.address)
-                                                        )?.points ?? 0
-                                                    )}
-                                                </label>
-                                            </div>
-                                        )
-                                    )}
-
-                                <div className="flex w-full items-center justify-between">
-                                    <label className="w-[40%]">Total</label>
-                                    <label className="w-[30%] text-center">{user?.totalReferralConnections}</label>
-                                    <label className="w-[30%] text-right">{user?.totalReferralPoints}</label>
-                                </div>
-                            </div>
-                        }
-                    </Modal>
+                    {/* Menu Items - Second Group */}
+                    <div>
+                        <ProfileMenuItem
+                            icon="fees"
+                            label="Fees"
+                            href="https://docs.peanut.to/fees"
+                            position="first"
+                            isExternalLink
+                        />
+                        <ProfileMenuItem icon="currency" label="Currency" position="middle" comingSoon />
+                        <ProfileMenuItem
+                            icon="exchange"
+                            label="Exchange rates"
+                            href="/profile/exchange-rates"
+                            position="last"
+                            comingSoon
+                        />
+                    </div>
+                    {/* Logout Button */}
+                    <div className="w-full pb-10">
+                        <Button
+                            disabled={isLoggingOut}
+                            variant="primary-soft"
+                            shadowSize="4"
+                            className="flex w-full items-center justify-center gap-2 rounded-sm py-3"
+                            onClick={logout}
+                        >
+                            <Icon name="logout" size={20} fill="black" />
+                            <span className="font-bold">Log out</span>
+                        </Button>
+                    </div>
                 </div>
             </div>
-        )
+        </div>
+    )
 }

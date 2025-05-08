@@ -6,6 +6,9 @@ export const peanutWalletIsInPreview = true
 
 export const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
 
+export const SQUID_INTEGRATOR_ID = '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C'
+export const SQUID_API_URL = 'https://apiplus.squidrouter.com/v2'
+
 export const infuraRpcUrls: Record<number, string> = {
     [arbitrum.id]: `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_KEY}`,
@@ -31,23 +34,6 @@ export const PEANUT_API_URL = (
 ).replace(/\/$/, '') // remove any accidental trailing slash
 export const next_proxy_url = '/api/proxy'
 
-const supportedWalletconnectChains = <{ chainId: string; name: string }[]>[
-    { chainId: '1', name: 'Ethereum' },
-    { chainId: '10', name: 'Optimism' },
-    { chainId: '56', name: 'Binance Smart Chain' },
-    { chainId: '100', name: 'Gnosis Chain' },
-    { chainId: '137', name: 'Polygon' },
-    { chainId: '324', name: 'zkSync Era' },
-    { chainId: '1101', name: 'Polygon Zkevm' },
-    { chainId: '5000', name: 'Mantle 1' }, //
-    { chainId: '8217', name: 'Klaytn Mainnet' },
-    { chainId: '8453', name: 'Base' },
-    { chainId: '42161', name: 'Arbitrum' },
-    { chainId: '42220', name: 'Celo' },
-    { chainId: '43114', name: 'Avalanche C-Chain' },
-    { chainId: '7777777', name: 'Zora 1' },
-    { chainId: '1313161554', name: 'Aurora 1' },
-]
 export const supportedMobulaChains = <{ name: string; chainId: string }[]>[
     {
         name: 'Fantom',
@@ -189,7 +175,6 @@ export const nativeCurrencyAddresses: string[] = [
 export const pathTitles: { [key: string]: string } = {
     '/home': 'Dashboard',
     '/send': 'Send',
-    '/wallet': 'Wallet',
     '/request/create': 'Request',
     '/request/pay': 'Pay',
     '/cashout': 'Cashout',

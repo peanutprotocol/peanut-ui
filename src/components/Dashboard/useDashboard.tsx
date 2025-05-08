@@ -11,8 +11,12 @@ import {
     getDirectSendFromLocalStorage,
     getOfframpClaimsFromLocalStorage,
     getTokenSymbol,
+    getTokenDetails,
+    getFromLocalStorage,
 } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
+import { formatUnits } from 'viem'
+import { sendLinksApi as sendLinksApi } from '@/services/sendLinks'
 
 export const useDashboard = () => {
     const fetchLinkDetailsAsync = async (visibleData: interfaces.IDashboardItem[]) => {
@@ -71,7 +75,7 @@ export const useDashboard = () => {
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,
             },
         })
-        const requestHistory = await historyResponse.json()
+        const history = await historyResponse.json()
 
         let linkData: interfaces.IDashboardItem[] = []
 
@@ -144,12 +148,36 @@ export const useDashboard = () => {
         })
 
         // TODO: use history entry typing
-        requestHistory.entries.forEach((entry: any) => {
+        history.entries.forEach((entry: any) => {
+            let type: interfaces.IDashboardItem['type']
+            let amount: string
+            let tokenSymbol: string
+            let link: string
+            switch (entry.type) {
+                case 'SEND_LINK':
+                    //TODO: this will be rewritten with history service
+                    const password = getFromLocalStorage(`sendLink::password::${entry.uuid}`)
+                    const { contractVersion, depositIdx } = entry.extraData
+                    link = `${process.env.NEXT_PUBLIC_BASE_URL}/claim?c=${entry.chainId}&v=${contractVersion}&i=${depositIdx}#p=${password}`
+                    type = entry.userRole === 'SENDER' ? 'Link Sent' : 'Link Received'
+                    const tokenDetails = getTokenDetails({ tokenAddress: entry.tokenAddress, chainId: entry.chainId })
+                    amount = formatUnits(entry.amount, tokenDetails?.decimals ?? 6)
+                    tokenSymbol = tokenDetails?.symbol ?? ''
+                    break
+                case 'REQUEST':
+                    link = `${process.env.NEXT_PUBLIC_BASE_URL}/request/pay?id=${entry.uuid}`
+                    type = entry.userRole === 'SENDER' ? 'Request Link Fulfillment' : 'Request Link'
+                    amount = entry.amount.toString()
+                    tokenSymbol = entry.tokenSymbol
+                    break
+                default:
+                    return
+            }
             linkData.push({
-                link: `${process.env.NEXT_PUBLIC_BASE_URL}/request/pay?id=${entry.uuid}`,
-                type: entry.userRole === 'SENDER' ? 'Request Link Fulfillment' : 'Request Link',
-                amount: entry.amount.toString(),
-                tokenSymbol: entry.tokenSymbol,
+                link,
+                type,
+                amount,
+                tokenSymbol,
                 chain: supportedPeanutChains.find((chain) => chain.chainId === entry.chainId)?.name ?? '',
                 date: entry.timestamp.toString(),
                 address: '',

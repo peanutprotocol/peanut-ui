@@ -1,6 +1,6 @@
 import Icon from '@/components/Global/Icon'
 import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
+import { copyTextToClipboardWithFallback } from '@/utils'
 import { Menu, Transition } from '@headlessui/react'
 import { useRouter } from 'next/navigation'
 export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem }) => {
@@ -19,7 +19,7 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                 leaveFrom="transform scale-100 opacity-100"
                 leaveTo="transform scale-95 opacity-0"
             >
-                <Menu.Items className="shadow-primary-4  absolute right-12 top-full z-30 mt-2.5 max-h-96 w-[14.69rem] divide-y divide-black overflow-auto rounded-sm border border-n-1 bg-white dark:divide-white dark:border-white dark:bg-n-1">
+                <Menu.Items className="shadow-4  absolute right-12 top-full z-30 mt-2.5 max-h-96 w-[14.69rem] divide-y divide-black overflow-auto rounded-sm border border-n-1 bg-white dark:divide-white dark:border-white dark:bg-n-1">
                     {item.type != 'Link Received' && item.status == 'pending' && (
                         <Menu.Item
                             as={'button'}
@@ -36,7 +36,7 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                             <Menu.Item
                                 as={'button'}
                                 onClick={() => {
-                                    utils.copyTextToClipboardWithFallback(item.link ?? '')
+                                    copyTextToClipboardWithFallback(item.link ?? '')
                                 }}
                                 className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                             >
@@ -58,7 +58,7 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                         <Menu.Item
                             as={'button'}
                             onClick={() => {
-                                utils.copyTextToClipboardWithFallback(item.txHash ?? '')
+                                copyTextToClipboardWithFallback(item.txHash ?? '')
                             }}
                             className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-grey-1/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >

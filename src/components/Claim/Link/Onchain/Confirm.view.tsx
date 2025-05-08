@@ -6,13 +6,21 @@ import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import * as consts from '@/constants'
-import * as context from '@/context'
+import { tokenSelectorContext, loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import * as utils from '@/utils'
+import {
+    saveClaimedLinkToLocalStorage,
+    ErrorHandler,
+    formatAmount,
+    checkifImageType,
+    formatAmountWithDecimals,
+} from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
 import * as _consts from '../../Claim.consts'
 import useClaimLink from '../../useClaimLink'
+import { formatUnits } from 'viem'
+import { IExtendedLinkDetails } from '@/interfaces'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -26,12 +34,10 @@ export const ConfirmClaimLinkView = ({
     attachment,
     selectedRoute,
 }: _consts.IClaimScreenProps) => {
-    const { address, refetchBalances } = useWallet()
+    const { address, fetchBalance } = useWallet()
     const { claimLinkXchain, claimLink } = useClaimLink()
-    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(
-        context.tokenSelectorContext
-    )
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -67,7 +73,7 @@ export const ConfirmClaimLinkView = ({
                 setClaimType('claim')
             }
             if (claimTxHash) {
-                utils.saveClaimedLinkToLocalStorage({
+                saveClaimedLinkToLocalStorage({
                     address: recipient ? recipient.address : (address ?? ''),
                     data: {
                         ...claimLinkData,
@@ -77,16 +83,16 @@ export const ConfirmClaimLinkView = ({
                         txHash: claimTxHash,
                         message: attachment.message ? attachment.message : undefined,
                         attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
-                    },
+                    } as unknown as IExtendedLinkDetails,
                 })
                 setTransactionHash(claimTxHash)
                 onNext()
-                refetchBalances(address ?? '')
+                fetchBalance()
             } else {
                 throw new Error('Error claiming link')
             }
         } catch (error) {
-            const errorString = utils.ErrorHandler(error)
+            const errorString = ErrorHandler(error)
             setErrorState({
                 showError: true,
                 errorMessage: errorString,
@@ -115,13 +121,13 @@ export const ConfirmClaimLinkView = ({
 
     return (
         <div>
-            <FlowHeader onPrev={onPrev} disableBackBtn={isLoading} disableWalletHeader />
+            <FlowHeader onPrev={onPrev} disableBackBtn={isLoading} />
             <Card>
                 <Card.Header>
                     <Card.Title className="mx-auto text-center">
                         <AddressLink address={claimLinkData.senderAddress} /> <br /> sent you <br />
                         <label className="text-start text-h2">
-                            {utils.formatAmount(claimLinkData.tokenAmount)} {claimLinkData.tokenSymbol} <br />
+                            {formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)} {claimLinkData.tokenSymbol}
                             <span className="text-lg">
                                 {' '}
                                 on {supportedSquidChainsAndTokens[claimLinkData.chainId]?.axelarChainName}
@@ -132,11 +138,11 @@ export const ConfirmClaimLinkView = ({
                         {(attachment.message || attachment.attachmentUrl) && (
                             <>
                                 <div
-                                    className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
+                                    className={`flex w-full items-center justify-center gap-2 ${checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
                                 >
                                     {attachment.message && <label className="text-h8 ">{attachment.message}</label>}
                                     {attachment.attachmentUrl &&
-                                        (utils.checkifImageType(fileType) ? (
+                                        (checkifImageType(fileType) ? (
                                             <img
                                                 src={attachment.attachmentUrl}
                                                 className="h-18 w-18"
@@ -163,8 +169,8 @@ export const ConfirmClaimLinkView = ({
                     {selectedRoute ? (
                         <div className="flex w-full flex-row items-start justify-start gap-1 px-2 text-h7">
                             You are claiming{' '}
-                            {utils.formatAmount(
-                                utils.formatAmountWithDecimals({
+                            {formatAmount(
+                                formatAmountWithDecimals({
                                     amount: selectedRoute.route.estimate.toAmountMin,
                                     decimals: selectedRoute.route.estimate.toToken.decimals,
                                 })
@@ -174,7 +180,7 @@ export const ConfirmClaimLinkView = ({
                         </div>
                     ) : (
                         <div className="flex w-full flex-row items-center justify-start gap-1 text-h7">
-                            {utils.formatTokenAmount(Number(claimLinkData.tokenAmount))} {claimLinkData.tokenSymbol} on{' '}
+                            {formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)} {claimLinkData.tokenSymbol}{' '}
                             {
                                 consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
                                     ?.name

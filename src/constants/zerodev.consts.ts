@@ -29,6 +29,11 @@ export const PINTA_WALLET_TOKEN = '0x9Ae69fDfF2FA97e34B680752D8E70dfD529Ea6ca'
 export const PINTA_WALLET_TOKEN_NAME = 'PINTA'
 export const PINTA_WALLET_TOKEN_SYMBOL = 'PNT'
 
+export const PEANUT_WALLET_SUPPORTED_TOKENS: Record<string, string[]> = {
+    [PEANUT_WALLET_CHAIN.id.toString()]: [PEANUT_WALLET_TOKEN],
+    [PINTA_WALLET_CHAIN.id.toString()]: [PINTA_WALLET_TOKEN],
+}
+
 /**
  * Zerodev needs these to be passed explicitly to avoid breaking changes
  * when upgrading the SDK. At moment of feature development this is
@@ -51,6 +56,7 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
         client: createPublicClient({
             transport: http(infuraRpcUrls[arbitrum.id]),
             chain: arbitrum,
+            pollingInterval: 500,
         }),
         chain: PEANUT_WALLET_CHAIN,
         bundlerUrl: BUNDLER_URL,
@@ -60,6 +66,7 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
         client: createPublicClient({
             transport: http(infuraRpcUrls[polygon.id]),
             chain: polygon,
+            pollingInterval: 2500,
         }),
         chain: polygon,
         bundlerUrl: process.env.NEXT_PUBLIC_POLYGON_BUNDLER_URL!,

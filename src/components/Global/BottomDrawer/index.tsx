@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, ReactNode } from 'react'
+import React, { ReactNode, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 type DrawerPosition = 'collapsed' | 'half' | 'expanded'
@@ -9,6 +9,7 @@ interface BottomDrawerProps {
     onClose?: () => void
     initialPosition?: DrawerPosition
     handleTitle?: string
+    handleSubtitle?: string
     collapsedHeight?: number
     halfHeight?: number
     expandedHeight?: number
@@ -22,6 +23,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
     onClose,
     initialPosition = 'half',
     handleTitle = '',
+    handleSubtitle = '',
     collapsedHeight = 15,
     halfHeight = 50,
     expandedHeight = 90,
@@ -33,9 +35,18 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
     const [startY, setStartY] = useState<number>(0)
     const [currentY, setCurrentY] = useState<number>(0)
     const [portalElement, setPortalElement] = useState<HTMLElement | null>(null)
+    const [userMovedDrawer, setUserMovedDrawer] = useState<boolean>(false)
     const sheetRef = useRef<HTMLDivElement>(null)
     const contentRef = useRef<HTMLDivElement>(null)
     const overlayRef = useRef<HTMLDivElement>(null)
+
+    // reset position when drawer is opened
+    useEffect(() => {
+        if (isOpen) {
+            setPosition(initialPosition)
+            setUserMovedDrawer(false)
+        }
+    }, [isOpen, initialPosition])
 
     // Create portal element on mount
     useEffect(() => {
@@ -58,7 +69,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
 
     // Manage body scroll when drawer is open
     useEffect(() => {
-        if (preventScroll && position === 'expanded') {
+        if (preventScroll && isOpen && position === 'expanded') {
             // Only prevent scroll when fully expanded
             // Store the current scroll position
             const scrollY = window.scrollY
@@ -68,19 +79,24 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
 
             return () => {
                 // Restore the scroll position
-                const scrollY = document.body.style.top
+                const originalScrollY = document.body.style.top
                 document.body.style.position = ''
                 document.body.style.top = ''
                 document.body.style.width = ''
-                window.scrollTo(0, parseInt(scrollY || '0') * -1)
+                window.scrollTo(0, parseInt(originalScrollY || '0', 10) * -1)
             }
         }
-    }, [preventScroll, position])
+    }, [preventScroll, isOpen, position])
 
     // Handle position changes
     useEffect(() => {
         // Notify parent component when position changes
         onPositionChange(position)
+
+        // track if user has moved drawer from initial position
+        if (position !== initialPosition && initialPosition === 'collapsed' && !userMovedDrawer) {
+            setUserMovedDrawer(true)
+        }
 
         // Adjust height based on content in any position
         if (contentRef.current && sheetRef.current) {
@@ -99,12 +115,12 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
                 }
             }, 50)
         }
-    }, [position, onPositionChange])
+    }, [position, onPositionChange, initialPosition, userMovedDrawer])
 
     // Handle close when swiping down from collapsed position
     const handleClose = () => {
-        if (position === 'collapsed') {
-            onClose?.()
+        if (onClose) {
+            onClose()
         }
     }
 
@@ -166,41 +182,86 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
 
     // Handle the end of drag and determine new position
     const handleDragEnd = (): void => {
-        if (!isDragging) return
+        if (!isDragging) {
+            setIsDragging(false)
+            return
+        }
 
         const dragDistance = startY - currentY
         const dragPercentage = (dragDistance / window.innerHeight) * 100
+        const absoluteDragDistance = Math.abs(dragDistance)
 
-        // Get content height for comparison
-        const contentHeightLimit = contentRef.current
-            ? ((contentRef.current.scrollHeight + 150) / window.innerHeight) * 100
-            : expandedHeight
+        let newTargetPosition = position
+        let shouldCloseDrawer = false
 
-        // Check if drawer is already at content height
-        const currentDrawerHeight = sheetRef.current?.style.height ? parseFloat(sheetRef.current.style.height) : 0
+        // thresholds for different drag actions
+        const significantUpwardDragThreshold = 10
+        const significantDownwardDragThreshold = -10
+        const directCloseDragDistancePx = 50
+        const closeFromCollapsedDragDistancePx = 20
+        const veryLargeDragToClosePx = window.innerHeight * 0.3
 
-        const currentHeightPercent = (currentDrawerHeight / window.innerHeight) * 100
-        const isAtContentMax = Math.abs(currentHeightPercent - contentHeightLimit) < 5 // Within 5% margin
-
-        // Determine new position based on drag direction and distance
-        if (dragPercentage > 10) {
-            // Dragged significantly upward
-            if (position === 'collapsed') {
-                setPosition('half')
-            } else if (position === 'half') {
-                // Only go to expanded if content height is greater than half height
-                if (contentHeightLimit > halfHeight) {
-                    setPosition('expanded')
+        // 1. check for closing the drawer
+        if (initialPosition === 'expanded' || initialPosition === 'half') {
+            if (dragDistance < 0 && absoluteDragDistance > directCloseDragDistancePx) {
+                shouldCloseDrawer = true
+            }
+        } else if (position === 'collapsed') {
+            if (userMovedDrawer) {
+                if (dragDistance < 0 && absoluteDragDistance > closeFromCollapsedDragDistancePx) {
+                    shouldCloseDrawer = true
+                }
+            } else {
+                if (dragDistance < 0 && absoluteDragDistance > veryLargeDragToClosePx) {
+                    shouldCloseDrawer = true
                 }
             }
-        } else if (dragPercentage < -10 || isAtContentMax) {
-            // Dragged significantly downward OR we're at content max (allow direct collapse)
-            if (position === 'expanded' || isAtContentMax) {
-                setPosition('half')
-            } else if (position === 'half') {
-                setPosition('collapsed')
-            } else if (position === 'collapsed') {
-                handleClose()
+        }
+
+        // 2. if not closing, determine position change for significant drags
+        if (!shouldCloseDrawer) {
+            if (dragPercentage > significantUpwardDragThreshold) {
+                if (position === 'collapsed') newTargetPosition = 'half'
+                else if (position === 'half') newTargetPosition = 'expanded'
+            } else if (dragPercentage < significantDownwardDragThreshold) {
+                if (position === 'expanded') newTargetPosition = 'half'
+                else if (position === 'half') newTargetPosition = 'collapsed'
+            } else {
+                const currentBaseHeightVh = getHeightPercentage()
+                const projectedVh = currentBaseHeightVh - (dragDistance / window.innerHeight) * 100
+
+                const distToCollapsed = Math.abs(projectedVh - collapsedHeight)
+                const distToHalf = Math.abs(projectedVh - halfHeight)
+                const distToExpanded = Math.abs(projectedVh - expandedHeight)
+
+                if (distToCollapsed <= distToHalf && distToCollapsed <= distToExpanded) {
+                    newTargetPosition = 'collapsed'
+                } else if (distToHalf <= distToCollapsed && distToHalf <= distToExpanded) {
+                    newTargetPosition = 'half'
+                } else {
+                    newTargetPosition = 'expanded'
+                }
+
+                if (
+                    newTargetPosition === 'collapsed' &&
+                    position === 'collapsed' &&
+                    dragDistance < 0 &&
+                    absoluteDragDistance > closeFromCollapsedDragDistancePx
+                ) {
+                    if (initialPosition !== 'collapsed' || userMovedDrawer) {
+                        shouldCloseDrawer = true
+                    }
+                }
+            }
+        }
+
+        // apply actions: close or change position
+        if (shouldCloseDrawer) {
+            handleClose()
+        } else if (newTargetPosition !== position) {
+            setPosition(newTargetPosition)
+            if (initialPosition === 'collapsed' && newTargetPosition !== 'collapsed' && !userMovedDrawer) {
+                setUserMovedDrawer(true)
             }
         }
 
@@ -238,18 +299,30 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
         if (isDragging) {
             window.addEventListener('mousemove', handleMouseMove)
             window.addEventListener('mouseup', handleDragEnd)
+            window.addEventListener('touchmove', handleTouchMove as any)
+            window.addEventListener('touchend', handleDragEnd as any)
         }
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove)
             window.removeEventListener('mouseup', handleDragEnd)
+            window.removeEventListener('touchmove', handleTouchMove as any)
+            window.removeEventListener('touchend', handleDragEnd as any)
         }
-    }, [isDragging])
+    }, [isDragging, handleDragEnd])
 
     // Handle overlay click to close drawer
     const handleOverlayClick = (e: React.MouseEvent) => {
         if (e.target === overlayRef.current) {
-            onClose?.()
+            // if initial position was collapsed and user opened it,
+            // clicking overlay should return it to collapsed state.
+            if (initialPosition === 'collapsed' && (position === 'half' || position === 'expanded')) {
+                setPosition('collapsed')
+                setUserMovedDrawer(false)
+            } else {
+                // default behavior for other cases (e.g., initialPosition was half/expanded,
+                onClose?.()
+            }
         }
     }
 
@@ -257,13 +330,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
     const calculateOverlayOpacity = (): number => {
         if (position === 'expanded') return 0.5
         if (position === 'half') return 0.3
-        return 0.1
-    }
-
-    // Determine if the overlay should block interactions
-    const shouldBlockInteractions = (): boolean => {
-        // Only block background interactions when drawer is expanded
-        return position === 'expanded'
+        return 0
     }
 
     // Only render if portal element exists and drawer is open
@@ -273,7 +340,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
     return createPortal(
         <div
             className="fixed inset-0 z-50"
-            style={{ pointerEvents: 'none' }} // Default to not capturing any events
+            style={{ pointerEvents: position === 'collapsed' && !isDragging ? 'none' : 'auto' }}
         >
             {/* Backdrop overlay */}
             <div
@@ -282,7 +349,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
                 style={{
                     opacity: calculateOverlayOpacity(),
                     transition: isDragging ? 'none' : 'opacity 0.3s ease-out',
-                    pointerEvents: shouldBlockInteractions() ? 'auto' : 'none',
+                    pointerEvents: position === 'collapsed' ? 'none' : 'auto', // allow clicks through overlay when collapsed
                 }}
                 onClick={handleOverlayClick}
             />
@@ -299,7 +366,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
             >
                 {/* Drag handle */}
                 <div
-                    className="cursor-grab touch-none px-6 pb-2 pt-2"
+                    className="mx-auto cursor-grab touch-none px-6 pb-2 pt-2 md:max-w-2xl"
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleDragEnd}
@@ -307,13 +374,16 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
                     style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
                 >
                     <div className="mx-auto mb-4 mt-2 h-2 w-8 rounded-full bg-black"></div>
-                    {handleTitle && <h2 className="mb-8 text-2xl font-extrabold">{handleTitle}</h2>}
+                    <div className="mb-8 space-y-1">
+                        {handleTitle && <h2 className="text-lg font-extrabold">{handleTitle}</h2>}
+                        {handleSubtitle && <h2 className="mb-8">{handleSubtitle}</h2>}
+                    </div>
                 </div>
 
                 {/* Content area */}
                 <div
                     ref={contentRef}
-                    className="overflow-y-auto px-6 pb-6"
+                    className="mx-auto overflow-y-auto px-6 pb-6 md:max-w-2xl "
                     style={{
                         maxHeight: `calc(${
                             position === 'expanded' ? calculateContentHeight().replace('vh', '') : expandedHeight

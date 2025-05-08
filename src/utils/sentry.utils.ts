@@ -25,6 +25,7 @@ export const fetchWithSentry = async (url: string, options: RequestInit = {}): P
         const response = await fetch(url, options)
 
         if (!response.ok) {
+            console.warn(`Request to ${url} failed with status ${response.status}`)
             let errorContent: JSONValue
             try {
                 errorContent = await response.clone().json()
@@ -52,6 +53,7 @@ export const fetchWithSentry = async (url: string, options: RequestInit = {}): P
 
         return response
     } catch (error: unknown) {
+        console.error(error)
         let errorMessage: string
         let errorName: string
         let errorStack: string | undefined

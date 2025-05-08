@@ -1,9 +1,8 @@
 'use client'
 
 import { supportedPeanutChains } from '@/constants'
-import * as context from '@/context'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { IPeanutChainDetails } from '@/interfaces'
+import { tokenSelectorContext } from '@/context'
+import { IPeanutChainDetails, IUserBalance } from '@/interfaces'
 import { calculateValuePerChain, formatTokenAmount } from '@/utils'
 import { Menu, Transition } from '@headlessui/react'
 import { useContext, useMemo, useState } from 'react'
@@ -22,19 +21,16 @@ type Chain = {
 interface IChainSelectorProps {
     chainsToDisplay?: IPeanutChainDetails[]
     onChange?: (chainId: string) => void
+    balances: IUserBalance[]
 }
 
-const ChainSelector = ({ chainsToDisplay, onChange }: IChainSelectorProps) => {
+const ChainSelector = ({ chainsToDisplay, onChange, balances }: IChainSelectorProps) => {
     const [, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
-    const { selectedWallet } = useWallet()
 
-    const { selectedChainID, setSelectedChainID } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, setSelectedChainID } = useContext(tokenSelectorContext)
 
-    const valuePerChain = useMemo(
-        () => calculateValuePerChain(selectedWallet?.balances ?? []),
-        [selectedWallet?.balances]
-    )
+    const valuePerChain = useMemo(() => calculateValuePerChain(balances), [balances])
 
     const _chainsToDisplay = useMemo(() => {
         let chains
@@ -92,7 +88,7 @@ const ChainSelector = ({ chainsToDisplay, onChange }: IChainSelectorProps) => {
                             leaveFrom="transform scale-100 opacity-100"
                             leaveTo="transform scale-95 opacity-0"
                         >
-                            <Menu.Items className="shadow-primary-4 mt-2.5 max-h-64 w-[14.69rem] divide-y divide-black overflow-auto rounded-lg bg-white dark:divide-white dark:bg-n-1">
+                            <Menu.Items className="shadow-4 mt-2.5 max-h-64 w-[14.69rem] divide-y divide-black overflow-auto rounded-lg bg-white dark:divide-white dark:bg-n-1">
                                 <div className="sticky top-0 bg-white p-2 dark:bg-n-1">
                                     <Search
                                         className="px-1"

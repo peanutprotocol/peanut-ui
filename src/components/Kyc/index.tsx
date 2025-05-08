@@ -22,7 +22,7 @@ export const KYCComponent = () => {
 
     if (user && user?.user?.kycStatus === 'approved') {
         return (
-            <Card className="shadow-none sm:shadow-primary-4">
+            <Card className="shadow-none sm:shadow-4">
                 <Card.Header>
                     <Card.Title>Welcome back, {user?.user?.username ?? user?.user?.email}</Card.Title>
                     <Card.Description>You have already completed the KYC process!</Card.Description>

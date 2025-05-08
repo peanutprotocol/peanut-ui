@@ -1,7 +1,7 @@
-import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { IOfframpConfirmScreenProps, IOfframpSuccessScreenProps } from '../Offramp/Offramp.consts'
+import * as interfaces from '@/interfaces'
+import { IOfframpSuccessScreenProps, IOfframpConfirmScreenProps } from '../Offramp/Offramp.consts'
+import { ClaimLinkData } from '@/services/sendLinks'
 export type ClaimType = 'claim' | 'claimxchain'
 
 export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
@@ -28,7 +28,7 @@ export interface IClaimScreenProps {
     onPrev: () => void
     onNext: () => void
     onCustom: (screen: ClaimScreens) => void
-    claimLinkData: interfaces.ILinkDetails
+    claimLinkData: ClaimLinkData
     type: ClaimType
     setClaimType: (type: ClaimType) => void
     recipient: { name: string | undefined; address: string }

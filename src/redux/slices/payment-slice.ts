@@ -1,9 +1,9 @@
-import { IAttachmentOptions } from '@/components/Create/Create.consts'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { PaymentCreationResponse, TCharge, TRequestChargeResponse, TRequestResponse } from '@/services/services.types'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { PAYMENT_SLICE } from '../constants'
 import { IPaymentState, TPaymentView } from '../types/payment.types'
+import { IAttachmentOptions } from '../types/send-flow.types'
 
 const initialState: IPaymentState = {
     currentView: 'INITIAL',
@@ -59,6 +59,9 @@ const paymentSlice = createSlice({
         },
         setBeerQuantity: (state, action: PayloadAction<number>) => {
             state.beerQuantity = action.payload
+        },
+        resetPaymentState: (state) => {
+            return initialState
         },
     },
 })

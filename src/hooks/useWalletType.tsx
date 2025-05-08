@@ -1,7 +1,7 @@
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import { useEffect, useRef, useState } from 'react'
-import { useWallet } from './wallet/useWallet'
 import * as Sentry from '@sentry/nextjs'
+import { useAccount } from 'wagmi'
 
 type Opts = {
     allowedDomains?: RegExp[]
@@ -24,7 +24,7 @@ export const useWalletType = () => {
     const [walletType, setWalletType] = useState<'blockscout' | undefined>(undefined)
     const [environmentInfo, setEnvironmentInfo] = useState<any | undefined>(undefined)
     const [safeInfo, setSafeInfo] = useState<any | undefined>(undefined)
-    const { address } = useWallet()
+    const { address } = useAccount()
     const prevAddressRef = useRef<string | undefined>(undefined)
 
     const sdk = new SafeAppsSDK(opts)
@@ -50,6 +50,7 @@ export const useWalletType = () => {
             }
         } catch (error) {
             console.log('Failed to get wallet info:', error)
+
             setWalletType(undefined)
             setEnvironmentInfo(undefined)
             setSafeInfo(undefined)

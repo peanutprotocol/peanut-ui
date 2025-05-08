@@ -1,22 +1,23 @@
-'useClient'
+'use client'
 
-import { fetchWithSentry } from '@/utils'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { claimLinkGasless, claimLinkXChainGasless } from '@squirrel-labs/peanut-sdk'
 import { useContext } from 'react'
 import { useSwitchChain } from 'wagmi'
 
 import * as consts from '@/constants'
-import * as context from '@/context'
+import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import * as utils from '@/utils'
+import { isTestnetChain } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
+import { useAccount } from 'wagmi'
 
 const useClaimLink = () => {
-    const { chain: currentChain, refetchBalances } = useWallet()
+    const { fetchBalance } = useWallet()
+    const { chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
 
-    const { setLoadingState } = useContext(context.loadingStateContext)
+    const { setLoadingState } = useContext(loadingStateContext)
 
     const claimLink = async ({ address, link }: { address: string; link: string }) => {
         setLoadingState('Executing transaction')
@@ -28,8 +29,7 @@ const useClaimLink = () => {
                 APIKey: 'doesnt-matter',
             })
 
-            // refetch wallet balance after successful claim
-            refetchBalances(address)
+            fetchBalance()
 
             return claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''
         } catch (error) {
@@ -54,7 +54,7 @@ const useClaimLink = () => {
     }) => {
         setLoadingState('Executing transaction')
         try {
-            const isTestnet = utils.isTestnetChain(destinationChainId)
+            const isTestnet = isTestnetChain(destinationChainId)
             const claimTx = await claimLinkXChainGasless({
                 link,
                 recipientAddress: address,
@@ -93,35 +93,10 @@ const useClaimLink = () => {
         }
     }
 
-    const getAttachmentInfo = async (link: string) => {
-        try {
-            const response = await fetchWithSentry('/api/peanut/get-attachment-info', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ link }),
-            })
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
-            const data = await response.json()
-
-            return {
-                fileUrl: data.fileUrl,
-                message: data.message,
-            }
-        } catch (error) {
-            console.error('Failed to get attachment:', error)
-            Sentry.captureException(error)
-        }
-    }
-
     return {
         claimLink,
         claimLinkXchain,
         switchNetwork,
-        getAttachmentInfo,
     }
 }
 

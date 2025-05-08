@@ -2,7 +2,7 @@
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useAuth } from '@/context/authContext'
-import * as utils from '@/utils'
+import { formatTokenAmount, getExplorerUrl } from '@/utils'
 import Link from 'next/link'
 import { Button, Card } from '../0_Bruddle'
 import * as _consts from './Offramp.consts'
@@ -30,7 +30,7 @@ export const OfframpSuccessView = ({
     // setup offrampType == CLAIM props
     let blockExplorerUrl: string | undefined
     if (offrampType == _consts.OfframpType.CLAIM && claimLinkData) {
-        blockExplorerUrl = utils.getExplorerUrl(claimLinkData.chainId)
+        blockExplorerUrl = getExplorerUrl(claimLinkData.chainId)
     }
 
     const calculateFee = () => {
@@ -43,7 +43,7 @@ export const OfframpSuccessView = ({
     }
 
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
+        <Card className="shadow-none sm:shadow-4">
             <Card.Header>
                 <Card.Title>Yay!</Card.Title>
                 <Card.Description>
@@ -84,22 +84,22 @@ export const OfframpSuccessView = ({
                             ${/* if promo code is applied, show full amount without fee deduction */}
                             {appliedPromoCode
                                 ? offrampType === _consts.OfframpType.CASHOUT
-                                    ? utils.formatTokenAmount(parseFloat(usdValue ?? ''))
+                                    ? formatTokenAmount(parseFloat(usdValue ?? ''))
                                     : tokenPrice &&
                                       claimLinkData &&
-                                      utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))
+                                      formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))
                                 : // if no promo code, apply fee deduction based on account type
                                   accountType === 'iban'
                                   ? offrampType == _consts.OfframpType.CASHOUT
-                                      ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 1)
+                                      ? formatTokenAmount(parseFloat(usdValue ?? '') - 1)
                                       : tokenPrice &&
                                         claimLinkData &&
-                                        utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1)
+                                        formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1)
                                   : offrampType == _consts.OfframpType.CASHOUT
-                                    ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
+                                    ? formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
                                     : tokenPrice &&
                                       claimLinkData &&
-                                      utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5)}
+                                      formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5)}
                             <MoreInfo
                                 text={
                                     appliedPromoCode

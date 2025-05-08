@@ -18,7 +18,7 @@ const Checkbox = ({ className, label, value, onChange }: CheckboxProps) => (
             checked={value}
         />
         <span
-            className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded border border-n-1 transition-colors`}
+            className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-n-1 transition-colors`}
         >
             <Icon className={`transition-opacity ${value ? 'opacity-100' : 'opacity-0'}`} name="check" />
         </span>

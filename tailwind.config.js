@@ -16,6 +16,7 @@ module.exports = {
                     1: '#FF90E8',
                     2: '#CC73BA',
                     3: '#EFE4FF',
+                    4: '#BA8BFF',
                 },
                 secondary: {
                     1: '#FFC900',
@@ -24,11 +25,13 @@ module.exports = {
                     4: '#FFF4CC',
                     5: '#FBEAEA',
                     6: '#E9EEFB',
+                    7: '#5883FF',
                 },
                 grey: {
                     1: '#5F646D',
                     2: '#E7E8E9',
                     3: '#FAF4F0',
+                    4: '#EFEFF0',
                 },
                 outline: {
                     1: '#98E9AB',
@@ -48,6 +51,7 @@ module.exports = {
                     2: '#f5ff7c',
                     3: '#fbfdd8',
                     4: '#FAE8A4',
+                    5: '#FFD25C',
                 },
                 pink: {
                     1: '#FF90E8',
@@ -81,11 +85,10 @@ module.exports = {
                 cyan: {
                     8: '#A0E6E0',
                 },
-                gold: {
-                    3: '#FFD25C',
-                },
                 success: {
                     1: '#16B413',
+                    2: '#C7F9C6',
+                    3: '#29CC6A',
                 },
                 white: '#FFFFFF',
                 red: '#FF0000',
@@ -97,7 +100,10 @@ module.exports = {
                 'secondary-base': 'var(--secondary-color)',
                 background: '#FAF4F0',
                 accent: 'var(--accent-color)',
-                error: '#B3261E',
+                error: {
+                    DEFAULT: '#B3261E',
+                    1: '#FFD8D8',
+                },
             },
             zIndex: {
                 1: '1',
@@ -151,9 +157,14 @@ module.exports = {
                     '0%, 100%': { backgroundColor: '#F2F3F4', boxShadow: '0 0 0px 0px color1' },
                     '50%': { backgroundColor: '#DADEDF', boxShadow: '0 0 0px 15px color2' },
                 },
+                fadeIn: {
+                    '0%': { opacity: '0' },
+                    '100%': { opacity: '1' },
+                },
             },
             animation: {
                 colorPulse: 'colorPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                fadeIn: 'fadeIn 0.3s ease-in-out',
             },
             opacity: {
                 85: '.85',
@@ -431,6 +442,14 @@ module.exports = {
                 },
                 '.icon-28': {
                     '@apply !w-7 !h-7': {},
+                },
+                '.shadow-2': {
+                    '@apply shadow-[0.125rem_0.125rem_0_#000000] dark:shadow-[0.125rem_0.125rem_0_rgba(255,255,255,.25)]':
+                        {},
+                },
+                '.shadow-4': {
+                    '@apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)]':
+                        {},
                 },
                 '.shadow-primary-4': {
                     '@apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)]':

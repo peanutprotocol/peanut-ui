@@ -4,24 +4,24 @@ import { useForm } from 'react-hook-form'
 import { useConfig, useSendTransaction } from 'wagmi'
 
 import * as consts from '@/constants'
-import * as context from '@/context'
+import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import * as utils from '@/utils'
-import { useAppKit } from '@reown/appkit/react'
+import { useAppDispatch } from '@/redux/hooks'
+import { getExplorerUrl } from '@/utils'
+import * as Sentry from '@sentry/nextjs'
 import { useContext, useState } from 'react'
 import { waitForTransactionReceipt } from 'wagmi/actions'
+import { walletActions } from '../../redux/slices/wallet-slice'
 import { Button, Card } from '../0_Bruddle'
 import BaseInput from '../0_Bruddle/BaseInput'
 import PageContainer from '../0_Bruddle/PageContainer'
-import { useCreateLink } from '../Create/useCreateLink'
 import Select from '../Global/Select'
-import * as Sentry from '@sentry/nextjs'
 
 export const Refund = () => {
-    const { isConnected, signInModal } = useWallet()
+    const { isConnected } = useWallet()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
-    const { open } = useAppKit()
+    const dispatch = useAppDispatch()
 
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -29,7 +29,7 @@ export const Refund = () => {
     }>({ showError: false, errorMessage: '' })
     const [claimedExploredUrlWithHash, setClaimedExplorerUrlWithHash] = useState<string | undefined>(undefined)
 
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
     const refundForm = useForm<{
         chainId: string
         transactionHash: string
@@ -42,8 +42,6 @@ export const Refund = () => {
     })
     const refundFormWatch = refundForm.watch()
 
-    const { switchNetwork } = useCreateLink()
-
     const refundDeposit = async (refundFormData: { chainId: string; transactionHash: string }) => {
         try {
             if (refundFormData.chainId == '' || refundFormData.transactionHash == '') {
@@ -53,8 +51,6 @@ export const Refund = () => {
                 })
                 return
             }
-
-            await switchNetwork(refundFormData.chainId)
 
             setLoadingState('Getting deposit details')
 
@@ -106,7 +102,7 @@ export const Refund = () => {
                 chainId: Number(refundFormData.chainId),
             })
 
-            const explorerUrl = utils.getExplorerUrl(refundFormData.chainId)
+            const explorerUrl = getExplorerUrl(refundFormData.chainId)
             setClaimedExplorerUrlWithHash(`${explorerUrl}/tx/${hash}`)
         } catch (error) {
             setErrorState({
@@ -122,7 +118,7 @@ export const Refund = () => {
 
     return (
         <PageContainer>
-            <Card className="shadow-none sm:shadow-primary-4">
+            <Card className="shadow-none sm:shadow-4">
                 <Card.Header className="mx-auto text-center">
                     <Card.Title className="text-center">Refund</Card.Title>
                     <Card.Description className="mx-auto text-center">
@@ -173,7 +169,7 @@ export const Refund = () => {
                                 type={isConnected ? 'submit' : 'button'}
                                 onClick={() => {
                                     if (!isConnected) {
-                                        signInModal.open()
+                                        dispatch(walletActions.setSignInModalVisible(true))
                                     }
                                 }}
                                 disabled={isLoading || claimedExploredUrlWithHash ? true : false}

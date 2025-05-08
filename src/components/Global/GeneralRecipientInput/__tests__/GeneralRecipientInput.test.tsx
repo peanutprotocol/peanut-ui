@@ -1,6 +1,7 @@
 import { render, act } from '@testing-library/react'
 import GeneralRecipientInput from '../index'
 import * as utils from '@/utils'
+import * as ens from '@/app/actions/ens'
 import type { RecipientType } from '@/interfaces'
 import { validateEnsName } from '@/utils'
 
@@ -20,11 +21,14 @@ jest.mock('@/utils', () => {
     const actualUtils = jest.requireActual('@/utils')
     return {
         validateBankAccount: jest.fn(),
-        resolveFromEnsName: jest.fn(),
         sanitizeBankAccount: (input: string) => input.toLowerCase().replace(/\s/g, ''),
         validateEnsName: actualUtils.validateEnsName, // Use the actual implementation
     }
 })
+
+jest.mock('@/app/actions/ens', () => ({
+    resolveEns: jest.fn(),
+}))
 
 jest.mock('@/hooks/useRecentRecipients', () => ({
     useRecentRecipients: jest.fn(() => ({
@@ -194,9 +198,7 @@ describe('GeneralRecipientInput Type Detection', () => {
                 it(`should handle ${description}`, async () => {
                     // Setup ENS mock if needed
                     if (validateEnsName(input)) {
-                        ;(utils.resolveFromEnsName as jest.Mock).mockResolvedValue(
-                            expectedValid ? expectedAddress : null
-                        )
+                        ;(ens.resolveEns as jest.Mock).mockResolvedValue(expectedValid ? expectedAddress : null)
                     }
 
                     await setup(input)

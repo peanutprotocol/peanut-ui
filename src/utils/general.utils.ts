@@ -1,16 +1,23 @@
 import { TransactionType } from '@/components/Global/ListItemView'
 import * as consts from '@/constants'
-import { INFURA_API_KEY, STABLE_COINS } from '@/constants'
+import {
+    PINTA_WALLET_CHAIN,
+    PINTA_WALLET_TOKEN,
+    PINTA_WALLET_TOKEN_DECIMALS,
+    PINTA_WALLET_TOKEN_NAME,
+    PINTA_WALLET_TOKEN_SYMBOL,
+    PEANUT_WALLET_SUPPORTED_TOKENS,
+    STABLE_COINS,
+} from '@/constants'
 import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
-import { JustaName, sanitizeRecords } from '@justaname.id/sdk'
 import * as Sentry from '@sentry/nextjs'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import chroma from 'chroma-js'
 import { SiweMessage } from 'siwe'
+import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
-import type { Address, TransactionReceipt } from 'viem'
+import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -30,19 +37,6 @@ export const colorMap = {
     pink: '#FF90E7',
     green: '#98E9AB',
     yellow: '#FFC900',
-}
-
-export const backgroundColorFromAddress = (address: string): string => {
-    // Hash the Ethereum address to a number
-    const hash = Array.from(address).reduce((acc, char) => acc + char.charCodeAt(0), 0)
-
-    const choices = Object.values(colorMap)
-
-    // Generate color with a lightness range to avoid dark colors
-    const colorScale = chroma.scale(choices).mode('lab').domain([0, 255])
-
-    // Get color from scale
-    return colorScale(hash % 255).hex()
 }
 
 export const shortenAddress = (address?: string) => {
@@ -340,53 +334,6 @@ export const formatAmountWithoutComma = (input: string) => {
     } else return ''
 }
 
-export async function resolveFromEnsNameAndProviderUrl(
-    ensName: string,
-    providerUrl?: string
-): Promise<string | undefined> {
-    try {
-        const records = await JustaName.init().subnames.getRecords({
-            ens: ensName,
-            chainId: 1,
-            providerUrl,
-        })
-
-        return sanitizeRecords(records).ethAddress.value
-    } catch (error) {
-        Sentry.captureException(error)
-        return undefined
-    }
-}
-
-export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
-    const mainProviderUrl = 'https://mainnet.infura.io/v3/' + INFURA_API_KEY
-    const fallbackProviderUrl = 'https://rpc.ankr.com/eth'
-
-    try {
-        const records = await JustaName.init().subnames.getRecords({
-            ens: ensName,
-            chainId: 1,
-            providerUrl: mainProviderUrl,
-        })
-
-        return records?.records?.coins?.find((coin) => coin.id === 60)?.value
-    } catch (error) {
-        console.error('Error resolving ENS name with main provider:', error)
-        try {
-            const records = await JustaName.init().subnames.getRecords({
-                ens: ensName,
-                chainId: 1,
-                providerUrl: fallbackProviderUrl,
-            })
-
-            return records?.records?.coins?.find((coin) => coin.id === 60)?.value
-        } catch (fallbackError) {
-            console.error('Error resolving ENS name with fallback provider:', fallbackError)
-            return undefined
-        }
-    }
-}
-
 export async function copyTextToClipboardWithFallback(text: string) {
     if (navigator.clipboard && window.isSecureContext) {
         try {
@@ -425,17 +372,15 @@ export const isTestnetChain = (chainId: string) => {
 
 export const areEvmAddressesEqual = (address1: string, address2: string): boolean => {
     if (!isAddress(address1) || !isAddress(address2)) return false
-    if (address1.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
-        address1 = '0x0000000000000000000000000000000000000000'
-    if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
-        address2 = '0x0000000000000000000000000000000000000000'
+    if (address1.toLowerCase() === SQUID_ETH_ADDRESS.toLocaleLowerCase()) address1 = NATIVE_TOKEN_ADDRESS
+    if (address2.toLowerCase() === SQUID_ETH_ADDRESS.toLocaleLowerCase()) address2 = NATIVE_TOKEN_ADDRESS
     // By using getAddress we are safe from different cases
     // and other address formatting
     return getAddress(address1) === getAddress(address2)
 }
 
 export const isAddressZero = (address: string): boolean => {
-    return areEvmAddressesEqual(address, '0x0000000000000000000000000000000000000000')
+    return areEvmAddressesEqual(address, NATIVE_TOKEN_ADDRESS)
 }
 
 export const isNativeCurrency = (address: string) => {
@@ -465,7 +410,7 @@ export const saveClaimedLinkToLocalStorage = ({
 
         dataArr.push(data)
 
-        localStorage.setItem(key, JSON.stringify(dataArr))
+        localStorage.setItem(key, jsonStringify(dataArr))
 
         console.log('Saved claimed link to localStorage:', data)
     } catch (error) {
@@ -903,6 +848,13 @@ export function getTokenDetails({ tokenAddress, chainId }: { tokenAddress: Addre
           decimals: number
       }
     | undefined {
+    if (chainId === PINTA_WALLET_CHAIN.id.toString() && areEvmAddressesEqual(tokenAddress, PINTA_WALLET_TOKEN)) {
+        return {
+            symbol: PINTA_WALLET_TOKEN_SYMBOL,
+            name: PINTA_WALLET_TOKEN_NAME,
+            decimals: PINTA_WALLET_TOKEN_DECIMALS,
+        }
+    }
     const chainTokens = consts.peanutTokenDetails.find((c) => c.chainId === chainId)?.tokens
     if (!chainTokens) return undefined
     const tokenDetails = chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
@@ -1148,4 +1100,19 @@ export function getLinkFromReceipt({
     const contractVersion = peanut.detectContractVersionFromTxReceipt(txReceipt, chainId)
     const depositIdx = peanut.getDepositIdxs(txReceipt, chainId, contractVersion)[0]
     return peanut.getLinkFromParams(chainId, contractVersion, depositIdx, password, baseUrl, trackId)
+}
+
+export const getInitialsFromName = (name: string): string => {
+    const nameParts = name.trim().split(/\s+/)
+    if (nameParts.length === 1) {
+        return nameParts[0].substring(0, 2).toUpperCase()
+    } else {
+        return nameParts[0].charAt(0).toUpperCase() + nameParts[1].charAt(0).toUpperCase()
+    }
+}
+
+export function isPeanutWalletToken(tokenAddress: string, chainId: string): boolean {
+    const supportedTokens: string[] | undefined = PEANUT_WALLET_SUPPORTED_TOKENS[chainId]
+    if (!supportedTokens) return false
+    return supportedTokens.some((t) => areEvmAddressesEqual(t, tokenAddress))
 }

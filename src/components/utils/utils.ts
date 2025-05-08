@@ -1,6 +1,5 @@
 import * as consts from '@/constants'
-import * as utils from '@/utils'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry, getExplorerUrl } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 
 type ISquidChainData = {
@@ -71,8 +70,8 @@ type ISquidStatusResponse = {
 
 export async function checkTransactionStatus(txHash: string): Promise<ISquidStatusResponse> {
     try {
-        const response = await fetchWithSentry(`https://apiplus.squidrouter.com/v2/status?transactionId=${txHash}`, {
-            headers: { 'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C' }, // TODO: request v2 removes checking squid status
+        const response = await fetchWithSentry(`${consts.SQUID_API_URL}/status?transactionId=${txHash}`, {
+            headers: { 'x-integrator-id': consts.SQUID_INTEGRATOR_ID }, // TODO: request v2 removes checking squid status
         })
         const data = await response.json()
         return data
@@ -90,7 +89,7 @@ export async function fetchDestinationChain(
         const result = await checkTransactionStatus(txHash)
 
         if (result.squidTransactionStatus === 'success') {
-            const explorerUrl = utils.getExplorerUrl(result.toChain.chainData.chainId.toString())
+            const explorerUrl = getExplorerUrl(result.toChain.chainData.chainId.toString())
             if (explorerUrl) {
                 setExplorerUrlDestChainWithTxHash({
                     transactionUrl: explorerUrl + '/tx/' + result.toChain.transactionId,
@@ -111,6 +110,7 @@ export async function fetchDestinationChain(
 
 export enum ActionType {
     CLAIM = 'CLAIM',
+    DIRECT_SEND = 'DIRECT_SEND',
 }
 
 export const estimatePoints = async ({

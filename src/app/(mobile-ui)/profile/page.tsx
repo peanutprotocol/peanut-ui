@@ -1,10 +1,10 @@
 import { Profile } from '@/components'
-
+import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-    title: 'Peanut Protocol',
-    description: 'Send to Anyone',
+    title: 'Profile | Peanut Protocol',
+    description: 'Manage your Peanut profile',
     metadataBase: new URL('https://peanut.me'),
 
     icons: {
@@ -20,5 +20,9 @@ export const metadata: Metadata = {
 }
 
 export default function ProfilePage() {
-    return <Profile />
+    return (
+        <PageContainer>
+            <Profile />
+        </PageContainer>
+    )
 }
