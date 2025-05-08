@@ -37,7 +37,12 @@
     },
     {
         "source": "/pints",
-        "destination": "https://lu.ma/w5wvkyl8",
+        "destination": "https://lu.ma/l9gz9l3h",
+        "permanent": false
+    },
+    {
+        "source": "/events",
+        "destination": "https://lu.ma/l9gz9l3h",
         "permanent": false
     }
 ]
