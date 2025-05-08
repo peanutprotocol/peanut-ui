@@ -22,5 +22,6 @@ export type LoadingStates =
     | 'Submitting Offramp'
     | 'Getting profile'
     | 'Registering'
+    | 'Requesting'
     | 'Logging in'
     | 'Logging out'

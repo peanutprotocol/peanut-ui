@@ -6,6 +6,7 @@ import { SearchInput } from '@/components/SearchUsers/SearchInput'
 import { SearchResults } from '@/components/SearchUsers/SearchResults'
 import { useUserSearch } from '@/hooks/useUserSearch'
 import { useRef } from 'react'
+import { useRecentUsers } from '@/hooks/useRecentUsers'
 
 interface RouterViewWrapperProps {
     title: string
@@ -27,6 +28,7 @@ const RouterViewWrapper = ({
     const inputRef = useRef<HTMLInputElement>(null)
     const { searchTerm, setSearchTerm, searchResults, isSearching, error, showMinCharError, showNoResults } =
         useUserSearch()
+    const recentTransactions = useRecentUsers()
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value)
@@ -68,8 +70,8 @@ const RouterViewWrapper = ({
                             isSearching={isSearching}
                             showMinCharError={showMinCharError}
                             showNoResults={showNoResults}
-                            recentTransactions={[]} // todo: to be be populated in history project
                             onUserSelect={onUserSelect}
+                            recentTransactions={recentTransactions}
                         />
 
                         {error && <div className="mt-2 text-sm text-error">{error}</div>}
