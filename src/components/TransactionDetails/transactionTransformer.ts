@@ -157,11 +157,20 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry, currentUserUser
             uiStatus = 'cancelled'
             break
         default:
-            const knownStatuses: StatusType[] = ['completed', 'pending', 'failed', 'cancelled', 'soon', 'processing']
-            if (entry.status && knownStatuses.includes(entry.status.toLowerCase() as StatusType)) {
-                uiStatus = entry.status.toLowerCase() as StatusType
-            } else {
-                uiStatus = 'pending'
+            {
+                const knownStatuses: StatusType[] = [
+                    'completed',
+                    'pending',
+                    'failed',
+                    'cancelled',
+                    'soon',
+                    'processing',
+                ]
+                if (entry.status && knownStatuses.includes(entry.status.toLowerCase() as StatusType)) {
+                    uiStatus = entry.status.toLowerCase() as StatusType
+                } else {
+                    uiStatus = 'pending'
+                }
             }
             break
     }

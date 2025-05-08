@@ -128,7 +128,7 @@ const HistoryPage = () => {
                             <TransactionCard
                                 type={transactionCardType}
                                 name={transactionDetails.userName}
-                                amount={Number(transactionDetails.amount)}
+                                amount={transactionDetails.amount ? Number(transactionDetails.amount) : 0}
                                 status={transactionDetails.status}
                                 initials={transactionDetails.initials}
                                 transaction={transactionDetails}

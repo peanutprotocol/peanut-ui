@@ -112,6 +112,7 @@ function getActionIcon(type: TransactionType): React.ReactNode {
             iconName = 'arrow-down-left'
             break
         case 'withdraw':
+        case 'cashout':
             iconName = 'arrow-up'
             iconSize = 8
             break

@@ -79,7 +79,9 @@ export function getDateGroup(date: Date, today: Date = new Date()): DateGroup {
         return DateGroup.Last7Days
     }
     // check if it's in the previous month but same year
-    if (date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() - 1) {
+    const prevMonth = (today.getMonth() + 11) % 12
+    const sameCalYear = date.getFullYear() === today.getFullYear()
+    if (sameCalYear && date.getMonth() === prevMonth) {
         return DateGroup.LastMonth
     }
     // check if it's in the same year but different month (and not last month)
@@ -130,7 +132,9 @@ export function getDateGroupKey(date: Date, group: DateGroup): string {
             return group // these are unique enough
         case DateGroup.Last7Days:
             // key by day within last 7 days
-            return date.toISOString().slice(0, 10) // yyyy-mm-dd
+            return `${date.getFullYear()}-${(date.getMonth() + 1)
+                .toString()
+                .padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}` // yyyy-mm-dd
         case DateGroup.LastMonth:
         case DateGroup.Older:
             // key by month and year
