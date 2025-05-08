@@ -33,5 +33,5 @@
         "src/app/api/assetLinks.js",
         "src/app/api/appleAppSiteAssociation.js"
     ],
-    "exclude": ["node_modules", "src/app/sw.ts"]
+    "exclude": ["node_modules", "src/app/sw.ts", ".next"]
 }

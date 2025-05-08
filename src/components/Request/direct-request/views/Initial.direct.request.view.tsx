@@ -11,7 +11,7 @@ import { ApiUser, usersApi } from '@/services/users'
 import { printableUsdc } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, useCallback, useContext } from 'react'
-import DirectRequestSuccessView from './Success.direct.request.view'
+import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { loadingStateContext } from '@/context'
 import { captureException } from '@sentry/nextjs'
 
@@ -82,11 +82,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         return (
             <div className="space-y-8">
                 <NavHeader onPrev={() => setView('confirm')} title="Request" />
-                <DirectRequestSuccessView
+                <DirectSuccessView
                     user={user}
                     amount={currentInputValue}
                     message={attachmentOptions.message}
-                    onBack={() => router.push('/request')}
+                    type="REQUEST"
                 />
             </div>
         )

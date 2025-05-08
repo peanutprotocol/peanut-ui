@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import type { QueryObserverResult, InfiniteQueryObserverResult, InfiniteData } from '@tanstack/react-query'
 import { fetchWithSentry, getFromLocalStorage, getTokenDetails } from '@/utils'
-import { PEANUT_API_URL, BASE_URL } from '@/constants'
+import { PEANUT_API_URL, BASE_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import Cookies from 'js-cookie'
 import { formatUnits } from 'viem'
 import type { Hash } from 'viem'
@@ -143,7 +143,7 @@ export function useTransactionHistory({
                         break
                     case 'DEPOSIT':
                         tokenSymbol = 'USDC'
-                        usdAmount = formatUnits(BigInt(entry.amount), 6)
+                        usdAmount = formatUnits(BigInt(entry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
                         break
                     default:
                         break

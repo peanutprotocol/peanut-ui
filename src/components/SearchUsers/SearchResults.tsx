@@ -88,6 +88,7 @@ export const SearchResults = ({
                                     key={user.userId}
                                     username={user.username}
                                     fullName={user.fullName}
+                                    onClick={onUserSelect}
                                     position={
                                         recentTransactions.length === 1
                                             ? 'single'
