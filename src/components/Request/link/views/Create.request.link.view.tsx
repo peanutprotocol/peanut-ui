@@ -304,7 +304,11 @@ export const CreateRequestLinkView = () => {
             <div className="w-full space-y-4">
                 <PeanutActionCard type="request" />
 
-                <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
+                <QRCodeWrapper
+                    url={qrCodeLink}
+                    isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)}
+                    disabled={!_tokenValue}
+                />
 
                 <TokenAmountInput
                     className="w-full"

@@ -1,13 +1,16 @@
 import { generateMetadata } from '@/app/metadata'
-import { Jobs } from '@/components'
-
+import { Careers } from '@/components'
 export const metadata = generateMetadata({
-    title: 'Jobs | Peanut',
+    title: 'Careers | Peanut',
     description: 'Join the Peanut team and help us build the future of crypto payments.',
     image: '/metadata-img.png',
     keywords: 'jobs, careers, work, employment, crypto, payments',
 })
 
-export default function JobsPage() {
-    return <Jobs />
+export default function CareersPage() {
+    return (
+        <div className="flex h-screen flex-col items-center justify-center">
+            <Careers />
+        </div>
+    )
 }

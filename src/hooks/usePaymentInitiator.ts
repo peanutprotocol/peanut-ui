@@ -109,11 +109,7 @@ export const usePaymentInitiator = () => {
     }, [selectedTokenData, activeChargeDetails])
 
     const isProcessing = useMemo(
-        () =>
-            loadingStep !== 'Idle' &&
-            loadingStep !== 'Charge Created' &&
-            loadingStep !== 'Success' &&
-            loadingStep !== 'Error',
+        () => loadingStep !== 'Idle' && loadingStep !== 'Success' && loadingStep !== 'Error',
         [loadingStep]
     )
 

@@ -7,7 +7,7 @@ interface ScrollableListProps {
     maxHeight?: string // e.g., 'max-h-[50vh]' or 'max-h-96'
 }
 
-const ScrollableList: React.FC<ScrollableListProps> = ({ children, className, maxHeight = 'max-h-[50vh]' }) => {
+const ScrollableList: React.FC<ScrollableListProps> = ({ children, className, maxHeight = '' }) => {
     return (
         <div className={twMerge('overflow-y-auto pb-2 pr-1', maxHeight, className)}>
             <div className="flex flex-col gap-3">{children}</div>

@@ -48,7 +48,7 @@ const Section: React.FC<SectionProps> = ({ title, icon, children, className, tit
 
 interface NewTokenSelectorProps {
     classNameButton?: string
-    viewType?: 'withdraw' | 'other'
+    viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
 }
 
 const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other' }) => {
@@ -93,14 +93,9 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             // wallet is connected with an address.
             const justConnected = !prevIsExternalConnected.current
             const addressChanged = externalWalletAddress !== prevExternalAddress.current
-
-            if (justConnected || addressChanged) {
-                // fetch balances if:
-                // 1. wallet just connected OR
-                // 2. address changed while connected
+            if (justConnected || addressChanged || externalBalances === null) {
+                // Fetch only if balances are null, not just empty array to prevent loops on 0 balance
                 setIsLoadingExternalBalances(true)
-                setExternalBalances(null)
-
                 fetchWalletBalances(externalWalletAddress)
                     .then((balances) => {
                         setExternalBalances(balances.balances || [])
@@ -113,12 +108,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                         setIsLoadingExternalBalances(false)
                     })
             }
-            // else: wallet is connected, address is the same as last check - do nothing.
         } else {
             // wallet is not connected
             if (prevIsExternalConnected.current) {
                 // wallet was previously connected, now it's not: clear balances.
                 setExternalBalances(null)
+                setIsLoadingExternalBalances(false)
             }
             // else: wallet was already disconnected - do nothing.
         }
@@ -136,16 +131,15 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         }
     }, [isExternalWalletConnected, externalBalances])
 
-    // memoize the list of tokens filtered only by the selected network
     const tokensOnSelectedNetwork = useMemo(() => {
         if (!selectedChainID) {
             return sourceBalances // no network selected, return all source balances
         }
         return sourceBalances.filter((balance) => String(balance.chainId) === selectedChainID)
-    }, [sourceBalances, selectedChainID])
+    }, [sourceBalances, selectedChainID, isExternalWalletConnected])
 
     // display tokens memo, filters tokensOnSelectedNetwork by search value
-    const displayTokens = useMemo(() => {
+    const displayUserTokens = useMemo(() => {
         const lowerSearchValue = searchValue.toLowerCase()
         if (!lowerSearchValue) {
             return tokensOnSelectedNetwork // no search value, return all tokens on the network
@@ -157,36 +151,21 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             const addressMatch = balance.address?.toLowerCase().includes(lowerSearchValue) ?? false
             return hasSymbol && (symbolMatch || nameMatch || addressMatch)
         })
-    }, [tokensOnSelectedNetwork, searchValue])
+    }, [tokensOnSelectedNetwork, searchValue, isExternalWalletConnected])
 
     // handles token selection based on token balance
     const handleTokenSelect = useCallback(
         (balance: IUserBalance) => {
-            const addressToSet = balance.address
-            const chainIdToSet = String(balance.chainId)
-
-            setSelectedTokenAddress(addressToSet)
-            setSelectedChainID(chainIdToSet)
-
+            setSelectedTokenAddress(balance.address)
+            setSelectedChainID(String(balance.chainId))
             closeDrawer()
         },
         [closeDrawer, setSelectedTokenAddress, setSelectedChainID]
     )
 
-    // handles network selection from the quick "Popular Network" buttons
-    const handlePopularNetworkSelection = useCallback(
-        (chain: { chainId: string; name: string; iconURI: string }) => {
-            setSelectedChainID(chain.chainId)
-            setSelectedTokenAddress('')
-        },
-        [setSelectedChainID, setSelectedTokenAddress]
-    )
-
-    // handles default chain/token selection - USDC on arb
     const handleDefaultTokenSelect = useCallback(() => {
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-
         closeDrawer()
     }, [closeDrawer, setSelectedTokenAddress, setSelectedChainID])
 
@@ -196,21 +175,22 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         setNetworkSearchValue('')
     }, [])
 
-    // handles chain selection from the detailed NetworkListView
-    const handleChainSelect = useCallback(
+    const handleChainSelectFromList = useCallback(
         (chainId: string) => {
-            let firstTokenAddressWithBalance: string | undefined = undefined
-
-            const tokenWithBalance = sourceBalances.find(
-                (balance) => String(balance.chainId) === chainId && balance.amount > 0
-            )
-            firstTokenAddressWithBalance = tokenWithBalance?.address
-
             setSelectedChainID(chainId)
-            setSelectedTokenAddress(firstTokenAddressWithBalance ?? NATIVE_TOKEN_ADDRESS)
+            // for popular tokens, we don't auto-select a token. User will click from list.
+            // for user tokens, if a wallet is connected, this might pre-select their native or first token.
+            if (isExternalWalletConnected) {
+                const tokenWithBalance = sourceBalances.find(
+                    (balance) => String(balance.chainId) === chainId && balance.amount > 0
+                )
+                setSelectedTokenAddress(tokenWithBalance?.address ?? NATIVE_TOKEN_ADDRESS)
+            } else {
+                setSelectedTokenAddress('') // clear selected token when changing network in popular view
+            }
             setShowNetworkList(false)
         },
-        [setSelectedChainID, setSelectedTokenAddress, isExternalWalletConnected, externalBalances, sourceBalances]
+        [setSelectedChainID, setSelectedTokenAddress, sourceBalances, isExternalWalletConnected]
     )
 
     // selected network name memo, being used ui
@@ -228,41 +208,36 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
         const token = chainInfo.tokens.find((t) => areEvmAddressesEqual(t.address, PEANUT_WALLET_TOKEN))
         if (!token) return null
-
-        // check if we have a balance for this token
-        let balance: string | null = null
-
-        // first check external wallet balances
-        if (isExternalWalletConnected && externalBalances) {
-            const externalTokenBalance = externalBalances.find(
-                (b) =>
-                    areEvmAddressesEqual(b.address, PEANUT_WALLET_TOKEN) &&
-                    String(b.chainId) === PEANUT_WALLET_CHAIN.id.toString()
-            )
-
-            if (externalTokenBalance) {
-                balance = formatAmount(
-                    externalTokenBalance.amount.toFixed(Math.min(externalTokenBalance.decimals ?? 6, 6))
-                )
-            }
-        }
-
+        // Balance for this specific token is not relevant for its display in the "Free transaction token" section
         return {
             symbol: token.symbol,
             chainName: chainInfo.axelarChainName,
             logoURI: token.logoURI,
             chainLogoURI: chainInfo.chainIconURI,
-            balance: balance,
+            balance: null,
         }
-    }, [supportedSquidChainsAndTokens, isExternalWalletConnected, externalBalances])
+    }, [supportedSquidChainsAndTokens])
 
-    // set default token on component initialization to peanut wallet token
+    // sets default token only if no token/chain is selected and this is the initial state for specific view types
     useEffect(() => {
-        if (!selectedTokenAddress && !selectedChainID && peanutWalletTokenDetails) {
-            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+        if (
+            !selectedTokenAddress &&
+            !selectedChainID &&
+            (viewType === 'other' || viewType === 'withdraw' || viewType === 'claim')
+        ) {
+            if (peanutWalletTokenDetails) {
+                setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+                setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+            }
         }
-    }, [selectedTokenAddress, selectedChainID, peanutWalletTokenDetails, setSelectedTokenAddress, setSelectedChainID])
+    }, [
+        selectedTokenAddress,
+        selectedChainID,
+        peanutWalletTokenDetails,
+        setSelectedTokenAddress,
+        setSelectedChainID,
+        viewType,
+    ])
 
     // button display variables with defaults from peanut wallet token
     let buttonSymbol: string | undefined = peanutWalletTokenDetails?.symbol
@@ -270,57 +245,39 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     let buttonFormattedBalance: string | null = peanutWalletTokenDetails?.balance || null
     let buttonLogoURI: string | undefined = peanutWalletTokenDetails?.logoURI
 
-    // handles button display details based on token and chain selection
-    // only update button display if a token is actually selected
-    if (selectedTokenAddress && selectedChainID) {
-        // check if we're using the default Peanut wallet token
-        const isDefaultPeanutToken =
-            areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN) &&
-            selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
+    if (isExternalWalletConnected && selectedTokenAddress && selectedChainID && sourceBalances.length > 0) {
+        const userBalanceDetails = sourceBalances.find(
+            (b) => areEvmAddressesEqual(b.address, selectedTokenAddress) && String(b.chainId) === selectedChainID
+        )
+        const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
+        const generalTokenDetails = chainInfo?.tokens.find((t) => areEvmAddressesEqual(t.address, selectedTokenAddress))
 
-        if (!isDefaultPeanutToken) {
-            const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
-            // find general token details from static list first
-            const generalTokenDetails = chainInfo?.tokens.find((t) =>
-                areEvmAddressesEqual(t.address, selectedTokenAddress)
-            )
-
-            // prioritize static data for symbol, logo, and chain name
-            if (generalTokenDetails && chainInfo) {
-                buttonSymbol = generalTokenDetails.symbol
-                buttonLogoURI = generalTokenDetails.logoURI
-                buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
-            } else {
-                // fallback if static data not found (should be rare)
-                buttonSymbol = peanutWalletTokenDetails?.symbol
-                buttonChainName = peanutWalletTokenDetails?.chainName
-                buttonLogoURI = peanutWalletTokenDetails?.logoURI
-            }
-
-            // check user balance *only* for the amount
-            const userBalanceDetails = sourceBalances?.find(
-                (b) => areEvmAddressesEqual(b.address, selectedTokenAddress) && String(b.chainId) === selectedChainID
-            )
-
-            if (userBalanceDetails) {
-                // we have a balance, format and display it
-                buttonFormattedBalance = formatAmount(userBalanceDetails.amount)
-            } else {
-                // no balance found for this specific token/chain
-                buttonFormattedBalance = null
-            }
+        if (generalTokenDetails && chainInfo) {
+            buttonSymbol = generalTokenDetails.symbol
+            buttonLogoURI = generalTokenDetails.logoURI
+            buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
         }
-    }
+        if (userBalanceDetails) {
+            buttonFormattedBalance = formatAmount(userBalanceDetails.amount)
+        } else {
+            // if no balance, but token is selected (e.g. popular token clicked without balance)
+            if (generalTokenDetails) buttonFormattedBalance = '0' // show 0 if no balance but token info exists
+        }
+    } else if (!isExternalWalletConnected && selectedTokenAddress && selectedChainID) {
+        // handle button display for popular tokens when no wallet connected
+        const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
+        const generalTokenDetails = chainInfo?.tokens.find((t) => areEvmAddressesEqual(t.address, selectedTokenAddress))
+        if (generalTokenDetails && chainInfo) {
+            buttonSymbol = generalTokenDetails.symbol
+            buttonLogoURI = generalTokenDetails.logoURI
+            buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
+        }
+    } // if wallet connected but no token selected, or no wallet and no token, defaults (Peanut USDC) are used
 
-    // allowed chain ids memo, using the supported network ids mapping
-    const allowedChainIds = useMemo(() => {
-        return new Set(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS)
-    }, [])
+    const allowedChainIds = useMemo(() => new Set(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS), [])
 
-    // popular chains data from Squid data
-    const popularChains = useMemo(() => {
+    const popularChainsForButtons = useMemo(() => {
         if (!supportedSquidChainsAndTokens) return []
-
         return TOKEN_SELECTOR_POPULAR_NETWORK_IDS.map((popularNetwork) => {
             const chain = supportedSquidChainsAndTokens[popularNetwork.chainId]
             // skip if the chain ID from popular list isn't found in squid data
@@ -334,18 +291,8 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         }).filter((chain): chain is { chainId: string; name: string; iconURI: string } => Boolean(chain)) // type guard filter nulls
     }, [supportedSquidChainsAndTokens])
 
-    // popular tokens memo, for rendering popular tokens (eg, USDC, USDT and native tokens)
-    const popularTokens = useMemo(() => {
-        if (!supportedSquidChainsAndTokens || popularChains.length === 0) {
-            return []
-        }
-
-        const tokens: IUserBalance[] = []
+    const popularTokensList = useMemo(() => {
         const popularSymbolsToFind = ['USDC', 'USDT']
-
-        // Note: We use the IUserBalance structure here primarily to reuse the TokenListItem component.
-        // for these popular token entries, the amount, price, and value fields are just placeholders and are ignored.
-        // the TokenListItem component correctly hides the balance display when `isPopularToken` is true.
         const createPopularTokenEntry = (token: IToken, chainId: string): IUserBalance => ({
             ...token,
             chainId: chainId,
@@ -355,92 +302,116 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             value: '',
         })
 
-        // find native token for each popular chain and save them in tokens array
-        popularChains.forEach((chain) => {
-            if (!chain?.chainId) return
+        // helper function to sort tokens by priority: USDC first, native second, USDT third
+        const sortTokensByPriority = (tokensToSort: IUserBalance[]): IUserBalance[] => {
+            return [...tokensToSort].sort((a, b) => {
+                const isANative = isNativeCurrency(a.address)
+                const isBNative = isNativeCurrency(b.address)
+                const isAUsdc = a.symbol.toUpperCase() === 'USDC'
+                const isBUsdc = b.symbol.toUpperCase() === 'USDC'
+                const isAUsdt = a.symbol.toUpperCase() === 'USDT'
+                const isBUsdt = b.symbol.toUpperCase() === 'USDT'
 
-            const chainData = supportedSquidChainsAndTokens[chain.chainId]
-            if (!chainData?.tokens) {
-                return
-            }
+                // USDC first
+                if (isAUsdc && !isBUsdc) return -1
+                if (!isAUsdc && isBUsdc) return 1
 
-            const nativeToken = chainData.tokens.find((token) => areEvmAddressesEqual(token.address, SQUID_ETH_ADDRESS))
-            if (nativeToken) {
-                tokens.push(createPopularTokenEntry(nativeToken, chain.chainId))
-            } else {
-                console.warn(
-                    `Native token (${SQUID_ETH_ADDRESS}) not found in Squid data for chainId: ${chain.chainId}`
-                )
-            }
+                // native tokens second
+                if (isANative && !isBNative) return -1
+                if (!isANative && isBNative) return 1
 
-            popularSymbolsToFind.forEach((symbol) => {
-                const popularToken = chainData.tokens.find(
-                    (token) => token.symbol.toUpperCase() === symbol.toUpperCase()
-                )
-                if (popularToken) {
-                    if (!areEvmAddressesEqual(popularToken.address, SQUID_ETH_ADDRESS)) {
-                        tokens.push(createPopularTokenEntry(popularToken, chain.chainId))
+                // USDT third
+                if (isAUsdt && !isBUsdt) return -1
+                if (!isAUsdt && isBUsdt) return 1
+
+                // alphabetical for any other tokens
+                return a.symbol.localeCompare(b.symbol)
+            })
+        }
+
+        const buildTokensForChainArray = (chainIds: string[], filterSymbol?: string): IUserBalance[] => {
+            const tokens: IUserBalance[] = []
+            if (!supportedSquidChainsAndTokens) return tokens
+
+            chainIds.forEach((chainId) => {
+                const chainData = supportedSquidChainsAndTokens[chainId]
+                if (chainData?.tokens) {
+                    const processToken = (token: IToken) => {
+                        if (filterSymbol) {
+                            if (
+                                token.symbol.toUpperCase() === filterSymbol.toUpperCase() ||
+                                token.address.toLowerCase() === filterSymbol.toLowerCase() ||
+                                token.name?.toLowerCase() === filterSymbol.toLowerCase()
+                            ) {
+                                tokens.push(createPopularTokenEntry(token, chainId))
+                            }
+                        } else {
+                            // no specific symbol filter, add USDC, USDT, Native
+                            if (areEvmAddressesEqual(token.address, SQUID_ETH_ADDRESS)) {
+                                tokens.push(createPopularTokenEntry(token, chainId))
+                            } else if (popularSymbolsToFind.includes(token.symbol.toUpperCase())) {
+                                tokens.push(createPopularTokenEntry(token, chainId))
+                            }
+                        }
                     }
+                    chainData.tokens.forEach(processToken)
                 }
             })
-        })
-
-        // filter out duplicate tokens based on address and chain id
-        const uniqueTokens = Array.from(
-            new Map(tokens.map((t) => [`${t.address.toLowerCase()}-${t.chainId}`, t])).values()
-        )
-
-        // sort popular tokens in order of USDC, native tokens, and USDT
-        uniqueTokens.sort((a, b) => {
-            const isANative = isNativeCurrency(a.address)
-            const isBNative = isNativeCurrency(b.address)
-            const isAUsdc = a.symbol.toUpperCase() === 'USDC'
-            const isBUsdc = b.symbol.toUpperCase() === 'USDC'
-            const isAUsdt = a.symbol.toUpperCase() === 'USDT'
-            const isBUsdt = b.symbol.toUpperCase() === 'USDT'
-
-            // USDC first
-            if (isAUsdc && !isBUsdc) return -1
-            if (!isAUsdc && isBUsdc) return 1
-
-            // native tokens second
-            if (isANative && !isBNative) return -1
-            if (!isANative && isBNative) return 1
-
-            // USDT third
-            if (isAUsdt && !isBUsdt) return -1
-            if (!isAUsdt && isBUsdt) return 1
-
-            // alphabetical for any other tokens
-            return a.symbol.localeCompare(b.symbol)
-        })
-
-        return uniqueTokens
-    }, [popularChains, supportedSquidChainsAndTokens])
-
-    const renderTokenListContent = () => {
-        if (isLoadingExternalBalances) {
-            return <div className="py-4 text-center text-sm text-gray-500">Loading balances...</div>
+            const uniqueTokens = Array.from(
+                new Map(tokens.map((t) => [`${t.address.toLowerCase()}-${t.chainId}`, t])).values()
+            )
+            return sortTokensByPriority(uniqueTokens)
         }
 
         if (!isExternalWalletConnected) {
-            return (
-                <EmptyState
-                    title="Connect your wallet"
-                    icon="txn-off"
-                    cta={
-                        <Button
-                            variant="transparent"
-                            className="h-6 text-xs font-normal text-grey-1 underline"
-                            onClick={() => openAppkitModal()}
-                        >
-                            Connect wallet to see available tokens
-                        </Button>
-                    }
-                />
-            )
+            if (searchValue) {
+                // search active: show searched token across ALL supported networks
+                return buildTokensForChainArray(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS, searchValue)
+            }
+            if (selectedChainID) {
+                // specific chain selected: show popular (USDC, USDT, Native) for that chain
+                return buildTokensForChainArray([selectedChainID])
+            }
+            // default for no wallet: popular tokens on popular chains
+            const popularChainIds = popularChainsForButtons.map((pc) => pc.chainId)
+            return buildTokensForChainArray(popularChainIds)
         }
 
+        return [] // no popular tokens if wallet is connected
+    }, [
+        isExternalWalletConnected,
+        searchValue,
+        selectedChainID,
+        supportedSquidChainsAndTokens,
+        popularChainsForButtons,
+    ])
+
+    const filteredPopularTokensToDisplay = useMemo(() => {
+        // if searchValue is active, popularTokensList is already filtered by symbol across all chains.
+        // if not, popularTokensList is for selected/popular chains, and then we apply broad search.
+        if (!searchValue || isExternalWalletConnected) return popularTokensList // no further filtering if search already did its job or wallet connected
+
+        const lowerSearchValue = searchValue.toLowerCase()
+        return popularTokensList.filter((token) => {
+            const hasSymbol = !!token.symbol
+            const symbolMatch = hasSymbol && token.symbol.toLowerCase().includes(lowerSearchValue)
+            const nameMatch = token.name?.toLowerCase().includes(lowerSearchValue) ?? false
+            const addressMatch = token.address?.toLowerCase().includes(lowerSearchValue) ?? false
+            return hasSymbol && (symbolMatch || nameMatch || addressMatch)
+        })
+    }, [popularTokensList, searchValue, isExternalWalletConnected])
+
+    // visibility flags
+    const showDefaultTxnTokenSection = useMemo(() => !isExternalWalletConnected, [isExternalWalletConnected])
+
+    const showPopularTokensList = useMemo(() => !isExternalWalletConnected, [isExternalWalletConnected])
+    const showUserTokensList = useMemo(() => isExternalWalletConnected, [isExternalWalletConnected])
+
+    const renderUserTokenListContent = () => {
+        if (isLoadingExternalBalances) {
+            return <div className="py-4 text-center text-sm text-gray-500">Loading balances...</div>
+        }
+        // this section only renders if isExternalWalletConnected is true
         if (sourceBalances.length === 0) {
             return (
                 <EmptyState
@@ -451,10 +422,8 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             variant="transparent"
                             className="h-6 text-xs font-normal text-grey-1 underline"
                             onClick={async () => {
-                                if (externalWalletAddress) {
-                                    await disconnectWallet()
-                                }
-                                await openAppkitModal()
+                                await disconnectWallet()
+                                setTimeout(() => openAppkitModal(), 300)
                             }}
                         >
                             Try connecting to a different wallet.
@@ -463,7 +432,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 />
             )
         }
-
         if (selectedChainID && tokensOnSelectedNetwork.length === 0) {
             return (
                 <EmptyState
@@ -485,8 +453,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 />
             )
         }
-
-        if (searchValue && displayTokens.length === 0) {
+        if (searchValue && displayUserTokens.length === 0) {
             return (
                 <EmptyState
                     title="No matching tokens found."
@@ -495,15 +462,14 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 />
             )
         }
-
-        if (displayTokens.length > 0) {
-            return displayTokens.map((balance) => {
+        if (displayUserTokens.length > 0) {
+            return displayUserTokens.map((balance) => {
                 const isSelected =
                     areEvmAddressesEqual(selectedTokenAddress, balance.address) &&
                     selectedChainID === String(balance.chainId)
                 return (
                     <TokenListItem
-                        key={`${balance.address}_${String(balance.chainId)}_balance`}
+                        key={`${balance.address}_${String(balance.chainId)}_user_balance`}
                         balance={balance}
                         onClick={() => handleTokenSelect(balance)}
                         isSelected={isSelected}
@@ -511,29 +477,35 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 )
             })
         }
-
         return (
-            <EmptyState
-                title="You have no token balances."
-                icon="txn-off"
-                cta={
-                    <Button
-                        variant="transparent"
-                        className="h-6 text-xs font-normal text-grey-1 underline"
-                        onClick={() => {
-                            disconnectWallet()
-                            openAppkitModal()
-                        }}
-                    >
-                        Try connecting to a different wallet.
-                    </Button>
-                }
-            />
+            <EmptyState title="No tokens to display." icon="txn-off" description="Try a different search or network." />
         )
     }
 
     const currentExpandedHeight = drawerHeightVh ?? 80
     const currentHalfHeight = Math.min(60, drawerHeightVh ?? 60)
+
+    const popularTokensListTitle = useMemo(() => {
+        if (searchValue && !isExternalWalletConnected) return 'Search Results'
+        if (selectedChainID && selectedNetworkName) return `Popular tokens on ${selectedNetworkName}`
+        return 'Popular tokens'
+    }, [searchValue, selectedChainID, selectedNetworkName, isExternalWalletConnected])
+
+    const handleClearSelectedToken = useCallback(() => {
+        setSelectedChainID('')
+    }, [setSelectedChainID])
+
+    const clearChainSelection = () => {
+        return (
+            <div className="absolute -top-4 right-0">
+                <Button variant="transparent" className="h-fit w-fit p-0" onClick={handleClearSelectedToken}>
+                    <div className="flex size-6 items-center justify-center">
+                        <Icon name="cancel" className="h-4 w-4" />
+                    </div>
+                </Button>
+            </div>
+        )
+    }
 
     return (
         <>
@@ -570,18 +542,19 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                     </span>
                                 )}
                             </span>
-                            {buttonFormattedBalance && viewType === 'other' && (
-                                <span className="truncate text-xs font-normal text-grey-1">
-                                    Balance: {buttonFormattedBalance} {buttonSymbol}
-                                </span>
-                            )}
-                            {viewType === 'withdraw' &&
-                                selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() && (
+                            {buttonFormattedBalance &&
+                                (viewType === 'other' || viewType === 'add' || viewType === 'req_pay') && (
+                                    <span className="truncate text-xs font-normal text-grey-1">
+                                        Balance: {buttonFormattedBalance} {buttonSymbol}
+                                    </span>
+                                )}
+                            {(viewType === 'withdraw' || viewType === 'claim') && // no fees only for default token in these views
+                                selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
+                                selectedChainID === PEANUT_WALLET_CHAIN.id.toString() && (
                                     <span className="text-xs font-normal text-grey-1">No fees with this token.</span>
                                 )}
                         </div>
                     </div>
-
                     <Icon name="chevron-up" size={32} className="h-8 w-8 flex-shrink-0 rotate-90 text-black" />
                 </div>
             </Button>
@@ -590,7 +563,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 isOpen={isDrawerOpen}
                 onClose={closeDrawer}
                 initialPosition="expanded"
-                handleTitle=""
                 expandedHeight={currentExpandedHeight}
                 halfHeight={currentHalfHeight}
                 collapsedHeight={10}
@@ -599,7 +571,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                     {showNetworkList ? (
                         <NetworkListView
                             chains={supportedSquidChainsAndTokens}
-                            onSelectChain={handleChainSelect}
+                            onSelectChain={handleChainSelectFromList}
                             onBack={() => setShowNetworkList(false)}
                             searchValue={networkSearchValue}
                             setSearchValue={setNetworkSearchValue}
@@ -608,159 +580,148 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             comingSoonNetworks={TOKEN_SELECTOR_COMING_SOON_NETWORKS}
                         />
                     ) : (
-                        <div className="flex flex-col space-y-6">
+                        <div className="relative flex flex-col space-y-4">
                             {/* Default transaction token section  */}
-
-                            <Section title="Free transaction token!">
-                                <Card
-                                    className={twMerge(
-                                        'shadow-4 cursor-pointer border border-black p-3',
-                                        selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
-                                            selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
-                                            ? 'bg-primary-3'
-                                            : 'bg-white',
-                                        classNameButton
-                                    )}
-                                    onClick={handleDefaultTokenSelect}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="relative h-8 w-8">
-                                                <Image
-                                                    src={peanutWalletTokenDetails?.logoURI ?? ''}
-                                                    alt={`${peanutWalletTokenDetails?.symbol} logo`}
-                                                    width={28}
-                                                    height={28}
-                                                    className="rounded-full"
-                                                />
-                                                <Image
-                                                    src={peanutWalletTokenDetails?.chainLogoURI ?? ''}
-                                                    alt={`${peanutWalletTokenDetails?.chainName}`}
-                                                    width={24}
-                                                    height={24}
-                                                    className="absolute -right-1 bottom-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-gray-700 text-xs text-white"
-                                                />
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold text-black">USDC on Arbitrum</p>
-                                                <p className="text-sm text-gray-600">No gas fees with this token.</p>
-                                            </div>
-                                        </div>
-                                        <Icon name="chevron-up" size={32} className="h-8 w-8 rotate-90 text-black" />
-                                    </div>
-                                </Card>
-                            </Section>
-
-                            <Divider className="p-0" />
-
-                            {/* Popular chains section - rendered for all views except withdraw view */}
-                            {viewType === 'other' && (
+                            {showDefaultTxnTokenSection && (
                                 <>
-                                    <Section title="Select a network">
-                                        <div className="flex flex-col gap-4">
-                                            <div className="flex items-stretch justify-between space-x-2">
-                                                {popularChains.map((chain) => (
-                                                    <NetworkButton
-                                                        key={chain.chainId}
-                                                        chainName={chain.name}
-                                                        chainIconURI={chain.iconURI}
-                                                        onClick={() => setSelectedChainID(chain.chainId)}
-                                                        isSelected={chain.chainId === selectedChainID}
-                                                    />
-                                                ))}
-                                                <NetworkButton
-                                                    chainName="Search"
-                                                    isSearch={true}
-                                                    onClick={handleSearchNetwork}
+                                    <Section title="Free transaction token!">
+                                        <Card
+                                            className={twMerge(
+                                                'shadow-4 cursor-pointer border border-black p-3',
+                                                selectedTokenAddress?.toLowerCase() ===
+                                                    PEANUT_WALLET_TOKEN.toLowerCase() &&
+                                                    selectedChainID === PEANUT_WALLET_CHAIN.id.toString() &&
+                                                    !isExternalWalletConnected
+                                                    ? 'bg-primary-3'
+                                                    : 'bg-white',
+                                                classNameButton
+                                            )}
+                                            onClick={handleDefaultTokenSelect}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="relative h-8 w-8">
+                                                        <Image
+                                                            src={peanutWalletTokenDetails?.logoURI ?? ''}
+                                                            alt={`${peanutWalletTokenDetails?.symbol} logo`}
+                                                            width={28}
+                                                            height={28}
+                                                            className="rounded-full"
+                                                        />
+                                                        <Image
+                                                            src={peanutWalletTokenDetails?.chainLogoURI ?? ''}
+                                                            alt={`${peanutWalletTokenDetails?.chainName}`}
+                                                            width={24}
+                                                            height={24}
+                                                            className="absolute -right-1 bottom-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-gray-700 text-xs text-white"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-black">USDC on Arbitrum</p>
+                                                        <p className="text-sm text-gray-600">
+                                                            No gas fees with this token.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Icon
+                                                    name="chevron-up"
+                                                    size={32}
+                                                    className="h-8 w-8 rotate-90 text-black"
                                                 />
                                             </div>
-                                        </div>
+                                        </Card>
                                     </Section>
-                                    <Divider className="p-0" dividerClassname="border-grey-1" />
+                                    <Divider className="p-0" />
                                 </>
                             )}
 
-                            {/* Popular tokens section - only rendered for withdraw view */}
-                            {viewType === 'withdraw' && !!popularTokens.length && (
-                                <Section
-                                    title="Popular tokens"
-                                    icon="star"
-                                    titleClassName="text-grey-1 font-medium"
-                                    className="space-y-4"
-                                >
-                                    <ScrollableList>
-                                        {popularTokens.map((token) => {
-                                            const balance = token as IUserBalance
-                                            const isSelected =
-                                                selectedTokenAddress?.toLowerCase() === balance.address.toLowerCase() &&
-                                                selectedChainID === String(balance.chainId)
-
-                                            return (
-                                                <TokenListItem
-                                                    key={`${balance.address}_${String(balance.chainId)}_popular`}
-                                                    balance={balance}
-                                                    onClick={() => handleTokenSelect(balance)}
-                                                    isSelected={isSelected}
-                                                    isPopularToken={true}
+                            {/* Popular chains section - rendered for all views */}
+                            <>
+                                <Section title="Select a network">
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex items-stretch justify-between space-x-2">
+                                            {popularChainsForButtons.map((chain) => (
+                                                <NetworkButton
+                                                    key={chain.chainId}
+                                                    chainName={chain.name}
+                                                    chainIconURI={chain.iconURI}
+                                                    onClick={() => setSelectedChainID(chain.chainId)} // Simpler selection
+                                                    isSelected={chain.chainId === selectedChainID}
                                                 />
-                                            )
-                                        })}
+                                            ))}
+                                            <NetworkButton
+                                                chainName="Search"
+                                                isSearch={true}
+                                                onClick={handleSearchNetwork}
+                                            />
+                                        </div>
+                                    </div>
+                                </Section>
+                                <Divider className="p-0" dividerClassname="border-grey-1" />
+                            </>
+
+                            <div className="sticky -top-1 z-10 bg-background py-3">
+                                <SearchInput
+                                    value={searchValue}
+                                    onChange={setSearchValue}
+                                    onClear={() => setSearchValue('')}
+                                    placeholder="Search for a token or paste address"
+                                />
+                            </div>
+
+                            {/* Popular tokens section - rendered only when there is no wallet connected */}
+                            {showPopularTokensList && (
+                                <Section
+                                    title={popularTokensListTitle}
+                                    icon={searchValue ? 'search' : 'star'}
+                                    titleClassName="text-grey-1 font-medium"
+                                    className="relative space-y-4"
+                                >
+                                    {selectedNetworkName && clearChainSelection()}
+                                    <ScrollableList>
+                                        {filteredPopularTokensToDisplay.length > 0 ? (
+                                            filteredPopularTokensToDisplay.map((token) => {
+                                                const isSelected =
+                                                    !isExternalWalletConnected &&
+                                                    selectedTokenAddress?.toLowerCase() ===
+                                                        token.address.toLowerCase() &&
+                                                    selectedChainID === String(token.chainId)
+
+                                                return (
+                                                    <TokenListItem
+                                                        key={`${token.address}_${String(token.chainId)}_popular`}
+                                                        balance={token}
+                                                        onClick={() => handleTokenSelect(token)}
+                                                        isSelected={isSelected}
+                                                        isPopularToken={true}
+                                                    />
+                                                )
+                                            })
+                                        ) : searchValue ? (
+                                            <EmptyState
+                                                title="No matching popular tokens found"
+                                                icon="search"
+                                                description="Try searching for a different token"
+                                            />
+                                        ) : (
+                                            <EmptyState title="No popular tokens available" icon="star" />
+                                        )}
                                     </ScrollableList>
                                 </Section>
                             )}
 
-                            {/* USER's wallet tokens section - rendered for all views except withdraw view */}
-                            {viewType === 'other' && (
-                                <Section title="Select a token" className="space-y-4">
-                                    <SearchInput
-                                        value={searchValue}
-                                        onChange={setSearchValue}
-                                        onClear={() => setSearchValue('')}
-                                        placeholder="Search for a token"
-                                    />
-
-                                    <div className="space-y-2">
-                                        {/* Section title - based on search value or selected network name */}
-                                        <div className="flex items-center justify-between gap-2 text-sm text-grey-1">
-                                            <div className="flex items-center gap-2">
-                                                {searchValue ? (
-                                                    <Icon name="search" size={16} />
-                                                ) : (
-                                                    <Icon name="wallet-outline" size={16} />
-                                                )}
-                                                <div>
-                                                    {searchValue ? (
-                                                        'Search Results'
-                                                    ) : (
-                                                        <div>
-                                                            Your Tokens{' '}
-                                                            {selectedNetworkName && (
-                                                                <span>
-                                                                    <span>on </span>
-                                                                    <span className="capitalize">
-                                                                        {selectedNetworkName}
-                                                                    </span>
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            {selectedNetworkName && (
-                                                <Button
-                                                    variant="transparent"
-                                                    className="h-fit w-fit p-0"
-                                                    onClick={() => setSelectedChainID('')}
-                                                >
-                                                    <div className="flex size-6 items-center justify-center">
-                                                        <Icon name="cancel" className="h-4 w-4" />
-                                                    </div>
-                                                </Button>
-                                            )}
-                                        </div>
-
-                                        <ScrollableList>{renderTokenListContent()}</ScrollableList>
-                                    </div>
+                            {/* USER's wallet tokens section - rendered only when there is a wallet connected */}
+                            {showUserTokensList && (
+                                <Section
+                                    title={
+                                        selectedNetworkName ? `Your tokens on ${selectedNetworkName}` : 'Your tokens'
+                                    }
+                                    className="relative space-y-4"
+                                    icon={searchValue ? 'search' : 'wallet-outline'}
+                                    titleClassName="text-grey-1 font-medium"
+                                >
+                                    {selectedNetworkName && isExternalWalletConnected && clearChainSelection()}
+                                    <ScrollableList>{renderUserTokenListContent()}</ScrollableList>
                                 </Section>
                             )}
                         </div>

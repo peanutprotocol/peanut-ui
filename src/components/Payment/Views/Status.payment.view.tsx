@@ -3,12 +3,13 @@ import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
+import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { RecipientType } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
-import { getInitialsFromName, printableAddress } from '@/utils'
+import { formatAmount, getInitialsFromName, printableAddress } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
@@ -20,9 +21,10 @@ type DirectSuccessViewProps = {
     message?: string
     recipientType?: RecipientType
     type: 'SEND' | 'REQUEST'
+    headerTitle?: string
 }
 
-const DirectSuccessView = ({ user, amount, message, recipientType, type }: DirectSuccessViewProps) => {
+const DirectSuccessView = ({ user, amount, message, recipientType, type, headerTitle }: DirectSuccessViewProps) => {
     const router = useRouter()
     const { chargeDetails, parsedPaymentData } = usePaymentStore()
     const [showCheck, setShowCheck] = useState(false)
@@ -68,20 +70,28 @@ const DirectSuccessView = ({ user, amount, message, recipientType, type }: Direc
     }
 
     return (
-        <div className="flex flex-col gap-4">
-            <Card className="p-4">
-                <div className="flex items-center gap-3">
-                    {recipientType !== 'USERNAME' ? (
-                        <div
-                            className={
-                                'flex h-16 w-16 min-w-16 items-center justify-center rounded-full bg-yellow-5 font-bold'
-                            }
-                        >
-                            <Icon name="wallet-outline" size={24} />
-                        </div>
-                    ) : (
-                        <AvatarWithBadge className="bg-success-3" initials={initials} />
-                    )}
+        <div>
+            <NavHeader
+                title={headerTitle}
+                onPrev={() => {
+                    router.push('/send')
+                }}
+            />
+            <div className="translate-y-2/3 space-y-4">
+                <Card className="p-4">
+                    <div className="flex items-center gap-3">
+                        {recipientType !== 'USERNAME' ? (
+                            <div
+                                className={
+                                    'flex h-16 w-16 min-w-16 items-center justify-center rounded-full bg-yellow-5 font-bold'
+                                }
+                            >
+                                <Icon name="wallet-outline" size={24} />
+                            </div>
+                        ) : (
+                            <AvatarWithBadge className="bg-success-3" initials={initials} />
+                        )}
+                    </div>
 
                     <div className="space-y-1">
                         <h1 className="text-sm font-bold">
@@ -100,15 +110,15 @@ const DirectSuccessView = ({ user, amount, message, recipientType, type }: Direc
                         </h2>
                         {message && <p className="text-sm font-medium text-grey-1">for {message}</p>}
                     </div>
-                </div>
-            </Card>
+                </Card>
 
-            <Button onClick={handleDone} shadowSize="4" className="mx-auto w-38 rounded-full">
-                <div className="flex size-7 items-center justify-center gap-0">
-                    {showCheck ? <Icon name="check" size={24} /> : <Loading />}
-                </div>
-                <div>Done!</div>
-            </Button>
+                <Button onClick={handleDone} shadowSize="4" className="mx-auto w-38 rounded-full">
+                    <div className="flex size-7 items-center justify-center gap-0">
+                        {showCheck ? <Icon name="check" size={24} /> : <Loading />}
+                    </div>
+                    <div>Done!</div>
+                </Button>
+            </div>
         </div>
     )
 }

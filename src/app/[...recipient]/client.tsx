@@ -43,23 +43,39 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
             if (!isMounted) return
 
             if (parsedUrl) {
-                dispatch(
-                    paymentActions.setParsedPaymentData({
-                        ...parsedUrl,
-                        amount: parsedUrl.amount ? formatAmount(parsedUrl.amount || '') : undefined,
-                    })
-                )
+                const amount = parsedUrl.amount ? formatAmount(parsedUrl.amount || '') : undefined
+                const updatedParsedData = {
+                    ...parsedUrl,
+                    amount,
+                }
+                dispatch(paymentActions.setParsedPaymentData(updatedParsedData))
                 setIsUrlParsed(true)
+
+                // render PUBLIC_PROFILE view if applicable
+                if (
+                    updatedParsedData.recipient?.recipientType === 'USERNAME' &&
+                    !updatedParsedData.amount &&
+                    !chargeId &&
+                    !requestId &&
+                    !isDirectPay
+                ) {
+                    dispatch(paymentActions.setView('PUBLIC_PROFILE'))
+                } else {
+                    dispatch(paymentActions.setView('INITIAL'))
+                }
             } else {
                 setError(getErrorProps({ error, isUser: !!user }))
             }
         }
 
-        fetchParsedURL()
+        if (!isUrlParsed) {
+            fetchParsedURL()
+        }
+
         return () => {
             isMounted = false
         }
-    }, [recipient, user])
+    }, [recipient, user, isUrlParsed, dispatch, isDirectPay, chargeId, requestId])
 
     // handle validation and charge creation
     useEffect(() => {
@@ -157,6 +173,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     useEffect(() => {
         if (!chargeId) {
             dispatch(paymentActions.resetPaymentState())
+            setIsUrlParsed(false)
         }
     }, [dispatch, chargeId])
 
@@ -179,21 +196,12 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
         )
     }
 
-    // check if its is a profile view
-    if (
-        isUrlParsed &&
-        parsedPaymentData?.recipient?.recipientType === 'USERNAME' &&
-        !parsedPaymentData.amount &&
-        !chargeId &&
-        !requestId &&
-        !isDirectPay
-    ) {
+    // render PUBLIC_PROFILE view
+    if (currentView === 'PUBLIC_PROFILE' && parsedPaymentData?.recipient?.recipientType === 'USERNAME') {
         const username = parsedPaymentData.recipient.identifier
-
         const handleSendClick = () => {
             router.push(`/pay/${username}`)
         }
-
         return (
             <PublicProfile
                 username={username}
@@ -211,6 +219,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
         )
     }
 
+    // pinta token payment flow
     if (parsedPaymentData?.token?.symbol === 'PNT') {
         return (
             <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
@@ -223,6 +232,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
         )
     }
 
+    // default payment flow
     return (
         <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
             <div>
@@ -240,6 +250,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                             <PintaReqPaySuccessView />
                         ) : (
                             <DirectSuccessView
+                                headerTitle="Send"
                                 recipientType={parsedPaymentData?.recipient?.recipientType}
                                 type="SEND"
                             />
