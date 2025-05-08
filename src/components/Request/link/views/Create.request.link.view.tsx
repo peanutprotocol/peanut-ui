@@ -1,4 +1,5 @@
 'use client'
+import { fetchTokenDetails } from '@/app/actions/tokens'
 import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
@@ -19,7 +20,6 @@ import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchTokenDetails } from '@/app/actions/tokens'
 
 export const CreateRequestLinkView = () => {
     const toast = useToast()
@@ -317,7 +317,11 @@ export const CreateRequestLinkView = () => {
             <div className="w-full space-y-4">
                 <PeanutActionCard type="request" />
 
-                <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
+                <QRCodeWrapper
+                    url={qrCodeLink}
+                    isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)}
+                    disabled={!_tokenValue}
+                />
 
                 <TokenAmountInput
                     className="w-full"
