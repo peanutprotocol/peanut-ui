@@ -249,7 +249,10 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                         {parsedPaymentData?.token?.symbol === 'PNT' ? (
                             <PintaReqPaySuccessView />
                         ) : (
-                            <PaymentStatusView recipientType={parsedPaymentData?.recipient?.recipientType} />
+                            <PaymentStatusView
+                                headerTitle="Send"
+                                recipientType={parsedPaymentData?.recipient?.recipientType}
+                            />
                         )}
                     </>
                 )}

@@ -2,7 +2,8 @@ import Divider from '@/components/0_Bruddle/Divider'
 import BottomDrawer from '@/components/Global/BottomDrawer'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
-import { useState } from 'react'
+import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
+import { useRef, useState } from 'react'
 
 interface QRBottomDrawerProps {
     url: string
@@ -14,13 +15,17 @@ interface QRBottomDrawerProps {
 
 const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText }: QRBottomDrawerProps) => {
     const [title, setTitle] = useState<string>(collapsedTitle)
+    const contentRef = useRef<HTMLDivElement>(null)
+    const drawerHeightVh = useDynamicHeight(contentRef, { maxHeightVh: 90, minHeightVh: 10, extraVhOffset: 5 })
+    const currentExpandedHeight = drawerHeightVh ?? 80
+    const currentHalfHeight = Math.min(60, drawerHeightVh ?? 60)
     return (
         <BottomDrawer
             initialPosition="collapsed"
             handleTitle={title}
             collapsedHeight={24}
-            halfHeight={60}
-            expandedHeight={90}
+            halfHeight={currentHalfHeight}
+            expandedHeight={currentExpandedHeight}
             isOpen={true}
             onPositionChange={(position) => {
                 if (position === 'collapsed') {
@@ -30,7 +35,7 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText }
                 }
             }}
         >
-            <div>
+            <div ref={contentRef}>
                 <QRCodeWrapper url={url} />
                 <div className="mx-auto mt-4 w-full p-2 text-center text-base text-gray-500">{text}</div>
                 <Divider className="text-gray-500" text="or" />
