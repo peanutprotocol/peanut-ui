@@ -40,7 +40,7 @@ export function Hero({ heading, marquee = { visible: false }, primaryCta, second
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => (
         <motion.div
             className={`fixed bottom-4 z-20 sm:bottom-8 ${
-                variant === 'primary' ? 'right-[calc(50%-60px)]' : 'right-[calc(50%-120px)]'
+                variant === 'primary' ? 'right-[calc(50%)]' : 'right-[calc(50%-120px)]'
             }`}
             initial={{
                 opacity: 0,
