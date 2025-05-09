@@ -1,6 +1,9 @@
 import { GenericBanner } from './GenericBanner'
+import { usePathname } from 'next/navigation'
 
 export function Banner() {
+    const pathname = usePathname()
+    if (pathname === '/cashout') return null
     return (
         <GenericBanner
             message="⚠️ UNMAINTAINED: This version is no longer supported. For the latest version with ongoing updates, please visit: peanut.me"
