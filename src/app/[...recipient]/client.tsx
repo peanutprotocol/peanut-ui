@@ -4,7 +4,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
-import PaymentStatusView from '@/components/Payment/Views/Status.payment.view'
+import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { useAuth } from '@/context/authContext'
@@ -249,7 +249,11 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                         {parsedPaymentData?.token?.symbol === 'PNT' ? (
                             <PintaReqPaySuccessView />
                         ) : (
-                            <PaymentStatusView recipientType={parsedPaymentData?.recipient?.recipientType} />
+                            <DirectSuccessView
+                                headerTitle="Send"
+                                recipientType={parsedPaymentData?.recipient?.recipientType}
+                                type="SEND"
+                            />
                         )}
                     </>
                 )}

@@ -13,7 +13,7 @@ interface SearchResultsProps {
     showMinCharError: boolean
     showNoResults: boolean
     className?: string
-    recentTransactions?: ApiUser[]
+    recentTransactions?: Pick<ApiUser, 'userId' | 'username' | 'fullName'>[]
     onUserSelect?: (username: string) => void
 }
 
@@ -88,6 +88,7 @@ export const SearchResults = ({
                                     key={user.userId}
                                     username={user.username}
                                     fullName={user.fullName}
+                                    onClick={onUserSelect}
                                     position={
                                         recentTransactions.length === 1
                                             ? 'single'

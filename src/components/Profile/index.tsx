@@ -2,29 +2,17 @@
 
 import { Button } from '@/components/0_Bruddle'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { loadingStateContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { getInitialsFromName } from '@/utils'
-import { captureException } from '@sentry/nextjs'
-import { useContext } from 'react'
 import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 
 export const Profile = () => {
-    const { setLoadingState, isLoading } = useContext(loadingStateContext)
-    const { logoutUser, user } = useAuth()
+    const { logoutUser, isLoggingOut, user } = useAuth()
 
-    const handleLogout = async () => {
-        try {
-            setLoadingState('Logging out')
-            await logoutUser()
-        } catch (error) {
-            console.error('Error logging out', error)
-            captureException(error)
-        } finally {
-            setLoadingState('Idle')
-        }
+    const logout = async () => {
+        await logoutUser()
     }
 
     const fullName = user?.user.full_name || user?.user?.username || 'Anonymous User'
@@ -81,16 +69,18 @@ export const Profile = () => {
                         />
                     </div>
                     {/* Logout Button */}
-                    <Button
-                        disabled={isLoading}
-                        variant="primary-soft"
-                        shadowSize="4"
-                        className="flex w-full items-center justify-center gap-2 rounded-sm py-3"
-                        onClick={handleLogout}
-                    >
-                        <Icon name="logout" size={20} fill="black" />
-                        <span className="font-bold">Log out</span>
-                    </Button>
+                    <div className="w-full pb-10">
+                        <Button
+                            disabled={isLoggingOut}
+                            variant="primary-soft"
+                            shadowSize="4"
+                            className="flex w-full items-center justify-center gap-2 rounded-sm py-3"
+                            onClick={logout}
+                        >
+                            <Icon name="logout" size={20} fill="black" />
+                            <span className="font-bold">Log out</span>
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>

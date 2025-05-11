@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import type { QueryObserverResult, InfiniteQueryObserverResult, InfiniteData } from '@tanstack/react-query'
 import { fetchWithSentry, getFromLocalStorage, getTokenDetails } from '@/utils'
-import { PEANUT_API_URL, BASE_URL } from '@/constants'
+import { PEANUT_API_URL, BASE_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import Cookies from 'js-cookie'
 import { formatUnits } from 'viem'
 import type { Hash } from 'viem'
@@ -14,6 +14,7 @@ export enum EHistoryEntryType {
     CASHOUT = 'CASHOUT',
     DEPOSIT = 'DEPOSIT',
     SEND_LINK = 'SEND_LINK',
+    DIRECT_SEND = 'DIRECT_SEND',
 }
 
 export enum EHistoryUserRole {
@@ -44,6 +45,8 @@ export type HistoryEntry = {
               type: string
               isUser: boolean
               username?: string | undefined
+              fullName?: string
+              userId?: string
           }
         | undefined
     recipientAccount: {
@@ -51,6 +54,8 @@ export type HistoryEntry = {
         type: string
         isUser: boolean
         username?: string | undefined
+        fullName?: string
+        userId?: string
     }
     extraData?: Record<string, any>
 }
@@ -135,6 +140,10 @@ export function useTransactionHistory({
                         link = `${process.env.NEXT_PUBLIC_BASE_URL}/request/pay?id=${entry.uuid}`
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
+                        break
+                    case 'DEPOSIT':
+                        tokenSymbol = 'USDC'
+                        usdAmount = formatUnits(BigInt(entry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
                         break
                     default:
                         break
