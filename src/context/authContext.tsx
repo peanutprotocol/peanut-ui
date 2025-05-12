@@ -4,18 +4,16 @@ import * as interfaces from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { type GetUserLinksResponse, fetchWithSentry } from '@/utils'
-import { ToastId, useToast } from '@chakra-ui/react' // TODO: use normmal toasts we use throughout the app, not chakra toasts!
 import { useAppKit } from '@reown/appkit/react'
 import { useRouter } from 'next/navigation'
-import { createContext, ReactNode, useContext, useRef, useState } from 'react'
+import { createContext, ReactNode, useContext, useState } from 'react'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
     userId: string | undefined
     username: string | undefined
     fetchUser: () => Promise<interfaces.IUserProfile | null>
-    updateUserName: (username: string) => Promise<void>
-    submitProfilePhoto: (file: File) => Promise<void>
     updateBridgeCustomerData: (customer: GetUserLinksResponse) => Promise<void>
     addBYOW: () => Promise<void>
     addAccount: ({
@@ -48,6 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { open: web3modalOpen } = useAppKit()
     const dispatch = useAppDispatch()
     const { user: authUser } = useUserStore()
+    const toast = useToast()
 
     const { data: user, isFetching: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
 
@@ -56,69 +55,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return fetchedUser ?? null
     }
 
-    const toast = useToast({
-        position: 'bottom-right',
-        duration: 5000,
-        isClosable: true,
-        icon: '🥜',
-    })
-
-    const toastIdRef = useRef<ToastId | undefined>(undefined)
     const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-    const updateUserName = async (username: string) => {
-        if (!user) return
-
-        try {
-            if (toastIdRef.current) {
-                toast.close(toastIdRef.current)
-            }
-            toastIdRef.current = toast({
-                status: 'loading',
-                title: 'Updating username...',
-            }) as ToastId
-            const response = await fetchWithSentry('/api/peanut/user/update-user', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    username: username,
-                    userId: user.user.userId,
-                }),
-            })
-
-            if (response.status === 409) {
-                const data = await response.json()
-                toast.close(toastIdRef.current)
-                toastIdRef.current = toast({
-                    status: 'error',
-                    title: data,
-                }) as ToastId
-
-                return
-            }
-
-            if (!response.ok) {
-                throw new Error(response.statusText)
-            }
-            toast.close(toastIdRef.current)
-            toastIdRef.current = toast({
-                status: 'success',
-                title: 'Username updated successfully',
-            }) as ToastId
-        } catch (error) {
-            console.error('Error updating user', error)
-            toast.close(toastIdRef.current ?? '')
-            toastIdRef.current = toast({
-                status: 'error',
-                title: 'Failed to update username',
-                description: 'Please try again later',
-            }) as ToastId
-        } finally {
-            fetchUser()
-        }
-    }
     const updateBridgeCustomerData = async (customer: GetUserLinksResponse) => {
         if (!user) return
 
@@ -145,50 +83,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
         } catch (error) {
             console.error('Error updating user', error)
-        }
-    }
-
-    const submitProfilePhoto = async (file: File) => {
-        if (!user) return
-
-        try {
-            if (toastIdRef.current) {
-                toast.close(toastIdRef.current)
-            }
-            toastIdRef.current = toast({
-                status: 'loading',
-                title: 'Updating profile photo...',
-            }) as ToastId
-            const formData = new FormData()
-            formData.append('file', file)
-
-            const response = await fetchWithSentry('/api/peanut/user/submit-profile-photo', {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer your-auth-token`,
-                    'api-key': 'your-api-key',
-                },
-                body: formData,
-            })
-
-            if (response.ok) {
-                fetchUser()
-            } else {
-                throw new Error(response.statusText)
-            }
-            toast.close(toastIdRef.current)
-            toastIdRef.current = toast({
-                status: 'success',
-                title: 'Profile photo updated successfully',
-            }) as ToastId
-        } catch (error) {
-            console.error('Error submitting profile photo', error)
-            toast.close(toastIdRef.current ?? '')
-            toastIdRef.current = toast({
-                status: 'error',
-                title: 'Failed to update profile photo',
-                description: 'Please try again later',
-            }) as ToastId
         }
     }
 
@@ -263,28 +157,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 dispatch(setupActions.resetSetup())
                 router.replace('/setup')
 
-                toast({
-                    status: 'success',
-                    title: 'Logged out successfully',
-                    duration: 3000,
-                })
+                toast.success('Logged out successfully')
             } else {
                 console.error('Failed to log out user')
-                toast({
-                    status: 'error',
-                    title: 'Failed to log out',
-                    description: 'Please try again',
-                    duration: 5000,
-                })
+                toast.error('Failed to log out')
             }
         } catch (error) {
             console.error('Error logging out user', error)
-            toast({
-                status: 'error',
-                title: 'Error logging out',
-                description: 'Please try again',
-                duration: 5000,
-            })
+            toast.error('Error logging out')
         } finally {
             setIsLoggingOut(false)
         }
@@ -300,8 +180,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 username: user?.user?.username ?? undefined,
                 updateBridgeCustomerData,
                 fetchUser: legacy_fetchUser,
-                updateUserName,
-                submitProfilePhoto,
                 addBYOW,
                 addAccount,
                 isFetchingUser,

@@ -126,7 +126,7 @@ export const Claim = ({}) => {
                 }
                 if (0 < price) setTokenPrice(price)
 
-                if (user && user.user.userId === sendLink.sender.userId) {
+                if (user && user.user.userId === sendLink.sender?.userId) {
                     setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
                 } else {
                     setLinkState(_consts.claimLinkStateType.CLAIM)
