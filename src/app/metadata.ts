@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import { BASE_URL } from '@/constants'
 
 export function generateMetadata({
     title,
@@ -14,14 +15,14 @@ export function generateMetadata({
     return {
         title,
         description,
-        metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'),
+        metadataBase: new URL(BASE_URL),
         icons: { icon: '/favicon.ico' },
         keywords,
         openGraph: {
             type: 'website',
             title,
             description,
-            url: 'https://peanut.me',
+            url: BASE_URL,
             siteName: 'Peanut Protocol',
             images: [{ url: image, width: 1200, height: 630, alt: title }],
         },

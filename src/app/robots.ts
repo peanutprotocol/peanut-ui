@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { BASE_URL } from '@/constants'
 
 export default function robots(): MetadataRoute.Robots {
     return {
@@ -17,6 +18,6 @@ export default function robots(): MetadataRoute.Robots {
                 crawlDelay: 10,
             },
         ],
-        sitemap: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'}/sitemap.xml`,
+        sitemap: `${BASE_URL}/sitemap.xml`,
     }
 }

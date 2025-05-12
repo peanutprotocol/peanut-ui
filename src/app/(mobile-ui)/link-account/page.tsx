@@ -1,11 +1,12 @@
 import { LinkAccountComponent } from '@/components'
+import { BASE_URL } from '@/constants'
 
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
     description: 'Send crypto via link',
-    metadataBase: new URL('https://peanut.me'),
+    metadataBase: new URL(BASE_URL),
 
     icons: {
         icon: '/favicon.ico',

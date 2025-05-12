@@ -2,6 +2,7 @@ import { getLinkDetails } from '@/app/actions/claimLinks'
 import { Claim } from '@/components'
 import { formatAmount } from '@/utils'
 import { Metadata } from 'next'
+import { BASE_URL } from '@/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,7 @@ export async function generateMetadata({
     const resolvedSearchParams = await searchParams
 
     let title = 'Claim your tokens!'
-    const host = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
+    const host = BASE_URL
 
     let linkDetails = undefined
     if (resolvedSearchParams.i && resolvedSearchParams.c) {

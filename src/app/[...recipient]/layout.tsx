@@ -1,6 +1,7 @@
 import PaymentLayoutWrapper from './payment-layout-wrapper'
 import { printableAddress } from '@/utils'
 import { isAddress } from 'viem'
+import { BASE_URL } from '@/constants'
 
 function getPreviewUrl(
     host: string,
@@ -29,7 +30,7 @@ function getPreviewUrl(
 export async function generateMetadata({ params }: any) {
     let title = 'Request Payment | Peanut'
     let previewUrl = '/metadata-img.jpg'
-    const host = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
+    const host = BASE_URL
 
     if (!host) {
         console.error('Error: NEXT_PUBLIC_BASE_URL is not defined')

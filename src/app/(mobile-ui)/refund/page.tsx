@@ -1,10 +1,11 @@
 import { Metadata } from 'next'
 import { Refund } from '@/components'
+import { BASE_URL } from '@/constants'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
     description: 'Send to Anyone',
-    metadataBase: new URL('https://peanut.me'),
+    metadataBase: new URL(BASE_URL),
 
     icons: {
         icon: '/favicon.ico',
