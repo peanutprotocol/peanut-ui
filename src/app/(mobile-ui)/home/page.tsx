@@ -18,11 +18,11 @@ import { useWalletStore } from '@/redux/hooks'
 import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences } from '@/utils'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 export default function Home() {
-    const { balance } = useWallet()
+    const { balance, address } = useWallet()
     const { rewardWalletBalance } = useWalletStore()
     const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
@@ -30,7 +30,7 @@ export default function Home() {
         return prefs?.balanceHidden ?? false
     })
 
-    const { username, isFetchingUser, user } = useAuth()
+    const { username, isFetchingUser, user, addAccount } = useAuth()
 
     const userFullName = useMemo(() => {
         if (!user) return
@@ -47,6 +47,18 @@ export default function Home() {
     }
 
     const isLoading = isFetchingUser && !username
+
+    useEffect(() => {
+        // We have some users that didn't have the peanut wallet created
+        // correctly, so we need to create it
+        if (address && user && !user.accounts.some((a) => a.account_type === 'peanut-wallet')) {
+            addAccount({
+                accountIdentifier: address,
+                accountType: 'peanut-wallet',
+                userId: user.user.userId,
+            })
+        }
+    }, [user, address])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />

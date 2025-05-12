@@ -16,7 +16,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 
-const publicPathRegex = /^\/(request\/pay|claim)/
+const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
