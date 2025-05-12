@@ -10,7 +10,7 @@ import { Button, NavIcons } from '../0_Bruddle'
 import Icon from '../Global/Icon'
 import Modal from '../Global/Modal'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
-
+import { BASE_URL } from '@/constants'
 type FundingMethod = 'exchange' | 'request_link' | null
 
 type Wallet = { name: string; logo: string }
@@ -211,7 +211,7 @@ const UsingExchange = () => {
 
 const UsingRequestLink = () => {
     const { user } = useUserStore()
-    const depositLink = `https://peanut.me/${user?.user?.username}?action=deposit`
+    const depositLink = `${BASE_URL}/pay/${user?.user?.username}`
 
     const wallets: Wallet[] = useMemo(
         () => [
