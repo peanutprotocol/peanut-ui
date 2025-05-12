@@ -6,12 +6,17 @@ import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
 import Link from 'next/link'
-import React, { useCallback, useRef } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import { Button } from '../0_Bruddle'
 import { Icon } from '../Global/Icons/Icon'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
+import { sendLinksApi } from '@/services/sendLinks'
+import { useUserStore } from '@/redux/hooks'
+import { useQueryClient } from '@tanstack/react-query'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { captureException } from '@sentry/nextjs'
 
 interface TransactionDetailsDrawerProps {
     isOpen: boolean
@@ -27,6 +32,10 @@ interface TransactionDetailsDrawerProps {
 export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> = ({ isOpen, onClose, transaction }) => {
     // ref for the main content area to calculate dynamic height
     const contentRef = useRef<HTMLDivElement>(null)
+    const { user } = useUserStore()
+    const queryClient = useQueryClient()
+    const [isLoading, setIsLoading] = useState<boolean>(false)
+    const { fetchBalance } = useWallet()
 
     // calculate drawer height based on content, with min/max constraints
     const drawerHeightVh = useDynamicHeight(contentRef, {
@@ -73,6 +82,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
             halfHeight={currentHalfHeight}
             expandedHeight={currentExpandedHeight}
             preventScroll={false}
+            isLoading={isLoading}
         >
             <div ref={contentRef} className="space-y-4 pb-8">
                 {/* show qr code at the top if applicable */}
@@ -122,7 +132,30 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                             transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST) &&
                             transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.SENDER && (
                                 <Button
-                                    disabled // disabled for now
+                                    onClick={() => {
+                                        setIsLoading(true)
+                                        sendLinksApi
+                                            .claim(user!.user.username!, transaction.extraDataForDrawer!.link!)
+                                            .then(() => {
+                                                // Claiming takes time, so we need to invalidate both transaction query types
+                                                setTimeout(() => {
+                                                    fetchBalance()
+                                                    queryClient
+                                                        .invalidateQueries({
+                                                            queryKey: ['transactions'],
+                                                        })
+                                                        .then(() => {
+                                                            setIsLoading(false)
+                                                            handleClose()
+                                                        })
+                                                }, 3000)
+                                            })
+                                            .catch((error) => {
+                                                captureException(error)
+                                                console.error('Error claiming link:', error)
+                                                setIsLoading(false)
+                                            })
+                                    }}
                                     variant={'primary-soft'}
                                     className="flex w-full items-center gap-1"
                                     shadowSize="4"
@@ -130,9 +163,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                     <div className="flex size-6 items-center gap-0">
                                         <Icon name="cancel" />
                                     </div>
-                                    <span>
-                                        Cancel link <span className="text-xs">(Coming soon)</span>
-                                    </span>
+                                    <span>Cancel link</span>
                                 </Button>
                             )}
                     </div>

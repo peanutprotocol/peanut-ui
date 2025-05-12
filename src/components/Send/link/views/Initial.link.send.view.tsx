@@ -16,6 +16,7 @@ import { parseUnits } from 'viem'
 import { Button } from '../../../0_Bruddle'
 import FileUploadInput from '../../../Global/FileUploadInput'
 import TokenAmountInput from '../../../Global/TokenAmountInput'
+import { useQueryClient } from '@tanstack/react-query'
 
 const LinkSendInitialView = () => {
     const dispatch = useAppDispatch()
@@ -26,6 +27,7 @@ const LinkSendInitialView = () => {
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
 
     const { fetchBalance, balance } = useWallet()
+    const queryClient = useQueryClient()
 
     const peanutWalletBalance = useMemo(() => {
         return printableUsdc(balance)
@@ -51,6 +53,9 @@ const LinkSendInitialView = () => {
             dispatch(sendFlowActions.setLink(link))
             dispatch(sendFlowActions.setView('SUCCESS'))
             fetchBalance()
+            queryClient.invalidateQueries({
+                queryKey: ['transactions'],
+            })
 
             // We dont need to wait for this to finish in order to proceed
             setTimeout(async () => {

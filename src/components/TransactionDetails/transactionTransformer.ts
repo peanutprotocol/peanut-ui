@@ -53,7 +53,7 @@ interface MappedTransactionData {
  * @param currentuserusername the username of the currently logged-in user.
  * @returns an object containing structured transactiondetails and the transactioncardtype.
  */
-export function mapTransactionDataForDrawer(entry: HistoryEntry, currentUserUsername?: string): MappedTransactionData {
+export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransactionData {
     // initialize variables
     let direction: TransactionDirection
     let transactionCardType: TransactionCardType
@@ -62,31 +62,30 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry, currentUserUser
     let isLinkTx = false
     let isPeerActuallyUser = false
 
-    // determine if the current user was the sender or recipient in the original entry
-    const isCurrentUserSender = entry.senderAccount?.isUser && entry.senderAccount?.username === currentUserUsername
-    const isCurrentUserRecipient =
-        entry.recipientAccount?.isUser && entry.recipientAccount?.username === currentUserUsername
-
     // determine direction, card type, peer name, and flags based on original type and user role
     switch (entry.type) {
         case EHistoryEntryType.SEND_LINK:
             isLinkTx = true
-            if (isCurrentUserSender) {
-                direction = 'send'
-                transactionCardType = 'send'
+            direction = 'send'
+            transactionCardType = 'send'
+            if (entry.userRole === EHistoryUserRole.SENDER) {
                 nameForDetails =
                     entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Sent via Link'
                 isPeerActuallyUser = !!entry.recipientAccount?.isUser
-            } else {
+            } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
                 direction = 'receive'
                 transactionCardType = 'add'
                 nameForDetails = entry.senderAccount?.username || entry.senderAccount?.identifier || 'Received via Link'
                 isPeerActuallyUser = !!entry.senderAccount?.isUser
+            } else if (entry.userRole === EHistoryUserRole.BOTH) {
+                isPeerActuallyUser = true
+                uiStatus = 'cancelled'
+                nameForDetails = 'Sent via Link'
             }
             break
         case EHistoryEntryType.REQUEST:
             isLinkTx = !entry.txHash
-            if (isCurrentUserSender) {
+            if (entry.userRole === EHistoryUserRole.SENDER) {
                 direction = 'request_sent'
                 transactionCardType = 'request'
                 nameForDetails =
@@ -143,6 +142,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry, currentUserUser
             uiStatus = 'pending'
             break
         case 'COMPLETED':
+            uiStatus = EHistoryEntryType.SEND_LINK === entry.type ? 'pending' : 'completed'
+            break
         case 'SUCCESSFUL':
         case 'CLAIMED':
         case 'PAID':
@@ -202,11 +203,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry, currentUserUser
         isVerified: entry.recipientAccount?.isUser || entry.senderAccount?.isUser || false,
         date: entry.timestamp,
         fee: undefined,
-        memo: entry.attachmentUrl
-            ? entry.attachmentUrl
-            : entry.extraData?.link && uiStatus === 'pending'
-              ? entry.extraData.link
-              : undefined,
+        memo: entry.memo ?? entry.attachmentUrl,
         txHash: entry.txHash,
         explorerUrl: explorerUrlWithTx,
         extraDataForDrawer: {

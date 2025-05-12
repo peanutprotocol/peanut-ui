@@ -98,7 +98,11 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     <h2 className="text-sm font-medium text-grey-1">
                         {getTitle(direction, userName, isLinkTransaction)}
                     </h2>
-                    <h1 className="text-3xl font-extrabold md:text-4xl">{amountDisplay}</h1>
+                    <h1
+                        className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' ? 'text-grey-1 line-through' : ''}`}
+                    >
+                        ${amountDisplay}
+                    </h1>
                 </div>
             </div>
             <div className="absolute bottom-4 right-4">{status && <StatusBadge status={status} size="small" />}</div>

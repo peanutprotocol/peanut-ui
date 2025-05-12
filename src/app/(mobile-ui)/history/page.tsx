@@ -98,10 +98,7 @@ const HistoryPage = () => {
                         lastGroupHeaderKey = currentGroupHeaderKey
                     }
 
-                    const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(
-                        item,
-                        currentUserUsername || ''
-                    )
+                    const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
 
                     let position: CardPosition = 'middle'
                     const isFirstOverall = index === 0

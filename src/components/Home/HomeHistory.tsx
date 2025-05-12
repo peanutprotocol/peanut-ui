@@ -57,10 +57,7 @@ const HomeHistory = () => {
                 {/* map over the latest entries and render transactioncard */}
                 {historyData.entries.map((item, index) => {
                     // map the raw history entry to the format needed by the ui components
-                    const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(
-                        item,
-                        currentUserUsername || ''
-                    )
+                    const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
 
                     // determine card position for styling (first, middle, last, single)
                     let position: CardPosition = 'middle'

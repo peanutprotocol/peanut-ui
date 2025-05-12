@@ -1,5 +1,6 @@
 import React, { ReactNode, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 
 type DrawerPosition = 'collapsed' | 'half' | 'expanded'
 
@@ -15,6 +16,7 @@ interface BottomDrawerProps {
     expandedHeight?: number
     onPositionChange?: (position: DrawerPosition) => void
     preventScroll?: boolean
+    isLoading?: boolean
 }
 
 const BottomDrawer: React.FC<BottomDrawerProps> = ({
@@ -29,6 +31,7 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
     expandedHeight = 90,
     onPositionChange = () => {},
     preventScroll = true,
+    isLoading = false,
 }) => {
     const [position, setPosition] = useState<DrawerPosition>(initialPosition)
     const [isDragging, setIsDragging] = useState<boolean>(false)
@@ -313,6 +316,9 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
 
     // Handle overlay click to close drawer
     const handleOverlayClick = (e: React.MouseEvent) => {
+        // Don't close if loading
+        if (isLoading) return
+
         if (e.target === overlayRef.current) {
             // if initial position was collapsed and user opened it,
             // clicking overlay should return it to collapsed state.
@@ -364,14 +370,21 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
                     pointerEvents: 'auto', // Always allow interaction with the drawer itself
                 }}
             >
+                {/* Loading overlay */}
+                {isLoading && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                        <PeanutLoading />
+                    </div>
+                )}
+
                 {/* Drag handle */}
                 <div
                     className="mx-auto cursor-grab touch-none px-6 pb-2 pt-2 md:max-w-2xl"
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleDragEnd}
-                    onMouseDown={handleMouseDown}
-                    style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                    onTouchStart={!isLoading ? handleTouchStart : undefined}
+                    onTouchMove={!isLoading ? handleTouchMove : undefined}
+                    onTouchEnd={!isLoading ? handleDragEnd : undefined}
+                    onMouseDown={!isLoading ? handleMouseDown : undefined}
+                    style={{ cursor: isLoading ? 'default' : isDragging ? 'grabbing' : 'grab' }}
                 >
                     <div className="mx-auto mb-4 mt-2 h-2 w-8 rounded-full bg-black"></div>
                     <div className="mb-8 space-y-1">

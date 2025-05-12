@@ -39,6 +39,7 @@ export type HistoryEntry = {
     status: string
     userRole: HistoryUserRole
     attachmentUrl?: string
+    memo?: string
     senderAccount?:
         | {
               identifier: string
