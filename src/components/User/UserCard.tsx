@@ -1,6 +1,5 @@
 import { RecipientType } from '@/lib/url-parser/types/payment'
-import { getInitialsFromName } from '@/utils'
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import AddressLink from '../Global/AddressLink'
 import Card from '../Global/Card'
 import { Icon } from '../Global/Icons/Icon'
@@ -20,13 +19,6 @@ const UserCard = ({ type, username, fullName, recipientType }: UserCardProps) =>
         if (type === 'payment') return `You're paying`
     }, [type])
 
-    const initials = useMemo(() => {
-        if (fullName) {
-            return getInitialsFromName(fullName)
-        }
-        return getInitialsFromName(username)
-    }, [username, fullName])
-
     return (
         <Card className="flex items-center gap-2 p-4">
             {recipientType !== 'USERNAME' ? (
@@ -34,7 +26,7 @@ const UserCard = ({ type, username, fullName, recipientType }: UserCardProps) =>
                     <Icon name="wallet-outline" size={16} />
                 </div>
             ) : (
-                <AvatarWithBadge initials={initials} size="extra-small" />
+                <AvatarWithBadge size="extra-small" name={fullName || username} />
             )}
             <div>
                 <div className="text-xs text-grey-1">{getTitle()}</div>

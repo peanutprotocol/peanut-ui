@@ -1,4 +1,6 @@
-import React from 'react'
+import { getInitialsFromName } from '@/utils'
+import { getColorForUsername } from '@/utils/color.utils'
+import React, { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 import AchievementsBadge, { AchievementsBadgeSize } from '../Global/Badges/AchievementsBadge'
 import { Icon, IconName } from '../Global/Icons/Icon'
@@ -9,7 +11,7 @@ type AvatarSize = 'extra-small' | 'small' | 'medium' | 'large'
  * props for the avatarwithbadge component.
  */
 interface AvatarWithBadgeProps {
-    initials?: string
+    name?: string
     icon?: IconName
     isVerified?: boolean
     className?: string
@@ -25,7 +27,7 @@ interface AvatarWithBadgeProps {
  * and optionally a verification badge.
  */
 const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
-    initials,
+    name,
     icon,
     isVerified = false,
     className,
@@ -49,6 +51,13 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
         large: 48,
     }
 
+    const initials = useMemo(() => {
+        if (name) {
+            return getInitialsFromName(name)
+        }
+        return ''
+    }, [name])
+
     return (
         <div className={'relative'}>
             {/* the main avatar circle */}
@@ -61,6 +70,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                 // apply dynamic styles (e.g., background color)
 
                 style={{
+                    background: name ? getColorForUsername(name).backgroundColor : undefined,
                     ...inlineStyle,
                     color: !icon ? textColor : undefined,
                 }}

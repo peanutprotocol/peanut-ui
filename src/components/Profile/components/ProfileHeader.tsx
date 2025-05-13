@@ -13,12 +13,11 @@ import AvatarWithBadge from '../AvatarWithBadge'
 interface ProfileHeaderProps {
     name: string
     username: string
-    initials: string
     isVerified?: boolean
     className?: string
 }
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials, isVerified = false, className }) => {
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, isVerified = false, className }) => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const contentRef = useRef<HTMLDivElement>(null)
     const drawerHeightVh = useDynamicHeight(contentRef, { maxHeightVh: 90, minHeightVh: 10, extraVhOffset: 5 })
@@ -31,7 +30,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, initials,
         <>
             <div className={twMerge('flex flex-col items-center space-y-2', className)}>
                 {/* Avatar with initials */}
-                <AvatarWithBadge initials={initials} isVerified={isVerified} />
+                <AvatarWithBadge isVerified={isVerified} name={name || username} />
 
                 {/* Name */}
                 <h1 className="mb-4 text-2xl font-bold">{name}</h1>

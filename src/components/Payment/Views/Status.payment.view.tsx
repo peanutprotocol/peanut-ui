@@ -3,17 +3,17 @@ import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
+import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { RecipientType } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
-import { formatAmount, getInitialsFromName, printableAddress } from '@/utils'
+import { getInitialsFromName, printableAddress } from '@/utils'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import Loading from '@/components/Global/Loading'
 
 type DirectSuccessViewProps = {
     user?: ApiUser
@@ -89,7 +89,7 @@ const DirectSuccessView = ({ user, amount, message, recipientType, type, headerT
                                 <Icon name="wallet-outline" size={24} />
                             </div>
                         ) : (
-                            <AvatarWithBadge className="bg-success-3" initials={initials} />
+                            <AvatarWithBadge name={recipientName} />
                         )}
                     </div>
 

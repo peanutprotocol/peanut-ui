@@ -14,34 +14,25 @@ type NavPathProps = {
     icon: NavIconsName
 }
 
-type DesktopPaths = {
-    [key: string]: NavPathProps[]
-}
+// todo: update icons based on new the design
+const desktopPaths: NavPathProps[] = [
+    { name: 'Send', href: '/send', icon: 'send' },
+    { name: 'Request', href: '/request', icon: 'request' },
+    { name: 'Cashout', href: '/cashout', icon: 'cashout' },
+    { name: 'History', href: '/history', icon: 'history' },
 
-const desktopPaths: DesktopPaths = {
-    'Money Transfer': [
-        { name: 'Send', href: '/send', icon: 'send' },
-        { name: 'Request', href: '/request/create', icon: 'request' },
-        { name: 'Cashout', href: '/cashout', icon: 'cashout' },
-        { name: 'History', href: '/history', icon: 'history' },
-    ],
-    Others: [
-        { name: 'Docs', href: 'https://docs.peanut.to/', icon: 'docs' },
-        { name: 'Support', href: '/support', icon: 'support' },
-    ],
-}
+    { name: 'Docs', href: 'https://docs.peanut.to/', icon: 'docs' },
+    { name: 'Support', href: '/support', icon: 'support' },
+]
 
 type NavSectionProps = {
-    title: string
-    tabs: NavPathProps[]
+    paths: NavPathProps[]
     pathName: string
-    isLastSection?: boolean
 }
 
-const NavSection: React.FC<NavSectionProps> = ({ title, tabs, pathName, isLastSection }) => (
+const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => (
     <>
-        {title && <div className="text-gray-2">{title}</div>}
-        {tabs.map(({ name, href, icon }) => (
+        {paths.map(({ name, href, icon }) => (
             <Link
                 href={href}
                 key={name}
@@ -58,7 +49,6 @@ const NavSection: React.FC<NavSectionProps> = ({ title, tabs, pathName, isLastSe
                 <span className="block w-fit pt-0.5 text-center text-base font-semibold">{name}</span>
             </Link>
         ))}
-        {!isLastSection && <div className="w-full border-b border-grey-1" />}
     </>
 )
 
@@ -109,8 +99,7 @@ const WalletNavigation: React.FC = () => {
                     <Image src={PEANUT_LOGO} alt="Peanut Logo" className="w-28" />
                 </Link>
                 <div className="space-y-4">
-                    <NavSection title="Money Transfer" tabs={desktopPaths['Money Transfer']} pathName={pathName} />
-                    <NavSection title="Others" tabs={desktopPaths['Others']} pathName={pathName} isLastSection />
+                    <NavSection paths={desktopPaths} pathName={pathName} />
                 </div>
             </div>
             <MobileNav pathName={pathName} />

@@ -5,7 +5,6 @@ import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle'
 import Card from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { getInitialsFromName } from '@/utils'
 import StatusBadge from '../../Badges/StatusBadge'
 import { Icon } from '../../Icons/Icon'
 
@@ -59,7 +58,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                                     className={twMerge(!isComingSoon && 'rounded-full')}
                                 />
                             ) : (
-                                <AvatarWithBadge size="extra-small" initials={getInitialsFromName(name)} />
+                                <AvatarWithBadge size="extra-small" name={name} />
                             )}
                         </div>
                         <div className="flex flex-col">
