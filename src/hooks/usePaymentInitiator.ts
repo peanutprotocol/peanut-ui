@@ -656,7 +656,8 @@ export const usePaymentInitiator = () => {
                     const gasOptions = feeOptions[i]
                     if (gasOptions) {
                         if (gasOptions.gas) txGasOptions.gas = BigInt(gasOptions.gas.toString())
-                        if (gasOptions.maxFeePerGas) txGasOptions.maxFeePerGas = BigInt(gasOptions.maxFeePerGas.toString())
+                        if (gasOptions.maxFeePerGas)
+                            txGasOptions.maxFeePerGas = BigInt(gasOptions.maxFeePerGas.toString())
                         if (gasOptions.maxPriorityFeePerGas)
                             txGasOptions.maxPriorityFeePerGas = BigInt(gasOptions.maxPriorityFeePerGas.toString())
                     }
