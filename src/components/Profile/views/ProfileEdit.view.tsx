@@ -4,7 +4,6 @@ import { Button } from '@/components/0_Bruddle'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
-import { getInitialsFromName } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
@@ -108,18 +107,12 @@ export const ProfileEditView = () => {
 
     const fullName = user?.user.full_name || user?.user?.username || ''
     const username = user?.user.username || ''
-    const initials = getInitialsFromName(fullName)
 
     return (
         <div className="space-y-8">
             <NavHeader title="Edit Profile" onPrev={() => router.push('/profile')} />
 
-            <ProfileHeader
-                name={fullName}
-                username={username}
-                initials={initials}
-                isVerified={user?.user.kycStatus === 'approved'}
-            />
+            <ProfileHeader name={fullName} username={username} isVerified={user?.user.kycStatus === 'approved'} />
 
             <div className="space-y-4">
                 <ProfileEditField

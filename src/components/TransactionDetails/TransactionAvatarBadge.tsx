@@ -95,7 +95,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     return (
         <AvatarWithBadge
             isVerified={isVerified && !!displayInitials}
-            initials={displayInitials}
+            name={userName}
             icon={displayIconName}
             size={size}
             achievementsBadgeSize={size === 'medium' || size === 'large' ? 'small' : 'extra-small'}

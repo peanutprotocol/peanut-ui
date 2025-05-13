@@ -1,4 +1,5 @@
 'use client'
+import { fetchTokenDetails } from '@/app/actions/tokens'
 import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
@@ -14,13 +15,12 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
+import { requestsApi } from '@/services/requests'
 import { fetchTokenSymbol, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchTokenDetails } from '@/app/actions/tokens'
-import { requestsApi } from '@/services/requests'
 
 export const CreateRequestLinkView = () => {
     const toast = useToast()
@@ -78,7 +78,7 @@ export const CreateRequestLinkView = () => {
         // use debouncedTokenValue when in the process of creating a link with attachment
         const valueToShow = hasAttachment && isCreatingLink ? debouncedTokenValue : _tokenValue
 
-        return `${window.location.origin}/${user?.user.username}${valueToShow ? `/${valueToShow}USDC` : ''}`
+        return `${window.location.origin}${valueToShow ? `/${user?.user.username}/${valueToShow}USDC` : `/pay/${user?.user.username}`}`
     }, [user?.user.username, _tokenValue, debouncedTokenValue, generatedLink, hasAttachment, isCreatingLink])
 
     const handleOnNext = useCallback(
@@ -304,11 +304,7 @@ export const CreateRequestLinkView = () => {
             <div className="w-full space-y-4">
                 <PeanutActionCard type="request" />
 
-                <QRCodeWrapper
-                    url={qrCodeLink}
-                    isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)}
-                    disabled={!_tokenValue}
-                />
+                <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
 
                 <TokenAmountInput
                     className="w-full"

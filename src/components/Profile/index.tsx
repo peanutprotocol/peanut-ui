@@ -3,7 +3,6 @@
 import { Button } from '@/components/0_Bruddle'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
-import { getInitialsFromName } from '@/utils'
 import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
@@ -17,16 +16,14 @@ export const Profile = () => {
 
     const fullName = user?.user.full_name || user?.user?.username || 'Anonymous User'
     const username = user?.user.username || 'anonymous'
-    const initials = getInitialsFromName(fullName)
 
     return (
         <div className="h-full w-full bg-background">
             <NavHeader hideLabel />
             <div className="space-y-8">
                 <ProfileHeader
-                    name={fullName}
+                    name={fullName || username}
                     username={username}
-                    initials={initials}
                     isVerified={user?.user.kycStatus === 'approved'}
                 />
                 <div className="space-y-4">

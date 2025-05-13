@@ -2,7 +2,6 @@
 
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
-// import { PeanutLogo, PeanutMascot } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -18,7 +17,6 @@ import ProfileHeader from './ProfileHeader'
 interface PublicProfileProps {
     username: string
     fullName: string
-    initials: string
     isVerified?: boolean
     isLoggedIn?: boolean
     transactions?: {
@@ -31,7 +29,6 @@ interface PublicProfileProps {
 const PublicProfile: React.FC<PublicProfileProps> = ({
     username,
     fullName,
-    initials,
     isVerified = false,
     isLoggedIn = false,
     transactions,
@@ -68,13 +65,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
 
             <div className="space-y-8">
                 {/* Profile Header - Using the reusable component */}
-                <ProfileHeader
-                    name={fullName}
-                    username={username}
-                    initials={initials}
-                    isVerified={isVerified}
-                    className="mb-6"
-                />
+                <ProfileHeader name={fullName} username={username} isVerified={isVerified} className="mb-6" />
 
                 {/* Action Buttons */}
                 <div className="flex items-center justify-normal gap-4">

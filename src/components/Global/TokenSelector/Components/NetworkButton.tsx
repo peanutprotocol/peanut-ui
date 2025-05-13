@@ -1,10 +1,8 @@
+import { Button } from '@/components/0_Bruddle'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Image from 'next/image'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
-
-import { Button } from '@/components/0_Bruddle'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { getInitialsFromName } from '@/utils'
 import { Icon } from '../../Icons/Icon'
 
 interface NetworkButtonProps {
@@ -41,11 +39,7 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
             ) : chainIconURI ? (
                 <Image src={chainIconURI} alt={chainName} width={24} height={24} className="h-6 w-6 rounded-full" />
             ) : (
-                <AvatarWithBadge
-                    size="extra-small"
-                    initials={getInitialsFromName(chainName)}
-                    achievementsBadgeSize="extra-small"
-                />
+                <AvatarWithBadge size="extra-small" name={chainName} achievementsBadgeSize="extra-small" />
             )}
         </div>
         <span className="text-sm font-medium">{isSearch ? 'more' : chainName}</span>
