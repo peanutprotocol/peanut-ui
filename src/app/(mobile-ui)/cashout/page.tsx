@@ -1,5 +1,6 @@
 import { generateMetadata } from '@/app/metadata'
-import { Cashout } from '@/components'
+import { Cashout, UnderMaintenance } from '@/components'
+import config, { MAINTAINABLE_ROUTES } from '@/config/routesUnderMaintenance'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,5 +11,16 @@ export const metadata = generateMetadata({
 })
 
 export default function CashoutPage() {
+    const isCashoutUnderMaintenance = config.routes.includes(MAINTAINABLE_ROUTES.CASHOUT)
+
+    if (isCashoutUnderMaintenance) {
+        return (
+            <UnderMaintenance
+                title="Cashout Temporarily Unavailable"
+                message="We're improving our cashout service. Please check back soon!"
+            />
+        )
+    }
+
     return <Cashout />
 }
