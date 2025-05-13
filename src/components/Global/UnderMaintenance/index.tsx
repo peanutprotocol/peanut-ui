@@ -30,7 +30,7 @@ export function UnderMaintenance({
                     <p className="text-gray-600 dark:text-gray-400">{message}</p>
                     {alternativeUrl && (
                         <div>
-                            <p className="text-gray-600 dark:text-gray-400">In the meantime, you can try:</p>
+                            <p className="text-gray-600 dark:text-gray-400">In the meantime, you can use: </p>
                             <Link href={alternativeUrl} target="_system">
                                 {alternativeUrl}
                             </Link>
