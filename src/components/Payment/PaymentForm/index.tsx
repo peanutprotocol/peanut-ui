@@ -76,6 +76,14 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         return isPeanutWallet || isWagmiConnected
     }, [isPeanutWallet, isWagmiConnected])
 
+    const isXChainPaymentToPeanutWallet = useMemo(() => {
+        return (
+            selectedChainID !== PEANUT_WALLET_CHAIN.id.toString() &&
+            selectedTokenAddress !== PEANUT_WALLET_TOKEN &&
+            recipient.recipientType === 'USERNAME'
+        )
+    }, [selectedChainID, selectedTokenAddress, recipient])
+
     const isActivePeanutWallet = useMemo(() => !!user && isPeanutWallet, [user, isPeanutWallet])
 
     useEffect(() => {
@@ -418,19 +426,28 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                 )}
 
                 <div className="space-y-4">
+                    {isXChainPaymentToPeanutWallet && (
+                        <ErrorAlert
+                            label="Sorry"
+                            description={'You can only send USDC on Arbitrum to a Peanut Wallet.'}
+                        />
+                    )}
+                    {error && <ErrorAlert label="Error" description={error} />}
+
                     <Button
                         variant="purple"
                         loading={isProcessing}
                         shadowSize="4"
                         onClick={handleInitiatePayment}
-                        disabled={isConnected && (!canInitiatePayment || isProcessing || isXChainPeanutWalletReq)}
+                        disabled={
+                            (isConnected && (!canInitiatePayment || isProcessing || isXChainPeanutWalletReq)) ||
+                            isXChainPaymentToPeanutWallet
+                        }
                         className="w-full"
                     >
                         {!isProcessing && <Icon name="currency" />}
                         {getButtonText()}
                     </Button>
-
-                    {error && <ErrorAlert label="Error" description={error} />}
                 </div>
             </div>
         </div>

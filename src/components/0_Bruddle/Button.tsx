@@ -17,7 +17,7 @@ type ButtonShape = 'default' | 'square'
 type ShadowSize = '4' | '6' | '8'
 type ShadowType = 'primary' | 'secondary'
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: ButtonVariant
     size?: ButtonSize
     shape?: ButtonShape

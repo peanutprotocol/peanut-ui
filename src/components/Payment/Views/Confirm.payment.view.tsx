@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
+import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -46,6 +47,16 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
     const { rewardWalletBalance } = useWalletStore()
 
     const walletAddress = useMemo(() => peanutWalletAddress ?? wagmiAddress, [peanutWalletAddress, wagmiAddress])
+
+    const showExternalWalletConfirmationModal = useMemo(() => {
+        return (
+            isProcessing &&
+            !isPeanutWallet &&
+            ['Switching Network', 'Sending Transaction', 'Confirming Transaction', 'Preparing Transaction'].includes(
+                loadingStep
+            )
+        )
+    }, [isProcessing, isPeanutWallet, loadingStep])
 
     useEffect(() => {
         if (chargeIdFromUrl && !chargeDetails) {
@@ -253,6 +264,15 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
                     {getButtonText()}
                 </Button>
             </div>
+            <ActionModal
+                visible={showExternalWalletConfirmationModal}
+                onClose={() => {}}
+                title="Continue in your wallet"
+                description="Please confirm the transaction in your wallet app to proceed."
+                isLoadingIcon={true}
+                preventClose={true}
+                hideModalCloseButton={true}
+            />
         </div>
     )
 }
