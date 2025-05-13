@@ -1,14 +1,15 @@
 'use client'
 
-import React, { useRef } from 'react'
-import Header from '@/components/Global/Header'
-import Footer from '@/components/Global/Footer'
 import { Banner } from '@/components/Global/Banner'
-import { useState, useEffect } from 'react'
-import { Roboto_Flex } from 'next/font/google'
-import Modal from '../Modal'
-import { Widget } from '@typeform/embed-react'
+import Footer from '@/components/Global/Footer'
+import Header from '@/components/Global/Header'
 import { useFooterVisibility } from '@/context/footerVisibility'
+import { Widget } from '@typeform/embed-react'
+import { Roboto_Flex } from 'next/font/google'
+import { usePathname } from 'next/navigation'
+import React, { useEffect, useRef, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
+import Modal from '../Modal'
 type LayoutProps = {
     children: React.ReactNode
     className?: string
@@ -24,6 +25,9 @@ const roboto = Roboto_Flex({
 const Layout = ({ children, className }: LayoutProps) => {
     const [isReady, setIsReady] = useState(false)
     const [showModal, setShowModal] = useState(false)
+    const path = usePathname()
+
+    const isTryNow = path === '/pay'
 
     useEffect(() => {
         setIsReady(true)
@@ -37,7 +41,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                         font-family: ${roboto.style.fontFamily};
                     }
                 `}</style>
-                <div className="relative bg-background">
+                <div className={twMerge('relative bg-background', isTryNow && 'bg-background-1')}>
                     <div className="flex min-h-screen flex-col ">
                         <Header />
                         <Banner />

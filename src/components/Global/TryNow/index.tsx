@@ -1,4 +1,4 @@
-import { ARROW_DOWN_CIRCLE, ARROW_UP_CIRCLE, CASHOUT_ICON, Eyes } from '@/assets'
+import { ARROW_UP_CIRCLE, CASHOUT_ICON, Eyes, STAR_OUTLINE_ICON } from '@/assets'
 import { Card } from '@chakra-ui/react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -9,9 +9,17 @@ interface ITryNowCard {
     description: string
     icon: string
     href: string
+    isExternal?: boolean
 }
 
 const cards: ITryNowCard[] = [
+    {
+        title: 'TRY NEW VERSION',
+        description: 'Be one of the first users on the alpha version of the Peanut wallet.',
+        icon: STAR_OUTLINE_ICON,
+        href: 'https://peanut.me/',
+        isExternal: true,
+    },
     {
         title: 'Cashout',
         description: 'Cash out your crypto to your bank account',
@@ -19,16 +27,10 @@ const cards: ITryNowCard[] = [
         href: '/cashout',
     },
     {
-        title: 'Send',
+        title: 'Send (legacy)',
         description: 'Text stablecoins and tokens across chains and to IBANs',
         icon: ARROW_UP_CIRCLE,
         href: '/send',
-    },
-    {
-        title: 'Request',
-        description: 'Request payment to your wallet to be paid in any token and any chain.',
-        icon: ARROW_DOWN_CIRCLE,
-        href: '/request/create',
     },
 ]
 
@@ -40,7 +42,12 @@ const TryNow = () => {
                     <Link
                         key={index}
                         href={card.href}
-                        className={twMerge(index === 0 ? 'col-span-full' : 'col-span-4 md:col-span-2')}
+                        target={card.isExternal ? '_blank' : '_self'}
+                        rel={card.isExternal ? 'noreferrer noopener' : ''}
+                        className={twMerge(
+                            index === 0 ? 'col-span-full' : 'col-span-4 md:col-span-2',
+                            'border border-black'
+                        )}
                     >
                         <Card
                             key={index}
@@ -49,11 +56,21 @@ const TryNow = () => {
                                 'flex cursor-pointer flex-col items-center justify-center gap-4 rounded-sm px-5 py-6 hover:bg-white/90 md:px-14 md:py-8'
                             )}
                         >
-                            <div className="hidden size-16 items-center justify-center rounded-full bg-purple-1 p-2 md:flex">
+                            <div
+                                className={twMerge(
+                                    'hidden size-16 items-center justify-center rounded-full bg-purple-1 md:flex',
+                                    index === 0 ? 'p-4' : 'p-2'
+                                )}
+                            >
                                 <Image src={card.icon} alt={card.title} className="size-12" />
                             </div>
                             <div className="flex items-center justify-normal gap-3">
-                                <div className="flex size-16 min-w-16 items-center justify-center rounded-full bg-purple-1 p-2 md:hidden">
+                                <div
+                                    className={twMerge(
+                                        'flex size-16 min-w-16 items-center justify-center rounded-full bg-purple-1 md:hidden',
+                                        index === 0 ? 'p-4' : 'p-2'
+                                    )}
+                                >
                                     <Image src={card.icon} alt={card.title} className="size-12" />
                                 </div>
                                 <div className="space-y-1.5">
