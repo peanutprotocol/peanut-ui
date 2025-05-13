@@ -1,6 +1,7 @@
 'use client'
 import { getLinkFromTx } from '@/app/actions/claimLinks'
-import { getFeeOptions, type ChainId, type FeeOptions } from '@/app/actions/clients'
+import { getFeeOptions } from '@/app/actions/clients'
+import type { PreparedTx, ChainId, FeeOptions } from '@/app/actions/clients'
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { PEANUT_API_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
@@ -113,33 +114,55 @@ export const useCreateLink = () => {
         return name.toLowerCase().includes('safe')
     }
     const estimateGasFee = useCallback(
-        async ({ from, chainId, preparedTx }: { from: Hex; chainId: string; preparedTx: any }) => {
+        async ({
+            from,
+            chainId,
+            preparedTxs,
+        }: {
+            from: Hex
+            chainId: string
+            preparedTxs: peanutInterfaces.IPeanutUnsignedTransaction[]
+        }) => {
             // Return early with default values for Safe connector
             // requirement for internut (injects AA with zero gas fees)
             if (isSafeConnector({ name: connector?.name })) {
                 return {
-                    feeOptions: {
-                        gasLimit: BigInt(0),
-                        maxFeePerGas: BigInt(0),
-                        gasPrice: BigInt(0),
-                    },
+                    feeOptions: [
+                        {
+                            gasLimit: BigInt(0),
+                            maxFeePerGas: BigInt(0),
+                            gasPrice: BigInt(0),
+                        },
+                    ],
                     transactionCostUSD: 0,
                 }
             }
-            const feeOptions = jsonParse<FeeOptions>(
-                await getFeeOptions(Number(chainId) as ChainId, {
-                    ...preparedTx,
-                    value: preparedTx.value?.toString() ?? '0',
-                    account: from,
-                })
-            )
-            let transactionCostWei = feeOptions.gas * feeOptions.maxFeePerGas
-            let transactionCostNative = formatEther(transactionCostWei)
-            const nativeTokenPrice = await fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId)
-            if (!nativeTokenPrice || typeof nativeTokenPrice.price !== 'number' || isNaN(nativeTokenPrice.price)) {
-                throw new Error('Failed to fetch token price')
+            let feeOptions: FeeOptions[] = []
+            let transactionCostUSD = 0
+            // For when we have an approval before a transaction, we need the
+            // token address to override the state
+            const erc20Token = preparedTxs.length === 2 ? preparedTxs[0].to : undefined
+            for (const preparedTx of preparedTxs) {
+                const options = jsonParse<FeeOptions>(
+                    await getFeeOptions(
+                        Number(chainId) as ChainId,
+                        {
+                            ...preparedTx,
+                            value: preparedTx.value?.toString() ?? '0',
+                            account: from,
+                            erc20Token,
+                        } as PreparedTx
+                    )
+                )
+                feeOptions.push(options)
+                let transactionCostWei = options.gas * options.maxFeePerGas
+                let transactionCostNative = formatEther(transactionCostWei)
+                const nativeTokenPrice = await fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId)
+                if (!nativeTokenPrice || typeof nativeTokenPrice.price !== 'number' || isNaN(nativeTokenPrice.price)) {
+                    throw new Error('Failed to fetch token price')
+                }
+                transactionCostUSD += Number(transactionCostNative) * nativeTokenPrice.price
             }
-            const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice.price
 
             return {
                 feeOptions,

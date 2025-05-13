@@ -1,7 +1,7 @@
 'use server'
 import { unstable_cache } from 'next/cache'
 import type { PublicClient, Chain, Hash } from 'viem'
-import { createPublicClient, http, extractChain } from 'viem'
+import { createPublicClient, http, extractChain, maxUint256, keccak256, encodeAbiParameters, numberToHex } from 'viem'
 import * as chains from 'viem/chains'
 import { jsonStringify } from '@/utils'
 
@@ -33,8 +33,10 @@ export const getPublicClient = unstable_cache(
     }
 )
 
-type PreparedTx = {
+export type PreparedTx = {
     account: Hash
+    from?: Hash
+    erc20Token?: Hash
     data: Hash
     to: Hash
     value: string
@@ -45,10 +47,24 @@ export const getFeeOptions = unstable_cache(
         const [feeEstimates, gas] = await Promise.all([
             client.estimateFeesPerGas(),
             client.estimateGas({
-                account: preparedTx.account,
+                account: preparedTx.from ?? preparedTx.account,
                 data: preparedTx.data,
                 to: preparedTx.to,
                 value: BigInt(preparedTx.value),
+                // Simulate max allowance to avoid reverts while estimating fees
+                stateOverride: preparedTx.erc20Token
+                    ? [
+                          {
+                              address: preparedTx.erc20Token,
+                              stateDiff: [
+                                  {
+                                      slot: calculateAllowanceSlot(preparedTx.account, preparedTx.to),
+                                      value: numberToHex(maxUint256),
+                                  },
+                              ],
+                          },
+                      ]
+                    : [],
             }),
         ])
         return jsonStringify({
@@ -63,3 +79,18 @@ export const getFeeOptions = unstable_cache(
         tags: ['getFeeOptions'],
     }
 )
+
+// Helper function to calculate allowance slot
+// see: https://github.com/d3or/slotseek/blob/master/src/approval.ts
+// If we find that this function doesnt work for some tokens, we will have to
+// use slotseek itself
+function calculateAllowanceSlot(owner: Hash, spender: Hash) {
+    const slotHash = keccak256(
+        encodeAbiParameters(
+            [{ type: 'address' }, { type: 'uint256' }],
+            [owner, 10n] // 10 is typically the slot number for allowances for ERC-20s
+        )
+    )
+
+    return keccak256(encodeAbiParameters([{ type: 'address' }, { type: 'bytes32' }], [spender, slotHash]))
+}
