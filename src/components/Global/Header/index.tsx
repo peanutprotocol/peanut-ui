@@ -1,16 +1,16 @@
 'use client'
-import React, { useEffect, useState, useCallback } from 'react'
-import { Box, Flex, Text, Stack, Collapse, useDisclosure } from '@chakra-ui/react'
-import { useLottie, LottieOptions } from 'lottie-react'
+import { Box, Collapse, Flex, Stack, Text, useDisclosure } from '@chakra-ui/react'
+import { LottieOptions, useLottie } from 'lottie-react'
 import Link from 'next/link'
+import React, { useCallback, useEffect, useState } from 'react'
 
-import { PEANUTMAN_LOGO, HAMBURGER_LOTTIE } from '@/assets'
+import { HAMBURGER_LOTTIE, PEANUTMAN_LOGO } from '@/assets'
 import { shortenAddress } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 
-import { useAccount } from 'wagmi'
-import { useRouter } from 'next/navigation'
 import { breakpoints, emToPx } from '@/styles/theme'
+import { useRouter } from 'next/navigation'
+import { useAccount } from 'wagmi'
 import { NavItemBox, NavLink } from './components'
 
 const defaultLottieOptions: LottieOptions = {
@@ -234,8 +234,7 @@ const MenuLinks = () => {
             height="100%"
             gap={0}
         >
-            <MenuLink route={'/send'} title={'send'} />
-            <MenuLink route={'/request/create'} title={'request'} isBeta />
+            <MenuLink route={'/send'} title={'Send (legacy)'} />
             <MenuLink route={'/cashout'} title={'cashout'} isBeta />
             <ToolsDropdown />
             <MenuLink route={'https://docs.peanut.to'} title={'docs'} />

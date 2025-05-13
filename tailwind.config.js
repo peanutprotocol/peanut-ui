@@ -56,7 +56,10 @@ module.exports = {
                 'kyc-green': '#00C800', // TODO: this is bad and needs to be changed
                 primary: 'var(--primary-color)',
                 secondary: 'var(--secondary-color)',
-                background: 'var(--background-color)',
+                background: {
+                    DEFAULT: 'var(--background-color)',
+                    1: '#FAF4F0',
+                },
                 accent: 'var(--accent-color)',
             },
             zIndex: {
