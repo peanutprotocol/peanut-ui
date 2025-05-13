@@ -9,7 +9,7 @@ export const RequestRouterView = () => {
         <RouterViewWrapper
             title="Request"
             linkCardTitle="Request via link"
-            linkCardDescription="They don't need a Peanut account to pay you"
+            linkCardDescription="No account needed to pay "
             onLinkCardClick={() => router.push('/request/create')}
             onUserSelect={(username) => router.push(`/request/${username}`)}
         />

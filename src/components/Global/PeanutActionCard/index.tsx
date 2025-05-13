@@ -16,9 +16,7 @@ const PeanutActionCard = ({ type }: PeanutActionCardProps) => {
                     {type === 'request' ? 'Request money with a link' : 'Create a payment link'}
                 </div>
                 <div className="text-xs">
-                    {type === 'request'
-                        ? `They don't need a Peanut account to pay you`
-                        : 'Anyone with the link can receive the money'}
+                    {type === 'request' ? `No account needed to pay ` : 'Anyone with the link can receive the money'}
                 </div>
             </div>
         </Card>
