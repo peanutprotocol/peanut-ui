@@ -64,6 +64,18 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
 
     // determine direction, card type, peer name, and flags based on original type and user role
     switch (entry.type) {
+        case EHistoryEntryType.DIRECT_SEND:
+            isPeerActuallyUser = true
+            direction = 'send'
+            transactionCardType = 'send'
+            if (entry.userRole === EHistoryUserRole.SENDER) {
+                nameForDetails = entry.recipientAccount!.username!
+            } else {
+                direction = 'receive'
+                transactionCardType = 'receive'
+                nameForDetails = entry.senderAccount!.username!
+            }
+            break
         case EHistoryEntryType.SEND_LINK:
             isLinkTx = true
             direction = 'send'
@@ -196,7 +208,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         direction: direction,
         userName: nameForDetails,
         amount: amount,
-        currencySymbol: '$',
+        currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: entry.tokenSymbol,
         initials: getInitialsFromName(nameForDetails),
         status: uiStatus,

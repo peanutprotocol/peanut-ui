@@ -9,7 +9,7 @@ import { formatAmount, printableAddress } from '@/utils'
 import React from 'react'
 import { isAddress } from 'viem'
 
-export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout'
+export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout' | 'receive'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -38,13 +38,6 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // hook to manage the state of the details drawer (open/closed, selected transaction)
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
         useTransactionDetailsDrawer()
-
-    // determine if amount should be positive or negative based on card type
-    const isNegative = type === 'send' || type === 'withdraw'
-    const displayAmount = isNegative ? `-$${formatAmount(amount)}` : `+$${formatAmount(amount)}`
-
-    // for request/send types, always show positive amount with dollar sign
-    const finalAmount = type === 'request' || type === 'send' ? `$${formatAmount(amount)}` : displayAmount
 
     const handleClick = () => {
         openTransactionDetails(transaction)
@@ -83,7 +76,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
                     {/* amount and status on the right side */}
                     <div className="flex flex-col items-end space-y-0.5">
-                        <span className="font-roboto text-xs font-medium">{finalAmount}</span>
+                        <span className="font-roboto text-xs font-medium">
+                            {transaction.currencySymbol}
+                            {formatAmount(amount)}
+                        </span>
                         {status && <StatusBadge status={status} />}
                     </div>
                 </div>
@@ -109,6 +105,7 @@ function getActionIcon(type: TransactionType): React.ReactNode {
             iconName = 'arrow-up-right'
             break
         case 'request':
+        case 'receive':
             iconName = 'arrow-down-left'
             break
         case 'withdraw':

@@ -63,6 +63,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
             break
         case 'send':
         case 'request':
+        case 'receive':
             if (isLinkTransaction) {
                 displayIconName = 'link'
                 displayInitials = undefined

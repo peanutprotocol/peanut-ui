@@ -142,6 +142,10 @@ export function useTransactionHistory({
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break
+                    case 'DIRECT_SEND':
+                        tokenSymbol = 'USDC'
+                        usdAmount = entry.amount.toString()
+                        break
                     case 'DEPOSIT':
                         tokenSymbol = 'USDC'
                         usdAmount = formatUnits(BigInt(entry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
