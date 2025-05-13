@@ -143,7 +143,7 @@ export const useCreateLink = () => {
             // token address to override the state
             const erc20Token = preparedTxs.length === 2 ? preparedTxs[0].to : undefined
             for (const preparedTx of preparedTxs) {
-                const options = jsonParse<FeeOptions>(
+                const gasOptions = jsonParse<FeeOptions>(
                     await getFeeOptions(
                         Number(chainId) as ChainId,
                         {
@@ -154,8 +154,8 @@ export const useCreateLink = () => {
                         } as PreparedTx
                     )
                 )
-                feeOptions.push(options)
-                let transactionCostWei = options.gas * options.maxFeePerGas
+                feeOptions.push(gasOptions)
+                let transactionCostWei = gasOptions.gas * gasOptions.maxFeePerGas
                 let transactionCostNative = formatEther(transactionCostWei)
                 const nativeTokenPrice = await fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId)
                 if (!nativeTokenPrice || typeof nativeTokenPrice.price !== 'number' || isNaN(nativeTokenPrice.price)) {

@@ -653,12 +653,12 @@ export const usePaymentInitiator = () => {
                     currentStep = 'Sending Transaction'
 
                     const txGasOptions: any = {}
-                    const options = feeOptions[i]
-                    if (options) {
-                        if (options.gas) txGasOptions.gas = BigInt(options.gas.toString())
-                        if (options.maxFeePerGas) txGasOptions.maxFeePerGas = BigInt(options.maxFeePerGas.toString())
-                        if (options.maxPriorityFeePerGas)
-                            txGasOptions.maxPriorityFeePerGas = BigInt(options.maxPriorityFeePerGas.toString())
+                    const gasOptions = feeOptions[i]
+                    if (gasOptions) {
+                        if (gasOptions.gas) txGasOptions.gas = BigInt(gasOptions.gas.toString())
+                        if (gasOptions.maxFeePerGas) txGasOptions.maxFeePerGas = BigInt(gasOptions.maxFeePerGas.toString())
+                        if (gasOptions.maxPriorityFeePerGas)
+                            txGasOptions.maxPriorityFeePerGas = BigInt(gasOptions.maxPriorityFeePerGas.toString())
                     }
                     console.log('Using gas options:', txGasOptions)
 
