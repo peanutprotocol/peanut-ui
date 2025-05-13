@@ -18,6 +18,7 @@ export default function CashoutPage() {
             <UnderMaintenance
                 title="Cashout Temporarily Unavailable"
                 message="We're improving our cashout service. Please check back soon!"
+                alternativeUrl="https://peanut.to/cashout"
             />
         )
     }

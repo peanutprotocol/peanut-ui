@@ -1,18 +1,21 @@
 import React from 'react'
 import { Card } from '@/components/0_Bruddle/Card'
 import Image from 'next/image'
+import Link from 'next/link'
 import { PeanutGuyGIF } from '@/assets'
 
 interface UnderMaintenanceProps {
     title?: string
     message?: string
     showImage?: boolean
+    alternativeUrl?: string
 }
 
 export function UnderMaintenance({
     title = 'Under Maintenance',
     message = 'This feature is currently undergoing maintenance. Please check back later.',
     showImage = true,
+    alternativeUrl,
 }: UnderMaintenanceProps) {
     return (
         <div className="flex h-full w-full flex-col items-center justify-center p-4">
@@ -25,6 +28,14 @@ export function UnderMaintenance({
                     )}
                     <h2 className="text-xl font-bold">{title}</h2>
                     <p className="text-gray-600 dark:text-gray-400">{message}</p>
+                    {alternativeUrl && (
+                        <div>
+                            <p className="text-gray-600 dark:text-gray-400">In the meantime, you can try:</p>
+                            <Link href={alternativeUrl} target="_system">
+                                {alternativeUrl}
+                            </Link>
+                        </div>
+                    )}
                 </div>
             </Card>
         </div>
