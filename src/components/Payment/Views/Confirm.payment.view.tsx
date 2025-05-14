@@ -7,6 +7,7 @@ import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
+import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
@@ -193,8 +194,9 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
     }
 
     return (
-        <div className="space-y-4">
-            <FlowHeader
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <NavHeader
+                title="Pay"
                 onPrev={() => {
                     dispatch(paymentActions.setView('INITIAL'))
                     window.history.replaceState(null, '', `${window.location.pathname}`)
@@ -203,76 +205,80 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
                 }}
             />
 
-            {parsedPaymentData?.recipient && (
-                <UserCard
-                    type="payment"
-                    username={
-                        parsedPaymentData.recipient.identifier || chargeDetails?.requestLink?.recipientAddress || ''
-                    }
-                    recipientType={parsedPaymentData.recipient.recipientType}
-                />
-            )}
-
-            <Card className="rounded-sm">
-                <PaymentInfoRow
-                    label="Amount"
-                    value={
-                        <span className="font-bold">
-                            {formatAmount(Number(chargeDetails?.tokenAmount))} {chargeDetails?.tokenSymbol}
-                        </span>
-                    }
-                />
-                <PaymentInfoRow
-                    label="To"
-                    value={
-                        <AddressLink
-                            className="text-sm font-bold text-black"
-                            address={
-                                parsedPaymentData?.recipient?.identifier ||
-                                chargeDetails?.requestLink?.recipientAddress ||
-                                ''
-                            }
-                        />
-                    }
-                />
-
-                <PaymentInfoRow label="Network" value={`${getReadableChainName(selectedChainID)}`} />
-
-                {!isFeeEstimationError && !isPeanutWallet && (
-                    <PaymentInfoRow
-                        hideBottomBorder
-                        loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
-                        label="Fee"
-                        value={`$${feeCalculations.estimatedFee}`}
+            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                {parsedPaymentData?.recipient && (
+                    <UserCard
+                        type="payment"
+                        username={
+                            parsedPaymentData.recipient.identifier || chargeDetails?.requestLink?.recipientAddress || ''
+                        }
+                        recipientType={parsedPaymentData.recipient.recipientType}
+                        size="small"
                     />
                 )}
-            </Card>
 
-            <div className="flex flex-col gap-2">
-                {paymentError && (
-                    <div className="space-y-2">
-                        <ErrorAlert description={paymentError} />
-                    </div>
-                )}
-                <Button
-                    disabled={!isConnected || isLoading || isFeeEstimationError}
-                    onClick={handlePayment}
-                    loading={isLoading}
-                    shadowSize="4"
-                    className="w-full"
-                >
-                    {getButtonText()}
-                </Button>
+                <Card className="rounded-sm">
+                    <PaymentInfoRow
+                        label="Amount"
+                        value={
+                            <span className="font-bold">
+                                {formatAmount(Number(chargeDetails?.tokenAmount))} {chargeDetails?.tokenSymbol}
+                            </span>
+                        }
+                    />
+                    <PaymentInfoRow
+                        label="To"
+                        value={
+                            <AddressLink
+                                className="text-sm font-bold text-black"
+                                address={
+                                    parsedPaymentData?.recipient?.identifier ||
+                                    chargeDetails?.requestLink?.recipientAddress ||
+                                    ''
+                                }
+                            />
+                        }
+                    />
+
+                    <PaymentInfoRow label="Network" value={`${getReadableChainName(selectedChainID)}`} />
+
+                    {!isFeeEstimationError && !isPeanutWallet && (
+                        <PaymentInfoRow
+                            hideBottomBorder
+                            loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
+                            label="Fee"
+                            value={`$${feeCalculations.estimatedFee}`}
+                        />
+                    )}
+                </Card>
+
+                <div className="flex flex-col gap-4">
+                    <Button
+                        disabled={!isConnected || isLoading || isFeeEstimationError}
+                        onClick={handlePayment}
+                        loading={isLoading}
+                        shadowSize="4"
+                        className="w-full"
+                        icon={!isProcessing ? 'currency' : undefined}
+                    >
+                        {getButtonText()}
+                    </Button>
+                    {paymentError && (
+                        <div className="space-y-2">
+                            <ErrorAlert description={paymentError} />
+                        </div>
+                    )}
+                </div>
+                <ActionModal
+                    visible={showExternalWalletConfirmationModal}
+                    onClose={() => {}}
+                    title="Continue in your wallet"
+                    description="Please confirm the transaction in your wallet app to proceed."
+                    isLoadingIcon={true}
+                    preventClose={true}
+                    hideModalCloseButton={true}
+                />
             </div>
-            <ActionModal
-                visible={showExternalWalletConfirmationModal}
-                onClose={() => {}}
-                title="Continue in your wallet"
-                description="Please confirm the transaction in your wallet app to proceed."
-                isLoadingIcon={true}
-                preventClose={true}
-                hideModalCloseButton={true}
-            />
         </div>
     )
 }

@@ -21,7 +21,12 @@ interface TransactionDetailsHeaderCardProps {
     transactionType?: TransactionType
 }
 
-const getTitle = (direction: TransactionDirection, userName: string, isLinkTransaction?: boolean): React.ReactNode => {
+const getTitle = (
+    direction: TransactionDirection,
+    userName: string,
+    isLinkTransaction?: boolean,
+    status?: StatusType
+): React.ReactNode => {
     let titleText = userName
 
     if (isLinkTransaction) {
@@ -43,7 +48,7 @@ const getTitle = (direction: TransactionDirection, userName: string, isLinkTrans
         const displayName = isAddress ? printableAddress(userName) : userName
         switch (direction) {
             case 'send':
-                titleText = `Sending to ${displayName}`
+                titleText = `${status === 'pending' ? 'Paying' : 'Paid'}  to ${displayName}`
                 break
             case 'request_received':
                 titleText = `Paid request to ${displayName}`
@@ -96,7 +101,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                 />
                 <div className="space-y-1">
                     <h2 className="text-sm font-medium text-grey-1">
-                        {getTitle(direction, userName, isLinkTransaction)}
+                        {getTitle(direction, userName, isLinkTransaction, status)}
                     </h2>
                     <h1
                         className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' ? 'text-grey-1 line-through' : ''}`}

@@ -1,5 +1,6 @@
 import React, { forwardRef, useEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { Icon, IconName } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
 
 export type ButtonVariant =
@@ -24,6 +25,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     shadowSize?: ShadowSize
     shadowType?: ShadowType
     loading?: boolean
+    icon?: IconName
 }
 
 const buttonVariants: Record<ButtonVariant, string> = {
@@ -61,7 +63,10 @@ const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ children, className, loading, variant = 'purple', size, shape, shadowSize, shadowType, ...props }, ref) => {
+    (
+        { children, className, loading, variant = 'purple', size, shape, shadowSize, shadowType, icon, ...props },
+        ref
+    ) => {
         const localRef = useRef<HTMLButtonElement>(null)
         const buttonRef = (ref as React.RefObject<HTMLButtonElement>) || localRef
 
@@ -84,6 +89,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         return (
             <button className={twMerge(buttonClasses, 'notranslate')} ref={buttonRef} translate="no" {...props}>
                 {loading && <Loading />}
+                {icon && !loading && <Icon name={icon} className="min-h-4 min-w-4" />}
                 {children}
             </button>
         )

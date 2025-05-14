@@ -233,30 +233,24 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
 
     // default payment flow
     return (
-        <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
-            <div>
-                {currentView === 'INITIAL' && (
-                    <div className="space-y-4">
-                        <InitialPaymentView {...(parsedPaymentData as ParsedURL)} />
-                    </div>
-                )}
-                {currentView === 'CONFIRM' && (
-                    <ConfirmPaymentView isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'} />
-                )}
-                {currentView === 'STATUS' && (
-                    <>
-                        {parsedPaymentData?.token?.symbol === 'PNT' ? (
-                            <PintaReqPaySuccessView />
-                        ) : (
-                            <DirectSuccessView
-                                headerTitle="Send"
-                                recipientType={parsedPaymentData?.recipient?.recipientType}
-                                type="SEND"
-                            />
-                        )}
-                    </>
-                )}
-            </div>
+        <div className="min-h-[inherit]">
+            {currentView === 'INITIAL' && <InitialPaymentView {...(parsedPaymentData as ParsedURL)} />}
+            {currentView === 'CONFIRM' && (
+                <ConfirmPaymentView isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'} />
+            )}
+            {currentView === 'STATUS' && (
+                <>
+                    {parsedPaymentData?.token?.symbol === 'PNT' ? (
+                        <PintaReqPaySuccessView />
+                    ) : (
+                        <DirectSuccessView
+                            headerTitle="Pay"
+                            recipientType={parsedPaymentData?.recipient?.recipientType}
+                            type="SEND"
+                        />
+                    )}
+                </>
+            )}
         </div>
     )
 }

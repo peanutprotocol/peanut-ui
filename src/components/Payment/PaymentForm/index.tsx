@@ -5,8 +5,6 @@ import { Button } from '@/components/0_Bruddle'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
 import GuestLoginCta from '@/components/Global/GuestLoginCta'
-import { Icon } from '@/components/Global/Icons/Icon'
-import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import BeerInput from '@/components/PintaReqPay/BeerInput'
@@ -28,7 +26,7 @@ import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { ErrorHandler, formatAmount, printableAddress } from '@/utils'
+import { ErrorHandler, formatAmount } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -41,7 +39,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     const { user } = useAuth()
     const { requestDetails, chargeDetails, beerQuantity } = usePaymentStore()
     const { isConnected: isPeanutWallet, balance } = useWallet()
-    const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
+    const { isConnected: isWagmiConnected, status } = useAccount()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
@@ -74,7 +72,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
 
     const isConnected = useMemo<boolean>(() => {
         return isPeanutWallet || isWagmiConnected
-    }, [isPeanutWallet, isWagmiConnected])
+    }, [isPeanutWallet, isWagmiConnected, status])
 
     const isXChainPaymentToPeanutWallet = useMemo(() => {
         return (
@@ -182,11 +180,6 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     ])
 
     const handleInitiatePayment = useCallback(async () => {
-        if (isDepositRequest && !isConnected) {
-            openReownModal()
-            return
-        }
-
         if (!isConnected) {
             dispatch(walletActions.setSignInModalVisible(true))
             return
@@ -275,11 +268,41 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     ])
 
     const getButtonText = () => {
-        if (!isConnected) return 'Connect Wallet'
         if (isProcessing) {
             return 'Paying'
         }
-        return 'Pay'
+
+        if (isActivePeanutWallet) {
+            return 'Pay'
+        }
+
+        return 'Review'
+    }
+
+    const guestAction = () => {
+        if (isConnected || user) return null
+        return (
+            <div className="space-y-4">
+                <Button
+                    variant="purple"
+                    loading={isProcessing}
+                    shadowSize="4"
+                    onClick={() => router.push('/setup')}
+                    className="w-full"
+                >
+                    Access to Peanut
+                </Button>
+                <Button
+                    variant="primary-soft"
+                    loading={isProcessing}
+                    shadowSize="4"
+                    onClick={() => openReownModal()}
+                    className="w-full"
+                >
+                    Connect Wallet
+                </Button>
+            </div>
+        )
     }
 
     useEffect(() => {
@@ -369,30 +392,17 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
     }, [selectedTokenData, selectedChainID])
 
     return (
-        <div className="space-y-8">
-            <NavHeader
-                title="Send"
-                onPrev={() => {
-                    if (!!user?.user.userId) {
-                        router.push('/send')
-                    } else {
-                        router.push('/setup')
-                    }
-                }}
-            />
-            <div className="space-y-4">
-                {!isPeanutWallet && isWagmiConnected && (
-                    <FlowHeader
-                        rightElement={
-                            <Button variant="dark" className="h-7 text-sm" onClick={() => openReownModal()}>
-                                {printableAddress(wagmiAddress!)}
-                            </Button>
-                        }
-                    />
-                )}
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="text-center text-xl font-extrabold md:hidden">Pay</div>
+            <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* Recipient Info Card */}
                 {recipient && (
-                    <UserCard type="send" username={recipientDisplayName} recipientType={recipient.recipientType} />
+                    <UserCard
+                        type="send"
+                        username={recipientDisplayName}
+                        recipientType={recipient.recipientType}
+                        size="small"
+                    />
                 )}
 
                 {/* Amount Display Card */}
@@ -404,50 +414,47 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
                 />
 
-                {!isActivePeanutWallet && (
-                    <div>
-                        <div className="mb-2 text-sm font-medium">Select token and chain to pay with</div>
+                {!isActivePeanutWallet && isConnected && (
+                    <div className="space-y-2">
+                        <div className="mb-2 text-sm font-bold">Select token and chain to pay with</div>
                         <TokenSelector viewType="req_pay" />
                         {!isPeanutWalletUSDC && (
-                            <div className="mt-2 flex items-center space-x-1 text-xs text-grey-1">
+                            <div className="pt-1 text-center text-xs text-grey-1">
                                 <span>Use USDC on Arbitrum for free transactions!</span>
                             </div>
                         )}
                     </div>
                 )}
 
-                {isXChainPeanutWalletReq && (
-                    <ErrorAlert
-                        label="Note"
-                        description={
-                            'Peanut Wallet currently only supports sending USDC on Arbitrum. Please select USDC and Arbitrum, or use an external wallet.'
-                        }
-                    />
-                )}
-
                 <div className="space-y-4">
-                    {isXChainPaymentToPeanutWallet && (
+                    {guestAction()}
+                    {isConnected && (
+                        <Button
+                            variant="purple"
+                            loading={isProcessing}
+                            shadowSize="4"
+                            onClick={handleInitiatePayment}
+                            disabled={
+                                (isConnected && (!canInitiatePayment || isProcessing || isXChainPeanutWalletReq)) ||
+                                isXChainPaymentToPeanutWallet
+                            }
+                            className="w-full"
+                            icon={!isProcessing && isActivePeanutWallet ? 'currency' : undefined}
+                        >
+                            {getButtonText()}
+                        </Button>
+                    )}
+                    {isXChainPeanutWalletReq && (
                         <ErrorAlert
-                            label="Sorry"
-                            description={'You can only send USDC on Arbitrum to a Peanut Wallet.'}
+                            description={
+                                'Peanut Wallet currently only supports sending USDC on Arbitrum. Please select USDC and Arbitrum, or use an external wallet.'
+                            }
                         />
                     )}
-                    {error && <ErrorAlert label="Error" description={error} />}
-
-                    <Button
-                        variant="purple"
-                        loading={isProcessing}
-                        shadowSize="4"
-                        onClick={handleInitiatePayment}
-                        disabled={
-                            (isConnected && (!canInitiatePayment || isProcessing || isXChainPeanutWalletReq)) ||
-                            isXChainPaymentToPeanutWallet
-                        }
-                        className="w-full"
-                    >
-                        {!isProcessing && <Icon name="currency" />}
-                        {getButtonText()}
-                    </Button>
+                    {isXChainPaymentToPeanutWallet && (
+                        <ErrorAlert description={'You can only send USDC on Arbitrum to a Peanut Wallet.'} />
+                    )}
+                    {error && <ErrorAlert description={error} />}
                 </div>
             </div>
         </div>

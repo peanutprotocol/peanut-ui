@@ -5,7 +5,7 @@ import { twMerge } from 'tailwind-merge'
 import AchievementsBadge, { AchievementsBadgeSize } from '../Global/Badges/AchievementsBadge'
 import { Icon, IconName } from '../Global/Icons/Icon'
 
-type AvatarSize = 'extra-small' | 'small' | 'medium' | 'large'
+export type AvatarSize = 'extra-small' | 'small' | 'medium' | 'large'
 
 /**
  * props for the avatarwithbadge component.
@@ -39,7 +39,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
 }) => {
     const sizeClasses: Record<AvatarSize, string> = {
         'extra-small': 'h-8 w-8 text-xs',
-        small: 'h-10 w-10 text-sm',
+        small: 'h-12 w-12 text-sm',
         medium: 'h-16 w-16 text-2xl',
         large: 'h-24 w-24 text-3xl',
     }
