@@ -194,7 +194,7 @@ const ValidatedInput = ({
                         className={`h-full ${
                             isValidating
                                 ? 'opacity-100'
-                                : 'opacity-100 transition-opacity hover:opacity-100 md:opacity-0'
+                                : 'bg-transparent opacity-100 transition-opacity hover:opacity-100 md:opacity-0'
                         }`}
                     >
                         {isValidating ? (

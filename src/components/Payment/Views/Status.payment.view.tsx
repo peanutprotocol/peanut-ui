@@ -11,7 +11,7 @@ import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { RecipientType } from '@/lib/url-parser/types/payment'
-import { usePaymentStore } from '@/redux/hooks'
+import { usePaymentStore, useUserStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
 import { getInitialsFromName, printableAddress } from '@/utils'
@@ -34,6 +34,7 @@ const DirectSuccessView = ({ user, amount, message, recipientType, type, headerT
     const dispatch = useDispatch()
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
         useTransactionDetailsDrawer()
+    const { user: authUser } = useUserStore()
 
     const recipientName = useMemo(() => {
         if (user?.username) {
@@ -78,22 +79,28 @@ const DirectSuccessView = ({ user, amount, message, recipientType, type, headerT
     }, [chargeDetails, type, displayAmount, recipientName, parsedPaymentData, message, user])
 
     const handleDone = () => {
-        // reset payment state when done
-        router.push('/home')
-        dispatch(paymentActions.resetPaymentState())
+        if (!!authUser?.user.userId) {
+            // reset payment state when done
+            router.push('/home')
+            dispatch(paymentActions.resetPaymentState())
+        } else {
+            router.push('/setup')
+        }
     }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <div className="md:hidden">
-                <NavHeader
-                    icon="cancel"
-                    title={headerTitle}
-                    onPrev={() => {
-                        router.push('/send')
-                    }}
-                />
-            </div>
+            {type === 'SEND' && (
+                <div className="md:hidden">
+                    <NavHeader
+                        icon="cancel"
+                        title={headerTitle}
+                        onPrev={() => {
+                            router.push('/send')
+                        }}
+                    />
+                </div>
+            )}
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">
@@ -111,7 +118,7 @@ const DirectSuccessView = ({ user, amount, message, recipientType, type, headerT
                             You {type === 'SEND' ? 'paid' : 'requested'}{' '}
                             {recipientType !== 'USERNAME' ? (
                                 <AddressLink
-                                    className="text-sm font-bold text-black no-underline"
+                                    className="text-sm font-normal text-grey-1 no-underline"
                                     address={recipientName}
                                 />
                             ) : (

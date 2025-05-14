@@ -416,7 +416,7 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
 
                 {!isActivePeanutWallet && isConnected && (
                     <div className="space-y-2">
-                        <div className="mb-2 text-sm font-bold">Select token and chain to pay with</div>
+                        <div className="text-sm font-bold">Select token and chain to pay with</div>
                         <TokenSelector viewType="req_pay" />
                         {!isPeanutWalletUSDC && (
                             <div className="pt-1 text-center text-xs text-grey-1">

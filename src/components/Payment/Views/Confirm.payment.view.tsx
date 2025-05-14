@@ -217,7 +217,7 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
                     />
                 )}
 
-                <Card className="rounded-sm">
+                <Card className="rounded-sm p-4">
                     <PaymentInfoRow
                         label="Amount"
                         value={

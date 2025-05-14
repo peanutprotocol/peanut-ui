@@ -2,7 +2,8 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { checkifImageType, fetchWithSentry } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useEffect, useState } from 'react'
-import Icon from '../Icon'
+import { twMerge } from 'tailwind-merge'
+import { Icon } from '../Icons/Icon'
 
 export interface IFileUploadInputProps {
     attachmentOptions: {
@@ -15,9 +16,16 @@ export interface IFileUploadInputProps {
         message: string | undefined
         rawFile: File | undefined
     }) => void
+    placeholder?: string
+    className?: HTMLInputElement['className']
 }
 
-const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploadInputProps) => {
+const FileUploadInput = ({
+    attachmentOptions,
+    setAttachmentOptions,
+    placeholder,
+    className,
+}: IFileUploadInputProps) => {
     const [fileType, setFileType] = useState<string>('')
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +66,7 @@ const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploa
 
     return (
         <div className="relative w-full">
-            <div className="absolute left-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white">
+            <div className="absolute right-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white">
                 <BaseInput
                     type="file"
                     accept="image/*,application/pdf"
@@ -74,21 +82,21 @@ const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploa
                             <Icon name="check" className="block h-4 w-4 group-hover:hidden" />
                         )
                     ) : (
-                        <Icon name="paperclip" className="h-4 w-4" />
+                        <Icon name="clip" className="h-4 w-4" />
                     )}
                     {attachmentOptions.fileUrl && (
                         <button
                             onClick={handleFileDelete}
                             className="absolute right-1/2 top-1/2 ml-2 hidden -translate-y-1/2 translate-x-1/2 group-hover:block"
                         >
-                            <Icon name="close" className="h-4 w-4" />
+                            <Icon name="cancel" className="h-4 w-4" />
                         </button>
                     )}
                 </label>
             </div>
             <BaseInput
-                placeholder="Add reference or upload file (optional)"
-                className="pl-12"
+                placeholder={placeholder ? placeholder : 'Add reference or upload file (optional)'}
+                className={twMerge('pr-12', className)}
                 value={attachmentOptions.message}
                 maxLength={140}
                 onChange={(e) =>

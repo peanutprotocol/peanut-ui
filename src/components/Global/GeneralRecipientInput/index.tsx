@@ -1,15 +1,14 @@
 'use client'
+import { resolveEns } from '@/app/actions/ens'
+import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
+import { useRecentRecipients } from '@/hooks/useRecentRecipients'
+import * as interfaces from '@/interfaces'
+import { validateBankAccount, validateEnsName } from '@/utils'
+import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
+import * as Senty from '@sentry/nextjs'
 import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
-import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
-import { validateBankAccount } from '@/utils'
-import { resolveEns } from '@/app/actions/ens'
 import { isAddress } from 'viem'
-import * as interfaces from '@/interfaces'
-import { useRecentRecipients } from '@/hooks/useRecentRecipients'
-import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
-import { validateEnsName } from '@/utils'
-import * as Senty from '@sentry/nextjs'
 
 type GeneralRecipientInputProps = {
     className?: string
@@ -17,6 +16,8 @@ type GeneralRecipientInputProps = {
     recipient: { name: string | undefined; address: string }
     onUpdate: (update: GeneralRecipientUpdate) => void
     infoText?: string
+    showInfoText?: boolean
+    showLabel?: boolean
 }
 
 export type GeneralRecipientUpdate = {
@@ -33,6 +34,8 @@ const GeneralRecipientInput = ({
     onUpdate,
     className,
     infoText,
+    showInfoText = true,
+    showLabel = true,
 }: GeneralRecipientInputProps) => {
     const recipientType = useRef<interfaces.RecipientType>('address')
     const errorMessage = useRef('')
@@ -123,7 +126,7 @@ const GeneralRecipientInput = ({
 
     return (
         <div className="w-full">
-            <label className="mb-2 block text-left text-sm font-bold">Claim to</label>
+            {showLabel && <label className="mb-2 block text-left text-sm font-bold">Claim to</label>}
             <ValidatedInput
                 label="To"
                 value={recipient.name ?? recipient.address}
@@ -134,7 +137,7 @@ const GeneralRecipientInput = ({
                 autoComplete="on"
                 name="bank-account"
                 suggestions={getSuggestions(recipientType.current)}
-                infoText={infoText}
+                infoText={showInfoText ? infoText : undefined}
                 formatDisplayValue={formatDisplayValue}
             />
         </div>

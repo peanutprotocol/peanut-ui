@@ -9,6 +9,7 @@ import { CameraIcon } from './camera'
 import { CancelIcon } from './cancel'
 import { CheckIcon } from './check'
 import { ChevronUpIcon } from './chevron-up'
+import { ClipIcon } from './clip'
 import { CopyIcon } from './copy'
 import { CurrencyIcon } from './currency'
 import { DownloadIcon } from './download'
@@ -72,6 +73,7 @@ export type IconName =
     | 'user-plus'
     | 'qr-code'
     | 'error'
+    | 'clip'
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
@@ -115,6 +117,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     cancel: CancelIcon,
     'qr-code': QrCodeIcon,
     error: ErrorIcon,
+    clip: ClipIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
