@@ -167,7 +167,7 @@ export const usePaymentInitiator = () => {
                 console.error('Error calculating transaction cost:', error)
                 captureException(error)
                 setIsFeeEstimationError(true)
-                setError('Failed to estimate gas fee')
+                setError(`Failed to estimate gas fee: ${ErrorHandler(error)}`)
             })
             .finally(() => {
                 setIsEstimatingGas(false)

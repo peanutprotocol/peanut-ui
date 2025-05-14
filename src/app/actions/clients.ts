@@ -44,6 +44,7 @@ export type PreparedTx = {
 export const getFeeOptions = unstable_cache(
     async (chainId: ChainId, preparedTx: PreparedTx): Promise<string> => {
         const client = await getPublicClient(chainId)
+        console.dir(client)
         const [feeEstimates, gas] = await Promise.all([
             client.estimateFeesPerGas(),
             client.estimateGas({
@@ -56,12 +57,15 @@ export const getFeeOptions = unstable_cache(
                     ? [
                           {
                               address: preparedTx.erc20Token,
-                              stateDiff: [
-                                  {
-                                      slot: calculateAllowanceSlot(preparedTx.account, preparedTx.to),
+                              //Just put the allowance in all the possible slots (0-10)
+                              // Decided agains using the slotSeek library because
+                              // it's not widely used
+                              stateDiff: Array.from(Array(11).keys())
+                                  .map(BigInt)
+                                  .map((slotNumber) => ({
+                                      slot: calculateAllowanceSlot(preparedTx.account, preparedTx.to, slotNumber),
                                       value: numberToHex(maxUint256),
-                                  },
-                              ],
+                                  })),
                           },
                       ]
                     : [],
@@ -84,13 +88,8 @@ export const getFeeOptions = unstable_cache(
 // see: https://github.com/d3or/slotseek/blob/master/src/approval.ts
 // If we find that this function doesnt work for some tokens, we will have to
 // use slotseek itself
-function calculateAllowanceSlot(owner: Hash, spender: Hash) {
-    const slotHash = keccak256(
-        encodeAbiParameters(
-            [{ type: 'address' }, { type: 'uint256' }],
-            [owner, 10n] // 10 is typically the slot number for allowances for ERC-20s
-        )
-    )
+function calculateAllowanceSlot(owner: Hash, spender: Hash, slotNumber: bigint) {
+    const slotHash = keccak256(encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }], [owner, slotNumber]))
 
     return keccak256(encodeAbiParameters([{ type: 'address' }, { type: 'bytes32' }], [spender, slotHash]))
 }
