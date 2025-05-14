@@ -1,28 +1,21 @@
 'use client'
 
-import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
-import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
-import { formatExtendedNumber } from '@/utils'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import ProfileHeader from './ProfileHeader'
+import HomeHistory from '@/components/Home/HomeHistory'
 
 interface PublicProfileProps {
     username: string
     fullName: string
     isVerified?: boolean
     isLoggedIn?: boolean
-    transactions?: {
-        sent: number
-        received: number
-    }
     onSendClick?: () => void
 }
 
@@ -31,14 +24,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
     fullName,
     isVerified = false,
     isLoggedIn = false,
-    transactions,
     onSendClick,
 }) => {
-    const router = useRouter()
     const dispatch = useAppDispatch()
-
-    // check if user has transaction history
-    const hasTransactions = transactions && (transactions.sent > 0 || transactions.received > 0)
 
     // Handle send button click
     const handleSend = () => {
@@ -95,8 +83,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                     </Link>
                 </div>
 
+                {/*
                 <div className="space-y-6">
-                    {/* Transaction Summary - Only shown if user has transactions */}
                     {!!hasTransactions && (
                         <div>
                             <Card position="first">
@@ -118,56 +106,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                         </div>
                     )}
 
-                    {/* Transactions List - Only shown if user has transactions */}
-                    {!!hasTransactions && (
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-lg font-bold">Transactions</h2>
-                                <Link href={`/history`}>
-                                    <div className="flex items-center">
-                                        <Icon name="chevron-up" size={16} fill="black" className="rotate-90" />
-                                    </div>
-                                </Link>
-                            </div>
-
-                            {/* todo: show real transactions from the user */}
-                            {/* Example transaction - todo: replace with actual transaction data */}
-                            {/* <div>
-                                <TransactionCard
-                                    type="send"
-                                    name="Hugo Montenegro"
-                                    amount={BigInt(6969000000)}
-                                    initials="HM"
-                                    position="first"
-                                />
-
-                                <TransactionCard
-                                    type="withdraw"
-                                    name="Bank Account #1"
-                                    amount={BigInt(6969000000)}
-                                    position="middle"
-                                />
-
-                                <TransactionCard
-                                    type="add"
-                                    name="peanut.ens"
-                                    amount={BigInt(6969000000)}
-                                    position="middle"
-                                />
-
-                                <TransactionCard
-                                    type="request"
-                                    name="dasdasdasdsa Montenegro"
-                                    amount={BigInt(6969000000)}
-                                    initials="HM"
-                                    position="last"
-                                />
-                            </div> */}
-                        </div>
-                    )}
                 </div>
 
-                {/* Empty State - Only shown if user has no transactions */}
                 {!hasTransactions && (
                     <div className="relative flex flex-col items-center">
                         <Card position="single" className="z-10 mt-28 space-y-2 p-4 text-center">
@@ -212,6 +152,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                         </div>
                     </div>
                 )}
+                */}
+                <HomeHistory isPublic={true} username={username} />
             </div>
         </div>
     )

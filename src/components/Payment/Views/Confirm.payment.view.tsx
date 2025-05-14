@@ -24,7 +24,17 @@ import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 import { useQueryClient } from '@tanstack/react-query'
 
-export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?: boolean }) {
+type ConfirmPaymentViewProps = {
+    isPintaReq?: boolean
+    currency?: {
+        code: string
+        symbol: string
+        price: number
+    }
+    currencyAmount?: string
+}
+
+export default function ConfirmPaymentView({ isPintaReq = false, currency, currencyAmount }: ConfirmPaymentViewProps) {
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
     const chargeIdFromUrl = searchParams.get('chargeId')
@@ -92,6 +102,8 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
             isPintaReq: isPintaReq,
             chargeId: chargeDetails.uuid,
             skipChargeCreation: true,
+            currency,
+            currencyAmount,
         })
 
         if (result.success) {
@@ -212,8 +224,23 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
                 <PaymentInfoRow
                     label="Amount"
                     value={
-                        <span className="font-bold">
-                            {formatAmount(Number(chargeDetails?.tokenAmount))} {chargeDetails?.tokenSymbol}
+                        <span>
+                            {currencyAmount && currency ? (
+                                <>
+                                    <span className="font-bold">
+                                        {currency.symbol} {currencyAmount}
+                                    </span>
+                                    <span className="text-grey-1">
+                                        {' '}
+                                        ({formatAmount(Number(chargeDetails?.tokenAmount))} {chargeDetails?.tokenSymbol}
+                                        )
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="font-bold">
+                                    {formatAmount(Number(chargeDetails?.tokenAmount))} {chargeDetails?.tokenSymbol}
+                                </span>
+                            )}
                         </span>
                     }
                 />

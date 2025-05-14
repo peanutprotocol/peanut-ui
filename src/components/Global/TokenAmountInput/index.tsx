@@ -2,27 +2,35 @@ import { PEANUT_WALLET_TOKEN } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { estimateIfIsStableCoinFromPrice, formatAmountWithoutComma, formatTokenAmount } from '@/utils'
-import { useContext, useEffect, useMemo, useRef } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../Icon'
 
 interface TokenAmountInputProps {
     className?: string
     tokenValue: string | undefined
     setTokenValue: (tokenvalue: string | undefined) => void
+    setCurrencyAmount?: (currencyvalue: string | undefined) => void
     onSubmit?: () => void
     maxValue?: string
     disabled?: boolean
     walletBalance?: string
+    currency?: {
+        code: string
+        symbol: string
+        price: number
+    }
 }
 
 const TokenAmountInput = ({
     className,
     tokenValue,
     setTokenValue,
+    setCurrencyAmount,
     onSubmit,
     maxValue,
     disabled,
     walletBalance,
+    currency,
 }: TokenAmountInputProps) => {
     const { inputDenomination, setInputDenomination, selectedTokenData, selectedTokenAddress } =
         useContext(tokenSelectorContext)
@@ -30,8 +38,25 @@ const TokenAmountInput = ({
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
     const { isConnected: isPeanutWallet } = useWallet()
 
-    const onChange = (tokenvalue: string) => {
-        setTokenValue(tokenvalue)
+    // Add state for currency mode (USD or custom currency)
+    const [currencyMode, setCurrencyMode] = useState<'USD' | 'CUSTOM'>(currency ? 'CUSTOM' : 'USD')
+
+    // Store display value for input field (what user sees when typing)
+    const [displayValue, setDisplayValue] = useState<string>(tokenValue || '')
+
+    const onChange = (inputValue: string) => {
+        // Update display value (what the user sees)
+        setDisplayValue(inputValue)
+
+        // Convert to actual token value for payment processing
+        if (currency && currencyMode === 'CUSTOM') {
+            // Convert from custom currency to token value
+            const actualTokenValue = formatTokenAmount(Number(inputValue) / currency.price)!
+            setCurrencyAmount?.(inputValue)
+            setTokenValue(actualTokenValue.toString())
+        } else {
+            setTokenValue(inputValue)
+        }
     }
 
     const handleMaxClick = (e: React.MouseEvent) => {
@@ -45,13 +70,14 @@ const TokenAmountInput = ({
 
     useEffect(() => {
         if (inputRef.current) {
-            if (tokenValue?.length !== 0) {
-                inputRef.current.style.width = `${(tokenValue?.length ?? 0) + 1}ch`
+            const valueToShow = currency && currencyMode === 'CUSTOM' ? displayValue : tokenValue
+            if (valueToShow?.length !== 0) {
+                inputRef.current.style.width = `${(valueToShow?.length ?? 0) + 1}ch`
             } else {
                 inputRef.current.style.width = `4ch`
             }
         }
-    }, [tokenValue])
+    }, [tokenValue, displayValue, currency, currencyMode])
 
     const parentWidth = useMemo(() => {
         if (inputRef.current && inputRef.current.parentElement) {
@@ -78,13 +104,14 @@ const TokenAmountInput = ({
             <div className="flex h-14 w-full flex-row items-center justify-center gap-1">
                 {/* Show dollar sign if either:
                     1. We have price data from API and it's either in USD mode or is a stablecoin
-                         // TODO: if multiple denominations (USD, EURO, etc), show the correct one
                     2. It's a Peanut Wallet USDC transaction (which we know is always $1)
                     This prevents flickering/not loading of the dollar sign while waiting for price data */}
                 {(selectedTokenData?.price || (isPeanutWallet && selectedTokenAddress === PEANUT_WALLET_TOKEN)) &&
                     (inputDenomination === 'USD' ||
                     (selectedTokenData?.price ? estimateIfIsStableCoinFromPrice(selectedTokenData.price) : false) ? (
-                        <label className={`text-h1 ${tokenValue ? 'text-black' : 'text-gray-2'}`}>$</label>
+                        <label className={`text-h1 ${tokenValue ? 'text-black' : 'text-gray-2'}`}>
+                            {currencyMode === 'CUSTOM' && currency ? currency.symbol : '$'}
+                        </label>
                     ) : (
                         <label className="sr-only text-h1">$</label>
                     ))}
@@ -98,7 +125,7 @@ const TokenAmountInput = ({
                     ref={inputRef}
                     inputMode="decimal"
                     type={inputType}
-                    value={tokenValue}
+                    value={currency && currencyMode === 'CUSTOM' ? displayValue : tokenValue}
                     step="any"
                     min="0"
                     autoComplete="off"
@@ -124,23 +151,71 @@ const TokenAmountInput = ({
                 )}
             </div>
             {walletBalance && (
-                <div className="mt-0.5 text-center text-xs text-grey-1">Your balance: ${walletBalance}</div>
+                <div className="mt-0.5 text-center text-xs text-grey-1">
+                    Your balance: {currencyMode === 'CUSTOM' && currency ? 'US$' : '$'}
+                    {walletBalance}
+                </div>
             )}
-            {selectedTokenData?.price && !estimateIfIsStableCoinFromPrice(selectedTokenData.price) && (
-                <div className="flex w-full flex-row items-center justify-center gap-1">
+            {/* Show conversion line and toggle */}
+            {((selectedTokenData?.price && !estimateIfIsStableCoinFromPrice(selectedTokenData.price)) || currency) && (
+                <div
+                    className="flex w-full cursor-pointer flex-row items-center justify-center gap-1"
+                    onClick={(e) => {
+                        e.preventDefault()
+                        if (currency) {
+                            // Toggle currency mode and convert display value
+                            if (currencyMode === 'USD') {
+                                // Going from USD to custom currency
+                                setCurrencyMode('CUSTOM')
+                                // Convert display value to show in custom currency
+                                if (tokenValue) {
+                                    setDisplayValue((Number(tokenValue) * currency.price).toString())
+                                }
+                            } else {
+                                // Going from custom currency to USD
+                                setCurrencyMode('USD')
+                                // Display the actual token value (USD)
+                                setDisplayValue(tokenValue || '')
+                            }
+                        } else if (selectedTokenData?.price) {
+                            setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
+                        }
+                    }}
+                >
                     <label className="text-base text-grey-1">
                         {!tokenValue
                             ? '0'
-                            : inputDenomination === 'USD'
-                              ? formatTokenAmount(Number(tokenValue) / (selectedTokenData?.price ?? 0))
-                              : '$' + formatTokenAmount(Number(tokenValue) * (selectedTokenData?.price ?? 0))}
+                            : currency && currencyMode === 'CUSTOM'
+                              ? formatTokenAmount(Number(tokenValue)) + ' USD'
+                              : currency && currencyMode === 'USD'
+                                ? formatTokenAmount(Number(tokenValue) * currency.price) + ' ' + currency.code
+                                : inputDenomination === 'USD'
+                                  ? formatTokenAmount(Number(tokenValue) / (selectedTokenData?.price ?? 1))
+                                  : '$' + formatTokenAmount(Number(tokenValue) * (selectedTokenData?.price ?? 1))}
                     </label>
                     {!disabled && (
                         <button
                             onClick={(e) => {
                                 e.preventDefault()
-                                if (selectedTokenData?.price)
+                                e.stopPropagation()
+                                if (currency) {
+                                    // Toggle currency mode and convert display value
+                                    if (currencyMode === 'USD') {
+                                        // Going from USD to custom currency
+                                        setCurrencyMode('CUSTOM')
+                                        // Convert display value to show in custom currency
+                                        if (tokenValue) {
+                                            setDisplayValue((Number(tokenValue) * currency.price).toString())
+                                        }
+                                    } else {
+                                        // Going from custom currency to USD
+                                        setCurrencyMode('USD')
+                                        // Display the actual token value (USD)
+                                        setDisplayValue(tokenValue || '')
+                                    }
+                                } else if (selectedTokenData?.price) {
                                     setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
+                                }
                             }}
                         >
                             <Icon name={'switch'} className="rotate-90 cursor-pointer fill-grey-1" />
