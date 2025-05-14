@@ -52,7 +52,7 @@ const DirectSuccessView = ({
     const displayAmount = useMemo(() => {
         if (currencyAmount) return currencyAmount
         const displayAmount = amount ?? chargeDetails?.tokenAmount ?? '0'
-        return `${displayAmount} ${chargeDetails?.tokenSymbol}`
+        return `${displayAmount} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
     }, [amount, chargeDetails, currencyAmount])
 
     useEffect(() => {
@@ -80,12 +80,6 @@ const DirectSuccessView = ({
 
     return (
         <div>
-            <NavHeader
-                title={headerTitle}
-                onPrev={() => {
-                    router.push('/send')
-                }}
-            />
             <div className="translate-y-2/3 space-y-4">
                 <Card className="p-4">
                     <div className="flex items-center gap-3">
