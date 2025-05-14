@@ -103,20 +103,33 @@ export function useTransactionHistory({
     enabled = true,
     username,
 }: UseTransactionHistoryOptions): LatestHistoryResult | InfiniteHistoryResult {
-    const fetchHistory = async ({ cursor, limit }: { cursor?: string; limit: number }): Promise<HistoryResponse> => {
+    const fetchHistory = async ({
+        cursor,
+        limit,
+        isPublic = false,
+    }: {
+        cursor?: string
+        limit: number
+        isPublic?: boolean
+    }): Promise<HistoryResponse> => {
         const queryParams = new URLSearchParams()
         if (cursor) queryParams.append('cursor', cursor)
         if (limit) queryParams.append('limit', limit.toString())
 
-        const url = `${PEANUT_API_URL}/users/history?${queryParams.toString()}`
+        let url: string
+        if (isPublic) {
+            url = `${PEANUT_API_URL}/users/${username}/history?${queryParams.toString()}`
+        } else {
+            url = `${PEANUT_API_URL}/users/history?${queryParams.toString()}`
+        }
 
-        const response = await fetchWithSentry(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-            },
-        })
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+        }
+        if (!isPublic) {
+            headers['Authorization'] = `Bearer ${Cookies.get('jwt-token')}`
+        }
+        const response = await fetchWithSentry(url, { method: 'GET', headers })
 
         if (!response.ok) {
             throw new Error(`Failed to fetch history: ${response.statusText}`)
@@ -174,70 +187,6 @@ export function useTransactionHistory({
         }
     }
 
-    const fetchHistoryPublic = async ({
-        username,
-        cursor,
-        limit,
-    }: {
-        username: string
-        cursor?: string
-        limit: number
-    }): Promise<HistoryResponse> => {
-        const queryParams = new URLSearchParams()
-        if (cursor) queryParams.append('cursor', cursor)
-        if (limit) queryParams.append('limit', limit.toString())
-
-        const url = `${PEANUT_API_URL}/users/${username}/history?${queryParams.toString()}`
-
-        const response = await fetchWithSentry(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-            },
-        })
-
-        if (!response.ok) {
-            throw new Error(`Failed to fetch history: ${response.statusText}`)
-        }
-
-        const data = await response.json()
-
-        // Convert ISO strings to Date objects for timestamps
-        return {
-            ...data,
-            entries: data.entries.map((entry: HistoryEntry) => {
-                const extraData = entry.extraData ?? {}
-                let link: string = ''
-                let tokenSymbol: string = ''
-                let usdAmount: string = ''
-                switch (entry.type) {
-                    case 'REQUEST':
-                        link = `${process.env.NEXT_PUBLIC_BASE_URL}/request/pay?id=${entry.uuid}`
-                        tokenSymbol = entry.tokenSymbol
-                        usdAmount = entry.amount.toString()
-                        break
-                    case 'DIRECT_SEND':
-                        tokenSymbol = 'USDC'
-                        usdAmount = entry.amount.toString()
-                        break
-                    default:
-                        break
-                }
-                return {
-                    ...entry,
-                    tokenSymbol,
-                    timestamp: new Date(entry.timestamp),
-                    extraData: {
-                        ...extraData,
-                        link,
-                        usdAmount: `$${usdAmount}`,
-                    },
-                }
-            }),
-        }
-    }
-
     // Latest transactions mode (for home page)
     if (mode === 'latest') {
         return useQuery({
@@ -250,8 +199,8 @@ export function useTransactionHistory({
 
     if (mode === 'public') {
         return useQuery({
-            queryKey: ['transactions', 'public', { limit }],
-            queryFn: () => fetchHistoryPublic({ username: username!, limit }),
+            queryKey: ['transactions', 'public', username, { limit }],
+            queryFn: () => fetchHistory({ limit, isPublic: true }),
             enabled,
             staleTime: 15 * 1000, // 15 seconds
         })

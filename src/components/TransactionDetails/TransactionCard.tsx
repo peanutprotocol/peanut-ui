@@ -79,7 +79,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     <div className="flex flex-col items-end space-y-0.5">
                         <span className="font-roboto text-xs font-medium">
                             {transaction.currency?.code === 'ARS'
-                                ? `ARS$ ${transaction.currency.amount}`
+                                ? `ARS$ ${formatAmount(transaction.currency.amount)}`
                                 : `${transaction.currencySymbol}${formatAmount(amount)}`}
                         </span>
                         {status && <StatusBadge status={status} />}

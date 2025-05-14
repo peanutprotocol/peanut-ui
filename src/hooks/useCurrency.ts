@@ -1,5 +1,5 @@
-import { currencyApi } from '@/services/currency'
 import { useState, useEffect } from 'react'
+import { getCurrencyPrice } from '@/app/actions/currency'
 
 const SIMBOLS_BY_CURRENCY_CODE: Record<string, string> = {
     ARS: 'AR$',
@@ -26,8 +26,7 @@ export const useCurrency = (currencyCode: string | null) => {
             return
         }
 
-        currencyApi
-            .getPrice(code)
+        getCurrencyPrice(code)
             .then((price) => {
                 setSymbol(SIMBOLS_BY_CURRENCY_CODE[code])
                 setPrice(price)

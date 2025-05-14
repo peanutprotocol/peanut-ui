@@ -258,7 +258,9 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                 {currentView === 'CONFIRM' && (
                     <ConfirmPaymentView
                         isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
-                        currencyAmount={`${currencySymbol} ${currencyAmount}`}
+                        currencyAmount={
+                            currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
+                        }
                     />
                 )}
                 {currentView === 'STATUS' && (
@@ -270,7 +272,9 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                                 headerTitle="Send"
                                 recipientType={parsedPaymentData?.recipient?.recipientType}
                                 type="SEND"
-                                currencyAmount={`${currencySymbol} ${currencyAmount}`}
+                                currencyAmount={
+                                    currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
+                                }
                             />
                         )}
                     </>
