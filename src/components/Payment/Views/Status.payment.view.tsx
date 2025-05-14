@@ -10,7 +10,7 @@ import { RecipientType } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
-import { getInitialsFromName, printableAddress } from '@/utils'
+import { printableAddress } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
@@ -43,8 +43,6 @@ const DirectSuccessView = ({ user, amount, message, recipientType, type, headerT
     const displayAmount = useMemo(() => {
         return amount || chargeDetails?.tokenAmount || '0'
     }, [amount, chargeDetails])
-
-    const initials = getInitialsFromName(recipientName)
 
     useEffect(() => {
         // show loading for a brief moment, then show check mark

@@ -22,6 +22,7 @@ import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
+import { useQueryClient } from '@tanstack/react-query'
 
 export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?: boolean }) {
     const dispatch = useAppDispatch()
@@ -41,9 +42,10 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
         isFeeEstimationError,
     } = usePaymentInitiator()
     const { selectedTokenData, selectedChainID } = useContext(tokenSelectorContext)
-    const { isConnected: isPeanutWallet, address: peanutWalletAddress } = useWallet()
+    const { isConnected: isPeanutWallet, address: peanutWalletAddress, fetchBalance } = useWallet()
     const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
     const { rewardWalletBalance } = useWalletStore()
+    const queryClient = useQueryClient()
 
     const walletAddress = useMemo(() => peanutWalletAddress ?? wagmiAddress, [peanutWalletAddress, wagmiAddress])
 
@@ -93,6 +95,10 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
         })
 
         if (result.success) {
+            setTimeout(() => {
+                fetchBalance()
+                queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            }, 3000)
             dispatch(paymentActions.setView('STATUS'))
         }
     }, [chargeDetails, initiatePayment, parsedPaymentData, dispatch, isPintaReq, beerQuantity])

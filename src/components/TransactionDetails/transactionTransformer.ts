@@ -69,11 +69,13 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             direction = 'send'
             transactionCardType = 'send'
             if (entry.userRole === EHistoryUserRole.SENDER) {
-                nameForDetails = entry.recipientAccount!.username!
+                nameForDetails = entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
             } else {
                 direction = 'receive'
                 transactionCardType = 'receive'
-                nameForDetails = entry.senderAccount!.username!
+                nameForDetails =
+                    entry.senderAccount?.username ?? entry.senderAccount?.identifier ?? 'Payment via public link'
+                isLinkTx = !entry.senderAccount // If the sender is not an user then it's a public link
             }
             break
         case EHistoryEntryType.SEND_LINK:
@@ -96,30 +98,29 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             }
             break
         case EHistoryEntryType.REQUEST:
-            isLinkTx = !entry.txHash
-            if (entry.userRole === EHistoryUserRole.SENDER) {
+            if (entry.userRole === EHistoryUserRole.RECIPIENT) {
                 direction = 'request_sent'
                 transactionCardType = 'request'
-                nameForDetails =
-                    entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Requested To'
-                isPeerActuallyUser = !!entry.recipientAccount?.isUser
+                nameForDetails = entry.senderAccount?.username || entry.senderAccount?.identifier || 'Requested To'
+                isPeerActuallyUser = !!entry.senderAccount?.isUser
             } else {
                 if (entry.status?.toUpperCase() === 'NEW' || entry.status?.toUpperCase() === 'PENDING') {
                     direction = 'request_received'
                     transactionCardType = 'request'
                     nameForDetails =
-                        entry.senderAccount?.username ||
-                        entry.senderAccount?.identifier ||
+                        entry.recipientAccount?.username ||
+                        entry.recipientAccount?.identifier ||
                         `Request From ${entry.recipientAccount?.username || entry.recipientAccount?.identifier}`
-                    isPeerActuallyUser = !!entry.senderAccount?.isUser
+                    isPeerActuallyUser = !!entry.recipientAccount?.isUser
                 } else {
                     direction = 'send'
                     transactionCardType = 'send'
                     nameForDetails =
-                        entry.senderAccount?.username || entry.senderAccount?.identifier || 'Paid Request To'
-                    isPeerActuallyUser = !!entry.senderAccount?.isUser
+                        entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Paid Request To'
+                    isPeerActuallyUser = !!entry.recipientAccount?.isUser
                 }
             }
+            isLinkTx = !isPeerActuallyUser
             break
         case EHistoryEntryType.CASHOUT:
             direction = 'withdraw'

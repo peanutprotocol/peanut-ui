@@ -46,13 +46,13 @@ const getTitle = (direction: TransactionDirection, userName: string, isLinkTrans
                 titleText = `Sending to ${displayName}`
                 break
             case 'request_received':
-                titleText = `Paid request to ${displayName}`
+                titleText = `${displayName} is requesting`
                 break
             case 'receive':
                 titleText = `Received from ${displayName}`
                 break
             case 'request_sent':
-                titleText = `Requested from ${displayName}`
+                titleText = `Requesting ${displayName}`
                 break
             case 'withdraw':
                 titleText = `Withdrawing to ${displayName}`

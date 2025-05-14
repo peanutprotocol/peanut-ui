@@ -4,6 +4,7 @@ import { Icon, IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { formatAmount, printableAddress } from '@/utils'
 import React from 'react'
@@ -68,7 +69,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             </div>
                             {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-gray-500">
-                                {getActionIcon(type)}
+                                {getActionIcon(type, transaction.direction)}
                                 <span className="text-[10px] capitalize">{type}</span>
                             </div>
                         </div>
@@ -96,7 +97,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 }
 
 // helper functions
-function getActionIcon(type: TransactionType): React.ReactNode {
+function getActionIcon(type: TransactionType, direction: TransactionDirection): React.ReactNode {
     let iconName: IconName | null = null
     let iconSize = 6
 
@@ -105,6 +106,12 @@ function getActionIcon(type: TransactionType): React.ReactNode {
             iconName = 'arrow-up-right'
             break
         case 'request':
+            if (direction === 'request_received') {
+                iconName = 'arrow-up-right'
+            } else {
+                iconName = 'arrow-down-left'
+            }
+            break
         case 'receive':
             iconName = 'arrow-down-left'
             break
