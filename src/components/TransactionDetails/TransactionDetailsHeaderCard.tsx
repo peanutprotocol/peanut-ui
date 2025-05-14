@@ -21,18 +21,25 @@ interface TransactionDetailsHeaderCardProps {
     transactionType?: TransactionType
 }
 
-const getTitle = (direction: TransactionDirection, userName: string, isLinkTransaction?: boolean): React.ReactNode => {
+const getTitle = (
+    direction: TransactionDirection,
+    userName: string,
+    isLinkTransaction?: boolean,
+    status?: StatusType
+): React.ReactNode => {
     let titleText = userName
 
     if (isLinkTransaction) {
         switch (direction) {
             case 'send':
-            case 'request_sent':
                 titleText = 'Sent via Link'
+                break
+            case 'request_sent':
+                titleText = 'Requested via Link'
                 break
             case 'receive':
             case 'request_received':
-                titleText = 'Received via Link'
+                titleText = 'Request via Link'
                 break
             default:
                 titleText = 'Link Transaction'
@@ -43,7 +50,7 @@ const getTitle = (direction: TransactionDirection, userName: string, isLinkTrans
         const displayName = isAddress ? printableAddress(userName) : userName
         switch (direction) {
             case 'send':
-                titleText = `Sending to ${displayName}`
+                titleText = `${status === 'completed' ? 'Sent' : 'Sending'} to ${displayName}`
                 break
             case 'request_received':
                 titleText = `${displayName} is requesting`
@@ -52,7 +59,7 @@ const getTitle = (direction: TransactionDirection, userName: string, isLinkTrans
                 titleText = `Received from ${displayName}`
                 break
             case 'request_sent':
-                titleText = `Requesting ${displayName}`
+                titleText = `${status === 'completed' ? 'Requested' : 'Requesting'} from ${displayName}`
                 break
             case 'withdraw':
                 titleText = `Withdrawing to ${displayName}`
@@ -96,7 +103,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                 />
                 <div className="space-y-1">
                     <h2 className="text-sm font-medium text-grey-1">
-                        {getTitle(direction, userName, isLinkTransaction)}
+                        {getTitle(direction, userName, isLinkTransaction, status)}
                     </h2>
                     <h1
                         className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' ? 'text-grey-1 line-through' : ''}`}

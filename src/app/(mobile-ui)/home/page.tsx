@@ -14,11 +14,11 @@ import { SearchUsers } from '@/components/SearchUsers'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useWalletStore } from '@/redux/hooks'
+import { useUserStore, useWalletStore } from '@/redux/hooks'
 import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences } from '@/utils'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useMemo, useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 export default function Home() {
@@ -30,7 +30,9 @@ export default function Home() {
         return prefs?.balanceHidden ?? false
     })
 
-    const { username, isFetchingUser, user, addAccount } = useAuth()
+    const { isFetchingUser, addAccount } = useAuth()
+    const { user } = useUserStore()
+    const username = user?.user.username
 
     const userFullName = useMemo(() => {
         if (!user) return

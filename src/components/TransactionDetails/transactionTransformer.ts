@@ -101,7 +101,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             if (entry.userRole === EHistoryUserRole.RECIPIENT) {
                 direction = 'request_sent'
                 transactionCardType = 'request'
-                nameForDetails = entry.senderAccount?.username || entry.senderAccount?.identifier || 'Requested To'
+                nameForDetails =
+                    entry.senderAccount?.username || entry.senderAccount?.identifier || 'Requested via Link'
                 isPeerActuallyUser = !!entry.senderAccount?.isUser
             } else {
                 if (entry.status?.toUpperCase() === 'NEW' || entry.status?.toUpperCase() === 'PENDING') {
@@ -216,7 +217,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         isVerified: entry.recipientAccount?.isUser || entry.senderAccount?.isUser || false,
         date: entry.timestamp,
         fee: undefined,
-        memo: entry.memo ?? entry.attachmentUrl,
+        memo: entry.memo?.trim() ?? entry.attachmentUrl?.trim(),
         txHash: entry.txHash,
         explorerUrl: explorerUrlWithTx,
         extraDataForDrawer: {
