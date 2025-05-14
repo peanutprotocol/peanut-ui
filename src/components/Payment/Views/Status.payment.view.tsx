@@ -22,9 +22,18 @@ type DirectSuccessViewProps = {
     recipientType?: RecipientType
     type: 'SEND' | 'REQUEST'
     headerTitle?: string
+    currencyAmount?: string
 }
 
-const DirectSuccessView = ({ user, amount, message, recipientType, type, headerTitle }: DirectSuccessViewProps) => {
+const DirectSuccessView = ({
+    user,
+    amount,
+    message,
+    recipientType,
+    type,
+    headerTitle,
+    currencyAmount,
+}: DirectSuccessViewProps) => {
     const router = useRouter()
     const { chargeDetails, parsedPaymentData } = usePaymentStore()
     const [showCheck, setShowCheck] = useState(false)
@@ -41,8 +50,10 @@ const DirectSuccessView = ({ user, amount, message, recipientType, type, headerT
     }, [user, parsedPaymentData, chargeDetails])
 
     const displayAmount = useMemo(() => {
-        return amount || chargeDetails?.tokenAmount || '0'
-    }, [amount, chargeDetails])
+        if (currencyAmount) return currencyAmount
+        const displayAmount = amount ?? chargeDetails?.tokenAmount ?? '0'
+        return `${displayAmount} ${chargeDetails?.tokenSymbol}`
+    }, [amount, chargeDetails, currencyAmount])
 
     useEffect(() => {
         // show loading for a brief moment, then show check mark
@@ -103,9 +114,7 @@ const DirectSuccessView = ({ user, amount, message, recipientType, type, headerT
                                 recipientName
                             )}
                         </h1>
-                        <h2 className="text-2xl font-extrabold">
-                            {displayAmount} {chargeDetails?.tokenSymbol}
-                        </h2>
+                        <h2 className="text-2xl font-extrabold">{displayAmount}</h2>
                         {message && <p className="text-sm font-medium text-grey-1">for {message}</p>}
                     </div>
                 </Card>

@@ -18,6 +18,7 @@ import { formatAmount } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { useCurrency } from '@/hooks/useCurrency'
 
 interface Props {
     recipient: string[]
@@ -34,6 +35,12 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     const chargeId = searchParams.get('chargeId')
     const requestId = searchParams.get('id')
     const router = useRouter()
+    const {
+        code: currencyCode,
+        symbol: currencySymbol,
+        price: currencyPrice,
+    } = useCurrency(searchParams.get('currency'))
+    const [currencyAmount, setCurrencyAmount] = useState<string>('')
 
     useEffect(() => {
         if (!parsedPaymentData) {
@@ -214,11 +221,6 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                 fullName={username} // todo: replace with actual full name, getByUsername only returns username
                 isVerified={user?.user.kycStatus === 'approved'}
                 isLoggedIn={!!user}
-                // todo: to be implemented in history project
-                transactions={{
-                    sent: 0,
-                    received: 0,
-                }}
                 onSendClick={handleSendClick}
             />
         )
@@ -243,11 +245,29 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
             <div>
                 {currentView === 'INITIAL' && (
                     <div className="space-y-4">
-                        <InitialPaymentView {...(parsedPaymentData as ParsedURL)} />
+                        <InitialPaymentView
+                            {...(parsedPaymentData as ParsedURL)}
+                            currency={
+                                currencyCode
+                                    ? {
+                                          code: currencyCode,
+                                          symbol: currencySymbol!,
+                                          price: currencyPrice!,
+                                      }
+                                    : undefined
+                            }
+                            setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
+                            currencyAmount={currencyAmount}
+                        />
                     </div>
                 )}
                 {currentView === 'CONFIRM' && (
-                    <ConfirmPaymentView isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'} />
+                    <ConfirmPaymentView
+                        isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
+                        currencyAmount={
+                            currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
+                        }
+                    />
                 )}
                 {currentView === 'STATUS' && (
                     <>
@@ -258,6 +278,9 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                                 headerTitle="Send"
                                 recipientType={parsedPaymentData?.recipient?.recipientType}
                                 type="SEND"
+                                currencyAmount={
+                                    currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
+                                }
                             />
                         )}
                     </>

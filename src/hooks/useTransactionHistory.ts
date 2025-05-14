@@ -32,6 +32,10 @@ export type HistoryEntry = {
     type: HistoryEntryType
     timestamp: Date
     amount: string
+    currency?: {
+        amount: string
+        code: string
+    }
     txHash?: string
     chainId: string
     tokenSymbol: string
@@ -69,15 +73,17 @@ export type HistoryResponse = {
 
 // Hook options
 type UseTransactionHistoryOptions = {
-    mode?: 'infinite' | 'latest'
+    mode?: 'infinite' | 'latest' | 'public'
     limit?: number
     enabled?: boolean
+    username?: string
 }
 
 export function useTransactionHistory(options: {
-    mode: 'latest'
+    mode: 'latest' | 'public'
     limit?: number
     enabled?: boolean
+    username?: string
 }): LatestHistoryResult
 
 export function useTransactionHistory(options: {
@@ -95,21 +101,35 @@ export function useTransactionHistory({
     mode = 'infinite',
     limit = 50,
     enabled = true,
+    username,
 }: UseTransactionHistoryOptions): LatestHistoryResult | InfiniteHistoryResult {
-    const fetchHistory = async ({ cursor, limit }: { cursor?: string; limit: number }): Promise<HistoryResponse> => {
+    const fetchHistory = async ({
+        cursor,
+        limit,
+        isPublic = false,
+    }: {
+        cursor?: string
+        limit: number
+        isPublic?: boolean
+    }): Promise<HistoryResponse> => {
         const queryParams = new URLSearchParams()
         if (cursor) queryParams.append('cursor', cursor)
         if (limit) queryParams.append('limit', limit.toString())
 
-        const url = `${PEANUT_API_URL}/users/history?${queryParams.toString()}`
+        let url: string
+        if (isPublic) {
+            url = `${PEANUT_API_URL}/users/${username}/history?${queryParams.toString()}`
+        } else {
+            url = `${PEANUT_API_URL}/users/history?${queryParams.toString()}`
+        }
 
-        const response = await fetchWithSentry(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-            },
-        })
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+        }
+        if (!isPublic) {
+            headers['Authorization'] = `Bearer ${Cookies.get('jwt-token')}`
+        }
+        const response = await fetchWithSentry(url, { method: 'GET', headers })
 
         if (!response.ok) {
             throw new Error(`Failed to fetch history: ${response.statusText}`)
@@ -174,6 +194,15 @@ export function useTransactionHistory({
             queryFn: () => fetchHistory({ limit }),
             enabled,
             staleTime: 5 * 60 * 1000, // 5 minutes
+        })
+    }
+
+    if (mode === 'public') {
+        return useQuery({
+            queryKey: ['transactions', 'public', username, { limit }],
+            queryFn: () => fetchHistory({ limit, isPublic: true }),
+            enabled,
+            staleTime: 15 * 1000, // 15 seconds
         })
     }
 

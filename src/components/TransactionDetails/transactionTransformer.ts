@@ -17,6 +17,10 @@ export interface TransactionDetails {
     direction: TransactionDirection
     userName: string
     amount: number | bigint
+    currency?: {
+        amount: string
+        code: string
+    }
     currencySymbol?: string
     tokenSymbol?: string
     initials: string
@@ -210,6 +214,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         direction: direction,
         userName: nameForDetails,
         amount: amount,
+        currency: entry.currency,
         currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: entry.tokenSymbol,
         initials: getInitialsFromName(nameForDetails),

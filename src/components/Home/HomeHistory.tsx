@@ -5,7 +5,6 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
-import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { CardPosition } from '../Global/Card'
@@ -13,13 +12,11 @@ import { CardPosition } from '../Global/Card'
 /**
  * component to display a preview of the most recent transactions on the home page.
  */
-const HomeHistory = () => {
-    // fetch current user's username for context in data mapping
-    const { user } = useUserStore()
-    const currentUserUsername = user?.user.username
-
+const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; username?: string }) => {
     // fetch the latest 5 transaction history entries
-    const { data: historyData, isLoading, isError, error } = useTransactionHistory({ mode: 'latest', limit: 5 }) // Updated limit to 5
+    const mode = isPublic ? 'public' : 'latest'
+    const limit = isPublic ? 20 : 5
+    const { data: historyData, isLoading, isError, error } = useTransactionHistory({ mode, limit, username }) // Updated limit to 5
 
     // show loading state
     if (isLoading) {
@@ -48,10 +45,14 @@ const HomeHistory = () => {
     return (
         <div className="mx-auto w-full space-y-3 pb-28 md:max-w-2xl md:space-y-3">
             {/* link to the full history page */}
-            <Link href="/history" className="flex items-center justify-between">
-                <h2 className="text-base font-bold">Transactions</h2>
-                <Icon width={30} height={30} name="arrow-next" />
-            </Link>
+            {isPublic ? (
+                <h2 className="text-base font-bold">Latest Transactions</h2>
+            ) : (
+                <Link href="/history" className="flex items-center justify-between">
+                    <h2 className="text-base font-bold">Transactions</h2>
+                    <Icon width={30} height={30} name="arrow-next" />
+                </Link>
+            )}
             {/* container for the transaction cards */}
             <div className="h-full w-full">
                 {/* map over the latest entries and render transactioncard */}
