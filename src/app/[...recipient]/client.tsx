@@ -36,6 +36,12 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     const router = useRouter()
 
     useEffect(() => {
+        if (!parsedPaymentData) {
+            setIsUrlParsed(false)
+        }
+    }, [parsedPaymentData])
+
+    useEffect(() => {
         let isMounted = true
         const fetchParsedURL = async () => {
             const { parsedUrl, error } = await parsePaymentURL(recipient)
