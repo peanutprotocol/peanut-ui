@@ -3,13 +3,12 @@ import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon, IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
+import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { formatAmount, printableAddress } from '@/utils'
 import React from 'react'
 import { isAddress } from 'viem'
-import { twMerge } from 'tailwind-merge'
 
 export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout' | 'receive'
 
@@ -67,8 +66,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         />
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
-                            <div className="flex flex-row">
-                                {isPending && <div className="mr-2 h-3 w-3 animate-pulsate rounded-full bg-pink-1" />}
+                            <div className="flex flex-row items-center gap-2">
+                                {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-pink-1" />}
                                 <div className="max-w-40 truncate font-roboto text-sm font-medium">
                                     {isAddress(name) ? printableAddress(name) : name}
                                 </div>
