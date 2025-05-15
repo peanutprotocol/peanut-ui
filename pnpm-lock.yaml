@@ -127,6 +127,9 @@ importers:
       next:
         specifier: 15.3.1
         version: 15.3.1(@babel/core@7.26.0)(@opentelemetry/api@1.9.0)(babel-plugin-macros@3.1.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      pulltorefreshjs:
+        specifier: ^0.1.22
+        version: 0.1.22
       react:
         specifier: ^19.1.0
         version: 19.1.0
@@ -218,6 +221,9 @@ importers:
       '@types/node':
         specifier: 20.4.2
         version: 20.4.2
+      '@types/pulltorefreshjs':
+        specifier: ^0.1.7
+        version: 0.1.7
       '@types/react':
         specifier: ^18.3.12
         version: 18.3.18
@@ -3004,6 +3010,9 @@ packages:
 
   '@types/prop-types@15.7.14':
     resolution: {integrity: sha512-gNMvNH49DJ7OJYv+KAKn0Xp45p8PLl6zo2YnvDIbTd4J6MER2BmWN49TG7n9LvkyihINxeKW8+3bfS2yDC9dzQ==}
+
+  '@types/pulltorefreshjs@0.1.7':
+    resolution: {integrity: sha512-Y0g/yfuycIvpvUmP97n5NE2+HDAOwfREGVERjhMWw2Y0ODh5wvbflcQ5gXPZ+ihgoq+BQZjA1DL8apw2wAsJXA==}
 
   '@types/react-csv@1.1.10':
     resolution: {integrity: sha512-PESAyASL7Nfi/IyBR3ufd8qZkyoS+7jOylKmJxRZUZLFASLo4NZaRsJ8rNP8pCcbIziADyWBbLPD1nPddhsL4g==}
@@ -6074,6 +6083,9 @@ packages:
 
   psl@1.15.0:
     resolution: {integrity: sha512-JZd3gMVBAVQkSs6HdNZo9Sdo0LNcQeMNP3CozBJb3JYC/QUYZTnKxP+f8oWRX4rHP5EurWxqAHTSwUCjlNKa1w==}
+
+  pulltorefreshjs@0.1.22:
+    resolution: {integrity: sha512-haxNVEHnS4NCQA7NeG7TSV69z4uqy/N7nfPRuc4dPWe8H6ygUrMjdNeohE+6v0lVVX/ukSjbLYwPUGUYtFKfvQ==}
 
   pump@3.0.2:
     resolution: {integrity: sha512-tUPXtzlGM8FE3P0ZL6DVs/3P58k9nk8/jZeQCurTJylQA8qFYzHFfhBJkuqyE0FifOsQ0uKWekiZ5g8wtr28cw==}
@@ -11325,6 +11337,8 @@ snapshots:
 
   '@types/prop-types@15.7.14': {}
 
+  '@types/pulltorefreshjs@0.1.7': {}
+
   '@types/react-csv@1.1.10':
     dependencies:
       '@types/react': 18.3.18
@@ -15516,6 +15530,8 @@ snapshots:
   psl@1.15.0:
     dependencies:
       punycode: 2.3.1
+
+  pulltorefreshjs@0.1.22: {}
 
   pump@3.0.2:
     dependencies:
