@@ -11,12 +11,12 @@ import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { sendLinksApi } from '@/services/sendLinks'
 import { ErrorHandler, printableUsdc } from '@/utils'
 import { captureException } from '@sentry/nextjs'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { parseUnits } from 'viem'
 import { Button } from '../../../0_Bruddle'
 import FileUploadInput from '../../../Global/FileUploadInput'
 import TokenAmountInput from '../../../Global/TokenAmountInput'
-import { useQueryClient } from '@tanstack/react-query'
 
 const LinkSendInitialView = () => {
     const dispatch = useAppDispatch()
@@ -92,7 +92,7 @@ const LinkSendInitialView = () => {
         } finally {
             setLoadingState('Idle')
         }
-    }, [isLoading, tokenValue, createLink, fetchBalance])
+    }, [isLoading, tokenValue, createLink, fetchBalance, dispatch, queryClient, setLoadingState, attachmentOptions])
 
     useEffect(() => {
         if (!peanutWalletBalance || !tokenValue) return
@@ -136,6 +136,7 @@ const LinkSendInitialView = () => {
 
             <div className="flex flex-col gap-4">
                 <Button
+                    shadowSize="4"
                     onClick={handleOnNext}
                     loading={isLoading}
                     disabled={isLoading || !tokenValue || !!errorState?.showError}

@@ -20,6 +20,7 @@ import {
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import * as consts from '@/constants'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { TOOLTIPS } from '@/constants/tooltips'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
@@ -38,6 +39,7 @@ import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
 import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
 import * as _consts from '../Claim.consts'
@@ -95,6 +97,7 @@ export const InitialClaimLinkView = ({
     const { claimLink } = useClaimLink()
     const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
     const { user } = useAuth()
+    const queryClient = useQueryClient()
 
     const resetSelectedToken = useCallback(() => {
         if (isPeanutWallet) {
@@ -123,6 +126,7 @@ export const InitialClaimLinkView = ({
                 setClaimType('claim')
                 onCustom('SUCCESS')
                 fetchBalance()
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             } else {
                 const claimTxHash = await claimLink({
                     address: recipient.address,
@@ -131,6 +135,7 @@ export const InitialClaimLinkView = ({
                 setClaimType('claim')
                 setTransactionHash(claimTxHash)
                 onCustom('SUCCESS')
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             }
         } catch (error) {
             const errorString = ErrorHandler(error)
@@ -142,7 +147,19 @@ export const InitialClaimLinkView = ({
         } finally {
             setLoadingState('Idle')
         }
-    }, [claimLinkData.link, isPeanutWallet, fetchBalance, recipient.address])
+    }, [
+        claimLinkData.link,
+        isPeanutWallet,
+        fetchBalance,
+        recipient.address,
+        user,
+        claimLink,
+        onCustom,
+        setLoadingState,
+        setClaimType,
+        setTransactionHash,
+        queryClient,
+    ])
 
     useEffect(() => {
         if (isPeanutWallet) resetSelectedToken()

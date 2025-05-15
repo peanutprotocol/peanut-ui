@@ -4,13 +4,14 @@ import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
-import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { RecipientType } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
 import { printableAddress } from '@/utils'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
@@ -38,6 +39,7 @@ const DirectSuccessView = ({
     const { chargeDetails, parsedPaymentData } = usePaymentStore()
     const [showCheck, setShowCheck] = useState(false)
     const dispatch = useDispatch()
+    const queryClient = useQueryClient()
 
     const recipientName = useMemo(() => {
         if (user?.username) {
@@ -61,6 +63,9 @@ const DirectSuccessView = ({
             setShowCheck(true)
         }, 800)
 
+        // Invalidate queries to refetch history
+        queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+
         // redirect to home after 2 seconds
         const redirectTimeout = setTimeout(() => {
             router.push('/home')
@@ -70,12 +75,13 @@ const DirectSuccessView = ({
             clearTimeout(checkTimeout)
             clearTimeout(redirectTimeout)
         }
-    }, [router])
+    }, [router, queryClient])
 
     const handleDone = () => {
         // reset payment state when done
         router.push('/home')
         dispatch(paymentActions.resetPaymentState())
+        queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
     }
 
     return (
