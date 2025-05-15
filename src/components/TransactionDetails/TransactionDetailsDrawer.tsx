@@ -131,7 +131,30 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                         {transaction.fee !== undefined && (
                             <PaymentInfoRow label="Fee" value={feeDisplay} hideBottomBorder={!transaction.memo} />
                         )}
-                        {transaction.memo && <PaymentInfoRow label="Memo" value={transaction.memo} hideBottomBorder />}
+                        {transaction.memo && (
+                            <PaymentInfoRow
+                                label="Memo"
+                                value={transaction.memo}
+                                hideBottomBorder={!transaction.attachmentUrl}
+                            />
+                        )}
+                        {transaction.attachmentUrl && (
+                            <PaymentInfoRow
+                                label="Attachment"
+                                value={
+                                    <Link
+                                        href={transaction.attachmentUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center underline"
+                                    >
+                                        Download
+                                        <Icon name="download" className="h-3" />
+                                    </Link>
+                                }
+                                hideBottomBorder
+                            />
+                        )}
                     </div>
                 </Card>
 
