@@ -111,7 +111,7 @@ export default function Home() {
                     />
                 </div>
 
-                <HomeHistory />
+                <HomeHistory username={username ?? undefined} />
                 <RewardsModal />
 
                 {/* Render the new Rewards Card Modal */}
