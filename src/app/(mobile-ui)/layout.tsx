@@ -51,9 +51,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 mainElement: 'body', // target element for pull to refresh
                 onRefresh: () => {
                     // simulate a refresh action
-                    setTimeout(() => {
-                        window.location.reload()
-                    }, 1000)
+                    window.location.reload()
                 },
                 instructionsPullToRefresh: 'Pull down to refresh',
                 instructionsReleaseToRefresh: 'Release to refresh',
