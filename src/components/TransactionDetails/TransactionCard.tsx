@@ -3,8 +3,8 @@ import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon, IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
+import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { formatNumberForDisplay, printableAddress } from '@/utils'
 import React from 'react'
@@ -21,6 +21,7 @@ interface TransactionCardProps {
     initials?: string
     position?: CardPosition
     transaction: TransactionDetails
+    isPending?: boolean
 }
 
 // Helper function to get currency symbol based on code - can be moved to utils if used elsewhere
@@ -43,6 +44,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     initials = '',
     position = 'middle',
     transaction,
+    isPending = false,
 }) => {
     // hook to manage the state of the details drawer (open/closed, selected transaction)
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
@@ -115,8 +117,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         />
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
-                            <div className="max-w-40 truncate font-roboto text-sm font-medium">
-                                {isAddress(name) ? printableAddress(name) : name}
+                            <div className="flex flex-row items-center gap-2">
+                                {isPending && <div className="animate-pulsate h-2 w-2 rounded-full bg-pink-1" />}
+                                <div className="max-w-40 truncate font-roboto text-sm font-medium">
+                                    {isAddress(name) ? printableAddress(name) : name}
+                                </div>
                             </div>
                             {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-gray-500">

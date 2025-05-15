@@ -4,17 +4,17 @@ import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
-import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { RecipientType } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
 import { printableAddress } from '@/utils'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { useQueryClient } from '@tanstack/react-query'
 
 type DirectSuccessViewProps = {
     user?: ApiUser
@@ -74,6 +74,7 @@ const DirectSuccessView = ({
         // reset payment state when done
         router.push('/home')
         dispatch(paymentActions.resetPaymentState())
+        queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
     }
 
     return (

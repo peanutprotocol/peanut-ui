@@ -3,18 +3,17 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
-import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
-import { sendFlowActions } from '@/redux/slices/send-flow-slice'
-import { useRouter } from 'next/navigation'
-import { useQueryClient } from '@tanstack/react-query'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { captureException } from '@sentry/nextjs'
+import { useAppDispatch, useSendFlowStore, useUserStore } from '@/redux/hooks'
+import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { sendLinksApi } from '@/services/sendLinks'
-import { useUserStore } from '@/redux/hooks'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import { captureException } from '@sentry/nextjs'
+import { useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 const LinkSendSuccessView = () => {
@@ -85,8 +84,8 @@ const LinkSendSuccessView = () => {
                             shadowSize="4"
                             disabled={isLoading}
                         >
-                            <div className="flex size-6 items-center gap-0">
-                                <Icon name="cancel" />
+                            <div className="flex items-center">
+                                <Icon name="cancel" className="mr-0.5 min-w-3 rounded-full border border-black p-0.5" />
                             </div>
                             <span>Cancel link</span>
                         </Button>

@@ -10,6 +10,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import UserCard from '@/components/User/UserCard'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context'
 import { usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -18,11 +19,11 @@ import { useAppDispatch, usePaymentStore, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { ErrorHandler, formatAmount } from '@/utils'
+import { useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
-import { useQueryClient } from '@tanstack/react-query'
 
 type ConfirmPaymentViewProps = {
     isPintaReq?: boolean
@@ -109,11 +110,22 @@ export default function ConfirmPaymentView({ isPintaReq = false, currency, curre
         if (result.success) {
             setTimeout(() => {
                 fetchBalance()
-                queryClient.invalidateQueries({ queryKey: ['transactions'] })
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             }, 3000)
             dispatch(paymentActions.setView('STATUS'))
         }
-    }, [chargeDetails, initiatePayment, parsedPaymentData, dispatch, isPintaReq, beerQuantity])
+    }, [
+        chargeDetails,
+        initiatePayment,
+        parsedPaymentData,
+        dispatch,
+        isPintaReq,
+        beerQuantity,
+        fetchBalance,
+        queryClient,
+        currency,
+        currencyAmount,
+    ])
 
     const getButtonText = useCallback(() => {
         if (isPreparingTx) return 'Preparing Transaction'

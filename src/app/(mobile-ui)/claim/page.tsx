@@ -1,8 +1,8 @@
 import { getLinkDetails } from '@/app/actions/claimLinks'
 import { Claim } from '@/components'
+import { BASE_URL } from '@/constants'
 import { formatAmount } from '@/utils'
 import { Metadata } from 'next'
-import { BASE_URL } from '@/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,7 +48,7 @@ export async function generateMetadata({
         }
     }
 
-    let previewUrl = '/claim-metadata-img.jpg'
+    let previewUrl = '/metadata-img.png'
     if (linkDetails && !linkDetails.claimed) {
         const url = new URL('/api/preview-image', host)
         url.searchParams.append('amount', linkDetails.tokenAmount.toString())

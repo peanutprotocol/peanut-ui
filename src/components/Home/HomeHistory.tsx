@@ -8,6 +8,7 @@ import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { CardPosition } from '../Global/Card'
+import { useMemo } from 'react'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -17,6 +18,13 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     const mode = isPublic ? 'public' : 'latest'
     const limit = isPublic ? 20 : 5
     const { data: historyData, isLoading, isError, error } = useTransactionHistory({ mode, limit, username }) // Updated limit to 5
+
+    const pendingRequests = useMemo(() => {
+        if (!historyData) return []
+        return historyData.entries.filter(
+            (entry) => entry.type === 'REQUEST' && entry.userRole === 'SENDER' && entry.status === 'NEW'
+        )
+    }, [historyData])
 
     // show loading state
     if (isLoading) {
@@ -45,6 +53,42 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     return (
         <div className="mx-auto w-full space-y-3 pb-28 md:max-w-2xl md:space-y-3">
             {/* link to the full history page */}
+            {pendingRequests.length > 0 && (
+                <>
+                    <h2 className="text-base font-bold">Pending transactions</h2>
+                    <div className="h-full w-full">
+                        {/* map over the latest entries and render transactioncard */}
+                        {pendingRequests.map((item, index) => {
+                            // map the raw history entry to the format needed by the ui components
+                            const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+
+                            // determine card position for styling (first, middle, last, single)
+                            let position: CardPosition = 'middle'
+                            if (historyData.entries.length === 1) {
+                                position = 'single'
+                            } else if (index === 0) {
+                                position = 'first'
+                            } else if (index === historyData.entries.length - 1) {
+                                position = 'last'
+                            }
+
+                            return (
+                                <TransactionCard
+                                    key={item.uuid}
+                                    type={transactionCardType}
+                                    name={transactionDetails.userName}
+                                    amount={Number(transactionDetails.amount)}
+                                    status={transactionDetails.status}
+                                    initials={transactionDetails.initials}
+                                    transaction={transactionDetails}
+                                    position={position}
+                                    isPending={true}
+                                />
+                            )
+                        })}
+                    </div>
+                </>
+            )}
             {isPublic ? (
                 <h2 className="text-base font-bold">Latest Transactions</h2>
             ) : (
@@ -56,33 +100,35 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
             {/* container for the transaction cards */}
             <div className="h-full w-full">
                 {/* map over the latest entries and render transactioncard */}
-                {historyData.entries.map((item, index) => {
-                    // map the raw history entry to the format needed by the ui components
-                    const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+                {historyData.entries
+                    .filter((item) => !pendingRequests.some((r) => r.uuid === item.uuid))
+                    .map((item, index) => {
+                        // map the raw history entry to the format needed by the ui components
+                        const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
 
-                    // determine card position for styling (first, middle, last, single)
-                    let position: CardPosition = 'middle'
-                    if (historyData.entries.length === 1) {
-                        position = 'single'
-                    } else if (index === 0) {
-                        position = 'first'
-                    } else if (index === historyData.entries.length - 1) {
-                        position = 'last'
-                    }
+                        // determine card position for styling (first, middle, last, single)
+                        let position: CardPosition = 'middle'
+                        if (historyData.entries.length === 1) {
+                            position = 'single'
+                        } else if (index === 0) {
+                            position = 'first'
+                        } else if (index === historyData.entries.length - 1) {
+                            position = 'last'
+                        }
 
-                    return (
-                        <TransactionCard
-                            key={item.uuid}
-                            type={transactionCardType}
-                            name={transactionDetails.userName}
-                            amount={Number(transactionDetails.amount)}
-                            status={transactionDetails.status}
-                            initials={transactionDetails.initials}
-                            transaction={transactionDetails}
-                            position={position}
-                        />
-                    )
-                })}
+                        return (
+                            <TransactionCard
+                                key={item.uuid}
+                                type={transactionCardType}
+                                name={transactionDetails.userName}
+                                amount={Number(transactionDetails.amount)}
+                                status={transactionDetails.status}
+                                initials={transactionDetails.initials}
+                                transaction={transactionDetails}
+                                position={position}
+                            />
+                        )
+                    })}
             </div>
         </div>
     )

@@ -6,6 +6,7 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import AddFunds from '@/components/AddFunds'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
+import Loading from '@/components/Global/Loading'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
@@ -22,7 +23,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 export default function Home() {
-    const { balance, address } = useWallet()
+    const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
     const { rewardWalletBalance } = useWalletStore()
     const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
@@ -87,6 +88,7 @@ export default function Home() {
                         balance={balance}
                         isBalanceHidden={isBalanceHidden}
                         onToggleBalanceVisibility={handleToggleBalanceVisibility}
+                        isFetchingBalance={isFetchingBalance}
                     />
 
                     <ActionButtonGroup>
@@ -103,7 +105,10 @@ export default function Home() {
 
                 {/* Rewards Card - only shows if balance is non-zero */}
                 <div onClick={() => setIsRewardsModalOpen(true)} className="cursor-pointer">
-                    <RewardsCard balance={Math.floor(Number(rewardWalletBalance) ?? 0).toString() ?? '0'} />
+                    <RewardsCard
+                        balance={Math.floor(Number(rewardWalletBalance) ?? 0).toString() ?? '0'}
+                        isFetchingRewardBalance={isFetchingRewardBalance}
+                    />
                 </div>
 
                 <HomeHistory />
@@ -120,10 +125,12 @@ function WalletBalance({
     balance,
     isBalanceHidden,
     onToggleBalanceVisibility,
+    isFetchingBalance,
 }: {
     balance: bigint
     isBalanceHidden: boolean
     onToggleBalanceVisibility: (e: React.MouseEvent<HTMLButtonElement>) => void
+    isFetchingBalance?: boolean
 }) {
     const balanceDisplay = useMemo(() => {
         if (isBalanceHidden) {
@@ -140,14 +147,23 @@ function WalletBalance({
     return (
         <div className="flex items-center gap-2">
             <p className="flex items-end gap-2 text-4xl font-black leading-none sm:text-[2.5rem]">
-                {' '}
-                <span className="text-xl">$ </span>
-                {balanceDisplay}
+                {isFetchingBalance ? (
+                    <div className="pl-3">
+                        <Loading />
+                    </div>
+                ) : (
+                    <>
+                        <span className="text-xl">$ </span>
+                        {balanceDisplay}
+                    </>
+                )}
             </p>
 
-            <button onClick={onToggleBalanceVisibility}>
-                <Icon name={isBalanceHidden ? 'eye-slash' : 'eye'} className={'h-6 w-6'} fill={'black'} />
-            </button>
+            {!isFetchingBalance && (
+                <button onClick={onToggleBalanceVisibility}>
+                    <Icon name={isBalanceHidden ? 'eye-slash' : 'eye'} className={'h-6 w-6'} fill={'black'} />
+                </button>
+            )}
         </div>
     )
 }
@@ -178,9 +194,9 @@ function ActionButton({ label, action, variant = 'primary-soft', size = 'small' 
                         case 'send':
                             return <Icon name="arrow-up-right" size={8} fill="currentColor" />
                         case 'withdraw':
-                            return <Icon name="arrow-down" size={8} fill="currentColor" />
-                        case 'add':
                             return <Icon name="arrow-up" size={8} fill="currentColor" />
+                        case 'add':
+                            return <Icon name="arrow-down" size={8} fill="currentColor" />
                         case 'request':
                             return <Icon name="arrow-down-left" size={8} fill="currentColor" />
                         default:
@@ -210,7 +226,13 @@ function ActionButtonGroup({ children }: { children: React.ReactNode }) {
     return <div className="flex items-center justify-normal gap-4">{children}</div>
 }
 
-function RewardsCard({ balance }: { balance: string | undefined }) {
+function RewardsCard({
+    balance,
+    isFetchingRewardBalance,
+}: {
+    balance: string | undefined
+    isFetchingRewardBalance: boolean
+}) {
     if (!balance || balance === '0') return null
 
     return (
@@ -235,7 +257,7 @@ function RewardsCard({ balance }: { balance: string | undefined }) {
 
                         <span className="text-sm font-medium">Beers</span>
                     </div>
-                    <span className="text-sm font-medium">{balance}</span>
+                    <span className="text-sm font-medium">{isFetchingRewardBalance ? <Loading /> : balance}</span>
                 </div>
             </Card>
         </div>
