@@ -66,7 +66,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     }
 
     const isDisabled = useMemo(() => {
-        return !user?.username || !currentInputValue || (!!authUser?.user.userId && !address) || !recipient.address
+        return !user?.username || !currentInputValue || (!!authUser?.user.userId ? !address : !recipient.address)
     }, [user?.username, currentInputValue, address, recipient.address, authUser?.user.userId])
 
     const createRequestCharge = useCallback(async () => {
