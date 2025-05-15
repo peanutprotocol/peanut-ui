@@ -132,7 +132,7 @@ export const PaymentForm = ({
         dispatch(paymentActions.setError(null))
     }, [dispatch, recipient])
 
-    // fetch token price
+    // fetch token price for requestDetails (e.g. when paying a request link)
     useEffect(() => {
         if (isPintaReq) return
         if (!requestDetails?.tokenAddress || !requestDetails?.chainId || !requestDetails?.tokenAmount) return
@@ -304,38 +304,6 @@ export const PaymentForm = ({
         }
     }, [isPintaReq, inputTokenAmount, dispatch])
 
-    useEffect(() => {
-        if (!inputTokenAmount) return
-        if (inputDenomination === 'TOKEN') {
-            if (selectedTokenPrice) {
-                setInputDenomination('USD')
-                setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
-            }
-        } else if (inputDenomination === 'USD') {
-            setUsdValue(inputTokenAmount)
-        }
-    }, [inputTokenAmount, inputDenomination, selectedTokenPrice])
-
-    // Initialize inputTokenAmount
-    useEffect(() => {
-        if (amount && !inputTokenAmount && !initialSetupDone) {
-            setInputTokenAmount(amount)
-        }
-    }, [amount, inputTokenAmount, initialSetupDone])
-
-    // Initialize inputDenomination
-    useEffect(() => {
-        if (amount) setInputDenomination(token?.symbol ? 'TOKEN' : 'USD')
-    }, [amount, token])
-
-    // Init beer quantity
-    useEffect(() => {
-        if (!inputTokenAmount) return
-        if (isPintaReq) {
-            dispatch(paymentActions.setBeerQuantity(Number(inputTokenAmount)))
-        }
-    }, [isPintaReq, inputTokenAmount])
-
     const isXChainPeanutWalletReq = useMemo(() => {
         if (!isActivePeanutWallet || !selectedTokenData) return false
 
@@ -414,8 +382,20 @@ export const PaymentForm = ({
                 {/* Amount Display Card */}
                 <TokenAmountInput
                     tokenValue={inputTokenAmount}
-                    setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
-                    setCurrencyAmount={setCurrencyAmount}
+                    setTokenValue={(value: string | undefined) => {
+                        setInputTokenAmount(value || '')
+                        // If clearing inputTokenAmount, also clear the corresponding other currency value
+                        if (!value) {
+                            if (currency && setCurrencyAmount) {
+                                setCurrencyAmount(undefined)
+                            } else if (!currency) {
+                                setUsdValue('')
+                            }
+                        }
+                    }}
+                    setCurrencyAmount={
+                        currency ? setCurrencyAmount : (val: string | undefined) => setUsdValue(val || '')
+                    }
                     className="w-full"
                     disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
