@@ -2,22 +2,23 @@ import BottomDrawer from '@/components/Global/BottomDrawer'
 import Card from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { useUserStore } from '@/redux/hooks'
+import { chargesApi } from '@/services/charges'
+import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
+import { captureException } from '@sentry/nextjs'
+import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import React, { useCallback, useRef, useState, useMemo } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { Button } from '../0_Bruddle'
 import { Icon } from '../Global/Icons/Icon'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
-import { sendLinksApi } from '@/services/sendLinks'
-import { useUserStore } from '@/redux/hooks'
-import { useQueryClient } from '@tanstack/react-query'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { captureException } from '@sentry/nextjs'
-import { chargesApi } from '@/services/charges'
 
 interface TransactionDetailsDrawerProps {
     isOpen: boolean
@@ -88,6 +89,8 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
             (transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST &&
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
+    console.log(transaction)
+
     return (
         <BottomDrawer
             isOpen={isOpen}
@@ -157,7 +160,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                                     fetchBalance()
                                                     queryClient
                                                         .invalidateQueries({
-                                                            queryKey: ['transactions'],
+                                                            queryKey: [TRANSACTIONS],
                                                         })
                                                         .then(() => {
                                                             setIsLoading(false)
@@ -175,8 +178,11 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                     className="flex w-full items-center gap-1"
                                     shadowSize="4"
                                 >
-                                    <div className="flex size-6 items-center gap-0">
-                                        <Icon name="cancel" />
+                                    <div className="flex items-center">
+                                        <Icon
+                                            name="cancel"
+                                            className="mr-0.5 min-w-3 rounded-full border border-black p-0.5"
+                                        />
                                     </div>
                                     <span>Cancel link</span>
                                 </Button>
@@ -193,7 +199,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                 .then(() => {
                                     queryClient
                                         .invalidateQueries({
-                                            queryKey: ['transactions'],
+                                            queryKey: [TRANSACTIONS],
                                         })
                                         .then(() => {
                                             setIsLoading(false)
@@ -235,7 +241,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                     .then(() => {
                                         queryClient
                                             .invalidateQueries({
-                                                queryKey: ['transactions'],
+                                                queryKey: [TRANSACTIONS],
                                             })
                                             .then(() => {
                                                 setIsLoading(false)
