@@ -152,30 +152,14 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                             <PaymentInfoRow
                                 label="Fee"
                                 value={feeDisplay}
-                                hideBottomBorder={
-                                    !transaction.memo &&
-                                    !transaction.attachmentUrl &&
-                                    !(
-                                        transaction.status === 'cancelled' &&
-                                        transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.BOTH &&
-                                        transaction.cancelledDate
-                                    )
-                                }
+                                hideBottomBorder={!transaction.memo && !transaction.attachmentUrl}
                             />
                         )}
                         {transaction.memo && (
                             <PaymentInfoRow
                                 label="Memo"
                                 value={transaction.memo}
-                                hideBottomBorder={
-                                    !transaction.attachmentUrl &&
-                                    !(
-                                        transaction.status === 'cancelled' &&
-                                        transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.BOTH &&
-                                        transaction.cancelledDate &&
-                                        !transaction.fee
-                                    )
-                                }
+                                hideBottomBorder={!transaction.attachmentUrl}
                             />
                         )}
                         {transaction.attachmentUrl && (

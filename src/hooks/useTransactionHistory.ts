@@ -179,6 +179,7 @@ export function useTransactionHistory({
                     ...entry,
                     tokenSymbol,
                     timestamp: new Date(entry.timestamp),
+                    cancelledAt: entry.cancelledAt ? new Date(entry.cancelledAt) : undefined,
                     extraData: {
                         ...extraData,
                         link,
