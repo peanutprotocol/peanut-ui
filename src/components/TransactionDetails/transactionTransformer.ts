@@ -221,7 +221,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         initials: getInitialsFromName(nameForDetails),
         status: uiStatus,
         isVerified: entry.recipientAccount?.isUser || entry.senderAccount?.isUser || false,
-        date: entry.timestamp,
+        date: new Date(entry.timestamp),
         fee: undefined,
         memo: entry.memo?.trim(),
         attachmentUrl: entry.attachmentUrl,
