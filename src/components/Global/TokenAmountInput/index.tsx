@@ -124,6 +124,25 @@ const TokenAmountInput = ({
         prevCurrencyMode,
     ])
 
+    // Restore useEffect for dynamic width adjustment
+    useEffect(() => {
+        if (inputRef.current) {
+            const placeholderText = '0.00'
+            const textInInput = inputValue || placeholderText
+
+            let numChars = textInInput.length
+
+            if (numChars === 0) {
+                numChars = 1
+            } else if (inputValue === '' && placeholderText) {
+                numChars = placeholderText.length
+            }
+
+            const bufferForCursor = 1.5
+            inputRef.current.style.width = `${numChars + bufferForCursor}ch`
+        }
+    }, [inputValue])
+
     const onChange = (rawUserTypedValue: string) => {
         let sanitizedValue = rawUserTypedValue.replace(/[^0-9.]/g, '')
         const parts = sanitizedValue.split('.')
@@ -282,24 +301,6 @@ const TokenAmountInput = ({
         }
     }
 
-    useEffect(() => {
-        if (inputRef.current) {
-            const placeholderText = '0.00'
-            const textInInput = inputValue || placeholderText
-
-            let numChars = textInInput.length
-
-            if (numChars === 0) {
-                numChars = 1
-            } else if (inputValue === '' && placeholderText) {
-                numChars = placeholderText.length
-            }
-
-            const bufferForCursor = 1.5
-            inputRef.current.style.width = `${numChars + bufferForCursor}ch`
-        }
-    }, [inputValue])
-
     const handleContainerClick = () => inputRef.current?.focus()
 
     return (
@@ -313,7 +314,7 @@ const TokenAmountInput = ({
                     <label className={`text-h1 ${inputValue ? 'text-black' : 'text-gray-2'}`}>{inputPrefix}</label>
                 )}
                 <input
-                    className={`h-12 max-w-80 overflow-x-auto bg-transparent text-left text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                    className={`h-12 max-w-80 overflow-x-auto bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                     placeholder={'0.00'}
                     onChange={(e) => onChange(e.target.value)}
                     onFocus={handleFocus}
