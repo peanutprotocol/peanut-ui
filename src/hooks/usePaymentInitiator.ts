@@ -403,7 +403,7 @@ export const usePaymentInitiator = () => {
             let chargeDetailsToUse: TRequestChargeResponse | null = null
             let chargeCreated = false
 
-            if (payload.skipChargeCreation && payload.chargeId) {
+            if (payload.chargeId) {
                 chargeDetailsToUse = activeChargeDetails
                 if (!chargeDetailsToUse || chargeDetailsToUse.uuid !== payload.chargeId) {
                     setLoadingStep('Fetching Charge Details')

@@ -154,6 +154,9 @@ export const useCreateLink = () => {
                         } as PreparedTx
                     )
                 )
+                if (gasOptions.error) {
+                    throw new Error(gasOptions.error)
+                }
                 feeOptions.push(gasOptions)
                 let transactionCostWei = gasOptions.gas * gasOptions.maxFeePerGas
                 let transactionCostNative = formatEther(transactionCostWei)

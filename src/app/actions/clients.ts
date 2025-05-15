@@ -14,6 +14,7 @@ export type FeeOptions = {
     gas: bigint
     maxFeePerGas: bigint
     maxPriorityFeePerGas: bigint
+    error?: string | null
 }
 
 export const getPublicClient = unstable_cache(
@@ -43,39 +44,50 @@ export type PreparedTx = {
 }
 export const getFeeOptions = unstable_cache(
     async (chainId: ChainId, preparedTx: PreparedTx): Promise<string> => {
-        const client = await getPublicClient(chainId)
-        console.dir(client)
-        const [feeEstimates, gas] = await Promise.all([
-            client.estimateFeesPerGas(),
-            client.estimateGas({
-                account: preparedTx.from ?? preparedTx.account,
-                data: preparedTx.data,
-                to: preparedTx.to,
-                value: BigInt(preparedTx.value),
-                // Simulate max allowance to avoid reverts while estimating fees
-                stateOverride: preparedTx.erc20Token
-                    ? [
-                          {
-                              address: preparedTx.erc20Token,
-                              //Just put the allowance in all the possible slots (0-10)
-                              // Decided agains using the slotSeek library because
-                              // it's not widely used
-                              stateDiff: Array.from(Array(11).keys())
-                                  .map(BigInt)
-                                  .map((slotNumber) => ({
-                                      slot: calculateAllowanceSlot(preparedTx.account, preparedTx.to, slotNumber),
-                                      value: numberToHex(maxUint256),
-                                  })),
-                          },
-                      ]
-                    : [],
-            }),
-        ])
-        return jsonStringify({
-            gas,
-            maxFeePerGas: feeEstimates.maxFeePerGas,
-            maxPriorityFeePerGas: feeEstimates.maxPriorityFeePerGas,
-        })
+        try {
+            const client = await getPublicClient(chainId)
+            console.dir(client)
+            const [feeEstimates, gas] = await Promise.all([
+                client.estimateFeesPerGas(),
+                client.estimateGas({
+                    account: preparedTx.from ?? preparedTx.account,
+                    data: preparedTx.data,
+                    to: preparedTx.to,
+                    value: BigInt(preparedTx.value),
+                    // Simulate max allowance to avoid reverts while estimating fees
+                    stateOverride: preparedTx.erc20Token
+                        ? [
+                              {
+                                  address: preparedTx.erc20Token,
+                                  //Just put the allowance in all the possible slots (0-10)
+                                  // Decided agains using the slotSeek library because
+                                  // it's not widely used
+                                  stateDiff: Array.from(Array(11).keys())
+                                      .map(BigInt)
+                                      .map((slotNumber) => ({
+                                          slot: calculateAllowanceSlot(preparedTx.account, preparedTx.to, slotNumber),
+                                          value: numberToHex(maxUint256),
+                                      })),
+                              },
+                          ]
+                        : [],
+                }),
+            ])
+            return jsonStringify({
+                gas,
+                maxFeePerGas: feeEstimates.maxFeePerGas,
+                maxPriorityFeePerGas: feeEstimates.maxPriorityFeePerGas,
+                error: null,
+            })
+        } catch (error) {
+            console.error('Error estimating fees:', error)
+            return jsonStringify({
+                gas: null,
+                maxFeePerGas: null,
+                maxPriorityFeePerGas: null,
+                error: (error as Error).message,
+            })
+        }
     },
     ['getFeeOptions'],
     {

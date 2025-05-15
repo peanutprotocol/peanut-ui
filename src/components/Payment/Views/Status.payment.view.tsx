@@ -56,7 +56,6 @@ const DirectSuccessView = ({
         const displayAmount = amount ?? chargeDetails?.tokenAmount ?? '0'
         return `${displayAmount} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
     }, [amount, chargeDetails, currencyAmount])
-
     useEffect(() => {
         // show loading for a brief moment, then show check mark
         const checkTimeout = setTimeout(() => {
@@ -64,18 +63,12 @@ const DirectSuccessView = ({
         }, 800)
 
         // Invalidate queries to refetch history
-        queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
-
-        // redirect to home after 2 seconds
-        const redirectTimeout = setTimeout(() => {
-            router.push('/home')
-        }, 2000)
+        queryClient?.invalidateQueries({ queryKey: ['transactions'] })
 
         return () => {
             clearTimeout(checkTimeout)
-            clearTimeout(redirectTimeout)
         }
-    }, [router, queryClient])
+    }, [queryClient])
 
     const handleDone = () => {
         // reset payment state when done

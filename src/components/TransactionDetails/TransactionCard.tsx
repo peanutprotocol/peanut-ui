@@ -6,21 +6,29 @@ import { TransactionDetailsDrawer } from '@/components/TransactionDetails/Transa
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { formatAmount, printableAddress } from '@/utils'
+import { formatNumberForDisplay, printableAddress } from '@/utils'
 import React from 'react'
 import { isAddress } from 'viem'
+import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 
 export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout' | 'receive'
 
 interface TransactionCardProps {
     type: TransactionType
     name: string
-    amount: number
+    amount: number // For USD, this amount might come signed from mapTransactionDataForDrawer
     status?: StatusType
     initials?: string
     position?: CardPosition
     transaction: TransactionDetails
     isPending?: boolean
+}
+
+// Helper function to get currency symbol based on code - can be moved to utils if used elsewhere
+const getDisplayCurrencySymbol = (code?: string, fallbackSymbol: string = '$'): string => {
+    if (code === 'ARS') return 'AR$'
+    if (code === 'USD') return '$'
+    return fallbackSymbol
 }
 
 /**
@@ -47,7 +55,54 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
-    const userNameForAvatar = transaction.userName // used by avatar for color hashing or type checking
+    const userNameForAvatar = transaction.userName
+
+    let finalDisplayAmount = ''
+    const actualCurrencyCode = transaction.currency?.code
+    const defaultDisplayDecimals = actualCurrencyCode === 'JPY' ? 0 : 2 // JPY has 0, others default to 2
+
+    if (actualCurrencyCode === 'ARS' && transaction.currency?.amount) {
+        let arsSign = ''
+        const originalType = transaction.extraDataForDrawer?.originalType as EHistoryEntryType | undefined
+        const originalUserRole = transaction.extraDataForDrawer?.originalUserRole as EHistoryUserRole | undefined
+
+        if (
+            originalUserRole === EHistoryUserRole.SENDER &&
+            (originalType === EHistoryEntryType.SEND_LINK ||
+                originalType === EHistoryEntryType.DIRECT_SEND ||
+                originalType === EHistoryEntryType.CASHOUT)
+        ) {
+            arsSign = '-'
+        } else if (
+            originalUserRole === EHistoryUserRole.RECIPIENT &&
+            (originalType === EHistoryEntryType.DEPOSIT ||
+                originalType === EHistoryEntryType.SEND_LINK ||
+                originalType === EHistoryEntryType.DIRECT_SEND)
+        ) {
+            arsSign = '+'
+        }
+        finalDisplayAmount = `${arsSign}${getDisplayCurrencySymbol('ARS')}${formatNumberForDisplay(transaction.currency.amount, { maxDecimals: defaultDisplayDecimals })}`
+    } else {
+        const displaySymbol =
+            transaction.tokenSymbol && !actualCurrencyCode // If it's a token amount not a fiat currency
+                ? '' // No currency symbol prefix for tokens like ETH, BNB, just the amount and then tokenSymbol
+                : transaction.currencySymbol || getDisplayCurrencySymbol(actualCurrencyCode) // Use provided sign+symbol or derive symbol
+
+        let amountString = Math.abs(amount).toString()
+        // If it's a token and not USD/ARS, transaction.tokenSymbol should be displayed after amount.
+        // And `displayDecimals` might need to come from token itself if available, else default.
+        const decimalsForDisplay = actualCurrencyCode // If it's a known currency (USD, ARS)
+            ? defaultDisplayDecimals
+            : transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK // Example: check token specific decimals if available
+              ? ((transaction.extraDataForDrawer as any)?.tokenDecimalsForDisplay ?? 6) // Fallback to 6 for tokens
+              : 6 // General fallback for other tokens
+
+        finalDisplayAmount = `${displaySymbol}${formatNumberForDisplay(amountString, { maxDecimals: decimalsForDisplay })}`
+        if (transaction.tokenSymbol && !actualCurrencyCode) {
+            // Append token symbol if it's a token transaction
+            finalDisplayAmount += ` ${transaction.tokenSymbol}`
+        }
+    }
 
     return (
         <>
@@ -82,13 +137,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
                     {/* amount and status on the right side */}
                     <div className="flex flex-col items-end space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                            <span className="font-roboto text-xs font-medium">
-                                {transaction.currency?.code === 'ARS'
-                                    ? `ARS$ ${formatAmount(transaction.currency.amount)}`
-                                    : `${transaction.currencySymbol}${formatAmount(amount)}`}
-                            </span>
-                        </div>
+                        <span className="font-roboto text-xs font-medium">{finalDisplayAmount}</span>
                         {status && <StatusBadge status={status} />}
                     </div>
                 </div>

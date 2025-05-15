@@ -80,7 +80,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                 direction = 'receive'
                 transactionCardType = 'receive'
                 nameForDetails =
-                    entry.senderAccount?.username ?? entry.senderAccount?.identifier ?? 'Payment via public link'
+                    entry.senderAccount?.username ?? entry.senderAccount?.identifier ?? 'Requested via Link'
                 isLinkTx = !entry.senderAccount // If the sender is not an user then it's a public link
             }
             break
