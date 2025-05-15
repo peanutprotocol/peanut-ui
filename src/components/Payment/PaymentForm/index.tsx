@@ -257,6 +257,7 @@ export const PaymentForm = ({
             tokenAmount: inputTokenAmount,
             isPintaReq: false, // explicitly set to false for non-PINTA requests
             requestId: requestId ?? undefined,
+            chargeId: chargeDetails?.uuid ?? undefined,
             currency,
             currencyAmount,
         }
@@ -286,6 +287,7 @@ export const PaymentForm = ({
         initiatePayment,
         dispatch,
         beerQuantity,
+        chargeDetails,
     ])
 
     const getButtonText = () => {
