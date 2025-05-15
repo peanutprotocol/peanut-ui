@@ -30,7 +30,8 @@ export class PeanutWebSocket {
         }
 
         try {
-            const fullUrl = `${this.url}${this.path}`
+            const fullUrl = new URL(this.path, this.url).toString()
+
             this.socket = new WebSocket(fullUrl)
 
             this.socket.onopen = this.handleOpen.bind(this)

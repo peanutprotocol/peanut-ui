@@ -53,6 +53,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         const ws = getWebSocketInstance(username)
         wsRef.current = ws
 
+        // Ensure we're not connected with old credentials
+        if (status === 'connected') {
+            ws.disconnect()
+            setStatus('disconnected')
+        }
+
         const handleConnect = () => {
             setStatus('connected')
             if (callbacksRef.current.onConnect) {
