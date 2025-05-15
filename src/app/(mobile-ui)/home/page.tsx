@@ -178,9 +178,9 @@ function ActionButton({ label, action, variant = 'primary-soft', size = 'small' 
                         case 'send':
                             return <Icon name="arrow-up-right" size={8} fill="currentColor" />
                         case 'withdraw':
-                            return <Icon name="arrow-down" size={8} fill="currentColor" />
-                        case 'add':
                             return <Icon name="arrow-up" size={8} fill="currentColor" />
+                        case 'add':
+                            return <Icon name="arrow-down" size={8} fill="currentColor" />
                         case 'request':
                             return <Icon name="arrow-down-left" size={8} fill="currentColor" />
                         default:
