@@ -1,10 +1,11 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import type { QueryObserverResult, InfiniteQueryObserverResult, InfiniteData } from '@tanstack/react-query'
+import { BASE_URL, PEANUT_API_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { fetchWithSentry, getFromLocalStorage, getTokenDetails } from '@/utils'
-import { PEANUT_API_URL, BASE_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import Cookies from 'js-cookie'
-import { formatUnits } from 'viem'
 import type { Hash } from 'viem'
+import { formatUnits } from 'viem'
 
 type LatestHistoryResult = QueryObserverResult<HistoryResponse>
 type InfiniteHistoryResult = InfiniteQueryObserverResult<InfiniteData<HistoryResponse>>
@@ -190,7 +191,7 @@ export function useTransactionHistory({
     // Latest transactions mode (for home page)
     if (mode === 'latest') {
         return useQuery({
-            queryKey: ['transactions', 'latest', { limit }],
+            queryKey: [TRANSACTIONS, 'latest', { limit }],
             queryFn: () => fetchHistory({ limit }),
             enabled,
             staleTime: 5 * 60 * 1000, // 5 minutes
@@ -199,7 +200,7 @@ export function useTransactionHistory({
 
     if (mode === 'public') {
         return useQuery({
-            queryKey: ['transactions', 'public', username, { limit }],
+            queryKey: [TRANSACTIONS, 'public', username, { limit }],
             queryFn: () => fetchHistory({ limit, isPublic: true }),
             enabled,
             staleTime: 15 * 1000, // 15 seconds
@@ -208,7 +209,7 @@ export function useTransactionHistory({
 
     // Infinite query mode (for main history page)
     return useInfiniteQuery({
-        queryKey: ['transactions', 'infinite', { limit }],
+        queryKey: [TRANSACTIONS, 'infinite', { limit }],
         queryFn: ({ pageParam }) => fetchHistory({ cursor: pageParam, limit }),
         initialPageParam: undefined as string | undefined,
         getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.cursor : undefined),
