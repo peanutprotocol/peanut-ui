@@ -1,12 +1,11 @@
-import { TransactionType } from '@/components/Global/ListItemView'
 import * as consts from '@/constants'
 import {
+    PEANUT_WALLET_SUPPORTED_TOKENS,
     PINTA_WALLET_CHAIN,
     PINTA_WALLET_TOKEN,
     PINTA_WALLET_TOKEN_DECIMALS,
     PINTA_WALLET_TOKEN_NAME,
     PINTA_WALLET_TOKEN_SYMBOL,
-    PEANUT_WALLET_SUPPORTED_TOKENS,
     STABLE_COINS,
 } from '@/constants'
 import * as interfaces from '@/interfaces'
@@ -240,6 +239,54 @@ export function formatAmountWithDecimals({ amount, decimals }: { amount: number;
     const divider = 10 ** decimals
     const formattedAmount = amount / divider
     return formattedAmount
+}
+
+// Helper function to format numbers with locale-specific (en-US) thousands separators for display.
+// The caller is responsible for prepending the correct currency symbol.
+// @dev todo: For true internationalization of read-only amounts, consider a dedicated service or util
+// that uses specific locales (e.g., 'es-AR' for '1.234,56'). This function standardizes on en-US for parsable input display.
+export const formatNumberForDisplay = (valueStr: string | undefined, options?: { maxDecimals?: number }): string => {
+    if (valueStr === undefined || valueStr === null || valueStr.trim() === '') return ''
+
+    // Preserve the original string if it just ends with a decimal or is just a decimal for intermediate input.
+    if (valueStr === '.') return '.' // Allow just a dot temporarily
+    if (valueStr.endsWith('.') && (valueStr.match(/\./g) || []).length === 1) {
+        // For inputs like "123.", format the numeric part "123"
+        const numberPart = valueStr.slice(0, -1)
+        if (numberPart === '' || isNaN(Number(numberPart))) return valueStr // Avoid formatting " ." or invalid things like "abc."
+        const formattedNumberPart = Number(numberPart).toLocaleString('en-US', {
+            minimumFractionDigits: 0, // Whole numbers don't get .00 unless typed
+            maximumFractionDigits: options?.maxDecimals ?? 0, // Max decimals for the number part if any
+        })
+        return formattedNumberPart + '.' // Append the dot back
+    }
+
+    // Validate the numeric string, allowing for numbers with or without decimal points.
+    // Disallow multiple decimal points or non-numeric characters (except the single dot handled above).
+    if (!/^\d*\.?\d*$/.test(valueStr) || (valueStr.match(/\./g) || []).length > 1) {
+        return '' // Return empty for invalid numeric strings not caught above
+    }
+
+    const num = Number(valueStr)
+    if (isNaN(num)) return ''
+
+    const maxDecimals = options?.maxDecimals ?? 0 // Default to 0 if not specified, to avoid .00 for whole numbers
+    let minDecimals = 0
+    const parts = valueStr.split('.')
+
+    if (parts.length === 2 && parts[1].length > 0) {
+        // If there's an actual decimal part in the input string (e.g., "1.2", "1.20"),
+        // set minDecimals to its length to preserve trailing zeros.
+        minDecimals = parts[1].length
+    }
+    // For whole numbers (e.g. "123"), minDecimals remains 0.
+
+    minDecimals = Math.min(minDecimals, maxDecimals) // Cap by maxDecimals
+
+    return num.toLocaleString('en-US', {
+        minimumFractionDigits: minDecimals,
+        maximumFractionDigits: maxDecimals,
+    })
 }
 
 /**
@@ -775,14 +822,17 @@ export async function rankAddressesByInteractions(portfolios: Portfolio[]) {
 }
 
 export function formatDate(date: Date): string {
-    const day = date.getDate().toString().padStart(2, '0')
-    const month = (date.getMonth() + 1).toString().padStart(2, '0') // JavaScript months are zero-indexed
-    const year = date.getFullYear()
-    const hours = date.getHours().toString().padStart(2, '0')
-    const minutes = date.getMinutes().toString().padStart(2, '0')
-    const seconds = date.getSeconds().toString().padStart(2, '0')
-
-    return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`
+    const dateFormatter = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    })
+    const timeFormatter = new Intl.DateTimeFormat('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    })
+    return `${dateFormatter.format(date)} - ${timeFormatter.format(date)}`
 }
 
 export const createSiweMessage = ({ address, statement }: { address: string; statement: string }) => {
@@ -1044,25 +1094,6 @@ export function getChainLogo(chainName: string): string {
 
 export function isStableCoin(tokenSymbol: string): boolean {
     return STABLE_COINS.includes(tokenSymbol.toUpperCase())
-}
-
-export const getHistoryTransactionStatus = (type: TransactionType | undefined, status: string | undefined): string => {
-    if (!status || !type) return 'pending'
-
-    switch (type) {
-        case 'Link Sent':
-            return ['claimed', 'pending', 'unclaimed'].includes(status.toLowerCase()) ? status : 'pending'
-        case 'Link Received':
-            return ['claimed', 'pending'].includes(status.toLowerCase()) ? status : 'pending'
-        case 'Money Requested':
-            return ['claimed', 'paid', 'canceled'].includes(status.toLowerCase()) ? status : 'pending'
-        case 'Request paid':
-            return ['claimed', 'paid'].includes(status.toLowerCase()) ? status : 'pending'
-        case 'Cash Out':
-            return ['pending', 'successful', 'error'].includes(status.toLowerCase()) ? status : 'pending'
-        default:
-            return status
-    }
 }
 
 export const saveRedirectUrl = () => {

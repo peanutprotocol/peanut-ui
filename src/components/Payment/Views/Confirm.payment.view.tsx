@@ -10,6 +10,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import UserCard from '@/components/User/UserCard'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context'
 import { usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -18,12 +19,23 @@ import { useAppDispatch, usePaymentStore, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { ErrorHandler, formatAmount } from '@/utils'
+import { useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 
-export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?: boolean }) {
+type ConfirmPaymentViewProps = {
+    isPintaReq?: boolean
+    currency?: {
+        code: string
+        symbol: string
+        price: number
+    }
+    currencyAmount?: string
+}
+
+export default function ConfirmPaymentView({ isPintaReq = false, currency, currencyAmount }: ConfirmPaymentViewProps) {
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
     const chargeIdFromUrl = searchParams.get('chargeId')
@@ -41,9 +53,10 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
         isFeeEstimationError,
     } = usePaymentInitiator()
     const { selectedTokenData, selectedChainID } = useContext(tokenSelectorContext)
-    const { isConnected: isPeanutWallet, address: peanutWalletAddress } = useWallet()
+    const { isConnected: isPeanutWallet, address: peanutWalletAddress, fetchBalance } = useWallet()
     const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
     const { rewardWalletBalance } = useWalletStore()
+    const queryClient = useQueryClient()
 
     const walletAddress = useMemo(() => peanutWalletAddress ?? wagmiAddress, [peanutWalletAddress, wagmiAddress])
 
@@ -90,12 +103,29 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
             isPintaReq: isPintaReq,
             chargeId: chargeDetails.uuid,
             skipChargeCreation: true,
+            currency,
+            currencyAmount,
         })
 
         if (result.success) {
+            setTimeout(() => {
+                fetchBalance()
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+            }, 3000)
             dispatch(paymentActions.setView('STATUS'))
         }
-    }, [chargeDetails, initiatePayment, parsedPaymentData, dispatch, isPintaReq, beerQuantity])
+    }, [
+        chargeDetails,
+        initiatePayment,
+        parsedPaymentData,
+        dispatch,
+        isPintaReq,
+        beerQuantity,
+        fetchBalance,
+        queryClient,
+        currency,
+        currencyAmount,
+    ])
 
     const getButtonText = useCallback(() => {
         if (isPreparingTx) return 'Preparing Transaction'
@@ -206,8 +236,23 @@ export default function ConfirmPaymentView({ isPintaReq = false }: { isPintaReq?
                 <PaymentInfoRow
                     label="Amount"
                     value={
-                        <span className="font-bold">
-                            {formatAmount(Number(chargeDetails?.tokenAmount))} {chargeDetails?.tokenSymbol}
+                        <span>
+                            {currencyAmount && currency ? (
+                                <>
+                                    <span className="font-bold">
+                                        {currency.symbol} {currencyAmount}
+                                    </span>
+                                    <span className="text-grey-1">
+                                        {' '}
+                                        ({formatAmount(Number(chargeDetails?.tokenAmount))} {chargeDetails?.tokenSymbol}
+                                        )
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="font-bold">
+                                    {formatAmount(Number(chargeDetails?.tokenAmount))} {chargeDetails?.tokenSymbol}
+                                </span>
+                            )}
                         </span>
                     }
                 />

@@ -39,6 +39,12 @@ export interface InitiatePaymentPayload {
     chargeId?: string
     skipChargeCreation?: boolean
     requestId?: string // optional request ID from URL
+    currency?: {
+        code: string
+        symbol: string
+        price: number
+    }
+    currencyAmount?: string
 }
 
 interface InitiationResult {
@@ -397,7 +403,7 @@ export const usePaymentInitiator = () => {
             let chargeDetailsToUse: TRequestChargeResponse | null = null
             let chargeCreated = false
 
-            if (payload.skipChargeCreation && payload.chargeId) {
+            if (payload.chargeId) {
                 chargeDetailsToUse = activeChargeDetails
                 if (!chargeDetailsToUse || chargeDetailsToUse.uuid !== payload.chargeId) {
                     setLoadingStep('Fetching Charge Details')
@@ -463,13 +469,18 @@ export const usePaymentInitiator = () => {
                     ? PINTA_WALLET_TOKEN_DECIMALS
                     : (requestDetails?.tokenDecimals ?? selectedTokenData?.decimals ?? 18)
 
+                const localPrice =
+                    payload.currencyAmount && payload.currency
+                        ? { amount: payload.currencyAmount, currency: payload.currency.code }
+                        : { amount: payload.tokenAmount, currency: 'USD' }
                 const createChargeRequestPayload: CreateChargeRequest = {
                     pricing_type: 'fixed_price',
-                    local_price: { amount: payload.tokenAmount, currency: 'USD' },
+                    local_price: localPrice,
                     baseUrl: window.location.origin,
                     requestId: validRequestId,
                     requestProps: {
                         chainId: recipientChainId,
+                        tokenAmount: payload.tokenAmount,
                         tokenAddress: recipientTokenAddress,
                         tokenType: payload.isPintaReq
                             ? peanutInterfaces.EPeanutLinkType.erc20

@@ -1,6 +1,16 @@
-import { PEANUT_API_URL } from '@/constants'
+import {
+    PEANUT_API_URL,
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    PEANUT_WALLET_TOKEN_DECIMALS,
+    PEANUT_WALLET_TOKEN_SYMBOL,
+} from '@/constants'
 import { AccountType } from '@/interfaces'
+import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { fetchWithSentry } from '@/utils'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { chargesApi } from './charges'
+import { TCharge } from './services.types'
 
 type ApiAccount = {
     identifier: string
@@ -30,5 +40,35 @@ export const usersApi = {
         if (query.length < 3) throw new Error('Search query must be at least 3 characters')
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/search?q=${query}`)
         return await response.json()
+    },
+
+    requestByUsername: async ({
+        username,
+        amount,
+        toAddress,
+        attachment,
+    }: {
+        username: string
+        amount: string
+        toAddress: string
+        attachment?: IAttachmentOptions
+    }): Promise<TCharge> => {
+        return chargesApi.create({
+            pricing_type: 'fixed_price',
+            local_price: { amount, currency: 'USD' },
+            baseUrl: window.location.origin,
+            requestId: undefined,
+            requestProps: {
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                tokenAddress: PEANUT_WALLET_TOKEN,
+                tokenType: peanutInterfaces.EPeanutLinkType.erc20,
+                tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
+                tokenDecimals: PEANUT_WALLET_TOKEN_DECIMALS,
+                requesteeUsername: username,
+                recipientAddress: toAddress,
+            },
+            attachment: attachment?.rawFile,
+            reference: attachment?.message,
+        })
     },
 }

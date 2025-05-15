@@ -12,7 +12,7 @@ import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { formatAmount } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Hex } from 'viem'
 import { erc20Abi, formatUnits, getAddress } from 'viem'
 import { useZeroDev } from '../useZeroDev'
@@ -20,6 +20,8 @@ import { useZeroDev } from '../useZeroDev'
 export const useWallet = () => {
     const dispatch = useAppDispatch()
     const { address, isKernelClientReady, handleSendUserOpEncoded } = useZeroDev()
+    const [isFetchingBalance, setIsFetchingBalance] = useState(true)
+    const [isFetchingRewardBalance, setIsFetchingRewardBalance] = useState(true)
     const { balance } = useWalletStore()
 
     const sendTransactions = useCallback(
@@ -48,6 +50,7 @@ export const useWallet = () => {
             args: [address as Hex],
         })
         dispatch(walletActions.setBalance(balance))
+        setIsFetchingBalance(false)
     }, [address, dispatch])
 
     const getRewardWalletBalance = useCallback(async () => {
@@ -63,6 +66,7 @@ export const useWallet = () => {
         })
         const formatedBalance = formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
         dispatch(walletActions.setRewardWalletBalance(formatedBalance))
+        setIsFetchingRewardBalance(false)
     }, [address, dispatch])
 
     useEffect(() => {
@@ -78,5 +82,7 @@ export const useWallet = () => {
         sendTransactions,
         getRewardWalletBalance,
         fetchBalance,
+        isFetchingBalance,
+        isFetchingRewardBalance,
     }
 }

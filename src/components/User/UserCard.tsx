@@ -1,6 +1,5 @@
 import { RecipientType } from '@/lib/url-parser/types/payment'
-import { getInitialsFromName } from '@/utils'
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import AddressLink from '../Global/AddressLink'
 import Card from '../Global/Card'
 import { Icon } from '../Global/Icons/Icon'
@@ -20,25 +19,25 @@ const UserCard = ({ type, username, fullName, recipientType }: UserCardProps) =>
         if (type === 'payment') return `You're paying`
     }, [type])
 
-    const initials = useMemo(() => {
-        if (fullName) {
-            return getInitialsFromName(fullName)
-        }
-        return getInitialsFromName(username)
-    }, [username, fullName])
+    // TODO: remove after pizzaaaa
+    const isPizza = username.toLowerCase() === 'nshc92'
 
     return (
         <Card className="flex items-center gap-2 p-4">
-            {recipientType !== 'USERNAME' ? (
+            {isPizza ? (
+                <AvatarWithBadge size="extra-small" name={'🍕'} />
+            ) : recipientType !== 'USERNAME' ? (
                 <div className={'flex size-8 items-center justify-center rounded-full bg-yellow-5 font-bold'}>
                     <Icon name="wallet-outline" size={16} />
                 </div>
             ) : (
-                <AvatarWithBadge initials={initials} size="extra-small" />
+                <AvatarWithBadge size="extra-small" name={fullName || username} />
             )}
             <div>
                 <div className="text-xs text-grey-1">{getTitle()}</div>
-                {recipientType !== 'USERNAME' ? (
+                {isPizza ? (
+                    <div className="text-sm font-medium">Pizza Data</div>
+                ) : recipientType !== 'USERNAME' ? (
                     <AddressLink address={username} />
                 ) : (
                     <div className="text-sm font-medium">{fullName || username}</div>

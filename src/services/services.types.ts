@@ -14,11 +14,13 @@ export interface CreateRequestRequest {
     recipientAddress: string
     trackId?: string
     reference?: string
-    attachment?: File
     tokenType: string
     tokenAddress: string
     tokenDecimals: string
     tokenSymbol: string
+    attachment?: File
+    mimeType?: string
+    filename?: string
 }
 
 export interface TRequestResponse {
@@ -87,11 +89,13 @@ export interface LocalPrice {
 
 export interface RequestProps {
     chainId: string
+    tokenAmount?: string
     tokenAddress: string
     tokenType: peanutInterfaces.EPeanutLinkType
     tokenSymbol: string
     tokenDecimals: number
     recipientAddress: string
+    requesteeUsername?: string
 }
 
 export interface CreateChargeRequest {
@@ -172,6 +176,10 @@ export interface TRequestChargeResponse {
     payments: Payment[]
     fulfillmentPayment: Payment | null
     timeline: TimelineEntry[]
+    requestee?: {
+        userId: string
+        username: string
+    }
     requestLink: {
         recipientAddress: string
         reference: string | null

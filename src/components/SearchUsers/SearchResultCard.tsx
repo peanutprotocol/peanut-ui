@@ -1,8 +1,7 @@
 import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { getInitialsFromName } from '@/utils'
 import { useRouter } from 'next/navigation'
-import { useMemo } from 'react'
+import AvatarWithBadge from '../Profile/AvatarWithBadge'
 
 interface SearchResultCardProps {
     username: string
@@ -13,12 +12,6 @@ interface SearchResultCardProps {
 
 export const SearchResultCard = ({ username, fullName, position = 'middle', onClick }: SearchResultCardProps) => {
     const router = useRouter()
-    const initials = useMemo(() => {
-        if (fullName) {
-            return getInitialsFromName(fullName)
-        }
-        return getInitialsFromName(username)
-    }, [fullName, username])
 
     const handleClick = () => {
         if (onClick) {
@@ -32,9 +25,7 @@ export const SearchResultCard = ({ username, fullName, position = 'middle', onCl
         <Card onClick={handleClick} position={position} className="cursor-pointer hover:bg-gray-50">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success-3 text-sm font-bold">
-                        {initials}
-                    </div>
+                    <AvatarWithBadge size="extra-small" name={fullName || username} />
                     <div className="flex flex-col">
                         <div className="font-medium">{fullName || username}</div>
                         <div className="text-sm text-grey-1">@{username}</div>

@@ -3,29 +3,43 @@ import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
-import NavHeader from '@/components/Global/NavHeader'
+import Loading from '@/components/Global/Loading'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { RecipientType } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
-import { formatAmount, getInitialsFromName, printableAddress } from '@/utils'
+import { printableAddress, formatAmount } from '@/utils'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 
-interface DirectSendSuccessViewProps {
+type DirectSuccessViewProps = {
     user?: ApiUser
     amount?: string
     message?: string
     recipientType?: RecipientType
+    type: 'SEND' | 'REQUEST'
     headerTitle?: string
+    currencyAmount?: string
 }
 
-const PaymentStatusView = ({ user, amount, message, recipientType, headerTitle }: DirectSendSuccessViewProps = {}) => {
+const DirectSuccessView = ({
+    user,
+    amount,
+    message,
+    recipientType,
+    type,
+    headerTitle,
+    currencyAmount,
+}: DirectSuccessViewProps) => {
     const router = useRouter()
     const { chargeDetails, parsedPaymentData } = usePaymentStore()
+    const [showCheck, setShowCheck] = useState(false)
     const dispatch = useDispatch()
+    const queryClient = useQueryClient()
 
     const recipientName = useMemo(() => {
         if (user?.username) {
@@ -38,27 +52,36 @@ const PaymentStatusView = ({ user, amount, message, recipientType, headerTitle }
     }, [user, parsedPaymentData, chargeDetails])
 
     const displayAmount = useMemo(() => {
-        return amount || chargeDetails?.tokenAmount || '0'
-    }, [amount, chargeDetails])
+        if (currencyAmount) return currencyAmount
+        const displayAmount = amount ?? chargeDetails?.tokenAmount ?? '0'
+        return `${formatAmount(displayAmount)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
+    }, [amount, chargeDetails, currencyAmount])
 
-    const initials = getInitialsFromName(recipientName)
+    useEffect(() => {
+        // show loading for a brief moment, then show check mark
+        const checkTimeout = setTimeout(() => {
+            setShowCheck(true)
+        }, 800)
+
+        // Invalidate queries to refetch history
+        queryClient?.invalidateQueries({ queryKey: ['transactions'] })
+
+        return () => {
+            clearTimeout(checkTimeout)
+        }
+    }, [queryClient])
 
     const handleDone = () => {
         // reset payment state when done
         router.push('/home')
         dispatch(paymentActions.resetPaymentState())
+        queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
     }
 
     return (
         <div>
-            <NavHeader
-                title={headerTitle}
-                onPrev={() => {
-                    router.push('/send')
-                }}
-            />
-            <div className="translate-y-2/3 space-y-4">
-                <Card className="p-4">
+            <div className="translate-y-1/3 space-y-4">
+                <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">
                         {recipientType !== 'USERNAME' ? (
                             <div
@@ -69,32 +92,30 @@ const PaymentStatusView = ({ user, amount, message, recipientType, headerTitle }
                                 <Icon name="wallet-outline" size={24} />
                             </div>
                         ) : (
-                            <AvatarWithBadge className="bg-success-3" initials={initials} />
+                            <AvatarWithBadge name={recipientName} />
                         )}
+                    </div>
 
-                        <div className="space-y-1">
-                            <h1 className="text-sm font-bold">
-                                You just sent{' '}
-                                {recipientType !== 'USERNAME' ? (
-                                    <AddressLink
-                                        className="text-sm font-bold text-black no-underline"
-                                        address={recipientName}
-                                    />
-                                ) : (
-                                    recipientName
-                                )}
-                            </h1>
-                            <h2 className="text-2xl font-extrabold">
-                                {formatAmount(displayAmount)} {chargeDetails?.tokenSymbol}
-                            </h2>
-                            {message && <p className="text-sm font-medium text-grey-1">for {message}</p>}
-                        </div>
+                    <div className="space-y-1">
+                        <h1 className="text-sm font-bold">
+                            You just {type === 'SEND' ? 'sent' : 'requested'}{' '}
+                            {recipientType !== 'USERNAME' ? (
+                                <AddressLink
+                                    className="text-sm font-bold text-black no-underline"
+                                    address={recipientName}
+                                />
+                            ) : (
+                                recipientName
+                            )}
+                        </h1>
+                        <h2 className="text-2xl font-extrabold">{displayAmount}</h2>
+                        {message && <p className="text-sm font-medium text-grey-1">for {message}</p>}
                     </div>
                 </Card>
 
                 <Button onClick={handleDone} shadowSize="4" className="mx-auto w-38 rounded-full">
                     <div className="flex size-7 items-center justify-center gap-0">
-                        <Icon name="check" size={24} />
+                        {showCheck ? <Icon name="check" size={24} /> : <Loading />}
                     </div>
                     <div>Done!</div>
                 </Button>
@@ -102,4 +123,4 @@ const PaymentStatusView = ({ user, amount, message, recipientType, headerTitle }
         </div>
     )
 }
-export default PaymentStatusView
+export default DirectSuccessView

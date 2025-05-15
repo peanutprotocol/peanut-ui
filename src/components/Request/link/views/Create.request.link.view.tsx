@@ -15,7 +15,8 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
-import { fetchTokenSymbol, fetchWithSentry, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
+import { requestsApi } from '@/services/requests'
+import { fetchTokenSymbol, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
@@ -77,7 +78,7 @@ export const CreateRequestLinkView = () => {
         // use debouncedTokenValue when in the process of creating a link with attachment
         const valueToShow = hasAttachment && isCreatingLink ? debouncedTokenValue : _tokenValue
 
-        return `${window.location.origin}/${user?.user.username}${valueToShow ? `/${valueToShow}USDC` : ''}`
+        return `${window.location.origin}${valueToShow ? `/${user?.user.username}/${valueToShow}USDC` : `/pay/${user?.user.username}`}`
     }, [user?.user.username, _tokenValue, debouncedTokenValue, generatedLink, hasAttachment, isCreatingLink])
 
     const handleOnNext = useCallback(
@@ -131,36 +132,22 @@ export const CreateRequestLinkView = () => {
                 const tokenType = isNativeCurrency(tokenData.address)
                     ? peanutInterfaces.EPeanutLinkType.native
                     : peanutInterfaces.EPeanutLinkType.erc20
-                const createFormData = new FormData()
-                createFormData.append('chainId', tokenData.chainId)
-                createFormData.append('recipientAddress', recipientAddress)
-                createFormData.append('tokenAddress', tokenData.address)
-                createFormData.append('tokenAmount', inputValue)
-                createFormData.append('tokenDecimals', tokenData.decimals.toString())
-                createFormData.append('tokenType', tokenType.valueOf().toString())
-                createFormData.append('tokenSymbol', tokenData.symbol)
-                if (attachmentOptions?.rawFile) {
-                    createFormData.append('attachment', attachmentOptions.rawFile)
-                    createFormData.append('mimetype', attachmentOptions.rawFile.type)
-                    createFormData.append('filename', attachmentOptions.rawFile.name)
-                }
-                if (attachmentOptions?.message) {
-                    createFormData.append('reference', attachmentOptions.message)
-                }
-                const requestResponse = await fetchWithSentry('/api/proxy/withFormData/requests', {
-                    method: 'POST',
-                    body: createFormData,
+                const requestDetails = await requestsApi.create({
+                    chainId: tokenData.chainId,
+                    tokenAmount: inputValue,
+                    recipientAddress,
+                    tokenAddress: tokenData.address,
+                    tokenDecimals: tokenData.decimals.toString(),
+                    tokenType: tokenType.valueOf().toString(),
+                    tokenSymbol: tokenData.symbol,
+                    reference: attachmentOptions?.message,
+                    attachment: attachmentOptions?.rawFile,
+                    mimeType: attachmentOptions?.rawFile?.type,
+                    filename: attachmentOptions?.rawFile?.name,
                 })
-                if (!requestResponse.ok) {
-                    throw new Error(`Request failed: ${requestResponse.status}`)
-                }
-                const requestLinkDetails = await requestResponse.json()
-                const link = getRequestLink(requestLinkDetails)
-                requestLinkDetails.link = link
-
+                const link = getRequestLink(requestDetails)
                 setGeneratedLink(link)
                 toast.success('Link created successfully!')
-                // onNext()
             } catch (error) {
                 setErrorState({
                     showError: true,
@@ -317,11 +304,7 @@ export const CreateRequestLinkView = () => {
             <div className="w-full space-y-4">
                 <PeanutActionCard type="request" />
 
-                <QRCodeWrapper
-                    url={qrCodeLink}
-                    isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)}
-                    disabled={!_tokenValue}
-                />
+                <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
 
                 <TokenAmountInput
                     className="w-full"

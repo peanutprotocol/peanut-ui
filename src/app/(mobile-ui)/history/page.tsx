@@ -1,101 +1,36 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
-import { useDashboard } from '@/components/Dashboard/useDashboard'
-import AddressLink from '@/components/Global/AddressLink'
+import { CardPosition } from '@/components/Global/Card'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
-import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { TransactionBadge } from '@/components/Global/TransactionBadge'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import {
-    formatAmount,
-    formatDate,
-    formatPaymentStatus,
-    getChainLogo,
-    getHeaderTitle,
-    getHistoryTransactionStatus,
-    getTokenLogo,
-    isStableCoin,
-} from '@/utils'
+import TransactionCard from '@/components/TransactionDetails/TransactionCard'
+import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
+import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { getHeaderTitle } from '@/utils'
+import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 
-const ITEMS_PER_PAGE = 10
-
+/**
+ * displays the user's transaction history with infinite scrolling and date grouping.
+ */
 const HistoryPage = () => {
     const pathname = usePathname()
-    const { address } = useWallet()
-    const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
     const loaderRef = useRef<HTMLDivElement>(null)
 
-    const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
-        queryKey: ['dashboardData', address],
-        queryFn: () => composeLinkDataArray(address ?? ''),
-        enabled: !!address,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 10 * 60 * 1000, // 10 minutes
-        placeholderData: keepPreviousData,
-    })
-
-    const fetchHistoryPage = async ({ pageParam = 0 }) => {
-        if (!dashboardData) return { items: [], nextPage: undefined }
-
-        const start = pageParam * ITEMS_PER_PAGE
-        const end = start + ITEMS_PER_PAGE
-        const pageData = dashboardData.slice(start, end)
-
-        // fetch link details for the current page
-        const updatedData = await fetchLinkDetailsAsync(pageData)
-
-        const formattedData = pageData.map((data) => {
-            const linkDetails = updatedData.find((item) => item.link === data.link)
-
-            const transactionStatus =
-                (linkDetails?.status ?? data.status)
-                    ? formatPaymentStatus(
-                          getHistoryTransactionStatus(data?.type as TransactionType, linkDetails?.status ?? data.status)
-                      )
-                    : undefined
-
-            return {
-                id: `${data.link ?? ''}-${data.txHash ?? ''}-${data.date}`,
-                transactionType: data.type,
-                amount: `${isStableCoin(data.tokenSymbol) ? `$${formatAmount(data.amount)}` : `${formatAmount(data.amount)} ${data.tokenSymbol}`}`,
-                recipientAddress: data.address ?? '',
-                recipientAddressFormatter: (address: string) => {
-                    return (
-                        <>
-                            To <AddressLink address={address} />
-                        </>
-                    )
-                },
-                status: transactionStatus,
-                transactionDetails: {
-                    ...data,
-                },
-            }
-        })
-
-        return {
-            items: formattedData,
-            nextPage: end < (dashboardData?.length || 0) ? pageParam + 1 : undefined,
-        }
-    }
-
-    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, isLoading, error } = useInfiniteQuery({
-        queryKey: ['history', address, dashboardData],
-        queryFn: fetchHistoryPage,
-        getNextPageParam: (lastPage) => lastPage.nextPage,
-        enabled: !!dashboardData && dashboardData.length > 0,
-        initialPageParam: 0,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 10 * 60 * 1000, // 10 minutes
-        placeholderData: keepPreviousData,
+    const {
+        data: historyData,
+        hasNextPage,
+        fetchNextPage,
+        isFetchingNextPage,
+        isLoading,
+        error,
+        isError,
+    } = useTransactionHistory({
+        mode: 'infinite',
+        limit: 20,
     })
 
     useEffect(() => {
@@ -110,88 +45,92 @@ const HistoryPage = () => {
                 threshold: 0.1,
             }
         )
-
-        if (loaderRef.current) {
-            observer.observe(loaderRef.current)
+        const currentLoaderRef = loaderRef.current
+        if (currentLoaderRef) {
+            observer.observe(currentLoaderRef)
         }
-
-        return () => observer.disconnect()
+        return () => {
+            if (currentLoaderRef) {
+                observer.unobserve(currentLoaderRef)
+            }
+        }
     }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-    if ((isLoadingDashboard || isLoading) && (!dashboardData || !data?.pages?.length)) {
+    const allEntries = useMemo(() => historyData?.pages.flatMap((page) => page.entries) ?? [], [historyData])
+
+    if (isLoading && allEntries.length === 0) {
         return <PeanutLoading />
     }
 
-    if (status === 'error') {
+    if (isError) {
         console.error(error)
         Sentry.captureException(error)
         return <div className="w-full py-4 text-center">Error loading history: {error?.message}</div>
     }
 
-    if (!dashboardData || dashboardData.length === 0) {
+    if (allEntries.length === 0) {
         return (
-            <div className="flex h-[80dvh] items-center justify-center">
-                <NoDataEmptyState
-                    animSize="lg"
-                    message="You haven't done any transactions"
-                    cta={
-                        <Link href="/home" className="cursor-pointer">
-                            <Button shadowSize="4" size="medium" variant={'purple'} className="cursor-pointer">
-                                Go to Dashboard
-                            </Button>
-                        </Link>
-                    }
-                />
+            <div className="flex h-[80dvh] flex-col items-center justify-center">
+                <NavHeader title={getHeaderTitle(pathname)} />
+                <div className="flex flex-grow items-center justify-center">
+                    <NoDataEmptyState animSize="lg" message="You haven't done any transactions" />
+                </div>
             </div>
         )
     }
 
+    let lastGroupHeaderKey: string | null = null
+    const today = new Date()
+
     return (
         <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
-            {!!data?.pages.length ? <NavHeader title={getHeaderTitle(pathname)} /> : null}
-            <div className="h-full w-full border-t border-n-1">
-                {!!data?.pages.length &&
-                    data?.pages.map((page, pageIndex) => (
-                        <div key={pageIndex}>
-                            {page.items.map((item) => (
-                                <div key={item.id}>
-                                    <ListItemView
-                                        id={item.id}
-                                        variant="history"
-                                        primaryInfo={{
-                                            title: (
-                                                <div className="flex flex-col items-start gap-2 md:flex-row md:items-center ">
-                                                    <div className="font-bold">{item.transactionType}</div>
-                                                    <div className="flex flex-col items-end justify-end gap-2 text-end">
-                                                        <TransactionBadge status={item.status ?? ''} />
-                                                    </div>
-                                                </div>
-                                            ),
-                                            subtitle: !!item.recipientAddress && (
-                                                <div
-                                                    className="text-xs text-gray-1"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    To: <AddressLink address={item.recipientAddress} />
-                                                </div>
-                                            ),
-                                        }}
-                                        secondaryInfo={{
-                                            mainText: item.amount,
-                                            subText: item.transactionDetails.date
-                                                ? formatDate(new Date(item.transactionDetails.date))
-                                                : '',
-                                        }}
-                                        metadata={{
-                                            tokenLogo: getTokenLogo(item.transactionDetails.tokenSymbol),
-                                            chainLogo: getChainLogo(item.transactionDetails.chain),
-                                        }}
-                                        details={item.transactionDetails}
-                                    />
+            <NavHeader title={getHeaderTitle(pathname)} />
+            <div className="h-full w-full">
+                {allEntries.map((item, index) => {
+                    const itemDate = new Date(item.timestamp)
+                    const group = getDateGroup(itemDate, today)
+                    const currentGroupHeaderKey = getDateGroupKey(itemDate, group)
+                    const showHeader = currentGroupHeaderKey !== lastGroupHeaderKey
+                    if (showHeader) {
+                        lastGroupHeaderKey = currentGroupHeaderKey
+                    }
+
+                    const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+
+                    let position: CardPosition = 'middle'
+                    const isFirstOverall = index === 0
+                    const isLastOverall = index === allEntries.length - 1
+                    const isFirstInGroup = showHeader
+
+                    if (allEntries.length === 1) {
+                        position = 'single'
+                    } else if (isFirstInGroup && isLastOverall) {
+                        position = 'single'
+                    } else if (isFirstInGroup || isFirstOverall) {
+                        position = 'first'
+                    } else if (isLastOverall) {
+                        position = 'last'
+                    }
+
+                    return (
+                        <React.Fragment key={item.uuid}>
+                            {showHeader && (
+                                <div className="mb-2 mt-4 px-1 text-sm font-semibold capitalize">
+                                    {formatGroupHeaderDate(itemDate, group, today)}
                                 </div>
-                            ))}
-                        </div>
-                    ))}
+                            )}
+                            <TransactionCard
+                                type={transactionCardType}
+                                name={transactionDetails.userName}
+                                amount={transactionDetails.amount ? Number(transactionDetails.amount) : 0}
+                                status={transactionDetails.status}
+                                initials={transactionDetails.initials}
+                                transaction={transactionDetails}
+                                position={position}
+                            />
+                        </React.Fragment>
+                    )
+                })}
 
                 <div ref={loaderRef} className="w-full py-4">
                     {isFetchingNextPage && <div className="w-full text-center">Loading more...</div>}

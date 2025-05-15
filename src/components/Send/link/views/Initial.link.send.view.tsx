@@ -11,6 +11,7 @@ import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { sendLinksApi } from '@/services/sendLinks'
 import { ErrorHandler, printableUsdc } from '@/utils'
 import { captureException } from '@sentry/nextjs'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { parseUnits } from 'viem'
 import { Button } from '../../../0_Bruddle'
@@ -26,6 +27,7 @@ const LinkSendInitialView = () => {
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
 
     const { fetchBalance, balance } = useWallet()
+    const queryClient = useQueryClient()
 
     const peanutWalletBalance = useMemo(() => {
         return printableUsdc(balance)
@@ -51,6 +53,9 @@ const LinkSendInitialView = () => {
             dispatch(sendFlowActions.setLink(link))
             dispatch(sendFlowActions.setView('SUCCESS'))
             fetchBalance()
+            queryClient.invalidateQueries({
+                queryKey: ['transactions'],
+            })
 
             // We dont need to wait for this to finish in order to proceed
             setTimeout(async () => {
@@ -87,7 +92,7 @@ const LinkSendInitialView = () => {
         } finally {
             setLoadingState('Idle')
         }
-    }, [isLoading, tokenValue, createLink, fetchBalance])
+    }, [isLoading, tokenValue, createLink, fetchBalance, dispatch, queryClient, setLoadingState, attachmentOptions])
 
     useEffect(() => {
         if (!peanutWalletBalance || !tokenValue) return
@@ -131,6 +136,7 @@ const LinkSendInitialView = () => {
 
             <div className="flex flex-col gap-4">
                 <Button
+                    shadowSize="4"
                     onClick={handleOnNext}
                     loading={isLoading}
                     disabled={isLoading || !tokenValue || !!errorState?.showError}

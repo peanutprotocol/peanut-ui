@@ -15,7 +15,9 @@ export const infuraRpcUrls: Record<number, string> = {
     [polygon.id]: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [optimism.id]: `https://optimism-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [base.id]: `https://base-sepolia.infura.io/v3/${INFURA_API_KEY}`,
-    [bsc.id]: `https://bsc-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+    // Infura is returning weird estimations for BSC @2025-05-14
+    //[bsc.id]: `https://bsc-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+    [bsc.id]: 'https://bsc-dataseed.bnbchain.org',
     [scroll.id]: `https://scroll-mainnet.infura.io/v3/${INFURA_API_KEY}`,
 }
 
@@ -34,7 +36,7 @@ export const ipfsProviderArray = [
 export const PEANUT_API_URL = (
     process.env.PEANUT_API_URL ||
     process.env.NEXT_PUBLIC_PEANUT_API_URL ||
-    'https://api.peanut.to'
+    'https://api.peanut.me'
 ).replace(/\/$/, '') // remove any accidental trailing slash
 
 export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'

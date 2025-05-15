@@ -1,136 +1,84 @@
 'use client'
 
-import { useDashboard } from '@/components/Dashboard/useDashboard'
-import AddressLink from '@/components/Global/AddressLink'
 import Icon from '@/components/Global/Icon'
-import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { TransactionBadge } from '@/components/Global/TransactionBadge'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { IDashboardItem } from '@/interfaces'
-import {
-    formatAmount,
-    formatDate,
-    formatPaymentStatus,
-    getChainLogo,
-    getHistoryTransactionStatus,
-    getTokenLogo,
-    isStableCoin,
-} from '@/utils'
+import TransactionCard from '@/components/TransactionDetails/TransactionCard'
+import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
+import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { useWebSocket } from '@/hooks/useWebSocket'
 import * as Sentry from '@sentry/nextjs'
-import { useInfiniteQuery } from '@tanstack/react-query'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { CardPosition } from '../Global/Card'
+import { useMemo, useEffect, useState, useCallback } from 'react'
 
-const ITEMS_PER_PAGE = 10
+/**
+ * component to display a preview of the most recent transactions on the home page.
+ */
+const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; username?: string }) => {
+    // fetch the latest 5 transaction history entries
+    const mode = isPublic ? 'public' : 'latest'
+    const limit = isPublic ? 20 : 5
+    const { data: historyData, isLoading, isError, error } = useTransactionHistory({ mode, limit, username })
 
-const HomeHistory = () => {
-    const { address } = useWallet()
-    const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
-    const [dashboardData, setDashboardData] = useState<IDashboardItem[]>([])
-    const [isLoadingDashboard, setIsLoadingDashboard] = useState(true)
-    const loaderRef = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        let isStale = false
-        setIsLoadingDashboard(true)
-        composeLinkDataArray(address ?? '').then((data) => {
-            if (isStale) return
-            setDashboardData(data)
-            setIsLoadingDashboard(false)
-        })
-        return () => {
-            isStale = true
-        }
-    }, [address])
-
-    const fetchHistoryPage = async ({ pageParam = 0 }) => {
-        const start = pageParam * ITEMS_PER_PAGE
-        const end = start + ITEMS_PER_PAGE
-        const pageData = dashboardData.slice(start, end)
-
-        // fetch link details for the current page
-        const updatedData = await fetchLinkDetailsAsync(pageData)
-
-        const formattedData = pageData.map((data) => {
-            const linkDetails = updatedData.find((item) => item.link === data.link)
-
-            const transactionStatus =
-                (linkDetails?.status ?? data.status)
-                    ? formatPaymentStatus(
-                          getHistoryTransactionStatus(data?.type as TransactionType, linkDetails?.status ?? data.status)
-                      )
-                    : undefined
-
-            return {
-                id: `${data.link ?? ''}-${data.txHash ?? ''}-${data.date}`,
-                transactionType: data.type,
-                amount: `${isStableCoin(data.tokenSymbol) ? `$${formatAmount(data.amount)}` : `${formatAmount(data.amount)} ${data.tokenSymbol}`}`,
-                recipientAddress: data.address ?? '',
-                recipientAddressFormatter: (address: string) => {
-                    return (
-                        <>
-                            To <AddressLink address={address} />
-                        </>
-                    )
-                },
-                status: transactionStatus,
-                transactionDetails: {
-                    ...data,
-                },
-            }
-        })
-
-        return {
-            items: formattedData,
-            nextPage: end < dashboardData.length ? pageParam + 1 : undefined,
-        }
-    }
-
-    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status, isLoading, error } = useInfiniteQuery({
-        queryKey: ['history', address],
-        queryFn: fetchHistoryPage,
-        getNextPageParam: (lastPage) => lastPage.nextPage,
-        enabled: dashboardData.length > 0,
-        initialPageParam: 0,
+    // WebSocket for real-time updates
+    const { historyEntries: wsHistoryEntries } = useWebSocket({
+        username, // Pass the username to the WebSocket hook
+        onHistoryEntry: useCallback(() => {
+            // Optionally show a toast or notification when new entries arrive
+        }, []),
     })
 
+    // Combine fetched history with real-time updates
+    const [combinedEntries, setCombinedEntries] = useState<Array<any>>([])
+
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                const target = entries[0]
-                if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
-                    fetchNextPage()
+        if (historyData?.entries) {
+            // Start with the fetched entries
+            const entries = [...historyData.entries]
+
+            // Add any WebSocket entries that aren't already in the list
+            wsHistoryEntries.forEach((wsEntry) => {
+                if (!entries.some((entry) => entry.uuid === wsEntry.uuid)) {
+                    if (wsEntry.extraData) {
+                        wsEntry.extraData.usdAmount = wsEntry.amount.toString()
+                    } else {
+                        wsEntry.extraData = { usdAmount: wsEntry.amount.toString() }
+                    }
+                    entries.unshift(wsEntry)
                 }
-            },
-            {
-                threshold: 0.1,
-            }
-        )
+            })
 
-        if (loaderRef.current) {
-            observer.observe(loaderRef.current)
+            // Limit to the most recent entries
+            setCombinedEntries(entries.slice(0, isPublic ? 20 : 5))
         }
+    }, [historyData, wsHistoryEntries, isPublic])
 
-        return () => observer.disconnect()
-    }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+    const pendingRequests = useMemo(() => {
+        if (!combinedEntries.length) return []
+        return combinedEntries.filter(
+            (entry) => entry.type === 'REQUEST' && entry.userRole === 'SENDER' && entry.status === 'NEW'
+        )
+    }, [combinedEntries])
 
-    if (isLoadingDashboard || isLoading) {
+    // show loading state
+    if (isLoading) {
         return <PeanutLoading />
     }
 
-    if (status === 'error') {
+    // show error state
+    if (isError) {
         console.error(error)
         Sentry.captureException(error)
-        return <div className="w-full py-4 text-center">Error loading history: {error?.message}</div>
+        return <div className="w-full py-4 text-center">error loading history: {error?.message}</div>
     }
 
-    if (dashboardData.length === 0) {
+    // show empty state if no transactions exist
+    if (!combinedEntries.length) {
         return (
             <div className="mx-auto mt-6 w-full space-y-2 md:max-w-2xl md:space-y-3">
-                <h2 className="text-baes font-bold">Recent Transactions</h2>
+                <h2 className="text-base font-bold">transactions</h2> {/* use lowercase consistent with history page */}
                 <div className="h-full w-full border-t border-n-1 py-8 text-center">
-                    <p className="text-sm text-gray-500">No transactions yet</p>
+                    <p className="text-sm text-gray-500">no transactions yet</p>
                 </div>
             </div>
         )
@@ -138,53 +86,86 @@ const HomeHistory = () => {
 
     return (
         <div className="mx-auto w-full space-y-3 pb-28 md:max-w-2xl md:space-y-3">
-            <Link href="/history" className="flex items-center justify-between">
-                <h2 className="text-base font-bold">Transactions</h2>
-                <Icon width={30} height={30} name="arrow-next" />
-            </Link>
-            <div className="h-full w-full border-t border-n-1">
-                {!!data?.pages.length &&
-                    data?.pages.map((page, pageIndex) => (
-                        <div key={pageIndex}>
-                            {page.items.slice(0, 3).map((item) => (
-                                <div key={item.id}>
-                                    <ListItemView
-                                        id={item.id}
-                                        variant="history"
-                                        primaryInfo={{
-                                            title: (
-                                                <div className="flex flex-col items-start gap-2 md:flex-row md:items-center ">
-                                                    <div className="font-bold">{item.transactionType}</div>
-                                                    <div className="flex flex-col items-end justify-end gap-2 text-end">
-                                                        <TransactionBadge status={item.status as string} />
-                                                    </div>
-                                                </div>
-                                            ),
-                                            subtitle: !!item.recipientAddress && (
-                                                <div
-                                                    className="text-xs text-gray-1"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    To: <AddressLink address={item.recipientAddress} />
-                                                </div>
-                                            ),
-                                        }}
-                                        secondaryInfo={{
-                                            mainText: item.amount,
-                                            subText: item.transactionDetails.date
-                                                ? formatDate(new Date(item.transactionDetails.date))
-                                                : '',
-                                        }}
-                                        metadata={{
-                                            tokenLogo: getTokenLogo(item.transactionDetails.tokenSymbol),
-                                            chainLogo: getChainLogo(item.transactionDetails.chain),
-                                        }}
-                                        details={item.transactionDetails}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    ))}
+            {/* link to the full history page */}
+            {pendingRequests.length > 0 && !isPublic && (
+                <>
+                    <h2 className="text-base font-bold">Pending transactions</h2>
+                    <div className="h-full w-full">
+                        {/* map over the latest entries and render transactioncard */}
+                        {pendingRequests.map((item, index) => {
+                            // map the raw history entry to the format needed by the ui components
+                            const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+
+                            // determine card position for styling (first, middle, last, single)
+                            let position: CardPosition = 'middle'
+                            if (pendingRequests.length === 1) {
+                                position = 'single'
+                            } else if (index === 0) {
+                                position = 'first'
+                            } else if (index === pendingRequests.length - 1) {
+                                position = 'last'
+                            }
+
+                            return (
+                                <TransactionCard
+                                    key={item.uuid}
+                                    type={transactionCardType}
+                                    name={transactionDetails.userName}
+                                    amount={Number(transactionDetails.amount)}
+                                    status={transactionDetails.status}
+                                    initials={transactionDetails.initials}
+                                    transaction={transactionDetails}
+                                    position={position}
+                                    isPending={true}
+                                />
+                            )
+                        })}
+                    </div>
+                </>
+            )}
+            {isPublic ? (
+                <h2 className="text-base font-bold">Latest Transactions</h2>
+            ) : (
+                <Link href="/history" className="flex items-center justify-between">
+                    <h2 className="text-base font-bold">Transactions</h2>
+                    <Icon width={30} height={30} name="arrow-next" />
+                </Link>
+            )}
+            {/* container for the transaction cards */}
+            <div className="h-full w-full">
+                {/* map over the latest entries and render transactioncard */}
+                {combinedEntries
+                    .filter((item) => !pendingRequests.some((r) => r.uuid === item.uuid))
+                    .map((item, index) => {
+                        // map the raw history entry to the format needed by the ui components
+                        const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+
+                        // determine card position for styling (first, middle, last, single)
+                        let position: CardPosition = 'middle'
+                        const filteredEntries = combinedEntries.filter(
+                            (entry) => !pendingRequests.some((r) => r.uuid === entry.uuid)
+                        )
+                        if (filteredEntries.length === 1) {
+                            position = 'single'
+                        } else if (index === 0) {
+                            position = 'first'
+                        } else if (index === filteredEntries.length - 1) {
+                            position = 'last'
+                        }
+
+                        return (
+                            <TransactionCard
+                                key={item.uuid}
+                                type={transactionCardType}
+                                name={transactionDetails.userName}
+                                amount={Number(transactionDetails.amount)}
+                                status={transactionDetails.status}
+                                initials={transactionDetails.initials}
+                                transaction={transactionDetails}
+                                position={position}
+                            />
+                        )
+                    })}
             </div>
         </div>
     )

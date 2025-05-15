@@ -3,19 +3,31 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
-import { useAppDispatch, useSendFlowStore } from '@/redux/hooks'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { useAppDispatch, useSendFlowStore, useUserStore } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
+import { sendLinksApi } from '@/services/sendLinks'
+import { captureException } from '@sentry/nextjs'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+
 const LinkSendSuccessView = () => {
     const dispatch = useAppDispatch()
     const router = useRouter()
     const { link, attachmentOptions, tokenValue } = useSendFlowStore()
+    const queryClient = useQueryClient()
+    const { fetchBalance } = useWallet()
+    const { user } = useUserStore()
+    const [isLoading, setIsLoading] = useState<boolean>(false)
 
     return (
-        <div className="space-y-8">
+        <div className="relative space-y-8">
+            {isLoading && <PeanutLoading coverFullScreen />}
             <NavHeader
                 icon="cancel"
                 title="Send"
@@ -42,17 +54,40 @@ const LinkSendSuccessView = () => {
                             Share link
                         </ShareButton>
                         <Button
-                            disabled
+                            onClick={() => {
+                                setIsLoading(true)
+                                sendLinksApi
+                                    .claim(user!.user.username!, link)
+                                    .then(() => {
+                                        // Claiming takes time, so we need to invalidate both transaction query types
+                                        setTimeout(() => {
+                                            fetchBalance()
+                                            queryClient
+                                                .invalidateQueries({
+                                                    queryKey: ['transactions'],
+                                                })
+                                                .then(() => {
+                                                    setIsLoading(false)
+                                                    router.push('/home')
+                                                    dispatch(sendFlowActions.resetSendFlow())
+                                                })
+                                        }, 3000)
+                                    })
+                                    .catch((error) => {
+                                        captureException(error)
+                                        console.error('Error claiming link:', error)
+                                        setIsLoading(false)
+                                    })
+                            }}
                             variant={'primary-soft'}
                             className="flex w-full items-center gap-1"
                             shadowSize="4"
+                            disabled={isLoading}
                         >
-                            <div className="flex size-6 items-center gap-0">
-                                <Icon name="cancel" />
+                            <div className="flex items-center">
+                                <Icon name="cancel" className="mr-0.5 min-w-3 rounded-full border border-black p-0.5" />
                             </div>
-                            <span>
-                                Cancel link <span className="text-xs">(Coming soon)</span>
-                            </span>
+                            <span>Cancel link</span>
                         </Button>
                     </div>
                 )}

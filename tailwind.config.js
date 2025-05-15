@@ -45,6 +45,7 @@ module.exports = {
                     3: '#fffae8',
                     4: '#AE7AFF',
                     5: '#EDE4FD',
+                    6: '#9D7EFE',
                 },
                 yellow: {
                     1: '#FFC900',
@@ -52,6 +53,8 @@ module.exports = {
                     3: '#fbfdd8',
                     4: '#FAE8A4',
                     5: '#FFD25C',
+                    6: '#885B00',
+                    7: '#FFE6B3',
                 },
                 pink: {
                     1: '#FF90E8',
@@ -83,12 +86,17 @@ module.exports = {
                     9: '#F1EBF8',
                 },
                 cyan: {
-                    8: '#A0E6E0',
+                    1: '#4CCCEF',
+                },
+                orange: {
+                    1: '#FE8E3E',
                 },
                 success: {
                     1: '#16B413',
                     2: '#C7F9C6',
                     3: '#29CC6A',
+                    4: '#1C6A50',
+                    5: '#88D987',
                 },
                 white: '#FFFFFF',
                 red: '#FF0000',
@@ -103,6 +111,8 @@ module.exports = {
                 error: {
                     DEFAULT: '#B3261E',
                     1: '#FFD8D8',
+                    2: '#EA8282',
+                    3: '#FF4A4A',
                 },
             },
             zIndex: {
@@ -161,10 +171,16 @@ module.exports = {
                     '0%': { opacity: '0' },
                     '100%': { opacity: '1' },
                 },
+                pulsate: {
+                    '0%': { transform: 'scale(0.95)', opacity: '0.8' },
+                    '50%': { transform: 'scale(1.05)', opacity: '1' },
+                    '100%': { transform: 'scale(0.95)', opacity: '0.8' },
+                },
             },
             animation: {
                 colorPulse: 'colorPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                 fadeIn: 'fadeIn 0.3s ease-in-out',
+                pulsate: 'pulsate 1.5s ease-in-out infinite',
             },
             opacity: {
                 85: '.85',
