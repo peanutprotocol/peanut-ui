@@ -48,7 +48,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             PullToRefresh.init({
-                mainElement: '#scrollable-content', // target the scrolling element
+                mainElement: 'body', // target element for pull to refresh
                 onRefresh: () => {
                     // simulate a refresh action
                     setTimeout(() => {
@@ -58,7 +58,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 instructionsPullToRefresh: 'Pull down to refresh',
                 instructionsReleaseToRefresh: 'Release to refresh',
                 instructionsRefreshing: 'Refreshing...',
-                // enable for ios devices (safari and pwa)
+                // enable for all ios devices (safari and pwa)
                 shouldPullToRefresh: () => /iPad|iPhone|iPod/.test(navigator.userAgent),
             })
         }
