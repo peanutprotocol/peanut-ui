@@ -6,20 +6,28 @@ import { TransactionDetailsDrawer } from '@/components/TransactionDetails/Transa
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { formatAmount, printableAddress } from '@/utils'
+import { formatNumberForDisplay, printableAddress } from '@/utils'
 import React from 'react'
 import { isAddress } from 'viem'
+import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 
 export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout' | 'receive'
 
 interface TransactionCardProps {
     type: TransactionType
     name: string
-    amount: number
+    amount: number // For USD, this amount might come signed from mapTransactionDataForDrawer
     status?: StatusType
     initials?: string
     position?: CardPosition
     transaction: TransactionDetails
+}
+
+// Helper function to get currency symbol based on code - can be moved to utils if used elsewhere
+const getDisplayCurrencySymbol = (code?: string, fallbackSymbol: string = '$'): string => {
+    if (code === 'ARS') return 'AR$'
+    if (code === 'USD') return '$'
+    return fallbackSymbol
 }
 
 /**
@@ -45,7 +53,38 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
-    const userNameForAvatar = transaction.userName // used by avatar for color hashing or type checking
+    const userNameForAvatar = transaction.userName
+
+    let finalDisplayAmount = ''
+    const actualCurrencyCode = transaction.currency?.code
+    // const positiveBaseAmount = Math.abs(amount); // Not strictly needed if logic handles sign correctly
+
+    if (actualCurrencyCode === 'ARS' && transaction.currency?.amount) {
+        let arsSign = ''
+        const originalType = transaction.extraDataForDrawer?.originalType as EHistoryEntryType | undefined
+        const originalUserRole = transaction.extraDataForDrawer?.originalUserRole as EHistoryUserRole | undefined
+
+        if (
+            originalUserRole === EHistoryUserRole.SENDER &&
+            (originalType === EHistoryEntryType.SEND_LINK ||
+                originalType === EHistoryEntryType.DIRECT_SEND ||
+                originalType === EHistoryEntryType.CASHOUT)
+        ) {
+            arsSign = '-'
+        } else if (
+            originalUserRole === EHistoryUserRole.RECIPIENT &&
+            (originalType === EHistoryEntryType.DEPOSIT ||
+                originalType === EHistoryEntryType.SEND_LINK ||
+                originalType === EHistoryEntryType.DIRECT_SEND)
+        ) {
+            arsSign = '+'
+        }
+        finalDisplayAmount = `${arsSign}${getDisplayCurrencySymbol('ARS')}${formatNumberForDisplay(transaction.currency.amount)}`
+    } else {
+        // For USD/others, mapTransactionDataForDrawer sets transaction.currencySymbol to "-$" or "+$".
+        // We append the formatted *absolute* amount.
+        finalDisplayAmount = `${transaction.currencySymbol || '$'}${formatNumberForDisplay(Math.abs(amount).toString())}`
+    }
 
     return (
         <>
@@ -77,11 +116,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
                     {/* amount and status on the right side */}
                     <div className="flex flex-col items-end space-y-0.5">
-                        <span className="font-roboto text-xs font-medium">
-                            {transaction.currency?.code === 'ARS'
-                                ? `ARS$ ${formatAmount(transaction.currency.amount)}`
-                                : `${transaction.currencySymbol}${formatAmount(amount)}`}
-                        </span>
+                        <span className="font-roboto text-xs font-medium">{finalDisplayAmount}</span>
                         {status && <StatusBadge status={status} />}
                     </div>
                 </div>

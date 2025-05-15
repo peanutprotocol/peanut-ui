@@ -241,6 +241,23 @@ export function formatAmountWithDecimals({ amount, decimals }: { amount: number;
     return formattedAmount
 }
 
+// Helper function to format numbers with locale-specific (en-US) thousands separators for display.
+// The caller is responsible for prepending the correct currency symbol.
+// @dev todo: For true internationalization of read-only amounts, consider a dedicated service or util
+// that uses specific locales (e.g., 'es-AR' for '1.234,56'). This function standardizes on en-US for parsable input display.
+export const formatNumberForDisplay = (valueStr: string | undefined, options?: { maxDecimals?: number }): string => {
+    if (valueStr === undefined || valueStr === null || valueStr.trim() === '') return ''
+    const num = Number(valueStr)
+    if (isNaN(num)) return ''
+
+    const maxDecimals = options?.maxDecimals ?? 2 // Default to 2 if not specified
+
+    return num.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: maxDecimals,
+    })
+}
+
 /**
  * formats a number by:
  * - displaying 2 significant digits for small numbers (<0.01)

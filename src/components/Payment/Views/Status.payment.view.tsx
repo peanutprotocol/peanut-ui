@@ -54,23 +54,16 @@ const DirectSuccessView = ({
         const displayAmount = amount ?? chargeDetails?.tokenAmount ?? '0'
         return `${displayAmount} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
     }, [amount, chargeDetails, currencyAmount])
-
     useEffect(() => {
         // show loading for a brief moment, then show check mark
         const checkTimeout = setTimeout(() => {
             setShowCheck(true)
         }, 800)
 
-        // redirect to home after 2 seconds
-        const redirectTimeout = setTimeout(() => {
-            router.push('/home')
-        }, 2000)
-
         return () => {
             clearTimeout(checkTimeout)
-            clearTimeout(redirectTimeout)
         }
-    }, [router])
+    }, [])
 
     const handleDone = () => {
         // reset payment state when done
