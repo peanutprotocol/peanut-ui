@@ -45,6 +45,7 @@ export type HistoryEntry = {
     userRole: HistoryUserRole
     attachmentUrl?: string
     memo?: string
+    cancelledAt?: Date | string
     senderAccount?:
         | {
               identifier: string

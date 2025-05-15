@@ -30,6 +30,7 @@ export interface TransactionDetails {
     fee?: number | string
     memo?: string
     attachmentUrl?: string
+    cancelledDate?: string | Date
     txHash?: string
     explorerUrl?: string
     extraDataForDrawer?: {
@@ -225,6 +226,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         fee: undefined,
         memo: entry.memo?.trim(),
         attachmentUrl: entry.attachmentUrl,
+        cancelledDate: entry.userRole === EHistoryUserRole.BOTH ? entry.cancelledAt : undefined,
         txHash: entry.txHash,
         explorerUrl: explorerUrlWithTx,
         extraDataForDrawer: {
