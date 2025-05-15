@@ -1,8 +1,8 @@
+import { PEANUT_WALLET_TOKEN } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { formatCurrencyWithIntl } from '@/utils/format.utils'
-import { estimateIfIsStableCoinFromPrice } from '@/utils/general.utils'
-import { useContext, useEffect, useRef, useState } from 'react'
+import { estimateIfIsStableCoinFromPrice, formatAmountWithoutComma, formatTokenAmount } from '@/utils'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../Icon'
 
 interface TokenAmountInputProps {
@@ -35,310 +35,111 @@ const TokenAmountInput = ({
     const { inputDenomination, setInputDenomination, selectedTokenData, selectedTokenAddress } =
         useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
+    const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
     const { isConnected: isPeanutWallet } = useWallet()
 
-    const [inputValue, setInputValue] = useState<string>('')
+    // Add state for currency mode (USD or custom currency)
     const [currencyMode, setCurrencyMode] = useState<'USD' | 'CUSTOM'>(currency ? 'CUSTOM' : 'USD')
-    const [isFocused, setIsFocused] = useState(false)
-    const [prevTokenValue, setPrevTokenValue] = useState(tokenValue)
-    const [prevInputDenomination, setPrevInputDenomination] = useState(inputDenomination)
-    const [prevCurrencyMode, setPrevCurrencyMode] = useState(currencyMode)
 
-    // Helper to clean unnecessary trailing .00 or .0 from strings like "12.00" -> "12", "12.50" -> "12.5"
-    const cleanDisplayString = (valStr: string): string => {
-        if (!valStr.includes('.')) return valStr
-        let cleaned = valStr.replace(/0+$/, '') // "12.50" -> "12.5", "12.00" -> "12."
-        if (cleaned.endsWith('.')) {
-            cleaned = cleaned.slice(0, -1) // "12." -> "12"
-        }
-        return cleaned
-    }
+    // Store display value for input field (what user sees when typing)
+    const [displayValue, setDisplayValue] = useState<string>(tokenValue || '')
 
-    useEffect(() => {
-        const modeChanged = inputDenomination !== prevInputDenomination || currencyMode !== prevCurrencyMode
-        // Consider a change external if tokenValue changed AND the input is not focused, OR if modes changed.
-        const externalOrModeChange = modeChanged || (tokenValue !== prevTokenValue && !isFocused)
+    const onChange = (inputValue: string) => {
+        // Update display value (what the user sees)
+        setDisplayValue(inputValue)
 
-        // This effect should primarily react to external changes or mode changes to update inputValue.
-        // If focused, onChange is the main driver for inputValue.
-        if (externalOrModeChange || (!isFocused && tokenValue !== prevTokenValue)) {
-            let newInputValueTarget = ''
-            if (tokenValue && tokenValue !== '0') {
-                const numericTokenValue = parseFloat(tokenValue)
-                if (!isNaN(numericTokenValue)) {
-                    if (currency) {
-                        if (currencyMode === 'CUSTOM') {
-                            if (currency.price > 0) {
-                                newInputValueTarget = cleanDisplayString(
-                                    (numericTokenValue * currency.price).toFixed(2)
-                                )
-                            }
-                        } else {
-                            newInputValueTarget = cleanDisplayString(numericTokenValue.toFixed(2))
-                        }
-                    } else {
-                        if (inputDenomination === 'USD') {
-                            if (selectedTokenData?.price && selectedTokenData.price > 0) {
-                                newInputValueTarget = cleanDisplayString(
-                                    (numericTokenValue * selectedTokenData.price).toFixed(2)
-                                )
-                            } else {
-                                newInputValueTarget = tokenValue
-                            }
-                        } else {
-                            const displayDecimals = selectedTokenData?.decimals ?? 6
-                            newInputValueTarget = cleanDisplayString(numericTokenValue.toFixed(displayDecimals))
-                        }
-                    }
-                }
-            } else if (tokenValue === '0') {
-                newInputValueTarget = '0'
-            } else {
-                // tokenValue is undefined, null, or empty string (but not '0')
-                newInputValueTarget = ''
-            }
-
-            // Only update if the target is different from current inputValue
-            // This prevents disrupting user input if they are focused and typing something that leads to the same canonical tokenValue
-            // The main protection for focused input is that this useEffect path is usually only taken for external changes or mode changes.
-            if (inputValue !== newInputValueTarget) {
-                setInputValue(newInputValueTarget)
-            }
-        }
-
-        // Update previous state trackers after comparison
-        if (tokenValue !== prevTokenValue) setPrevTokenValue(tokenValue)
-        if (inputDenomination !== prevInputDenomination) setPrevInputDenomination(inputDenomination)
-        if (currencyMode !== prevCurrencyMode) setPrevCurrencyMode(currencyMode)
-    }, [
-        tokenValue,
-        currencyMode,
-        currency,
-        inputDenomination,
-        selectedTokenData,
-        isFocused,
-        inputValue,
-        prevTokenValue,
-        prevInputDenomination,
-        prevCurrencyMode,
-    ])
-
-    // Restore useEffect for dynamic width adjustment
-    useEffect(() => {
-        if (inputRef.current) {
-            const placeholderText = '0.00'
-            const textInInput = inputValue || placeholderText
-
-            let numChars = textInInput.length
-
-            if (numChars === 0) {
-                numChars = 1
-            } else if (inputValue === '' && placeholderText) {
-                numChars = placeholderText.length
-            }
-
-            const bufferForCursor = 1.5
-            inputRef.current.style.width = `${numChars + bufferForCursor}ch`
-        }
-    }, [inputValue])
-
-    const onChange = (rawUserTypedValue: string) => {
-        let sanitizedValue = rawUserTypedValue.replace(/[^0-9.]/g, '')
-        const parts = sanitizedValue.split('.')
-        if (parts.length > 1) {
-            sanitizedValue = parts[0] + '.' + (parts[1] || '')
-            if (parts.length > 2) {
-                sanitizedValue = parts[0] + '.' + parts.slice(1).join('')
-            }
-        }
-
-        const maxAllowedDecimals = currency || inputDenomination === 'USD' ? 2 : (selectedTokenData?.decimals ?? 6)
-
-        if (maxAllowedDecimals === 0 && sanitizedValue.includes('.')) {
-            sanitizedValue = sanitizedValue.split('.')[0]
-        } else if (parts.length === 2 && parts[1].length > maxAllowedDecimals) {
-            sanitizedValue = `${parts[0]}.${parts[1].substring(0, maxAllowedDecimals)}`
-        }
-
-        setInputValue(sanitizedValue)
-
-        let newCanonicalTokenValue
-        let newAlternativeCurrencyAmount
-
-        const numericSanitizedValue = parseFloat(sanitizedValue)
-
-        if (currency) {
-            if (isNaN(numericSanitizedValue) && sanitizedValue !== '' && sanitizedValue !== '.') {
-                newCanonicalTokenValue = undefined
-                newAlternativeCurrencyAmount = undefined
-            } else if (sanitizedValue === '' || sanitizedValue === '.') {
-                newCanonicalTokenValue = undefined
-                newAlternativeCurrencyAmount = undefined
-            } else if (currencyMode === 'CUSTOM') {
-                newAlternativeCurrencyAmount = numericSanitizedValue.toString()
-                if (currency.price > 0) {
-                    newCanonicalTokenValue = (numericSanitizedValue / currency.price).toFixed(6)
-                } else {
-                    newCanonicalTokenValue = undefined
-                }
-            } else {
-                newCanonicalTokenValue = numericSanitizedValue.toFixed(2)
-                if (currency.price > 0) {
-                    newAlternativeCurrencyAmount = (numericSanitizedValue * currency.price).toFixed(2)
-                }
-            }
+        // Convert to actual token value for payment processing
+        if (currency && currencyMode === 'CUSTOM') {
+            // Convert from custom currency to token value
+            const actualTokenValue = formatTokenAmount(Number(inputValue) / currency.price)!
+            setCurrencyAmount?.(inputValue)
+            setTokenValue(actualTokenValue.toString())
         } else {
-            if (isNaN(numericSanitizedValue) && sanitizedValue !== '' && sanitizedValue !== '.') {
-                newCanonicalTokenValue = undefined
-                newAlternativeCurrencyAmount = undefined
-            } else if (sanitizedValue === '' || sanitizedValue === '.') {
-                newCanonicalTokenValue = undefined
-                newAlternativeCurrencyAmount = undefined
-            } else if (inputDenomination === 'USD') {
-                newAlternativeCurrencyAmount = numericSanitizedValue.toFixed(2)
-                if (selectedTokenData?.price && selectedTokenData.price > 0) {
-                    newCanonicalTokenValue = (numericSanitizedValue / selectedTokenData.price).toFixed(
-                        selectedTokenData.decimals || 6
-                    )
-                } else {
-                    newCanonicalTokenValue = undefined
-                }
-            } else {
-                const tokenDecimals = selectedTokenData?.decimals ?? 0
-                const valueParts = sanitizedValue.split('.')
-                if (valueParts.length === 2 && valueParts[1].length > tokenDecimals) {
-                    newCanonicalTokenValue = parseFloat(
-                        valueParts[0] + '.' + valueParts[1].substring(0, tokenDecimals)
-                    ).toString()
-                } else {
-                    newCanonicalTokenValue = numericSanitizedValue.toString()
-                }
-
-                if (selectedTokenData?.price && selectedTokenData.price > 0) {
-                    newAlternativeCurrencyAmount = (numericSanitizedValue * selectedTokenData.price).toFixed(2)
-                }
-            }
+            setTokenValue(inputValue)
         }
-        setTokenValue(newCanonicalTokenValue)
-        if (setCurrencyAmount) setCurrencyAmount(newAlternativeCurrencyAmount)
     }
 
     const handleMaxClick = (e: React.MouseEvent) => {
         e.preventDefault()
-        e.stopPropagation()
+        e.stopPropagation() // Prevent container click handler from firing
         if (maxValue) {
+            setInputDenomination('TOKEN')
             setTokenValue(maxValue)
         }
     }
 
-    const handleFocus = () => setIsFocused(true)
-    const handleBlur = () => {
-        setIsFocused(false)
-        if (inputValue.endsWith('.')) {
-            const cleaned = inputValue.slice(0, -1) || ''
-            setInputValue(cleaned)
-            onChange(cleaned)
-        }
-    }
-
-    const handleToggleCurrencyMode = () => {
-        if (currency) {
-            setCurrencyMode((prevMode) => (prevMode === 'USD' ? 'CUSTOM' : 'USD'))
-        } else if (selectedTokenData?.price) {
-            const newDenomination = inputDenomination === 'USD' ? 'TOKEN' : 'USD'
-            setInputDenomination(newDenomination)
-        }
-    }
-
-    let inputPrefix = ''
-    if (currency) {
-        inputPrefix = currencyMode === 'CUSTOM' ? currency.symbol : '$'
-    } else {
-        if (inputDenomination === 'TOKEN') {
-            inputPrefix = selectedTokenData?.symbol || ''
-        } else {
-            inputPrefix = '$'
-        }
-    }
-
-    let secondaryDisplayString = ''
-    const numericTokenValueForSecondary = parseFloat(tokenValue || '0')
-
-    if (!isNaN(numericTokenValueForSecondary)) {
-        if (currency) {
-            if (currencyMode === 'CUSTOM') {
-                secondaryDisplayString = formatCurrencyWithIntl(
-                    numericTokenValueForSecondary,
-                    undefined,
-                    'USD',
-                    'currency',
-                    2,
-                    2
-                )
+    useEffect(() => {
+        if (inputRef.current) {
+            const valueToShow = currency && currencyMode === 'CUSTOM' ? displayValue : tokenValue
+            if (valueToShow?.length !== 0) {
+                inputRef.current.style.width = `${(valueToShow?.length ?? 0) + 1}ch`
             } else {
-                if (currency.price > 0) {
-                    const arsValue = numericTokenValueForSecondary * currency.price
-                    secondaryDisplayString = formatCurrencyWithIntl(
-                        arsValue,
-                        undefined,
-                        currency.code,
-                        'currency',
-                        2,
-                        2
-                    )
-                }
-            }
-        } else {
-            if (inputDenomination === 'USD') {
-                secondaryDisplayString = `${formatCurrencyWithIntl(numericTokenValueForSecondary, undefined, selectedTokenData?.symbol, 'decimal', 0, selectedTokenData?.decimals ?? 6)} ${selectedTokenData?.symbol || ''}`
-            } else {
-                if (selectedTokenData?.price && selectedTokenData.price > 0) {
-                    const usdValue = numericTokenValueForSecondary * selectedTokenData.price
-                    secondaryDisplayString = formatCurrencyWithIntl(usdValue, undefined, 'USD', 'currency', 2, 2)
-                }
+                inputRef.current.style.width = `4ch`
             }
         }
-    }
+    }, [tokenValue, displayValue, currency, currencyMode])
 
-    const handleContainerClick = () => inputRef.current?.focus()
+    const parentWidth = useMemo(() => {
+        if (inputRef.current && inputRef.current.parentElement) {
+            return inputRef.current.parentElement.offsetWidth
+        }
+        return 'auto'
+    }, [])
+
+    const formRef = useRef<HTMLFormElement>(null)
+
+    const handleContainerClick = () => {
+        if (inputRef.current) {
+            inputRef.current.focus()
+        }
+    }
 
     return (
         <form
+            ref={formRef}
             className={`relative cursor-text rounded-none border border-n-1 bg-white px-2 py-4 dark:border-white ${className}`}
             action=""
             onClick={handleContainerClick}
         >
             <div className="flex h-14 w-full flex-row items-center justify-center gap-1">
-                {inputPrefix && (
-                    <label className={`text-h1 ${inputValue ? 'text-black' : 'text-gray-2'}`}>{inputPrefix}</label>
-                )}
+                {/* Show dollar sign if either:
+                    1. We have price data from API and it's either in USD mode or is a stablecoin
+                    2. It's a Peanut Wallet USDC transaction (which we know is always $1)
+                    This prevents flickering/not loading of the dollar sign while waiting for price data */}
+                {(selectedTokenData?.price || (isPeanutWallet && selectedTokenAddress === PEANUT_WALLET_TOKEN)) &&
+                    (inputDenomination === 'USD' ||
+                    (selectedTokenData?.price ? estimateIfIsStableCoinFromPrice(selectedTokenData.price) : false) ? (
+                        <label className={`text-h1 ${tokenValue ? 'text-black' : 'text-gray-2'}`}>
+                            {currencyMode === 'CUSTOM' && currency ? currency.symbol : '$'}
+                        </label>
+                    ) : (
+                        <label className="sr-only text-h1">$</label>
+                    ))}
                 <input
-                    className={`h-12 max-w-[80%] overflow-x-auto bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                    className={`h-12 w-[4ch] max-w-80 bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                     placeholder={'0.00'}
-                    onChange={(e) => onChange(e.target.value)}
-                    onFocus={handleFocus}
-                    onBlur={handleBlur}
+                    onChange={(e) => {
+                        const value = formatAmountWithoutComma(e.target.value)
+                        onChange(value)
+                    }}
                     ref={inputRef}
-                    type="text"
                     inputMode="decimal"
-                    value={inputValue}
+                    type={inputType}
+                    value={currency && currencyMode === 'CUSTOM' ? displayValue : tokenValue}
+                    step="any"
+                    min="0"
                     autoComplete="off"
-                    disabled={disabled}
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter' && onSubmit) {
+                        if (e.key === 'Enter') {
                             e.preventDefault()
-                            onSubmit()
+                            if (onSubmit) onSubmit()
                         }
-                        if (
-                            ['e', '+', '-'].includes(e.key.toLowerCase()) &&
-                            e.key !== 'Backspace' &&
-                            e.key !== 'Delete' &&
-                            !e.ctrlKey &&
-                            !e.metaKey
-                        ) {
+                        if (['e', '+', '-'].includes(e.key.toLowerCase())) {
                             e.preventDefault()
                         }
                     }}
+                    style={{ maxWidth: `${parentWidth}px` }}
+                    disabled={disabled}
                 />
                 {maxValue && maxValue !== tokenValue && (
                     <button
@@ -351,66 +152,70 @@ const TokenAmountInput = ({
             </div>
             {walletBalance && (
                 <div className="mt-0.5 text-center text-xs text-grey-1">
-                    Your balance:{' '}
-                    {(() => {
-                        const numericWalletBalance = parseFloat(walletBalance)
-                        if (isNaN(numericWalletBalance)) return walletBalance
-
-                        if (isPeanutWallet) {
-                            return formatCurrencyWithIntl(numericWalletBalance, undefined, 'USD', 'currency', 2, 2)
-                        }
-                        if (currency) {
-                            if (currencyMode === 'CUSTOM') {
-                                return formatCurrencyWithIntl(
-                                    numericWalletBalance * currency.price,
-                                    undefined,
-                                    currency.code,
-                                    'currency',
-                                    2,
-                                    2
-                                )
-                            } else {
-                                return formatCurrencyWithIntl(numericWalletBalance, undefined, 'USD', 'currency', 2, 2)
-                            }
-                        } else {
-                            if (inputDenomination === 'USD') {
-                                if (selectedTokenData?.price && selectedTokenData.price > 0) {
-                                    return formatCurrencyWithIntl(
-                                        numericWalletBalance * selectedTokenData.price,
-                                        undefined,
-                                        'USD',
-                                        'currency',
-                                        2,
-                                        2
-                                    )
-                                } else {
-                                    return `${formatCurrencyWithIntl(numericWalletBalance, undefined, selectedTokenData?.symbol, 'decimal', 0, selectedTokenData?.decimals ?? 6)} ${selectedTokenData?.symbol || ''}`
-                                }
-                            } else {
-                                return `${formatCurrencyWithIntl(numericWalletBalance, undefined, selectedTokenData?.symbol, 'decimal', 0, selectedTokenData?.decimals ?? 6)} ${selectedTokenData?.symbol || ''}`
-                            }
-                        }
-                    })()}
+                    Your balance: {currencyMode === 'CUSTOM' && currency ? 'US$' : '$'}
+                    {walletBalance}
                 </div>
             )}
-            {((!currency && selectedTokenData?.price && !estimateIfIsStableCoinFromPrice(selectedTokenData.price)) ||
-                currency) && (
+            {/* Show conversion line and toggle */}
+            {((selectedTokenData?.price && !estimateIfIsStableCoinFromPrice(selectedTokenData.price)) || currency) && (
                 <div
                     className="flex w-full cursor-pointer flex-row items-center justify-center gap-1"
                     onClick={(e) => {
                         e.preventDefault()
-                        handleToggleCurrencyMode()
+                        if (currency) {
+                            // Toggle currency mode and convert display value
+                            if (currencyMode === 'USD') {
+                                // Going from USD to custom currency
+                                setCurrencyMode('CUSTOM')
+                                // Convert display value to show in custom currency
+                                if (tokenValue) {
+                                    setDisplayValue((Number(tokenValue) * currency.price).toString())
+                                }
+                            } else {
+                                // Going from custom currency to USD
+                                setCurrencyMode('USD')
+                                // Display the actual token value (USD)
+                                setDisplayValue(tokenValue || '')
+                            }
+                        } else if (selectedTokenData?.price) {
+                            setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
+                        }
                     }}
                 >
                     <label className="text-base text-grey-1">
-                        {secondaryDisplayString || `${currency?.symbol || selectedTokenData?.symbol || ''}0`}
+                        {!tokenValue
+                            ? '0'
+                            : currency && currencyMode === 'CUSTOM'
+                              ? formatTokenAmount(Number(tokenValue)) + ' USD'
+                              : currency && currencyMode === 'USD'
+                                ? formatTokenAmount(Number(tokenValue) * currency.price) + ' ' + currency.code
+                                : inputDenomination === 'USD'
+                                  ? formatTokenAmount(Number(tokenValue) / (selectedTokenData?.price ?? 1))
+                                  : '$' + formatTokenAmount(Number(tokenValue) * (selectedTokenData?.price ?? 1))}
                     </label>
                     {!disabled && (
                         <button
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
-                                handleToggleCurrencyMode()
+                                if (currency) {
+                                    // Toggle currency mode and convert display value
+                                    if (currencyMode === 'USD') {
+                                        // Going from USD to custom currency
+                                        setCurrencyMode('CUSTOM')
+                                        // Convert display value to show in custom currency
+                                        if (tokenValue) {
+                                            setDisplayValue((Number(tokenValue) * currency.price).toString())
+                                        }
+                                    } else {
+                                        // Going from custom currency to USD
+                                        setCurrencyMode('USD')
+                                        // Display the actual token value (USD)
+                                        setDisplayValue(tokenValue || '')
+                                    }
+                                } else if (selectedTokenData?.price) {
+                                    setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
+                                }
                             }}
                         >
                             <Icon name={'switch'} className="rotate-90 cursor-pointer fill-grey-1" />
