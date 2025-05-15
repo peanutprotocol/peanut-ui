@@ -89,8 +89,6 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
             (transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST &&
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
-    console.log(transaction)
-
     return (
         <BottomDrawer
             isOpen={isOpen}
