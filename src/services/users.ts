@@ -6,9 +6,10 @@ import {
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants'
 import { AccountType } from '@/interfaces'
+import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { fetchWithSentry } from '@/utils'
-import { chargesApi } from './charges'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { chargesApi } from './charges'
 import { TCharge } from './services.types'
 
 type ApiAccount = {
@@ -45,10 +46,12 @@ export const usersApi = {
         username,
         amount,
         toAddress,
+        attachment,
     }: {
         username: string
         amount: string
         toAddress: string
+        attachment?: IAttachmentOptions
     }): Promise<TCharge> => {
         return chargesApi.create({
             pricing_type: 'fixed_price',
@@ -64,8 +67,8 @@ export const usersApi = {
                 requesteeUsername: username,
                 recipientAddress: toAddress,
             },
-            attachment: undefined,
-            reference: undefined,
+            attachment: attachment?.rawFile,
+            reference: attachment?.message,
         })
     },
 }
