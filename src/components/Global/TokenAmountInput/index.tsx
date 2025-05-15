@@ -38,11 +38,18 @@ const TokenAmountInput = ({
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
     const { isConnected: isPeanutWallet } = useWallet()
 
-    // Add state for currency mode (USD or custom currency)
+    // If currency is specified, force CUSTOM mode and prevent switching
     const [currencyMode, setCurrencyMode] = useState<'USD' | 'CUSTOM'>(currency ? 'CUSTOM' : 'USD')
 
     // Store display value for input field (what user sees when typing)
     const [displayValue, setDisplayValue] = useState<string>(tokenValue || '')
+
+    // Effect to ensure currency mode stays in CUSTOM when currency is specified
+    useEffect(() => {
+        if (currency) {
+            setCurrencyMode('CUSTOM')
+        }
+    }, [currency])
 
     const onChange = (inputValue: string) => {
         // Update display value (what the user sees)
@@ -159,8 +166,11 @@ const TokenAmountInput = ({
             {/* Show conversion line and toggle */}
             {((selectedTokenData?.price && !estimateIfIsStableCoinFromPrice(selectedTokenData.price)) || currency) && (
                 <div
-                    className="flex w-full cursor-pointer flex-row items-center justify-center gap-1"
+                    className={`flex w-full flex-row items-center justify-center gap-1 ${
+                        currencyMode !== 'CUSTOM' ? 'cursor-pointer' : ''
+                    }`}
                     onClick={(e) => {
+                        if (currencyMode === 'CUSTOM') return
                         e.preventDefault()
                         if (currency) {
                             // Toggle currency mode and convert display value
@@ -193,7 +203,7 @@ const TokenAmountInput = ({
                                   ? formatTokenAmount(Number(tokenValue) / (selectedTokenData?.price ?? 1))
                                   : '$' + formatTokenAmount(Number(tokenValue) * (selectedTokenData?.price ?? 1))}
                     </label>
-                    {!disabled && (
+                    {!disabled && currencyMode !== 'CUSTOM' && (
                         <button
                             onClick={(e) => {
                                 e.preventDefault()
