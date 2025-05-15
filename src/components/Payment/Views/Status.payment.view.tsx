@@ -10,7 +10,7 @@ import { RecipientType } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
-import { printableAddress } from '@/utils'
+import { printableAddress, formatAmount } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -54,8 +54,9 @@ const DirectSuccessView = ({
     const displayAmount = useMemo(() => {
         if (currencyAmount) return currencyAmount
         const displayAmount = amount ?? chargeDetails?.tokenAmount ?? '0'
-        return `${displayAmount} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
+        return `${formatAmount(displayAmount)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
     }, [amount, chargeDetails, currencyAmount])
+
     useEffect(() => {
         // show loading for a brief moment, then show check mark
         const checkTimeout = setTimeout(() => {
