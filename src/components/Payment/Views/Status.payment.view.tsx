@@ -79,8 +79,8 @@ const DirectSuccessView = ({
 
     return (
         <div>
-            <div className="translate-y-2/3 space-y-4">
-                <Card className="p-4">
+            <div className="translate-y-1/3 space-y-4">
+                <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">
                         {recipientType !== 'USERNAME' ? (
                             <div
