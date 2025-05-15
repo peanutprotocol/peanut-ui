@@ -1,9 +1,8 @@
-import { PEANUT_WALLET_TOKEN } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { estimateIfIsStableCoinFromPrice } from '@/utils/general.utils'
 import { formatCurrencyWithIntl } from '@/utils/format.utils'
-import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { estimateIfIsStableCoinFromPrice } from '@/utils/general.utils'
+import { useContext, useEffect, useRef, useState } from 'react'
 import Icon from '../Icon'
 
 interface TokenAmountInputProps {
@@ -314,7 +313,7 @@ const TokenAmountInput = ({
                     <label className={`text-h1 ${inputValue ? 'text-black' : 'text-gray-2'}`}>{inputPrefix}</label>
                 )}
                 <input
-                    className={`h-12 max-w-80 overflow-x-auto bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                    className={`h-12 max-w-[80%] overflow-x-auto bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                     placeholder={'0.00'}
                     onChange={(e) => onChange(e.target.value)}
                     onFocus={handleFocus}
