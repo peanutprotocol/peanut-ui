@@ -48,7 +48,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             PullToRefresh.init({
-                mainElement: 'body', // target element for pull to refresh
+                mainElement: '#scrollable-content', // target the scrolling element
                 onRefresh: () => {
                     // simulate a refresh action
                     setTimeout(() => {
@@ -58,11 +58,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 instructionsPullToRefresh: 'Pull down to refresh',
                 instructionsReleaseToRefresh: 'Release to refresh',
                 instructionsRefreshing: 'Refreshing...',
-                // needed for pwa to avoid issues with native ios gestures
-                // checks if it's an ios pwa
-                shouldPullToRefresh: () =>
-                    !window.matchMedia('(display-mode: standalone)').matches &&
-                    /iPad|iPhone|iPod/.test(navigator.userAgent),
+                // enable for ios devices (safari and pwa)
+                shouldPullToRefresh: () => /iPad|iPhone|iPod/.test(navigator.userAgent),
             })
         }
 
