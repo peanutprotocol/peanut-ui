@@ -14,6 +14,7 @@ import { printableAddress } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
+import { useQueryClient } from '@tanstack/react-query'
 
 type DirectSuccessViewProps = {
     user?: ApiUser
@@ -38,6 +39,7 @@ const DirectSuccessView = ({
     const { chargeDetails, parsedPaymentData } = usePaymentStore()
     const [showCheck, setShowCheck] = useState(false)
     const dispatch = useDispatch()
+    const queryClient = useQueryClient()
 
     const recipientName = useMemo(() => {
         if (user?.username) {
@@ -60,10 +62,13 @@ const DirectSuccessView = ({
             setShowCheck(true)
         }, 800)
 
+        // Invalidate queries to refetch history
+        queryClient?.invalidateQueries({ queryKey: ['transactions'] })
+
         return () => {
             clearTimeout(checkTimeout)
         }
-    }, [])
+    }, [queryClient])
 
     const handleDone = () => {
         // reset payment state when done
