@@ -29,6 +29,7 @@ export interface TransactionDetails {
     date: string | Date
     fee?: number | string
     memo?: string
+    attachmentUrl?: string
     txHash?: string
     explorerUrl?: string
     extraDataForDrawer?: {
@@ -222,7 +223,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         isVerified: entry.recipientAccount?.isUser || entry.senderAccount?.isUser || false,
         date: entry.timestamp,
         fee: undefined,
-        memo: entry.memo?.trim() ?? entry.attachmentUrl?.trim(),
+        memo: entry.memo?.trim(),
+        attachmentUrl: entry.attachmentUrl,
         txHash: entry.txHash,
         explorerUrl: explorerUrlWithTx,
         extraDataForDrawer: {
