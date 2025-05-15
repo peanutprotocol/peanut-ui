@@ -6,7 +6,7 @@ import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
 import Link from 'next/link'
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useRef, useState, useMemo } from 'react'
 import { Button } from '../0_Bruddle'
 import { Icon } from '../Global/Icons/Icon'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
@@ -17,6 +17,7 @@ import { useUserStore } from '@/redux/hooks'
 import { useQueryClient } from '@tanstack/react-query'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { captureException } from '@sentry/nextjs'
+import { chargesApi } from '@/services/charges'
 
 interface TransactionDetailsDrawerProps {
     isOpen: boolean
@@ -36,6 +37,22 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     const queryClient = useQueryClient()
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const { fetchBalance } = useWallet()
+
+    const isPendingRequestee = useMemo(() => {
+        if (!transaction) return false
+        return (
+            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
+            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
+        )
+    }, [transaction])
+
+    const isPendingRequester = useMemo(() => {
+        if (!transaction) return false
+        return (
+            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
+            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.RECIPIENT
+        )
+    }, [transaction])
 
     // calculate drawer height based on content, with min/max constraints
     const drawerHeightVh = useDynamicHeight(contentRef, {
@@ -68,8 +85,6 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
         transaction.extraDataForDrawer?.link &&
         ((transaction.extraDataForDrawer.originalType === EHistoryEntryType.SEND_LINK &&
             transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.SENDER) ||
-            (transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST &&
-                transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.SENDER) ||
             (transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST &&
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
@@ -166,6 +181,80 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                     <span>Cancel link</span>
                                 </Button>
                             )}
+                    </div>
+                )}
+
+                {isPendingRequester && (
+                    <Button
+                        onClick={() => {
+                            setIsLoading(true)
+                            chargesApi
+                                .cancel(transaction.id)
+                                .then(() => {
+                                    queryClient
+                                        .invalidateQueries({
+                                            queryKey: ['transactions'],
+                                        })
+                                        .then(() => {
+                                            setIsLoading(false)
+                                            handleClose()
+                                        })
+                                })
+                                .catch((error) => {
+                                    captureException(error)
+                                    console.error('Error canceling charge:', error)
+                                    setIsLoading(false)
+                                })
+                        }}
+                        variant={'primary-soft'}
+                        shadowSize="4"
+                        className="flex w-full items-center gap-1"
+                    >
+                        <Icon name="cancel" />
+                        Cancel request
+                    </Button>
+                )}
+
+                {isPendingRequestee && (
+                    <div className="space-y-2">
+                        <Button
+                            onClick={() => {
+                                window.location.href = transaction.extraDataForDrawer?.link ?? ''
+                            }}
+                            shadowSize="4"
+                            className="flex w-full items-center gap-1"
+                        >
+                            <Icon name="currency" />
+                            Pay
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setIsLoading(true)
+                                chargesApi
+                                    .cancel(transaction.id)
+                                    .then(() => {
+                                        queryClient
+                                            .invalidateQueries({
+                                                queryKey: ['transactions'],
+                                            })
+                                            .then(() => {
+                                                setIsLoading(false)
+                                                handleClose()
+                                            })
+                                    })
+                                    .catch((error) => {
+                                        captureException(error)
+                                        console.error('Error canceling charge:', error)
+                                        setIsLoading(false)
+                                    })
+                            }}
+                            variant={'primary-soft'}
+                            shadowSize="4"
+                            className="flex w-full items-center gap-1"
+                        >
+                            <Icon name="cancel" />
+                            Reject request
+                        </Button>
                     </div>
                 )}
 

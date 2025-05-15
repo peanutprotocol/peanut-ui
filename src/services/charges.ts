@@ -1,5 +1,6 @@
 import { PEANUT_API_URL } from '@/constants'
 import { CreateChargeRequest, PaymentCreationResponse, TCharge, TRequestChargeResponse } from './services.types'
+import Cookies from 'js-cookie'
 import { fetchWithSentry, jsonParse } from '@/utils'
 
 export const chargesApi = {
@@ -32,6 +33,20 @@ export const chargesApi = {
         }
 
         return jsonParse(await response.text()) as TRequestChargeResponse
+    },
+
+    cancel: async (id: string): Promise<void> => {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/charges/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+            },
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to cancel charge: ${response.statusText}`)
+        }
     },
 
     createPayment: async ({

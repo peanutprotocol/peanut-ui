@@ -9,6 +9,7 @@ import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer
 import { formatAmount, printableAddress } from '@/utils'
 import React from 'react'
 import { isAddress } from 'viem'
+import { twMerge } from 'tailwind-merge'
 
 export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout' | 'receive'
 
@@ -20,6 +21,7 @@ interface TransactionCardProps {
     initials?: string
     position?: CardPosition
     transaction: TransactionDetails
+    isPending?: boolean
 }
 
 /**
@@ -35,6 +37,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     initials = '',
     position = 'middle',
     transaction,
+    isPending = false,
 }) => {
     // hook to manage the state of the details drawer (open/closed, selected transaction)
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
@@ -64,8 +67,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         />
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
-                            <div className="max-w-40 truncate font-roboto text-sm font-medium">
-                                {isAddress(name) ? printableAddress(name) : name}
+                            <div className="flex flex-row">
+                                {isPending && <div className="mr-2 h-3 w-3 animate-pulsate rounded-full bg-pink-1" />}
+                                <div className="max-w-40 truncate font-roboto text-sm font-medium">
+                                    {isAddress(name) ? printableAddress(name) : name}
+                                </div>
                             </div>
                             {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-gray-500">
@@ -77,11 +83,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
                     {/* amount and status on the right side */}
                     <div className="flex flex-col items-end space-y-0.5">
-                        <span className="font-roboto text-xs font-medium">
-                            {transaction.currency?.code === 'ARS'
-                                ? `ARS$ ${formatAmount(transaction.currency.amount)}`
-                                : `${transaction.currencySymbol}${formatAmount(amount)}`}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                            <span className="font-roboto text-xs font-medium">
+                                {transaction.currency?.code === 'ARS'
+                                    ? `ARS$ ${formatAmount(transaction.currency.amount)}`
+                                    : `${transaction.currencySymbol}${formatAmount(amount)}`}
+                            </span>
+                        </div>
                         {status && <StatusBadge status={status} />}
                     </div>
                 </div>
