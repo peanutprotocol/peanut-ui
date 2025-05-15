@@ -205,17 +205,27 @@ const TokenAmountInput = ({
                     min="0"
                     autoComplete="off"
                     onKeyDown={(e) => {
+                        // --- Manual Key Filtering for type="text" input ---
+                        // This handler restricts user input to valid characters for a decimal number
+                        // when using <input type="text">. It allows:
+                        // - Numeric digits (0-9)
+                        // - A single decimal point ('.'), only if one isn't already present in the current input value.
+                        // - Essential control keys: Backspace, Delete, Arrow keys, Tab.
+                        // - Standard command/control shortcuts (Cmd/Ctrl + A, C, V, X, Z, etc.).
+                        // All other characters (letters, multiple decimal points, symbols like 'e', '+', '-') are prevented.
+                        // The comma (thousands separator) is not directly allowed by onKeyDown; it's handled by formatting in onChange.
                         const { key, metaKey, ctrlKey } = e
                         if (
-                            !(key >= '0' && key <= '9') &&
-                            !(key === '.' && !e.currentTarget.value.includes('.')) &&
+                            !(key >= '0' && key <= '9') && // Allow digits 0-9
+                            !(key === '.' && !e.currentTarget.value.includes('.')) && // Allow a single decimal point
                             !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab'].includes(
                                 key
-                            ) &&
-                            !(metaKey || ctrlKey)
+                            ) && // Allow control keys
+                            !(metaKey || ctrlKey) // Allow Cmd/Ctrl + key combinations
                         ) {
-                            e.preventDefault()
+                            e.preventDefault() // Prevent invalid character input
                         }
+                        // --- End of Key Filtering ---
                     }}
                     style={{ maxWidth: `${parentWidth}px` }}
                     disabled={disabled}
@@ -246,6 +256,19 @@ const TokenAmountInput = ({
                     }}
                 >
                     <label className="text-base text-grey-1">
+                        {/* --- Secondary Converted Amount Display Logic --- */}
+                        {/* This IIFE determines what to display as the converted equivalent value */}
+                        {/* below the main input field. It handles several cases: */}
+                        {/* 1. No input value (`!tokenValue`): Shows a zero representation in the target currency. */}
+                        {/* 2. `currency` prop exists (ARS/USD mode): */}
+                        {/*    - If price is invalid, shows zero in target currency. */}
+                        {/*    - If input is CUSTOM (e.g., ARS), shows USD equivalent. */}
+                        {/*    - If input is USD, shows CUSTOM (e.g., ARS) equivalent. */}
+                        {/* 3. No `currency` prop (direct token input mode): */}
+                        {/*    - If token price is invalid, shows zero. */}
+                        {/*    - If input denomination is USD, shows token amount equivalent. */}
+                        {/*    - If input denomination is TOKEN, shows USD equivalent. */}
+                        {/* All fiat equivalents are formatted to 2 decimal places. Token amounts use their native decimals. */}
                         {(() => {
                             if (!tokenValue)
                                 return currencyMode === 'CUSTOM' && currency
@@ -253,30 +276,37 @@ const TokenAmountInput = ({
                                     : `${currency?.symbol || selectedTokenData?.symbol || ''}0`
 
                             if (currency) {
+                                // ARS/USD mode
                                 const price = currency.price
                                 if (!(price > 0)) {
                                     return currencyMode === 'CUSTOM' ? `$0` : `${currency.symbol}0`
                                 }
-
                                 if (currencyMode === 'CUSTOM') {
+                                    // Main input ARS, secondary USD
                                     return `$${formatNumberForDisplay(tokenValue, { maxDecimals: 2 })}`
                                 } else {
+                                    // Main input USD, secondary ARS
                                     const customEquivalent = Number(tokenValue) * price
                                     return `${currency.symbol}${formatNumberForDisplay(customEquivalent.toString(), { maxDecimals: 2 })}`
                                 }
                             } else {
+                                // Direct token input mode
                                 if (!selectedTokenData?.price || selectedTokenData.price <= 0) {
                                     return inputDenomination === 'USD' ? `${selectedTokenData?.symbol || ''}0` : '$0'
                                 }
+                                // tokenValue is the amount of the selectedTokenData (if inputDenom is TOKEN) or its USD value (if inputDenom is USD)
                                 if (inputDenomination === 'USD') {
+                                    // Main input is USD value of token, secondary is token amount
                                     const tokenAmountVal = Number(tokenValue) / selectedTokenData.price
                                     return `${formatTokenAmount(tokenAmountVal, selectedTokenData.decimals)} ${selectedTokenData.symbol || ''}`
                                 } else {
+                                    // Main input is Token amount, secondary is USD value
                                     const usdEquivalentVal = Number(tokenValue) * selectedTokenData.price
                                     return `$${formatNumberForDisplay(usdEquivalentVal.toString(), { maxDecimals: 2 })}`
                                 }
                             }
                         })()}
+                        {/* --- End of Secondary Converted Amount Display Logic --- */}
                     </label>
                     {!disabled && (
                         <button

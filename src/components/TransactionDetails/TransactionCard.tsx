@@ -55,11 +55,18 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
     const userNameForAvatar = transaction.userName
 
+    // --- Determine Display Amount with Sign and Currency ---
+    // This logic constructs the final string for the transaction amount, including its sign (+/-)
+    // and currency symbol (e.g., AR$, $), ensuring consistent formatting.
     let finalDisplayAmount = ''
     const actualCurrencyCode = transaction.currency?.code
-    // const positiveBaseAmount = Math.abs(amount); // Not strictly needed if logic handles sign correctly
 
     if (actualCurrencyCode === 'ARS' && transaction.currency?.amount) {
+        // Logic for ARS transactions:
+        // 1. Determine the sign (+/-) based on the user's role (sender/recipient) and the transaction type.
+        // 2. Get the ARS currency symbol.
+        // 3. Format the ARS amount string with thousands separators and appropriate decimals.
+        // 4. Combine sign, symbol, and formatted amount.
         let arsSign = ''
         const originalType = transaction.extraDataForDrawer?.originalType as EHistoryEntryType | undefined
         const originalUserRole = transaction.extraDataForDrawer?.originalUserRole as EHistoryUserRole | undefined
@@ -74,17 +81,22 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         } else if (
             originalUserRole === EHistoryUserRole.RECIPIENT &&
             (originalType === EHistoryEntryType.DEPOSIT ||
-                originalType === EHistoryEntryType.SEND_LINK ||
+                originalType === EHistoryEntryType.SEND_LINK || // Covers claimed links
                 originalType === EHistoryEntryType.DIRECT_SEND)
         ) {
+            // Covers received direct sends
             arsSign = '+'
         }
         finalDisplayAmount = `${arsSign}${getDisplayCurrencySymbol('ARS')}${formatNumberForDisplay(transaction.currency.amount)}`
     } else {
-        // For USD/others, mapTransactionDataForDrawer sets transaction.currencySymbol to "-$" or "+$".
-        // We append the formatted *absolute* amount.
+        // Logic for USD or other primary (non-ARS) currency transactions:
+        // Assumes `transaction.currencySymbol` (e.g., "+$" or "-$") is provided by `mapTransactionDataForDrawer`
+        // and already includes the correct sign and base symbol.
+        // The numeric `amount` prop is made absolute, and then formatted.
+        // This ensures that the sign comes from `transaction.currencySymbol` and the number formatting is clean.
         finalDisplayAmount = `${transaction.currencySymbol || '$'}${formatNumberForDisplay(Math.abs(amount).toString())}`
     }
+    // --- End of Display Amount Logic ---
 
     return (
         <>
