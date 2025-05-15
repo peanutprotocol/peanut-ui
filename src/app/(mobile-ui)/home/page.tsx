@@ -146,18 +146,18 @@ function WalletBalance({
 
     return (
         <div className="flex items-center gap-2">
-            <p className="flex items-end gap-2 text-4xl font-black leading-none sm:text-[2.5rem]">
+            <div className="flex items-end gap-2 text-4xl font-black leading-none sm:text-[2.5rem]">
                 {isFetchingBalance ? (
-                    <div className="pl-3">
+                    <span className="block pl-3">
                         <Loading />
-                    </div>
+                    </span>
                 ) : (
                     <>
                         <span className="text-xl">$ </span>
                         {balanceDisplay}
                     </>
                 )}
-            </p>
+            </div>
 
             {!isFetchingBalance && (
                 <button onClick={onToggleBalanceVisibility}>

@@ -134,29 +134,20 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                             />
                         )}
                         {transaction.status === 'cancelled' &&
-                        transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.BOTH ? (
-                            <>
-                                {transaction.cancelledDate && ( // Cancelled Date
-                                    <PaymentInfoRow
-                                        label="Cancelled"
-                                        value={formatDate(transaction.cancelledDate as Date)}
-                                        hideBottomBorder={
-                                            !transaction.fee && !transaction.memo && !transaction.attachmentUrl
-                                        }
-                                    />
-                                )}
-                            </>
-                        ) : (
-                            transaction.date && ( // Default: just "Date"
-                                <PaymentInfoRow
-                                    label="Date"
-                                    value={formatDate(transaction.date as Date)}
-                                    hideBottomBorder={
-                                        !transaction.fee && !transaction.memo && !transaction.attachmentUrl
-                                    }
-                                />
-                            )
-                        )}
+                            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.BOTH &&
+                            transaction.cancelledDate && (
+                                <>
+                                    {transaction.cancelledDate && (
+                                        <PaymentInfoRow
+                                            label="Cancelled"
+                                            value={formatDate(transaction.cancelledDate as Date)}
+                                            hideBottomBorder={
+                                                !transaction.fee && !transaction.memo && !transaction.attachmentUrl
+                                            }
+                                        />
+                                    )}
+                                </>
+                            )}
                         {transaction.fee !== undefined && (
                             <PaymentInfoRow
                                 label="Fee"
