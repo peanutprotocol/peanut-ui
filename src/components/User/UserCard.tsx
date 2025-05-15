@@ -19,9 +19,14 @@ const UserCard = ({ type, username, fullName, recipientType }: UserCardProps) =>
         if (type === 'payment') return `You're paying`
     }, [type])
 
+    // TODO: remove after pizzaaaa
+    const isPizza = username.toLowerCase() === 'nshc92'
+
     return (
         <Card className="flex items-center gap-2 p-4">
-            {recipientType !== 'USERNAME' ? (
+            {isPizza ? (
+                <AvatarWithBadge size="extra-small" name={'🍕'} />
+            ) : recipientType !== 'USERNAME' ? (
                 <div className={'flex size-8 items-center justify-center rounded-full bg-yellow-5 font-bold'}>
                     <Icon name="wallet-outline" size={16} />
                 </div>
@@ -30,7 +35,9 @@ const UserCard = ({ type, username, fullName, recipientType }: UserCardProps) =>
             )}
             <div>
                 <div className="text-xs text-grey-1">{getTitle()}</div>
-                {recipientType !== 'USERNAME' ? (
+                {isPizza ? (
+                    <div className="text-sm font-medium">Pizza Data</div>
+                ) : recipientType !== 'USERNAME' ? (
                     <AddressLink address={username} />
                 ) : (
                     <div className="text-sm font-medium">{fullName || username}</div>
