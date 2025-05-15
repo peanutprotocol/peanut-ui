@@ -57,18 +57,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
     const userNameForAvatar = transaction.userName
 
-    // --- Determine Display Amount with Sign and Currency ---
-    // This logic constructs the final string for the transaction amount, including its sign (+/-)
-    // and currency symbol (e.g., AR$, $), ensuring consistent formatting.
     let finalDisplayAmount = ''
     const actualCurrencyCode = transaction.currency?.code
+    const defaultDisplayDecimals = actualCurrencyCode === 'JPY' ? 0 : 2 // JPY has 0, others default to 2
 
     if (actualCurrencyCode === 'ARS' && transaction.currency?.amount) {
-        // Logic for ARS transactions:
-        // 1. Determine the sign (+/-) based on the user's role (sender/recipient) and the transaction type.
-        // 2. Get the ARS currency symbol.
-        // 3. Format the ARS amount string with thousands separators and appropriate decimals.
-        // 4. Combine sign, symbol, and formatted amount.
         let arsSign = ''
         const originalType = transaction.extraDataForDrawer?.originalType as EHistoryEntryType | undefined
         const originalUserRole = transaction.extraDataForDrawer?.originalUserRole as EHistoryUserRole | undefined
@@ -83,22 +76,33 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         } else if (
             originalUserRole === EHistoryUserRole.RECIPIENT &&
             (originalType === EHistoryEntryType.DEPOSIT ||
-                originalType === EHistoryEntryType.SEND_LINK || // Covers claimed links
+                originalType === EHistoryEntryType.SEND_LINK ||
                 originalType === EHistoryEntryType.DIRECT_SEND)
         ) {
-            // Covers received direct sends
             arsSign = '+'
         }
-        finalDisplayAmount = `${arsSign}${getDisplayCurrencySymbol('ARS')}${formatNumberForDisplay(transaction.currency.amount)}`
+        finalDisplayAmount = `${arsSign}${getDisplayCurrencySymbol('ARS')}${formatNumberForDisplay(transaction.currency.amount, { maxDecimals: defaultDisplayDecimals })}`
     } else {
-        // Logic for USD or other primary (non-ARS) currency transactions:
-        // Assumes `transaction.currencySymbol` (e.g., "+$" or "-$") is provided by `mapTransactionDataForDrawer`
-        // and already includes the correct sign and base symbol.
-        // The numeric `amount` prop is made absolute, and then formatted.
-        // This ensures that the sign comes from `transaction.currencySymbol` and the number formatting is clean.
-        finalDisplayAmount = `${transaction.currencySymbol || '$'}${formatNumberForDisplay(Math.abs(amount).toString())}`
+        const displaySymbol =
+            transaction.tokenSymbol && !actualCurrencyCode // If it's a token amount not a fiat currency
+                ? '' // No currency symbol prefix for tokens like ETH, BNB, just the amount and then tokenSymbol
+                : transaction.currencySymbol || getDisplayCurrencySymbol(actualCurrencyCode) // Use provided sign+symbol or derive symbol
+
+        let amountString = Math.abs(amount).toString()
+        // If it's a token and not USD/ARS, transaction.tokenSymbol should be displayed after amount.
+        // And `displayDecimals` might need to come from token itself if available, else default.
+        const decimalsForDisplay = actualCurrencyCode // If it's a known currency (USD, ARS)
+            ? defaultDisplayDecimals
+            : transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK // Example: check token specific decimals if available
+              ? ((transaction.extraDataForDrawer as any)?.tokenDecimalsForDisplay ?? 6) // Fallback to 6 for tokens
+              : 6 // General fallback for other tokens
+
+        finalDisplayAmount = `${displaySymbol}${formatNumberForDisplay(amountString, { maxDecimals: decimalsForDisplay })}`
+        if (transaction.tokenSymbol && !actualCurrencyCode) {
+            // Append token symbol if it's a token transaction
+            finalDisplayAmount += ` ${transaction.tokenSymbol}`
+        }
     }
-    // --- End of Display Amount Logic ---
 
     return (
         <>
