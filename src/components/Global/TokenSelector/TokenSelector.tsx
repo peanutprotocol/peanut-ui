@@ -455,12 +455,18 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 const isSelected =
                     areEvmAddressesEqual(selectedTokenAddress, balance.address) &&
                     selectedChainID === String(balance.chainId)
+                const chainDataFromSquid = supportedSquidChainsAndTokens[String(balance.chainId)]
+                const isTokenSupportedBySquid =
+                    chainDataFromSquid?.tokens.some((squidToken) =>
+                        areEvmAddressesEqual(squidToken.address, balance.address)
+                    ) ?? false
                 return (
                     <TokenListItem
                         key={`${balance.address}_${String(balance.chainId)}_user_balance`}
                         balance={balance}
                         onClick={() => handleTokenSelect(balance)}
                         isSelected={isSelected}
+                        isSquidSupported={isTokenSupportedBySquid}
                     />
                 )
             })
