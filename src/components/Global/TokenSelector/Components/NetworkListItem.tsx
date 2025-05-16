@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import React from 'react'
+import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
@@ -25,6 +25,8 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
     isComingSoon = false,
     onClick,
 }) => {
+    const [iconError, setIconError] = useState(false)
+
     return (
         <Button
             key={chainId}
@@ -49,13 +51,14 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                 <div className="relative flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                         <div className="relative h-8 w-8">
-                            {iconUrl ? (
+                            {iconUrl && !iconError ? (
                                 <Image
                                     src={iconUrl}
                                     alt={`${name} logo`}
                                     width={32}
                                     height={32}
                                     className={twMerge(!isComingSoon && 'rounded-full')}
+                                    onError={() => setIconError(true)}
                                 />
                             ) : (
                                 <AvatarWithBadge size="extra-small" name={name} />
