@@ -43,14 +43,21 @@ export const useWallet = () => {
             console.warn('Cannot fetch balance, address is undefined.')
             return
         }
-        const balance = await peanutPublicClient.readContract({
-            address: PEANUT_WALLET_TOKEN,
-            abi: erc20Abi,
-            functionName: 'balanceOf',
-            args: [address as Hex],
-        })
-        dispatch(walletActions.setBalance(balance))
-        setIsFetchingBalance(false)
+        await peanutPublicClient
+            .readContract({
+                address: PEANUT_WALLET_TOKEN,
+                abi: erc20Abi,
+                functionName: 'balanceOf',
+                args: [address as Hex],
+            })
+            .then((balance) => {
+                dispatch(walletActions.setBalance(balance))
+                setIsFetchingBalance(false)
+            })
+            .catch((error) => {
+                console.error('Error fetching balance:', error)
+                setIsFetchingBalance(false)
+            })
     }, [address, dispatch])
 
     const getRewardWalletBalance = useCallback(async () => {
@@ -58,15 +65,22 @@ export const useWallet = () => {
             console.warn('Cannot fetch reward balance, address is undefined.')
             return ''
         }
-        const balance = await pintaPublicClient.readContract({
-            address: PINTA_WALLET_TOKEN,
-            abi: erc20Abi,
-            functionName: 'balanceOf',
-            args: [getAddress(address)],
-        })
-        const formatedBalance = formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
-        dispatch(walletActions.setRewardWalletBalance(formatedBalance))
-        setIsFetchingRewardBalance(false)
+        await pintaPublicClient
+            .readContract({
+                address: PINTA_WALLET_TOKEN,
+                abi: erc20Abi,
+                functionName: 'balanceOf',
+                args: [getAddress(address)],
+            })
+            .then((balance) => {
+                const formatedBalance = formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
+                dispatch(walletActions.setRewardWalletBalance(formatedBalance))
+                setIsFetchingRewardBalance(false)
+            })
+            .catch((error) => {
+                console.error('Error fetching reward balance:', error)
+                setIsFetchingRewardBalance(false)
+            })
     }, [address, dispatch])
 
     useEffect(() => {
