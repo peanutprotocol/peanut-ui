@@ -8,6 +8,7 @@ import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { useAuth } from '@/context/authContext'
+import { useCurrency } from '@/hooks/useCurrency'
 import { EParseUrlError, parsePaymentURL, ParseUrlError } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
@@ -16,9 +17,8 @@ import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { formatAmount } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { useCurrency } from '@/hooks/useCurrency'
 
 interface Props {
     recipient: string[]
@@ -30,6 +30,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     const { currentView, requestDetails, parsedPaymentData, chargeDetails } = usePaymentStore()
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
+    const [isRequestDetailsFetching, setIsRequestDetailsFetching] = useState(false)
     const { user } = useAuth()
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
@@ -42,9 +43,20 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     } = useCurrency(searchParams.get('currency'))
     const [currencyAmount, setCurrencyAmount] = useState<string>('')
 
+    const isMountedRef = useRef(true)
+
+    // prevent memory leaks
+    useEffect(() => {
+        isMountedRef.current = true
+        return () => {
+            isMountedRef.current = false
+        }
+    }, [])
+
     useEffect(() => {
         if (!parsedPaymentData) {
             setIsUrlParsed(false)
+            setError(null)
         }
     }, [parsedPaymentData])
 
@@ -170,17 +182,27 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     // fetch request details if request ID is available
     useEffect(() => {
         if (requestId) {
+            setIsRequestDetailsFetching(true)
             requestsApi
                 .get(requestId)
                 .then((request) => {
+                    if (!isMountedRef.current) return
                     dispatch(paymentActions.setRequestDetails(request))
                     dispatch(paymentActions.setView('INITIAL'))
                 })
                 .catch((_err) => {
+                    if (!isMountedRef.current) return
                     setError(getDefaultError(!!user))
                 })
+                .finally(() => {
+                    if (isMountedRef.current) {
+                        setIsRequestDetailsFetching(false)
+                    }
+                })
+        } else {
+            setIsRequestDetailsFetching(false)
         }
-    }, [requestId])
+    }, [requestId, dispatch, user])
 
     // reset payment state when navigating to a new payment page
     useEffect(() => {
@@ -199,7 +221,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     }
 
     // show loading until URL is parsed and req/charge data is loaded
-    const isLoading = !isUrlParsed || (chargeId && !chargeDetails) || (requestId && !requestDetails)
+    const isLoading = !isUrlParsed || (chargeId && !chargeDetails) || isRequestDetailsFetching
 
     if (isLoading) {
         return (
