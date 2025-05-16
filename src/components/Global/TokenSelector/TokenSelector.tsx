@@ -14,7 +14,7 @@ import { tokenSelectorContext } from '@/context'
 import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { IToken, IUserBalance } from '@/interfaces'
 import { areEvmAddressesEqual, fetchWalletBalances, formatAmount, isNativeCurrency } from '@/utils'
-import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
+import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import EmptyState from '../EmptyStates/EmptyState'
 import { Icon, IconName } from '../Icons/Icon'
@@ -183,19 +183,14 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const handleChainSelectFromList = useCallback(
         (chainId: string) => {
             setSelectedChainID(chainId)
-            // for popular tokens, we don't auto-select a token. User will click from list.
-            // for user tokens, if a wallet is connected, this might pre-select their native or first token.
             if (isExternalWalletConnected) {
-                const tokenWithBalance = sourceBalances.find(
-                    (balance) => String(balance.chainId) === chainId && balance.amount > 0
-                )
-                setSelectedTokenAddress(tokenWithBalance?.address ?? NATIVE_TOKEN_ADDRESS)
+                setSelectedTokenAddress('') // clear token when chain changes with external wallet
             } else {
                 setSelectedTokenAddress('') // clear selected token when changing network in popular view
             }
             setShowNetworkList(false)
         },
-        [setSelectedChainID, setSelectedTokenAddress, sourceBalances, isExternalWalletConnected]
+        [setSelectedChainID, setSelectedTokenAddress, isExternalWalletConnected]
     )
 
     // selected network name memo, being used ui
@@ -223,61 +218,49 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         }
     }, [supportedSquidChainsAndTokens])
 
-    // sets default token only if no token/chain is selected and this is the initial state for specific view types
-    useEffect(() => {
-        if (
-            !selectedTokenAddress &&
-            !selectedChainID &&
-            (viewType === 'other' || viewType === 'withdraw' || viewType === 'claim')
-        ) {
-            if (peanutWalletTokenDetails) {
-                setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-                setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+    // button display variables
+    let buttonSymbol: string | undefined = undefined
+    let buttonChainName: string | undefined = undefined
+    let buttonFormattedBalance: string | null = null
+    let buttonLogoURI: string | undefined = undefined
+
+    if (isExternalWalletConnected) {
+        if (selectedTokenAddress && selectedChainID) {
+            // wallet connected AND token selected
+            const userBalanceDetails = sourceBalances.find(
+                (b) => areEvmAddressesEqual(b.address, selectedTokenAddress) && String(b.chainId) === selectedChainID
+            )
+            const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
+            const generalTokenDetails = chainInfo?.tokens.find((t) =>
+                areEvmAddressesEqual(t.address, selectedTokenAddress)
+            )
+
+            if (generalTokenDetails && chainInfo) {
+                buttonSymbol = generalTokenDetails.symbol
+                buttonLogoURI = generalTokenDetails.logoURI
+                buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
+            }
+            if (userBalanceDetails) {
+                buttonFormattedBalance = formatAmount(userBalanceDetails.amount)
+            } else {
+                if (generalTokenDetails) buttonFormattedBalance = '0'
             }
         }
-    }, [
-        selectedTokenAddress,
-        selectedChainID,
-        peanutWalletTokenDetails,
-        setSelectedTokenAddress,
-        setSelectedChainID,
-        viewType,
-    ])
-
-    // button display variables with defaults from peanut wallet token
-    let buttonSymbol: string | undefined = peanutWalletTokenDetails?.symbol
-    let buttonChainName: string | undefined = peanutWalletTokenDetails?.chainName
-    let buttonFormattedBalance: string | null = peanutWalletTokenDetails?.balance || null
-    let buttonLogoURI: string | undefined = peanutWalletTokenDetails?.logoURI
-
-    if (isExternalWalletConnected && selectedTokenAddress && selectedChainID && sourceBalances.length > 0) {
-        const userBalanceDetails = sourceBalances.find(
-            (b) => areEvmAddressesEqual(b.address, selectedTokenAddress) && String(b.chainId) === selectedChainID
-        )
-        const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
-        const generalTokenDetails = chainInfo?.tokens.find((t) => areEvmAddressesEqual(t.address, selectedTokenAddress))
-
-        if (generalTokenDetails && chainInfo) {
-            buttonSymbol = generalTokenDetails.symbol
-            buttonLogoURI = generalTokenDetails.logoURI
-            buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
+    } else {
+        // no external wallet connected
+        if (selectedTokenAddress && selectedChainID) {
+            // popular token selected by user or "usdc on arb" card clicked
+            const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
+            const generalTokenDetails = chainInfo?.tokens.find((t) =>
+                areEvmAddressesEqual(t.address, selectedTokenAddress)
+            )
+            if (generalTokenDetails && chainInfo) {
+                buttonSymbol = generalTokenDetails.symbol
+                buttonLogoURI = generalTokenDetails.logoURI
+                buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
+            }
         }
-        if (userBalanceDetails) {
-            buttonFormattedBalance = formatAmount(userBalanceDetails.amount)
-        } else {
-            // if no balance, but token is selected (e.g. popular token clicked without balance)
-            if (generalTokenDetails) buttonFormattedBalance = '0' // show 0 if no balance but token info exists
-        }
-    } else if (!isExternalWalletConnected && selectedTokenAddress && selectedChainID) {
-        // handle button display for popular tokens when no wallet connected
-        const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
-        const generalTokenDetails = chainInfo?.tokens.find((t) => areEvmAddressesEqual(t.address, selectedTokenAddress))
-        if (generalTokenDetails && chainInfo) {
-            buttonSymbol = generalTokenDetails.symbol
-            buttonLogoURI = generalTokenDetails.logoURI
-            buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
-        }
-    } // if wallet connected but no token selected, or no wallet and no token, defaults (Peanut USDC) are used
+    }
 
     const allowedChainIds = useMemo(() => new Set(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS), [])
 
