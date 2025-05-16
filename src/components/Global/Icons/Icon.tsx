@@ -11,12 +11,14 @@ import { CheckIcon } from './check'
 import { ChevronUpIcon } from './chevron-up'
 import { CopyIcon } from './copy'
 import { CurrencyIcon } from './currency'
+import { DocsIcon } from './docs'
 import { DownloadIcon } from './download'
 import { ExchangeIcon } from './exchange'
 import { EyeIcon } from './eye'
 import { EyeSlashIcon } from './eye-slash'
 import { FeesIcon } from './fees'
 import { GiftIcon } from './gift'
+import { HistoryIcon } from './history'
 import { HomeIcon } from './home'
 import { LinkIcon } from './link'
 import { LogoutIcon } from './logout'
@@ -70,6 +72,8 @@ export type IconName =
     | 'share'
     | 'user-plus'
     | 'qr-code'
+    | 'history'
+    | 'docs'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -111,6 +115,8 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     copy: CopyIcon,
     cancel: CancelIcon,
     'qr-code': QrCodeIcon,
+    history: HistoryIcon,
+    docs: DocsIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
