@@ -8,6 +8,7 @@ import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
 import BottomDrawer from '@/components/Global/BottomDrawer'
 import Card from '@/components/Global/Card'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
 import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
@@ -69,6 +70,10 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // refs to track previous state for useEffect logic
     const prevIsExternalConnected = useRef(isExternalWalletConnected)
     const prevExternalAddress = useRef<string | null>(externalWalletAddress ?? null)
+    // state for image loading errors
+    const [buttonImageError, setButtonImageError] = useState(false)
+    const [defaultTokenImageError, setDefaultTokenImageError] = useState(false)
+    const [defaultChainImageError, setDefaultChainImageError] = useState(false)
     const {
         supportedSquidChainsAndTokens,
         setSelectedTokenAddress,
@@ -521,13 +526,14 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 <div className="flex flex-grow items-center justify-between gap-3 overflow-hidden">
                     <div className="flex items-center gap-2 overflow-hidden">
                         <div className="relative flex-shrink-0">
-                            {buttonLogoURI ? (
+                            {buttonLogoURI && !buttonImageError ? (
                                 <Image
                                     src={buttonLogoURI}
                                     alt={`${buttonSymbol} logo`}
                                     width={24}
                                     height={24}
                                     className="rounded-full"
+                                    onError={() => setButtonImageError(true)}
                                 />
                             ) : (
                                 <Icon name="currency" size={24} />
@@ -601,20 +607,35 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center space-x-3">
                                                     <div className="relative h-8 w-8">
-                                                        <Image
-                                                            src={peanutWalletTokenDetails?.logoURI ?? ''}
-                                                            alt={`${peanutWalletTokenDetails?.symbol} logo`}
-                                                            width={28}
-                                                            height={28}
-                                                            className="rounded-full"
-                                                        />
-                                                        <Image
-                                                            src={peanutWalletTokenDetails?.chainLogoURI ?? ''}
-                                                            alt={`${peanutWalletTokenDetails?.chainName}`}
-                                                            width={24}
-                                                            height={24}
-                                                            className="absolute -right-1 bottom-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-gray-700 text-xs text-white"
-                                                        />
+                                                        {peanutWalletTokenDetails?.logoURI &&
+                                                        !defaultTokenImageError ? (
+                                                            <Image
+                                                                src={peanutWalletTokenDetails.logoURI}
+                                                                alt={`${peanutWalletTokenDetails?.symbol} logo`}
+                                                                width={28}
+                                                                height={28}
+                                                                className="rounded-full"
+                                                                onError={() => setDefaultTokenImageError(true)}
+                                                            />
+                                                        ) : peanutWalletTokenDetails?.symbol ? (
+                                                            <AvatarWithBadge
+                                                                name={peanutWalletTokenDetails.symbol}
+                                                                size="extra-small"
+                                                            />
+                                                        ) : (
+                                                            <Icon name="currency" size={28} />
+                                                        )}
+                                                        {peanutWalletTokenDetails?.chainLogoURI &&
+                                                        !defaultChainImageError ? (
+                                                            <Image
+                                                                src={peanutWalletTokenDetails.chainLogoURI}
+                                                                alt={`${peanutWalletTokenDetails?.chainName}`}
+                                                                width={16}
+                                                                height={16}
+                                                                className="absolute -right-1 bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2"
+                                                                onError={() => setDefaultChainImageError(true)}
+                                                            />
+                                                        ) : null}
                                                     </div>
                                                     <div>
                                                         <p className="font-semibold text-black">USDC on Arbitrum</p>
@@ -645,7 +666,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                                     key={chain.chainId}
                                                     chainName={chain.name}
                                                     chainIconURI={chain.iconURI}
-                                                    onClick={() => setSelectedChainID(chain.chainId)} // Simpler selection
+                                                    onClick={() => setSelectedChainID(chain.chainId)}
                                                     isSelected={chain.chainId === selectedChainID}
                                                 />
                                             ))}

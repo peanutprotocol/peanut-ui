@@ -1,4 +1,5 @@
 import Card, { CardPosition } from '@/components/Global/Card'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { IUserBalance } from '@/interfaces'
 import { formatAmount } from '@/utils'
@@ -26,6 +27,8 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
 }) => {
     const [tokenPlaceholder, setTokenPlaceholder] = useState(false)
     const [chainLogoPlaceholder, setChainLogoPlaceholder] = useState(false)
+    const [tokenImageError, setTokenImageError] = useState(false)
+    const [chainImageError, setChainImageError] = useState(false)
     const { supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
 
     const chainDetails = useMemo(() => {
@@ -57,8 +60,8 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                         <div className="relative flex-shrink-0">
-                            {!balance.logoURI || tokenPlaceholder ? (
-                                <Icon name="currency" size={24} />
+                            {!balance.logoURI || tokenPlaceholder || tokenImageError ? (
+                                <AvatarWithBadge name={balance.symbol} size="extra-small" />
                             ) : (
                                 <Image
                                     src={balance.logoURI}
@@ -66,10 +69,13 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                     width={24}
                                     height={24}
                                     className="rounded-full"
-                                    onError={() => setTokenPlaceholder(true)}
+                                    onError={() => {
+                                        setTokenPlaceholder(true)
+                                        setTokenImageError(true)
+                                    }}
                                 />
                             )}
-                            {chainDetails.iconURI && !chainLogoPlaceholder && (
+                            {chainDetails.iconURI && !chainLogoPlaceholder && !chainImageError && (
                                 <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2 dark:border-black dark:bg-grey-1">
                                     <Image
                                         src={chainDetails.iconURI}
@@ -77,7 +83,10 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                         width={16}
                                         height={16}
                                         className="rounded-full"
-                                        onError={() => setChainLogoPlaceholder(true)}
+                                        onError={() => {
+                                            setChainLogoPlaceholder(true)
+                                            setChainImageError(true)
+                                        }}
                                     />
                                 </div>
                             )}
