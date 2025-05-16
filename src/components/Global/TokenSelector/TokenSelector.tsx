@@ -501,6 +501,13 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         )
     }
 
+    // auto disconnect external wallet when claim view is active
+    useEffect(() => {
+        if (isExternalWalletConnected && viewType === 'claim') {
+            disconnectWallet()
+        }
+    }, [isExternalWalletConnected, viewType])
+
     return (
         <>
             <Button
