@@ -86,9 +86,9 @@ export const CreateRequestLinkView = () => {
             recipientAddress,
             tokenAddress,
             chainId,
-            tokenValue,
-            tokenData,
-            attachmentOptions,
+            tokenValue: inputValueFromParam,
+            tokenData: initialTokenData,
+            attachmentOptions: currentAttachmentOptions,
         }: {
             recipientAddress: string | undefined
             tokenAddress: string
@@ -104,7 +104,7 @@ export const CreateRequestLinkView = () => {
                 })
                 return
             }
-            if (!tokenValue) {
+            if (!inputValueFromParam) {
                 setErrorState({
                     showError: true,
                     errorMessage: 'Please enter a token amount',
@@ -115,9 +115,10 @@ export const CreateRequestLinkView = () => {
             setIsCreatingLink(true)
             setLoadingState('Creating link')
 
-            if (!tokenData) {
+            let finalTokenData = initialTokenData
+            if (!finalTokenData) {
                 const tokenDetails = await fetchTokenDetails(tokenAddress, chainId)
-                tokenData = {
+                finalTokenData = {
                     address: tokenAddress,
                     chainId,
                     symbol: (await fetchTokenSymbol(tokenAddress, chainId)) ?? '',
@@ -125,25 +126,25 @@ export const CreateRequestLinkView = () => {
                 }
             }
             try {
-                let inputValue = tokenValue
+                let processedTokenValue = inputValueFromParam
                 if (inputDenomination === 'USD') {
-                    inputValue = parseFloat(tokenValue as string).toFixed(tokenData.decimals)
+                    processedTokenValue = parseFloat(inputValueFromParam as string).toFixed(finalTokenData.decimals)
                 }
-                const tokenType = isNativeCurrency(tokenData.address)
+                const tokenType = isNativeCurrency(finalTokenData.address)
                     ? peanutInterfaces.EPeanutLinkType.native
                     : peanutInterfaces.EPeanutLinkType.erc20
                 const requestDetails = await requestsApi.create({
-                    chainId: tokenData.chainId,
-                    tokenAmount: inputValue,
+                    chainId: finalTokenData.chainId,
+                    tokenAmount: processedTokenValue,
                     recipientAddress,
-                    tokenAddress: tokenData.address,
-                    tokenDecimals: tokenData.decimals.toString(),
+                    tokenAddress: finalTokenData.address,
+                    tokenDecimals: finalTokenData.decimals.toString(),
                     tokenType: tokenType.valueOf().toString(),
-                    tokenSymbol: tokenData.symbol,
-                    reference: attachmentOptions?.message,
-                    attachment: attachmentOptions?.rawFile,
-                    mimeType: attachmentOptions?.rawFile?.type,
-                    filename: attachmentOptions?.rawFile?.name,
+                    tokenSymbol: finalTokenData.symbol,
+                    reference: currentAttachmentOptions?.message,
+                    attachment: currentAttachmentOptions?.rawFile,
+                    mimeType: currentAttachmentOptions?.rawFile?.type,
+                    filename: currentAttachmentOptions?.rawFile?.name,
                 })
                 const link = getRequestLink(requestDetails)
                 setGeneratedLink(link)
@@ -161,7 +162,15 @@ export const CreateRequestLinkView = () => {
                 setIsCreatingLink(false)
             }
         },
-        [user?.user.username, toast]
+        [
+            user?.user.username,
+            toast,
+            setLoadingState,
+            inputDenomination,
+            setErrorState,
+            setGeneratedLink,
+            setIsCreatingLink,
+        ]
     )
 
     useEffect(() => {
@@ -209,6 +218,9 @@ export const CreateRequestLinkView = () => {
         if (debounceTimerRef.current) {
             clearTimeout(debounceTimerRef.current)
         }
+
+        // reset error state when attachment options change
+        setErrorState({ showError: false, errorMessage: '' })
 
         // check if attachments are completely cleared
         const hasNoAttachments = !attachmentOptions?.rawFile && !attachmentOptions?.message
@@ -274,7 +286,8 @@ export const CreateRequestLinkView = () => {
             isValidRecipient &&
             debouncedTokenValue &&
             !isCreatingLink &&
-            debouncedTokenValue === _tokenValue
+            debouncedTokenValue === _tokenValue &&
+            !errorState.showError
         ) {
             // check if we need to create a new link (either no link exists or token value changed)
             if (!generatedLink) {
@@ -288,7 +301,22 @@ export const CreateRequestLinkView = () => {
                 })
             }
         }
-    }, [debouncedAttachmentOptions, debouncedTokenValue, isValidRecipient, isCreatingLink, generatedLink, _tokenValue])
+    }, [
+        debouncedAttachmentOptions,
+        debouncedTokenValue,
+        isValidRecipient,
+        isCreatingLink,
+        generatedLink,
+        _tokenValue,
+        hasAttachment,
+        errorState.showError,
+        handleOnNext,
+        recipientAddress,
+        selectedTokenAddress,
+        selectedChainID,
+        tokenValue,
+        selectedTokenData,
+    ])
 
     // check for token value debouncing
     const isDebouncing =
@@ -312,6 +340,7 @@ export const CreateRequestLinkView = () => {
                         _setTokenValue(value ?? '')
                         // reset generated link when token value changes
                         setGeneratedLink(null)
+                        setErrorState({ showError: false, errorMessage: '' })
                     }}
                     tokenValue={_tokenValue}
                     onSubmit={() => {
