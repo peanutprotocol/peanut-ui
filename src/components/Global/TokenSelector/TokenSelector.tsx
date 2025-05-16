@@ -655,7 +655,13 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                                     key={chain.chainId}
                                                     chainName={chain.name}
                                                     chainIconURI={chain.iconURI}
-                                                    onClick={() => setSelectedChainID(chain.chainId)}
+                                                    onClick={() => {
+                                                        if (selectedChainID === chain.chainId) {
+                                                            setSelectedChainID('') // clear selection if already selected
+                                                        } else {
+                                                            setSelectedChainID(chain.chainId) //otherwise, select it
+                                                        }
+                                                    }}
                                                     isSelected={chain.chainId === selectedChainID}
                                                 />
                                             ))}
