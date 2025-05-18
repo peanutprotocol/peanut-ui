@@ -7,7 +7,6 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
-import { useUserStore } from '@/redux/hooks'
 import { getHeaderTitle } from '@/utils'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
@@ -20,8 +19,6 @@ import React, { useEffect, useMemo, useRef } from 'react'
 const HistoryPage = () => {
     const pathname = usePathname()
     const loaderRef = useRef<HTMLDivElement>(null)
-    const { user } = useUserStore()
-    const currentUserUsername = user?.user.username
 
     const {
         data: historyData,

@@ -1,8 +1,8 @@
+import PaymentLayoutWrapper from '@/app/[...recipient]/payment-layout-wrapper'
 import { BASE_URL } from '@/constants'
-import PaymentLayoutWrapper from '../../[...recipient]/payment-layout-wrapper'
 
 export async function generateMetadata({ params }: any) {
-    let title = 'Request | Peanut'
+    let title = 'Request Payment | Peanut'
     let previewUrl = '/metadata-img.jpg'
     const host = BASE_URL
 
@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: any) {
 
     return {
         title,
-        description: 'Request cryptocurrency from friends, family, or anyone else using Peanut',
+        description: 'Request cryptocurrency from friends, family, or anyone else using Peanut on any chain.',
         icons: {
             icon: '/logo-favicon.png',
         },
@@ -23,12 +23,12 @@ export async function generateMetadata({ params }: any) {
         twitter: {
             card: 'summary_large_image',
             title,
-            description: 'Request cryptocurrency from friends, family, or anyone else using Peanut',
+            description: 'Request cryptocurrency from friends, family, or anyone else using Peanut on any chain.',
         },
-        keywords: 'crypto request, crypto payment, crypto invoice, crypto payment link',
+        keywords: 'crypto payment, crypto transfer, crypto send, payment link',
     }
 }
 
-export default function RequestLayout({ children }: { children: React.ReactNode }) {
+export default function DirectRequestLayout({ children }: { children: React.ReactNode }) {
     return <PaymentLayoutWrapper>{children}</PaymentLayoutWrapper>
 }

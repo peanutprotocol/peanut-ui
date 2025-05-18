@@ -210,6 +210,9 @@ export const CreateRequestLinkView = () => {
             clearTimeout(debounceTimerRef.current)
         }
 
+        // reset error state when attachment options change
+        setErrorState({ showError: false, errorMessage: '' })
+
         // check if attachments are completely cleared
         const hasNoAttachments = !attachmentOptions?.rawFile && !attachmentOptions?.message
 

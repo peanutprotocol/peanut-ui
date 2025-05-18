@@ -1,6 +1,6 @@
 import * as interfaces from '@/interfaces'
 import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
-import { arbitrum, arbitrumSepolia, polygon } from 'viem/chains'
+import { arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
 
 export const peanutWalletIsInPreview = true
 
@@ -13,6 +13,12 @@ export const infuraRpcUrls: Record<number, string> = {
     [arbitrum.id]: `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_KEY}`,
     [polygon.id]: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+    [optimism.id]: `https://optimism-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+    [base.id]: `https://base-sepolia.infura.io/v3/${INFURA_API_KEY}`,
+    // Infura is returning weird estimations for BSC @2025-05-14
+    //[bsc.id]: `https://bsc-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+    [bsc.id]: 'https://bsc-dataseed.bnbchain.org',
+    [scroll.id]: `https://scroll-mainnet.infura.io/v3/${INFURA_API_KEY}`,
 }
 
 export const ipfsProviderArray = [

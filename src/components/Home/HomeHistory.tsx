@@ -5,21 +5,60 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
-import { useUserStore } from '@/redux/hooks'
+import { useWebSocket } from '@/hooks/useWebSocket'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { CardPosition } from '../Global/Card'
+import { useMemo, useEffect, useState, useCallback } from 'react'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
  */
-const HomeHistory = () => {
-    // fetch current user's username for context in data mapping
-    const { user } = useUserStore()
-    const currentUserUsername = user?.user.username
-
+const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; username?: string }) => {
     // fetch the latest 5 transaction history entries
-    const { data: historyData, isLoading, isError, error } = useTransactionHistory({ mode: 'latest', limit: 5 }) // Updated limit to 5
+    const mode = isPublic ? 'public' : 'latest'
+    const limit = isPublic ? 20 : 5
+    const { data: historyData, isLoading, isError, error } = useTransactionHistory({ mode, limit, username })
+
+    // WebSocket for real-time updates
+    const { historyEntries: wsHistoryEntries } = useWebSocket({
+        username, // Pass the username to the WebSocket hook
+        onHistoryEntry: useCallback(() => {
+            // Optionally show a toast or notification when new entries arrive
+        }, []),
+    })
+
+    // Combine fetched history with real-time updates
+    const [combinedEntries, setCombinedEntries] = useState<Array<any>>([])
+
+    useEffect(() => {
+        if (historyData?.entries) {
+            // Start with the fetched entries
+            const entries = [...historyData.entries]
+
+            // Add any WebSocket entries that aren't already in the list
+            wsHistoryEntries.forEach((wsEntry) => {
+                if (!entries.some((entry) => entry.uuid === wsEntry.uuid)) {
+                    if (wsEntry.extraData) {
+                        wsEntry.extraData.usdAmount = wsEntry.amount.toString()
+                    } else {
+                        wsEntry.extraData = { usdAmount: wsEntry.amount.toString() }
+                    }
+                    entries.unshift(wsEntry)
+                }
+            })
+
+            // Limit to the most recent entries
+            setCombinedEntries(entries.slice(0, isPublic ? 20 : 5))
+        }
+    }, [historyData, wsHistoryEntries, isPublic])
+
+    const pendingRequests = useMemo(() => {
+        if (!combinedEntries.length) return []
+        return combinedEntries.filter(
+            (entry) => entry.type === 'REQUEST' && entry.userRole === 'SENDER' && entry.status === 'NEW'
+        )
+    }, [combinedEntries])
 
     // show loading state
     if (isLoading) {
@@ -34,7 +73,7 @@ const HomeHistory = () => {
     }
 
     // show empty state if no transactions exist
-    if (!historyData?.entries.length) {
+    if (!combinedEntries.length) {
         return (
             <div className="mx-auto mt-6 w-full space-y-2 md:max-w-2xl md:space-y-3">
                 <h2 className="text-base font-bold">transactions</h2> {/* use lowercase consistent with history page */}
@@ -48,40 +87,85 @@ const HomeHistory = () => {
     return (
         <div className="mx-auto w-full space-y-3 pb-28 md:max-w-2xl md:space-y-3">
             {/* link to the full history page */}
-            <Link href="/history" className="flex items-center justify-between">
-                <h2 className="text-base font-bold">Transactions</h2>
-                <Icon width={30} height={30} name="arrow-next" />
-            </Link>
+            {pendingRequests.length > 0 && !isPublic && (
+                <>
+                    <h2 className="text-base font-bold">Pending transactions</h2>
+                    <div className="h-full w-full">
+                        {/* map over the latest entries and render transactioncard */}
+                        {pendingRequests.map((item, index) => {
+                            // map the raw history entry to the format needed by the ui components
+                            const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+
+                            // determine card position for styling (first, middle, last, single)
+                            let position: CardPosition = 'middle'
+                            if (pendingRequests.length === 1) {
+                                position = 'single'
+                            } else if (index === 0) {
+                                position = 'first'
+                            } else if (index === pendingRequests.length - 1) {
+                                position = 'last'
+                            }
+
+                            return (
+                                <TransactionCard
+                                    key={item.uuid}
+                                    type={transactionCardType}
+                                    name={transactionDetails.userName}
+                                    amount={Number(transactionDetails.amount)}
+                                    status={transactionDetails.status}
+                                    initials={transactionDetails.initials}
+                                    transaction={transactionDetails}
+                                    position={position}
+                                    isPending={true}
+                                />
+                            )
+                        })}
+                    </div>
+                </>
+            )}
+            {isPublic ? (
+                <h2 className="text-base font-bold">Latest Transactions</h2>
+            ) : (
+                <Link href="/history" className="flex items-center justify-between">
+                    <h2 className="text-base font-bold">Transactions</h2>
+                    <Icon width={30} height={30} name="arrow-next" />
+                </Link>
+            )}
             {/* container for the transaction cards */}
             <div className="h-full w-full">
                 {/* map over the latest entries and render transactioncard */}
-                {historyData.entries.map((item, index) => {
-                    // map the raw history entry to the format needed by the ui components
-                    const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+                {combinedEntries
+                    .filter((item) => !pendingRequests.some((r) => r.uuid === item.uuid))
+                    .map((item, index) => {
+                        // map the raw history entry to the format needed by the ui components
+                        const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
 
-                    // determine card position for styling (first, middle, last, single)
-                    let position: CardPosition = 'middle'
-                    if (historyData.entries.length === 1) {
-                        position = 'single'
-                    } else if (index === 0) {
-                        position = 'first'
-                    } else if (index === historyData.entries.length - 1) {
-                        position = 'last'
-                    }
+                        // determine card position for styling (first, middle, last, single)
+                        let position: CardPosition = 'middle'
+                        const filteredEntries = combinedEntries.filter(
+                            (entry) => !pendingRequests.some((r) => r.uuid === entry.uuid)
+                        )
+                        if (filteredEntries.length === 1) {
+                            position = 'single'
+                        } else if (index === 0) {
+                            position = 'first'
+                        } else if (index === filteredEntries.length - 1) {
+                            position = 'last'
+                        }
 
-                    return (
-                        <TransactionCard
-                            key={item.uuid}
-                            type={transactionCardType}
-                            name={transactionDetails.userName}
-                            amount={Number(transactionDetails.amount)}
-                            status={transactionDetails.status}
-                            initials={transactionDetails.initials}
-                            transaction={transactionDetails}
-                            position={position}
-                        />
-                    )
-                })}
+                        return (
+                            <TransactionCard
+                                key={item.uuid}
+                                type={transactionCardType}
+                                name={transactionDetails.userName}
+                                amount={Number(transactionDetails.amount)}
+                                status={transactionDetails.status}
+                                initials={transactionDetails.initials}
+                                transaction={transactionDetails}
+                                position={position}
+                            />
+                        )
+                    })}
             </div>
         </div>
     )

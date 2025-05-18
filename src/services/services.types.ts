@@ -89,6 +89,7 @@ export interface LocalPrice {
 
 export interface RequestProps {
     chainId: string
+    tokenAmount?: string
     tokenAddress: string
     tokenType: peanutInterfaces.EPeanutLinkType
     tokenSymbol: string

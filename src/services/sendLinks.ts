@@ -1,8 +1,8 @@
+import { claimSendLink } from '@/app/actions/claimLinks'
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry, jsonParse, jsonStringify } from '@/utils'
-import { claimSendLink } from '@/app/actions/claimLinks'
+import { generateKeysFromString, getParamsFromLink } from '@squirrel-labs/peanut-sdk'
 import Cookies from 'js-cookie'
-import { getParamsFromLink, generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 
 export enum ESendLinkStatus {
     creating = 'creating',
@@ -82,18 +82,66 @@ type UpdateLinkBody = {
 
 export const sendLinksApi = {
     create: async (sendLink: CreateLinkBody): Promise<SendLink> => {
+        let requestBody: FormData | string
+        const headers: HeadersInit = {
+            Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+        }
+
+        // check if attachment is a File or Blob object
+        if (sendLink.attachment && (sendLink.attachment instanceof File || sendLink.attachment instanceof Blob)) {
+            requestBody = new FormData()
+
+            requestBody.append(
+                'attachment',
+                sendLink.attachment,
+                sendLink.filename || (sendLink.attachment as File).name
+            )
+
+            // append other properties from sendLink to FormData
+            // exclude 'attachment', its already handled above
+            for (const key in sendLink) {
+                if (sendLink.hasOwnProperty(key) && key !== 'attachment') {
+                    const value = sendLink[key as keyof CreateLinkBody]
+                    if (value !== undefined && value !== null) {
+                        // convert numbers, bigints, booleans to string for FormData
+                        if (typeof value === 'bigint' || typeof value === 'number' || typeof value === 'boolean') {
+                            requestBody.append(key, value.toString())
+                        } else if (typeof value === 'string') {
+                            requestBody.append(key, value)
+                        }
+                    }
+                }
+            }
+        } else {
+            // no file, or attachment is not a File/Blob, send as JSON
+            // if attachment exists but is not a file (e.g. just a reference string), it will be stringified.
+            requestBody = jsonStringify(sendLink)
+            headers['Content-Type'] = 'application/json'
+        }
+
         const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links`, {
             method: 'POST',
-            body: jsonStringify(sendLink),
-            headers: {
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-                'Content-Type': 'application/json',
-            },
+            body: requestBody,
+            headers: headers,
         })
+
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
+            const errorText = await response.text()
+            try {
+                // attempt to parse backend error if JSON
+                const errorJson = jsonParse(errorText)
+                console.error('API Error:', errorJson)
+                throw new Error(
+                    `HTTP error! status: ${response.status}, message: ${errorJson.message || errorJson.error || errorText}`
+                )
+            } catch (e) {
+                // fallback to plain text error
+                console.error('API Error Text:', errorText)
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
+            }
         }
-        const data: SendLink = jsonParse(await response.text())
+        const responseText = await response.text()
+        const data: SendLink = jsonParse(responseText)
         return data
     },
 

@@ -17,6 +17,10 @@ export interface TransactionDetails {
     direction: TransactionDirection
     userName: string
     amount: number | bigint
+    currency?: {
+        amount: string
+        code: string
+    }
     currencySymbol?: string
     tokenSymbol?: string
     initials: string
@@ -25,6 +29,8 @@ export interface TransactionDetails {
     date: string | Date
     fee?: number | string
     memo?: string
+    attachmentUrl?: string
+    cancelledDate?: string | Date
     txHash?: string
     explorerUrl?: string
     extraDataForDrawer?: {
@@ -64,6 +70,20 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
 
     // determine direction, card type, peer name, and flags based on original type and user role
     switch (entry.type) {
+        case EHistoryEntryType.DIRECT_SEND:
+            isPeerActuallyUser = true
+            direction = 'send'
+            transactionCardType = 'send'
+            if (entry.userRole === EHistoryUserRole.SENDER) {
+                nameForDetails = entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
+            } else {
+                direction = 'receive'
+                transactionCardType = 'receive'
+                nameForDetails =
+                    entry.senderAccount?.username ?? entry.senderAccount?.identifier ?? 'Requested via Link'
+                isLinkTx = !entry.senderAccount // If the sender is not an user then it's a public link
+            }
+            break
         case EHistoryEntryType.SEND_LINK:
             isLinkTx = true
             direction = 'send'
@@ -84,30 +104,30 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             }
             break
         case EHistoryEntryType.REQUEST:
-            isLinkTx = !entry.txHash
-            if (entry.userRole === EHistoryUserRole.SENDER) {
+            if (entry.userRole === EHistoryUserRole.RECIPIENT) {
                 direction = 'request_sent'
                 transactionCardType = 'request'
                 nameForDetails =
-                    entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Requested To'
-                isPeerActuallyUser = !!entry.recipientAccount?.isUser
+                    entry.senderAccount?.username || entry.senderAccount?.identifier || 'Requested via Link'
+                isPeerActuallyUser = !!entry.senderAccount?.isUser
             } else {
                 if (entry.status?.toUpperCase() === 'NEW' || entry.status?.toUpperCase() === 'PENDING') {
                     direction = 'request_received'
                     transactionCardType = 'request'
                     nameForDetails =
-                        entry.senderAccount?.username ||
-                        entry.senderAccount?.identifier ||
+                        entry.recipientAccount?.username ||
+                        entry.recipientAccount?.identifier ||
                         `Request From ${entry.recipientAccount?.username || entry.recipientAccount?.identifier}`
-                    isPeerActuallyUser = !!entry.senderAccount?.isUser
+                    isPeerActuallyUser = !!entry.recipientAccount?.isUser
                 } else {
                     direction = 'send'
                     transactionCardType = 'send'
                     nameForDetails =
-                        entry.senderAccount?.username || entry.senderAccount?.identifier || 'Paid Request To'
-                    isPeerActuallyUser = !!entry.senderAccount?.isUser
+                        entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Paid Request To'
+                    isPeerActuallyUser = !!entry.recipientAccount?.isUser
                 }
             }
+            isLinkTx = !isPeerActuallyUser
             break
         case EHistoryEntryType.CASHOUT:
             direction = 'withdraw'
@@ -196,14 +216,17 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         direction: direction,
         userName: nameForDetails,
         amount: amount,
-        currencySymbol: '$',
+        currency: entry.currency,
+        currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: entry.tokenSymbol,
         initials: getInitialsFromName(nameForDetails),
         status: uiStatus,
         isVerified: entry.recipientAccount?.isUser || entry.senderAccount?.isUser || false,
-        date: entry.timestamp,
+        date: new Date(entry.timestamp),
         fee: undefined,
-        memo: entry.memo ?? entry.attachmentUrl,
+        memo: entry.memo?.trim(),
+        attachmentUrl: entry.attachmentUrl,
+        cancelledDate: entry.userRole === EHistoryUserRole.BOTH ? entry.cancelledAt : undefined,
         txHash: entry.txHash,
         explorerUrl: explorerUrlWithTx,
         extraDataForDrawer: {

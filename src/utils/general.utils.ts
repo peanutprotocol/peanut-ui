@@ -241,6 +241,54 @@ export function formatAmountWithDecimals({ amount, decimals }: { amount: number;
     return formattedAmount
 }
 
+// Helper function to format numbers with locale-specific (en-US) thousands separators for display.
+// The caller is responsible for prepending the correct currency symbol.
+// @dev todo: For true internationalization of read-only amounts, consider a dedicated service or util
+// that uses specific locales (e.g., 'es-AR' for '1.234,56'). This function standardizes on en-US for parsable input display.
+export const formatNumberForDisplay = (valueStr: string | undefined, options?: { maxDecimals?: number }): string => {
+    if (valueStr === undefined || valueStr === null || valueStr.trim() === '') return ''
+
+    // Preserve the original string if it just ends with a decimal or is just a decimal for intermediate input.
+    if (valueStr === '.') return '.' // Allow just a dot temporarily
+    if (valueStr.endsWith('.') && (valueStr.match(/\./g) || []).length === 1) {
+        // For inputs like "123.", format the numeric part "123"
+        const numberPart = valueStr.slice(0, -1)
+        if (numberPart === '' || isNaN(Number(numberPart))) return valueStr // Avoid formatting " ." or invalid things like "abc."
+        const formattedNumberPart = Number(numberPart).toLocaleString('en-US', {
+            minimumFractionDigits: 0, // Whole numbers don't get .00 unless typed
+            maximumFractionDigits: options?.maxDecimals ?? 0, // Max decimals for the number part if any
+        })
+        return formattedNumberPart + '.' // Append the dot back
+    }
+
+    // Validate the numeric string, allowing for numbers with or without decimal points.
+    // Disallow multiple decimal points or non-numeric characters (except the single dot handled above).
+    if (!/^\d*\.?\d*$/.test(valueStr) || (valueStr.match(/\./g) || []).length > 1) {
+        return '' // Return empty for invalid numeric strings not caught above
+    }
+
+    const num = Number(valueStr)
+    if (isNaN(num)) return ''
+
+    const maxDecimals = options?.maxDecimals ?? 0 // Default to 0 if not specified, to avoid .00 for whole numbers
+    let minDecimals = 0
+    const parts = valueStr.split('.')
+
+    if (parts.length === 2 && parts[1].length > 0) {
+        // If there's an actual decimal part in the input string (e.g., "1.2", "1.20"),
+        // set minDecimals to its length to preserve trailing zeros.
+        minDecimals = parts[1].length
+    }
+    // For whole numbers (e.g. "123"), minDecimals remains 0.
+
+    minDecimals = Math.min(minDecimals, maxDecimals) // Cap by maxDecimals
+
+    return num.toLocaleString('en-US', {
+        minimumFractionDigits: minDecimals,
+        maximumFractionDigits: maxDecimals,
+    })
+}
+
 /**
  * formats a number by:
  * - displaying 2 significant digits for small numbers (<0.01)

@@ -9,7 +9,7 @@ import {
     PINTA_WALLET_TOKEN_SYMBOL,
     SQUID_API_URL,
 } from '@/constants'
-import { loadingStateContext, tokenSelectorContext } from '@/context'
+import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
@@ -23,12 +23,14 @@ import {
     TRequestChargeResponse,
 } from '@/services/services.types'
 import { areEvmAddressesEqual, ErrorHandler, isAddressZero, isNativeCurrency } from '@/utils'
-import { useAppKitAccount, useAppKitNetwork } from '@reown/appkit/react'
+import { useAppKitAccount } from '@reown/appkit/react'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Hex, TransactionReceipt } from 'viem'
 import { useConfig, useSendTransaction, useSwitchChain, useAccount as useWagmiAccount } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
+import { captureException } from '@sentry/nextjs'
+import type { FeeOptions } from '@/app/actions/clients'
 
 export interface InitiatePaymentPayload {
     recipient: ParsedURL['recipient']
@@ -37,6 +39,12 @@ export interface InitiatePaymentPayload {
     chargeId?: string
     skipChargeCreation?: boolean
     requestId?: string // optional request ID from URL
+    currency?: {
+        code: string
+        symbol: string
+        price: number
+    }
+    currencyAmount?: string
 }
 
 interface InitiationResult {
@@ -55,9 +63,7 @@ export const usePaymentInitiator = () => {
     const { selectedTokenData, selectedChainID, selectedTokenAddress, setIsXChain } = useContext(tokenSelectorContext)
     const { isConnected: isPeanutWallet, address: peanutWalletAddress, sendTransactions } = useWallet()
     const { switchChainAsync } = useSwitchChain()
-    const { setLoadingState } = useContext(loadingStateContext)
     const { address: wagmiAddress } = useAppKitAccount()
-    const { chainId: currentChain } = useAppKitNetwork()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
     const { chain: connectedWalletChain } = useWagmiAccount()
@@ -69,7 +75,7 @@ export const usePaymentInitiator = () => {
         null
     )
     const { estimateGasFee } = useCreateLink()
-    const [feeOptions, setFeeOptions] = useState<any | undefined>(undefined)
+    const [feeOptions, setFeeOptions] = useState<Partial<FeeOptions>[]>([])
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
 
     const [isCalculatingFees, setIsCalculatingFees] = useState(false)
@@ -136,7 +142,7 @@ export const usePaymentInitiator = () => {
         setTxFee('0')
         setSlippagePercentage(undefined)
         setEstimatedGasCost(undefined)
-        setFeeOptions(undefined)
+        setFeeOptions([])
         setFeeCalculations({
             networkFee: { expected: '0.00', max: '0.00' },
             slippage: undefined,
@@ -157,7 +163,7 @@ export const usePaymentInitiator = () => {
         estimateGasFee({
             from: (peanutWalletAddress ?? wagmiAddress) as Hex,
             chainId: isXChain ? selectedChainID : activeChargeDetails.chainId,
-            preparedTx: isXChain || diffTokens ? xChainUnsignedTxs : unsignedTx,
+            preparedTxs: isXChain || diffTokens ? xChainUnsignedTxs! : [unsignedTx!],
         })
             .then(({ transactionCostUSD, feeOptions: calculatedFeeOptions }) => {
                 if (transactionCostUSD) setEstimatedGasCost(transactionCostUSD)
@@ -165,8 +171,9 @@ export const usePaymentInitiator = () => {
             })
             .catch((error) => {
                 console.error('Error calculating transaction cost:', error)
+                captureException(error)
                 setIsFeeEstimationError(true)
-                setError('Failed to estimate gas fee')
+                setError(`Failed to estimate gas fee: ${ErrorHandler(error)}`)
             })
             .finally(() => {
                 setIsEstimatingGas(false)
@@ -186,8 +193,7 @@ export const usePaymentInitiator = () => {
 
         try {
             // determine the base fee depending on the transaction type
-            const baseNetworkFee =
-                isXChain || diffTokens ? parseFloat(txFee) : isPeanutWallet ? 0 : Number(estimatedGasCost || 0)
+            const baseNetworkFee = isPeanutWallet ? 0 : Number(estimatedGasCost || 0)
 
             const networkFee = {
                 // expected fee is always a fraction of the base fee
@@ -209,7 +215,7 @@ export const usePaymentInitiator = () => {
 
             const formatNumberSafely = (num: number) => {
                 if (isNaN(num) || !isFinite(num)) return '0.00'
-                return num < 0.01 && num > 0 ? '0.01' : num.toFixed(2)
+                return num < 0.01 && num > 0 ? ' <0.01' : num.toFixed(2)
             }
 
             setFeeCalculations({
@@ -300,7 +306,7 @@ export const usePaymentInitiator = () => {
             setXChainUnsignedTxs(null)
 
             setEstimatedGasCost(undefined)
-            setFeeOptions(undefined)
+            setFeeOptions([])
             setFeeCalculations({
                 networkFee: { expected: '0.00', max: '0.00' },
                 slippage: undefined,
@@ -397,7 +403,7 @@ export const usePaymentInitiator = () => {
             let chargeDetailsToUse: TRequestChargeResponse | null = null
             let chargeCreated = false
 
-            if (payload.skipChargeCreation && payload.chargeId) {
+            if (payload.chargeId) {
                 chargeDetailsToUse = activeChargeDetails
                 if (!chargeDetailsToUse || chargeDetailsToUse.uuid !== payload.chargeId) {
                     setLoadingStep('Fetching Charge Details')
@@ -463,13 +469,18 @@ export const usePaymentInitiator = () => {
                     ? PINTA_WALLET_TOKEN_DECIMALS
                     : (requestDetails?.tokenDecimals ?? selectedTokenData?.decimals ?? 18)
 
+                const localPrice =
+                    payload.currencyAmount && payload.currency
+                        ? { amount: payload.currencyAmount, currency: payload.currency.code }
+                        : { amount: payload.tokenAmount, currency: 'USD' }
                 const createChargeRequestPayload: CreateChargeRequest = {
                     pricing_type: 'fixed_price',
-                    local_price: { amount: payload.tokenAmount, currency: 'USD' },
+                    local_price: localPrice,
                     baseUrl: window.location.origin,
                     requestId: validRequestId,
                     requestProps: {
                         chainId: recipientChainId,
+                        tokenAmount: payload.tokenAmount,
                         tokenAddress: recipientTokenAddress,
                         tokenType: payload.isPintaReq
                             ? peanutInterfaces.EPeanutLinkType.erc20
@@ -653,13 +664,13 @@ export const usePaymentInitiator = () => {
                     currentStep = 'Sending Transaction'
 
                     const txGasOptions: any = {}
-                    if (feeOptions) {
-                        if (feeOptions.gas) txGasOptions.gas = BigInt(feeOptions.gas.toString())
-                        if (feeOptions.gasPrice) txGasOptions.gasPrice = BigInt(feeOptions.gasPrice.toString())
-                        if (feeOptions.maxFeePerGas)
-                            txGasOptions.maxFeePerGas = BigInt(feeOptions.maxFeePerGas.toString())
-                        if (feeOptions.maxPriorityFeePerGas)
-                            txGasOptions.maxPriorityFeePerGas = BigInt(feeOptions.maxPriorityFeePerGas.toString())
+                    const gasOptions = feeOptions[i]
+                    if (gasOptions) {
+                        if (gasOptions.gas) txGasOptions.gas = BigInt(gasOptions.gas.toString())
+                        if (gasOptions.maxFeePerGas)
+                            txGasOptions.maxFeePerGas = BigInt(gasOptions.maxFeePerGas.toString())
+                        if (gasOptions.maxPriorityFeePerGas)
+                            txGasOptions.maxPriorityFeePerGas = BigInt(gasOptions.maxPriorityFeePerGas.toString())
                     }
                     console.log('Using gas options:', txGasOptions)
 

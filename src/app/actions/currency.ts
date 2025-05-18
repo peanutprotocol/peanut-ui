@@ -1,0 +1,27 @@
+'use server'
+import { unstable_cache } from 'next/cache'
+import { fetchWithSentry } from '@/utils'
+
+export const getCurrencyPrice = unstable_cache(
+    async (currencyCode: string): Promise<number> => {
+        if (currencyCode === 'USD') return 1
+        if (currencyCode !== 'ARS') {
+            throw new Error('Unsupported currency')
+        }
+        const response = await fetchWithSentry('https://dolarapi.com/v1/dolares/cripto')
+        const data = await response.json()
+
+        if (!data.compra || !data.venta) {
+            throw new Error('Invalid response from dolarapi')
+        }
+
+        // Average between buy and sell price
+        const price = (data.compra + data.venta) / 2
+
+        return price
+    },
+    ['getCurrencyPrice'],
+    {
+        revalidate: 5 * 60, // 5 minutes
+    }
+)

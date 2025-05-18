@@ -12,7 +12,7 @@ import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { formatAmount } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Hex } from 'viem'
 import { erc20Abi, formatUnits, getAddress } from 'viem'
 import { useZeroDev } from '../useZeroDev'
@@ -20,6 +20,8 @@ import { useZeroDev } from '../useZeroDev'
 export const useWallet = () => {
     const dispatch = useAppDispatch()
     const { address, isKernelClientReady, handleSendUserOpEncoded } = useZeroDev()
+    const [isFetchingBalance, setIsFetchingBalance] = useState(true)
+    const [isFetchingRewardBalance, setIsFetchingRewardBalance] = useState(true)
     const { balance } = useWalletStore()
 
     const sendTransactions = useCallback(
@@ -41,13 +43,21 @@ export const useWallet = () => {
             console.warn('Cannot fetch balance, address is undefined.')
             return
         }
-        const balance = await peanutPublicClient.readContract({
-            address: PEANUT_WALLET_TOKEN,
-            abi: erc20Abi,
-            functionName: 'balanceOf',
-            args: [address as Hex],
-        })
-        dispatch(walletActions.setBalance(balance))
+        await peanutPublicClient
+            .readContract({
+                address: PEANUT_WALLET_TOKEN,
+                abi: erc20Abi,
+                functionName: 'balanceOf',
+                args: [address as Hex],
+            })
+            .then((balance) => {
+                dispatch(walletActions.setBalance(balance))
+                setIsFetchingBalance(false)
+            })
+            .catch((error) => {
+                console.error('Error fetching balance:', error)
+                setIsFetchingBalance(false)
+            })
     }, [address, dispatch])
 
     const getRewardWalletBalance = useCallback(async () => {
@@ -55,14 +65,22 @@ export const useWallet = () => {
             console.warn('Cannot fetch reward balance, address is undefined.')
             return ''
         }
-        const balance = await pintaPublicClient.readContract({
-            address: PINTA_WALLET_TOKEN,
-            abi: erc20Abi,
-            functionName: 'balanceOf',
-            args: [getAddress(address)],
-        })
-        const formatedBalance = formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
-        dispatch(walletActions.setRewardWalletBalance(formatedBalance))
+        await pintaPublicClient
+            .readContract({
+                address: PINTA_WALLET_TOKEN,
+                abi: erc20Abi,
+                functionName: 'balanceOf',
+                args: [getAddress(address)],
+            })
+            .then((balance) => {
+                const formatedBalance = formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
+                dispatch(walletActions.setRewardWalletBalance(formatedBalance))
+                setIsFetchingRewardBalance(false)
+            })
+            .catch((error) => {
+                console.error('Error fetching reward balance:', error)
+                setIsFetchingRewardBalance(false)
+            })
     }, [address, dispatch])
 
     useEffect(() => {
@@ -78,5 +96,7 @@ export const useWallet = () => {
         sendTransactions,
         getRewardWalletBalance,
         fetchBalance,
+        isFetchingBalance,
+        isFetchingRewardBalance,
     }
 }

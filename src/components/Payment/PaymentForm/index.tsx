@@ -33,7 +33,27 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 
-export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: ParsedURL & { isPintaReq?: boolean }) => {
+type PaymentFormProps = ParsedURL & {
+    isPintaReq?: boolean
+    currency?: {
+        code: string
+        symbol: string
+        price: number
+    }
+    currencyAmount?: string
+    setCurrencyAmount?: (currencyvalue: string | undefined) => void
+}
+
+export const PaymentForm = ({
+    recipient,
+    amount,
+    token,
+    chain,
+    isPintaReq,
+    currency,
+    currencyAmount,
+    setCurrencyAmount,
+}: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
     const { user } = useAuth()
@@ -238,6 +258,9 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
             tokenAmount: inputTokenAmount,
             isPintaReq: false, // explicitly set to false for non-PINTA requests
             requestId: requestId ?? undefined,
+            chargeId: chargeDetails?.uuid,
+            currency,
+            currencyAmount,
         }
 
         console.log('Initiating payment with payload:', payload)
@@ -263,8 +286,8 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
         isPintaReq,
         requestId,
         initiatePayment,
-        dispatch,
         beerQuantity,
+        chargeDetails,
     ])
 
     const getButtonText = () => {
@@ -409,9 +432,11 @@ export const PaymentForm = ({ recipient, amount, token, chain, isPintaReq }: Par
                 <TokenAmountInput
                     tokenValue={inputTokenAmount}
                     setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
+                    setCurrencyAmount={setCurrencyAmount}
                     className="w-full"
                     disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
+                    currency={currency}
                 />
 
                 {!isActivePeanutWallet && isConnected && (

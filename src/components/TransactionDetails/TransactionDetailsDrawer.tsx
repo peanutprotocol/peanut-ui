@@ -2,16 +2,18 @@ import BottomDrawer from '@/components/Global/BottomDrawer'
 import Card from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
+import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { Button } from '../0_Bruddle'
 import { Icon } from '../Global/Icons/Icon'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
@@ -36,6 +38,22 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     const queryClient = useQueryClient()
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const { fetchBalance } = useWallet()
+
+    const isPendingRequestee = useMemo(() => {
+        if (!transaction) return false
+        return (
+            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
+            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
+        )
+    }, [transaction])
+
+    const isPendingRequester = useMemo(() => {
+        if (!transaction) return false
+        return (
+            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
+            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.RECIPIENT
+        )
+    }, [transaction])
 
     // calculate drawer height based on content, with min/max constraints
     const drawerHeightVh = useDynamicHeight(contentRef, {
@@ -68,8 +86,6 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
         transaction.extraDataForDrawer?.link &&
         ((transaction.extraDataForDrawer.originalType === EHistoryEntryType.SEND_LINK &&
             transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.SENDER) ||
-            (transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST &&
-                transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.SENDER) ||
             (transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST &&
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
@@ -105,17 +121,64 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                 {/* details card (date, fee, memo) */}
                 <Card position={shouldShowQrShare ? 'first' : 'single'} className="px-4 py-0" border={true}>
                     <div className="space-y-0">
-                        {dateDisplay && (
+                        {transaction.date && (
                             <PaymentInfoRow
-                                label="Date"
-                                value={dateDisplay}
-                                hideBottomBorder={!transaction.fee && !transaction.memo}
+                                label={transaction.status === 'cancelled' ? 'Created' : 'Date'}
+                                value={formatDate(transaction.date as Date)}
+                                hideBottomBorder={
+                                    !transaction.cancelledDate &&
+                                    !transaction.fee &&
+                                    !transaction.memo &&
+                                    !transaction.attachmentUrl
+                                }
                             />
                         )}
+                        {transaction.status === 'cancelled' &&
+                            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.BOTH &&
+                            transaction.cancelledDate && (
+                                <>
+                                    {transaction.cancelledDate && (
+                                        <PaymentInfoRow
+                                            label="Cancelled"
+                                            value={formatDate(transaction.cancelledDate as Date)}
+                                            hideBottomBorder={
+                                                !transaction.fee && !transaction.memo && !transaction.attachmentUrl
+                                            }
+                                        />
+                                    )}
+                                </>
+                            )}
                         {transaction.fee !== undefined && (
-                            <PaymentInfoRow label="Fee" value={feeDisplay} hideBottomBorder={!transaction.memo} />
+                            <PaymentInfoRow
+                                label="Fee"
+                                value={feeDisplay}
+                                hideBottomBorder={!transaction.memo && !transaction.attachmentUrl}
+                            />
                         )}
-                        {transaction.memo && <PaymentInfoRow label="Memo" value={transaction.memo} hideBottomBorder />}
+                        {transaction.memo && (
+                            <PaymentInfoRow
+                                label="Memo"
+                                value={transaction.memo}
+                                hideBottomBorder={!transaction.attachmentUrl}
+                            />
+                        )}
+                        {transaction.attachmentUrl && (
+                            <PaymentInfoRow
+                                label="Attachment"
+                                value={
+                                    <Link
+                                        href={transaction.attachmentUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center underline"
+                                    >
+                                        Download
+                                        <Icon name="download" className="h-3" />
+                                    </Link>
+                                }
+                                hideBottomBorder
+                            />
+                        )}
                     </div>
                 </Card>
 
@@ -142,7 +205,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                                     fetchBalance()
                                                     queryClient
                                                         .invalidateQueries({
-                                                            queryKey: ['transactions'],
+                                                            queryKey: [TRANSACTIONS],
                                                         })
                                                         .then(() => {
                                                             setIsLoading(false)
@@ -160,12 +223,89 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                     className="flex w-full items-center gap-1"
                                     shadowSize="4"
                                 >
-                                    <div className="flex size-6 items-center gap-0">
-                                        <Icon name="cancel" />
+                                    <div className="flex items-center">
+                                        <Icon
+                                            name="cancel"
+                                            className="mr-0.5 min-w-3 rounded-full border border-black p-0.5"
+                                        />
                                     </div>
                                     <span>Cancel link</span>
                                 </Button>
                             )}
+                    </div>
+                )}
+
+                {isPendingRequester && (
+                    <Button
+                        onClick={() => {
+                            setIsLoading(true)
+                            chargesApi
+                                .cancel(transaction.id)
+                                .then(() => {
+                                    queryClient
+                                        .invalidateQueries({
+                                            queryKey: [TRANSACTIONS],
+                                        })
+                                        .then(() => {
+                                            setIsLoading(false)
+                                            handleClose()
+                                        })
+                                })
+                                .catch((error) => {
+                                    captureException(error)
+                                    console.error('Error canceling charge:', error)
+                                    setIsLoading(false)
+                                })
+                        }}
+                        variant={'primary-soft'}
+                        shadowSize="4"
+                        className="flex w-full items-center gap-1"
+                    >
+                        <Icon name="cancel" />
+                        Cancel request
+                    </Button>
+                )}
+
+                {isPendingRequestee && (
+                    <div className="space-y-2">
+                        <Button
+                            onClick={() => {
+                                window.location.href = transaction.extraDataForDrawer?.link ?? ''
+                            }}
+                            shadowSize="4"
+                            className="flex w-full items-center gap-1"
+                        >
+                            <Icon name="currency" />
+                            Pay
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setIsLoading(true)
+                                chargesApi
+                                    .cancel(transaction.id)
+                                    .then(() => {
+                                        queryClient
+                                            .invalidateQueries({
+                                                queryKey: [TRANSACTIONS],
+                                            })
+                                            .then(() => {
+                                                setIsLoading(false)
+                                                handleClose()
+                                            })
+                                    })
+                                    .catch((error) => {
+                                        captureException(error)
+                                        console.error('Error canceling charge:', error)
+                                        setIsLoading(false)
+                                    })
+                            }}
+                            variant={'primary-soft'}
+                            shadowSize="4"
+                            className="flex w-full items-center gap-1"
+                        >
+                            <Icon name="cancel" />
+                            Reject request
+                        </Button>
                     </div>
                 )}
 

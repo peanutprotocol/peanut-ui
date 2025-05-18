@@ -12,6 +12,7 @@ import { useAuth } from '@/context/authContext'
 import { hasValidJwtToken } from '@/utils/auth'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
+import PullToRefresh from 'pulltorefreshjs'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
@@ -39,6 +40,32 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         setHasToken(hasValidJwtToken())
 
         setIsReady(true)
+    }, [])
+
+    // todo: @dev to customize the design of this component,
+    // docs here: https://github.com/BoxFactura/pulltorefresh.js
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            PullToRefresh.init({
+                mainElement: 'body', // target element for pull to refresh
+                onRefresh: () => {
+                    // simulate a refresh action
+                    window.location.reload()
+                },
+                instructionsPullToRefresh: 'Pull down to refresh',
+                instructionsReleaseToRefresh: 'Release to refresh',
+                instructionsRefreshing: 'Refreshing...',
+                // enable for all ios devices (safari and pwa)
+                shouldPullToRefresh: () => /iPad|iPhone|iPod/.test(navigator.userAgent),
+            })
+        }
+
+        // clean up when the component is removed
+        return () => {
+            if (typeof window !== 'undefined') {
+                PullToRefresh.destroyAll()
+            }
+        }
     }, [])
 
     if (!isReady || (isFetchingUser && !user && !hasToken))
@@ -77,9 +104,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                     {/* Scrollable content area */}
                     <div
+                        id="scrollable-content"
                         className={classNames(
                             twMerge(
-                                'flex-1 overflow-y-auto bg-background p-6 pb-24 md:pb-6',
+                                'relative flex-1 overflow-y-auto bg-background p-6 pb-24 md:pb-6',
                                 !!isSupport && 'p-0 pb-20 md:p-6',
                                 !!isHome && 'p-0 md:p-6 md:pr-0'
                             )

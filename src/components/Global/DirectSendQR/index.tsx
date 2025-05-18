@@ -306,6 +306,9 @@ export default function DirectSendQr({
             return { success: true }
         }
 
+        // close the scanner and show the error toast
+        setIsQRScannerOpen(false)
+
         return {
             success: false,
             error: 'QR not recognized as Peanut URL',

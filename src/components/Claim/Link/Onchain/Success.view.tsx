@@ -1,12 +1,14 @@
 import StatusViewWrapper from '@/components/Global/StatusViewWrapper'
 import { fetchDestinationChain } from '@/components/utils/utils'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
 import { getExplorerUrl, shortenAddressLong } from '@/utils'
+import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import * as _consts from '../../Claim.consts'
-import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -16,6 +18,7 @@ export const SuccessClaimLinkView = ({
 }: _consts.IClaimScreenProps) => {
     const { isConnected } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
+    const queryClient = useQueryClient()
 
     const explorerUrlWithTx = useMemo(
         () => `${getExplorerUrl(claimLinkData.chainId)}/tx/${transactionHash}`,
@@ -33,7 +36,8 @@ export const SuccessClaimLinkView = ({
             //TODO: change when adding claimlink history
             fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
-    }, [isConnected, transactionHash, type])
+        queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+    }, [isConnected, transactionHash, type, resetTokenContextProvider, queryClient])
 
     useEffect(() => {
         if (!!transactionHash) return

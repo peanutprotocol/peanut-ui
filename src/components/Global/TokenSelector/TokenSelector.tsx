@@ -8,12 +8,13 @@ import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
 import BottomDrawer from '@/components/Global/BottomDrawer'
 import Card from '@/components/Global/Card'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
 import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { IToken, IUserBalance } from '@/interfaces'
 import { areEvmAddressesEqual, fetchWalletBalances, formatAmount, isNativeCurrency } from '@/utils'
-import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
+import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import EmptyState from '../EmptyStates/EmptyState'
 import { Icon, IconName } from '../Icons/Icon'
@@ -69,6 +70,10 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // refs to track previous state for useEffect logic
     const prevIsExternalConnected = useRef(isExternalWalletConnected)
     const prevExternalAddress = useRef<string | null>(externalWalletAddress ?? null)
+    // state for image loading errors
+    const [buttonImageError, setButtonImageError] = useState(false)
+    const [defaultTokenImageError, setDefaultTokenImageError] = useState(false)
+    const [defaultChainImageError, setDefaultChainImageError] = useState(false)
     const {
         supportedSquidChainsAndTokens,
         setSelectedTokenAddress,
@@ -178,19 +183,14 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const handleChainSelectFromList = useCallback(
         (chainId: string) => {
             setSelectedChainID(chainId)
-            // for popular tokens, we don't auto-select a token. User will click from list.
-            // for user tokens, if a wallet is connected, this might pre-select their native or first token.
             if (isExternalWalletConnected) {
-                const tokenWithBalance = sourceBalances.find(
-                    (balance) => String(balance.chainId) === chainId && balance.amount > 0
-                )
-                setSelectedTokenAddress(tokenWithBalance?.address ?? NATIVE_TOKEN_ADDRESS)
+                setSelectedTokenAddress('') // clear token when chain changes with external wallet
             } else {
                 setSelectedTokenAddress('') // clear selected token when changing network in popular view
             }
             setShowNetworkList(false)
         },
-        [setSelectedChainID, setSelectedTokenAddress, sourceBalances, isExternalWalletConnected]
+        [setSelectedChainID, setSelectedTokenAddress, isExternalWalletConnected]
     )
 
     // selected network name memo, being used ui
@@ -218,61 +218,49 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         }
     }, [supportedSquidChainsAndTokens])
 
-    // sets default token only if no token/chain is selected and this is the initial state for specific view types
-    useEffect(() => {
-        if (
-            !selectedTokenAddress &&
-            !selectedChainID &&
-            (viewType === 'other' || viewType === 'withdraw' || viewType === 'claim')
-        ) {
-            if (peanutWalletTokenDetails) {
-                setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-                setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+    // button display variables
+    let buttonSymbol: string | undefined = undefined
+    let buttonChainName: string | undefined = undefined
+    let buttonFormattedBalance: string | null = null
+    let buttonLogoURI: string | undefined = undefined
+
+    if (isExternalWalletConnected) {
+        if (selectedTokenAddress && selectedChainID) {
+            // wallet connected AND token selected
+            const userBalanceDetails = sourceBalances.find(
+                (b) => areEvmAddressesEqual(b.address, selectedTokenAddress) && String(b.chainId) === selectedChainID
+            )
+            const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
+            const generalTokenDetails = chainInfo?.tokens.find((t) =>
+                areEvmAddressesEqual(t.address, selectedTokenAddress)
+            )
+
+            if (generalTokenDetails && chainInfo) {
+                buttonSymbol = generalTokenDetails.symbol
+                buttonLogoURI = generalTokenDetails.logoURI
+                buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
+            }
+            if (userBalanceDetails) {
+                buttonFormattedBalance = formatAmount(userBalanceDetails.amount)
+            } else {
+                if (generalTokenDetails) buttonFormattedBalance = '0'
             }
         }
-    }, [
-        selectedTokenAddress,
-        selectedChainID,
-        peanutWalletTokenDetails,
-        setSelectedTokenAddress,
-        setSelectedChainID,
-        viewType,
-    ])
-
-    // button display variables with defaults from peanut wallet token
-    let buttonSymbol: string | undefined = peanutWalletTokenDetails?.symbol
-    let buttonChainName: string | undefined = peanutWalletTokenDetails?.chainName
-    let buttonFormattedBalance: string | null = peanutWalletTokenDetails?.balance || null
-    let buttonLogoURI: string | undefined = peanutWalletTokenDetails?.logoURI
-
-    if (isExternalWalletConnected && selectedTokenAddress && selectedChainID && sourceBalances.length > 0) {
-        const userBalanceDetails = sourceBalances.find(
-            (b) => areEvmAddressesEqual(b.address, selectedTokenAddress) && String(b.chainId) === selectedChainID
-        )
-        const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
-        const generalTokenDetails = chainInfo?.tokens.find((t) => areEvmAddressesEqual(t.address, selectedTokenAddress))
-
-        if (generalTokenDetails && chainInfo) {
-            buttonSymbol = generalTokenDetails.symbol
-            buttonLogoURI = generalTokenDetails.logoURI
-            buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
+    } else {
+        // no external wallet connected
+        if (selectedTokenAddress && selectedChainID) {
+            // popular token selected by user or "usdc on arb" card clicked
+            const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
+            const generalTokenDetails = chainInfo?.tokens.find((t) =>
+                areEvmAddressesEqual(t.address, selectedTokenAddress)
+            )
+            if (generalTokenDetails && chainInfo) {
+                buttonSymbol = generalTokenDetails.symbol
+                buttonLogoURI = generalTokenDetails.logoURI
+                buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
+            }
         }
-        if (userBalanceDetails) {
-            buttonFormattedBalance = formatAmount(userBalanceDetails.amount)
-        } else {
-            // if no balance, but token is selected (e.g. popular token clicked without balance)
-            if (generalTokenDetails) buttonFormattedBalance = '0' // show 0 if no balance but token info exists
-        }
-    } else if (!isExternalWalletConnected && selectedTokenAddress && selectedChainID) {
-        // handle button display for popular tokens when no wallet connected
-        const chainInfo = supportedSquidChainsAndTokens[selectedChainID]
-        const generalTokenDetails = chainInfo?.tokens.find((t) => areEvmAddressesEqual(t.address, selectedTokenAddress))
-        if (generalTokenDetails && chainInfo) {
-            buttonSymbol = generalTokenDetails.symbol
-            buttonLogoURI = generalTokenDetails.logoURI
-            buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
-        }
-    } // if wallet connected but no token selected, or no wallet and no token, defaults (Peanut USDC) are used
+    }
 
     const allowedChainIds = useMemo(() => new Set(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS), [])
 
@@ -467,12 +455,18 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 const isSelected =
                     areEvmAddressesEqual(selectedTokenAddress, balance.address) &&
                     selectedChainID === String(balance.chainId)
+                const chainDataFromSquid = supportedSquidChainsAndTokens[String(balance.chainId)]
+                const isTokenSupportedBySquid =
+                    chainDataFromSquid?.tokens.some((squidToken) =>
+                        areEvmAddressesEqual(squidToken.address, balance.address)
+                    ) ?? false
                 return (
                     <TokenListItem
                         key={`${balance.address}_${String(balance.chainId)}_user_balance`}
                         balance={balance}
                         onClick={() => handleTokenSelect(balance)}
                         isSelected={isSelected}
+                        isSquidSupported={isTokenSupportedBySquid}
                     />
                 )
             })
@@ -507,6 +501,13 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         )
     }
 
+    // auto disconnect external wallet when claim view is active
+    useEffect(() => {
+        if (isExternalWalletConnected && viewType === 'claim') {
+            disconnectWallet()
+        }
+    }, [isExternalWalletConnected, viewType])
+
     return (
         <>
             <Button
@@ -521,13 +522,14 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 <div className="flex flex-grow items-center justify-between gap-3 overflow-hidden">
                     <div className="flex items-center gap-2 overflow-hidden">
                         <div className="relative flex-shrink-0">
-                            {buttonLogoURI ? (
+                            {buttonLogoURI && !buttonImageError ? (
                                 <Image
                                     src={buttonLogoURI}
                                     alt={`${buttonSymbol} logo`}
                                     width={24}
                                     height={24}
                                     className="rounded-full"
+                                    onError={() => setButtonImageError(true)}
                                 />
                             ) : (
                                 <Icon name="currency" size={24} />
@@ -601,20 +603,35 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center space-x-3">
                                                     <div className="relative h-8 w-8">
-                                                        <Image
-                                                            src={peanutWalletTokenDetails?.logoURI ?? ''}
-                                                            alt={`${peanutWalletTokenDetails?.symbol} logo`}
-                                                            width={28}
-                                                            height={28}
-                                                            className="rounded-full"
-                                                        />
-                                                        <Image
-                                                            src={peanutWalletTokenDetails?.chainLogoURI ?? ''}
-                                                            alt={`${peanutWalletTokenDetails?.chainName}`}
-                                                            width={24}
-                                                            height={24}
-                                                            className="absolute -right-1 bottom-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-gray-700 text-xs text-white"
-                                                        />
+                                                        {peanutWalletTokenDetails?.logoURI &&
+                                                        !defaultTokenImageError ? (
+                                                            <Image
+                                                                src={peanutWalletTokenDetails.logoURI}
+                                                                alt={`${peanutWalletTokenDetails?.symbol} logo`}
+                                                                width={28}
+                                                                height={28}
+                                                                className="rounded-full"
+                                                                onError={() => setDefaultTokenImageError(true)}
+                                                            />
+                                                        ) : peanutWalletTokenDetails?.symbol ? (
+                                                            <AvatarWithBadge
+                                                                name={peanutWalletTokenDetails.symbol}
+                                                                size="extra-small"
+                                                            />
+                                                        ) : (
+                                                            <Icon name="currency" size={28} />
+                                                        )}
+                                                        {peanutWalletTokenDetails?.chainLogoURI &&
+                                                        !defaultChainImageError ? (
+                                                            <Image
+                                                                src={peanutWalletTokenDetails.chainLogoURI}
+                                                                alt={`${peanutWalletTokenDetails?.chainName}`}
+                                                                width={16}
+                                                                height={16}
+                                                                className="absolute -right-1 bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2"
+                                                                onError={() => setDefaultChainImageError(true)}
+                                                            />
+                                                        ) : null}
                                                     </div>
                                                     <div>
                                                         <p className="font-semibold text-black">USDC on Arbitrum</p>
@@ -645,7 +662,13 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                                     key={chain.chainId}
                                                     chainName={chain.name}
                                                     chainIconURI={chain.iconURI}
-                                                    onClick={() => setSelectedChainID(chain.chainId)} // Simpler selection
+                                                    onClick={() => {
+                                                        if (selectedChainID === chain.chainId) {
+                                                            setSelectedChainID('') // clear selection if already selected
+                                                        } else {
+                                                            setSelectedChainID(chain.chainId) //otherwise, select it
+                                                        }
+                                                    }}
                                                     isSelected={chain.chainId === selectedChainID}
                                                 />
                                             ))}

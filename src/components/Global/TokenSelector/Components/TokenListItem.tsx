@@ -1,4 +1,5 @@
 import Card, { CardPosition } from '@/components/Global/Card'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { IUserBalance } from '@/interfaces'
 import { formatAmount } from '@/utils'
@@ -14,6 +15,7 @@ interface TokenListItemProps {
     position?: CardPosition
     className?: string
     isPopularToken?: boolean
+    isSquidSupported?: boolean
 }
 
 const TokenListItem: React.FC<TokenListItemProps> = ({
@@ -23,9 +25,12 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
     position = 'single',
     className,
     isPopularToken = false,
+    isSquidSupported = true,
 }) => {
     const [tokenPlaceholder, setTokenPlaceholder] = useState(false)
     const [chainLogoPlaceholder, setChainLogoPlaceholder] = useState(false)
+    const [tokenImageError, setTokenImageError] = useState(false)
+    const [chainImageError, setChainImageError] = useState(false)
     const { supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
 
     const chainDetails = useMemo(() => {
@@ -43,22 +48,28 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
 
     return (
         <div
-            className={twMerge('cursor-pointer rounded-sm shadow-sm', isSelected && 'bg-primary-3', className)}
-            onClick={onClick}
+            className={twMerge(
+                'cursor-pointer rounded-sm shadow-sm',
+                isSelected && 'bg-primary-3',
+                !isSquidSupported && 'cursor-not-allowed opacity-70',
+                className
+            )}
+            onClick={isSquidSupported ? onClick : undefined}
         >
             <Card
                 position={position}
                 className={twMerge(
                     'shadow-4 !overflow-visible border border-black p-4 py-3.5',
-                    isSelected ? 'bg-primary-3' : 'bg-white'
+                    isSelected ? 'bg-primary-3' : 'bg-white',
+                    !isSquidSupported && 'bg-grey-2'
                 )}
                 border={true}
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                         <div className="relative flex-shrink-0">
-                            {!balance.logoURI || tokenPlaceholder ? (
-                                <Icon name="currency" size={24} />
+                            {!balance.logoURI || tokenPlaceholder || tokenImageError ? (
+                                <AvatarWithBadge name={balance.symbol} size="extra-small" />
                             ) : (
                                 <Image
                                     src={balance.logoURI}
@@ -66,10 +77,13 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                     width={24}
                                     height={24}
                                     className="rounded-full"
-                                    onError={() => setTokenPlaceholder(true)}
+                                    onError={() => {
+                                        setTokenPlaceholder(true)
+                                        setTokenImageError(true)
+                                    }}
                                 />
                             )}
-                            {chainDetails.iconURI && !chainLogoPlaceholder && (
+                            {chainDetails.iconURI && !chainLogoPlaceholder && !chainImageError && (
                                 <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2 dark:border-black dark:bg-grey-1">
                                     <Image
                                         src={chainDetails.iconURI}
@@ -77,7 +91,10 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                         width={16}
                                         height={16}
                                         className="rounded-full"
-                                        onError={() => setChainLogoPlaceholder(true)}
+                                        onError={() => {
+                                            setChainLogoPlaceholder(true)
+                                            setChainImageError(true)
+                                        }}
                                     />
                                 </div>
                             )}
@@ -106,7 +123,9 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                             </div>
                         </div>
                     ) : (
-                        <Icon name="chevron-up" size={32} className="h-8 w-8 flex-shrink-0 rotate-90 text-black" />
+                        (isSquidSupported || isPopularToken) && (
+                            <Icon name="chevron-up" size={32} className="h-8 w-8 flex-shrink-0 rotate-90 text-black" />
+                        )
                     )}
                 </div>
             </Card>

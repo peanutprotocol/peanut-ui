@@ -32,12 +32,14 @@ const getTitle = (
     if (isLinkTransaction) {
         switch (direction) {
             case 'send':
-            case 'request_sent':
                 titleText = 'Sent via Link'
+                break
+            case 'request_sent':
+                titleText = 'Requested via Link'
                 break
             case 'receive':
             case 'request_received':
-                titleText = 'Received via Link'
+                titleText = 'Request via Link'
                 break
             default:
                 titleText = 'Link Transaction'
@@ -48,16 +50,16 @@ const getTitle = (
         const displayName = isAddress ? printableAddress(userName) : userName
         switch (direction) {
             case 'send':
-                titleText = `${status === 'pending' ? 'Paying' : 'Paid'}  to ${displayName}`
+                titleText = `${status === 'completed' ? 'Sent' : 'Sending'} to ${displayName}`
                 break
             case 'request_received':
-                titleText = `Paid request to ${displayName}`
+                titleText = `${displayName} is requesting`
                 break
             case 'receive':
                 titleText = `Received from ${displayName}`
                 break
             case 'request_sent':
-                titleText = `Requested from ${displayName}`
+                titleText = `${status === 'completed' ? 'Requested' : 'Requesting'} from ${displayName}`
                 break
             case 'withdraw':
                 titleText = `Withdrawing to ${displayName}`

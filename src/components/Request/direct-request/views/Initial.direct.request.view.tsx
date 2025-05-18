@@ -14,7 +14,7 @@ import { RecipientType } from '@/interfaces'
 import { useUserStore } from '@/redux/hooks'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { ApiUser, usersApi } from '@/services/users'
-import { printableUsdc } from '@/utils'
+import { formatAmount, printableUsdc } from '@/utils'
 import { captureException } from '@sentry/nextjs'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -66,7 +66,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     }
 
     const isDisabled = useMemo(() => {
-        return !user?.username || !currentInputValue || (!!authUser?.user.userId && !address) || !recipient.address
+        return !user?.username || !currentInputValue || (!!authUser?.user.userId ? !address : !recipient.address)
     }, [user?.username, currentInputValue, address, recipient.address, authUser?.user.userId])
 
     const createRequestCharge = useCallback(async () => {
@@ -79,6 +79,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 username: user!.username,
                 amount: currentInputValue,
                 toAddress: authUser?.user.userId ? address : recipient.address,
+                attachment: attachmentOptions,
             })
             setLoadingState('Idle')
             setView('success')
@@ -87,7 +88,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             captureException(error)
             setLoadingState('Idle')
         }
-    }, [isDisabled, user?.username, currentInputValue, address])
+    }, [isDisabled, user?.username, currentInputValue, address, attachmentOptions])
 
     useEffect(() => {
         async function fetchUser() {
@@ -114,7 +115,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <DirectSuccessView
                         user={user}
-                        amount={currentInputValue}
+                        amount={formatAmount(currentInputValue)}
                         message={attachmentOptions.message}
                         type="REQUEST"
                     />
@@ -146,38 +147,30 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     <FileUploadInput
                         attachmentOptions={attachmentOptions}
                         setAttachmentOptions={setAttachmentOptions}
-                        placeholder="Comment"
-                        className="h-12 py-2.5"
                     />
                     {!authUser?.user.userId && (
-                        <div className="space-y-2">
-                            <div className="text-sm font-bold">Where do you want to receive this?</div>
-
-                            <GeneralRecipientInput
-                                placeholder="Enter an address or ENS"
-                                recipient={recipient}
-                                onUpdate={(update: GeneralRecipientUpdate) => {
-                                    setRecipient(update.recipient)
-                                    if (!update.recipient.address) {
-                                        setRecipientType('address')
-                                        setErrorState({
-                                            showError: false,
-                                            errorMessage: '',
-                                        })
-                                    } else {
-                                        setRecipientType(update.type)
-                                    }
-                                    setIsValidRecipient(update.isValid)
+                        <GeneralRecipientInput
+                            placeholder="Enter an address or ENS"
+                            recipient={recipient}
+                            onUpdate={(update: GeneralRecipientUpdate) => {
+                                setRecipient(update.recipient)
+                                if (!update.recipient.address) {
+                                    setRecipientType('address')
                                     setErrorState({
-                                        showError: !update.isValid,
-                                        errorMessage: update.errorMessage,
+                                        showError: false,
+                                        errorMessage: '',
                                     })
-                                    setInputChanging(update.isChanging)
-                                }}
-                                showInfoText={false}
-                                showLabel={false}
-                            />
-                        </div>
+                                } else {
+                                    setRecipientType(update.type)
+                                }
+                                setIsValidRecipient(update.isValid)
+                                setErrorState({
+                                    showError: !update.isValid,
+                                    errorMessage: update.errorMessage,
+                                })
+                                setInputChanging(update.isChanging)
+                            }}
+                        />
                     )}
 
                     {errorState.errorMessage && <ErrorAlert description={errorState.errorMessage} />}

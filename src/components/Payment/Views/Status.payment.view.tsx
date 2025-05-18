@@ -7,16 +7,17 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
+import { PEANUT_WALLET_TOKEN_SYMBOL, TRANSACTIONS } from '@/constants'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { RecipientType } from '@/lib/url-parser/types/payment'
 import { usePaymentStore, useUserStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
-import { getInitialsFromName, printableAddress } from '@/utils'
+import { formatAmount, getInitialsFromName, printableAddress } from '@/utils'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useDispatch } from 'react-redux'
 
 type DirectSuccessViewProps = {
@@ -26,15 +27,25 @@ type DirectSuccessViewProps = {
     recipientType?: RecipientType
     type: 'SEND' | 'REQUEST'
     headerTitle?: string
+    currencyAmount?: string
 }
 
-const DirectSuccessView = ({ user, amount, message, recipientType, type, headerTitle }: DirectSuccessViewProps) => {
+const DirectSuccessView = ({
+    user,
+    amount,
+    message,
+    recipientType,
+    type,
+    headerTitle,
+    currencyAmount,
+}: DirectSuccessViewProps) => {
     const router = useRouter()
     const { chargeDetails, parsedPaymentData } = usePaymentStore()
     const dispatch = useDispatch()
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
         useTransactionDetailsDrawer()
     const { user: authUser } = useUserStore()
+    const queryClient = useQueryClient()
 
     const recipientName = useMemo(() => {
         if (user?.username) {
@@ -47,8 +58,10 @@ const DirectSuccessView = ({ user, amount, message, recipientType, type, headerT
     }, [user, parsedPaymentData, chargeDetails])
 
     const displayAmount = useMemo(() => {
-        return amount || chargeDetails?.tokenAmount || '0'
-    }, [amount, chargeDetails])
+        if (currencyAmount) return currencyAmount
+        const displayAmount = amount ?? chargeDetails?.tokenAmount ?? '0'
+        return `${formatAmount(displayAmount)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
+    }, [amount, chargeDetails, currencyAmount])
 
     // construct transaction details for the drawer
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
@@ -77,6 +90,11 @@ const DirectSuccessView = ({ user, amount, message, recipientType, type, headerT
 
         return details as TransactionDetails
     }, [chargeDetails, type, displayAmount, recipientName, parsedPaymentData, message, user])
+
+    useEffect(() => {
+        // invalidate queries to refetch history
+        queryClient?.invalidateQueries({ queryKey: [TRANSACTIONS] })
+    }, [queryClient])
 
     const handleDone = () => {
         if (!!authUser?.user.userId) {
