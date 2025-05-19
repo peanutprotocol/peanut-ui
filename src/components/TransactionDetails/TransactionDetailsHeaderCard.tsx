@@ -29,7 +29,7 @@ const getTitle = (
 ): React.ReactNode => {
     let titleText = userName
 
-    if (isLinkTransaction) {
+    if (isLinkTransaction && !userName) {
         switch (direction) {
             case 'send':
                 titleText = 'Sent via Link'
