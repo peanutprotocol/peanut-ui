@@ -10,7 +10,7 @@ import { twMerge } from 'tailwind-merge'
 
 export default function PaymentLayoutWrapper({ children }: { children: React.ReactNode }) {
     return (
-        <div className="flex h-[100dvh] w-full bg-background">
+        <div className="flex min-h-[100dvh] w-full bg-background">
             {/* Wrapper div for desktop layout */}
             <div className="flex w-full">
                 {/* Sidebar - Fixed on desktop */}

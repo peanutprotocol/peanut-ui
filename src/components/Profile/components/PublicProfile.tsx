@@ -4,12 +4,12 @@ import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import HomeHistory from '@/components/Home/HomeHistory'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import Image from 'next/image'
 import Link from 'next/link'
 import ProfileHeader from './ProfileHeader'
-import HomeHistory from '@/components/Home/HomeHistory'
 
 interface PublicProfileProps {
     username: string
@@ -42,7 +42,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
             {/* Logo - Only shown in guest view */}
             <div>
                 {!isLoggedIn ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 md:hidden">
                         <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" height={24} />
                         <Image src={PEANUT_LOGO_BLACK} alt="Peanut Text" height={12} />
                     </div>

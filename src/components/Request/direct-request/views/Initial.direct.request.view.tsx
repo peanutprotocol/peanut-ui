@@ -145,8 +145,10 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     />
 
                     <FileUploadInput
+                        placeholder="Comment"
                         attachmentOptions={attachmentOptions}
                         setAttachmentOptions={setAttachmentOptions}
+                        className="h-11"
                     />
                     {!authUser?.user.userId && (
                         <GeneralRecipientInput
