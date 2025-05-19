@@ -13,7 +13,7 @@ import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { fetchWithSentry, formatIban, printableUsdc, validateBankAccount } from '@/utils'
+import { fetchWithSentry, formatIban, validateBankAccount } from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
@@ -34,14 +34,8 @@ export const InitialCashoutView = ({
     crossChainDetails,
     setEstimatedGasCost,
 }: _consts.ICashoutScreenProps) => {
-    const {
-        selectedTokenPrice,
-        inputDenomination,
-        selectedChainID,
-        setSelectedChainID,
-        selectedTokenAddress,
-        setSelectedTokenAddress,
-    } = useContext(tokenSelectorContext)
+    const { selectedTokenPrice, selectedChainID, setSelectedChainID, selectedTokenAddress, setSelectedTokenAddress } =
+        useContext(tokenSelectorContext)
 
     const { user, fetchUser, isFetchingUser } = useAuth()
     const [, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
@@ -66,9 +60,7 @@ export const InitialCashoutView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     // TODO: @Hugo0 value is ambigous with price - it should be tokenAmount and tokenPrice. But this means changes across a bunch of files.
-    const [_tokenValue, _setTokenValue] = useState<string | undefined>(
-        inputDenomination === 'TOKEN' ? tokenValue : usdValue
-    )
+    const [_tokenValue, _setTokenValue] = useState<string | undefined>(tokenValue)
     const [bankAccountNumber, setBankAccountNumber] = useState<string>('')
     const [isValidBankAccountNumber, setIsValidBankAccountNumber] = useState<boolean>(false)
     const [isValidatingBankAccountNumber, setIsValidatingBankAccountNumber] = useState<boolean>(false)
@@ -121,7 +113,7 @@ export const InitialCashoutView = ({
             if (!_tokenValue) return
 
             // check if user has sufficient balance
-            if (parseFloat(_tokenValue) > parseFloat(maxValue || '0')) {
+            if (parseFloat(_tokenValue) > balance) {
                 setErrorState({
                     showError: true,
                     errorMessage: 'Insufficient balance. Please enter a smaller amount.',
@@ -204,24 +196,10 @@ export const InitialCashoutView = ({
         }
     }
 
-    const maxValue = useMemo(() => {
-        return printableUsdc(balance)
-    }, [balance])
-
     useEffect(() => {
         if (!_tokenValue) return
-        if (inputDenomination === 'TOKEN') {
-            setTokenValue(_tokenValue)
-            if (selectedTokenPrice) {
-                setUsdValue((parseFloat(_tokenValue) * selectedTokenPrice).toString())
-            }
-        } else if (inputDenomination === 'USD') {
-            setUsdValue(_tokenValue)
-            if (selectedTokenPrice) {
-                setTokenValue((parseFloat(_tokenValue) / selectedTokenPrice).toString())
-            }
-        }
-    }, [_tokenValue, inputDenomination])
+        setTokenValue(_tokenValue)
+    }, [_tokenValue])
 
     // TODO: is this needed? after removing external wallets and token selector
     // rework
@@ -279,7 +257,6 @@ export const InitialCashoutView = ({
                         className="w-full max-w-[100%]"
                         tokenValue={_tokenValue}
                         setTokenValue={_setTokenValue}
-                        maxValue={maxValue}
                         onSubmit={() => {
                             if (!isConnected) appkitModal()
                             else handleOnNext()
