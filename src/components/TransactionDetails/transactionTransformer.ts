@@ -90,7 +90,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             transactionCardType = 'send'
             if (entry.userRole === EHistoryUserRole.SENDER) {
                 nameForDetails =
-                    entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Sent via Link'
+                    entry.recipientAccount?.username || entry.recipientAccount?.identifier || "You're sending via link"
                 isPeerActuallyUser = !!entry.recipientAccount?.isUser
                 isLinkTx = !isPeerActuallyUser
             } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
