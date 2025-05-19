@@ -60,7 +60,9 @@ const DirectSuccessView = ({
     const displayAmount = useMemo(() => {
         if (currencyAmount) return currencyAmount
         const displayAmount = amount ?? chargeDetails?.tokenAmount ?? '0'
-        return `${formatAmount(displayAmount)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
+        return chargeDetails?.tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
+            ? `$ ${formatAmount(displayAmount)}`
+            : `${formatAmount(displayAmount)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
     }, [amount, chargeDetails, currencyAmount])
 
     // construct transaction details for the drawer
@@ -143,12 +145,7 @@ const DirectSuccessView = ({
                                 recipientName
                             )}
                         </h1>
-                        <h2 className="text-2xl font-extrabold">
-                            {chargeDetails?.tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
-                                ? '$'
-                                : chargeDetails?.tokenSymbol}{' '}
-                            {displayAmount}
-                        </h2>
+                        <h2 className="text-2xl font-extrabold">{displayAmount}</h2>
                         {message && <p className="text-sm font-medium text-grey-1">for {message}</p>}
                     </div>
                 </Card>
