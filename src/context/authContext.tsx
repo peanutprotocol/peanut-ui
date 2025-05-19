@@ -8,6 +8,7 @@ import { useAppKit } from '@reown/appkit/react'
 import { useRouter } from 'next/navigation'
 import { createContext, ReactNode, useContext, useState } from 'react'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -47,6 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const dispatch = useAppDispatch()
     const { user: authUser } = useUserStore()
     const toast = useToast()
+    const queryClient = useQueryClient()
 
     const { data: user, isFetching: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
 
@@ -149,6 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             if (response.ok) {
                 localStorage.removeItem(LOCAL_STORAGE_WEB_AUTHN_KEY)
+                queryClient.invalidateQueries()
 
                 // clear JWT cookie by setting it to expire
                 document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
