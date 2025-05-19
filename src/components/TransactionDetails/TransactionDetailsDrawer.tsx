@@ -42,6 +42,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     const isPendingRequestee = useMemo(() => {
         if (!transaction) return false
         return (
+            transaction.status === 'pending' &&
             transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
             transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
         )
@@ -50,6 +51,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     const isPendingRequester = useMemo(() => {
         if (!transaction) return false
         return (
+            transaction.status === 'pending' &&
             transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
             transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.RECIPIENT
         )
