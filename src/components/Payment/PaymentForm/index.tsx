@@ -286,6 +286,7 @@ export const PaymentForm = ({
         let tokenAmount = inputTokenAmount
         if (
             requestedToken &&
+            requestedTokenPrice &&
             (requestedChain !== selectedChainID || !areEvmAddressesEqual(requestedToken, selectedTokenAddress))
         ) {
             tokenAmount = (parseFloat(inputUsdValue) / requestedTokenPrice).toString()
