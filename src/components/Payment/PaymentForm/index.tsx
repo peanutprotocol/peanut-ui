@@ -143,8 +143,19 @@ export const PaymentForm = ({
             dispatch(paymentActions.setError(null))
             return
         }
-        if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
-            if (Number(peanutWalletBalance) < Number(inputTokenAmount)) {
+
+        if (
+            isActivePeanutWallet &&
+            areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)
+        ) {
+            const walletNumeric = parseFloat(
+                String(peanutWalletBalance).replace(/,/g, '')
+            )
+            const inputNumeric = parseFloat(
+                String(inputTokenAmount).replace(/,/g, '')
+            )
+
+            if (walletNumeric < inputNumeric) {
                 dispatch(paymentActions.setError('Insufficient balance'))
             } else {
                 dispatch(paymentActions.setError(null))
@@ -156,8 +167,13 @@ export const PaymentForm = ({
                 dispatch(paymentActions.setError(null))
             }
         }
-    }, [selectedTokenBalance, peanutWalletBalance, selectedTokenAddress, inputTokenAmount, isActivePeanutWallet])
-
+    }, [
+        selectedTokenBalance,
+        peanutWalletBalance,
+        selectedTokenAddress,
+        inputTokenAmount,
+        isActivePeanutWallet,
+    ])
     // fetch token price
     useEffect(() => {
         if (isPintaReq) return
