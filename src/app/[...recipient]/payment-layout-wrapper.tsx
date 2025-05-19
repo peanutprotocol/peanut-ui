@@ -32,7 +32,7 @@ export default function PaymentLayoutWrapper({ children }: { children: React.Rea
                         <ThemeProvider>
                             <div
                                 className={twMerge(
-                                    'flex h-full min-h-[calc(100dvh-160px)] w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%-160px)]'
+                                    'flex h-full min-h-[calc(100dvh-160px)] w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%-256px)]'
                                 )}
                             >
                                 {children}
