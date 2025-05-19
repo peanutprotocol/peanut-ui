@@ -93,21 +93,25 @@ const TokenAmountInput = ({
             setAlternativeDisplayValue(calculateAlternativeValue(value))
             let tokenValue: string
             switch (displayMode) {
-                case 'STABLE':
+                case 'STABLE': {
                     tokenValue = value
                     break
-                case 'TOKEN':
+                }
+                case 'TOKEN': {
                     if (!selectedTokenData?.price) throw new Error('Invalid selected token data')
                     tokenValue = _isInputUsd ? (Number(value) / selectedTokenData.price).toString() : value
                     break
-                case 'FIAT':
+                }
+                case 'FIAT': {
                     if (!currency?.price) throw new Error('Invalid currency')
                     tokenValue = _isInputUsd ? value : (Number(value) / currency.price).toString()
                     const currencyValue = _isInputUsd ? (Number(value) * currency.price).toString() : value
                     setCurrencyAmount?.(currencyValue)
                     break
-                default:
+                }
+                default: {
                     throw new Error('Invalid display mode')
+                }
             }
             setTokenValue(tokenValue)
         },
@@ -116,11 +120,12 @@ const TokenAmountInput = ({
 
     useEffect(() => {
         switch (displayMode) {
-            case 'STABLE':
+            case 'STABLE': {
                 setDisplaySymbol('$')
                 setAlternativeDisplaySymbol('')
                 break
-            case 'TOKEN':
+            }
+            case 'TOKEN': {
                 if (isInputUsd) {
                     setDisplaySymbol('$')
                     setAlternativeDisplaySymbol(selectedTokenData?.symbol || '')
@@ -129,7 +134,8 @@ const TokenAmountInput = ({
                     setAlternativeDisplaySymbol('$')
                 }
                 break
-            case 'FIAT':
+            }
+            case 'FIAT': {
                 if (isInputUsd) {
                     setDisplaySymbol('$')
                     setAlternativeDisplaySymbol(currency?.symbol || '')
@@ -138,8 +144,10 @@ const TokenAmountInput = ({
                     setAlternativeDisplaySymbol('$')
                 }
                 break
-            default:
+            }
+            default: {
                 throw new Error('Invalid display mode')
+            }
         }
     }, [displayMode, selectedTokenData?.symbol, currency?.symbol, isInputUsd])
 
