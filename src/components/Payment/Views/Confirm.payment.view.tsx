@@ -8,10 +8,10 @@ import Card from '@/components/Global/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
 import NavHeader from '@/components/Global/NavHeader'
+import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
-import UserCard from '@/components/User/UserCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context'
 import { usePaymentInitiator } from '@/hooks/usePaymentInitiator'
@@ -226,7 +226,7 @@ export default function ConfirmPaymentView({ isPintaReq = false, currency, curre
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader
-                title="Pay"
+                title="Send"
                 onPrev={() => {
                     dispatch(paymentActions.setView('INITIAL'))
                     window.history.replaceState(null, '', `${window.location.pathname}`)
@@ -237,13 +237,17 @@ export default function ConfirmPaymentView({ isPintaReq = false, currency, curre
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {parsedPaymentData?.recipient && (
-                    <UserCard
-                        type="payment"
-                        username={
+                    <PeanutActionDetailsCard
+                        avatarSize="small"
+                        transactionType="REQUEST_PAYMENT"
+                        recipientType="USERNAME"
+                        recipientName={
                             parsedPaymentData.recipient.identifier || chargeDetails?.requestLink?.recipientAddress || ''
                         }
-                        recipientType={parsedPaymentData.recipient.recipientType}
-                        size="small"
+                        amount={formatAmount(chargeDetails?.tokenAmount ?? '')}
+                        tokenSymbol={chargeDetails?.tokenSymbol ?? ''}
+                        message={chargeDetails?.requestLink?.reference ?? ''}
+                        fileUrl={chargeDetails?.requestLink?.attachmentUrl ?? ''}
                     />
                 )}
 

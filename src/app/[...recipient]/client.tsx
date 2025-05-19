@@ -263,7 +263,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
 
     // default payment flow
     return (
-        <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
+        <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-center md:w-6/12')}>
             {currentView === 'INITIAL' && (
                 <InitialPaymentView
                     {...(parsedPaymentData as ParsedURL)}

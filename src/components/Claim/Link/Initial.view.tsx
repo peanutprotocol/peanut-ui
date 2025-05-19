@@ -514,7 +514,8 @@ export const InitialClaimLinkView = ({
             </div>
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <PeanutActionDetailsCard
-                    transactionType="RECEIVED_LINK"
+                    avatarSize="small"
+                    transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={claimLinkData.sender.username}
                     amount={
@@ -524,6 +525,7 @@ export const InitialClaimLinkView = ({
                     }
                     tokenSymbol={claimLinkData.tokenSymbol}
                     message={attachment.message}
+                    fileUrl={attachment.attachmentUrl}
                 />
 
                 {/* Token Selector

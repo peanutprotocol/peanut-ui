@@ -133,7 +133,7 @@ const DirectSuccessView = ({
 
                     <div className="space-y-1">
                         <h1 className="text-sm font-normal text-grey-1">
-                            You {type === 'SEND' ? 'paid' : 'requested'}{' '}
+                            You {type === 'SEND' ? 'sent' : 'requested'}{' '}
                             {recipientType !== 'USERNAME' ? (
                                 <AddressLink
                                     className="text-sm font-normal text-grey-1 no-underline"

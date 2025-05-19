@@ -154,7 +154,7 @@ export const Claim = ({}) => {
 
     return (
         <PageContainer className="min-h-[inherit] pb-5">
-            {linkState === _consts.claimLinkStateType.LOADING && <PeanutLoading coverFullScreen />}
+            {linkState === _consts.claimLinkStateType.LOADING && <PeanutLoading />}
             {linkState === _consts.claimLinkStateType.CLAIM && (
                 <FlowManager
                     recipientType={recipientType}

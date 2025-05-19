@@ -403,8 +403,8 @@ export const PaymentForm = ({
     }, [selectedTokenData, selectedChainID])
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <div className="text-center text-xl font-extrabold md:hidden">Pay</div>
+        <div className="flex h-full min-h-[inherit] flex-col justify-between gap-8">
+            <div className="text-center text-xl font-extrabold md:hidden">Send</div>
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* Recipient Info Card */}
                 {recipient && (
@@ -413,6 +413,8 @@ export const PaymentForm = ({
                         username={recipientDisplayName}
                         recipientType={recipient.recipientType}
                         size="small"
+                        message={requestDetails?.reference || chargeDetails?.requestLink?.reference || ''}
+                        fileUrl={requestDetails?.attachmentUrl || chargeDetails?.requestLink?.attachmentUrl || ''}
                     />
                 )}
 

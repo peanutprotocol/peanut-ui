@@ -97,22 +97,6 @@ export const ConfirmClaimLinkView = ({
         }
     }
 
-    // useEffect(() => {
-    //     if (attachment?.attachmentUrl) {
-    //         try {
-    //             fetchWithSentry(attachment?.attachmentUrl)
-    //                 .then((response) => response.blob())
-    //                 .then((blob) => {
-    //                     setFileType(blob.type)
-    //                 })
-    //                 .catch((error) => {
-    //                     console.error('Error fetching the blob from URL:', error)
-    //                     setFileType('') // Reset or handle the error state
-    //                 })
-    //         } catch (error) {}
-    //     }
-    // }, [attachment?.attachmentUrl])
-
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <div className="md:hidden">
@@ -120,7 +104,7 @@ export const ConfirmClaimLinkView = ({
             </div>
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <PeanutActionDetailsCard
-                    transactionType="RECEIVED_LINK"
+                    transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={claimLinkData.sender.username}
                     amount={
