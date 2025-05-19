@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle'
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import {
@@ -497,92 +498,104 @@ export const InitialClaimLinkView = ({
         )
     }
 
-    console.log('claimLinkData', claimLinkData)
-
     return (
-        <div className="space-y-4">
-            <PeanutActionDetailsCard
-                transactionType="RECEIVED_LINK"
-                recipientType="USERNAME"
-                recipientName={claimLinkData.sender.username}
-                amount={
-                    formatTokenAmount(
-                        Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
-                    ) ?? ''
-                }
-                tokenSymbol={claimLinkData.tokenSymbol}
-                message={attachment.message}
-            />
-
-            {/* Token Selector
-             * We don't want to show this if we're claiming to peanut wallet. Else its okay
-             */}
-            {!isPeanutWallet &&
-                recipientType !== 'iban' &&
-                recipientType !== 'us' &&
-                !isPeanutClaimOnlyMode() &&
-                !!claimToExternalWallet && <TokenSelector viewType="claim" />}
-
-            {/* Alternative options section with divider */}
-            {!isPeanutClaimOnlyMode() && (
-                <>
-                    {/* Manual Input Section - Always visible in non-peanut-only mode */}
-                    {!isPeanutWallet && !!claimToExternalWallet && (
-                        <GeneralRecipientInput
-                            placeholder="Enter an address or ENS"
-                            recipient={recipient}
-                            onUpdate={(update: GeneralRecipientUpdate) => {
-                                setRecipient(update.recipient)
-                                if (!update.recipient.address) {
-                                    setRecipientType('address')
-                                    // Reset loading state when input is cleared
-                                    setLoadingState('Idle')
-                                } else {
-                                    setRecipientType(update.type)
-                                }
-                                setIsValidRecipient(update.isValid)
-                                setErrorState({
-                                    showError: !update.isValid,
-                                    errorMessage: update.errorMessage,
-                                })
-                                setInputChanging(update.isChanging)
-                            }}
-                            showInfoText={false}
-                        />
-                    )}
-                </>
-            )}
-
-            <div className="space-y-4">
-                {guestAction()}
-                {!!claimToExternalWallet && (
-                    <Button
-                        shadowSize="4"
-                        onClick={() => {
-                            if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
-                                setRefetchXchainRoute(true)
-                                onNext()
-                            } else if (recipientType === 'iban' || recipientType === 'us') {
-                                handleIbanRecipient()
-                            } else if (selectedRoute || (isXChain && hasFetchedRoute)) {
-                                onNext()
-                            } else {
-                                handleClaimLink()
-                            }
-                        }}
-                        loading={isLoading || isXchainLoading}
-                        disabled={
-                            isLoading ||
-                            isXchainLoading ||
-                            inputChanging ||
-                            !isValidRecipient ||
-                            (isXChain && !selectedRoute && (!hasFetchedRoute || isXchainLoading))
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="md:hidden">
+                <NavHeader
+                    title="Claim"
+                    onPrev={() => {
+                        if (user?.user.userId) {
+                            router.push('/home')
+                        } else {
+                            router.push('/setup')
                         }
-                        className="text-sm md:text-base"
-                    >
-                        {getButtonText()}
-                    </Button>
+                    }}
+                />
+            </div>
+            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <PeanutActionDetailsCard
+                    transactionType="RECEIVED_LINK"
+                    recipientType="USERNAME"
+                    recipientName={claimLinkData.sender.username}
+                    amount={
+                        formatTokenAmount(
+                            Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
+                        ) ?? ''
+                    }
+                    tokenSymbol={claimLinkData.tokenSymbol}
+                    message={attachment.message}
+                />
+
+                {/* Token Selector
+                 * We don't want to show this if we're claiming to peanut wallet. Else its okay
+                 */}
+                {!isPeanutWallet &&
+                    recipientType !== 'iban' &&
+                    recipientType !== 'us' &&
+                    !isPeanutClaimOnlyMode() &&
+                    !!claimToExternalWallet && <TokenSelector viewType="claim" />}
+
+                {/* Alternative options section with divider */}
+                {!isPeanutClaimOnlyMode() && (
+                    <>
+                        {/* Manual Input Section - Always visible in non-peanut-only mode */}
+                        {!isPeanutWallet && !!claimToExternalWallet && (
+                            <GeneralRecipientInput
+                                placeholder="Enter an address or ENS"
+                                recipient={recipient}
+                                onUpdate={(update: GeneralRecipientUpdate) => {
+                                    setRecipient(update.recipient)
+                                    if (!update.recipient.address) {
+                                        setRecipientType('address')
+                                        // Reset loading state when input is cleared
+                                        setLoadingState('Idle')
+                                    } else {
+                                        setRecipientType(update.type)
+                                    }
+                                    setIsValidRecipient(update.isValid)
+                                    setErrorState({
+                                        showError: !update.isValid,
+                                        errorMessage: update.errorMessage,
+                                    })
+                                    setInputChanging(update.isChanging)
+                                }}
+                                showInfoText={false}
+                            />
+                        )}
+                    </>
                 )}
+
+                <div className="space-y-4">
+                    {guestAction()}
+                    {(!!claimToExternalWallet || !!user?.user.userId) && (
+                        <Button
+                            shadowSize="4"
+                            onClick={() => {
+                                if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+                                    setRefetchXchainRoute(true)
+                                    onNext()
+                                } else if (recipientType === 'iban' || recipientType === 'us') {
+                                    handleIbanRecipient()
+                                } else if (selectedRoute || (isXChain && hasFetchedRoute)) {
+                                    onNext()
+                                } else {
+                                    handleClaimLink()
+                                }
+                            }}
+                            loading={isLoading || isXchainLoading}
+                            disabled={
+                                isLoading ||
+                                isXchainLoading ||
+                                inputChanging ||
+                                !isValidRecipient ||
+                                (isXChain && !selectedRoute && (!hasFetchedRoute || isXchainLoading))
+                            }
+                            className="text-sm md:text-base"
+                        >
+                            {getButtonText()}
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
     )

@@ -15,7 +15,7 @@ export const PaymentInfoRow = ({
     loading?: boolean
     hideBottomBorder?: boolean
 }) => {
-    const [showMoreInfo, setShowMoreInfo] = useState(true)
+    const [showMoreInfo, setShowMoreInfo] = useState(false)
 
     return (
         <div

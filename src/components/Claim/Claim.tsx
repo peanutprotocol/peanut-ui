@@ -1,22 +1,21 @@
 'use client'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { useContext, useEffect, useState, useCallback } from 'react'
+import { useCallback, useContext, useEffect, useState } from 'react'
 
-import * as assets from '@/assets'
+import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'
 import * as consts from '@/constants'
 import { tokenSelectorContext } from '@/context'
+import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
+import { ESendLinkStatus, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
+import { isStableCoin } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import PageContainer from '../0_Bruddle/PageContainer'
+import PeanutLoading from '../Global/PeanutLoading'
 import * as _consts from './Claim.consts'
 import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
-import { fetchTokenPrice } from '@/app/actions/tokens'
-import { sendLinksApi, type ClaimLinkData, ESendLinkStatus } from '@/services/sendLinks'
-import { useAuth } from '@/context/authContext'
-import { fetchTokenDetails } from '@/app/actions/tokens'
-import { isStableCoin } from '@/utils'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -154,15 +153,8 @@ export const Claim = ({}) => {
     }, [user])
 
     return (
-        <PageContainer>
-            {linkState === _consts.claimLinkStateType.LOADING && (
-                <div className="relative flex w-full items-center justify-center">
-                    <div className="animate-spin">
-                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
-                        <span className="sr-only">Loading...</span>
-                    </div>
-                </div>
-            )}
+        <PageContainer className="min-h-[inherit] pb-5">
+            {linkState === _consts.claimLinkStateType.LOADING && <PeanutLoading coverFullScreen />}
             {linkState === _consts.claimLinkStateType.CLAIM && (
                 <FlowManager
                     recipientType={recipientType}

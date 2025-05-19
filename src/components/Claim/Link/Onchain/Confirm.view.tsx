@@ -2,7 +2,7 @@
 import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
-import FlowHeader from '@/components/Global/FlowHeader'
+import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
@@ -114,73 +114,88 @@ export const ConfirmClaimLinkView = ({
     // }, [attachment?.attachmentUrl])
 
     return (
-        <div className="space-y-4">
-            <FlowHeader onPrev={onPrev} disableBackBtn={isLoading} />
-            <PeanutActionDetailsCard
-                transactionType="RECEIVED_LINK"
-                recipientType="USERNAME"
-                recipientName={claimLinkData.sender.username}
-                amount={
-                    formatTokenAmount(
-                        Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
-                    ) ?? ''
-                }
-                tokenSymbol={claimLinkData.tokenSymbol}
-                message={attachment.message}
-            />
-            <Card>
-                <PaymentInfoRow
-                    label="Claiming to"
-                    value={
-                        <AddressLink
-                            address={recipient.name ?? recipient.address ?? ''}
-                            className="text-sm text-black no-underline"
-                        />
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="md:hidden">
+                <NavHeader title="Claim" onPrev={onPrev} />
+            </div>
+            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <PeanutActionDetailsCard
+                    transactionType="RECEIVED_LINK"
+                    recipientType="USERNAME"
+                    recipientName={claimLinkData.sender.username}
+                    amount={
+                        formatTokenAmount(
+                            Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
+                        ) ?? ''
                     }
+                    tokenSymbol={claimLinkData.tokenSymbol}
+                    message={attachment.message}
                 />
-                <PaymentInfoRow
-                    label="Token and network"
-                    value={
-                        <div className="flex items-center gap-2">
-                            <div className="relative flex h-5 w-5">
-                                <Image
-                                    src={`${supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]?.chainIconURI}`}
-                                    alt={selectedRoute.route.estimate.toToken.symbol}
-                                    width={10}
-                                    height={10}
-                                    className="absolute -right-1 bottom-0"
-                                />
-                                <Image
-                                    src={`${
-                                        supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]?.tokens.find(
-                                            (token) => token.symbol === selectedRoute.route.estimate.toToken.symbol
-                                        )?.logoURI
-                                    }`}
-                                    alt={selectedRoute.route.estimate.toToken.symbol}
-                                    width={20}
-                                    height={20}
-                                />
-                            </div>
-                            <span>
-                                {selectedRoute.route.estimate.toToken.symbol} on{' '}
-                                <span className="capitalize">
-                                    {supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]?.axelarChainName}
+                <Card>
+                    <PaymentInfoRow
+                        label="Claiming to"
+                        value={
+                            <AddressLink
+                                address={recipient.name ?? recipient.address ?? ''}
+                                className="text-sm text-black no-underline"
+                            />
+                        }
+                    />
+                    <PaymentInfoRow
+                        label="Token and network"
+                        value={
+                            <div className="flex items-center gap-2">
+                                <div className="relative flex h-5 w-5">
+                                    <Image
+                                        src={`${supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]?.chainIconURI}`}
+                                        alt={selectedRoute.route.estimate.toToken.symbol}
+                                        width={10}
+                                        height={10}
+                                        className="absolute -right-1 bottom-0"
+                                    />
+                                    <Image
+                                        src={`${
+                                            supportedSquidChainsAndTokens[
+                                                selectedRoute.route.params.toChain
+                                            ]?.tokens.find(
+                                                (token) => token.symbol === selectedRoute.route.estimate.toToken.symbol
+                                            )?.logoURI
+                                        }`}
+                                        alt={selectedRoute.route.estimate.toToken.symbol}
+                                        width={20}
+                                        height={20}
+                                    />
+                                </div>
+                                <span>
+                                    {selectedRoute.route.estimate.toToken.symbol} on{' '}
+                                    <span className="capitalize">
+                                        {
+                                            supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
+                                                ?.axelarChainName
+                                        }
+                                    </span>
                                 </span>
-                            </span>
-                        </div>
-                    }
-                />
-                <PaymentInfoRow
-                    label="Network fee"
-                    value={'$ 0.00'}
-                    moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
-                />
-                <PaymentInfoRow label="Peanut fee" value={'$ 0.00'} hideBottomBorder />
-            </Card>
+                            </div>
+                        }
+                    />
+                    <PaymentInfoRow
+                        label="Network fee"
+                        value={'$ 0.00'}
+                        moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
+                    />
+                    <PaymentInfoRow label="Peanut fee" value={'$ 0.00'} hideBottomBorder />
+                </Card>
 
-            <Button icon="arrow-down" shadowSize="4" onClick={handleOnClaim} disabled={isLoading} loading={isLoading}>
-                {isLoading ? loadingState : 'Claim'}
-            </Button>
+                <Button
+                    icon="arrow-down"
+                    shadowSize="4"
+                    onClick={handleOnClaim}
+                    disabled={isLoading}
+                    loading={isLoading}
+                >
+                    {isLoading ? 'Claiming' : 'Claim'}
+                </Button>
+            </div>
         </div>
     )
 }

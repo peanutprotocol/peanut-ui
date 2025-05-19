@@ -1,4 +1,5 @@
 import { Button } from '@/components/0_Bruddle'
+import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useUserStore } from '@/redux/hooks'
@@ -57,21 +58,32 @@ export const SuccessClaimLinkView = ({
     }, [transactionHash, claimLinkData.link])
 
     return (
-        <div className="space-y-4">
-            <PeanutActionDetailsCard
-                viewType="SUCCESS"
-                transactionType="CLAIM_LINK"
-                recipientType="USERNAME"
-                recipientName={claimLinkData.sender.username}
-                amount={formatAmount(Number(claimLinkData.amount))}
-                tokenSymbol={claimLinkData.tokenSymbol}
-                message={`from ${claimLinkData.sender.username || claimLinkData.sender.accounts[0].identifier || printableAddress(claimLinkData.senderAddress)}`}
-            />
-            {!!authUser?.user.userId && (
-                <Button shadowSize="4" onClick={() => router.push('/send')} className="w-full">
-                    Back to home
-                </Button>
-            )}
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="md:hidden">
+                <NavHeader
+                    icon="cancel"
+                    title="Claim"
+                    onPrev={() => {
+                        router.push('/home')
+                    }}
+                />
+            </div>
+            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <PeanutActionDetailsCard
+                    viewType="SUCCESS"
+                    transactionType="CLAIM_LINK"
+                    recipientType="USERNAME"
+                    recipientName={claimLinkData.sender.username}
+                    amount={formatAmount(Number(claimLinkData.amount))}
+                    tokenSymbol={claimLinkData.tokenSymbol}
+                    message={`from ${claimLinkData.sender.username || claimLinkData.sender.accounts[0].identifier || printableAddress(claimLinkData.senderAddress)}`}
+                />
+                {!!authUser?.user.userId && (
+                    <Button shadowSize="4" onClick={() => router.push('/send')} className="w-full">
+                        Back to home
+                    </Button>
+                )}
+            </div>
         </div>
     )
 }
