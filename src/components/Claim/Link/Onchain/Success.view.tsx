@@ -79,7 +79,7 @@ export const SuccessClaimLinkView = ({
                     message={`from ${claimLinkData.sender.username || claimLinkData.sender.accounts[0].identifier || printableAddress(claimLinkData.senderAddress)}`}
                 />
                 {!!authUser?.user.userId && (
-                    <Button shadowSize="4" onClick={() => router.push('/send')} className="w-full">
+                    <Button shadowSize="4" onClick={() => router.push('/home')} className="w-full">
                         Back to home
                     </Button>
                 )}

@@ -148,6 +148,7 @@ const DirectSuccessView = ({
                                 ? '$'
                                 : chargeDetails?.tokenSymbol}{' '}
                             {displayAmount}
+                            {displayAmount}
                         </h2>
                         {message && <p className="text-sm font-medium text-grey-1">for {message}</p>}
                     </div>

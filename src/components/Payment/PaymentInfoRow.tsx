@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '../Global/Icons/Icon'
 
@@ -16,6 +16,7 @@ export const PaymentInfoRow = ({
     hideBottomBorder?: boolean
 }) => {
     const [showMoreInfo, setShowMoreInfo] = useState(false)
+    const tooltipId = useId()
 
     return (
         <div
@@ -29,8 +30,13 @@ export const PaymentInfoRow = ({
                 {moreInfoText && (
                     <div
                         className="relative"
+                        role="button"
+                        tabIndex={0}
+                        aria-describedby={tooltipId}
                         onMouseEnter={() => setShowMoreInfo(true)}
                         onMouseLeave={() => setShowMoreInfo(false)}
+                        onFocus={() => setShowMoreInfo(true)}
+                        onBlur={() => setShowMoreInfo(false)}
                     >
                         <Icon
                             name="info"
@@ -38,7 +44,12 @@ export const PaymentInfoRow = ({
                             onClick={() => setShowMoreInfo(!showMoreInfo)}
                         />
                         {showMoreInfo && (
-                            <div className="absolute left-4 top-1/2 z-50 ml-2 w-max max-w-[210px] -translate-y-1/2 transform rounded-sm border border-black bg-white p-3 text-xs font-normal shadow-sm md:max-w-xs ">
+                            <div
+                                className="absolute left-4 top-1/2 z-50 ml-2 w-max max-w-[210px] -translate-y-1/2 transform rounded-sm border border-black bg-white p-3 text-xs font-normal shadow-sm md:max-w-xs"
+                                id={tooltipId}
+                                role="tooltip"
+                                aria-hidden={!showMoreInfo}
+                            >
                                 <div className="relative">
                                     <div className="absolute -left-5 top-1/2 h-0 w-0 -translate-y-1/2 transform border-b-[9px] border-r-[8px] border-t-[9px] border-b-transparent border-r-black border-t-transparent"></div>
                                     <div className="absolute -left-[19px] top-1/2 z-40 h-0 w-0 -translate-y-1/2 transform border-b-[9px] border-r-[8px] border-t-[9px] border-b-transparent border-r-white border-t-transparent"></div>

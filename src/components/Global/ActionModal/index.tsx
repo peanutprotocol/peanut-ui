@@ -106,8 +106,6 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 defaultModalPanelClasses,
                 modalPanelClassName
             )}
-            // we render title and close button handling internally or via hideModalCloseButton
-            // so, we don't pass `title` to BaseModal to avoid its default header.
         >
             <div className={twMerge('flex flex-col items-center gap-4 p-6 text-center', contentContainerClassName)}>
                 {iconContent && (
