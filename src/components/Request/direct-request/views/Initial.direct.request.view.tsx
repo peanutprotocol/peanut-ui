@@ -170,6 +170,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                                 })
                                 setInputChanging(update.isChanging)
                             }}
+                            showInfoText={false}
                         />
                     )}
 

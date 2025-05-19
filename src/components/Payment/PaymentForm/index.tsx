@@ -306,22 +306,10 @@ export const PaymentForm = ({
         if (isConnected || user) return null
         return (
             <div className="space-y-4">
-                <Button
-                    variant="purple"
-                    loading={isProcessing}
-                    shadowSize="4"
-                    onClick={() => router.push('/setup')}
-                    className="w-full"
-                >
-                    Access to Peanut
+                <Button variant="purple" shadowSize="4" onClick={() => router.push('/setup')} className="w-full">
+                    Sign In
                 </Button>
-                <Button
-                    variant="primary-soft"
-                    loading={isProcessing}
-                    shadowSize="4"
-                    onClick={() => openReownModal()}
-                    className="w-full"
-                >
+                <Button variant="primary-soft" shadowSize="4" onClick={() => openReownModal()} className="w-full">
                     Connect Wallet
                 </Button>
             </div>

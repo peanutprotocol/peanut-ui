@@ -22,6 +22,7 @@ import { FeesIcon } from './fees'
 import { GiftIcon } from './gift'
 import { HistoryIcon } from './history'
 import { HomeIcon } from './home'
+import { InfoIcon } from './Info'
 import { LinkIcon } from './link'
 import { LogoutIcon } from './logout'
 import { PaperClipIcon } from './paper-clip'
@@ -78,7 +79,7 @@ export type IconName =
     | 'docs'
     | 'error'
     | 'clip'
-
+    | 'info'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -124,6 +125,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     docs: DocsIcon,
     error: ErrorIcon,
     clip: ClipIcon,
+    info: InfoIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

@@ -17,7 +17,6 @@ type GeneralRecipientInputProps = {
     onUpdate: (update: GeneralRecipientUpdate) => void
     infoText?: string
     showInfoText?: boolean
-    showLabel?: boolean
 }
 
 export type GeneralRecipientUpdate = {
@@ -35,7 +34,6 @@ const GeneralRecipientInput = ({
     className,
     infoText,
     showInfoText = true,
-    showLabel = true,
 }: GeneralRecipientInputProps) => {
     const recipientType = useRef<interfaces.RecipientType>('address')
     const errorMessage = useRef('')
@@ -126,7 +124,7 @@ const GeneralRecipientInput = ({
 
     return (
         <div className="w-full">
-            {showLabel && <label className="mb-2 block text-left text-sm font-bold">Claim to</label>}
+            <label className="mb-2 block text-left text-sm font-bold">Where do you want to receive this?</label>
             <ValidatedInput
                 label="To"
                 value={recipient.name ?? recipient.address}
