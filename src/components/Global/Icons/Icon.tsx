@@ -1,5 +1,6 @@
 import { ComponentType, FC, SVGProps } from 'react'
 import { AchievementsIcon } from './achievements'
+import { AlertIcon } from './alert'
 import { ArrowDownIcon } from './arrow-down'
 import { ArrowDownLeftIcon } from './arrow-down-left'
 import { ArrowUpIcon } from './arrow-up'
@@ -44,6 +45,7 @@ import { WalletOutlineIcon } from './wallet-outline'
 
 // available icon names
 export type IconName =
+    | 'alert'
     | 'arrow-down'
     | 'arrow-down-left'
     | 'arrow-up'
@@ -135,6 +137,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'external-link': ExternalLinkIcon,
     plus: PlusIcon,
     'exchange-arrows': ExchangeArrowsIcon,
+    alert: AlertIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

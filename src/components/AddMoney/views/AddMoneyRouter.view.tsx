@@ -14,13 +14,27 @@ export const AddMoneyRouterView = () => {
     const [searchTerm, setSearchTerm] = useState('')
 
     const filteredAllMethods = useMemo(() => {
-        if (!searchTerm) return ALL_DEPOSIT_METHODS
-        return ALL_DEPOSIT_METHODS.filter(
-            (method) =>
-                method.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                method.currency?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                method.description?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+        let methodsToShow
+        if (!searchTerm) {
+            methodsToShow = [...ALL_DEPOSIT_METHODS]
+        } else {
+            methodsToShow = ALL_DEPOSIT_METHODS.filter(
+                (method) =>
+                    method.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    method.currency?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    method.description?.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+        }
+
+        return methodsToShow.sort((a, b) => {
+            if (a.type === 'crypto' && b.type !== 'crypto') {
+                return -1
+            }
+            if (b.type === 'crypto' && a.type !== 'crypto') {
+                return 1
+            }
+            return a.title.toLowerCase().localeCompare(b.title.toLowerCase())
+        })
     }, [searchTerm])
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,7 +49,7 @@ export const AddMoneyRouterView = () => {
     if (showAllMethods) {
         return (
             <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
-                <NavHeader title="Add Money" onPrev={() => router.back()} />
+                <NavHeader title="Add Money" onPrev={() => router.push('/home')} />
                 <div className="flex h-full flex-col justify-center space-y-2">
                     <h2 className="text-base font-bold">Recent methods</h2>
                     <DepositMethodList methods={[]} />
@@ -50,15 +64,26 @@ export const AddMoneyRouterView = () => {
     // show all methods view
     return (
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
-            <NavHeader title="Add Money" onPrev={() => setShowAllMethods(false)} />
+            <NavHeader
+                title="Add Money"
+                onPrev={() => {
+                    setShowAllMethods(false)
+                    router.push('/home')
+                }}
+            />
 
             <div className="flex h-full flex-col justify-center space-y-2">
                 <h2 className="text-base font-bold">Where to add money from?</h2>
 
-                <SearchInput value={searchTerm} onChange={handleSearchChange} onClear={handleClearSearch} />
+                <SearchInput
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    onClear={handleClearSearch}
+                    placeholder="Search"
+                />
                 {searchTerm && filteredAllMethods.length === 0 ? (
                     <EmptyState
-                        title="No methods found"
+                        title="No results found"
                         description="Try searching with a different term."
                         icon="search"
                     />

@@ -1,18 +1,12 @@
-import { Button, ButtonProps, ButtonVariant } from '@/components/0_Bruddle/Button'
+import { Button, ButtonProps } from '@/components/0_Bruddle/Button'
 import { IconProps as GlobalIconProps, Icon, IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 
-export interface ActionModalButtonProps {
+export interface ActionModalButtonProps extends ButtonProps {
     text: string
-    onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
-    variant?: ButtonVariant
-    disabled?: boolean
-    loading?: boolean
-    className?: string
-    icon?: IconName
     iconPosition?: 'left' | 'right'
 }
 
@@ -102,7 +96,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
             className={twMerge('items-center justify-center md:mx-auto md:max-w-md', modalClassName)}
             classButtonClose={hideModalCloseButton ? '!hidden' : ''}
             classWrap={twMerge(
-                'sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0',
+                'sm:m-auto sm:self-center self-center m-4 bg-white rounded-none border-0',
                 defaultModalPanelClasses,
                 modalPanelClassName
             )}
@@ -131,10 +125,10 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 </div>
 
                 {(checkbox || (ctas && ctas.length > 0)) && (
-                    <div className="mt-4 w-full space-y-4">
+                    <div className="w-full space-y-4">
                         {checkbox && (
                             <div className={twMerge('self-start text-left', checkbox.className)}>
-                                <label className="flex cursor-pointer items-center space-x-2 text-sm dark:text-white">
+                                <label className="flex cursor-pointer items-center justify-center space-x-2 text-sm dark:text-white">
                                     <input
                                         type="checkbox"
                                         className={twMerge(

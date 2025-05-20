@@ -1,6 +1,8 @@
 import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import React from 'react'
+import { twMerge } from 'tailwind-merge'
+import { Button } from '../0_Bruddle'
 
 interface SearchResultCardProps {
     title: string
@@ -9,6 +11,8 @@ interface SearchResultCardProps {
     onClick: () => void
     position?: CardPosition
     className?: string
+    rightContent?: React.ReactNode
+    isDisabled?: boolean
 }
 
 export const SearchResultCard = ({
@@ -18,6 +22,8 @@ export const SearchResultCard = ({
     onClick,
     position = 'middle',
     className,
+    rightContent,
+    isDisabled = false,
 }: SearchResultCardProps) => {
     const handleCardClick = () => {
         onClick()
@@ -25,9 +31,9 @@ export const SearchResultCard = ({
 
     return (
         <Card
-            onClick={handleCardClick}
+            onClick={isDisabled ? undefined : handleCardClick}
             position={position}
-            className={`cursor-pointer hover:bg-gray-50 ${className || ''}`}
+            className={twMerge('cursor-pointer hover:bg-gray-50', isDisabled ? 'bg-grey-4' : '', className)}
         >
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -37,9 +43,19 @@ export const SearchResultCard = ({
                         {description && <div className="text-sm text-grey-1">{description}</div>}
                     </div>
                 </div>
-                <div className="flex size-6 items-center justify-center rounded-full border border-black bg-primary-1 p-0 shadow-[0.12rem_0.12rem_0_#000000]">
-                    <Icon name="chevron-up" size={20} className="rotate-90" />
-                </div>
+                {rightContent ? (
+                    rightContent
+                ) : (
+                    <Button
+                        shadowSize="4"
+                        size="small"
+                        className="h-6 w-6 rounded-full p-0 shadow-[0.12rem_0.12rem_0_#000000]"
+                    >
+                        <div className="flex size-7 items-center justify-center">
+                            <Icon name="chevron-up" className="h-9 rotate-90" />
+                        </div>
+                    </Button>
+                )}
             </div>
         </Card>
     )
