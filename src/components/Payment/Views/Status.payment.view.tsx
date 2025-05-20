@@ -1,19 +1,24 @@
 'use client'
 import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
+import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
-import Loading from '@/components/Global/Loading'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { TRANSACTIONS } from '@/constants/query.consts'
+import NavHeader from '@/components/Global/NavHeader'
+import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { PEANUT_WALLET_TOKEN_SYMBOL, TRANSACTIONS } from '@/constants'
+import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
+import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
+import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { RecipientType } from '@/lib/url-parser/types/payment'
-import { usePaymentStore } from '@/redux/hooks'
+import { usePaymentStore, useUserStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
-import { printableAddress, formatAmount } from '@/utils'
+import { formatAmount, getInitialsFromName, printableAddress } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useDispatch } from 'react-redux'
 
 type DirectSuccessViewProps = {
@@ -37,9 +42,17 @@ const DirectSuccessView = ({
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const { chargeDetails, parsedPaymentData } = usePaymentStore()
-    const [showCheck, setShowCheck] = useState(false)
     const dispatch = useDispatch()
+    const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
+        useTransactionDetailsDrawer()
+    const { user: authUser } = useUserStore()
     const queryClient = useQueryClient()
+
+    const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
+        chainId: chargeDetails?.chainId,
+        tokenSymbol: chargeDetails?.tokenSymbol,
+        tokenAddress: chargeDetails?.tokenAddress,
+    })
 
     const recipientName = useMemo(() => {
         if (user?.username) {
@@ -51,57 +64,121 @@ const DirectSuccessView = ({
         return printableAddress(chargeDetails?.requestLink?.recipientAddress || '')
     }, [user, parsedPaymentData, chargeDetails])
 
+    const amountValue = useMemo(() => {
+        return amount ?? chargeDetails?.tokenAmount ?? '0'
+    }, [amount, chargeDetails])
+
     const displayAmount = useMemo(() => {
         if (currencyAmount) return currencyAmount
-        const displayAmount = amount ?? chargeDetails?.tokenAmount ?? '0'
-        return `${formatAmount(displayAmount)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
-    }, [amount, chargeDetails, currencyAmount])
+        return chargeDetails?.tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
+            ? `$ ${formatAmount(amountValue)}`
+            : `${formatAmount(amountValue)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
+    }, [amountValue, chargeDetails, currencyAmount])
+
+    // construct transaction details for the drawer
+    const transactionForDrawer: TransactionDetails | null = useMemo(() => {
+        if (!chargeDetails) return null
+
+        const firstPayment =
+            chargeDetails.payments && chargeDetails.payments.length > 0 ? chargeDetails.payments[0] : null
+
+        const txTimestamp = firstPayment?.createdAt || chargeDetails.createdAt
+
+        const networkFeeDisplayValue = '$ 0.00' // fee is zero for peanut wallet txns
+        const peanutFeeDisplayValue = '$ 0.00' // peanut doesn't charge fees yet
+
+        let details: Partial<TransactionDetails> = {
+            id: firstPayment?.payerTransactionHash,
+            status: 'completed' as StatusType,
+            amount: parseFloat(amountValue),
+            date: new Date(txTimestamp),
+            tokenSymbol: chargeDetails.tokenSymbol,
+            direction: 'send', // only showing receipt for send txns
+            initials: getInitialsFromName(recipientName),
+            extraDataForDrawer: {
+                isLinkTransaction: false,
+                originalType: EHistoryEntryType.DIRECT_SEND,
+                originalUserRole: EHistoryUserRole.SENDER,
+            },
+            userName: user?.username || parsedPaymentData?.recipient?.identifier,
+            sourceView: 'status',
+            tokenDisplayDetails: {
+                tokenSymbol: resolvedTokenSymbol || chargeDetails.tokenSymbol,
+                chainName: resolvedChainName,
+                tokenIconUrl: tokenIconUrl,
+                chainIconUrl: chainIconUrl,
+            },
+            networkFeeDetails: {
+                amountDisplay: networkFeeDisplayValue,
+                moreInfoText: 'This transaction may face slippage due to token conversion or cross-chain bridging.',
+            },
+            peanutFeeDetails: {
+                amountDisplay: peanutFeeDisplayValue,
+            },
+        }
+
+        return details as TransactionDetails
+    }, [
+        chargeDetails,
+        type,
+        amountValue,
+        recipientName,
+        parsedPaymentData,
+        message,
+        user,
+        getInitialsFromName,
+        tokenIconUrl,
+        chainIconUrl,
+        resolvedChainName,
+        resolvedTokenSymbol,
+    ])
 
     useEffect(() => {
-        // show loading for a brief moment, then show check mark
-        const checkTimeout = setTimeout(() => {
-            setShowCheck(true)
-        }, 800)
-
-        // Invalidate queries to refetch history
-        queryClient?.invalidateQueries({ queryKey: ['transactions'] })
-
-        return () => {
-            clearTimeout(checkTimeout)
-        }
+        // invalidate queries to refetch history
+        queryClient?.invalidateQueries({ queryKey: [TRANSACTIONS] })
     }, [queryClient])
 
     const handleDone = () => {
-        // reset payment state when done
-        router.push('/home')
-        dispatch(paymentActions.resetPaymentState())
-        queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        if (!!authUser?.user.userId) {
+            // reset payment state when done
+            router.push('/home')
+            dispatch(paymentActions.resetPaymentState())
+        } else {
+            router.push('/setup')
+        }
     }
 
     return (
-        <div>
-            <div className="translate-y-1/3 space-y-4">
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            {type === 'SEND' && (
+                <div className="md:hidden">
+                    <NavHeader
+                        icon="cancel"
+                        title={headerTitle}
+                        onPrev={() => {
+                            router.push('/send')
+                        }}
+                    />
+                </div>
+            )}
+            <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">
-                        {recipientType !== 'USERNAME' ? (
-                            <div
-                                className={
-                                    'flex h-16 w-16 min-w-16 items-center justify-center rounded-full bg-yellow-5 font-bold'
-                                }
-                            >
-                                <Icon name="wallet-outline" size={24} />
-                            </div>
-                        ) : (
-                            <AvatarWithBadge name={recipientName} />
-                        )}
+                        <div
+                            className={
+                                'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
+                            }
+                        >
+                            <Icon name="check" size={24} />
+                        </div>
                     </div>
 
                     <div className="space-y-1">
-                        <h1 className="text-sm font-bold">
-                            You just {type === 'SEND' ? 'sent' : 'requested'}{' '}
+                        <h1 className="text-sm font-normal text-grey-1">
+                            You {type === 'SEND' ? 'sent' : 'requested'}{' '}
                             {recipientType !== 'USERNAME' ? (
                                 <AddressLink
-                                    className="text-sm font-bold text-black no-underline"
+                                    className="text-sm font-normal text-grey-1 no-underline"
                                     address={recipientName}
                                 />
                             ) : (
@@ -113,13 +190,33 @@ const DirectSuccessView = ({
                     </div>
                 </Card>
 
-                <Button onClick={handleDone} shadowSize="4" className="mx-auto w-38 rounded-full">
-                    <div className="flex size-7 items-center justify-center gap-0">
-                        {showCheck ? <Icon name="check" size={24} /> : <Loading />}
-                    </div>
-                    <div>Done!</div>
-                </Button>
+                <div className="w-full space-y-5">
+                    <Button onClick={handleDone} shadowSize="4">
+                        Back to home
+                    </Button>
+                    {type === 'SEND' && (
+                        <Button
+                            variant="primary-soft"
+                            shadowSize="4"
+                            onClick={() => {
+                                if (transactionForDrawer) {
+                                    openTransactionDetails(transactionForDrawer)
+                                }
+                            }}
+                            disabled={!transactionForDrawer}
+                        >
+                            See receipt
+                        </Button>
+                    )}
+                </div>
             </div>
+
+            {/* Transaction Details Drawer */}
+            <TransactionDetailsDrawer
+                isOpen={isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id}
+                onClose={closeTransactionDetails}
+                transaction={selectedTransaction}
+            />
         </div>
     )
 }

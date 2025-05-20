@@ -13,7 +13,7 @@ export default function PayPage(props: PageProps) {
     const recipient = usernameSegments
 
     return (
-        <PageContainer className="self-start">
+        <PageContainer className="min-h-[inherit]">
             <PaymentClient recipient={recipient} isDirectPay />
         </PageContainer>
     )

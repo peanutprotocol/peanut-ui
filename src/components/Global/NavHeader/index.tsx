@@ -35,7 +35,7 @@ const NavHeader = ({ title, icon = 'chevron-up', href, hideLabel = false, onPrev
                 </Button>
             )}
             {!hideLabel && (
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform pb-1 text-lg font-bold md:relative md:left-auto md:top-auto md:hidden md:translate-x-0 md:translate-y-0 md:transform-none md:pb-0 md:text-base md:font-semibold">
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform pb-1 text-center text-xl font-extrabold  md:relative md:left-auto md:top-auto md:hidden  md:translate-x-0 md:translate-y-0 md:transform-none md:pb-0">
                     {title}
                 </div>
             )}

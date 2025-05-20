@@ -151,7 +151,7 @@ const ValidatedInput = ({
 
     return (
         <div
-            className={`relative w-full border border-n-1 focus:border-purple-1 dark:border-white ${
+            className={`relative w-full border border-n-1 focus:border-primary-1 dark:border-white ${
                 value && !isValidating && !isValid && debouncedValue === value ? ' border-red dark:border-red' : ''
             } ${className}`}
             translate="no"
@@ -194,7 +194,7 @@ const ValidatedInput = ({
                         className={`h-full ${
                             isValidating
                                 ? 'opacity-100'
-                                : 'opacity-100 transition-opacity hover:opacity-100 md:opacity-0'
+                                : 'bg-transparent opacity-100 transition-opacity hover:opacity-100 md:opacity-0'
                         }`}
                     >
                         {isValidating ? (

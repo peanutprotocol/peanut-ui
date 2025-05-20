@@ -263,51 +263,45 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
 
     // default payment flow
     return (
-        <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
-            <div>
-                {currentView === 'INITIAL' && (
-                    <div className="space-y-4">
-                        <InitialPaymentView
-                            {...(parsedPaymentData as ParsedURL)}
-                            currency={
-                                currencyCode
-                                    ? {
-                                          code: currencyCode,
-                                          symbol: currencySymbol!,
-                                          price: currencyPrice!,
-                                      }
-                                    : undefined
+        <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-center md:w-6/12')}>
+            {currentView === 'INITIAL' && (
+                <InitialPaymentView
+                    {...(parsedPaymentData as ParsedURL)}
+                    currency={
+                        currencyCode
+                            ? {
+                                  code: currencyCode,
+                                  symbol: currencySymbol!,
+                                  price: currencyPrice!,
+                              }
+                            : undefined
+                    }
+                    setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
+                    currencyAmount={currencyAmount}
+                />
+            )}
+            {currentView === 'CONFIRM' && (
+                <ConfirmPaymentView
+                    isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
+                    currencyAmount={currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined}
+                />
+            )}
+            {currentView === 'STATUS' && (
+                <>
+                    {parsedPaymentData?.token?.symbol === 'PNT' ? (
+                        <PintaReqPaySuccessView />
+                    ) : (
+                        <DirectSuccessView
+                            headerTitle="Send"
+                            recipientType={parsedPaymentData?.recipient?.recipientType}
+                            type="SEND"
+                            currencyAmount={
+                                currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
                             }
-                            setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
-                            currencyAmount={currencyAmount}
                         />
-                    </div>
-                )}
-                {currentView === 'CONFIRM' && (
-                    <ConfirmPaymentView
-                        isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
-                        currencyAmount={
-                            currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
-                        }
-                    />
-                )}
-                {currentView === 'STATUS' && (
-                    <>
-                        {parsedPaymentData?.token?.symbol === 'PNT' ? (
-                            <PintaReqPaySuccessView />
-                        ) : (
-                            <DirectSuccessView
-                                headerTitle="Send"
-                                recipientType={parsedPaymentData?.recipient?.recipientType}
-                                type="SEND"
-                                currencyAmount={
-                                    currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
-                                }
-                            />
-                        )}
-                    </>
-                )}
-            </div>
+                    )}
+                </>
+            )}
         </div>
     )
 }

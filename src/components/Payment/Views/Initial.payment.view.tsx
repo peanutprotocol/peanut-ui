@@ -15,9 +15,5 @@ type InitialPaymentViewProps = ParsedURL & {
 export default function InitialPaymentView(props: InitialPaymentViewProps) {
     const isPintaReq = props.token?.symbol === 'PNT' || props.isPintaReq
 
-    return (
-        <div>
-            <PaymentForm {...props} isPintaReq={isPintaReq} />
-        </div>
-    )
+    return <PaymentForm {...props} isPintaReq={isPintaReq} />
 }

@@ -1,7 +1,7 @@
-import PaymentLayoutWrapper from './payment-layout-wrapper'
+import { BASE_URL } from '@/constants'
 import { printableAddress } from '@/utils'
 import { isAddress } from 'viem'
-import { BASE_URL } from '@/constants'
+import PaymentLayoutWrapper from './payment-layout-wrapper'
 
 function getPreviewUrl(
     host: string,
@@ -67,7 +67,7 @@ export async function generateMetadata({ params }: any) {
     } else if (amount) {
         title = `${isAddress(recipient) ? printableAddress(recipient) : recipient} is requesting $${amount}`
     } else {
-        title = `${isAddress(recipient) ? printableAddress(recipient) : recipient} is requesting funds`
+        title = `${isAddress(recipient) ? printableAddress(recipient) : recipient} | Peanut`
     }
 
     return {

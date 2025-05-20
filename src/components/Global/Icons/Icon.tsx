@@ -9,17 +9,21 @@ import { CameraIcon } from './camera'
 import { CancelIcon } from './cancel'
 import { CheckIcon } from './check'
 import { ChevronUpIcon } from './chevron-up'
+import { ClipIcon } from './clip'
 import { CopyIcon } from './copy'
 import { CurrencyIcon } from './currency'
 import { DocsIcon } from './docs'
 import { DownloadIcon } from './download'
+import { ErrorIcon } from './error'
 import { ExchangeIcon } from './exchange'
+import { ExternalLinkIcon } from './external-link'
 import { EyeIcon } from './eye'
 import { EyeSlashIcon } from './eye-slash'
 import { FeesIcon } from './fees'
 import { GiftIcon } from './gift'
 import { HistoryIcon } from './history'
 import { HomeIcon } from './home'
+import { InfoIcon } from './Info'
 import { LinkIcon } from './link'
 import { LogoutIcon } from './logout'
 import { PaperClipIcon } from './paper-clip'
@@ -74,6 +78,10 @@ export type IconName =
     | 'qr-code'
     | 'history'
     | 'docs'
+    | 'error'
+    | 'clip'
+    | 'info'
+    | 'external-link'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -117,6 +125,10 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'qr-code': QrCodeIcon,
     history: HistoryIcon,
     docs: DocsIcon,
+    error: ErrorIcon,
+    clip: ClipIcon,
+    info: InfoIcon,
+    'external-link': ExternalLinkIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

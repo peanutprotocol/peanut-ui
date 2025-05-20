@@ -1,13 +1,13 @@
-import StatusViewWrapper from '@/components/Global/StatusViewWrapper'
-import { fetchDestinationChain } from '@/components/utils/utils'
+import { Button } from '@/components/0_Bruddle'
+import NavHeader from '@/components/Global/NavHeader'
+import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { tokenSelectorContext } from '@/context'
-import { useWallet } from '@/hooks/wallet/useWallet'
+import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
-import { getExplorerUrl, shortenAddressLong } from '@/utils'
+import { formatAmount, printableAddress } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
-import Link from 'next/link'
-import { useContext, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import * as _consts from '../../Claim.consts'
 
 export const SuccessClaimLinkView = ({
@@ -16,28 +16,13 @@ export const SuccessClaimLinkView = ({
     claimLinkData,
     type,
 }: _consts.IClaimScreenProps) => {
-    const { isConnected } = useWallet()
-    const { resetTokenContextProvider } = useContext(tokenSelectorContext)
+    const { user: authUser } = useUserStore()
+    const router = useRouter()
     const queryClient = useQueryClient()
 
-    const explorerUrlWithTx = useMemo(
-        () => `${getExplorerUrl(claimLinkData.chainId)}/tx/${transactionHash}`,
-        [transactionHash, claimLinkData.chainId]
-    )
-    const explorerUrlAxelarWithTx = 'https://axelarscan.io/gmp/' + transactionHash
-
-    const [explorerUrlDestChainWithTxHash, setExplorerUrlDestChainWithTxHash] = useState<
-        { transactionId: string; transactionUrl: string } | undefined
-    >(undefined)
-
     useEffect(() => {
-        if (!isConnected) resetTokenContextProvider()
-        if (transactionHash && type === 'claimxchain') {
-            //TODO: change when adding claimlink history
-            fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
-        }
         queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
-    }, [isConnected, transactionHash, type, resetTokenContextProvider, queryClient])
+    }, [queryClient])
 
     useEffect(() => {
         if (!!transactionHash) return
@@ -73,51 +58,32 @@ export const SuccessClaimLinkView = ({
     }, [transactionHash, claimLinkData.link])
 
     return (
-        <StatusViewWrapper title="Yay!" description="You have successfully claimed your funds!">
-            <div className="flex flex-col gap-2">
-                <label className="text-start text-h8 text-grey-1">Transaction details</label>
-                {type === 'claimxchain' ? (
-                    <div className="flex flex-col items-start justify-center gap-1 text-h9  font-normal">
-                        <div className="flex w-full flex-row items-center justify-between gap-1">
-                            <label className="text-h9">Source chain:</label>
-                            <Link className="cursor-pointer  underline" href={explorerUrlWithTx}>
-                                {shortenAddressLong(transactionHash ?? '')}
-                            </Link>
-                        </div>
-                        <div className="flex w-full flex-row items-center justify-between gap-1">
-                            <label className="text-h9">Cross-chain Routing via Axelar:</label>
-
-                            <Link className="cursor-pointer  underline" href={explorerUrlAxelarWithTx}>
-                                {shortenAddressLong(transactionHash ?? '')}
-                            </Link>
-                        </div>
-                        <div className="flex w-full flex-row  items-center justify-between gap-1">
-                            <label className="text-h9">Destination Address:</label>
-                            {!explorerUrlDestChainWithTxHash ? (
-                                <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
-                            ) : (
-                                <Link
-                                    className="cursor-pointer underline"
-                                    href={explorerUrlDestChainWithTxHash.transactionUrl}
-                                >
-                                    {shortenAddressLong(explorerUrlDestChainWithTxHash.transactionId ?? '')}
-                                </Link>
-                            )}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex w-full flex-row items-center justify-between gap-1">
-                        <label className="text-h9">Transaction hash:</label>
-                        {transactionHash ? (
-                            <Link className="cursor-pointer text-h9 font-normal underline" href={explorerUrlWithTx}>
-                                {shortenAddressLong(transactionHash ?? '')}
-                            </Link>
-                        ) : (
-                            <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
-                        )}
-                    </div>
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="md:hidden">
+                <NavHeader
+                    icon="cancel"
+                    title="Claim"
+                    onPrev={() => {
+                        router.push('/home')
+                    }}
+                />
+            </div>
+            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <PeanutActionDetailsCard
+                    viewType="SUCCESS"
+                    transactionType="CLAIM_LINK"
+                    recipientType="USERNAME"
+                    recipientName={claimLinkData.sender.username}
+                    amount={formatAmount(Number(claimLinkData.amount))}
+                    tokenSymbol={claimLinkData.tokenSymbol}
+                    message={`from ${claimLinkData.sender.username || claimLinkData.sender.accounts[0].identifier || printableAddress(claimLinkData.senderAddress)}`}
+                />
+                {!!authUser?.user.userId && (
+                    <Button shadowSize="4" onClick={() => router.push('/home')} className="w-full">
+                        Back to home
+                    </Button>
                 )}
             </div>
-        </StatusViewWrapper>
+        </div>
     )
 }

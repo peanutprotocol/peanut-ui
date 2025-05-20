@@ -28,7 +28,7 @@ export const SuccessViewDetailsCard: React.FC<SuccessViewDetailsCardProps> = ({
                     </div>
                     <div className="space-y-1">
                         <h1 className="text-lg font-bold">{title}</h1>
-                        {amountDisplay && <h2 className="text-4xl font-extrabold">${amountDisplay}</h2>}
+                        {amountDisplay && <h2 className="text-4xl font-extrabold">$ {amountDisplay}</h2>}
 
                         {description && <p className="line-clamp-3 text-sm text-grey-1">for {description}</p>}
                     </div>

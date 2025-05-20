@@ -10,7 +10,7 @@ export default function Page(props: PageProps) {
     const params = use(props.params)
     const recipient = params.recipient ?? []
     return (
-        <PageContainer className="self-start">
+        <PageContainer className="min-h-[inherit]">
             <PaymentClient recipient={recipient} />
         </PageContainer>
     )

@@ -27,9 +27,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     const isHome = pathName === '/home'
     const isHistory = pathName === '/history'
-    const isWallet = pathName === '/wallet'
     const isSupport = pathName === '/support'
-    const alignStart = isHome || isHistory || isWallet || isSupport
+    const alignStart = isHome || isHistory || isSupport
 
     const showFullPeanutWallet = useMemo(() => {
         const isPublicPath = publicPathRegex.test(pathName)
