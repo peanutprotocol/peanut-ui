@@ -5,8 +5,8 @@ import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchUsers/SearchInput'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
-import { ALL_DEPOSIT_METHODS } from '../AddMoney.consts'
 import { DepositMethodList } from '../components/DepositMethodList'
+import { ALL_DEPOSIT_METHODS } from '../consts'
 
 export const AddMoneyRouterView = () => {
     const router = useRouter()

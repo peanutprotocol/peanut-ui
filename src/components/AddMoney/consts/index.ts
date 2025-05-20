@@ -1,5 +1,121 @@
-import { DepositMethod } from './components/DepositMethodList'
+import { SOLANA_ICON, TRON_ICON } from '@/assets'
+import { BINANCE_LOGO, LEMON_LOGO, RIPIO_LOGO } from '@/assets/exchanges'
+import { METAMASK_LOGO, RAINBOW_LOGO } from '@/assets/wallets'
+import { StaticImageData } from 'next/image'
+import { DepositMethod } from '../components/DepositMethodList'
 
+export interface CryptoSource {
+    id: string
+    name: string
+    type: 'exchange' | 'wallet'
+    icon?: StaticImageData
+    isGeneric?: boolean
+    path: string
+}
+
+export interface CryptoToken {
+    id: string
+    name: string
+    symbol: string
+    icon: StaticImageData | string
+}
+
+// @dev: this is a temporary list of tokens for the deposit screen, using this for a couple of weeks, once x-chain is ready, we will use the x-chain tokens and remove this list, only useful token is USDC here for now
+export const DEPOSIT_CRYPTO_TOKENS: CryptoToken[] = [
+    {
+        id: 'usdc',
+        name: 'USD Coin',
+        symbol: 'USDC',
+        icon: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png',
+    },
+    {
+        id: 'usdt',
+        name: 'Tether',
+        symbol: 'USDT',
+        icon: 'https://assets.coingecko.com/coins/images/325/small/Tether-logo.png',
+    },
+    {
+        id: 'eth',
+        name: 'Ethereum',
+        symbol: 'ETH',
+        icon: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+    },
+    {
+        id: 'sol',
+        name: 'Solana',
+        symbol: 'SOL',
+        icon: SOLANA_ICON,
+    },
+    {
+        id: 'btc',
+        name: 'Bitcoin',
+        symbol: 'BTC',
+        icon: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
+    },
+    {
+        id: 'trx',
+        name: 'Tron',
+        symbol: 'TRX',
+        icon: TRON_ICON,
+    },
+]
+
+export const CRYPTO_EXCHANGES: CryptoSource[] = [
+    {
+        id: 'binance',
+        name: 'Binance',
+        type: 'exchange',
+        icon: BINANCE_LOGO,
+        path: '/add-money/crypto/binance',
+    },
+    {
+        id: 'lemon',
+        name: 'Lemon',
+        type: 'exchange',
+        icon: LEMON_LOGO,
+        path: '/add-money/crypto/lemon',
+    },
+    {
+        id: 'ripio',
+        name: 'Ripio',
+        type: 'exchange',
+        icon: RIPIO_LOGO,
+        path: '/add-money/crypto/ripio',
+    },
+    {
+        id: 'other-exchanges',
+        name: 'Other exchanges',
+        type: 'exchange',
+        isGeneric: true,
+        path: '/add-money/crypto/other-exchanges',
+    },
+]
+
+export const CRYPTO_WALLETS: CryptoSource[] = [
+    {
+        id: 'metamask',
+        name: 'Metamask',
+        type: 'wallet',
+        icon: METAMASK_LOGO,
+        path: '/add-money/crypto/metamask',
+    },
+    {
+        id: 'rainbow',
+        name: 'Rainbow',
+        type: 'wallet',
+        icon: RAINBOW_LOGO,
+        path: '/add-money/crypto/rainbow',
+    },
+    {
+        id: 'other-wallets',
+        name: 'Other wallets',
+        type: 'wallet',
+        isGeneric: true,
+        path: '/add-money/crypto/other-wallets',
+    },
+]
+
+// includes countries and crypto
 export const ALL_DEPOSIT_METHODS: DepositMethod[] = [
     {
         id: 'crypto',
