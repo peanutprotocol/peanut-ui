@@ -99,7 +99,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
             onClose={onClose}
             preventClose={preventClose}
             initialFocus={initialFocus}
-            className={twMerge('items-center justify-center', modalClassName)}
+            className={twMerge('items-center justify-center md:mx-auto md:max-w-md', modalClassName)}
             classButtonClose={hideModalCloseButton ? '!hidden' : ''}
             classWrap={twMerge(
                 'sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0',

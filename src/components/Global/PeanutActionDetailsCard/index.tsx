@@ -46,7 +46,7 @@ export default function PeanutActionDetailsCard({
     const getTitle = () => {
         let title = ''
         let icon = getIcon()
-        if (transactionType === 'REQUEST_PAYMENT') title = `You are sending ${renderRecipient()}`
+        if (transactionType === 'REQUEST_PAYMENT') title = `You're sending ${renderRecipient()}`
         if (transactionType === 'REQUEST') title = `You requested`
         if (transactionType === 'RECEIVED_LINK') title = `${renderRecipient()} sent you`
         if (transactionType === 'CLAIM_LINK') {

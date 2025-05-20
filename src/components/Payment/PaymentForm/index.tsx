@@ -94,14 +94,6 @@ export const PaymentForm = ({
         return isPeanutWallet || isWagmiConnected
     }, [isPeanutWallet, isWagmiConnected, status])
 
-    const isXChainPaymentToPeanutWallet = useMemo(() => {
-        return (
-            selectedChainID !== PEANUT_WALLET_CHAIN.id.toString() &&
-            selectedTokenAddress !== PEANUT_WALLET_TOKEN &&
-            recipient.recipientType === 'USERNAME'
-        )
-    }, [selectedChainID, selectedTokenAddress, recipient])
-
     const isActivePeanutWallet = useMemo(() => !!user && isPeanutWallet, [user, isPeanutWallet])
 
     useEffect(() => {
@@ -449,10 +441,7 @@ export const PaymentForm = ({
                             loading={isProcessing}
                             shadowSize="4"
                             onClick={handleInitiatePayment}
-                            disabled={
-                                (isConnected && (!canInitiatePayment || isProcessing || isXChainPeanutWalletReq)) ||
-                                isXChainPaymentToPeanutWallet
-                            }
+                            disabled={isConnected && (!canInitiatePayment || isProcessing || isXChainPeanutWalletReq)}
                             className="w-full"
                             icon={!isProcessing && isActivePeanutWallet ? 'currency' : undefined}
                         >
@@ -465,9 +454,6 @@ export const PaymentForm = ({
                                 'Peanut Wallet currently only supports sending USDC on Arbitrum. Please select USDC and Arbitrum, or use an external wallet.'
                             }
                         />
-                    )}
-                    {isXChainPaymentToPeanutWallet && (
-                        <ErrorAlert description={'You can only send USDC on Arbitrum to a Peanut Wallet.'} />
                     )}
                     {error && <ErrorAlert description={error} />}
                 </div>
