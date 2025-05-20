@@ -9,18 +9,21 @@ import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, BASE_URL } from '@/constants'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { requestsApi } from '@/services/requests'
+import { chargesApi } from '@/services/charges'
 import { fetchTokenSymbol, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 
 export const CreateRequestLinkView = () => {
     const toast = useToast()
@@ -37,6 +40,7 @@ export const CreateRequestLinkView = () => {
         selectedTokenData,
     } = useContext(context.tokenSelectorContext)
     const { setLoadingState } = useContext(context.loadingStateContext)
+    const queryClient = useQueryClient()
 
     const peanutWalletBalance = useMemo(() => {
         return printableUsdc(balance)
@@ -145,6 +149,19 @@ export const CreateRequestLinkView = () => {
                     mimeType: attachmentOptions?.rawFile?.type,
                     filename: attachmentOptions?.rawFile?.name,
                 })
+                chargesApi
+                    .create({
+                        pricing_type: 'fixed_price',
+                        local_price: {
+                            amount: requestDetails.tokenAmount,
+                            currency: 'USD',
+                        },
+                        baseUrl: BASE_URL,
+                        requestId: requestDetails.uuid,
+                    })
+                    .then(() => {
+                        queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                    })
                 const link = getRequestLink(requestDetails)
                 setGeneratedLink(link)
                 toast.success('Link created successfully!')

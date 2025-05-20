@@ -103,7 +103,7 @@ export interface CreateChargeRequest {
     local_price: LocalPrice
     baseUrl: string
     requestId?: string
-    requestProps: RequestProps
+    requestProps?: RequestProps
     attachment?: File
     reference?: string
 }

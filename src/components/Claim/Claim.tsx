@@ -1,6 +1,6 @@
 'use client'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useState, useMemo } from 'react'
 
 import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'
 import * as consts from '@/constants'
@@ -16,6 +16,15 @@ import PeanutLoading from '../Global/PeanutLoading'
 import * as _consts from './Claim.consts'
 import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
+import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
+import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { StatusType } from '@/components/Global/Badges/StatusBadge'
+import { getInitialsFromName, getTokenDetails } from '@/utils'
+import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import type { Hash } from 'viem'
+import { formatUnits } from 'viem'
+import { useRouter } from 'next/navigation'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -45,6 +54,9 @@ export const Claim = ({}) => {
     })
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
+    const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
+        useTransactionDetailsDrawer()
+    const router = useRouter()
 
     const [initialKYCStep, setInitialKYCStep] = useState<number>(0)
 
@@ -52,6 +64,64 @@ export const Claim = ({}) => {
     const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useWallet()
     const { user } = useAuth()
+
+    const transactionForDrawer: TransactionDetails | null = useMemo(() => {
+        if (!claimLinkData) return null
+
+        let status: StatusType
+        switch (claimLinkData.status) {
+            case ESendLinkStatus.creating:
+            case ESendLinkStatus.completed:
+                status = 'pending'
+                break
+            case ESendLinkStatus.CLAIMING:
+                status = 'processing'
+                break
+            case ESendLinkStatus.CLAIMED:
+                status = 'completed'
+                break
+            case ESendLinkStatus.CANCELLED:
+                status = 'cancelled'
+                break
+            case ESendLinkStatus.FAILED:
+                status = 'failed'
+                break
+            default:
+                status = 'pending'
+                break
+        }
+
+        const tokenDetails = getTokenDetails({
+            tokenAddress: claimLinkData.tokenAddress as Hash,
+            chainId: claimLinkData.chainId,
+        })
+
+        let details: Partial<TransactionDetails> = {
+            id: claimLinkData.pubKey,
+            status,
+            amount: Number(formatUnits(claimLinkData.amount, tokenDetails?.decimals ?? 6)),
+            date: new Date(claimLinkData.createdAt),
+            tokenSymbol: tokenDetails?.symbol,
+            initials: getInitialsFromName(claimLinkData.claim?.recipient?.username ?? ''),
+            memo: claimLinkData.textContent,
+            attachmentUrl: claimLinkData.fileUrl,
+            cancelledDate: status === 'cancelled' ? new Date(claimLinkData.events[0].timestamp) : undefined,
+            extraDataForDrawer: {
+                isLinkTransaction: true,
+                originalType: EHistoryEntryType.SEND_LINK,
+                originalUserRole: EHistoryUserRole.SENDER,
+                link: claimLinkData.link,
+            },
+            userName:
+                claimLinkData.claim?.recipient?.username ?? claimLinkData.claim?.recipientAddress ?? 'Send via Link',
+            sourceView: 'history',
+            peanutFeeDetails: {
+                amountDisplay: '$ 0.00',
+            },
+        }
+
+        return details as TransactionDetails
+    }, [claimLinkData])
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
@@ -152,6 +222,16 @@ export const Claim = ({}) => {
         }
     }, [user])
 
+    useEffect(() => {
+        if (!transactionForDrawer) return
+        if (
+            linkState === _consts.claimLinkStateType.CLAIM_SENDER ||
+            linkState === _consts.claimLinkStateType.ALREADY_CLAIMED
+        ) {
+            openTransactionDetails(transactionForDrawer)
+        }
+    }, [linkState, transactionForDrawer])
+
     return (
         <PageContainer className="min-h-[inherit] pb-5">
             {linkState === _consts.claimLinkStateType.LOADING && <PeanutLoading />}
@@ -196,20 +276,14 @@ export const Claim = ({}) => {
                 />
             )}
             {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <genericViews.WrongPasswordClaimLink />}
-            {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED && (
-                <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />
-            )}
             {linkState === _consts.claimLinkStateType.NOT_FOUND && <genericViews.NotFoundClaimLink />}
-            {linkState === _consts.claimLinkStateType.CLAIM_SENDER && (
-                <genericViews.SenderClaimLinkView
-                    changeToRecipientView={() => {
-                        setLinkState(_consts.claimLinkStateType.CLAIM)
-                    }}
-                    claimLinkData={claimLinkData}
-                    setTransactionHash={setTransactionHash}
-                    onCustom={handleOnCustom}
-                />
-            )}
+            <TransactionDetailsDrawer
+                isOpen={isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id}
+                onClose={() => {
+                    router.push('/home')
+                }}
+                transaction={selectedTransaction}
+            />
         </PageContainer>
     )
 }

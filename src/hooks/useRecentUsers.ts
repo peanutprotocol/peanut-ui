@@ -14,7 +14,10 @@ export function useRecentUsers() {
                 account = entry.senderAccount
             }
             if (!account?.isUser) return acc
-            const isDuplicate = acc.some((user) => user.userId === account.userId)
+            const isDuplicate = acc.some(
+                (user) =>
+                    user.userId === account.userId || user.username.toLowerCase() === account.username.toLowerCase()
+            )
             if (isDuplicate) return acc
             acc.push({
                 userId: account.userId!,

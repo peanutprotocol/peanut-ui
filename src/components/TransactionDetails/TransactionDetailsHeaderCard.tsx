@@ -30,7 +30,7 @@ const getTitle = (
 ): React.ReactNode => {
     let titleText = userName
 
-    if (isLinkTransaction) {
+    if (isLinkTransaction && !userName) {
         switch (direction) {
             case 'send':
                 titleText = 'Sent via Link'
@@ -51,7 +51,11 @@ const getTitle = (
         const displayName = isAddress ? printableAddress(userName) : userName
         switch (direction) {
             case 'send':
-                titleText = `${status === 'completed' ? 'Sent' : 'Sending'} to ${displayName}`
+                if (status === 'pending' || status === 'cancelled') {
+                    titleText = displayName
+                } else {
+                    titleText = `${status === 'completed' ? 'Sent' : 'Sending'} to ${displayName}`
+                }
                 break
             case 'request_received':
                 titleText = `${displayName} is requesting`
