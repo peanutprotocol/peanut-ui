@@ -4,11 +4,13 @@ import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
-import { formatAmount, printableAddress } from '@/utils'
+import { printableAddress, getTokenDetails } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import * as _consts from '../../Claim.consts'
+import { formatUnits } from 'viem'
+import type { Hash } from 'viem'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -57,6 +59,17 @@ export const SuccessClaimLinkView = ({
         return () => clearInterval(intervalId)
     }, [transactionHash, claimLinkData.link])
 
+    const tokenDetails = useMemo(() => {
+        if (!claimLinkData) return null
+
+        const tokenDetails = getTokenDetails({
+            tokenAddress: claimLinkData.tokenAddress as Hash,
+            chainId: claimLinkData.chainId,
+        })
+
+        return tokenDetails
+    }, [claimLinkData])
+
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <div className="md:hidden">
@@ -74,7 +87,7 @@ export const SuccessClaimLinkView = ({
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={claimLinkData.sender.username}
-                    amount={formatAmount(Number(claimLinkData.amount))}
+                    amount={formatUnits(claimLinkData.amount, tokenDetails?.decimals ?? 6)}
                     tokenSymbol={claimLinkData.tokenSymbol}
                     message={`from ${claimLinkData.sender.username || claimLinkData.sender.accounts[0].identifier || printableAddress(claimLinkData.senderAddress)}`}
                 />
