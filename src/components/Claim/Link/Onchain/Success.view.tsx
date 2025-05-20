@@ -11,6 +11,7 @@ import { useEffect, useMemo } from 'react'
 import * as _consts from '../../Claim.consts'
 import { formatUnits } from 'viem'
 import type { Hash } from 'viem'
+import { useAuth } from '@/context/authContext'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -19,6 +20,7 @@ export const SuccessClaimLinkView = ({
     type,
 }: _consts.IClaimScreenProps) => {
     const { user: authUser } = useUserStore()
+    const { fetchUser } = useAuth()
     const router = useRouter()
     const queryClient = useQueryClient()
 
@@ -92,7 +94,14 @@ export const SuccessClaimLinkView = ({
                     message={`from ${claimLinkData.sender.username || claimLinkData.sender.accounts[0].identifier || printableAddress(claimLinkData.senderAddress)}`}
                 />
                 {!!authUser?.user.userId && (
-                    <Button shadowSize="4" onClick={() => router.push('/home')} className="w-full">
+                    <Button
+                        shadowSize="4"
+                        onClick={() => {
+                            fetchUser()
+                            router.push('/home')
+                        }}
+                        className="w-full"
+                    >
                         Back to home
                     </Button>
                 )}

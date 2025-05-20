@@ -26,16 +26,15 @@ import {
     formatTokenAmount,
     getBridgeChainName,
     getBridgeTokenName,
+    saveRedirectUrl,
 } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
-import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
-import { useAccount } from 'wagmi'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
 
@@ -66,7 +65,6 @@ export const InitialClaimLinkView = ({
     setUserType,
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
-    const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -92,11 +90,6 @@ export const InitialClaimLinkView = ({
     const [claimToExternalWallet, setClaimToExternalWallet] = useState<boolean>(false)
     const router = useRouter()
     const { user } = useAuth()
-    const { open: openReownModal } = useAppKit()
-    const { isConnected: isWagmiConnected, status } = useAccount()
-    const isConnected = useMemo<boolean>(() => {
-        return isPeanutWallet || isWagmiConnected
-    }, [isPeanutWallet, isWagmiConnected, status])
     const queryClient = useQueryClient()
 
     const resetSelectedToken = useCallback(() => {
@@ -483,7 +476,14 @@ export const InitialClaimLinkView = ({
         if (!!user?.user.userId || claimToExternalWallet) return null
         return (
             <div className="space-y-4">
-                <Button variant="purple" shadowSize="4" onClick={() => router.push('/setup')} className="w-full">
+                <Button
+                    shadowSize="4"
+                    onClick={() => {
+                        saveRedirectUrl()
+                        router.push('/setup')
+                    }}
+                    className="w-full"
+                >
                     Sign In
                 </Button>
                 <Button
