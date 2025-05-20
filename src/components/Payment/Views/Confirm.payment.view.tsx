@@ -7,6 +7,7 @@ import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
+import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -20,7 +21,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch, usePaymentStore, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
-import { ErrorHandler, formatAmount } from '@/utils'
+import { ErrorHandler, formatAmount, printableAddress } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
@@ -35,9 +36,15 @@ type ConfirmPaymentViewProps = {
         price: number
     }
     currencyAmount?: string
+    isAddMoneyFlow?: boolean
 }
 
-export default function ConfirmPaymentView({ isPintaReq = false, currency, currencyAmount }: ConfirmPaymentViewProps) {
+export default function ConfirmPaymentView({
+    isPintaReq = false,
+    currency,
+    currencyAmount,
+    isAddMoneyFlow,
+}: ConfirmPaymentViewProps) {
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
     const chargeIdFromUrl = searchParams.get('chargeId')
@@ -68,16 +75,15 @@ export default function ConfirmPaymentView({ isPintaReq = false, currency, curre
         tokenSymbol: selectedTokenData?.symbol,
     })
 
-    const showExternalWalletConfirmationModal = useMemo(() => {
+    const showExternalWalletConfirmationModal = useMemo((): boolean => {
         if (isCalculatingFees || isEstimatingGas) return false
-        return (
-            isProcessing &&
-            !isPeanutWallet &&
-            ['Switching Network', 'Sending Transaction', 'Confirming Transaction', 'Preparing Transaction'].includes(
-                loadingStep
-            )
-        )
-    }, [isProcessing, isPeanutWallet, loadingStep])
+
+        return isProcessing && (!isPeanutWallet || isAddMoneyFlow)
+            ? ['Switching Network', 'Sending Transaction', 'Confirming Transaction', 'Preparing Transaction'].includes(
+                  loadingStep
+              )
+            : false
+    }, [isProcessing, isPeanutWallet, loadingStep, isAddMoneyFlow, isCalculatingFees, isEstimatingGas])
 
     useEffect(() => {
         if (chargeIdFromUrl && !chargeDetails) {
@@ -98,15 +104,20 @@ export default function ConfirmPaymentView({ isPintaReq = false, currency, curre
 
     useEffect(() => {
         if (chargeDetails && walletAddress && selectedTokenData && selectedChainID) {
-            prepareTransactionDetails(chargeDetails)
+            prepareTransactionDetails(chargeDetails, isAddMoneyFlow)
         }
-    }, [chargeDetails, walletAddress, selectedTokenData, selectedChainID, prepareTransactionDetails])
+    }, [chargeDetails, walletAddress, selectedTokenData, selectedChainID, prepareTransactionDetails, isAddMoneyFlow])
 
     const isConnected = useMemo(() => isPeanutWallet || isWagmiConnected, [isPeanutWallet, isWagmiConnected])
     const isInsufficientRewardsBalance = useMemo(() => {
         if (!isPintaReq) return false
         return Number(rewardWalletBalance) < beerQuantity
     }, [isPintaReq, rewardWalletBalance, beerQuantity])
+
+    const isLoading = useMemo(
+        () => isProcessing || isPreparingTx || isCalculatingFees || isEstimatingGas,
+        [isProcessing, isPreparingTx, isCalculatingFees, isEstimatingGas]
+    )
 
     const handlePayment = useCallback(async () => {
         if (!chargeDetails || !parsedPaymentData) return
@@ -124,6 +135,7 @@ export default function ConfirmPaymentView({ isPintaReq = false, currency, curre
             skipChargeCreation: true,
             currency,
             currencyAmount,
+            isAddMoneyFlow: !!isAddMoneyFlow,
         })
 
         if (result.success) {
@@ -144,22 +156,26 @@ export default function ConfirmPaymentView({ isPintaReq = false, currency, curre
         queryClient,
         currency,
         currencyAmount,
+        isAddMoneyFlow,
     ])
 
     const getButtonText = useCallback(() => {
-        if (isPreparingTx) return 'Preparing Transaction'
-        if (isEstimatingGas || isCalculatingFees) return 'Calculating Fee'
         if (isProcessing) {
+            if (isAddMoneyFlow) return 'Adding money'
             return loadingStep === 'Idle' ? 'Paying' : loadingStep
         }
+        if (isAddMoneyFlow) return 'Add Money'
+        if (isPreparingTx) return 'Preparing Transaction'
+        if (isEstimatingGas || isCalculatingFees) return 'Calculating Fee'
         if (isPintaReq) return 'Confirm Payment'
         return 'Pay'
-    }, [isProcessing, loadingStep, isPreparingTx, isEstimatingGas, isCalculatingFees, isPintaReq])
+    }, [isProcessing, loadingStep, isPreparingTx, isEstimatingGas, isCalculatingFees, isPintaReq, isAddMoneyFlow])
 
-    const isLoading = useMemo(
-        () => isProcessing || isPreparingTx || isCalculatingFees || isEstimatingGas,
-        [isProcessing, isPreparingTx, isCalculatingFees, isEstimatingGas]
-    )
+    const getIcon = useCallback((): IconName | undefined => {
+        if (isAddMoneyFlow) return 'arrow-down'
+        if (isProcessing) return undefined
+        return undefined
+    }, [isAddMoneyFlow])
 
     if (!chargeDetails && !paymentError) {
         return chargeIdFromUrl ? <PeanutLoading /> : null
@@ -246,7 +262,7 @@ export default function ConfirmPaymentView({ isPintaReq = false, currency, curre
                 {parsedPaymentData?.recipient && (
                     <PeanutActionDetailsCard
                         avatarSize="small"
-                        transactionType="REQUEST_PAYMENT"
+                        transactionType={isAddMoneyFlow ? 'ADD_MONEY' : 'REQUEST_PAYMENT'}
                         recipientType="USERNAME"
                         recipientName={
                             parsedPaymentData.recipient.identifier || chargeDetails?.requestLink?.recipientAddress || ''
@@ -292,7 +308,9 @@ export default function ConfirmPaymentView({ isPintaReq = false, currency, curre
                         }
                     />
 
-                    {!isFeeEstimationError && !isPeanutWallet && (
+                    {isAddMoneyFlow && <PaymentInfoRow label="From" value={printableAddress(wagmiAddress ?? '')} />}
+
+                    {!isFeeEstimationError && !isPeanutWallet && !isWagmiConnected && (
                         <PaymentInfoRow
                             loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
                             label="Network fee"
@@ -311,7 +329,7 @@ export default function ConfirmPaymentView({ isPintaReq = false, currency, curre
                         loading={isLoading}
                         shadowSize="4"
                         className="w-full"
-                        icon={!isProcessing ? 'currency' : undefined}
+                        icon={getIcon()}
                     >
                         {getButtonText()}
                     </Button>

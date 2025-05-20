@@ -22,12 +22,15 @@ import { twMerge } from 'tailwind-merge'
 
 interface Props {
     recipient: string[]
-    isDirectPay?: boolean
+    flow?: 'request_pay' | 'add_money' | 'direct_pay' | 'withdraw'
 }
 
-export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
+export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) {
+    const isDirectPay = flow === 'direct_pay'
+    const isWithdrawFlow = flow === 'withdraw'
+    const isAddMoneyFlow = flow === 'add_money'
     const dispatch = useAppDispatch()
-    const { currentView, requestDetails, parsedPaymentData, chargeDetails } = usePaymentStore()
+    const { currentView, parsedPaymentData, chargeDetails } = usePaymentStore()
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
     const [isRequestDetailsFetching, setIsRequestDetailsFetching] = useState(false)
@@ -82,7 +85,8 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                     !updatedParsedData.amount &&
                     !chargeId &&
                     !requestId &&
-                    !isDirectPay
+                    !isDirectPay &&
+                    !isAddMoneyFlow
                 ) {
                     dispatch(paymentActions.setView('PUBLIC_PROFILE'))
                 } else {
@@ -232,7 +236,11 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     }
 
     // render PUBLIC_PROFILE view
-    if (currentView === 'PUBLIC_PROFILE' && parsedPaymentData?.recipient?.recipientType === 'USERNAME') {
+    if (
+        currentView === 'PUBLIC_PROFILE' &&
+        parsedPaymentData?.recipient?.recipientType === 'USERNAME' &&
+        !isAddMoneyFlow
+    ) {
         const username = parsedPaymentData.recipient.identifier
         const handleSendClick = () => {
             router.push(`/pay/${username}`)
@@ -267,6 +275,8 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
             {currentView === 'INITIAL' && (
                 <InitialPaymentView
                     {...(parsedPaymentData as ParsedURL)}
+                    isAddMoneyFlow={isAddMoneyFlow}
+                    isWithdrawFlow={isWithdrawFlow}
                     currency={
                         currencyCode
                             ? {
@@ -284,6 +294,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                 <ConfirmPaymentView
                     isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
                     currencyAmount={currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined}
+                    isAddMoneyFlow={isAddMoneyFlow}
                 />
             )}
             {currentView === 'STATUS' && (
@@ -292,12 +303,14 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                         <PintaReqPaySuccessView />
                     ) : (
                         <DirectSuccessView
-                            headerTitle="Send"
+                            headerTitle={isAddMoneyFlow ? 'Add Money' : 'Send'}
                             recipientType={parsedPaymentData?.recipient?.recipientType}
                             type="SEND"
                             currencyAmount={
                                 currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
                             }
+                            isAddMoneyFlow={isAddMoneyFlow}
+                            redirectTo={isAddMoneyFlow ? '/add-money' : '/send'}
                         />
                     )}
                 </>

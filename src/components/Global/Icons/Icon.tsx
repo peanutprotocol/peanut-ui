@@ -36,6 +36,7 @@ import { SearchIcon } from './search'
 import { ShareIcon } from './share'
 import { SmileIcon } from './smile'
 import { StarIcon } from './star'
+import { SwitchIcon } from './switch'
 import { TxnOffIcon } from './txn-off'
 import { UserIcon } from './user'
 import { UserPlusIcon } from './user-plus'
@@ -88,6 +89,7 @@ export type IconName =
     | 'external-link'
     | 'plus'
     | 'exchange-arrows'
+    | 'switch'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -138,6 +140,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     plus: PlusIcon,
     'exchange-arrows': ExchangeArrowsIcon,
     alert: AlertIcon,
+    switch: SwitchIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

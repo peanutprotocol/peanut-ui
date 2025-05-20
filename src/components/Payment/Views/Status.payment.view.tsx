@@ -29,6 +29,8 @@ type DirectSuccessViewProps = {
     type: 'SEND' | 'REQUEST'
     headerTitle?: string
     currencyAmount?: string
+    isAddMoneyFlow?: boolean
+    redirectTo?: string
 }
 
 const DirectSuccessView = ({
@@ -39,6 +41,8 @@ const DirectSuccessView = ({
     type,
     headerTitle,
     currencyAmount,
+    isAddMoneyFlow,
+    redirectTo = '/home',
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const { chargeDetails, parsedPaymentData } = usePaymentStore()
@@ -156,7 +160,7 @@ const DirectSuccessView = ({
                         icon="cancel"
                         title={headerTitle}
                         onPrev={() => {
-                            router.push('/send')
+                            router.push(redirectTo)
                         }}
                     />
                 </div>
@@ -175,15 +179,16 @@ const DirectSuccessView = ({
 
                     <div className="space-y-1">
                         <h1 className="text-sm font-normal text-grey-1">
-                            You {type === 'SEND' ? 'sent' : 'requested'}{' '}
-                            {recipientType !== 'USERNAME' ? (
-                                <AddressLink
-                                    className="text-sm font-normal text-grey-1 no-underline"
-                                    address={recipientName}
-                                />
-                            ) : (
-                                recipientName
-                            )}
+                            You {isAddMoneyFlow ? 'successfully added' : type === 'SEND' ? 'sent' : 'requested'}{' '}
+                            {!isAddMoneyFlow &&
+                                (recipientType !== 'USERNAME' ? (
+                                    <AddressLink
+                                        className="text-sm font-normal text-grey-1 no-underline"
+                                        address={recipientName}
+                                    />
+                                ) : (
+                                    recipientName
+                                ))}
                         </h1>
                         <h2 className="text-2xl font-extrabold">{displayAmount}</h2>
                         {message && <p className="text-sm font-medium text-grey-1">for {message}</p>}
@@ -194,7 +199,7 @@ const DirectSuccessView = ({
                     <Button onClick={handleDone} shadowSize="4">
                         Back to home
                     </Button>
-                    {type === 'SEND' && (
+                    {type === 'SEND' && !isAddMoneyFlow && (
                         <Button
                             variant="primary-soft"
                             shadowSize="4"

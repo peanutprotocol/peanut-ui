@@ -26,6 +26,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     shadowType?: ShadowType
     loading?: boolean
     icon?: IconName
+    iconPosition?: 'left' | 'right'
+    iconClassName?: string
 }
 
 const buttonVariants: Record<ButtonVariant, string> = {
@@ -64,7 +66,20 @@ const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     (
-        { children, className, loading, variant = 'purple', size, shape, shadowSize, shadowType, icon, ...props },
+        {
+            children,
+            className,
+            loading,
+            variant = 'purple',
+            size,
+            shape,
+            shadowSize,
+            shadowType,
+            icon,
+            iconPosition,
+            iconClassName,
+            ...props
+        },
         ref
     ) => {
         const localRef = useRef<HTMLButtonElement>(null)
@@ -89,8 +104,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         return (
             <button className={twMerge(buttonClasses, 'notranslate')} ref={buttonRef} translate="no" {...props}>
                 {loading && <Loading />}
-                {icon && !loading && <Icon name={icon} className="min-h-4 min-w-4" />}
+                {icon && iconPosition === 'left' && !loading && (
+                    <Icon name={icon} className={twMerge('min-h-4 min-w-4', iconClassName)} />
+                )}
                 {children}
+                {icon && iconPosition === 'right' && !loading && (
+                    <Icon name={icon} className={twMerge('min-h-4 min-w-4', iconClassName)} />
+                )}
             </button>
         )
     }

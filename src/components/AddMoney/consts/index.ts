@@ -393,9 +393,9 @@ export const ALL_DEPOSIT_METHODS: DepositMethod[] = [
     {
         id: 'CC',
         type: 'country',
-        title: 'Cocos [Keeling] Islands',
+        title: 'Cocos (Keeling) Islands',
         currency: 'AUD',
-        path: '/add-money/cocos-[keeling]-islands',
+        path: '/add-money/cocos-keeling-islands',
     },
     {
         id: 'CD',

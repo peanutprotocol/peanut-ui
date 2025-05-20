@@ -8,7 +8,7 @@ import Card from '../Card'
 import { Icon, IconName } from '../Icons/Icon'
 
 interface PeanutActionDetailsCardProps {
-    transactionType: 'REQUEST' | 'RECEIVED_LINK' | 'CLAIM_LINK' | 'REQUEST_PAYMENT'
+    transactionType: 'REQUEST' | 'RECEIVED_LINK' | 'CLAIM_LINK' | 'REQUEST_PAYMENT' | 'ADD_MONEY'
     recipientType: 'USERNAME' | 'ADDRESS'
     recipientName: string
     message?: string
@@ -39,6 +39,7 @@ export default function PeanutActionDetailsCard({
 
     const getIcon = (): IconName | undefined => {
         if (transactionType === 'REQUEST_PAYMENT') return 'arrow-up-right'
+        if (transactionType === 'ADD_MONEY') return 'arrow-down'
         if (transactionType === 'REQUEST' || transactionType === 'RECEIVED_LINK') return 'arrow-down-left'
         if (transactionType === 'CLAIM_LINK') return viewType !== 'SUCCESS' ? 'arrow-down' : undefined
     }
@@ -53,7 +54,7 @@ export default function PeanutActionDetailsCard({
             if (viewType === 'SUCCESS') title = `You just claimed`
             else title = `${renderRecipient()} sent you`
         }
-
+        if (transactionType === 'ADD_MONEY') title = `Add money to Peanut`
         return (
             <h1 className="flex items-center gap-2 text-base font-normal text-grey-1">
                 {icon && <Icon name={icon} size={10} />} {title}
@@ -66,13 +67,21 @@ export default function PeanutActionDetailsCard({
             <div className="flex items-center gap-3">
                 <AvatarWithBadge
                     icon={
-                        viewType === 'SUCCESS' ? 'check' : recipientType !== 'USERNAME' ? 'wallet-outline' : undefined
+                        viewType === 'SUCCESS'
+                            ? 'check'
+                            : recipientType !== 'USERNAME' || transactionType === 'ADD_MONEY'
+                              ? 'wallet-outline'
+                              : undefined
                     }
                     size={avatarSize}
                     name={viewType === 'NORMAL' ? recipientName : undefined}
                     inlineStyle={{
                         backgroundColor:
-                            viewType === 'SUCCESS' ? '#29CC6A' : getColorForUsername(recipientName).backgroundColor,
+                            viewType === 'SUCCESS'
+                                ? '#29CC6A'
+                                : transactionType === 'ADD_MONEY'
+                                  ? '#FFC900'
+                                  : getColorForUsername(recipientName).backgroundColor,
                     }}
                 />
             </div>
@@ -80,8 +89,10 @@ export default function PeanutActionDetailsCard({
             <div className="space-y-1">
                 {getTitle()}
                 <h2 className="text-2xl font-extrabold">
-                    {tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() ? '$' : ` ${tokenSymbol}`}
+                    {tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() ? '$ ' : ''}
                     {amount}
+
+                    {tokenSymbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() && ` ${tokenSymbol}`}
                 </h2>
 
                 <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />

@@ -50,9 +50,10 @@ const Section: React.FC<SectionProps> = ({ title, icon, children, className, tit
 interface NewTokenSelectorProps {
     classNameButton?: string
     viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
+    disabled?: boolean
 }
 
-const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other' }) => {
+const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other', disabled }) => {
     // state to track content height
     const contentRef = useRef<HTMLDivElement>(null)
     const drawerHeightVh = useDynamicHeight(contentRef, { maxHeightVh: 90, minHeightVh: 10, extraVhOffset: 5 })
@@ -518,6 +519,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                     classNameButton
                 )}
                 shadowSize="4"
+                disabled={disabled}
             >
                 <div className="flex flex-grow items-center justify-between gap-3 overflow-hidden">
                     <div className="flex items-center gap-2 overflow-hidden">
@@ -532,12 +534,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                     onError={() => setButtonImageError(true)}
                                 />
                             ) : (
-                                <Icon name="currency" size={24} />
+                                <Icon name="plus" size={24} />
                             )}
                         </div>
                         <div className="flex flex-col items-start overflow-hidden">
                             <span className="truncate text-base font-semibold text-black">
-                                {buttonSymbol || 'Select Token'}
+                                {buttonSymbol || 'Select a token'}
                                 {buttonChainName && (
                                     <span className="ml-1 text-sm font-medium text-grey-1">
                                         on <span className="capitalize">{buttonChainName}</span>

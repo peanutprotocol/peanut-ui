@@ -1,19 +1,14 @@
-import { ParsedURL } from '@/lib/url-parser/types/payment'
-import { PaymentForm } from '../PaymentForm'
+import { PaymentForm, PaymentFormProps } from '../PaymentForm'
 
-type InitialPaymentViewProps = ParsedURL & {
-    isPintaReq?: boolean
-    currency?: {
-        code: string
-        symbol: string
-        price: number
-    }
-    currencyAmount?: string
-    setCurrencyAmount?: (currencyvalue: string | undefined) => void
-}
-
-export default function InitialPaymentView(props: InitialPaymentViewProps) {
+export default function InitialPaymentView(props: PaymentFormProps) {
     const isPintaReq = props.token?.symbol === 'PNT' || props.isPintaReq
 
-    return <PaymentForm {...props} isPintaReq={isPintaReq} />
+    return (
+        <PaymentForm
+            {...props}
+            isPintaReq={isPintaReq}
+            isAddMoneyFlow={props.isAddMoneyFlow}
+            isWithdrawFlow={props.isWithdrawFlow}
+        />
+    )
 }

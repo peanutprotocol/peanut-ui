@@ -28,6 +28,7 @@ export interface ActionModalProps {
     iconContainerClassName?: string
     isLoadingIcon?: boolean
     ctas?: ActionModalButtonProps[]
+    ctaClassName?: HTMLDivElement['className']
     checkbox?: ActionModalCheckboxProps
     preventClose?: boolean
     initialFocus?: React.RefObject<HTMLElement>
@@ -50,6 +51,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     iconContainerClassName: customIconContainerClassName,
     isLoadingIcon = false,
     ctas,
+    ctaClassName,
     checkbox,
     preventClose,
     initialFocus,
@@ -147,7 +149,8 @@ const ActionModal: React.FC<ActionModalProps> = ({
                             <div
                                 className={twMerge(
                                     'flex w-full gap-3',
-                                    ctas.length > 1 ? 'flex-col sm:flex-row' : 'flex-col'
+                                    ctas.length > 1 ? 'flex-col sm:flex-row' : 'flex-col',
+                                    ctaClassName
                                 )}
                             >
                                 {ctas.map(

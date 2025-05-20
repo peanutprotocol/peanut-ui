@@ -8,6 +8,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useUserStore } from '@/redux/hooks'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -16,6 +17,7 @@ type AddMoneyCryptoStep = 'sourceSelection' | 'tokenSelection' | 'networkSelecti
 const AddMoneyCryptoPage = () => {
     const router = useRouter()
     const { address: peanutWalletAddress } = useWallet()
+    const { user: authUser } = useUserStore()
     const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('sourceSelection')
     const [selectedSource, setSelectedSource] = useState<CryptoSource | null>(null)
     const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(null)
@@ -108,7 +110,10 @@ const AddMoneyCryptoPage = () => {
 
                     {/* Wallets Section - with a top margin for separation */}
                     <div className="mt-1 flex flex-col gap-2">
-                        <CryptoSourceListCard sources={CRYPTO_WALLETS} onItemClick={() => {}} />
+                        <CryptoSourceListCard
+                            sources={CRYPTO_WALLETS}
+                            onItemClick={() => router.push(`/add-money/crypto/direct?to=${authUser?.user.username}`)}
+                        />
                     </div>
                 </div>
             </div>

@@ -9,9 +9,10 @@ interface AddressLinkProps {
     address: string
     className?: string
     children?: React.ReactNode
+    isLink?: boolean
 }
 
-const AddressLink = ({ address, className = '' }: AddressLinkProps) => {
+const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProps) => {
     const [displayAddress, setDisplayAddress] = useState<string>(
         isAddress(address) ? printableAddress(address) : address
     )
@@ -41,10 +42,12 @@ const AddressLink = ({ address, className = '' }: AddressLinkProps) => {
     // Create a simple URL - all identifiers go to /{identifier}
     const url = `/${urlAddress}`
 
-    return (
+    return isLink ? (
         <Link className={twMerge('cursor-pointer text-xs text-grey-1 underline', className)} href={url} target="_blank">
             {displayAddress}
         </Link>
+    ) : (
+        <span className={twMerge('cursor-pointer text-xs text-grey-1 underline', className)}>{displayAddress}</span>
     )
 }
 

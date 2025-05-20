@@ -5,4 +5,3 @@
 - When making changes, ensure you're not breaking existing functionality, and if there's a risk, explicitly WARN about it.
 - If you notice an opportunity to refactor or improve existing code, mention it. DO NOT make any changes you were not explicitly told to do. Only mention the potential change to the user.
 - Performance is important. Cache where possible, make sure to not make unnecessary re-renders or data fetching.
-- add easy to understand comments to any code that you add or update, keep the comments lowercase, in simple english

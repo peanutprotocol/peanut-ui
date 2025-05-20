@@ -11,7 +11,7 @@ interface CryptoSourceListCardProps {
 
 const Icon = ({ type }: { type: 'exchange' | 'wallet' }) => (
     <AvatarWithBadge
-        className="bg-yellow-5"
+        className="bg-yellow-1"
         icon={type === 'exchange' ? 'exchange-arrows' : 'wallet-outline'}
         size="extra-small"
     />

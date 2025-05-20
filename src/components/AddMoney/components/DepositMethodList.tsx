@@ -34,7 +34,7 @@ export const DepositMethodList = ({ methods }: DepositMethodListProps) => {
                     description={method.description || method.currency}
                     leftIcon={
                         method.type === 'crypto' ? (
-                            <AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-5" />
+                            <AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />
                         ) : method.type === 'country' ? (
                             <Image
                                 src={`https://flagcdn.com/w320/${method.id.toLowerCase()}.png`}
@@ -45,7 +45,7 @@ export const DepositMethodList = ({ methods }: DepositMethodListProps) => {
                                 loading="lazy"
                             />
                         ) : (
-                            <AvatarWithBadge name={method.title} size="extra-small" className="bg-yellow-5" />
+                            <AvatarWithBadge name={method.title} size="extra-small" className="bg-yellow-1" />
                         )
                     }
                     onClick={() => handleMethodClick(method.path)}
