@@ -8,6 +8,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { PEANUT_WALLET_TOKEN_SYMBOL, TRANSACTIONS } from '@/constants'
+import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { RecipientType } from '@/lib/url-parser/types/payment'
@@ -47,6 +48,12 @@ const DirectSuccessView = ({
     const { user: authUser } = useUserStore()
     const queryClient = useQueryClient()
 
+    const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
+        chainId: chargeDetails?.chainId,
+        tokenSymbol: chargeDetails?.tokenSymbol,
+        tokenAddress: chargeDetails?.tokenAddress,
+    })
+
     const recipientName = useMemo(() => {
         if (user?.username) {
             return user.fullName || user.username
@@ -57,13 +64,16 @@ const DirectSuccessView = ({
         return printableAddress(chargeDetails?.requestLink?.recipientAddress || '')
     }, [user, parsedPaymentData, chargeDetails])
 
+    const amountValue = useMemo(() => {
+        return amount ?? chargeDetails?.tokenAmount ?? '0'
+    }, [amount, chargeDetails])
+
     const displayAmount = useMemo(() => {
         if (currencyAmount) return currencyAmount
-        const displayAmount = amount ?? chargeDetails?.tokenAmount ?? '0'
         return chargeDetails?.tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
-            ? `$ ${formatAmount(displayAmount)}`
-            : `${formatAmount(displayAmount)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
-    }, [amount, chargeDetails, currencyAmount])
+            ? `$ ${formatAmount(amountValue)}`
+            : `${formatAmount(amountValue)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
+    }, [amountValue, chargeDetails, currencyAmount])
 
     // construct transaction details for the drawer
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
@@ -74,10 +84,13 @@ const DirectSuccessView = ({
 
         const txTimestamp = firstPayment?.createdAt || chargeDetails.createdAt
 
+        const networkFeeDisplayValue = '$ 0.00' // fee is zero for peanut wallet txns
+        const peanutFeeDisplayValue = '$ 0.00' // peanut doesn't charge fees yet
+
         let details: Partial<TransactionDetails> = {
             id: firstPayment?.payerTransactionHash,
             status: 'completed' as StatusType,
-            amount: parseFloat(displayAmount),
+            amount: parseFloat(amountValue),
             date: new Date(txTimestamp),
             tokenSymbol: chargeDetails.tokenSymbol,
             direction: 'send', // only showing receipt for send txns
@@ -88,10 +101,37 @@ const DirectSuccessView = ({
                 originalUserRole: EHistoryUserRole.SENDER,
             },
             userName: user?.username || parsedPaymentData?.recipient?.identifier,
+            sourceView: 'status',
+            tokenDisplayDetails: {
+                tokenSymbol: resolvedTokenSymbol || chargeDetails.tokenSymbol,
+                chainName: resolvedChainName,
+                tokenIconUrl: tokenIconUrl,
+                chainIconUrl: chainIconUrl,
+            },
+            networkFeeDetails: {
+                amountDisplay: networkFeeDisplayValue,
+                moreInfoText: 'This transaction may face slippage due to token conversion or cross-chain bridging.',
+            },
+            peanutFeeDetails: {
+                amountDisplay: peanutFeeDisplayValue,
+            },
         }
 
         return details as TransactionDetails
-    }, [chargeDetails, type, displayAmount, recipientName, parsedPaymentData, message, user])
+    }, [
+        chargeDetails,
+        type,
+        amountValue,
+        recipientName,
+        parsedPaymentData,
+        message,
+        user,
+        getInitialsFromName,
+        tokenIconUrl,
+        chainIconUrl,
+        resolvedChainName,
+        resolvedTokenSymbol,
+    ])
 
     useEffect(() => {
         // invalidate queries to refetch history

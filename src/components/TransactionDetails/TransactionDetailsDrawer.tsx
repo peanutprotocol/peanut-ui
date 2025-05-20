@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { Button } from '../0_Bruddle'
+import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
@@ -118,7 +119,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                     transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 />
 
-                {/* details card (date, fee, memo) */}
+                {/* details card (date, fee, memo) and more */}
                 <Card position={shouldShowQrShare ? 'first' : 'single'} className="px-4 py-0" border={true}>
                     <div className="space-y-0">
                         {transaction.date && (
@@ -126,6 +127,8 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                 label={transaction.status === 'cancelled' ? 'Created' : 'Date'}
                                 value={formatDate(transaction.date as Date)}
                                 hideBottomBorder={
+                                    !transaction.tokenDisplayDetails &&
+                                    transaction.sourceView === 'status' &&
                                     !transaction.cancelledDate &&
                                     !transaction.fee &&
                                     !transaction.memo &&
@@ -133,6 +136,43 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                 }
                             />
                         )}
+
+                        {transaction.tokenDisplayDetails && transaction.sourceView === 'status' && (
+                            <PaymentInfoRow
+                                label="Token and network"
+                                value={
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                            {/* Main token icon */}
+                                            <DisplayIcon
+                                                iconUrl={transaction.tokenDisplayDetails.tokenIconUrl}
+                                                altText={transaction.tokenDisplayDetails.tokenSymbol || 'token'}
+                                                fallbackName={transaction.tokenDisplayDetails.tokenSymbol || 'T'}
+                                                sizeClass="h-6 w-6"
+                                            />
+                                            {/* Smaller chain icon, absolutely positioned */}
+                                            {transaction.tokenDisplayDetails.chainIconUrl && (
+                                                <div className="absolute -bottom-1 -right-1">
+                                                    <DisplayIcon
+                                                        iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
+                                                        altText={transaction.tokenDisplayDetails.chainName || 'chain'}
+                                                        fallbackName={transaction.tokenDisplayDetails.chainName || 'C'}
+                                                        sizeClass="h-3.5 w-3.5"
+                                                        className="rounded-full border-2 border-white dark:border-grey-4"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span>
+                                            {transaction.tokenDisplayDetails.tokenSymbol} on{' '}
+                                            {transaction.tokenDisplayDetails.chainName}
+                                        </span>
+                                    </div>
+                                }
+                                hideBottomBorder={!transaction.networkFeeDetails && !transaction.peanutFeeDetails}
+                            />
+                        )}
+
                         {transaction.status === 'cancelled' &&
                             transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.BOTH &&
                             transaction.cancelledDate && (
@@ -155,13 +195,32 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                 hideBottomBorder={!transaction.memo && !transaction.attachmentUrl}
                             />
                         )}
+
+                        <PaymentInfoRow
+                            label="Peanut fee"
+                            value={'$ 0'}
+                            hideBottomBorder={
+                                !transaction.memo && !transaction.attachmentUrl && !transaction.networkFeeDetails
+                            }
+                        />
+
                         {transaction.memo && (
                             <PaymentInfoRow
-                                label="Memo"
+                                label="Comment"
                                 value={transaction.memo}
                                 hideBottomBorder={!transaction.attachmentUrl}
                             />
                         )}
+
+                        {transaction.networkFeeDetails && transaction.sourceView === 'status' && (
+                            <PaymentInfoRow
+                                label="Network fee"
+                                value={transaction.networkFeeDetails.amountDisplay}
+                                moreInfoText={transaction.networkFeeDetails.moreInfoText}
+                                hideBottomBorder
+                            />
+                        )}
+
                         {transaction.attachmentUrl && (
                             <PaymentInfoRow
                                 label="Attachment"

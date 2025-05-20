@@ -2,15 +2,17 @@
 import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
+import DisplayIcon from '@/components/Global/DisplayIcon'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
+import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IExtendedLinkDetails } from '@/interfaces'
 import { ErrorHandler, formatTokenAmount, saveClaimedLinkToLocalStorage } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
-import Image from 'next/image'
 import { useContext, useState } from 'react'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
@@ -31,12 +33,17 @@ export const ConfirmClaimLinkView = ({
     const { address, fetchBalance } = useWallet()
     const { claimLinkXchain, claimLink } = useClaimLink()
     const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
-    const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const [fileType] = useState<string>('')
+
+    const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
+        chainId: selectedRoute?.route.params.toChain,
+        tokenAddress: selectedRoute?.route.estimate.toToken.address,
+        tokenSymbol: selectedRoute?.route.estimate.toToken.symbol,
+    })
 
     const handleOnClaim = async () => {
         if (!recipient) {
@@ -129,45 +136,47 @@ export const ConfirmClaimLinkView = ({
                         label="Token and network"
                         value={
                             <div className="flex items-center gap-2">
-                                <div className="relative flex h-5 w-5">
-                                    <Image
-                                        src={`${supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]?.chainIconURI}`}
-                                        alt={selectedRoute.route.estimate.toToken.symbol}
-                                        width={10}
-                                        height={10}
-                                        className="absolute -right-1 bottom-0"
-                                    />
-                                    <Image
-                                        src={`${
-                                            supportedSquidChainsAndTokens[
-                                                selectedRoute.route.params.toChain
-                                            ]?.tokens.find(
-                                                (token) => token.symbol === selectedRoute.route.estimate.toToken.symbol
-                                            )?.logoURI
-                                        }`}
-                                        alt={selectedRoute.route.estimate.toToken.symbol}
-                                        width={20}
-                                        height={20}
-                                    />
-                                </div>
+                                {selectedRoute && (
+                                    <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                        <DisplayIcon
+                                            iconUrl={tokenIconUrl}
+                                            altText={resolvedTokenSymbol || 'token'}
+                                            fallbackName={resolvedTokenSymbol || 'T'}
+                                            sizeClass="h-6 w-6"
+                                        />
+                                        {chainIconUrl && (
+                                            <div className="absolute -bottom-1 -right-1">
+                                                <DisplayIcon
+                                                    iconUrl={chainIconUrl}
+                                                    altText={resolvedChainName || 'chain'}
+                                                    fallbackName={resolvedChainName || 'C'}
+                                                    sizeClass="h-3.5 w-3.5"
+                                                    className="rounded-full border-2 border-white dark:border-grey-4"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 <span>
-                                    {selectedRoute.route.estimate.toToken.symbol} on{' '}
+                                    {resolvedTokenSymbol || selectedRoute?.route.estimate.toToken.symbol} on{' '}
                                     <span className="capitalize">
-                                        {
-                                            supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
-                                                ?.axelarChainName
-                                        }
+                                        {resolvedChainName || selectedRoute?.route.params.toChain}
                                     </span>
                                 </span>
                             </div>
                         }
+                        hideBottomBorder={!selectedRoute}
                     />
-                    <PaymentInfoRow
-                        label="Network fee"
-                        value={'$ 0.00'}
-                        moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
-                    />
-                    <PaymentInfoRow label="Peanut fee" value={'$ 0.00'} hideBottomBorder />
+                    {selectedRoute && (
+                        <>
+                            <PaymentInfoRow
+                                label="Network fee"
+                                value={'$ 0.00'}
+                                moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
+                            />
+                            <PaymentInfoRow label="Peanut fee" value={'$ 0.00'} hideBottomBorder />
+                        </>
+                    )}
                 </Card>
 
                 <Button
@@ -179,6 +188,8 @@ export const ConfirmClaimLinkView = ({
                 >
                     {isLoading ? 'Claiming' : 'Claim'}
                 </Button>
+
+                {errorState.showError && <ErrorAlert description={errorState.errorMessage} />}
             </div>
         </div>
     )

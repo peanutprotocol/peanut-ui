@@ -40,6 +40,20 @@ export interface TransactionDetails {
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
     }
+    sourceView?: 'status' | 'history'
+    tokenDisplayDetails?: {
+        tokenSymbol?: string
+        tokenIconUrl?: string
+        chainName?: string
+        chainIconUrl?: string
+    }
+    networkFeeDetails?: {
+        amountDisplay: string
+        moreInfoText?: string
+    }
+    peanutFeeDetails?: {
+        amountDisplay: string
+    }
 }
 
 /**
@@ -236,6 +250,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             isLinkTransaction: isLinkTx,
             transactionCardType: transactionCardType,
         },
+        sourceView: 'history',
     }
 
     return {
