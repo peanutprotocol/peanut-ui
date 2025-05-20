@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '../Global/Icons/Icon'
+import Loading from '../Global/Loading'
 
 export const PaymentInfoRow = ({
     label,
@@ -61,7 +62,7 @@ export const PaymentInfoRow = ({
                 )}
             </div>
             {loading ? (
-                <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700" />
+                <Loading />
             ) : (
                 <div className="flex items-center gap-1">
                     <div className={twMerge('flex w-fit justify-end text-sm font-bold')}>

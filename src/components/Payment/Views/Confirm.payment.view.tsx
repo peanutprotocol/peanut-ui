@@ -3,8 +3,8 @@
 import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
 import ActionModal from '@/components/Global/ActionModal'
-import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
+import DisplayIcon from '@/components/Global/DisplayIcon'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
 import NavHeader from '@/components/Global/NavHeader'
@@ -15,8 +15,8 @@ import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context'
 import { usePaymentInitiator } from '@/hooks/usePaymentInitiator'
+import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { getReadableChainName } from '@/lib/validation/resolvers/chain-resolver'
 import { useAppDispatch, usePaymentStore, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
@@ -62,7 +62,14 @@ export default function ConfirmPaymentView({ isPintaReq = false, currency, curre
 
     const walletAddress = useMemo(() => peanutWalletAddress ?? wagmiAddress, [peanutWalletAddress, wagmiAddress])
 
+    const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
+        chainId: selectedChainID,
+        tokenAddress: selectedTokenData?.address,
+        tokenSymbol: selectedTokenData?.symbol,
+    })
+
     const showExternalWalletConfirmationModal = useMemo(() => {
+        if (isCalculatingFees || isEstimatingGas) return false
         return (
             isProcessing &&
             !isPeanutWallet &&
@@ -253,52 +260,48 @@ export default function ConfirmPaymentView({ isPintaReq = false, currency, curre
 
                 <Card className="rounded-sm">
                     <PaymentInfoRow
-                        label="Amount"
+                        label="Token and network"
                         value={
-                            <span className="font-bold">
-                                {currencyAmount && currency ? (
-                                    <>
-                                        <span className="font-bold">
-                                            {currency.symbol} {currencyAmount}
-                                        </span>
-                                        <span className="text-grey-1">
-                                            {' '}
-                                            ({formatAmount(Number(chargeDetails?.tokenAmount))}{' '}
-                                            {chargeDetails?.tokenSymbol})
-                                        </span>
-                                    </>
-                                ) : (
-                                    <span className="font-bold">
-                                        {formatAmount(Number(chargeDetails?.tokenAmount))} {chargeDetails?.tokenSymbol}
-                                    </span>
+                            <div className="flex items-center gap-2">
+                                {selectedTokenData && (
+                                    <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                        <DisplayIcon
+                                            iconUrl={tokenIconUrl}
+                                            altText={resolvedTokenSymbol || 'token'}
+                                            fallbackName={resolvedTokenSymbol || 'T'}
+                                            sizeClass="h-6 w-6"
+                                        />
+                                        {chainIconUrl && (
+                                            <div className="absolute -bottom-1 -right-1">
+                                                <DisplayIcon
+                                                    iconUrl={chainIconUrl}
+                                                    altText={resolvedChainName || 'chain'}
+                                                    fallbackName={resolvedChainName || 'C'}
+                                                    sizeClass="h-3.5 w-3.5"
+                                                    className="rounded-full border-2 border-white dark:border-grey-4"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
-                            </span>
+                                <span>
+                                    {resolvedTokenSymbol || selectedTokenData?.symbol} on{' '}
+                                    <span className="capitalize">{resolvedChainName || selectedChainID}</span>
+                                </span>
+                            </div>
                         }
                     />
-                    <PaymentInfoRow
-                        label="To"
-                        value={
-                            <AddressLink
-                                className="text-sm font-bold text-black"
-                                address={
-                                    parsedPaymentData?.recipient?.identifier ||
-                                    chargeDetails?.requestLink?.recipientAddress ||
-                                    ''
-                                }
-                            />
-                        }
-                    />
-
-                    <PaymentInfoRow label="Network" value={`${getReadableChainName(selectedChainID)}`} />
 
                     {!isFeeEstimationError && !isPeanutWallet && (
                         <PaymentInfoRow
-                            hideBottomBorder
                             loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
-                            label="Fee"
+                            label="Network fee"
                             value={`$${feeCalculations.estimatedFee}`}
+                            moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
                         />
                     )}
+
+                    <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ 0.00`} />
                 </Card>
 
                 <div className="flex flex-col gap-4">
