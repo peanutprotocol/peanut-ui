@@ -1,6 +1,6 @@
 'use client'
 
-import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
+import AddWithdrawCountriesList from '@/components/AddWithdraw/components/AddWithdrawCountriesList'
 
 const WithdrawCountryPage = () => {
     return <AddWithdrawCountriesList flow="withdraw" />

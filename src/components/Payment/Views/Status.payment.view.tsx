@@ -30,6 +30,7 @@ type DirectSuccessViewProps = {
     headerTitle?: string
     currencyAmount?: string
     isAddMoneyFlow?: boolean
+    isWithdrawFlow?: boolean
     redirectTo?: string
 }
 
@@ -42,6 +43,7 @@ const DirectSuccessView = ({
     headerTitle,
     currencyAmount,
     isAddMoneyFlow,
+    isWithdrawFlow,
     redirectTo = '/home',
 }: DirectSuccessViewProps) => {
     const router = useRouter()
@@ -152,6 +154,13 @@ const DirectSuccessView = ({
         }
     }
 
+    const getTitle = () => {
+        if (isAddMoneyFlow) return 'You successfully added'
+        if (isWithdrawFlow) return 'You just withdrew'
+        if (type === 'SEND') return 'You sent'
+        if (type === 'REQUEST') return 'You requested'
+    }
+
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             {type === 'SEND' && (
@@ -179,8 +188,9 @@ const DirectSuccessView = ({
 
                     <div className="space-y-1">
                         <h1 className="text-sm font-normal text-grey-1">
-                            You {isAddMoneyFlow ? 'successfully added' : type === 'SEND' ? 'sent' : 'requested'}{' '}
+                            {getTitle()}
                             {!isAddMoneyFlow &&
+                                !isWithdrawFlow &&
                                 (recipientType !== 'USERNAME' ? (
                                     <AddressLink
                                         className="text-sm font-normal text-grey-1 no-underline"
@@ -191,7 +201,11 @@ const DirectSuccessView = ({
                                 ))}
                         </h1>
                         <h2 className="text-2xl font-extrabold">{displayAmount}</h2>
-                        {message && <p className="text-sm font-medium text-grey-1">for {message}</p>}
+                        {message && (
+                            <p className="text-sm font-medium text-grey-1">
+                                {isWithdrawFlow ? 'to' : 'for'} {message}
+                            </p>
+                        )}
                     </div>
                 </Card>
 
@@ -199,7 +213,7 @@ const DirectSuccessView = ({
                     <Button onClick={handleDone} shadowSize="4">
                         Back to home
                     </Button>
-                    {type === 'SEND' && !isAddMoneyFlow && (
+                    {type === 'SEND' && !isAddMoneyFlow && !isWithdrawFlow && (
                         <Button
                             variant="primary-soft"
                             shadowSize="4"

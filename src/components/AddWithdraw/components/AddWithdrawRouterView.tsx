@@ -14,6 +14,7 @@ interface AddWithdrawRouterViewProps {
     mainHeading: string
     onBackClick?: () => void
     recentMethods: DepositMethod[]
+    amount?: string
 }
 
 export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
@@ -22,6 +23,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     mainHeading,
     onBackClick,
     recentMethods = [],
+    amount,
 }) => {
     const router = useRouter()
     const [showAllMethods, setShowAllMethods] = useState(recentMethods.length === 0)
@@ -30,11 +32,17 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const baseRoute = flow === 'add' ? '/add-money' : '/withdraw'
 
     const allMethodsTransformed: DepositMethod[] = useMemo(() => {
-        return ALL_METHODS_DATA.map((method) => ({
-            ...method,
-            path: `${baseRoute}/${method.path}`,
-        }))
-    }, [baseRoute])
+        return ALL_METHODS_DATA.map((method) => {
+            let path = `${baseRoute}/${method.path}`
+            if (flow === 'withdraw' && method.type === 'crypto' && amount) {
+                path = `${path}?amount=${amount}`
+            }
+            return {
+                ...method,
+                path: path,
+            }
+        })
+    }, [baseRoute, flow, amount])
 
     const filteredAllMethods = useMemo(() => {
         let methodsToShow

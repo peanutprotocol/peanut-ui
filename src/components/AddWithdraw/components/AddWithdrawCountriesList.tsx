@@ -6,7 +6,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import { useParams, useRouter } from 'next/navigation'
-import EmptyState from '../Global/EmptyStates/EmptyState'
+import EmptyState from '../../Global/EmptyStates/EmptyState'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -73,7 +73,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     return (
         <div className="w-full space-y-8 self-start">
-            <NavHeader title={currentCountry.title} onPrev={() => router.push('/add-money')} />
+            <NavHeader
+                title={currentCountry.title}
+                onPrev={() => router.push(flow === 'add' ? '/add-money' : '/withdraw')}
+            />
             <div className="flex-1 overflow-y-auto">
                 {flow === 'add' && methods?.add && renderPaymentMethods('Add money via', methods.add)}
                 {flow === 'withdraw' &&
