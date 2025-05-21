@@ -81,6 +81,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         setSelectedChainID,
         selectedTokenAddress,
         selectedChainID,
+        setSelectedTokenBalance,
     } = useContext(tokenSelectorContext)
 
     // drawer utility functions
@@ -169,6 +170,17 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         [closeDrawer, setSelectedTokenAddress, setSelectedChainID]
     )
 
+    useEffect(() => {
+        const tokenBalance = sourceBalances.find(
+            (balance) =>
+                areEvmAddressesEqual(balance.address, selectedTokenAddress) &&
+                String(balance.chainId) === selectedChainID
+        )
+        if (tokenBalance) {
+            setSelectedTokenBalance(tokenBalance.amount.toString())
+        }
+    }, [selectedTokenAddress, selectedChainID, sourceBalances])
+
     const handleDefaultTokenSelect = useCallback(() => {
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
@@ -224,6 +236,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     let buttonChainName: string | undefined = undefined
     let buttonFormattedBalance: string | null = null
     let buttonLogoURI: string | undefined = undefined
+    let buttonChainLogoURI: string | undefined = peanutWalletTokenDetails?.chainLogoURI
 
     if (isExternalWalletConnected) {
         if (selectedTokenAddress && selectedChainID) {
@@ -259,6 +272,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 buttonSymbol = generalTokenDetails.symbol
                 buttonLogoURI = generalTokenDetails.logoURI
                 buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
+                buttonChainLogoURI = chainInfo.chainIconURI
             }
         }
     }
@@ -535,6 +549,17 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 />
                             ) : (
                                 <Icon name="plus" size={24} />
+                            )}
+                            {buttonChainLogoURI && (
+                                <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2 dark:border-black dark:bg-grey-1">
+                                    <Image
+                                        src={buttonChainLogoURI}
+                                        alt={`Chain logo`}
+                                        width={16}
+                                        height={16}
+                                        className="rounded-full"
+                                    />
+                                </div>
                             )}
                         </div>
                         <div className="flex flex-col items-start overflow-hidden">

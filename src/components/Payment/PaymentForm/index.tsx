@@ -28,7 +28,7 @@ import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { ErrorHandler, formatAmount } from '@/utils'
+import { areEvmAddressesEqual, ErrorHandler, formatAmount } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -65,7 +65,7 @@ export const PaymentForm = ({
     const dispatch = useAppDispatch()
     const router = useRouter()
     const { user } = useAuth()
-    const { requestDetails, chargeDetails, beerQuantity } = usePaymentStore()
+    const { requestDetails, chargeDetails, beerQuantity, error: paymentStoreError } = usePaymentStore()
     const { isConnected: isPeanutWallet, balance } = useWallet()
     const { isConnected: isWagmiConnected, status } = useAccount()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
@@ -73,19 +73,25 @@ export const PaymentForm = ({
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
     )
     const [disconnectWagmiModal, setDisconnectWagmiModal] = useState<boolean>(false)
+    const [inputUsdValue, setInputUsdValue] = useState<string>('')
     const [usdValue, setUsdValue] = useState<string>('')
+    const [requestedTokenPrice, setRequestedTokenPrice] = useState<number>(0)
     const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
 
-    const { initiatePayment, isProcessing, error } = usePaymentInitiator()
+    const { initiatePayment, isProcessing, error: initiatorError } = usePaymentInitiator()
 
     const peanutWalletBalance = useMemo(() => {
         const formattedBalance = formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
         return formattedBalance
     }, [balance])
 
+    const error = useMemo(() => {
+        if (paymentStoreError) return paymentStoreError
+        if (initiatorError) return initiatorError
+        return null
+    }, [paymentStoreError, initiatorError])
+
     const {
-        inputDenomination,
-        setInputDenomination,
         selectedTokenPrice,
         selectedChainID,
         selectedTokenAddress,
@@ -93,6 +99,7 @@ export const PaymentForm = ({
         setSelectedChainID,
         setSelectedTokenAddress,
         setSelectedTokenDecimals,
+        selectedTokenBalance,
     } = useContext(tokenSelectorContext)
     const { open: openReownModal } = useAppKit()
     const { disconnect: disconnectWagmi } = useDisconnect()
@@ -112,7 +119,6 @@ export const PaymentForm = ({
 
         if (amount) {
             setInputTokenAmount(amount)
-            setInputDenomination(token?.symbol ? 'TOKEN' : 'USD')
         }
 
         if (chain) {
@@ -141,10 +147,33 @@ export const PaymentForm = ({
         dispatch(paymentActions.setError(null))
     }, [dispatch, recipient])
 
+    useEffect(() => {
+        if (!inputTokenAmount) {
+            dispatch(paymentActions.setError(null))
+            return
+        }
+
+        if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
+            const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
+            const inputNumeric = parseFloat(String(inputTokenAmount).replace(/,/g, ''))
+
+            if (walletNumeric < inputNumeric) {
+                dispatch(paymentActions.setError('Insufficient balance'))
+            } else {
+                dispatch(paymentActions.setError(null))
+            }
+        } else {
+            if (Number(selectedTokenBalance) < Number(inputTokenAmount)) {
+                dispatch(paymentActions.setError('Insufficient balance'))
+            } else {
+                dispatch(paymentActions.setError(null))
+            }
+        }
+    }, [selectedTokenBalance, peanutWalletBalance, selectedTokenAddress, inputTokenAmount, isActivePeanutWallet])
     // fetch token price
     useEffect(() => {
         if (isPintaReq) return
-        if (!requestDetails?.tokenAddress || !requestDetails?.chainId || !requestDetails?.tokenAmount) return
+        if (!requestDetails?.tokenAddress || !requestDetails?.chainId) return
 
         const getTokenPriceData = async () => {
             setIsFetchingTokenPrice(true)
@@ -152,13 +181,15 @@ export const PaymentForm = ({
                 const priceData = await fetchTokenPrice(requestDetails.tokenAddress, requestDetails.chainId)
 
                 if (priceData) {
-                    // calculate USD value
-                    const tokenAmount = parseFloat(requestDetails.tokenAmount)
-                    const usdValue = formatAmount(tokenAmount * priceData.price)
+                    setRequestedTokenPrice(priceData.price)
 
-                    setInputDenomination('USD')
-                    setInputTokenAmount(usdValue)
-                    setUsdValue(usdValue)
+                    if (requestDetails?.tokenAmount) {
+                        // calculate USD value
+                        const tokenAmount = parseFloat(requestDetails.tokenAmount)
+                        const usdValue = formatAmount(tokenAmount * priceData.price)
+                        setInputTokenAmount(usdValue)
+                        setUsdValue(usdValue)
+                    }
                 } else {
                     console.log('Failed to fetch token price data')
                 }
@@ -180,8 +211,7 @@ export const PaymentForm = ({
             amountIsSet = !!inputTokenAmount && parseFloat(inputTokenAmount) > 0
         } else {
             amountIsSet =
-                (!!inputTokenAmount && parseFloat(inputTokenAmount) > 0 && inputDenomination === 'TOKEN') ||
-                (!!usdValue && parseFloat(usdValue) > 0 && inputDenomination === 'USD')
+                (!!inputTokenAmount && parseFloat(inputTokenAmount) > 0) || (!!usdValue && parseFloat(usdValue) > 0)
         }
 
         const tokenSelected = !!selectedTokenAddress && !!selectedChainID
@@ -193,7 +223,6 @@ export const PaymentForm = ({
         recipient,
         inputTokenAmount,
         usdValue,
-        inputDenomination,
         selectedTokenAddress,
         selectedChainID,
         isPintaReq,
@@ -261,9 +290,20 @@ export const PaymentForm = ({
 
         dispatch(paymentActions.setError(null))
 
+        const requestedToken = chargeDetails?.tokenAddress ?? requestDetails?.tokenAddress
+        const requestedChain = chargeDetails?.chainId ?? requestDetails?.chainId
+        let tokenAmount = inputTokenAmount
+        if (
+            requestedToken &&
+            requestedTokenPrice &&
+            (requestedChain !== selectedChainID || !areEvmAddressesEqual(requestedToken, selectedTokenAddress))
+        ) {
+            tokenAmount = (parseFloat(inputUsdValue) / requestedTokenPrice).toString()
+        }
+
         const payload = {
             recipient: recipient,
-            tokenAmount: inputTokenAmount,
+            tokenAmount,
             isPintaReq: false, // explicitly set to false for non-PINTA requests
             requestId: requestId ?? undefined,
             chargeId: chargeDetails?.uuid,
@@ -298,6 +338,11 @@ export const PaymentForm = ({
         beerQuantity,
         chargeDetails,
         isAddMoneyFlow,
+        requestDetails,
+        selectedTokenAddress,
+        selectedChainID,
+        inputUsdValue,
+        requestedTokenPrice,
     ])
 
     const getButtonText = () => {
@@ -350,15 +395,10 @@ export const PaymentForm = ({
 
     useEffect(() => {
         if (!inputTokenAmount) return
-        if (inputDenomination === 'TOKEN') {
-            if (selectedTokenPrice) {
-                setInputDenomination('USD')
-                setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
-            }
-        } else if (inputDenomination === 'USD') {
-            setUsdValue(inputTokenAmount)
+        if (selectedTokenPrice) {
+            setUsdValue((parseFloat(inputTokenAmount) * selectedTokenPrice).toString())
         }
-    }, [inputTokenAmount, inputDenomination, selectedTokenPrice])
+    }, [inputTokenAmount, selectedTokenPrice])
 
     // Initialize inputTokenAmount
     useEffect(() => {
@@ -366,11 +406,6 @@ export const PaymentForm = ({
             setInputTokenAmount(amount)
         }
     }, [amount, inputTokenAmount, initialSetupDone])
-
-    // Initialize inputDenomination
-    useEffect(() => {
-        if (amount) setInputDenomination(token?.symbol ? 'TOKEN' : 'USD')
-    }, [amount, token])
 
     // Init beer quantity
     useEffect(() => {
@@ -391,6 +426,7 @@ export const PaymentForm = ({
 
     const isButtonDisabled = useMemo(() => {
         if (isProcessing) return true
+        if (!!error) return true
 
         if (isAddMoneyFlow) {
             if (!isWagmiConnected) return false // "Connect Wallet" button should be active
@@ -514,6 +550,7 @@ export const PaymentForm = ({
                 <TokenAmountInput
                     tokenValue={inputTokenAmount}
                     setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
+                    setUsdValue={(value: string) => setInputUsdValue(value)}
                     setCurrencyAmount={setCurrencyAmount}
                     className="w-full"
                     disabled={!isAddMoneyFlow && (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)}
