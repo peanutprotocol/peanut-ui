@@ -1,6 +1,6 @@
 import { STABLE_COINS, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { formatTokenAmount } from '@/utils'
+import { formatTokenAmount, formatAmountWithoutComma } from '@/utils'
 import { useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import Icon from '../Icon'
 
@@ -104,7 +104,9 @@ const TokenAmountInput = ({
                 }
                 case 'FIAT': {
                     if (!currency?.price) throw new Error('Invalid currency')
-                    tokenValue = _isInputUsd ? value : (Number(value) / currency.price).toString()
+                    const usdValue = _isInputUsd ? Number(value) : Number(value) / currency.price
+                    // For when we have a non stablecoin request in currency mode
+                    tokenValue = formatTokenAmount(usdValue / (selectedTokenData?.price ?? 1), decimals)!
                     const currencyValue = _isInputUsd ? (Number(value) * currency.price).toString() : value
                     setCurrencyAmount?.(currencyValue)
                     break
@@ -198,8 +200,8 @@ const TokenAmountInput = ({
                     className={`h-12 w-[4ch] max-w-80 bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                     placeholder={'0.00'}
                     onChange={(e) => {
-                        //const value = formatAmountWithoutComma(e.target.value)
-                        onChange(e.target.value, isInputUsd)
+                        const value = formatAmountWithoutComma(e.target.value)
+                        onChange(value, isInputUsd)
                     }}
                     ref={inputRef}
                     inputMode="decimal"
@@ -212,9 +214,6 @@ const TokenAmountInput = ({
                         if (e.key === 'Enter') {
                             e.preventDefault()
                             if (onSubmit) onSubmit()
-                        }
-                        if (['e', '+', '-'].includes(e.key.toLowerCase())) {
-                            e.preventDefault()
                         }
                     }}
                     style={{ maxWidth: `${parentWidth}px` }}
