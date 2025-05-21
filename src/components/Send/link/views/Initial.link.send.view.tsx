@@ -124,7 +124,6 @@ const LinkSendInitialView = () => {
                 className="w-full"
                 tokenValue={tokenValue}
                 setTokenValue={(value) => dispatch(sendFlowActions.setTokenValue(value))}
-                maxValue={peanutWalletBalance}
                 onSubmit={handleOnNext}
                 walletBalance={peanutWalletBalance}
             />
