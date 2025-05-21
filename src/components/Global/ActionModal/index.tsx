@@ -75,6 +75,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
             return (
                 <Icon
                     name={icon as IconName}
+                    fill="currentColor"
                     {...iconProps}
                     className={twMerge('size-4', defaultIconPropsClassName, iconProps?.className)}
                 />
@@ -165,36 +166,41 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                             ...rest
                                         },
                                         index
-                                    ) => (
-                                        <Button
-                                            key={index}
-                                            onClick={onClick}
-                                            variant={variant}
-                                            {...buttonProps}
-                                            className={twMerge(
-                                                'w-full justify-center',
-                                                ctas.length > 1 && 'sm:flex-1',
-                                                btnClassName
-                                            )}
-                                            {...rest}
-                                        >
-                                            {btnIcon && iconPosition === 'left' && (
-                                                <Icon
-                                                    name={btnIcon}
-                                                    size={16}
-                                                    className={twMerge('mr-2', rest.disabled ? 'opacity-50' : '')}
-                                                />
-                                            )}
-                                            {text}
-                                            {btnIcon && iconPosition === 'right' && (
-                                                <Icon
-                                                    name={btnIcon}
-                                                    size={16}
-                                                    className={twMerge('ml-2', rest.disabled ? 'opacity-50' : '')}
-                                                />
-                                            )}
-                                        </Button>
-                                    )
+                                    ) => {
+                                        const currentIconPosition = btnIcon && !iconPosition ? 'left' : iconPosition
+
+                                        return (
+                                            <Button
+                                                key={index}
+                                                onClick={onClick}
+                                                variant={variant}
+                                                iconPosition={currentIconPosition}
+                                                {...buttonProps}
+                                                className={twMerge(
+                                                    'w-full justify-center',
+                                                    ctas.length > 1 && 'sm:flex-1',
+                                                    btnClassName
+                                                )}
+                                                {...rest}
+                                            >
+                                                {btnIcon && currentIconPosition === 'left' && (
+                                                    <Icon
+                                                        name={btnIcon}
+                                                        size={16}
+                                                        className={twMerge('mr-2', rest.disabled ? 'opacity-50' : '')}
+                                                    />
+                                                )}
+                                                {text}
+                                                {btnIcon && currentIconPosition === 'right' && (
+                                                    <Icon
+                                                        name={btnIcon}
+                                                        size={16}
+                                                        className={twMerge('ml-2', rest.disabled ? 'opacity-50' : '')}
+                                                    />
+                                                )}
+                                            </Button>
+                                        )
+                                    }
                                 )}
                             </div>
                         )}

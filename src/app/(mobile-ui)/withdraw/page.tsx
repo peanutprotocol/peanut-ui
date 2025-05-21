@@ -5,6 +5,7 @@ import { AddWithdrawRouterView } from '@/components/AddWithdraw/components/AddWi
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils'
 import { useRouter } from 'next/navigation'
@@ -16,8 +17,8 @@ type WithdrawStep = 'inputAmount' | 'selectMethod'
 export default function WithdrawPage() {
     const router = useRouter()
     const [step, setStep] = useState<WithdrawStep>('inputAmount')
-    const [amount, setAmount] = useState<string>('')
     const [rawTokenAmount, setRawTokenAmount] = useState<string>('')
+    const { setAmountToWithdraw } = useWithdrawFlow()
 
     const { balance } = useWallet()
 
@@ -28,7 +29,7 @@ export default function WithdrawPage() {
 
     const handleAmountContinue = () => {
         if (parseFloat(rawTokenAmount) > 0) {
-            setAmount(rawTokenAmount)
+            setAmountToWithdraw(rawTokenAmount)
             setStep('selectMethod')
         } else {
             alert('Please enter a valid amount')
@@ -72,7 +73,6 @@ export default function WithdrawPage() {
                 mainHeading="How would you like to withdraw?"
                 recentMethods={[]}
                 onBackClick={() => setStep('inputAmount')}
-                amount={amount}
             />
         )
     }

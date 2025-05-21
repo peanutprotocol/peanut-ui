@@ -46,7 +46,7 @@ const Card: React.FC<CardProps> = ({ children, position = 'single', className = 
 
     return (
         <div
-            className={twMerge('w-full overflow-hidden bg-white px-4 py-2', getBorderRadius(), getBorder(), className)}
+            className={twMerge('w-full bg-white px-4 py-2', getBorderRadius(), getBorder(), className)}
             onClick={onClick}
         >
             {children}

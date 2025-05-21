@@ -6,15 +6,15 @@ import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Glob
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
-import { loadingStateContext } from '@/context/loadingStates.context'
+import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { ITokenPriceData, RecipientType } from '@/interfaces'
+import { ITokenPriceData } from '@/interfaces'
 import { formatAmount } from '@/utils/general.utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect } from 'react'
 
-interface WithdrawSetupViewProps {
+interface InitialWithdrawViewProps {
     amount: string
     onReview: (data: {
         token: ITokenPriceData
@@ -25,7 +25,7 @@ interface WithdrawSetupViewProps {
     isProcessing?: boolean
 }
 
-export default function WithdrawSetupView({ amount, onReview, onBack, isProcessing }: WithdrawSetupViewProps) {
+export default function InitialWithdrawView({ amount, onReview, onBack, isProcessing }: InitialWithdrawViewProps) {
     const router = useRouter()
     const {
         selectedTokenData,
@@ -34,18 +34,17 @@ export default function WithdrawSetupView({ amount, onReview, onBack, isProcessi
         setSelectedChainID,
         setSelectedTokenAddress,
     } = useContext(tokenSelectorContext)
-    const [isValidRecipient, setIsValidRecipient] = useState(false)
-    const [inputChanging, setInputChanging] = useState<boolean>(false)
-    const [recipient, setRecipient] = useState<{ name: string | undefined; address: string }>({
-        address: '',
-        name: '',
-    })
-    const { setLoadingState, isLoading } = useContext(loadingStateContext)
-    const [errorState, setErrorState] = useState<{
-        showError: boolean
-        errorMessage: string
-    }>({ showError: false, errorMessage: '' })
-    const [_, setRecipientType] = useState<RecipientType>('address')
+
+    const {
+        isValidRecipient,
+        setIsValidRecipient,
+        inputChanging,
+        setInputChanging,
+        recipient,
+        setRecipient,
+        initialViewError,
+        setInitialViewError,
+    } = useWithdrawFlow()
 
     const handleReview = () => {
         const selectedChainData = supportedSquidChainsAndTokens[selectedChainID]
@@ -56,7 +55,7 @@ export default function WithdrawSetupView({ amount, onReview, onBack, isProcessi
                 address: recipient.address,
             })
         } else {
-            setErrorState({
+            setInitialViewError({
                 showError: true,
                 errorMessage: 'Withdrawal details are missing',
             })
@@ -97,14 +96,8 @@ export default function WithdrawSetupView({ amount, onReview, onBack, isProcessi
                     recipient={recipient}
                     onUpdate={(update: GeneralRecipientUpdate) => {
                         setRecipient(update.recipient)
-                        if (!update.recipient.address) {
-                            setRecipientType('address')
-                            setLoadingState('Idle')
-                        } else {
-                            setRecipientType(update.type)
-                        }
                         setIsValidRecipient(update.isValid)
-                        setErrorState({
+                        setInitialViewError({
                             showError: !update.isValid,
                             errorMessage: update.errorMessage,
                         })
@@ -121,20 +114,19 @@ export default function WithdrawSetupView({ amount, onReview, onBack, isProcessi
                         !selectedTokenData ||
                         !selectedChainID ||
                         !recipient.address ||
-                        !!isLoading ||
                         !isValidRecipient ||
-                        errorState.showError ||
+                        initialViewError.showError ||
                         inputChanging ||
                         isProcessing
                     }
                     loading={isProcessing}
                     className="w-full"
                 >
-                    {isProcessing ? 'Preparing...' : 'Review'}
+                    {isProcessing ? 'Processing' : 'Review'}
                 </Button>
 
-                {errorState.showError && !!errorState.errorMessage && (
-                    <ErrorAlert description={errorState.errorMessage} />
+                {initialViewError.showError && !!initialViewError.errorMessage && (
+                    <ErrorAlert description={initialViewError.errorMessage} />
                 )}
             </div>
         </div>

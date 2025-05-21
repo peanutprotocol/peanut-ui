@@ -1,11 +1,12 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
-import WithdrawConfirmView from '@/components/Withdraw/views/WithdrawConfirmView'
-import WithdrawSetupView from '@/components/Withdraw/views/WithdrawSetupView'
+import ConfirmWithdrawView from '@/components/Withdraw/views/Confirm.withdraw.view'
+import InitialWithdrawView from '@/components/Withdraw/views/Initial.withdraw.view'
+import { useWithdrawFlow, WithdrawData } from '@/context/WithdrawFlowContext'
 import { InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
-import { ITokenPriceData } from '@/interfaces'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
@@ -20,30 +21,27 @@ import {
 import { printableAddress } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
-
-type WithdrawView = 'setup' | 'confirm' | 'status'
-
-interface WithdrawData {
-    token: ITokenPriceData
-    chain: peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }
-    address: string
-    amount: string
-}
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect } from 'react'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
-    const searchParams = useSearchParams()
     const dispatch = useAppDispatch()
     const { chargeDetails: activeChargeDetailsFromStore } = usePaymentStore()
-
-    const [currentView, setCurrentView] = useState<WithdrawView>('setup')
-    const [withdrawData, setWithdrawData] = useState<WithdrawData | null>(null)
-    const [showCompatibilityModal, setShowCompatibilityModal] = useState(false)
-    const [amountToWithdraw, setAmountToWithdraw] = useState<string>('')
-    const [isPreparingReview, setIsPreparingReview] = useState(false)
-    const [paymentError, setPaymentError] = useState<string | null>(null)
+    const {
+        amountToWithdraw,
+        setAmountToWithdraw,
+        currentView,
+        setCurrentView,
+        withdrawData,
+        setWithdrawData,
+        showCompatibilityModal,
+        setShowCompatibilityModal,
+        isPreparingReview,
+        setIsPreparingReview,
+        paymentError,
+        setPaymentError,
+    } = useWithdrawFlow()
 
     const {
         initiatePayment,
@@ -54,22 +52,22 @@ export default function WithdrawCryptoPage() {
     } = usePaymentInitiator()
 
     useEffect(() => {
-        const amount = searchParams.get('amount')
-        if (amount) {
-            setAmountToWithdraw(amount)
-        } else {
-            console.error('Amount not provided for withdrawal')
+        if (!amountToWithdraw) {
+            console.error('Amount not available in WithdrawFlowContext for withdrawal, redirecting.')
+            router.push('/withdraw')
+            return
         }
         dispatch(paymentActions.setChargeDetails(null))
         setPaymentError(null)
-    }, [searchParams, router, dispatch])
+        setCurrentView('INITIAL')
+    }, [amountToWithdraw, router, dispatch, setAmountToWithdraw, setCurrentView])
 
     useEffect(() => {
         setPaymentError(paymentErrorFromHook)
     }, [paymentErrorFromHook])
 
     useEffect(() => {
-        if (currentView === 'confirm' && activeChargeDetailsFromStore && withdrawData) {
+        if (currentView === 'CONFIRM' && activeChargeDetailsFromStore && withdrawData) {
             prepareTransactionDetails(activeChargeDetailsFromStore, false)
         }
     }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails])
@@ -77,7 +75,7 @@ export default function WithdrawCryptoPage() {
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
             if (!amountToWithdraw) {
-                console.error('Amount to withdraw is not set')
+                console.error('Amount to withdraw is not set or not available from context')
                 setPaymentError('Withdrawal amount is missing.')
                 return
             }
@@ -151,22 +149,22 @@ export default function WithdrawCryptoPage() {
                 setIsPreparingReview(false)
             }
         },
-        [amountToWithdraw, dispatch]
+        [amountToWithdraw, dispatch, setCurrentView]
     )
 
     const handleCompatibilityProceed = useCallback(() => {
         setShowCompatibilityModal(false)
         if (activeChargeDetailsFromStore && withdrawData) {
-            setCurrentView('confirm')
+            setCurrentView('CONFIRM')
         } else {
             console.error('Proceeding to confirm, but charge details or withdraw data are missing.')
             setPaymentError('Failed to load withdrawal details for confirmation. Please go back and try again.')
         }
-    }, [activeChargeDetailsFromStore, withdrawData])
+    }, [activeChargeDetailsFromStore, withdrawData, setCurrentView])
 
     const handleConfirmWithdrawal = useCallback(async () => {
-        if (!activeChargeDetailsFromStore || !withdrawData) {
-            console.error('Withdraw data or active charge details missing for final confirmation')
+        if (!activeChargeDetailsFromStore || !withdrawData || !amountToWithdraw) {
+            console.error('Withdraw data, active charge details, or amount missing for final confirmation')
             setPaymentError('Essential withdrawal information is missing.')
             return
         }
@@ -180,7 +178,7 @@ export default function WithdrawCryptoPage() {
                 recipientType: 'ADDRESS',
                 resolvedAddress: withdrawData.address,
             },
-            tokenAmount: withdrawData.amount,
+            tokenAmount: amountToWithdraw,
             chargeId: activeChargeDetailsFromStore.uuid,
             skipChargeCreation: true,
         }
@@ -190,36 +188,33 @@ export default function WithdrawCryptoPage() {
 
         if (result.success && result.txHash) {
             console.log('Withdrawal transaction successful, txHash:', result.txHash)
-            setCurrentView('status')
+            setCurrentView('STATUS')
         } else {
             console.error('Withdrawal execution failed:', result.error)
             const errMsg = result.error || 'Withdrawal processing failed.'
             setPaymentError(errMsg)
             dispatch(paymentActions.setError(errMsg))
         }
-    }, [activeChargeDetailsFromStore, withdrawData, dispatch, initiatePayment])
+    }, [activeChargeDetailsFromStore, withdrawData, amountToWithdraw, dispatch, initiatePayment, setCurrentView])
 
     const handleBackFromConfirm = useCallback(() => {
-        setCurrentView('setup')
+        setCurrentView('INITIAL')
         setPaymentError(null)
         dispatch(paymentActions.setError(null))
         dispatch(paymentActions.setChargeDetails(null))
-    }, [dispatch])
+    }, [dispatch, setCurrentView])
 
     const displayError = paymentError
-
     const confirmButtonDisabled = !activeChargeDetailsFromStore || isProcessing
 
-    useEffect(() => {
-        if (withdrawData && activeChargeDetailsFromStore) {
-            setCurrentView('status')
-        }
-    }, [withdrawData, activeChargeDetailsFromStore])
+    if (!amountToWithdraw) {
+        return <PeanutLoading />
+    }
 
     return (
         <div className="mx-auto h-full min-h-[inherit] w-full max-w-md space-y-4 self-center">
-            {currentView === 'setup' && (
-                <WithdrawSetupView
+            {currentView === 'INITIAL' && (
+                <InitialWithdrawView
                     amount={amountToWithdraw}
                     onReview={handleSetupReview}
                     onBack={() => router.push('/withdraw')}
@@ -227,9 +222,9 @@ export default function WithdrawCryptoPage() {
                 />
             )}
 
-            {currentView === 'confirm' && withdrawData && activeChargeDetailsFromStore && (
-                <WithdrawConfirmView
-                    amount={withdrawData.amount}
+            {currentView === 'CONFIRM' && withdrawData && activeChargeDetailsFromStore && (
+                <ConfirmWithdrawView
+                    amount={amountToWithdraw}
                     token={withdrawData.token}
                     chain={withdrawData.chain}
                     toAddress={withdrawData.address}
@@ -241,13 +236,13 @@ export default function WithdrawCryptoPage() {
                 />
             )}
 
-            {currentView === 'status' && withdrawData && activeChargeDetailsFromStore && (
+            {currentView === 'STATUS' && withdrawData && activeChargeDetailsFromStore && (
                 <>
                     <DirectSuccessView
                         headerTitle="Withdraw"
                         recipientType="ADDRESS"
                         type="SEND"
-                        currencyAmount={`$ ${withdrawData.amount}`}
+                        currencyAmount={`$ ${amountToWithdraw}`}
                         isWithdrawFlow={true}
                         redirectTo="/withdraw"
                         message={`${printableAddress(withdrawData.address)}`}
@@ -271,7 +266,8 @@ export default function WithdrawCryptoPage() {
                         onClick: handleCompatibilityProceed,
                         variant: 'purple',
                         shadowSize: '4',
-                        icon: 'check',
+                        className: 'h-10 text-sm',
+                        icon: 'check-circle',
                     },
                 ]}
             />

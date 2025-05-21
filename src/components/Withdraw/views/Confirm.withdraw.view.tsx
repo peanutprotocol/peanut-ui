@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
+import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -9,7 +10,7 @@ import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { ITokenPriceData } from '@/interfaces'
-import { formatAmount, printableAddress } from '@/utils'
+import { formatAmount } from '@/utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 
 interface WithdrawConfirmViewProps {
@@ -25,7 +26,7 @@ interface WithdrawConfirmViewProps {
     error?: string | null
 }
 
-export default function WithdrawConfirmView({
+export default function ConfirmWithdrawView({
     amount,
     token,
     chain,
@@ -90,7 +91,10 @@ export default function WithdrawConfirmView({
                             </div>
                         }
                     />
-                    <PaymentInfoRow label="To" value={printableAddress(toAddress)} />
+                    <PaymentInfoRow
+                        label="To"
+                        value={<AddressLink isLink={false} address={toAddress} className="text-black no-underline" />}
+                    />
                     <PaymentInfoRow
                         label="Max network fee"
                         value={`$ ${networkFee}`}

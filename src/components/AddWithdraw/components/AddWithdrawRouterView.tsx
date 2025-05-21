@@ -14,7 +14,6 @@ interface AddWithdrawRouterViewProps {
     mainHeading: string
     onBackClick?: () => void
     recentMethods: DepositMethod[]
-    amount?: string
 }
 
 export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
@@ -23,7 +22,6 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     mainHeading,
     onBackClick,
     recentMethods = [],
-    amount,
 }) => {
     const router = useRouter()
     const [showAllMethods, setShowAllMethods] = useState(recentMethods.length === 0)
@@ -34,15 +32,12 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const allMethodsTransformed: DepositMethod[] = useMemo(() => {
         return ALL_METHODS_DATA.map((method) => {
             let path = `${baseRoute}/${method.path}`
-            if (flow === 'withdraw' && method.type === 'crypto' && amount) {
-                path = `${path}?amount=${amount}`
-            }
             return {
                 ...method,
                 path: path,
             }
         })
-    }, [baseRoute, flow, amount])
+    }, [baseRoute])
 
     const filteredAllMethods = useMemo(() => {
         let methodsToShow
@@ -57,15 +52,18 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             )
         }
 
-        methodsToShow.some((method) => {
+        const transformedMethods = methodsToShow.map((method) => {
             if (method.type === 'crypto') {
-                method.title = flow === 'add' ? 'Crypto Deposit' : 'Crypto'
-                method.description =
-                    flow === 'add' ? 'Use an exchange or your wallet' : 'Withdraw to a wallet or exchange'
+                return {
+                    ...method,
+                    title: flow === 'add' ? 'Crypto Deposit' : 'Crypto',
+                    description: flow === 'add' ? 'Use an exchange or your wallet' : 'Withdraw to a wallet or exchange',
+                }
             }
+            return method
         })
 
-        return methodsToShow.sort((a, b) => {
+        return transformedMethods.sort((a, b) => {
             if (a.type === 'crypto' && b.type !== 'crypto') {
                 return -1
             }
@@ -74,7 +72,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             }
             return a.title.toLowerCase().localeCompare(b.title.toLowerCase())
         })
-    }, [searchTerm, allMethodsTransformed])
+    }, [searchTerm, allMethodsTransformed, flow])
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value)
@@ -87,7 +85,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const defaultBackNavigation = () => router.push('/home')
 
     // todo: save recent methods to local storage
-    if (!showAllMethods) {
+    if (!showAllMethods && recentMethods.length > 0) {
         return (
             <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />

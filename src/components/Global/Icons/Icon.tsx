@@ -9,6 +9,7 @@ import { BankIcon } from './bank'
 import { CameraIcon } from './camera'
 import { CancelIcon } from './cancel'
 import { CheckIcon } from './check'
+import { CheckCircleIcon } from './check-circle'
 import { ChevronUpIcon } from './chevron-up'
 import { ClipIcon } from './clip'
 import { CopyIcon } from './copy'
@@ -56,6 +57,7 @@ export type IconName =
     | 'check'
     | 'chevron-up'
     | 'copy'
+    | 'check-circle'
     | 'cancel'
     | 'download'
     | 'eye'
@@ -141,6 +143,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'exchange-arrows': ExchangeArrowsIcon,
     alert: AlertIcon,
     switch: SwitchIcon,
+    'check-circle': CheckCircleIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
