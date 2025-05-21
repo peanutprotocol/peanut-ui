@@ -32,7 +32,6 @@ export const CreateRequestLinkView = () => {
     const { user } = useAuth()
     const {
         selectedTokenPrice,
-        inputDenomination,
         selectedChainID,
         setSelectedChainID,
         selectedTokenAddress,
@@ -66,9 +65,7 @@ export const CreateRequestLinkView = () => {
         useState<IFileUploadInputProps['attachmentOptions']>(attachmentOptions)
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-    const [_tokenValue, _setTokenValue] = useState<string>(
-        (inputDenomination === 'TOKEN' ? tokenValue : usdValue) ?? ''
-    )
+    const [_tokenValue, _setTokenValue] = useState<string>(tokenValue ?? '')
 
     // debounced token value
     const [debouncedTokenValue, setDebouncedTokenValue] = useState<string>(_tokenValue)
@@ -130,9 +127,6 @@ export const CreateRequestLinkView = () => {
             }
             try {
                 let inputValue = tokenValue
-                if (inputDenomination === 'USD') {
-                    inputValue = parseFloat(tokenValue as string).toFixed(tokenData.decimals)
-                }
                 const tokenType = isNativeCurrency(tokenData.address)
                     ? peanutInterfaces.EPeanutLinkType.native
                     : peanutInterfaces.EPeanutLinkType.erc20
@@ -183,18 +177,11 @@ export const CreateRequestLinkView = () => {
 
     useEffect(() => {
         if (!_tokenValue) return
-        if (inputDenomination === 'TOKEN') {
-            setTokenValue(_tokenValue)
-            if (selectedTokenPrice) {
-                setUsdValue((parseFloat(_tokenValue) * selectedTokenPrice).toString())
-            }
-        } else if (inputDenomination === 'USD') {
-            setUsdValue(_tokenValue)
-            if (selectedTokenPrice) {
-                setTokenValue((parseFloat(_tokenValue) / selectedTokenPrice).toString())
-            }
+        setTokenValue(_tokenValue)
+        if (selectedTokenPrice) {
+            setUsdValue((parseFloat(_tokenValue) * selectedTokenPrice).toString())
         }
-    }, [_tokenValue, inputDenomination])
+    }, [_tokenValue])
 
     useEffect(() => {
         if (!isConnected) {
