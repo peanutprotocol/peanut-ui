@@ -3,6 +3,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { twMerge } from 'tailwind-merge'
 
 export interface DepositMethod {
     type: 'crypto' | 'country'
@@ -16,20 +17,25 @@ export interface DepositMethod {
 
 interface DepositMethodListProps {
     methods: DepositMethod[]
+    onCountryClick?: (countryCode: string, countryName: string) => void
 }
 
-export const DepositMethodList = ({ methods }: DepositMethodListProps) => {
+export const DepositMethodList = ({ methods, onCountryClick }: DepositMethodListProps) => {
     const router = useRouter()
 
-    const handleMethodClick = (path: string) => {
-        router.push(path)
+    const handleMethodClick = (method: DepositMethod) => {
+        if (method.type === 'country' && onCountryClick) {
+            onCountryClick(method.id, method.title)
+        } else {
+            router.push(method.path)
+        }
     }
 
     return (
         <div className="flex flex-col">
             {methods.map((method, index) => (
                 <SearchResultCard
-                    key={method.id}
+                    key={index}
                     title={method.title}
                     description={method.description || method.currency}
                     leftIcon={
@@ -48,16 +54,19 @@ export const DepositMethodList = ({ methods }: DepositMethodListProps) => {
                             <AvatarWithBadge name={method.title} size="extra-small" className="bg-yellow-1" />
                         )
                     }
-                    onClick={() => handleMethodClick(method.path)}
+                    onClick={() => handleMethodClick(method)}
                     position={
                         methods.length === 1
                             ? 'single'
                             : index === 0
                               ? 'first'
-                              : index === methods.length - 1
-                                ? 'last'
-                                : 'middle'
+                              : method.type === 'country' && index === 1
+                                ? 'first'
+                                : index === methods.length - 1
+                                  ? 'last'
+                                  : 'middle'
                     }
+                    className={twMerge(method.type === 'crypto' && 'mb-2')}
                 />
             ))}
         </div>

@@ -7,6 +7,7 @@ import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
 import GuestLoginCta from '@/components/Global/GuestLoginCta'
+import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import BeerInput from '@/components/PintaReqPay/BeerInput'
@@ -473,9 +474,18 @@ export const PaymentForm = ({
 
     return (
         <div className="flex h-full min-h-[inherit] flex-col justify-between gap-8">
-            <div className="text-center text-xl font-extrabold md:hidden">
-                {isAddMoneyFlow ? 'Add Money' : isWithdrawFlow ? 'Withdraw' : 'Send'}
-            </div>
+            <NavHeader
+                onPrev={() => {
+                    if (isAddMoneyFlow) {
+                        router.push('/add-money')
+                    } else if (isWithdrawFlow) {
+                        router.push('/withdraw')
+                    } else {
+                        router.push('/home')
+                    }
+                }}
+                title={isAddMoneyFlow ? 'Add Money' : isWithdrawFlow ? 'Withdraw' : 'Send'}
+            />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isAddMoneyFlow && isWagmiConnected && (
                     <Button

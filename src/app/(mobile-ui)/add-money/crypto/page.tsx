@@ -5,7 +5,6 @@ import { CryptoDepositQR } from '@/components/AddMoney/views/CryptoDepositQR.vie
 import NetworkSelectionView, { SelectedNetwork } from '@/components/AddMoney/views/NetworkSelection.view'
 import TokenSelectionView from '@/components/AddMoney/views/TokenSelection.view'
 import ActionModal from '@/components/Global/ActionModal'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
@@ -122,7 +121,7 @@ const AddMoneyCryptoPage = () => {
                 <ActionModal
                     visible={true}
                     onClose={handleBackToNetworkSelectionFromRisk}
-                    icon={<Icon name="alert" size={20} className="text-orange-1" />}
+                    icon={'alert'}
                     title={`Only send ${selectedToken.symbol} on ${selectedNetwork.name}`}
                     description="Sending funds via any other network will result in a permanent loss of funds. Peanut is not responsible for any loss of funds due to incorrect network selection."
                     checkbox={{

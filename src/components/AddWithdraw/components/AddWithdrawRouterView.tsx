@@ -1,30 +1,61 @@
 'use client'
-import { Button } from '@/components/0_Bruddle/Button'
+import { Button } from '@/components/0_Bruddle'
+import { DepositMethod, DepositMethodList } from '@/components/AddMoney/components/DepositMethodList'
+import { countryData as ALL_METHODS_DATA } from '@/components/AddMoney/consts' // Renamed for clarity
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchUsers/SearchInput'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
-import { DepositMethodList } from '../components/DepositMethodList'
-import { ALL_DEPOSIT_METHODS } from '../consts'
+import { FC, useMemo, useState } from 'react'
 
-export const AddMoneyRouterView = () => {
+interface AddWithdrawRouterViewProps {
+    flow: 'add' | 'withdraw'
+    pageTitle: string
+    mainHeading: string
+    onBackClick?: () => void
+    recentMethods: DepositMethod[]
+}
+
+export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
+    flow,
+    pageTitle,
+    mainHeading,
+    onBackClick,
+    recentMethods = [],
+}) => {
     const router = useRouter()
-    const [showAllMethods, setShowAllMethods] = useState(false)
+    const [showAllMethods, setShowAllMethods] = useState(recentMethods.length === 0)
     const [searchTerm, setSearchTerm] = useState('')
+
+    const baseRoute = flow === 'add' ? '/add-money' : '/withdraw'
+
+    const allMethodsTransformed: DepositMethod[] = useMemo(() => {
+        return ALL_METHODS_DATA.map((method) => ({
+            ...method,
+            path: `${baseRoute}/${method.path}`,
+        }))
+    }, [baseRoute])
 
     const filteredAllMethods = useMemo(() => {
         let methodsToShow
         if (!searchTerm) {
-            methodsToShow = [...ALL_DEPOSIT_METHODS]
+            methodsToShow = [...allMethodsTransformed]
         } else {
-            methodsToShow = ALL_DEPOSIT_METHODS.filter(
+            methodsToShow = allMethodsTransformed.filter(
                 (method) =>
                     method.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     method.currency?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     method.description?.toLowerCase().includes(searchTerm.toLowerCase())
             )
         }
+
+        methodsToShow.some((method) => {
+            if (method.type === 'crypto') {
+                method.title = flow === 'add' ? 'Crypto Deposit' : 'Crypto'
+                method.description =
+                    flow === 'add' ? 'Use an exchange or your wallet' : 'Withdraw to a wallet or exchange'
+            }
+        })
 
         return methodsToShow.sort((a, b) => {
             if (a.type === 'crypto' && b.type !== 'crypto') {
@@ -35,7 +66,7 @@ export const AddMoneyRouterView = () => {
             }
             return a.title.toLowerCase().localeCompare(b.title.toLowerCase())
         })
-    }, [searchTerm])
+    }, [searchTerm, allMethodsTransformed])
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value)
@@ -45,14 +76,16 @@ export const AddMoneyRouterView = () => {
         setSearchTerm('')
     }
 
-    // todo: save recent methods in local storage
-    if (showAllMethods) {
+    const defaultBackNavigation = () => router.push('/home')
+
+    // todo: save recent methods to local storage
+    if (!showAllMethods) {
         return (
             <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
-                <NavHeader title="Add Money" onPrev={() => router.push('/home')} />
+                <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <div className="flex h-full flex-col justify-center space-y-2">
                     <h2 className="text-base font-bold">Recent methods</h2>
-                    <DepositMethodList methods={[]} />
+                    <DepositMethodList methods={recentMethods} />
                 </div>
                 <Button icon="plus" className="mt-auto" onClick={() => setShowAllMethods(true)} shadowSize="4">
                     Select new method
@@ -64,22 +97,16 @@ export const AddMoneyRouterView = () => {
     // show all methods view
     return (
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
-            <NavHeader
-                title="Add Money"
-                onPrev={() => {
-                    setShowAllMethods(false)
-                    router.push('/home')
-                }}
-            />
+            <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
 
-            <div className="flex h-full flex-col justify-center space-y-2">
-                <h2 className="text-base font-bold">Where to add money from?</h2>
+            <div className="flex h-full w-full flex-1 flex-col justify-start space-y-2">
+                <h2 className="text-base font-bold">{mainHeading}</h2>
 
                 <SearchInput
                     value={searchTerm}
                     onChange={handleSearchChange}
                     onClear={handleClearSearch}
-                    placeholder="Search"
+                    placeholder="Search country or currency"
                 />
                 {searchTerm && filteredAllMethods.length === 0 ? (
                     <EmptyState

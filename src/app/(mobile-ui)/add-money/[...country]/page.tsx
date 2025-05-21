@@ -1,5 +1,9 @@
+'use client'
+
+import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
+
 const AddMoneyCountryPage = () => {
-    return <div>AddMoneyCountryPage</div>
+    return <AddWithdrawCountriesList flow="add" />
 }
 
 export default AddMoneyCountryPage
