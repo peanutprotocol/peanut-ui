@@ -344,7 +344,18 @@ export const CreateRequestLinkView = () => {
                         </div>
                     </Button>
                 ) : (
-                    <ShareButton url={qrCodeLink}>Share Link</ShareButton>
+                    <ShareButton
+                        onSuccess={() => {
+                            setAttachmentOptions({
+                                message: ' ',
+                                fileUrl: undefined,
+                                rawFile: undefined,
+                            })
+                        }}
+                        url={qrCodeLink}
+                    >
+                        Share Link
+                    </ShareButton>
                 )}
                 {errorState.showError && (
                     <div className="text-start">
