@@ -80,7 +80,7 @@ export default function PeanutActionDetailsCard({
             <div className="space-y-1">
                 {getTitle()}
                 <h2 className="text-2xl font-extrabold">
-                    {tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() ? '$' : ` ${tokenSymbol}`}
+                    {tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() ? '$' : ` ${tokenSymbol} `}
                     {amount}
                 </h2>
 

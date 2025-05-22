@@ -27,22 +27,18 @@ import {
     getBridgeChainName,
     getBridgeTokenName,
     saveRedirectUrl,
+    printableAddress,
+    jsonStringify,
 } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
-
-const isPeanutClaimOnlyMode = () => {
-    if (typeof window === 'undefined') return false
-    const urlParams = new URLSearchParams(window.location.search)
-    return urlParams.get('t') === 'pnt'
-}
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -91,6 +87,7 @@ export const InitialClaimLinkView = ({
     const router = useRouter()
     const { user } = useAuth()
     const queryClient = useQueryClient()
+    const searchParams = useSearchParams()
 
     const resetSelectedToken = useCallback(() => {
         if (isPeanutWallet) {
@@ -101,6 +98,10 @@ export const InitialClaimLinkView = ({
             setSelectedTokenAddress(claimLinkData.tokenAddress)
         }
     }, [claimLinkData, isPeanutWallet])
+
+    const isPeanutClaimOnlyMode = useMemo(() => {
+        return searchParams.get('t') === 'pnt'
+    }, [searchParams])
 
     const handleClaimLink = useCallback(async () => {
         setLoadingState('Loading')
@@ -486,14 +487,16 @@ export const InitialClaimLinkView = ({
                 >
                     Sign In
                 </Button>
-                <Button
-                    variant="primary-soft"
-                    shadowSize="4"
-                    onClick={() => setClaimToExternalWallet(true)}
-                    className="w-full"
-                >
-                    Claim to External Wallet
-                </Button>
+                {!isPeanutClaimOnlyMode && (
+                    <Button
+                        variant="primary-soft"
+                        shadowSize="4"
+                        onClick={() => setClaimToExternalWallet(true)}
+                        className="w-full"
+                    >
+                        Claim to External Wallet
+                    </Button>
+                )}
             </div>
         )
     }
@@ -517,11 +520,13 @@ export const InitialClaimLinkView = ({
                     avatarSize="small"
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
-                    recipientName={claimLinkData.sender.username}
+                    recipientName={claimLinkData.sender?.username ?? printableAddress(claimLinkData.senderAddress)}
                     amount={
-                        formatTokenAmount(
-                            Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
-                        ) ?? ''
+                        isReward
+                            ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!
+                            : (formatTokenAmount(
+                                  Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
+                              ) ?? '')
                     }
                     tokenSymbol={claimLinkData.tokenSymbol}
                     message={attachment.message}
@@ -534,11 +539,11 @@ export const InitialClaimLinkView = ({
                 {!isPeanutWallet &&
                     recipientType !== 'iban' &&
                     recipientType !== 'us' &&
-                    !isPeanutClaimOnlyMode() &&
+                    !isPeanutClaimOnlyMode &&
                     !!claimToExternalWallet && <TokenSelector viewType="claim" />}
 
                 {/* Alternative options section with divider */}
-                {!isPeanutClaimOnlyMode() && (
+                {!isPeanutClaimOnlyMode && (
                     <>
                         {/* Manual Input Section - Always visible in non-peanut-only mode */}
                         {!isPeanutWallet && !!claimToExternalWallet && (
