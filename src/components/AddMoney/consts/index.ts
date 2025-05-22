@@ -914,7 +914,7 @@ export const countryData: CountryData[] = [
         id: 'HR',
         type: 'country',
         title: 'Croatia',
-        currency: 'HRK',
+        currency: 'EUR',
         path: 'croatia',
     },
     {
@@ -1909,7 +1909,7 @@ export const countryData: CountryData[] = [
         type: 'country',
         title: 'U.S. Virgin Islands',
         currency: 'USD',
-        path: 'u.s.-virgin-islands',
+        path: 'us-virgin-islands',
     },
     {
         id: 'VN',

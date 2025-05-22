@@ -6,7 +6,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchUsers/SearchInput'
 import { useRouter } from 'next/navigation'
-import { FC, useMemo, useState } from 'react'
+import { FC, useEffect, useMemo, useState } from 'react'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -83,6 +83,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     }
 
     const defaultBackNavigation = () => router.push('/home')
+
+    // evaluate whenever recentMethods changes
+    useEffect(() => {
+        setShowAllMethods(recentMethods.length === 0)
+    }, [recentMethods])
 
     // todo: save recent methods to local storage
     if (!showAllMethods && recentMethods.length > 0) {

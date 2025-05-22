@@ -171,7 +171,7 @@ const ValidatedInput = ({
                     value={formatDisplayValue ? formatDisplayValue(value) : value}
                     onChange={handleChange}
                     className={twMerge(
-                        `notranslate tap-highlight-color-white h-12 w-full border-0 bg-white 
+                        `notranslate h-12 w-full border-0 bg-white 
                         pr-1 text-h8 font-medium outline-none focus:outline-none
                         active:bg-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75`,
                         !!infoText ? 'pl-0' : 'pl-4'

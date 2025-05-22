@@ -149,28 +149,58 @@ export const PaymentForm = ({
     }, [dispatch, recipient])
 
     useEffect(() => {
-        if (!inputTokenAmount) {
-            dispatch(paymentActions.setError(null))
+        dispatch(paymentActions.setError(null))
+
+        if (!inputTokenAmount || isNaN(parseFloat(inputTokenAmount)) || parseFloat(inputTokenAmount) <= 0) {
+            // if input is invalid or zero, no balance check is needed yet, or clear error if it was for insufficient balance
             return
         }
 
-        if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
-            const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
-            const inputNumeric = parseFloat(String(inputTokenAmount).replace(/,/g, ''))
+        try {
+            if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
+                const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
+                const inputNumeric = parseFloat(String(inputTokenAmount).replace(/,/g, ''))
 
-            if (walletNumeric < inputNumeric) {
-                dispatch(paymentActions.setError('Insufficient balance'))
+                if (walletNumeric < inputNumeric) {
+                    dispatch(paymentActions.setError('Insufficient balance'))
+                } else {
+                    dispatch(paymentActions.setError(null))
+                }
+            } else if (selectedTokenData && selectedTokenBalance) {
+                // external wallet logic
+                if (selectedTokenData.decimals === undefined) {
+                    console.error('Selected token has no decimals information.')
+                    dispatch(paymentActions.setError('Cannot verify balance: token data incomplete.'))
+                    return
+                }
+
+                if (selectedTokenBalance < inputTokenAmount) {
+                    dispatch(paymentActions.setError('Insufficient balance'))
+                } else {
+                    dispatch(paymentActions.setError(null))
+                }
             } else {
                 dispatch(paymentActions.setError(null))
             }
-        } else {
-            if (Number(selectedTokenBalance) < Number(inputTokenAmount)) {
-                dispatch(paymentActions.setError('Insufficient balance'))
+        } catch (e) {
+            console.error('Error during balance check:', e)
+            // handle cases where inputTokenAmount might not be a valid number for parseUnits
+            if (e instanceof Error && e.message.includes('Invalid input')) {
+                dispatch(paymentActions.setError('Invalid amount format for balance check'))
             } else {
-                dispatch(paymentActions.setError(null))
+                dispatch(paymentActions.setError('Error verifying balance'))
             }
         }
-    }, [selectedTokenBalance, peanutWalletBalance, selectedTokenAddress, inputTokenAmount, isActivePeanutWallet])
+    }, [
+        selectedTokenBalance,
+        peanutWalletBalance,
+        selectedTokenAddress,
+        inputTokenAmount,
+        isActivePeanutWallet,
+        dispatch,
+        selectedTokenData,
+    ])
+
     // fetch token price
     useEffect(() => {
         if (isPintaReq) return
@@ -429,10 +459,17 @@ export const PaymentForm = ({
         if (isProcessing) return true
         if (!!error) return true
 
+        // ensure inputTokenAmount is a valid positive number before allowing payment
+        const numericAmount = parseFloat(inputTokenAmount)
+        if (isNaN(numericAmount) || numericAmount <= 0) {
+            if (!isAddMoneyFlow) return true
+        }
+
         if (isAddMoneyFlow) {
             if (!isWagmiConnected) return false // "Connect Wallet" button should be active
             return (
                 !inputTokenAmount ||
+                isNaN(parseFloat(inputTokenAmount)) ||
                 parseFloat(inputTokenAmount) <= 0 ||
                 !selectedTokenAddress ||
                 !selectedChainID ||
@@ -442,7 +479,6 @@ export const PaymentForm = ({
 
         // logic for non-AddMoneyFlow / non-Pinta (Pinta has its own button logic)
         if (!isPintaReq) {
-            if (!inputTokenAmount || parseFloat(inputTokenAmount) <= 0) return true
             if (!isConnected) return true // if not connected at all, disable (covers guest non-Peanut scenarios)
             if (isActivePeanutWallet && isXChainPeanutWalletReq) return true // peanut wallet x-chain restriction
             if (!selectedTokenAddress || !selectedChainID) return true // must have token/chain
@@ -451,9 +487,10 @@ export const PaymentForm = ({
         return false
     }, [
         isProcessing,
+        error,
+        inputTokenAmount,
         isAddMoneyFlow,
         isWagmiConnected,
-        inputTokenAmount,
         selectedTokenAddress,
         selectedChainID,
         isConnected,
