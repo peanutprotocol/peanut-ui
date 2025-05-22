@@ -35,7 +35,7 @@ export const DepositMethodList = ({ methods, onCountryClick }: DepositMethodList
         <div className="flex flex-col">
             {methods.map((method, index) => (
                 <SearchResultCard
-                    key={index}
+                    key={`${method.type}-${method.id}`}
                     title={method.title}
                     description={method.description || method.currency}
                     leftIcon={

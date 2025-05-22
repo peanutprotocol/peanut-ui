@@ -49,6 +49,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             isDisabled={method.isSoon}
                             title={method.title}
                             description={method.description}
+                            descriptionClassName={'text-xs'}
                             leftIcon={
                                 typeof method.icon === 'string' ? (
                                     <AvatarWithBadge

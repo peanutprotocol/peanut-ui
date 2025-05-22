@@ -2021,7 +2021,7 @@ countryData.forEach((country) => {
         }
 
         COUNTRY_SPECIFIC_METHODS[countryCode] = {
-            add: UPDATED_DEFAULT_ADD_MONEY_METHODS,
+            add: UPDATED_DEFAULT_ADD_MONEY_METHODS.map((m) => ({ ...m })),
             withdraw: withdrawList,
         }
     }

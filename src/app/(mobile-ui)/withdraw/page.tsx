@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle'
 import { AddWithdrawRouterView } from '@/components/AddWithdraw/components/AddWithdrawRouterView'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
@@ -18,7 +19,7 @@ export default function WithdrawPage() {
     const router = useRouter()
     const [step, setStep] = useState<WithdrawStep>('inputAmount')
     const [rawTokenAmount, setRawTokenAmount] = useState<string>('')
-    const { setAmountToWithdraw } = useWithdrawFlow()
+    const { setAmountToWithdraw, setError, error } = useWithdrawFlow()
 
     const { balance } = useWallet()
 
@@ -28,16 +29,26 @@ export default function WithdrawPage() {
     }, [balance])
 
     const handleAmountContinue = () => {
-        if (parseFloat(rawTokenAmount) > 0) {
+        const amount = Number(rawTokenAmount)
+        const max = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
+
+        if (Number.isFinite(amount) && amount > 0 && amount <= max) {
             setAmountToWithdraw(rawTokenAmount)
             setStep('selectMethod')
         } else {
-            alert('Please enter a valid amount')
+            setError({
+                showError: true,
+                errorMessage: 'Please enter an amount not more than your wallet balance.',
+            })
         }
     }
 
     const handleTokenAmountChange = useCallback((value: string | undefined) => {
         setRawTokenAmount(value || '')
+        setError({
+            showError: false,
+            errorMessage: '',
+        })
     }, [])
 
     if (step === 'inputAmount') {
@@ -60,6 +71,7 @@ export default function WithdrawPage() {
                     >
                         Continue
                     </Button>
+                    {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
                 </div>
             </div>
         )

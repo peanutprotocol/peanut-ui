@@ -13,6 +13,7 @@ interface SearchResultCardProps {
     className?: string
     rightContent?: React.ReactNode
     isDisabled?: boolean
+    descriptionClassName?: string
 }
 
 export const SearchResultCard = ({
@@ -24,6 +25,7 @@ export const SearchResultCard = ({
     className,
     rightContent,
     isDisabled = false,
+    descriptionClassName,
 }: SearchResultCardProps) => {
     const handleCardClick = () => {
         onClick()
@@ -40,7 +42,9 @@ export const SearchResultCard = ({
                     {leftIcon}
                     <div className="flex flex-col">
                         <div className="font-medium">{title}</div>
-                        {description && <div className="text-sm text-grey-1">{description}</div>}
+                        {description && (
+                            <div className={twMerge('text-sm text-grey-1', descriptionClassName)}>{description}</div>
+                        )}
                     </div>
                 </div>
                 {rightContent ? (

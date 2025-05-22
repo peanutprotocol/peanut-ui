@@ -2,7 +2,7 @@
 
 import { ITokenPriceData } from '@/interfaces'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import React, { createContext, ReactNode, useContext, useState } from 'react'
+import React, { createContext, ReactNode, useContext, useMemo, useState } from 'react'
 
 export type WithdrawView = 'INITIAL' | 'CONFIRM' | 'STATUS'
 
@@ -42,8 +42,8 @@ interface WithdrawFlowContextType {
     setInputChanging: (isChanging: boolean) => void
     recipient: RecipientState
     setRecipient: (recipient: RecipientState) => void
-    initialViewError: InitialViewErrorState
-    setInitialViewError: (error: InitialViewErrorState) => void
+    error: InitialViewErrorState
+    setError: (error: InitialViewErrorState) => void
 }
 
 const WithdrawFlowContext = createContext<WithdrawFlowContextType | undefined>(undefined)
@@ -59,39 +59,49 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
     const [isValidRecipient, setIsValidRecipient] = useState<boolean>(false)
     const [inputChanging, setInputChanging] = useState<boolean>(false)
     const [recipient, setRecipient] = useState<RecipientState>({ address: '', name: '' })
-    const [initialViewError, setInitialViewError] = useState<InitialViewErrorState>({
+    const [error, setError] = useState<InitialViewErrorState>({
         showError: false,
         errorMessage: '',
     })
 
-    return (
-        <WithdrawFlowContext.Provider
-            value={{
-                amountToWithdraw,
-                setAmountToWithdraw,
-                currentView,
-                setCurrentView,
-                withdrawData,
-                setWithdrawData,
-                showCompatibilityModal,
-                setShowCompatibilityModal,
-                isPreparingReview,
-                setIsPreparingReview,
-                paymentError,
-                setPaymentError,
-                isValidRecipient,
-                setIsValidRecipient,
-                inputChanging,
-                setInputChanging,
-                recipient,
-                setRecipient,
-                initialViewError,
-                setInitialViewError,
-            }}
-        >
-            {children}
-        </WithdrawFlowContext.Provider>
+    const value = useMemo(
+        () => ({
+            amountToWithdraw,
+            setAmountToWithdraw,
+            currentView,
+            setCurrentView,
+            withdrawData,
+            setWithdrawData,
+            showCompatibilityModal,
+            setShowCompatibilityModal,
+            isPreparingReview,
+            setIsPreparingReview,
+            paymentError,
+            setPaymentError,
+            isValidRecipient,
+            setIsValidRecipient,
+            inputChanging,
+            setInputChanging,
+            recipient,
+            setRecipient,
+            error,
+            setError,
+        }),
+        [
+            amountToWithdraw,
+            currentView,
+            withdrawData,
+            showCompatibilityModal,
+            isPreparingReview,
+            paymentError,
+            isValidRecipient,
+            inputChanging,
+            recipient,
+            error,
+        ]
     )
+
+    return <WithdrawFlowContext.Provider value={value}>{children}</WithdrawFlowContext.Provider>
 }
 
 export const useWithdrawFlow = (): WithdrawFlowContextType => {

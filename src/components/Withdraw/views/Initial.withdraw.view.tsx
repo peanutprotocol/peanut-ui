@@ -42,8 +42,8 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         setInputChanging,
         recipient,
         setRecipient,
-        initialViewError,
-        setInitialViewError,
+        error,
+        setError,
     } = useWithdrawFlow()
 
     const handleReview = () => {
@@ -55,7 +55,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                 address: recipient.address,
             })
         } else {
-            setInitialViewError({
+            setError({
                 showError: true,
                 errorMessage: 'Withdrawal details are missing',
             })
@@ -97,7 +97,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     onUpdate={(update: GeneralRecipientUpdate) => {
                         setRecipient(update.recipient)
                         setIsValidRecipient(update.isValid)
-                        setInitialViewError({
+                        setError({
                             showError: !update.isValid,
                             errorMessage: update.errorMessage,
                         })
@@ -115,7 +115,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                         !selectedChainID ||
                         !recipient.address ||
                         !isValidRecipient ||
-                        initialViewError.showError ||
+                        error.showError ||
                         inputChanging ||
                         isProcessing
                     }
@@ -125,9 +125,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     {isProcessing ? 'Processing' : 'Review'}
                 </Button>
 
-                {initialViewError.showError && !!initialViewError.errorMessage && (
-                    <ErrorAlert description={initialViewError.errorMessage} />
-                )}
+                {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
             </div>
         </div>
     )

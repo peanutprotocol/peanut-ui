@@ -259,7 +259,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     // pinta token payment flow
     if (parsedPaymentData?.token?.symbol === 'PNT') {
         return (
-            <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
+            <div className={twMerge('mx-auto h-full w-full space-y-8 self-center')}>
                 <div>
                     {currentView === 'INITIAL' && <InitialPaymentView {...parsedPaymentData} isPintaReq={true} />}
                     {currentView === 'CONFIRM' && <ConfirmPaymentView isPintaReq={true} />}
