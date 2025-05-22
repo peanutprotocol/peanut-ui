@@ -8,7 +8,7 @@ import Card from '../Card'
 import { Icon, IconName } from '../Icons/Icon'
 
 interface PeanutActionDetailsCardProps {
-    transactionType: 'REQUEST' | 'RECEIVED_LINK' | 'CLAIM_LINK' | 'REQUEST_PAYMENT' | 'ADD_MONEY'
+    transactionType: 'REQUEST' | 'RECEIVED_LINK' | 'CLAIM_LINK' | 'REQUEST_PAYMENT' | 'ADD_MONEY' | 'WITHDRAW'
     recipientType: 'USERNAME' | 'ADDRESS'
     recipientName: string
     message?: string
@@ -42,6 +42,7 @@ export default function PeanutActionDetailsCard({
         if (transactionType === 'ADD_MONEY') return 'arrow-down'
         if (transactionType === 'REQUEST' || transactionType === 'RECEIVED_LINK') return 'arrow-down-left'
         if (transactionType === 'CLAIM_LINK') return viewType !== 'SUCCESS' ? 'arrow-down' : undefined
+        if (transactionType === 'WITHDRAW') return 'arrow-up'
     }
 
     const getTitle = () => {
@@ -55,6 +56,7 @@ export default function PeanutActionDetailsCard({
             else title = `${renderRecipient()} sent you`
         }
         if (transactionType === 'ADD_MONEY') title = `Add money to Peanut`
+        if (transactionType === 'WITHDRAW') title = `You're withdrawing`
         return (
             <h1 className="flex items-center gap-2 text-base font-normal text-grey-1">
                 {icon && <Icon name={icon} size={10} />} {title}
@@ -69,7 +71,9 @@ export default function PeanutActionDetailsCard({
                     icon={
                         viewType === 'SUCCESS'
                             ? 'check'
-                            : recipientType !== 'USERNAME' || transactionType === 'ADD_MONEY'
+                            : recipientType !== 'USERNAME' ||
+                                transactionType === 'ADD_MONEY' ||
+                                transactionType === 'WITHDRAW'
                               ? 'wallet-outline'
                               : undefined
                     }

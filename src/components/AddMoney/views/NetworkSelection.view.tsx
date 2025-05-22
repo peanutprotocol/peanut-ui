@@ -1,5 +1,4 @@
 import { Button } from '@/components/0_Bruddle'
-import { CardPosition } from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import NetworkListItem from '@/components/Global/TokenSelector/Components/NetworkListItem'
@@ -42,17 +41,6 @@ const NetworkSelectionView: React.FC<NetworkSelectionViewProps> = ({ onNetworkSe
                 <h2 className="text-base font-bold">What network will you use?</h2>
                 <div className="flex flex-col gap-3 pr-1 pt-2">
                     {allNetworks.map((network, index) => {
-                        const isFirst = index === 0
-                        const isLast = index === allNetworks.length - 1
-                        let position: CardPosition = 'middle'
-                        if (allNetworks.length === 1) {
-                            position = 'single'
-                        } else if (isFirst) {
-                            position = 'first'
-                        } else if (isLast) {
-                            position = 'last'
-                        }
-
                         const squidChainDetails = supportedSquidChainsAndTokens[network.chainId]
 
                         const isComingSoon = network.chainId !== PEANUT_WALLET_CHAIN.id.toString()

@@ -9,7 +9,7 @@ interface CryptoSourceListCardProps {
     onItemClick: (source: CryptoSource) => void
 }
 
-const Icon = ({ type }: { type: 'exchange' | 'wallet' }) => (
+const GenericIcon = ({ type }: { type: 'exchange' | 'wallet' }) => (
     <AvatarWithBadge
         className="bg-yellow-1"
         icon={type === 'exchange' ? 'exchange-arrows' : 'wallet-outline'}
@@ -35,9 +35,9 @@ export const CryptoSourceListCard = ({ sources, onItemClick }: CryptoSourceListC
                                 className="rounded-full object-contain"
                             />
                         ) : source.isGeneric ? (
-                            <Icon type={source.type} />
+                            <GenericIcon type={source.type} />
                         ) : (
-                            <AvatarWithBadge className="bg-gray-200" icon="wallet-outline" size="extra-small" />
+                            <AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />
                         )
                     }
                     onClick={() => onItemClick(source)}

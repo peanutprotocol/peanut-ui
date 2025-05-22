@@ -1,5 +1,5 @@
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
-import { CardPosition } from '@/components/Global/Card'
+import { getCardPosition } from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
@@ -20,17 +20,7 @@ const TokenSelectionView: React.FC<TokenSelectionViewProps> = ({ onTokenSelect, 
                 <h2 className="text-base font-bold">Choose a token</h2>
                 <div className="">
                     {DEPOSIT_CRYPTO_TOKENS.map((token, index) => {
-                        const isFirst = index === 0
-                        const isLast = index === DEPOSIT_CRYPTO_TOKENS.length - 1
-                        let position: CardPosition = 'middle'
-                        if (DEPOSIT_CRYPTO_TOKENS.length === 1) {
-                            position = 'single'
-                        } else if (isFirst) {
-                            position = 'first'
-                        } else if (isLast) {
-                            position = 'last'
-                        }
-
+                        const position = getCardPosition(index, DEPOSIT_CRYPTO_TOKENS.length)
                         const isDisabled = token.symbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
 
                         return (

@@ -1,9 +1,9 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as Sentry from '@sentry/nextjs'
 import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { Icon } from '../Icons/Icon'
 import Loading from '../Loading'
 
 type ValidatedInputProps = {
@@ -151,7 +151,7 @@ const ValidatedInput = ({
 
     return (
         <div
-            className={`relative w-full border border-n-1 focus:border-primary-1 dark:border-white ${
+            className={`relative w-full border border-n-1 bg-white focus:border-primary-1 dark:border-white ${
                 value && !isValidating && !isValid && debouncedValue === value ? ' border-red dark:border-red' : ''
             } ${className}`}
             translate="no"
@@ -171,8 +171,8 @@ const ValidatedInput = ({
                     value={formatDisplayValue ? formatDisplayValue(value) : value}
                     onChange={handleChange}
                     className={twMerge(
-                        `notranslate h-12 w-full border-0 bg-white pr-1 
-                        text-h8 font-medium outline-none focus:outline-none
+                        `notranslate tap-highlight-color-white h-12 w-full border-0 bg-white 
+                        pr-1 text-h8 font-medium outline-none focus:outline-none
                         active:bg-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75`,
                         !!infoText ? 'pl-0' : 'pl-4'
                     )}
@@ -194,7 +194,7 @@ const ValidatedInput = ({
                         className={`h-full ${
                             isValidating
                                 ? 'opacity-100'
-                                : 'bg-transparent opacity-100 transition-opacity hover:opacity-100 md:opacity-0'
+                                : 'bg-white opacity-100 transition-opacity hover:opacity-100 md:opacity-0'
                         }`}
                     >
                         {isValidating ? (
@@ -209,7 +209,7 @@ const ValidatedInput = ({
                                 }}
                                 className="flex h-full w-6 items-center justify-center pr-2 dark:bg-n-1 md:w-8 md:pr-0"
                             >
-                                <Icon className="h-6 w-6 dark:fill-white" name="close" />
+                                <Icon className="h-6 w-6 dark:fill-white" name="cancel" />
                             </button>
                         )}
                     </div>

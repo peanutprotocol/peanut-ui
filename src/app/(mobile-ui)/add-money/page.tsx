@@ -1,5 +1,18 @@
-import { AddMoneyRouterView } from '@/components/AddMoney/views/AddMoneyRouter.view'
+'use client'
+
+import { AddWithdrawRouterView } from '@/components/AddWithdraw/components/AddWithdrawRouterView'
+import { useRouter } from 'next/navigation'
 
 export default function AddMoneyPage() {
-    return <AddMoneyRouterView />
+    const router = useRouter()
+
+    return (
+        <AddWithdrawRouterView
+            flow="add"
+            pageTitle="Add Money"
+            mainHeading="Where to add money from?"
+            onBackClick={() => router.push('/home')}
+            recentMethods={[]}
+        />
+    )
 }

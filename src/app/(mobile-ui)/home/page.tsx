@@ -80,7 +80,7 @@ export default function Home() {
                 <div className="space-y-4">
                     <ActionButtonGroup>
                         <ActionButtonWithHref label="Add money" action="add" href="/add-money" size="small" />
-                        <ActionButtonWithHref label="Withdraw" action="withdraw" href="/witdraw" size="small" />
+                        <ActionButtonWithHref label="Withdraw" action="withdraw" href="/withdraw" size="small" />
                     </ActionButtonGroup>
 
                     <WalletBalance
