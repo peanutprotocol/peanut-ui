@@ -1,8 +1,8 @@
 'use client'
 import {
-    USER_OP_ENTRY_POINT,
-    PUBLIC_CLIENTS_BY_CHAIN,
     PEANUT_WALLET_CHAIN,
+    PUBLIC_CLIENTS_BY_CHAIN,
+    USER_OP_ENTRY_POINT,
     ZERODEV_KERNEL_VERSION,
 } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
@@ -16,7 +16,7 @@ import {
     createZeroDevPaymasterClient,
     KernelAccountClient,
 } from '@zerodev/sdk'
-import { createContext, useEffect, useState, useContext, ReactNode, useCallback } from 'react'
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react'
 import { Chain, http, PublicClient, Transport } from 'viem'
 
 interface KernelClientContextType {
@@ -75,17 +75,21 @@ export const createKernelClientForChain = async <C extends Chain>(
         account: kernelAccount,
         chain: chain,
         // fast mode: https://docs.zerodev.app/sdk/core-api/sponsor-gas#ultrarelay
-        bundlerTransport: http(bundlerUrl + '?provider=ULTRA_RELAY'),
+        bundlerTransport: http(bundlerUrl),
         pollingInterval: 500,
-        userOperation: {
-            // better performance: https://docs.zerodev.app/sdk/core-api/sponsor-gas#ultrarelay
-            estimateFeesPerGas: async ({ bundlerClient: _ }) => {
-                return {
-                    maxFeePerGas: BigInt(0),
-                    maxPriorityFeePerGas: BigInt(0),
-                }
-            },
-        },
+        userOperation:
+            // only hardcode gas values for arbitrum cuz its using ultra relay as provider
+            chain.id.toString() === PEANUT_WALLET_CHAIN.id.toString()
+                ? {
+                      // better performance: https://docs.zerodev.app/sdk/core-api/sponsor-gas#ultrarelay
+                      estimateFeesPerGas: async ({ bundlerClient: _ }) => {
+                          return {
+                              maxFeePerGas: BigInt(0),
+                              maxPriorityFeePerGas: BigInt(0),
+                          }
+                      },
+                  }
+                : undefined,
         paymaster: {
             getPaymasterData: async (userOperation) => {
                 const zerodevPaymaster = createZeroDevPaymasterClient({
