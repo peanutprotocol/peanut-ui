@@ -100,8 +100,7 @@ const TokenAmountInput = ({
                     break
                 }
                 case 'TOKEN': {
-                    if (!selectedTokenData?.price) throw new Error('Invalid selected token data')
-                    tokenValue = _isInputUsd ? (Number(value) / selectedTokenData.price).toString() : value
+                    tokenValue = _isInputUsd ? (Number(value) / (selectedTokenData?.price ?? 1)).toString() : value
                     break
                 }
                 case 'FIAT': {
@@ -121,6 +120,14 @@ const TokenAmountInput = ({
         },
         [displayMode, currency?.price, selectedTokenData?.price, calculateAlternativeValue]
     )
+
+    // This is needed because if we change the token we selected the value
+    // should change. This only depends on the price on purpose!! we don't want
+    // to change when we change the display mode or the value (we already call
+    // onchange on the input change so dont add those dependencies here!)
+    useEffect(() => {
+        onChange(displayValue, isInputUsd)
+    }, [selectedTokenData?.price]) // Seriously, this is ok
 
     useEffect(() => {
         switch (displayMode) {
