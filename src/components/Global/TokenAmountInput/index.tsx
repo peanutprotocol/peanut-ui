@@ -1,7 +1,7 @@
-import { STABLE_COINS, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_WALLET_TOKEN_DECIMALS, STABLE_COINS } from '@/constants'
 import { tokenSelectorContext } from '@/context'
-import { formatTokenAmount, formatAmountWithoutComma } from '@/utils'
-import { useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { formatAmountWithoutComma, formatTokenAmount } from '@/utils'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../Icon'
 
 interface TokenAmountInputProps {
@@ -18,6 +18,7 @@ interface TokenAmountInputProps {
         symbol: string
         price: number
     }
+    hideCurrencyToggle?: boolean
 }
 
 const TokenAmountInput = ({
@@ -30,6 +31,7 @@ const TokenAmountInput = ({
     walletBalance,
     currency,
     setUsdValue,
+    hideCurrencyToggle = false,
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -227,7 +229,7 @@ const TokenAmountInput = ({
                 </div>
             )}
             {/* Show conversion line and toggle */}
-            {(displayMode === 'TOKEN' || displayMode === 'FIAT') && (
+            {!hideCurrencyToggle && (displayMode === 'TOKEN' || displayMode === 'FIAT') && (
                 <div
                     className={`flex w-full cursor-pointer flex-row items-center justify-center gap-1`}
                     onClick={(e) => {

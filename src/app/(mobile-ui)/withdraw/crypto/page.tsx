@@ -101,9 +101,7 @@ export default function WithdrawCryptoPage() {
                     tokenDecimals: String(completeWithdrawData.token.decimals),
                     tokenAmount: completeWithdrawData.amount,
                 }
-                console.log('Creating request for withdrawal with payload:', apiRequestPayload)
                 const newRequest: TRequestResponse = await requestsApi.create(apiRequestPayload)
-                console.log('Request created for withdrawal:', newRequest)
 
                 if (!newRequest || !newRequest.uuid) {
                     throw new Error('Failed to create request for withdrawal.')
@@ -127,16 +125,13 @@ export default function WithdrawCryptoPage() {
                         recipientAddress: completeWithdrawData.address,
                     },
                 }
-                console.log('Creating charge for withdrawal with payload:', chargePayload)
                 const createdCharge: TCharge = await chargesApi.create(chargePayload)
-                console.log('Charge created (initial response):', createdCharge)
 
                 if (!createdCharge || !createdCharge.data || !createdCharge.data.id) {
                     throw new Error('Failed to create charge for withdrawal or charge ID missing.')
                 }
 
                 const fullChargeDetails: TRequestChargeResponse = await chargesApi.get(createdCharge.data.id)
-                console.log('Fetched full charge details:', fullChargeDetails)
 
                 dispatch(paymentActions.setChargeDetails(fullChargeDetails))
                 setShowCompatibilityModal(true)
@@ -183,11 +178,9 @@ export default function WithdrawCryptoPage() {
             skipChargeCreation: true,
         }
 
-        console.log('Calling initiatePayment (to execute withdrawal) with payload:', paymentPayload)
         const result = await initiatePayment(paymentPayload)
 
         if (result.success && result.txHash) {
-            console.log('Withdrawal transaction successful, txHash:', result.txHash)
             setCurrentView('STATUS')
         } else {
             console.error('Withdrawal execution failed:', result.error)

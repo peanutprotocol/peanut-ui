@@ -61,6 +61,7 @@ export default function WithdrawPage() {
                         tokenValue={rawTokenAmount}
                         setTokenValue={handleTokenAmountChange}
                         walletBalance={peanutWalletBalance}
+                        hideCurrencyToggle
                     />
                     <Button
                         variant="purple"
@@ -83,7 +84,6 @@ export default function WithdrawPage() {
                 flow="withdraw"
                 pageTitle="Withdraw"
                 mainHeading="How would you like to withdraw?"
-                recentMethods={[]}
                 onBackClick={() => setStep('inputAmount')}
             />
         )

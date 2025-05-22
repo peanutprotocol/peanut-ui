@@ -3,7 +3,6 @@ import { CardPosition } from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 
 export interface DepositMethod {
@@ -18,20 +17,10 @@ export interface DepositMethod {
 
 interface DepositMethodListProps {
     methods: DepositMethod[]
-    onCountryClick?: (countryCode: string, countryName: string) => void
+    onItemClick: (method: DepositMethod) => void
 }
 
-export const DepositMethodList = ({ methods, onCountryClick }: DepositMethodListProps) => {
-    const router = useRouter()
-
-    const handleMethodClick = (method: DepositMethod) => {
-        if (method.type === 'country' && onCountryClick) {
-            onCountryClick(method.id, method.title)
-        } else {
-            router.push(method.path)
-        }
-    }
-
+export const DepositMethodList = ({ methods, onItemClick }: DepositMethodListProps) => {
     return (
         <div className="flex flex-col">
             {methods.map((method, index) => {
@@ -83,9 +72,10 @@ export const DepositMethodList = ({ methods, onCountryClick }: DepositMethodList
                                 <AvatarWithBadge name={method.title} size="extra-small" className="bg-yellow-1" />
                             )
                         }
-                        onClick={() => handleMethodClick(method)}
+                        onClick={() => onItemClick(method)}
                         position={determinedPosition}
                         className={twMerge(classNames.join(' '))}
+                        descriptionClassName="text-xs"
                     />
                 )
             })}
