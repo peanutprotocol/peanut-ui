@@ -75,14 +75,14 @@ const ShareButton = ({
                 return
             }
 
+            onSuccess?.()
+
             // Use Web Share API
             await navigator.share({
                 title,
                 text,
                 url,
             })
-
-            onSuccess?.()
         } catch (error: any) {
             // Only show error toast for actual sharing failures (not user cancellations)
             if (error.name !== 'AbortError') {
