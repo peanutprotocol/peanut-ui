@@ -128,7 +128,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             {!!authUser?.user.userId ? (
-                <NavHeader onPrev={() => router.push('/request')} title="Request" />
+                <NavHeader onPrev={() => router.back()} title="Request" />
             ) : (
                 <div className="text-center text-xl font-extrabold md:hidden">Request</div>
             )}
