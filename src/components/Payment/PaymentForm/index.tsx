@@ -157,36 +157,63 @@ export const PaymentForm = ({
         }
 
         try {
-            if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
-                const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
-                const inputNumeric = parseFloat(String(inputTokenAmount).replace(/,/g, ''))
-
-                if (walletNumeric < inputNumeric) {
-                    dispatch(paymentActions.setError('Insufficient balance'))
+            if (isAddMoneyFlow) {
+                // ADD MONEY FLOW: Strictly check external wallet if connected
+                if (isWagmiConnected && selectedTokenData && selectedTokenBalance !== undefined) {
+                    if (selectedTokenData.decimals === undefined) {
+                        console.error('Selected token has no decimals information for Add Money.')
+                        dispatch(paymentActions.setError('Cannot verify balance: token data incomplete.'))
+                        return
+                    }
+                    if (selectedTokenBalance < inputTokenAmount) {
+                        dispatch(paymentActions.setError('Insufficient balance in connected wallet'))
+                    } else {
+                        dispatch(paymentActions.setError(null))
+                    }
                 } else {
-                    dispatch(paymentActions.setError(null))
-                }
-            } else if (selectedTokenData && selectedTokenBalance) {
-                // external wallet logic
-                if (selectedTokenData.decimals === undefined) {
-                    console.error('Selected token has no decimals information.')
-                    dispatch(paymentActions.setError('Cannot verify balance: token data incomplete.'))
-                    return
-                }
-
-                if (selectedTokenBalance < inputTokenAmount) {
-                    dispatch(paymentActions.setError('Insufficient balance'))
-                } else {
+                    // not connected or data missing for add money flow, clear error
                     dispatch(paymentActions.setError(null))
                 }
             } else {
-                dispatch(paymentActions.setError(null))
+                // regular send/pay or PINTA flow
+                if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
+                    // peanut wallet payment
+                    const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
+                    const inputNumeric = parseFloat(String(inputTokenAmount).replace(/,/g, ''))
+                    if (walletNumeric < inputNumeric) {
+                        dispatch(paymentActions.setError('Insufficient balance'))
+                    } else {
+                        dispatch(paymentActions.setError(null))
+                    }
+                } else if (
+                    isWagmiConnected &&
+                    !isActivePeanutWallet &&
+                    selectedTokenData &&
+                    selectedTokenBalance !== undefined
+                ) {
+                    // external wallet payment (not add money flow)
+                    if (selectedTokenData.decimals === undefined) {
+                        console.error('Selected token has no decimals information.')
+                        dispatch(paymentActions.setError('Cannot verify balance: token data incomplete.'))
+                        return
+                    }
+                    if (selectedTokenBalance < inputTokenAmount) {
+                        dispatch(paymentActions.setError('Insufficient balance'))
+                    } else {
+                        dispatch(paymentActions.setError(null))
+                    }
+                } else {
+                    dispatch(paymentActions.setError(null))
+                }
             }
         } catch (e) {
             console.error('Error during balance check:', e)
-            // handle cases where inputTokenAmount might not be a valid number for parseUnits
-            if (e instanceof Error && e.message.includes('Invalid input')) {
-                dispatch(paymentActions.setError('Invalid amount format for balance check'))
+            if (
+                e instanceof Error &&
+                (e.message.toLowerCase().includes('invalid character') ||
+                    e.message.toLowerCase().includes('invalid BigInt value'))
+            ) {
+                dispatch(paymentActions.setError('Invalid amount for balance check'))
             } else {
                 dispatch(paymentActions.setError('Error verifying balance'))
             }
@@ -199,6 +226,8 @@ export const PaymentForm = ({
         isActivePeanutWallet,
         dispatch,
         selectedTokenData,
+        isWagmiConnected,
+        isAddMoneyFlow,
     ])
 
     // fetch token price
