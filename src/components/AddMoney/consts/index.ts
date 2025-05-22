@@ -1,6 +1,7 @@
-import { SOLANA_ICON, TRON_ICON } from '@/assets'
+import { APPLE_PAY, GOOGLE_PAY, MERCADO_PAGO, SOLANA_ICON, TRON_ICON } from '@/assets'
 import { BINANCE_LOGO, LEMON_LOGO, RIPIO_LOGO } from '@/assets/exchanges'
 import { METAMASK_LOGO, RAINBOW_LOGO } from '@/assets/wallets'
+import { IconName } from '@/components/Global/Icons/Icon'
 import { StaticImageData } from 'next/image'
 
 export interface CryptoSource {
@@ -116,7 +117,7 @@ export const CRYPTO_WALLETS: CryptoSource[] = [
 
 export interface SpecificPaymentMethod {
     id: string
-    icon: string // Placeholder, use empty string for now
+    icon: IconName | string
     title: string
     description: string
     isSoon?: boolean
@@ -144,29 +145,28 @@ export interface DepositMethods extends CountryData {
 export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
     {
         id: 'bank-transfer-add',
-        icon: '',
+        icon: 'bank' as IconName,
         title: 'From Bank',
         description: '1 to 3 working days - KYC required',
         isSoon: true,
     },
-    { id: 'debit-card-add', icon: '', title: 'From Debit Card', description: 'Instant transfer', isSoon: true },
     {
         id: 'mercado-pago-add',
-        icon: '',
+        icon: MERCADO_PAGO,
         title: 'Mercado Pago',
         description: 'Popular in LATAM',
         isSoon: true,
     },
     {
         id: 'apple-pay-add',
-        icon: '',
+        icon: APPLE_PAY,
         title: 'Apple Pay',
         description: 'Usually arrives instantly',
         isSoon: true,
     },
     {
         id: 'google-pay-add',
-        icon: '',
+        icon: GOOGLE_PAY,
         title: 'Google Pay',
         description: 'Usually arrives instantly',
         isSoon: true,
@@ -175,13 +175,16 @@ export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
 
 export const DEFAULT_BANK_WITHDRAW_METHOD: SpecificPaymentMethod = {
     id: 'default-bank-withdraw',
-    icon: '',
+    icon: 'bank' as IconName,
     title: 'To Bank',
     description: 'Standard bank withdrawal',
     isSoon: true,
 }
 
-const rtpWithdrawMethodsData: Record<string, Array<{ title: string; description: string }>> = {
+const countrySpecificWithdrawMethods: Record<
+    string,
+    Array<{ title: string; description: string; icon?: IconName | string }>
+> = {
     India: [{ title: 'UPI', description: 'Unified Payments Interface, ~17B txns/month, 84% of digital payments.' }],
     Brazil: [{ title: 'Pix', description: '75%+ population use it, 40% e-commerce share.' }],
     Argentina: [{ title: 'MercadoPago', description: 'Dominant wallet in LATAM, supports QR and bank transfers.' }],
@@ -215,9 +218,9 @@ const rtpWithdrawMethodsData: Record<string, Array<{ title: string; description:
     Pakistan: [{ title: 'Raast', description: 'State-backed instant payments, scaling fast.' }],
     Turkey: [{ title: 'FAST', description: "Central bank\'s instant payment system." }],
     Canada: [{ title: 'Interac e-Transfer', description: 'Widely used for P2P and bill payments.' }],
-    Germany: [{ title: 'SEPA Instant', description: 'EU-wide real-time bank transfers.' }],
-    Italy: [{ title: 'SEPA Instant', description: 'EU-wide real-time bank transfers.' }],
-    France: [{ title: 'SEPA Instant', description: 'EU-wide real-time bank transfers.' }],
+    Germany: [{ title: 'SEPA Instant', description: 'EU-wide real-time bank transfers.', icon: 'bank' as IconName }],
+    Italy: [{ title: 'SEPA Instant', description: 'EU-wide real-time bank transfers.', icon: 'bank' as IconName }],
+    France: [{ title: 'SEPA Instant', description: 'EU-wide real-time bank transfers.', icon: 'bank' as IconName }],
 }
 
 export const countryData: CountryData[] = [
@@ -1988,23 +1991,23 @@ countryData.forEach((country) => {
         const countryTitle = country.title
 
         const withdrawList: SpecificPaymentMethod[] = []
-        const specificWithdrawals = rtpWithdrawMethodsData[countryTitle]
+        const specificWithdrawals = countrySpecificWithdrawMethods[countryTitle]
 
         if (specificWithdrawals && specificWithdrawals.length > 0) {
-            specificWithdrawals.forEach((rtp) => {
+            specificWithdrawals.forEach((method) => {
                 withdrawList.push({
-                    id: `${countryCode.toLowerCase()}-${rtp.title.toLowerCase()}-withdraw`,
-                    icon: '',
-                    title: rtp.title,
-                    description: rtp.description,
+                    id: `${countryCode.toLowerCase()}-${method.title.toLowerCase()}-withdraw`,
+                    icon: method.icon as IconName,
+                    title: method.title,
+                    description: method.description,
                     isSoon: true,
                 })
             })
         } else {
-            if (country.currency === 'EUR' && rtpWithdrawMethodsData['Germany']) {
+            if (country.currency === 'EUR' && countrySpecificWithdrawMethods['Germany']) {
                 withdrawList.push({
                     id: `${countryCode.toLowerCase()}-sepa-instant-withdraw`,
-                    icon: '',
+                    icon: 'bank' as IconName,
                     title: 'SEPA Instant',
                     description: 'EU-wide real-time bank transfers.',
                     isSoon: true,

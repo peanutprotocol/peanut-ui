@@ -2,12 +2,13 @@
 
 import { COUNTRY_SPECIFIC_METHODS, countryData, SpecificPaymentMethod } from '@/components/AddMoney/consts'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
+import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import EmptyState from '../../Global/EmptyStates/EmptyState'
-
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
 }
@@ -49,7 +50,21 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             title={method.title}
                             description={method.description}
                             leftIcon={
-                                <AvatarWithBadge name={method.title} size="extra-small" className="bg-background-30" />
+                                typeof method.icon === 'string' ? (
+                                    <AvatarWithBadge
+                                        icon={method.icon as IconName}
+                                        name={method.id}
+                                        size="extra-small"
+                                    />
+                                ) : (
+                                    <Image
+                                        src={method.icon}
+                                        alt={method.id}
+                                        className="h-8 w-8 rounded-full"
+                                        width={32}
+                                        height={32}
+                                    />
+                                )
                             }
                             rightContent={method.isSoon ? <StatusBadge status="soon" size="small" /> : null}
                             onClick={() => {
