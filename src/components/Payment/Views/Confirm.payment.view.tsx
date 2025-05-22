@@ -23,7 +23,7 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { ErrorHandler, formatAmount, printableAddress } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
@@ -49,6 +49,7 @@ export default function ConfirmPaymentView({
     const searchParams = useSearchParams()
     const chargeIdFromUrl = searchParams.get('chargeId')
     const { chargeDetails, parsedPaymentData, beerQuantity } = usePaymentStore()
+    const router = useRouter()
     const {
         initiatePayment,
         prepareTransactionDetails,
@@ -60,6 +61,7 @@ export default function ConfirmPaymentView({
         isCalculatingFees,
         isEstimatingGas,
         isFeeEstimationError,
+        cancelOperation: cancelPaymentOperation,
     } = usePaymentInitiator()
     const { selectedTokenData, selectedChainID } = useContext(tokenSelectorContext)
     const { isConnected: isPeanutWallet, address: peanutWalletAddress, fetchBalance } = useWallet()
@@ -165,16 +167,15 @@ export default function ConfirmPaymentView({
             return loadingStep === 'Idle' ? 'Sending' : loadingStep
         }
         if (isAddMoneyFlow) return 'Add Money'
-        if (isPreparingTx) return 'Preparing Transaction'
-        if (isEstimatingGas || isCalculatingFees) return 'Calculating Fee'
+        if (isEstimatingGas || isCalculatingFees || isPreparingTx) return 'Sending'
         if (isPintaReq) return 'Confirm Payment'
-        return 'Pay'
+        return 'Send'
     }, [isProcessing, loadingStep, isPreparingTx, isEstimatingGas, isCalculatingFees, isPintaReq, isAddMoneyFlow])
 
     const getIcon = useCallback((): IconName | undefined => {
         if (isAddMoneyFlow) return 'arrow-down'
         if (isProcessing) return undefined
-        return undefined
+        return 'arrow-up-right'
     }, [isAddMoneyFlow])
 
     if (!chargeDetails && !paymentError) {
@@ -330,6 +331,7 @@ export default function ConfirmPaymentView({
                         shadowSize="4"
                         className="w-full"
                         icon={getIcon()}
+                        iconSize={14}
                     >
                         {getButtonText()}
                     </Button>
@@ -341,12 +343,13 @@ export default function ConfirmPaymentView({
                 </div>
                 <ActionModal
                     visible={showExternalWalletConfirmationModal}
-                    onClose={() => {}}
+                    onClose={() => {
+                        cancelPaymentOperation()
+                    }}
                     title="Continue in your wallet"
                     description="Please confirm the transaction in your wallet app to proceed."
                     isLoadingIcon={true}
                     preventClose={true}
-                    hideModalCloseButton={true}
                 />
             </div>
         </div>

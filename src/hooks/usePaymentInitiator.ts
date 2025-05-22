@@ -712,8 +712,7 @@ export const usePaymentInitiator = () => {
             } catch (txError: any) {
                 // re-throw the error with the current step context
                 console.error(`Transaction failed during ${currentStep}:`, txError)
-                let parsedError = ErrorHandler(txError)
-                throw new Error(parsedError)
+                throw txError
             }
 
             const txHash = receipt.transactionHash
@@ -920,6 +919,11 @@ export const usePaymentInitiator = () => {
         []
     )
 
+    const cancelOperation = useCallback(() => {
+        setError('Confirm the payment in your wallet.')
+        setLoadingStep('Error')
+    }, [setError, setLoadingStep])
+
     return {
         initiatePayment,
         prepareTransactionDetails,
@@ -941,5 +945,6 @@ export const usePaymentInitiator = () => {
         isEstimatingGas,
         isXChain,
         diffTokens,
+        cancelOperation,
     }
 }

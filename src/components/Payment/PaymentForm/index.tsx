@@ -87,8 +87,8 @@ export const PaymentForm = ({
     }, [balance])
 
     const error = useMemo(() => {
-        if (paymentStoreError) return paymentStoreError
-        if (initiatorError) return initiatorError
+        if (paymentStoreError) return ErrorHandler(paymentStoreError)
+        if (initiatorError) return ErrorHandler(initiatorError)
         return null
     }, [paymentStoreError, initiatorError])
 

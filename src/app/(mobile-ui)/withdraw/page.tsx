@@ -10,7 +10,7 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils'
 import { useRouter } from 'next/navigation'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
@@ -28,18 +28,23 @@ export default function WithdrawPage() {
         return formattedBalance
     }, [balance])
 
-    const handleAmountContinue = () => {
+    const handleBalanceCheck = useCallback(() => {
         const amount = Number(rawTokenAmount)
         const max = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
-
         if (Number.isFinite(amount) && amount > 0 && amount <= max) {
-            setAmountToWithdraw(rawTokenAmount)
-            setStep('selectMethod')
+            return true
         } else {
             setError({
                 showError: true,
                 errorMessage: 'Please enter an amount not more than your wallet balance.',
             })
+        }
+    }, [rawTokenAmount])
+
+    const handleAmountContinue = () => {
+        if (handleBalanceCheck()) {
+            setAmountToWithdraw(rawTokenAmount)
+            setStep('selectMethod')
         }
     }
 
@@ -50,6 +55,11 @@ export default function WithdrawPage() {
             errorMessage: '',
         })
     }, [])
+
+    // check balance when user enters amount
+    useEffect(() => {
+        if (rawTokenAmount) handleBalanceCheck()
+    }, [rawTokenAmount])
 
     if (step === 'inputAmount') {
         return (
