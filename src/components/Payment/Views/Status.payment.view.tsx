@@ -76,6 +76,7 @@ const DirectSuccessView = ({
 
     const displayAmount = useMemo(() => {
         if (currencyAmount) return currencyAmount
+        if (!chargeDetails && !!amountValue) return `$ ${formatAmount(amountValue)}`
         return chargeDetails?.tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
             ? `$ ${formatAmount(amountValue)}`
             : `${formatAmount(amountValue)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
@@ -158,7 +159,7 @@ const DirectSuccessView = ({
         if (isAddMoneyFlow) return 'You successfully added'
         if (isWithdrawFlow) return 'You just withdrew'
         if (type === 'SEND') return 'You sent'
-        if (type === 'REQUEST') return 'You requested'
+        if (type === 'REQUEST') return 'You requested '
     }
 
     return (
@@ -210,9 +211,15 @@ const DirectSuccessView = ({
                 </Card>
 
                 <div className="w-full space-y-5">
-                    <Button onClick={handleDone} shadowSize="4">
-                        Back to home
-                    </Button>
+                    {!!authUser?.user.userId ? (
+                        <Button onClick={handleDone} shadowSize="4">
+                            Back to home
+                        </Button>
+                    ) : (
+                        <Button icon="user-plus" onClick={() => router.push('/setup')} shadowSize="4">
+                            Create Account
+                        </Button>
+                    )}
                     {type === 'SEND' && !isAddMoneyFlow && !isWithdrawFlow && (
                         <Button
                             variant="primary-soft"

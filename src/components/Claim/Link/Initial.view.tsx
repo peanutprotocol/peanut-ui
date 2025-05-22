@@ -469,6 +469,11 @@ export const InitialClaimLinkView = ({
         if (selectedRoute || (isXChain && hasFetchedRoute)) {
             return 'Review'
         }
+
+        if (isLoading) {
+            return 'Claiming'
+        }
+
         return 'Claim Now'
     }
 

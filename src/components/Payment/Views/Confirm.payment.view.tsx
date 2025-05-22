@@ -162,7 +162,7 @@ export default function ConfirmPaymentView({
     const getButtonText = useCallback(() => {
         if (isProcessing) {
             if (isAddMoneyFlow) return 'Adding money'
-            return loadingStep === 'Idle' ? 'Paying' : loadingStep
+            return loadingStep === 'Idle' ? 'Sending' : loadingStep
         }
         if (isAddMoneyFlow) return 'Add Money'
         if (isPreparingTx) return 'Preparing Transaction'

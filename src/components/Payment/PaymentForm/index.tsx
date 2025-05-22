@@ -415,11 +415,11 @@ export const PaymentForm = ({
         }
 
         if (isProcessing) {
-            return 'Paying'
+            return 'Send'
         }
 
         if (isActivePeanutWallet) {
-            return 'Pay'
+            return 'Send'
         }
 
         return 'Review'
