@@ -76,11 +76,11 @@ const AddMoneyCryptoPage = () => {
         }
     }
 
-    if (currentStep === 'tokenSelection') {
+    if (currentStep === 'tokenSelection' && selectedSource) {
         return <TokenSelectionView onTokenSelect={handleTokenSelected} onBack={handleBackToSourceSelection} />
     }
 
-    if (currentStep === 'networkSelection') {
+    if (currentStep === 'networkSelection' && selectedSource && selectedToken) {
         return <NetworkSelectionView onNetworkSelect={handleNetworkSelected} onBack={handleBackToTokenSelection} />
     }
 

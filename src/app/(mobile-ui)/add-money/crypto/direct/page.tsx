@@ -16,7 +16,8 @@ export default function AddMoneyCryptoDirectPage() {
         if (username) {
             setRecipientUsername(username)
         } else {
-            router.push('/add-money/crypto')
+            router.replace('/add-money/crypto')
+            return
         }
         setIsLoading(false)
     }, [searchParams, router])

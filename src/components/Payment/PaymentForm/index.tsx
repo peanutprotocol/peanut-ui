@@ -440,14 +440,14 @@ export const PaymentForm = ({
             )
         }
 
-        // Existing logic for non-AddMoneyFlow / non-Pinta (Pinta has its own button logic)
+        // logic for non-AddMoneyFlow / non-Pinta (Pinta has its own button logic)
         if (!isPintaReq) {
             if (!inputTokenAmount || parseFloat(inputTokenAmount) <= 0) return true
-            if (!isConnected) return true // If not connected at all, disable (covers guest non-Peanut scenarios)
-            if (isActivePeanutWallet && isXChainPeanutWalletReq) return true // Peanut wallet x-chain restriction
-            if (!selectedTokenAddress || !selectedChainID) return true // Must have token/chain
+            if (!isConnected) return true // if not connected at all, disable (covers guest non-Peanut scenarios)
+            if (isActivePeanutWallet && isXChainPeanutWalletReq) return true // peanut wallet x-chain restriction
+            if (!selectedTokenAddress || !selectedChainID) return true // must have token/chain
         }
-        // Fallback for Pinta or other cases if not explicitly handled above
+        // fallback for Pinta or other cases if not explicitly handled above
         return false
     }, [
         isProcessing,
@@ -460,14 +460,7 @@ export const PaymentForm = ({
         isActivePeanutWallet,
         isXChainPeanutWalletReq,
         isPintaReq,
-        // Removed canInitiatePayment as it's too broad here
     ])
-
-    const isTokenSelectorDisabled = useMemo(() => {
-        if (!isWagmiConnected && isAddMoneyFlow) return false
-
-        return false
-    }, [isConnected, canInitiatePayment, isProcessing, isXChainPeanutWalletReq, isWagmiConnected, isAddMoneyFlow])
 
     if (isPintaReq) {
         return (
@@ -581,7 +574,7 @@ export const PaymentForm = ({
                 )}
 
                 {isWagmiConnected && isAddMoneyFlow && (
-                    <TokenSelector viewType="add" disabled={isTokenSelectorDisabled} />
+                    <TokenSelector viewType="add" disabled={!isWagmiConnected && isAddMoneyFlow} />
                 )}
 
                 <div className="space-y-4">

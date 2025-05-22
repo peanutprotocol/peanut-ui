@@ -20,7 +20,8 @@ export const CryptoDepositQR = ({ tokenName, chainName, depositAddress, onBack }
     const handleCopyAddress = useCallback(() => {
         copyTextToClipboardWithFallback(depositAddress)
         setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
+        const timer = setTimeout(() => setCopied(false), 2000)
+        return () => clearTimeout(timer)
     }, [depositAddress])
 
     return (

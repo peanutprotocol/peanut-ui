@@ -11,6 +11,13 @@ interface CardProps {
     border?: boolean
 }
 
+export function getCardPosition(index: number, totalItems: number): CardPosition {
+    if (totalItems === 1) return 'single'
+    if (index === 0) return 'first'
+    if (index === totalItems - 1) return 'last'
+    return 'middle'
+}
+
 const Card: React.FC<CardProps> = ({ children, position = 'single', className = '', onClick, border = true }) => {
     const getBorderRadius = () => {
         switch (position) {

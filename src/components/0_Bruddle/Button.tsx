@@ -76,7 +76,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             shadowSize,
             shadowType,
             icon,
-            iconPosition,
+            iconPosition = 'left',
             iconClassName,
             ...props
         },
