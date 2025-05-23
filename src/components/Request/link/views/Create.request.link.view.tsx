@@ -143,21 +143,22 @@ export const CreateRequestLinkView = () => {
                     mimeType: attachmentOptions?.rawFile?.type,
                     filename: attachmentOptions?.rawFile?.name,
                 })
-                chargesApi
-                    .create({
-                        pricing_type: 'fixed_price',
-                        local_price: {
-                            amount: requestDetails.tokenAmount,
-                            currency: 'USD',
-                        },
-                        baseUrl: BASE_URL,
-                        requestId: requestDetails.uuid,
-                    })
-                    .then(() => {
-                        queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
-                    })
-                const link = getRequestLink(requestDetails)
+                const charge = await chargesApi.create({
+                    pricing_type: 'fixed_price',
+                    local_price: {
+                        amount: requestDetails.tokenAmount,
+                        currency: 'USD',
+                    },
+                    baseUrl: BASE_URL,
+                    requestId: requestDetails.uuid,
+                })
+                const link = getRequestLink({
+                    ...requestDetails,
+                    uuid: undefined,
+                    chargeId: charge.data.id,
+                })
                 toast.success('Link created successfully!')
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
                 return link
             } catch (error) {
                 setErrorState({

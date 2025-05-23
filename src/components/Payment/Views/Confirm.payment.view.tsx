@@ -105,7 +105,7 @@ export default function ConfirmPaymentView({
     }, [chargeIdFromUrl, chargeDetails, dispatch])
 
     useEffect(() => {
-        if (chargeDetails && walletAddress && selectedTokenData && selectedChainID) {
+        if (chargeDetails && selectedTokenData && selectedChainID) {
             prepareTransactionDetails(chargeDetails, isAddMoneyFlow)
         }
     }, [chargeDetails, walletAddress, selectedTokenData, selectedChainID, prepareTransactionDetails, isAddMoneyFlow])
