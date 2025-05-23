@@ -3,7 +3,6 @@ import { Button } from '@/components/0_Bruddle'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
-import { ArrowDownLeftIcon } from '@/components/Global/Icons/arrow-down-left'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
@@ -184,10 +183,8 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         onClick={createRequestCharge}
                         disabled={isDisabled || isLoading}
                         loading={isLoading}
+                        icon="arrow-down-left"
                     >
-                        <div className="flex size-6 items-center justify-center">
-                            <ArrowDownLeftIcon />
-                        </div>
                         {isLoading ? loadingState : 'Request'}
                     </Button>
                 </div>

@@ -9,21 +9,21 @@ import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, BASE_URL } from '@/constants'
+import { BASE_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
-import { requestsApi } from '@/services/requests'
 import { chargesApi } from '@/services/charges'
+import { requestsApi } from '@/services/requests'
 import { fetchTokenSymbol, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 
 export const CreateRequestLinkView = () => {
     const toast = useToast()
@@ -335,7 +335,12 @@ export const CreateRequestLinkView = () => {
                     }}
                     walletBalance={peanutWalletBalance}
                 />
-                <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
+                <FileUploadInput
+                    className="h-11"
+                    placeholder="Comment"
+                    attachmentOptions={attachmentOptions}
+                    setAttachmentOptions={setAttachmentOptions}
+                />
 
                 {(hasAttachment && isCreatingLink) || isDebouncing ? (
                     <Button disabled={true} shadowSize="4">

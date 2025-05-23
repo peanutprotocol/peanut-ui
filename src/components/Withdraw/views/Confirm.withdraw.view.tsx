@@ -48,7 +48,7 @@ export default function ConfirmWithdrawView({
         <div className="space-y-8">
             <NavHeader title="Withdraw" onPrev={onBack} />
 
-            <div className="space-y-4">
+            <div className="space-y-4 pb-5">
                 <PeanutActionDetailsCard
                     avatarSize="small"
                     transactionType={'WITHDRAW'}
@@ -111,7 +111,7 @@ export default function ConfirmWithdrawView({
                     loading={isProcessing}
                     className="w-full"
                 >
-                    {isProcessing ? 'Withdrawing...' : 'Withdraw'}
+                    {isProcessing ? 'Withdrawing' : 'Withdraw'}
                 </Button>
 
                 {error && <ErrorAlert description={error} />}

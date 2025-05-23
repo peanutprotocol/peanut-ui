@@ -90,6 +90,7 @@ export const usePaymentInitiator = () => {
     const [transactionHash, setTransactionHash] = useState<string | null>(null)
     const [paymentDetails, setPaymentDetails] = useState<PaymentCreationResponse | null>(null)
     const [isEstimatingGas, setIsEstimatingGas] = useState(false)
+    const [currentOperationIsAddMoney, setCurrentOperationIsAddMoney] = useState(false)
 
     // calculate fee details
     const [feeCalculations, setFeeCalculations] = useState({
@@ -159,10 +160,33 @@ export const usePaymentInitiator = () => {
     useEffect(() => {
         if (!activeChargeDetails || (!unsignedTx && !xChainUnsignedTxs)) return
 
+        let determinedEstimatorAccount: Hex | undefined
+
+        if (xChainUnsignedTxs && xChainUnsignedTxs.length > 0) {
+            // xChain transactions are always for the external (Wagmi) wallet
+            determinedEstimatorAccount = wagmiAddress as Hex | undefined
+        } else if (unsignedTx) {
+            // for unsignedTx, check if it's an Add Money operation or dependent on PeanutWallet state
+            if (currentOperationIsAddMoney) {
+                determinedEstimatorAccount = wagmiAddress as Hex | undefined
+            } else {
+                determinedEstimatorAccount = (isPeanutWallet ? peanutWalletAddress : wagmiAddress) as Hex | undefined
+            }
+        }
+
+        if (!determinedEstimatorAccount) {
+            console.warn(
+                'Gas estimation skipped: No valid estimator account found (wagmiAddress or peanutWalletAddress). Ensure one is connected and active for the flow.'
+            )
+            setError('Cannot estimate fees: Wallet address not found.')
+            setIsFeeEstimationError(true)
+            return
+        }
+
         setIsEstimatingGas(true)
         setIsFeeEstimationError(false)
         estimateGasFee({
-            from: (peanutWalletAddress ?? wagmiAddress) as Hex,
+            from: determinedEstimatorAccount as Hex,
             chainId: isXChain ? selectedChainID : activeChargeDetails.chainId,
             preparedTxs: isXChain || diffTokens ? xChainUnsignedTxs! : [unsignedTx!],
         })
@@ -296,6 +320,8 @@ export const usePaymentInitiator = () => {
     // prepare transaction details (called from Confirm view)
     const prepareTransactionDetails = useCallback(
         async (chargeDetails: TRequestChargeResponse, isAddMoneyFlowContext?: boolean) => {
+            setCurrentOperationIsAddMoney(!!isAddMoneyFlowContext)
+
             if (!selectedTokenData || (!peanutWalletAddress && !wagmiAddress)) {
                 console.warn('Missing data for transaction preparation')
                 return
@@ -920,7 +946,7 @@ export const usePaymentInitiator = () => {
     )
 
     const cancelOperation = useCallback(() => {
-        setError('Confirm the payment in your wallet.')
+        setError('Please confirm the request in your wallet.')
         setLoadingStep('Error')
     }, [setError, setLoadingStep])
 

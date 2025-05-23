@@ -7,6 +7,7 @@ import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
 import GuestLoginCta from '@/components/Global/GuestLoginCta'
+import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -425,10 +426,10 @@ export const PaymentForm = ({
         return 'Review'
     }
 
-    const getButtonIcon = () => {
+    const getButtonIcon = (): IconName | undefined => {
         if (!isWagmiConnected && isAddMoneyFlow) return 'wallet-outline'
 
-        if (!isProcessing && isActivePeanutWallet && !isAddMoneyFlow) return 'currency'
+        if (!isProcessing && isActivePeanutWallet && !isAddMoneyFlow) return 'arrow-up-right'
 
         return undefined
     }
@@ -654,6 +655,7 @@ export const PaymentForm = ({
                             disabled={isButtonDisabled}
                             className="w-full"
                             icon={getButtonIcon()}
+                            iconSize={16}
                         >
                             {getButtonText()}
                         </Button>
