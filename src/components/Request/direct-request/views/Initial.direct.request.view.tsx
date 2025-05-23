@@ -152,7 +152,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     />
                     {!authUser?.user.userId && (
                         <GeneralRecipientInput
-                            placeholder="Enter an address or ENS"
+                            placeholder="Enter a username, an address or ENS"
                             recipient={recipient}
                             onUpdate={(update: GeneralRecipientUpdate) => {
                                 setRecipient(update.recipient)
