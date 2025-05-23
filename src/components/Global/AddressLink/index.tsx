@@ -47,7 +47,7 @@ const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProp
             {displayAddress}
         </Link>
     ) : (
-        <span className={twMerge('cursor-pointer text-xs text-grey-1 underline', className)}>{displayAddress}</span>
+        <span className={className}>{displayAddress}</span>
     )
 }
 
