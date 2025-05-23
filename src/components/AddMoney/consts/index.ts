@@ -480,7 +480,7 @@ export const countryData: CountryData[] = [
         id: 'BY',
         type: 'country',
         title: 'Belarus',
-        currency: 'BYR',
+        currency: 'BYN',
         path: 'belarus',
     },
     {
