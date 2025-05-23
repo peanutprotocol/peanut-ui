@@ -61,9 +61,8 @@ const GeneralRecipientInput = ({
                     isValid = true
                     resolvedAddress.current = validation.resolvedAddress
                     type = validation.recipientType.toLowerCase() as interfaces.RecipientType
-                } catch (error) {
-                    errorMessage.current = 'Invalid address'
-                    console.error('Error while validating recipient input field:', error)
+                } catch (error: unknown) {
+                    errorMessage.current = (error as Error).message
                     return false
                 }
             }
