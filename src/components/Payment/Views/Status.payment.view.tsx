@@ -29,6 +29,9 @@ type DirectSuccessViewProps = {
     type: 'SEND' | 'REQUEST'
     headerTitle?: string
     currencyAmount?: string
+    isAddMoneyFlow?: boolean
+    isWithdrawFlow?: boolean
+    redirectTo?: string
 }
 
 const DirectSuccessView = ({
@@ -39,6 +42,9 @@ const DirectSuccessView = ({
     type,
     headerTitle,
     currencyAmount,
+    isAddMoneyFlow,
+    isWithdrawFlow,
+    redirectTo = '/home',
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const { chargeDetails, parsedPaymentData } = usePaymentStore()
@@ -70,6 +76,7 @@ const DirectSuccessView = ({
 
     const displayAmount = useMemo(() => {
         if (currencyAmount) return currencyAmount
+        if (!chargeDetails && !!amountValue) return `$ ${formatAmount(amountValue)}`
         return chargeDetails?.tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
             ? `$ ${formatAmount(amountValue)}`
             : `${formatAmount(amountValue)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
@@ -148,6 +155,13 @@ const DirectSuccessView = ({
         }
     }
 
+    const getTitle = () => {
+        if (isAddMoneyFlow) return 'You successfully added'
+        if (isWithdrawFlow) return 'You just withdrew'
+        if (type === 'SEND') return 'You sent'
+        if (type === 'REQUEST') return 'You requested '
+    }
+
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             {type === 'SEND' && (
@@ -156,7 +170,7 @@ const DirectSuccessView = ({
                         icon="cancel"
                         title={headerTitle}
                         onPrev={() => {
-                            router.push('/send')
+                            router.push(redirectTo)
                         }}
                     />
                 </div>
@@ -175,26 +189,38 @@ const DirectSuccessView = ({
 
                     <div className="space-y-1">
                         <h1 className="text-sm font-normal text-grey-1">
-                            You {type === 'SEND' ? 'sent' : 'requested'}{' '}
-                            {recipientType !== 'USERNAME' ? (
-                                <AddressLink
-                                    className="text-sm font-normal text-grey-1 no-underline"
-                                    address={recipientName}
-                                />
-                            ) : (
-                                recipientName
-                            )}
+                            {getTitle()}
+                            {!isAddMoneyFlow &&
+                                !isWithdrawFlow &&
+                                (recipientType !== 'USERNAME' ? (
+                                    <AddressLink
+                                        className="text-sm font-normal text-grey-1 no-underline"
+                                        address={recipientName}
+                                    />
+                                ) : (
+                                    recipientName
+                                ))}
                         </h1>
                         <h2 className="text-2xl font-extrabold">{displayAmount}</h2>
-                        {message && <p className="text-sm font-medium text-grey-1">for {message}</p>}
+                        {message && (
+                            <p className="text-sm font-medium text-grey-1">
+                                {isWithdrawFlow ? 'to' : 'for'} {message}
+                            </p>
+                        )}
                     </div>
                 </Card>
 
                 <div className="w-full space-y-5">
-                    <Button onClick={handleDone} shadowSize="4">
-                        Back to home
-                    </Button>
-                    {type === 'SEND' && (
+                    {!!authUser?.user.userId ? (
+                        <Button onClick={handleDone} shadowSize="4">
+                            Back to home
+                        </Button>
+                    ) : (
+                        <Button icon="user-plus" onClick={() => router.push('/setup')} shadowSize="4">
+                            Create Account
+                        </Button>
+                    )}
+                    {type === 'SEND' && !isAddMoneyFlow && !isWithdrawFlow && (
                         <Button
                             variant="primary-soft"
                             shadowSize="4"

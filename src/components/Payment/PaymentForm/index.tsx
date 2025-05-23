@@ -2,9 +2,13 @@
 
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { Button } from '@/components/0_Bruddle'
+import ActionModal from '@/components/Global/ActionModal'
+import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FlowHeader from '@/components/Global/FlowHeader'
 import GuestLoginCta from '@/components/Global/GuestLoginCta'
+import { IconName } from '@/components/Global/Icons/Icon'
+import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import BeerInput from '@/components/PintaReqPay/BeerInput'
@@ -26,15 +30,17 @@ import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { ErrorHandler, formatAmount, areEvmAddressesEqual } from '@/utils'
-import { useAppKit } from '@reown/appkit/react'
+import { areEvmAddressesEqual, ErrorHandler, formatAmount } from '@/utils'
+import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 
-type PaymentFormProps = ParsedURL & {
+export type PaymentFlowProps = {
     isPintaReq?: boolean
+    isAddMoneyFlow?: boolean
+    isWithdrawFlow?: boolean
     currency?: {
         code: string
         symbol: string
@@ -43,6 +49,8 @@ type PaymentFormProps = ParsedURL & {
     currencyAmount?: string
     setCurrencyAmount?: (currencyvalue: string | undefined) => void
 }
+
+export type PaymentFormProps = ParsedURL & PaymentFlowProps
 
 export const PaymentForm = ({
     recipient,
@@ -53,6 +61,8 @@ export const PaymentForm = ({
     currency,
     currencyAmount,
     setCurrencyAmount,
+    isAddMoneyFlow,
+    isWithdrawFlow,
 }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -64,6 +74,7 @@ export const PaymentForm = ({
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
     )
+    const [disconnectWagmiModal, setDisconnectWagmiModal] = useState<boolean>(false)
     const [inputUsdValue, setInputUsdValue] = useState<string>('')
     const [usdValue, setUsdValue] = useState<string>('')
     const [requestedTokenPrice, setRequestedTokenPrice] = useState<number>(0)
@@ -77,8 +88,8 @@ export const PaymentForm = ({
     }, [balance])
 
     const error = useMemo(() => {
-        if (paymentStoreError) return paymentStoreError
-        if (initiatorError) return initiatorError
+        if (paymentStoreError) return ErrorHandler(paymentStoreError)
+        if (initiatorError) return ErrorHandler(initiatorError)
         return null
     }, [paymentStoreError, initiatorError])
 
@@ -93,6 +104,8 @@ export const PaymentForm = ({
         selectedTokenBalance,
     } = useContext(tokenSelectorContext)
     const { open: openReownModal } = useAppKit()
+    const { disconnect: disconnectWagmi } = useDisconnect()
+    const { address: wagmiAddress } = useAccount()
     const searchParams = useSearchParams()
     const requestId = searchParams.get('id')
     const isDepositRequest = searchParams.get('action') === 'deposit'
@@ -137,28 +150,87 @@ export const PaymentForm = ({
     }, [dispatch, recipient])
 
     useEffect(() => {
-        if (!inputTokenAmount) {
-            dispatch(paymentActions.setError(null))
+        dispatch(paymentActions.setError(null))
+
+        if (!inputTokenAmount || isNaN(parseFloat(inputTokenAmount)) || parseFloat(inputTokenAmount) <= 0) {
+            // if input is invalid or zero, no balance check is needed yet, or clear error if it was for insufficient balance
             return
         }
 
-        if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
-            const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
-            const inputNumeric = parseFloat(String(inputTokenAmount).replace(/,/g, ''))
-
-            if (walletNumeric < inputNumeric) {
-                dispatch(paymentActions.setError('Insufficient balance'))
+        try {
+            if (isAddMoneyFlow) {
+                // ADD MONEY FLOW: Strictly check external wallet if connected
+                if (isWagmiConnected && selectedTokenData && selectedTokenBalance !== undefined) {
+                    if (selectedTokenData.decimals === undefined) {
+                        console.error('Selected token has no decimals information for Add Money.')
+                        dispatch(paymentActions.setError('Cannot verify balance: token data incomplete.'))
+                        return
+                    }
+                    if (selectedTokenBalance < inputTokenAmount) {
+                        dispatch(paymentActions.setError('Insufficient balance in connected wallet'))
+                    } else {
+                        dispatch(paymentActions.setError(null))
+                    }
+                } else {
+                    // not connected or data missing for add money flow, clear error
+                    dispatch(paymentActions.setError(null))
+                }
             } else {
-                dispatch(paymentActions.setError(null))
+                // regular send/pay or PINTA flow
+                if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
+                    // peanut wallet payment
+                    const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
+                    const inputNumeric = parseFloat(String(inputTokenAmount).replace(/,/g, ''))
+                    if (walletNumeric < inputNumeric) {
+                        dispatch(paymentActions.setError('Insufficient balance'))
+                    } else {
+                        dispatch(paymentActions.setError(null))
+                    }
+                } else if (
+                    isWagmiConnected &&
+                    !isActivePeanutWallet &&
+                    selectedTokenData &&
+                    selectedTokenBalance !== undefined
+                ) {
+                    // external wallet payment (not add money flow)
+                    if (selectedTokenData.decimals === undefined) {
+                        console.error('Selected token has no decimals information.')
+                        dispatch(paymentActions.setError('Cannot verify balance: token data incomplete.'))
+                        return
+                    }
+                    if (selectedTokenBalance < inputTokenAmount) {
+                        dispatch(paymentActions.setError('Insufficient balance'))
+                    } else {
+                        dispatch(paymentActions.setError(null))
+                    }
+                } else {
+                    dispatch(paymentActions.setError(null))
+                }
             }
-        } else {
-            if (Number(selectedTokenBalance) < Number(inputTokenAmount)) {
-                dispatch(paymentActions.setError('Insufficient balance'))
+        } catch (e) {
+            console.error('Error during balance check:', e)
+            if (
+                e instanceof Error &&
+                (e.message.toLowerCase().includes('invalid character') ||
+                    e.message.toLowerCase().includes('invalid BigInt value'))
+            ) {
+                dispatch(paymentActions.setError('Invalid amount for balance check'))
             } else {
-                dispatch(paymentActions.setError(null))
+                dispatch(paymentActions.setError('Error verifying balance'))
             }
         }
-    }, [selectedTokenBalance, peanutWalletBalance, selectedTokenAddress, inputTokenAmount, isActivePeanutWallet])
+    }, [
+        selectedTokenBalance,
+        peanutWalletBalance,
+        selectedTokenAddress,
+        inputTokenAmount,
+        isActivePeanutWallet,
+        dispatch,
+        selectedTokenData,
+        isWagmiConnected,
+        isAddMoneyFlow,
+    ])
+
     // fetch token price
     useEffect(() => {
         if (isPintaReq) return
@@ -221,6 +293,11 @@ export const PaymentForm = ({
     ])
 
     const handleInitiatePayment = useCallback(async () => {
+        if (!isWagmiConnected && isAddMoneyFlow) {
+            openReownModal()
+            return
+        }
+
         if (!isConnected) {
             dispatch(walletActions.setSignInModalVisible(true))
             return
@@ -293,6 +370,7 @@ export const PaymentForm = ({
             chargeId: chargeDetails?.uuid,
             currency,
             currencyAmount,
+            isAddMoneyFlow: !!isAddMoneyFlow,
         }
 
         console.log('Initiating payment with payload:', payload)
@@ -320,6 +398,7 @@ export const PaymentForm = ({
         initiatePayment,
         beerQuantity,
         chargeDetails,
+        isAddMoneyFlow,
         requestDetails,
         selectedTokenAddress,
         selectedChainID,
@@ -328,15 +407,31 @@ export const PaymentForm = ({
     ])
 
     const getButtonText = () => {
+        if (!isWagmiConnected && isAddMoneyFlow) {
+            return 'Connect Wallet'
+        }
+
+        if (isAddMoneyFlow || isWithdrawFlow) {
+            return 'Review'
+        }
+
         if (isProcessing) {
-            return 'Paying'
+            return 'Send'
         }
 
         if (isActivePeanutWallet) {
-            return 'Pay'
+            return 'Send'
         }
 
         return 'Review'
+    }
+
+    const getButtonIcon = (): IconName | undefined => {
+        if (!isWagmiConnected && isAddMoneyFlow) return 'wallet-outline'
+
+        if (!isProcessing && isActivePeanutWallet && !isAddMoneyFlow) return 'arrow-up-right'
+
+        return undefined
     }
 
     const guestAction = () => {
@@ -390,6 +485,50 @@ export const PaymentForm = ({
         return !(isSupportedChain && isSupportedToken)
     }, [isActivePeanutWallet, selectedChainID, selectedTokenAddress, selectedTokenData])
 
+    const isButtonDisabled = useMemo(() => {
+        if (isProcessing) return true
+        if (!!error) return true
+
+        // ensure inputTokenAmount is a valid positive number before allowing payment
+        const numericAmount = parseFloat(inputTokenAmount)
+        if (isNaN(numericAmount) || numericAmount <= 0) {
+            if (!isAddMoneyFlow) return true
+        }
+
+        if (isAddMoneyFlow) {
+            if (!isWagmiConnected) return false // "Connect Wallet" button should be active
+            return (
+                !inputTokenAmount ||
+                isNaN(parseFloat(inputTokenAmount)) ||
+                parseFloat(inputTokenAmount) <= 0 ||
+                !selectedTokenAddress ||
+                !selectedChainID ||
+                isProcessing
+            )
+        }
+
+        // logic for non-AddMoneyFlow / non-Pinta (Pinta has its own button logic)
+        if (!isPintaReq) {
+            if (!isConnected) return true // if not connected at all, disable (covers guest non-Peanut scenarios)
+            if (isActivePeanutWallet && isXChainPeanutWalletReq) return true // peanut wallet x-chain restriction
+            if (!selectedTokenAddress || !selectedChainID) return true // must have token/chain
+        }
+        // fallback for Pinta or other cases if not explicitly handled above
+        return false
+    }, [
+        isProcessing,
+        error,
+        inputTokenAmount,
+        isAddMoneyFlow,
+        isWagmiConnected,
+        selectedTokenAddress,
+        selectedChainID,
+        isConnected,
+        isActivePeanutWallet,
+        isXChainPeanutWalletReq,
+        isPintaReq,
+    ])
+
     if (isPintaReq) {
         return (
             <div className="space-y-4">
@@ -431,10 +570,42 @@ export const PaymentForm = ({
 
     return (
         <div className="flex h-full min-h-[inherit] flex-col justify-between gap-8">
-            <div className="text-center text-xl font-extrabold md:hidden">Send</div>
+            <NavHeader
+                onPrev={() => {
+                    if (isAddMoneyFlow) {
+                        router.push('/add-money')
+                    } else if (isWithdrawFlow) {
+                        router.push('/withdraw')
+                    } else {
+                        router.push('/home')
+                    }
+                }}
+                title={isAddMoneyFlow ? 'Add Money' : isWithdrawFlow ? 'Withdraw' : 'Send'}
+            />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                {isAddMoneyFlow && isWagmiConnected && (
+                    <Button
+                        icon="switch"
+                        iconPosition="right"
+                        variant="stroke"
+                        size="small"
+                        className="ml-auto h-7 w-fit rounded-sm bg-white hover:bg-white hover:text-black active:bg-white"
+                        shadowSize="4"
+                        iconClassName="min-h-2 h-2 min-w-2 w-2"
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            setDisconnectWagmiModal(true)
+                        }}
+                    >
+                        <AddressLink
+                            address={wagmiAddress ?? ''}
+                            isLink={false}
+                            className="text-xs font-medium text-black no-underline"
+                        />
+                    </Button>
+                )}
                 {/* Recipient Info Card */}
-                {recipient && (
+                {recipient && !isAddMoneyFlow && !isWithdrawFlow && (
                     <UserCard
                         type="send"
                         username={recipientDisplayName}
@@ -452,12 +623,12 @@ export const PaymentForm = ({
                     setUsdValue={(value: string) => setInputUsdValue(value)}
                     setCurrencyAmount={setCurrencyAmount}
                     className="w-full"
-                    disabled={!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount}
+                    disabled={!isAddMoneyFlow && (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)}
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
                     currency={currency}
                 />
 
-                {!isActivePeanutWallet && isConnected && (
+                {!isActivePeanutWallet && isConnected && !isAddMoneyFlow && (
                     <div className="space-y-2">
                         <div className="text-sm font-bold">Select token and chain to pay with</div>
                         <TokenSelector viewType="req_pay" />
@@ -469,6 +640,10 @@ export const PaymentForm = ({
                     </div>
                 )}
 
+                {isWagmiConnected && isAddMoneyFlow && (
+                    <TokenSelector viewType="add" disabled={!isWagmiConnected && isAddMoneyFlow} />
+                )}
+
                 <div className="space-y-4">
                     {guestAction()}
                     {isConnected && (
@@ -477,17 +652,15 @@ export const PaymentForm = ({
                             loading={isProcessing}
                             shadowSize="4"
                             onClick={handleInitiatePayment}
-                            disabled={
-                                !!error ||
-                                (isConnected && (!canInitiatePayment || isProcessing || isXChainPeanutWalletReq))
-                            }
+                            disabled={isButtonDisabled}
                             className="w-full"
-                            icon={!isProcessing && isActivePeanutWallet ? 'currency' : undefined}
+                            icon={getButtonIcon()}
+                            iconSize={16}
                         >
                             {getButtonText()}
                         </Button>
                     )}
-                    {isXChainPeanutWalletReq && (
+                    {isXChainPeanutWalletReq && !isAddMoneyFlow && (
                         <ErrorAlert
                             description={
                                 'Peanut Wallet currently only supports sending USDC on Arbitrum. Please select USDC and Arbitrum, or use an external wallet.'
@@ -497,6 +670,33 @@ export const PaymentForm = ({
                     {error && <ErrorAlert description={error} />}
                 </div>
             </div>
+            <ActionModal
+                visible={disconnectWagmiModal}
+                onClose={() => setDisconnectWagmiModal(false)}
+                title="Disconnect wallet?"
+                description="You'll need to reconnect to continue using crypto features."
+                icon="switch"
+                ctaClassName="flex-row"
+                hideModalCloseButton={true}
+                ctas={[
+                    {
+                        text: 'Disconnect',
+                        onClick: () => {
+                            disconnectWagmi()
+                            setDisconnectWagmiModal(false)
+                        },
+                        shadowSize: '4',
+                    },
+                    {
+                        text: 'Cancel',
+                        onClick: () => {
+                            setDisconnectWagmiModal(false)
+                        },
+                        shadowSize: '4',
+                        className: 'bg-grey-4 hover:bg-grey-4 hover:text-black active:bg-grey-4',
+                    },
+                ]}
+            />
         </div>
     )
 }

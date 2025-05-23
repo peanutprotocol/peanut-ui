@@ -1,9 +1,10 @@
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { AuthProvider } from './authContext'
+import { KernelClientProvider } from './kernelClient.context'
 import { LoadingStateContextProvider } from './loadingStates.context'
 import { PushProvider } from './pushProvider'
 import { TokenContextProvider } from './tokenSelector.context'
-import { KernelClientProvider } from './kernelClient.context'
+import { WithdrawFlowContextProvider } from './WithdrawFlowContext'
 
 export const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return (
@@ -12,7 +13,9 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
                 <PushProvider>
                     <KernelClientProvider>
                         <TokenContextProvider>
-                            <LoadingStateContextProvider>{children}</LoadingStateContextProvider>
+                            <LoadingStateContextProvider>
+                                <WithdrawFlowContextProvider>{children}</WithdrawFlowContextProvider>
+                            </LoadingStateContextProvider>
                         </TokenContextProvider>
                     </KernelClientProvider>
                 </PushProvider>

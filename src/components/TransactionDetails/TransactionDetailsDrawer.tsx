@@ -79,7 +79,6 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
 
     // format data for display
     const amountDisplay = formatAmount(transaction.amount as number)
-    const dateDisplay = formatDate(transaction.date as Date)
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
     // determine if the qr code and sharing section should be shown
@@ -139,7 +138,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                             />
                         )}
 
-                        {transaction.tokenDisplayDetails && transaction.sourceView === 'status' && (
+                        {transaction.tokenDisplayDetails && transaction.sourceView === 'history' && (
                             <PaymentInfoRow
                                 label="Token and network"
                                 value={
@@ -198,14 +197,15 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                             />
                         )}
 
-                        <PaymentInfoRow
-                            label="Peanut fee"
-                            value={'$ 0'}
-                            hideBottomBorder={
-                                !transaction.memo && !transaction.attachmentUrl && !transaction.networkFeeDetails
-                            }
-                        />
-
+                        {transaction.status !== 'pending' && (
+                            <PaymentInfoRow
+                                label="Peanut fee"
+                                value={'$ 0'}
+                                hideBottomBorder={
+                                    !transaction.memo && !transaction.attachmentUrl && !transaction.networkFeeDetails
+                                }
+                            />
+                        )}
                         {transaction.memo && (
                             <PaymentInfoRow
                                 label="Comment"
@@ -298,6 +298,9 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
 
                 {isPendingRequester && (
                     <Button
+                        icon="cancel"
+                        iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
+                        iconClassName="p-1"
                         onClick={() => {
                             setIsLoading(true)
                             chargesApi
@@ -322,7 +325,6 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
-                        <Icon name="cancel" />
                         Cancel request
                     </Button>
                 )}
@@ -340,6 +342,9 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                             Pay
                         </Button>
                         <Button
+                            icon="cancel"
+                            iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
+                            iconClassName="p-1"
                             onClick={() => {
                                 setIsLoading(true)
                                 chargesApi
@@ -364,7 +369,6 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                             shadowSize="4"
                             className="flex w-full items-center gap-1"
                         >
-                            <Icon name="cancel" />
                             Reject request
                         </Button>
                     </div>

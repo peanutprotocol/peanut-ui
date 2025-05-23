@@ -3,7 +3,6 @@
 import { PeanutArmHoldingBeer } from '@/assets'
 import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import AddFunds from '@/components/AddFunds'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
@@ -80,8 +79,8 @@ export default function Home() {
                 </div>
                 <div className="space-y-4">
                     <ActionButtonGroup>
-                        <AddFunds cta={<ActionButton label="Add money" action="add" size="small" />} />
-                        <ActionButtonWithHref label="Withdraw" action="withdraw" href="/cashout" size="small" />
+                        <ActionButtonWithHref label="Add money" action="add" href="/add-money" size="small" />
+                        <ActionButtonWithHref label="Withdraw" action="withdraw" href="/withdraw" size="small" />
                     </ActionButtonGroup>
 
                     <WalletBalance

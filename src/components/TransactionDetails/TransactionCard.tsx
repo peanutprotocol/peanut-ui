@@ -6,10 +6,10 @@ import { TransactionDetailsDrawer } from '@/components/TransactionDetails/Transa
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
+import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { formatNumberForDisplay, printableAddress } from '@/utils'
 import React from 'react'
 import { isAddress } from 'viem'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 
 export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout' | 'receive'
 
@@ -122,7 +122,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
                             <div className="flex flex-row items-center gap-2">
-                                {isPending && <div className="bg-pink-1 h-2 w-2 animate-pulsate rounded-full" />}
+                                {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
                                 <div className="max-w-40 truncate font-roboto text-sm font-medium">
                                     {isAddress(name) ? printableAddress(name) : name}
                                 </div>

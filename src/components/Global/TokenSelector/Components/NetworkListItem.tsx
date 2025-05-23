@@ -15,6 +15,8 @@ interface NetworkListItemProps {
     isSelected?: boolean
     isComingSoon?: boolean
     onClick?: () => void
+    rightContent?: React.ReactNode
+    titleClassName?: HTMLSpanElement['className']
 }
 
 const NetworkListItem: React.FC<NetworkListItemProps> = ({
@@ -24,6 +26,8 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
     isSelected = false,
     isComingSoon = false,
     onClick,
+    rightContent,
+    titleClassName,
 }) => {
     const [iconError, setIconError] = useState(false)
 
@@ -57,7 +61,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                                     alt={`${name} logo`}
                                     width={32}
                                     height={32}
-                                    className={twMerge(!isComingSoon && 'rounded-full')}
+                                    className={twMerge('rounded-full')}
                                     onError={() => setIconError(true)}
                                 />
                             ) : (
@@ -65,11 +69,15 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                             )}
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-base font-semibold capitalize text-black">{name}</span>
+                            <span className={twMerge('text-base font-semibold capitalize text-black', titleClassName)}>
+                                {name}
+                            </span>
                         </div>
                     </div>
                     {isComingSoon ? (
                         <StatusBadge status="soon" />
+                    ) : rightContent ? (
+                        rightContent
                     ) : (
                         <Icon name="chevron-up" className="size-6 rotate-90 text-black" />
                     )}

@@ -8,9 +8,17 @@ interface SearchInputProps {
     onClear: () => void
     inputRef?: React.RefObject<HTMLInputElement>
     className?: string
+    placeholder?: string
 }
 
-export const SearchInput = ({ value, onChange, onClear, inputRef, className }: SearchInputProps) => {
+export const SearchInput = ({
+    value,
+    onChange,
+    onClear,
+    inputRef,
+    className,
+    placeholder = 'Name or username',
+}: SearchInputProps) => {
     return (
         <div className={`relative ${className}`}>
             <div className="absolute left-4 top-1/2 -translate-y-1/2">
@@ -21,7 +29,7 @@ export const SearchInput = ({ value, onChange, onClear, inputRef, className }: S
                 type="text"
                 value={value}
                 onChange={onChange}
-                placeholder="Name or username"
+                placeholder={placeholder}
                 className="h-10 w-full rounded-sm border border-black pl-12 pr-10"
             />
             {value && (

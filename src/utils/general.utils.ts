@@ -679,6 +679,16 @@ export const getOfframpClaimsFromLocalStorage = () => {
     }
 }
 
+export interface RecentMethod {
+    type: 'crypto' | 'country'
+    id: string
+    title: string
+    description?: string
+    iconUrl?: string
+    currency?: string
+    path: string
+}
+
 export type UserPreferences = {
     lastUsedToken?: {
         chainId: string
@@ -692,6 +702,8 @@ export type UserPreferences = {
         id: string
     }
     balanceHidden?: boolean
+    recentAddMethods?: RecentMethod[]
+    recentWithdrawMethods?: RecentMethod[]
 }
 
 export const updateUserPreferences = (partialPrefs: Partial<UserPreferences>): UserPreferences | undefined => {

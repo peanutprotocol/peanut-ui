@@ -26,6 +26,10 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     shadowType?: ShadowType
     loading?: boolean
     icon?: IconName
+    iconPosition?: 'left' | 'right'
+    iconClassName?: string
+    iconSize?: number
+    iconContainerClassName?: HTMLDivElement['className']
 }
 
 const buttonVariants: Record<ButtonVariant, string> = {
@@ -64,7 +68,22 @@ const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     (
-        { children, className, loading, variant = 'purple', size, shape, shadowSize, shadowType, icon, ...props },
+        {
+            children,
+            className,
+            loading,
+            variant = 'purple',
+            size,
+            shape,
+            shadowSize,
+            shadowType,
+            icon,
+            iconPosition = 'left',
+            iconSize,
+            iconClassName,
+            iconContainerClassName,
+            ...props
+        },
         ref
     ) => {
         const localRef = useRef<HTMLButtonElement>(null)
@@ -86,11 +105,25 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             className
         )
 
+        const renderIcon = () => {
+            if (!icon || loading) return null
+            return (
+                <div className={twMerge('flex size-6 items-center justify-center', iconContainerClassName)}>
+                    <Icon
+                        size={iconSize}
+                        name={icon}
+                        className={twMerge(!iconSize && 'min-h-4 min-w-4', iconClassName)}
+                    />
+                </div>
+            )
+        }
+
         return (
             <button className={twMerge(buttonClasses, 'notranslate')} ref={buttonRef} translate="no" {...props}>
                 {loading && <Loading />}
-                {icon && !loading && <Icon name={icon} className="min-h-4 min-w-4" />}
+                {iconPosition === 'left' && renderIcon()}
                 {children}
+                {iconPosition === 'right' && renderIcon()}
             </button>
         )
     }

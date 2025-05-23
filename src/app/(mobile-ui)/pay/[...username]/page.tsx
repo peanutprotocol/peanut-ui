@@ -1,4 +1,4 @@
-import PaymentClient from '@/app/[...recipient]/client'
+import PaymentPage from '@/app/[...recipient]/client'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { use } from 'react'
 
@@ -6,7 +6,7 @@ type PageProps = {
     params: Promise<{ username?: string[] }>
 }
 
-export default function PayPage(props: PageProps) {
+export default function DirectPaymentPage(props: PageProps) {
     const params = use(props.params)
     const usernameSegments = params.username ?? []
 
@@ -14,7 +14,7 @@ export default function PayPage(props: PageProps) {
 
     return (
         <PageContainer className="min-h-[inherit]">
-            <PaymentClient recipient={recipient} isDirectPay />
+            <PaymentPage recipient={recipient} flow="direct_pay" />
         </PageContainer>
     )
 }

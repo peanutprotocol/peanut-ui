@@ -129,6 +129,8 @@ const LinkSendInitialView = () => {
             />
 
             <FileUploadInput
+                className="h-11"
+                placeholder="Comment"
                 attachmentOptions={attachmentOptions}
                 setAttachmentOptions={(options) => dispatch(sendFlowActions.setAttachmentOptions(options))}
             />
@@ -140,7 +142,7 @@ const LinkSendInitialView = () => {
                     loading={isLoading}
                     disabled={isLoading || !tokenValue || !!errorState?.showError}
                 >
-                    {isLoading ? loadingState : 'Create link'}
+                    {isLoading ? 'Creating link' : 'Create link'}
                 </Button>
                 {errorState?.showError && <ErrorAlert description={errorState.errorMessage} />}
             </div>

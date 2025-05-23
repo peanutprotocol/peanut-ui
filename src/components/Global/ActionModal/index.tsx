@@ -1,18 +1,12 @@
-import { Button, ButtonProps, ButtonVariant } from '@/components/0_Bruddle/Button'
+import { Button, ButtonProps } from '@/components/0_Bruddle/Button'
 import { IconProps as GlobalIconProps, Icon, IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 
-export interface ActionModalButtonProps {
+export interface ActionModalButtonProps extends ButtonProps {
     text: string
-    onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
-    variant?: ButtonVariant
-    disabled?: boolean
-    loading?: boolean
-    className?: string
-    icon?: IconName
     iconPosition?: 'left' | 'right'
 }
 
@@ -34,6 +28,7 @@ export interface ActionModalProps {
     iconContainerClassName?: string
     isLoadingIcon?: boolean
     ctas?: ActionModalButtonProps[]
+    ctaClassName?: HTMLDivElement['className']
     checkbox?: ActionModalCheckboxProps
     preventClose?: boolean
     initialFocus?: React.RefObject<HTMLElement>
@@ -56,6 +51,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     iconContainerClassName: customIconContainerClassName,
     isLoadingIcon = false,
     ctas,
+    ctaClassName,
     checkbox,
     preventClose,
     initialFocus,
@@ -79,6 +75,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
             return (
                 <Icon
                     name={icon as IconName}
+                    fill="currentColor"
                     {...iconProps}
                     className={twMerge('size-4', defaultIconPropsClassName, iconProps?.className)}
                 />
@@ -102,7 +99,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
             className={twMerge('items-center justify-center md:mx-auto md:max-w-md', modalClassName)}
             classButtonClose={hideModalCloseButton ? '!hidden' : ''}
             classWrap={twMerge(
-                'sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0',
+                'sm:m-auto sm:self-center self-center m-4 bg-white rounded-none border-0',
                 defaultModalPanelClasses,
                 modalPanelClassName
             )}
@@ -131,10 +128,10 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 </div>
 
                 {(checkbox || (ctas && ctas.length > 0)) && (
-                    <div className="mt-4 w-full space-y-4">
+                    <div className="w-full space-y-4">
                         {checkbox && (
                             <div className={twMerge('self-start text-left', checkbox.className)}>
-                                <label className="flex cursor-pointer items-center space-x-2 text-sm dark:text-white">
+                                <label className="flex cursor-pointer items-center justify-center space-x-2 text-sm dark:text-white">
                                     <input
                                         type="checkbox"
                                         className={twMerge(
@@ -153,7 +150,8 @@ const ActionModal: React.FC<ActionModalProps> = ({
                             <div
                                 className={twMerge(
                                     'flex w-full gap-3',
-                                    ctas.length > 1 ? 'flex-col sm:flex-row' : 'flex-col'
+                                    ctas.length > 1 ? 'flex-col sm:flex-row' : 'flex-col',
+                                    ctaClassName
                                 )}
                             >
                                 {ctas.map(
@@ -168,36 +166,41 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                             ...rest
                                         },
                                         index
-                                    ) => (
-                                        <Button
-                                            key={index}
-                                            onClick={onClick}
-                                            variant={variant}
-                                            {...buttonProps}
-                                            className={twMerge(
-                                                'w-full justify-center',
-                                                ctas.length > 1 && 'sm:flex-1',
-                                                btnClassName
-                                            )}
-                                            {...rest}
-                                        >
-                                            {btnIcon && iconPosition === 'left' && (
-                                                <Icon
-                                                    name={btnIcon}
-                                                    size={16}
-                                                    className={twMerge('mr-2', rest.disabled ? 'opacity-50' : '')}
-                                                />
-                                            )}
-                                            {text}
-                                            {btnIcon && iconPosition === 'right' && (
-                                                <Icon
-                                                    name={btnIcon}
-                                                    size={16}
-                                                    className={twMerge('ml-2', rest.disabled ? 'opacity-50' : '')}
-                                                />
-                                            )}
-                                        </Button>
-                                    )
+                                    ) => {
+                                        const currentIconPosition = btnIcon && !iconPosition ? 'left' : iconPosition
+
+                                        return (
+                                            <Button
+                                                key={index}
+                                                onClick={onClick}
+                                                variant={variant}
+                                                iconPosition={currentIconPosition}
+                                                {...buttonProps}
+                                                className={twMerge(
+                                                    'w-full justify-center',
+                                                    ctas.length > 1 && 'sm:flex-1',
+                                                    btnClassName
+                                                )}
+                                                {...rest}
+                                            >
+                                                {btnIcon && currentIconPosition === 'left' && (
+                                                    <Icon
+                                                        name={btnIcon}
+                                                        size={16}
+                                                        className={twMerge('mr-2', rest.disabled ? 'opacity-50' : '')}
+                                                    />
+                                                )}
+                                                {text}
+                                                {btnIcon && currentIconPosition === 'right' && (
+                                                    <Icon
+                                                        name={btnIcon}
+                                                        size={16}
+                                                        className={twMerge('ml-2', rest.disabled ? 'opacity-50' : '')}
+                                                    />
+                                                )}
+                                            </Button>
+                                        )
+                                    }
                                 )}
                             </div>
                         )}

@@ -470,7 +470,12 @@ export const InitialClaimLinkView = ({
         if (selectedRoute || (isXChain && hasFetchedRoute)) {
             return 'Review'
         }
-        return 'Claim Now'
+
+        if (isLoading) {
+            return 'Claiming'
+        }
+
+        return 'Claim'
     }
 
     const guestAction = () => {
@@ -576,6 +581,7 @@ export const InitialClaimLinkView = ({
                     {guestAction()}
                     {(!!claimToExternalWallet || !!user?.user.userId) && (
                         <Button
+                            icon={'arrow-down'}
                             shadowSize="4"
                             onClick={() => {
                                 if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
