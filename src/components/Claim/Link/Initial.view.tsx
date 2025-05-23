@@ -553,7 +553,7 @@ export const InitialClaimLinkView = ({
                         {/* Manual Input Section - Always visible in non-peanut-only mode */}
                         {!isPeanutWallet && !!claimToExternalWallet && (
                             <GeneralRecipientInput
-                                placeholder="Enter an address or ENS"
+                                placeholder="Enter a username, an address or ENS"
                                 recipient={recipient}
                                 onUpdate={(update: GeneralRecipientUpdate) => {
                                     setRecipient(update.recipient)

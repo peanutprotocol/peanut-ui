@@ -1,14 +1,14 @@
 'use client'
-import { resolveEns } from '@/app/actions/ens'
 import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
 import { useRecentRecipients } from '@/hooks/useRecentRecipients'
 import * as interfaces from '@/interfaces'
-import { validateBankAccount, validateEnsName } from '@/utils'
+import { validateBankAccount } from '@/utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import * as Senty from '@sentry/nextjs'
 import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
-import { isAddress } from 'viem'
+import { validateAndResolveRecipient } from '@/lib/validation/recipient'
+import { BASE_URL } from '@/constants'
 
 type GeneralRecipientInputProps = {
     className?: string
@@ -45,7 +45,7 @@ const GeneralRecipientInput = ({
             let isValid = false
             let type: interfaces.RecipientType = 'address'
 
-            const trimmedInput = recipient.trim()
+            const trimmedInput = recipient.trim().replace(`${BASE_URL}/`, '')
             const sanitizedInput = sanitizeBankAccount(trimmedInput)
 
             if (isIBAN(sanitizedInput)) {
@@ -55,20 +55,16 @@ const GeneralRecipientInput = ({
             } else if (/^[0-9]{1,17}$/.test(sanitizedInput)) {
                 type = 'us'
                 isValid = true
-            } else if (validateEnsName(trimmedInput)) {
-                type = 'ens'
-                const address = await resolveEns(trimmedInput.toLowerCase())
-                if (address) {
-                    resolvedAddress.current = address
-                    isValid = true
-                } else {
-                    errorMessage.current = 'ENS name not found'
-                    isValid = false
-                }
             } else {
-                type = 'address'
-                isValid = isAddress(trimmedInput)
-                if (!isValid) errorMessage.current = 'Invalid Ethereum address'
+                try {
+                    const validation = await validateAndResolveRecipient(trimmedInput)
+                    isValid = true
+                    resolvedAddress.current = validation.resolvedAddress
+                    type = validation.recipientType.toLowerCase() as interfaces.RecipientType
+                } catch (error: unknown) {
+                    errorMessage.current = (error as Error).message
+                    return false
+                }
             }
             recipientType.current = type
             return isValid
@@ -84,14 +80,14 @@ const GeneralRecipientInput = ({
             const sanitizedValue =
                 recipientType.current === 'iban' || recipientType.current === 'us'
                     ? sanitizeBankAccount(update.value)
-                    : update.value.trim()
+                    : update.value.trim().replace(`${BASE_URL}/`, '')
 
             let _update: GeneralRecipientUpdate
             if (update.isValid) {
                 errorMessage.current = ''
                 _update = {
                     recipient:
-                        'ens' === recipientType.current
+                        'ens' === recipientType.current || recipientType.current === 'username'
                             ? { address: resolvedAddress.current, name: sanitizedValue }
                             : { address: sanitizedValue, name: undefined },
                     type: recipientType.current,

@@ -106,7 +106,7 @@ describe('GeneralRecipientInput Type Detection', () => {
             expectedType: 'address',
             expectedValid: false,
             description: 'too long for US account',
-            expectedError: 'Invalid Ethereum address',
+            expectedError: 'Invalid Peanut username',
         },
 
         // IBAN cases
@@ -171,7 +171,7 @@ describe('GeneralRecipientInput Type Detection', () => {
             expectedType: 'address',
             expectedValid: false,
             description: 'invalid ETH address (missing 0x prefix)',
-            expectedError: 'Invalid Ethereum address',
+            expectedError: 'Invalid Peanut username',
         },
 
         // ENS cases
@@ -185,7 +185,7 @@ describe('GeneralRecipientInput Type Detection', () => {
         },
         {
             input: 'not-found.eth',
-            expectedType: 'ens',
+            expectedType: 'address',
             expectedValid: false,
             description: 'unresolvable ENS name',
             expectedError: 'ENS name not found',

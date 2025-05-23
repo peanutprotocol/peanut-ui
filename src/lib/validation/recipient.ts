@@ -19,7 +19,7 @@ export async function validateAndResolveRecipient(
             // resolve the ENS name to address
             const resolvedAddress = await resolveEns(recipient)
             if (!resolvedAddress) {
-                throw new RecipientValidationError('Error resolving ENS name')
+                throw new RecipientValidationError('ENS name not found')
             }
             return {
                 identifier: recipient,

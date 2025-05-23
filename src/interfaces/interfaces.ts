@@ -1,7 +1,7 @@
 import { KYCStatus } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
-export type RecipientType = 'address' | 'ens' | 'iban' | 'us'
+export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
 
 export interface IResponse {
     success: boolean

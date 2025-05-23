@@ -5,7 +5,7 @@ const MAX_RECENT_ITEMS = 5
 
 interface RecentRecipient {
     value: string
-    type: 'address' | 'ens' | 'iban' | 'us'
+    type: 'address' | 'ens' | 'iban' | 'us' | 'username'
     timestamp: number
 }
 
