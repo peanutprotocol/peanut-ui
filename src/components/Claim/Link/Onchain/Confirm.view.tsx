@@ -11,12 +11,19 @@ import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IExtendedLinkDetails } from '@/interfaces'
-import { ErrorHandler, formatTokenAmount, saveClaimedLinkToLocalStorage } from '@/utils'
+import {
+    ErrorHandler,
+    formatTokenAmount,
+    saveClaimedLinkToLocalStorage,
+    printableAddress,
+    areEvmAddressesEqual,
+} from '@/utils'
 import * as Sentry from '@sentry/nextjs'
-import { useContext, useState } from 'react'
+import { useContext, useState, useMemo } from 'react'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import useClaimLink from '../../useClaimLink'
+import { PINTA_WALLET_TOKEN } from '@/constants'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -32,12 +39,17 @@ export const ConfirmClaimLinkView = ({
 }: _consts.IClaimScreenProps) => {
     const { address, fetchBalance } = useWallet()
     const { claimLinkXchain, claimLink } = useClaimLink()
-    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress } = useContext(tokenSelectorContext)
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+
+    const isReward = useMemo(() => {
+        if (!claimLinkData.tokenAddress) return false
+        return areEvmAddressesEqual(claimLinkData.tokenAddress, PINTA_WALLET_TOKEN)
+    }, [claimLinkData.tokenAddress])
 
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
         chainId: selectedRoute?.route.params.toChain,
@@ -113,71 +125,75 @@ export const ConfirmClaimLinkView = ({
                 <PeanutActionDetailsCard
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
-                    recipientName={claimLinkData.sender.username}
+                    recipientName={claimLinkData.sender?.username ?? printableAddress(claimLinkData.senderAddress)}
                     amount={
-                        formatTokenAmount(
-                            Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
-                        ) ?? ''
+                        isReward
+                            ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!
+                            : (formatTokenAmount(
+                                  Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
+                              ) ?? '')
                     }
                     tokenSymbol={claimLinkData.tokenSymbol}
                     message={attachment.message}
                 />
-                <Card>
-                    <PaymentInfoRow
-                        label="Claiming to"
-                        value={
-                            <AddressLink
-                                address={recipient.name ?? recipient.address ?? ''}
-                                className="text-sm text-black no-underline"
-                            />
-                        }
-                    />
-                    <PaymentInfoRow
-                        label="Token and network"
-                        value={
-                            <div className="flex items-center gap-2">
-                                {selectedRoute && (
-                                    <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
-                                        <DisplayIcon
-                                            iconUrl={tokenIconUrl}
-                                            altText={resolvedTokenSymbol || 'token'}
-                                            fallbackName={resolvedTokenSymbol || 'T'}
-                                            sizeClass="h-6 w-6"
-                                        />
-                                        {chainIconUrl && (
-                                            <div className="absolute -bottom-1 -right-1">
-                                                <DisplayIcon
-                                                    iconUrl={chainIconUrl}
-                                                    altText={resolvedChainName || 'chain'}
-                                                    fallbackName={resolvedChainName || 'C'}
-                                                    sizeClass="h-3.5 w-3.5"
-                                                    className="rounded-full border-2 border-white dark:border-grey-4"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                <span>
-                                    {resolvedTokenSymbol || selectedRoute?.route.estimate.toToken.symbol} on{' '}
-                                    <span className="capitalize">
-                                        {resolvedChainName || selectedRoute?.route.params.toChain}
+                {!isReward && (
+                    <Card>
+                        <PaymentInfoRow
+                            label="Claiming to"
+                            value={
+                                <AddressLink
+                                    address={recipient.name ?? recipient.address ?? ''}
+                                    className="text-sm text-black no-underline"
+                                />
+                            }
+                        />
+                        <PaymentInfoRow
+                            label="Token and network"
+                            value={
+                                <div className="flex items-center gap-2">
+                                    {selectedRoute && (
+                                        <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                            <DisplayIcon
+                                                iconUrl={tokenIconUrl}
+                                                altText={resolvedTokenSymbol || 'token'}
+                                                fallbackName={resolvedTokenSymbol || 'T'}
+                                                sizeClass="h-6 w-6"
+                                            />
+                                            {chainIconUrl && (
+                                                <div className="absolute -bottom-1 -right-1">
+                                                    <DisplayIcon
+                                                        iconUrl={chainIconUrl}
+                                                        altText={resolvedChainName || 'chain'}
+                                                        fallbackName={resolvedChainName || 'C'}
+                                                        sizeClass="h-3.5 w-3.5"
+                                                        className="rounded-full border-2 border-white dark:border-grey-4"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    <span>
+                                        {resolvedTokenSymbol || selectedRoute?.route.estimate.toToken.symbol} on{' '}
+                                        <span className="capitalize">
+                                            {resolvedChainName || selectedRoute?.route.params.toChain}
+                                        </span>
                                     </span>
-                                </span>
-                            </div>
-                        }
-                        hideBottomBorder={!selectedRoute}
-                    />
-                    {selectedRoute && (
-                        <>
-                            <PaymentInfoRow
-                                label="Network fee"
-                                value={'$ 0.00'}
-                                moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
-                            />
-                            <PaymentInfoRow label="Peanut fee" value={'$ 0.00'} hideBottomBorder />
-                        </>
-                    )}
-                </Card>
+                                </div>
+                            }
+                            hideBottomBorder={!selectedRoute}
+                        />
+                        {selectedRoute && (
+                            <>
+                                <PaymentInfoRow
+                                    label="Network fee"
+                                    value={'$ 0.00'}
+                                    moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
+                                />
+                                <PaymentInfoRow label="Peanut fee" value={'$ 0.00'} hideBottomBorder />
+                            </>
+                        )}
+                    </Card>
+                )}
 
                 <Button
                     icon="arrow-down"

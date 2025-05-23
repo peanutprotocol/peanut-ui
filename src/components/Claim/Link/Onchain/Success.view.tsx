@@ -88,10 +88,10 @@ export const SuccessClaimLinkView = ({
                     viewType="SUCCESS"
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
-                    recipientName={claimLinkData.sender.username}
+                    recipientName={claimLinkData.sender?.username ?? printableAddress(claimLinkData.senderAddress)}
                     amount={formatUnits(claimLinkData.amount, tokenDetails?.decimals ?? 6)}
                     tokenSymbol={claimLinkData.tokenSymbol}
-                    message={`from ${claimLinkData.sender.username || claimLinkData.sender.accounts[0].identifier || printableAddress(claimLinkData.senderAddress)}`}
+                    message={`from ${claimLinkData.sender?.username || printableAddress(claimLinkData.senderAddress)}`}
                 />
                 {!!authUser?.user.userId && (
                     <Button
