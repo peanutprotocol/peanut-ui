@@ -30,7 +30,7 @@ const getTitle = (
 ): React.ReactNode => {
     let titleText = userName
 
-    if (isLinkTransaction && !userName) {
+    if (isLinkTransaction && (status === 'pending' || status === 'cancelled' || !userName)) {
         switch (direction) {
             case 'send':
                 titleText = 'Sent via Link'
