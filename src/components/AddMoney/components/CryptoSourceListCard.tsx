@@ -2,6 +2,7 @@
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import Image, { StaticImageData } from 'next/image'
+import { twMerge } from 'tailwind-merge'
 import { CryptoSource } from '../consts'
 
 interface CryptoSourceListCardProps {
@@ -32,7 +33,10 @@ export const CryptoSourceListCard = ({ sources, onItemClick }: CryptoSourceListC
                                 alt={`${source.name} logo`}
                                 width={32}
                                 height={32}
-                                className="rounded-full object-contain"
+                                className={twMerge(
+                                    'rounded-full object-contain',
+                                    source.type === 'wallet' && 'rounded-none'
+                                )}
                             />
                         ) : source.isGeneric ? (
                             <GenericIcon type={source.type} />

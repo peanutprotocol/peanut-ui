@@ -1,6 +1,6 @@
 import { APPLE_PAY, GOOGLE_PAY, MERCADO_PAGO, SOLANA_ICON, TRON_ICON } from '@/assets'
 import { BINANCE_LOGO, LEMON_LOGO, RIPIO_LOGO } from '@/assets/exchanges'
-import { METAMASK_LOGO, RAINBOW_LOGO } from '@/assets/wallets'
+import { METAMASK_LOGO, RAINBOW_LOGO, TRUST_WALLET_LOGO } from '@/assets/wallets'
 import { IconName } from '@/components/Global/Icons/Icon'
 import { StaticImageData } from 'next/image'
 
@@ -104,6 +104,13 @@ export const CRYPTO_WALLETS: CryptoSource[] = [
         name: 'Rainbow',
         type: 'wallet',
         icon: RAINBOW_LOGO,
+        path: '/add-money/crypto/rainbow',
+    },
+    {
+        id: 'trust-wallet',
+        name: 'Trust Wallet',
+        type: 'wallet',
+        icon: TRUST_WALLET_LOGO,
         path: '/add-money/crypto/rainbow',
     },
     {

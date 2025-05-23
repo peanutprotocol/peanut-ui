@@ -108,7 +108,7 @@ const AddMoneyCryptoPage = () => {
                     </div>
 
                     {/* Wallets Section - with a top margin for separation */}
-                    <div className="mt-1 flex flex-col gap-2">
+                    <div className="mt-1 flex flex-col gap-2 pb-5">
                         <CryptoSourceListCard
                             sources={CRYPTO_WALLETS}
                             onItemClick={() => router.push('/add-money/crypto/direct')}
