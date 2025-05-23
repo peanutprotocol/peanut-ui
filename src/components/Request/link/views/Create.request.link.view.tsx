@@ -205,6 +205,35 @@ export const CreateRequestLinkView = () => {
         [createRequestLink]
     )
 
+    const generateLink = useCallback(async () => {
+        if (generatedLink) return generatedLink
+        if (Number(tokenValue) === 0) return qrCodeLink
+        setIsCreatingLink(true)
+        const link = await createRequestLink({
+            recipientAddress,
+            tokenAddress: selectedTokenAddress,
+            chainId: selectedChainID,
+            tokenValue,
+            tokenData: selectedTokenData,
+            attachmentOptions: {
+                message: ' ',
+                fileUrl: undefined,
+                rawFile: undefined,
+            },
+        })
+        setGeneratedLink(link ?? null)
+        setIsCreatingLink(false)
+        return link ?? ''
+    }, [
+        generatedLink,
+        qrCodeLink,
+        tokenValue,
+        selectedTokenAddress,
+        selectedChainID,
+        selectedTokenData,
+        createRequestLink,
+    ])
+
     useEffect(() => {
         if (!_tokenValue) return
         setTokenValue(_tokenValue)
@@ -379,29 +408,7 @@ export const CreateRequestLinkView = () => {
                         </div>
                     </Button>
                 ) : (
-                    <ShareButton
-                        generateUrl={async () => {
-                            if (generatedLink) return generatedLink
-                            if (Number(tokenValue) === 0) return qrCodeLink
-                            setIsCreatingLink(true)
-                            const link = await createRequestLink({
-                                recipientAddress,
-                                tokenAddress: selectedTokenAddress,
-                                chainId: selectedChainID,
-                                tokenValue,
-                                tokenData: selectedTokenData,
-                                attachmentOptions: {
-                                    message: ' ',
-                                    fileUrl: undefined,
-                                    rawFile: undefined,
-                                },
-                            })
-                            setIsCreatingLink(false)
-                            return link ?? ''
-                        }}
-                    >
-                        Share Link
-                    </ShareButton>
+                    <ShareButton generateUrl={generateLink}>Share Link</ShareButton>
                 )}
                 {errorState.showError && (
                     <div className="text-start">
