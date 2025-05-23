@@ -23,43 +23,67 @@ export default function WithdrawPage() {
 
     const { balance } = useWallet()
 
+    const maxDecimalAmount = useMemo(() => {
+        return Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
+    }, [balance])
+
     const peanutWalletBalance = useMemo(() => {
         const formattedBalance = formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
         return formattedBalance
     }, [balance])
 
-    const handleBalanceCheck = useCallback(() => {
-        const amount = Number(rawTokenAmount)
-        const max = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
-        if (Number.isFinite(amount) && amount > 0 && amount <= max) {
-            return true
-        } else {
-            setError({
-                showError: true,
-                errorMessage: 'Please enter an amount not more than your wallet balance.',
-            })
-        }
-    }, [rawTokenAmount])
+    const validateAmount = useCallback(
+        (amountStr: string): boolean => {
+            if (!amountStr) {
+                setError({ showError: false, errorMessage: '' })
+                return true
+            }
+
+            const amount = Number(amountStr)
+
+            if (Number.isFinite(amount) && amount > 0 && amount <= maxDecimalAmount) {
+                setError({ showError: false, errorMessage: '' })
+                return true
+            } else {
+                let message = 'Please enter a valid amount.'
+                if (!Number.isFinite(amount)) {
+                    message = 'Please enter a valid number.'
+                } else if (amount <= 0) {
+                    message = 'Amount must be greater than zero.'
+                } else if (amount > maxDecimalAmount) {
+                    message = 'Amount exceeds your wallet balance.'
+                }
+                setError({
+                    showError: true,
+                    errorMessage: message,
+                })
+                return false
+            }
+        },
+        [maxDecimalAmount, setError]
+    )
+
+    const handleTokenAmountChange = useCallback(
+        (value: string | undefined) => {
+            setRawTokenAmount(value || '')
+        },
+        [setRawTokenAmount]
+    )
+
+    useEffect(() => {
+        validateAmount(rawTokenAmount)
+    }, [rawTokenAmount, validateAmount])
 
     const handleAmountContinue = () => {
-        if (handleBalanceCheck()) {
-            setAmountToWithdraw(rawTokenAmount)
-            setStep('selectMethod')
+        // the button is disabled if amount is not > 0.
+        // validateAmount will perform the final check against balance and format.
+        if (validateAmount(rawTokenAmount)) {
+            if (parseFloat(rawTokenAmount) > 0) {
+                setAmountToWithdraw(rawTokenAmount)
+                setStep('selectMethod')
+            }
         }
     }
-
-    const handleTokenAmountChange = useCallback((value: string | undefined) => {
-        setRawTokenAmount(value || '')
-        setError({
-            showError: false,
-            errorMessage: '',
-        })
-    }, [])
-
-    // check balance when user enters amount
-    useEffect(() => {
-        if (rawTokenAmount) handleBalanceCheck()
-    }, [rawTokenAmount])
 
     if (step === 'inputAmount') {
         return (
@@ -77,7 +101,7 @@ export default function WithdrawPage() {
                         variant="purple"
                         shadowSize="4"
                         onClick={handleAmountContinue}
-                        disabled={!parseFloat(rawTokenAmount) || parseFloat(rawTokenAmount) <= 0}
+                        disabled={!parseFloat(rawTokenAmount) || parseFloat(rawTokenAmount) <= 0 || error.showError}
                         className="w-full"
                     >
                         Continue

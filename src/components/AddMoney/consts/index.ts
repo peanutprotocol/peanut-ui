@@ -1285,7 +1285,7 @@ export const countryData: CountryData[] = [
         id: 'MR',
         type: 'country',
         title: 'Mauritania',
-        currency: 'MRO',
+        currency: 'MRU',
         path: 'mauritania',
     },
     {
