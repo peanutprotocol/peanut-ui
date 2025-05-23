@@ -82,7 +82,7 @@ export const CreateRequestLinkView = () => {
         return `${window.location.origin}${valueToShow ? `/${user?.user.username}/${valueToShow}USDC` : `/pay/${user?.user.username}`}`
     }, [user?.user.username, _tokenValue, debouncedTokenValue, generatedLink, hasAttachment, isCreatingLink])
 
-    const handleOnNext = useCallback(
+    const createRequestLink = useCallback(
         async ({
             recipientAddress,
             tokenAddress,
@@ -157,8 +157,8 @@ export const CreateRequestLinkView = () => {
                         queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
                     })
                 const link = getRequestLink(requestDetails)
-                setGeneratedLink(link)
                 toast.success('Link created successfully!')
+                return link
             } catch (error) {
                 setErrorState({
                     showError: true,
@@ -167,12 +167,42 @@ export const CreateRequestLinkView = () => {
                 console.error('Failed to create link:', error)
                 Sentry.captureException(error)
                 toast.error('Failed to create link')
+                return ''
             } finally {
                 setLoadingState('Idle')
                 setIsCreatingLink(false)
             }
         },
         [user?.user.username, toast]
+    )
+
+    const handleOnNext = useCallback(
+        async ({
+            recipientAddress,
+            tokenAddress,
+            chainId,
+            tokenValue,
+            tokenData,
+            attachmentOptions,
+        }: {
+            recipientAddress: string | undefined
+            tokenAddress: string
+            chainId: string
+            tokenValue: string | undefined
+            tokenData: Pick<IToken, 'chainId' | 'address' | 'decimals' | 'symbol'> | undefined
+            attachmentOptions: IFileUploadInputProps['attachmentOptions']
+        }) => {
+            const link = await createRequestLink({
+                recipientAddress,
+                tokenAddress,
+                chainId,
+                tokenValue,
+                tokenData,
+                attachmentOptions,
+            })
+            setGeneratedLink(link ?? null)
+        },
+        [createRequestLink]
     )
 
     useEffect(() => {
@@ -350,14 +380,25 @@ export const CreateRequestLinkView = () => {
                     </Button>
                 ) : (
                     <ShareButton
-                        onSuccess={() => {
-                            setAttachmentOptions({
-                                message: ' ',
-                                fileUrl: undefined,
-                                rawFile: undefined,
+                        generateUrl={async () => {
+                            if (generatedLink) return generatedLink
+                            if (Number(tokenValue) === 0) return qrCodeLink
+                            setIsCreatingLink(true)
+                            const link = await createRequestLink({
+                                recipientAddress,
+                                tokenAddress: selectedTokenAddress,
+                                chainId: selectedChainID,
+                                tokenValue,
+                                tokenData: selectedTokenData,
+                                attachmentOptions: {
+                                    message: ' ',
+                                    fileUrl: undefined,
+                                    rawFile: undefined,
+                                },
                             })
+                            setIsCreatingLink(false)
+                            return link ?? ''
                         }}
-                        url={qrCodeLink}
                     >
                         Share Link
                     </ShareButton>
