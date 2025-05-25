@@ -84,7 +84,6 @@ export async function generateMetadata({ params }: any) {
             title,
             description: 'Send cryptocurrency to friends, family, or anyone else using Peanut on any chain.',
         },
-        keywords: 'crypto payment, crypto transfer, crypto send, payment link',
     }
 }
 

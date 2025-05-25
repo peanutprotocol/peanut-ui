@@ -1,10 +1,12 @@
 import { generateMetadata } from '@/app/metadata'
 import { Careers } from '@/components'
+
 export const metadata = generateMetadata({
-    title: 'Careers | Peanut',
-    description: 'Join the Peanut team and help us build the future of crypto payments.',
-    image: '/metadata-img.png',
-    keywords: 'jobs, careers, work, employment, crypto, payments',
+    title: 'Careers | Join Peanut - Instant Global P2P Payments',
+    description:
+        'Explore career opportunities at Peanut. Join our team to build the future of fast, global peer-to-peer payments with digital dollars, focusing on Latin America.',
+    keywords:
+        'careers, jobs, employment, Peanut careers, P2P payments jobs, fintech jobs, crypto jobs, Latin America tech jobs',
 })
 
 export default function CareersPage() {

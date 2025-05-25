@@ -3,9 +3,8 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SendRouterView } from '@/components/Send/views/SendRouter.view'
 
 export const metadata = generateMetadata({
-    title: 'Send Crypto | Peanut',
-    description:
-        'Send cryptocurrency securely using shareable links or to an email, phone number, ENS, or wallet address. Transfer tokens across chains easily with Peanut',
+    title: 'Send Money | Peanut - Instant P2P Digital Dollar Transfers',
+    description: 'Send digital dollars globally in seconds with Peanut. Fast, secure, and easy peer-to-peer payments.',
     image: '/metadata-img.png',
     keywords: 'crypto transfer, send crypto, cross-chain transfer, offramp, digital dollars',
 })
