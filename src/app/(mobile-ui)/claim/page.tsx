@@ -60,8 +60,7 @@ export async function generateMetadata({
 
     return {
         title,
-        description:
-            'Claim your digital dollar payment with Peanut. Securely receive funds sent to you via a payment link or direct transfer.',
+        description: 'Claim your digital dollar payment with Peanut.',
         icons: { icon: '/favicon.ico' },
         openGraph: {
             images: [

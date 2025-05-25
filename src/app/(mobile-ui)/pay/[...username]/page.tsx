@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: { params: { username: string[
     const username = params.username?.[0] ? decodeURIComponent(params.username[0]) : 'user'
 
     const defaultTitle = `Send Money to ${username} | Peanut`
-    const defaultDescription = `Send digital dollars to ${username} quickly and securely with Peanut. Fast P2P payments for Latin America and globally.`
+    const defaultDescription = `Send digital dollars to ${username} quickly and securely with Peanut.`
 
     const baseMetadata = generateBaseMetadata({
         title: defaultTitle,
