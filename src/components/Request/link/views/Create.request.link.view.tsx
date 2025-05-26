@@ -79,7 +79,7 @@ export const CreateRequestLinkView = () => {
         // use debouncedTokenValue when in the process of creating a link with attachment
         const valueToShow = hasAttachment && isCreatingLink ? debouncedTokenValue : _tokenValue
 
-        return `${window.location.origin}${valueToShow ? `/${user?.user.username}/${valueToShow}USDC` : `/pay/${user?.user.username}`}`
+        return `${window.location.origin}${valueToShow ? `/${user?.user.username}/${valueToShow}USDC` : `/send/${user?.user.username}`}`
     }, [user?.user.username, _tokenValue, debouncedTokenValue, generatedLink, hasAttachment, isCreatingLink])
 
     const createRequestLink = useCallback(

@@ -243,7 +243,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     ) {
         const username = parsedPaymentData.recipient.identifier
         const handleSendClick = () => {
-            router.push(`/pay/${username}`)
+            router.push(`/send/${username}`)
         }
         return (
             <PublicProfile
