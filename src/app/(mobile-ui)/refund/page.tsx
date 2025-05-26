@@ -1,23 +1,10 @@
-import { Metadata } from 'next'
+import { generateMetadata } from '@/app/metadata'
 import { Refund } from '@/components'
-import { BASE_URL } from '@/constants'
 
-export const metadata: Metadata = {
-    title: 'Peanut Protocol',
-    description: 'Send to Anyone',
-    metadataBase: new URL(BASE_URL),
-
-    icons: {
-        icon: '/favicon.ico',
-    },
-    openGraph: {
-        images: [
-            {
-                url: '/metadata-img.png',
-            },
-        ],
-    },
-}
+export const metadata = generateMetadata({
+    title: 'Process Refund',
+    description: 'Process refund for a Peanut transaction. Follow the steps to refund your payment.',
+})
 
 export default function RefundPage() {
     return <Refund />

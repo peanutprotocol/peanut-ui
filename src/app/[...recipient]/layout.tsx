@@ -29,7 +29,7 @@ function getPreviewUrl(
 
 export async function generateMetadata({ params }: any) {
     let title = 'Request Payment | Peanut'
-    let previewUrl = '/metadata-img.jpg'
+    let previewUrl = '/metadata-img.png'
     const host = BASE_URL
 
     if (!host) {
@@ -84,7 +84,6 @@ export async function generateMetadata({ params }: any) {
             title,
             description: 'Send cryptocurrency to friends, family, or anyone else using Peanut on any chain.',
         },
-        keywords: 'crypto payment, crypto transfer, crypto send, payment link',
     }
 }
 
