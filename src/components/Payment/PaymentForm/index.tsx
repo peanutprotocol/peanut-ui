@@ -349,11 +349,6 @@ export const PaymentForm = ({
             return
         }
 
-        if (!isActivePeanutWallet && isWagmiConnected && selectedTokenData && selectedChainID) {
-            dispatch(paymentActions.setView('CONFIRM'))
-            return
-        }
-
         dispatch(paymentActions.setError(null))
 
         const requestedToken = chargeDetails?.tokenAddress ?? requestDetails?.tokenAddress
@@ -635,9 +630,11 @@ export const PaymentForm = ({
 
                 {!isActivePeanutWallet && isConnected && !isAddMoneyFlow && (
                     <div className="space-y-2">
-                        <div className="text-sm font-bold">Select token and chain to pay with</div>
+                        {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
+                            <div className="text-sm font-bold">Select token and chain to pay with</div>
+                        )}
                         <TokenSelector viewType="req_pay" />
-                        {!isPeanutWalletUSDC && (
+                        {!isPeanutWalletUSDC && selectedTokenAddress && selectedChainID && (
                             <div className="pt-1 text-center text-xs text-grey-1">
                                 <span>Use USDC on Arbitrum for free transactions!</span>
                             </div>

@@ -30,7 +30,7 @@ export const PaymentInfoRow = ({
                 <label className={twMerge('text-xs font-semibold')}>{label}</label>
                 {moreInfoText && (
                     <div
-                        className="relative z-40"
+                        className="relative z-40 flex w-5 items-center justify-center"
                         role="button"
                         tabIndex={0}
                         aria-describedby={tooltipId}

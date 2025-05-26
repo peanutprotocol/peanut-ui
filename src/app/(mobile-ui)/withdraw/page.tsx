@@ -71,8 +71,12 @@ export default function WithdrawPage() {
     )
 
     useEffect(() => {
-        validateAmount(rawTokenAmount)
-    }, [rawTokenAmount, validateAmount])
+        if (rawTokenAmount === '') {
+            setError({ showError: false, errorMessage: '' })
+        } else {
+            validateAmount(rawTokenAmount)
+        }
+    }, [rawTokenAmount, validateAmount, setError])
 
     const handleAmountContinue = () => {
         // the button is disabled if amount is not > 0.
