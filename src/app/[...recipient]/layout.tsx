@@ -29,7 +29,7 @@ function getPreviewUrl(
 
 export async function generateMetadata({ params }: any) {
     let title = 'Request Payment | Peanut'
-    let previewUrl = '/metadata-img.jpg'
+    let previewUrl = '/metadata-img.png'
     const host = BASE_URL
 
     if (!host) {

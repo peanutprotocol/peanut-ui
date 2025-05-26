@@ -6,14 +6,14 @@ export async function generateMetadata({ params }: { params: { username: string[
     const username = params.username?.[0] ? decodeURIComponent(params.username[0]) : 'user'
 
     const defaultTitle = `Request Money from ${username} | Peanut`
-    const defaultDescription = `Request digital dollars from ${username} using Peanut. Create and share P2P payment requests easily. Serving Latin America and beyond.`
+    const defaultDescription = `Request digital dollars from ${username} using Peanut. Create and share P2P payment requests easily.`
 
     const baseMetadata = generateBaseMetadata({
         title: defaultTitle,
         description: defaultDescription,
     })
 
-    const previewUrl = '/metadata-img.jpg'
+    const previewUrl = '/metadata-img.png'
 
     return {
         ...baseMetadata,

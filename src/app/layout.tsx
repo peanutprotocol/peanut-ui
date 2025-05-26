@@ -43,7 +43,7 @@ export const metadata = generateMetadata({
     title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
     description:
         'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars. Easily transfer funds across borders. Enjoy cheap, instant remittances and cash out to local banks without technical hassle.',
-    image: '/peanut-preview.png',
+    image: '/metadata-img.png',
     keywords:
         'peer-to-peer payments, send money instantly, request money, fast global transfers, remittances, digital dollar transfers, Latin America, Argentina, Brazil, P2P payments, crypto payments, stablecoin, digital dollars',
 })
