@@ -6,6 +6,7 @@ import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
+import { getColorForUsername } from '@/utils/color.utils'
 import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import EmptyState from '../../Global/EmptyStates/EmptyState'
@@ -58,7 +59,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                         size="extra-small"
                                         inlineStyle={{
                                             backgroundColor:
-                                                method.icon === ('bank' as IconName) ? '#FFC900' : undefined,
+                                                method.icon === ('bank' as IconName)
+                                                    ? '#FFC900'
+                                                    : getColorForUsername(method.title).backgroundColor,
                                         }}
                                     />
                                 ) : (

@@ -124,7 +124,7 @@ export const CRYPTO_WALLETS: CryptoSource[] = [
 
 export interface SpecificPaymentMethod {
     id: string
-    icon: IconName | string
+    icon: IconName | string | undefined
     title: string
     description: string
     isSoon?: boolean
@@ -1992,26 +1992,57 @@ export const countryData: CountryData[] = [
 
 export const COUNTRY_SPECIFIC_METHODS: Record<string, CountrySpecificMethods> = {}
 
+// LATAM country codes
+const LATAM_COUNTRY_CODES = [
+    'AR',
+    'BO',
+    'BR',
+    'CL',
+    'CO',
+    'CR',
+    'CU',
+    'DO',
+    'EC',
+    'SV',
+    'GT',
+    'HN',
+    'HT',
+    'MX',
+    'NI',
+    'PA',
+    'PY',
+    'PE',
+    'PR',
+    'UY',
+    'VE',
+]
+
 countryData.forEach((country) => {
     if (country.type === 'country') {
         const countryCode = country.id
         const countryTitle = country.title
 
         const withdrawList: SpecificPaymentMethod[] = []
-        const specificWithdrawals = countrySpecificWithdrawMethods[countryTitle]
 
-        if (specificWithdrawals && specificWithdrawals.length > 0) {
-            specificWithdrawals.forEach((method) => {
+        // 1. add specific country withdrawal methods
+        const specificMethodDetails = countrySpecificWithdrawMethods[countryTitle]
+        if (specificMethodDetails && specificMethodDetails.length > 0) {
+            specificMethodDetails.forEach((method) => {
                 withdrawList.push({
-                    id: `${countryCode.toLowerCase()}-${method.title.toLowerCase()}-withdraw`,
-                    icon: method.icon as IconName,
+                    id: `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-withdraw`,
+                    icon: method.icon ?? undefined,
                     title: method.title,
                     description: method.description,
                     isSoon: true,
                 })
             })
-        } else {
-            if (country.currency === 'EUR' && countrySpecificWithdrawMethods['Germany']) {
+        }
+
+        // 2. add SEPA for EUR countries if not already present from specifics
+        if (country.currency === 'EUR' && countrySpecificWithdrawMethods['Germany']) {
+            // Germany as proxy for SEPA availability
+            const sepaExists = withdrawList.some((m) => m.title === 'SEPA Instant')
+            if (!sepaExists) {
                 withdrawList.push({
                     id: `${countryCode.toLowerCase()}-sepa-instant-withdraw`,
                     icon: 'bank' as IconName,
@@ -2019,16 +2050,37 @@ countryData.forEach((country) => {
                     description: 'EU-wide real-time bank transfers.',
                     isSoon: true,
                 })
-            } else {
-                withdrawList.push({
-                    ...DEFAULT_BANK_WITHDRAW_METHOD,
-                    id: `${countryCode.toLowerCase()}-bank-withdraw`,
-                })
             }
         }
 
+        // 3. add DEFAULT_BANK_WITHDRAW_METHOD if an identical method (by title and icon) is not already present
+        // AND if SEPA was added, don't add default bank
+        const defaultBankTitle = DEFAULT_BANK_WITHDRAW_METHOD.title
+        const defaultBankIcon = DEFAULT_BANK_WITHDRAW_METHOD.icon
+
+        const sepaWasAdded = withdrawList.some((m) => m.id.endsWith('-sepa-instant-withdraw'))
+
+        const genericBankExists = withdrawList.some((m) => m.title === defaultBankTitle && m.icon === defaultBankIcon)
+
+        // only add default bank if it doesn't already exist AND (SEPA was not added OR it's not considered redundant by SEPA)
+        // for now, we simplify: if SEPA was added, we assume default bank is redundant.
+        if (!genericBankExists && !sepaWasAdded) {
+            withdrawList.push({
+                ...DEFAULT_BANK_WITHDRAW_METHOD,
+                id: `${countryCode.toLowerCase()}-default-bank-withdraw`,
+            })
+        }
+
+        // filter add methods: include Mercado Pago only for LATAM countries
+        const currentAddMethods = UPDATED_DEFAULT_ADD_MONEY_METHODS.filter((method) => {
+            if (method.id === 'mercado-pago-add') {
+                return LATAM_COUNTRY_CODES.includes(countryCode)
+            }
+            return true
+        }).map((m) => ({ ...m }))
+
         COUNTRY_SPECIFIC_METHODS[countryCode] = {
-            add: UPDATED_DEFAULT_ADD_MONEY_METHODS.map((m) => ({ ...m })),
+            add: currentAddMethods,
             withdraw: withdrawList,
         }
     }
