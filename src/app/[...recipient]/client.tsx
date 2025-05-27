@@ -22,12 +22,14 @@ import { twMerge } from 'tailwind-merge'
 
 interface Props {
     recipient: string[]
-    isDirectPay?: boolean
+    flow?: 'request_pay' | 'add_money' | 'direct_pay' | 'withdraw'
 }
 
-export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
+export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) {
+    const isDirectPay = flow === 'direct_pay'
+    const isAddMoneyFlow = flow === 'add_money'
     const dispatch = useAppDispatch()
-    const { currentView, requestDetails, parsedPaymentData, chargeDetails } = usePaymentStore()
+    const { currentView, parsedPaymentData, chargeDetails } = usePaymentStore()
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
     const [isRequestDetailsFetching, setIsRequestDetailsFetching] = useState(false)
@@ -82,7 +84,8 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
                     !updatedParsedData.amount &&
                     !chargeId &&
                     !requestId &&
-                    !isDirectPay
+                    !isDirectPay &&
+                    !isAddMoneyFlow
                 ) {
                     dispatch(paymentActions.setView('PUBLIC_PROFILE'))
                 } else {
@@ -232,10 +235,14 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     }
 
     // render PUBLIC_PROFILE view
-    if (currentView === 'PUBLIC_PROFILE' && parsedPaymentData?.recipient?.recipientType === 'USERNAME') {
+    if (
+        currentView === 'PUBLIC_PROFILE' &&
+        parsedPaymentData?.recipient?.recipientType === 'USERNAME' &&
+        !isAddMoneyFlow
+    ) {
         const username = parsedPaymentData.recipient.identifier
         const handleSendClick = () => {
-            router.push(`/pay/${username}`)
+            router.push(`/send/${username}`)
         }
         return (
             <PublicProfile
@@ -251,7 +258,7 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
     // pinta token payment flow
     if (parsedPaymentData?.token?.symbol === 'PNT') {
         return (
-            <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
+            <div className={twMerge('mx-auto h-full w-full space-y-8 self-center')}>
                 <div>
                     {currentView === 'INITIAL' && <InitialPaymentView {...parsedPaymentData} isPintaReq={true} />}
                     {currentView === 'CONFIRM' && <ConfirmPaymentView isPintaReq={true} />}
@@ -263,51 +270,49 @@ export default function PaymentPage({ recipient, isDirectPay = false }: Props) {
 
     // default payment flow
     return (
-        <div className={twMerge('mx-auto h-full w-full space-y-8 self-center md:w-6/12')}>
-            <div>
-                {currentView === 'INITIAL' && (
-                    <div className="space-y-4">
-                        <InitialPaymentView
-                            {...(parsedPaymentData as ParsedURL)}
-                            currency={
-                                currencyCode
-                                    ? {
-                                          code: currencyCode,
-                                          symbol: currencySymbol!,
-                                          price: currencyPrice!,
-                                      }
-                                    : undefined
+        <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-center')}>
+            {currentView === 'INITIAL' && (
+                <InitialPaymentView
+                    {...(parsedPaymentData as ParsedURL)}
+                    isAddMoneyFlow={isAddMoneyFlow}
+                    currency={
+                        currencyCode
+                            ? {
+                                  code: currencyCode,
+                                  symbol: currencySymbol!,
+                                  price: currencyPrice!,
+                              }
+                            : undefined
+                    }
+                    setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
+                    currencyAmount={currencyAmount}
+                />
+            )}
+            {currentView === 'CONFIRM' && (
+                <ConfirmPaymentView
+                    isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
+                    currencyAmount={currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined}
+                    isAddMoneyFlow={isAddMoneyFlow}
+                />
+            )}
+            {currentView === 'STATUS' && (
+                <>
+                    {parsedPaymentData?.token?.symbol === 'PNT' ? (
+                        <PintaReqPaySuccessView />
+                    ) : (
+                        <DirectSuccessView
+                            headerTitle={isAddMoneyFlow ? 'Add Money' : 'Send'}
+                            recipientType={parsedPaymentData?.recipient?.recipientType}
+                            type="SEND"
+                            currencyAmount={
+                                currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
                             }
-                            setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
-                            currencyAmount={currencyAmount}
+                            isAddMoneyFlow={isAddMoneyFlow}
+                            redirectTo={isAddMoneyFlow ? '/add-money' : '/send'}
                         />
-                    </div>
-                )}
-                {currentView === 'CONFIRM' && (
-                    <ConfirmPaymentView
-                        isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
-                        currencyAmount={
-                            currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
-                        }
-                    />
-                )}
-                {currentView === 'STATUS' && (
-                    <>
-                        {parsedPaymentData?.token?.symbol === 'PNT' ? (
-                            <PintaReqPaySuccessView />
-                        ) : (
-                            <DirectSuccessView
-                                headerTitle="Send"
-                                recipientType={parsedPaymentData?.recipient?.recipientType}
-                                type="SEND"
-                                currencyAmount={
-                                    currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
-                                }
-                            />
-                        )}
-                    </>
-                )}
-            </div>
+                    )}
+                </>
+            )}
         </div>
     )
 }

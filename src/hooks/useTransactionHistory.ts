@@ -160,7 +160,7 @@ export function useTransactionHistory({
                         tokenSymbol = tokenDetails?.symbol ?? ''
                         break
                     case 'REQUEST':
-                        link = `${process.env.NEXT_PUBLIC_BASE_URL}/pay/${entry.recipientAccount.username}?chargeId=${entry.uuid}`
+                        link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break

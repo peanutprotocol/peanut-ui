@@ -34,7 +34,7 @@ const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => (
             <>
                 <Link
                     href={href}
-                    key={name}
+                    key={`${name}-${index}`}
                     className={classNames(
                         'flex items-center gap-3 text-white hover:cursor-pointer hover:text-white/80',
                         {

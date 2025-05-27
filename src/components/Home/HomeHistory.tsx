@@ -8,8 +8,8 @@ import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
-import { CardPosition } from '../Global/Card'
-import { useMemo, useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { getCardPosition } from '../Global/Card'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -97,14 +97,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                             const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
 
                             // determine card position for styling (first, middle, last, single)
-                            let position: CardPosition = 'middle'
-                            if (pendingRequests.length === 1) {
-                                position = 'single'
-                            } else if (index === 0) {
-                                position = 'first'
-                            } else if (index === pendingRequests.length - 1) {
-                                position = 'last'
-                            }
+                            const position = getCardPosition(index, pendingRequests.length)
 
                             return (
                                 <TransactionCard
@@ -141,17 +134,10 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                         const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
 
                         // determine card position for styling (first, middle, last, single)
-                        let position: CardPosition = 'middle'
                         const filteredEntries = combinedEntries.filter(
                             (entry) => !pendingRequests.some((r) => r.uuid === entry.uuid)
                         )
-                        if (filteredEntries.length === 1) {
-                            position = 'single'
-                        } else if (index === 0) {
-                            position = 'first'
-                        } else if (index === filteredEntries.length - 1) {
-                            position = 'last'
-                        }
+                        const position = getCardPosition(index, filteredEntries.length)
 
                         return (
                             <TransactionCard

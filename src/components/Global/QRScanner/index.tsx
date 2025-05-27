@@ -32,6 +32,12 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                 streamRef.current.getTracks().forEach((track) => track.stop())
                 streamRef.current = null
             }
+
+            if (videoRef.current) {
+                videoRef.current.srcObject = null
+                videoRef.current.load()
+            }
+
             setIsScanning(false)
             onClose?.()
         } catch (error) {
@@ -57,7 +63,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                 setProcessingQR(false)
             }
         },
-        [onScan, processingQR]
+        [processingQR]
     )
     const setupQRScanning = useCallback(() => {
         if (!videoRef.current || !canvasRef.current) return
@@ -149,15 +155,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
 
         // Cleanup on component unmount
         return () => {
-            if (scanIntervalRef.current) {
-                clearInterval(scanIntervalRef.current)
-                scanIntervalRef.current = null
-            }
-
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach((track) => track.stop())
-                streamRef.current = null
-            }
+            closeScanner()
         }
     }, [isScanning, startCamera])
 
@@ -168,6 +166,13 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
             setIsScanning(isOpen)
         }
     }, [isOpen, closeScanner])
+
+    // Cleanup function to close the scanner when the component unmounts
+    useEffect(() => {
+        return () => {
+            closeScanner()
+        }
+    }, [])
 
     if (!isScanning) {
         return null

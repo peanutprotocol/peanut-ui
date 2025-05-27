@@ -1,31 +1,34 @@
 import PaymentLayoutWrapper from '@/app/[...recipient]/payment-layout-wrapper'
-import { BASE_URL } from '@/constants'
+import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
+import { Metadata } from 'next'
 
-export async function generateMetadata({ params }: any) {
-    let title = 'Request Payment | Peanut'
-    let previewUrl = '/metadata-img.jpg'
-    const host = BASE_URL
+export async function generateMetadata({ params }: { params: { username: string[] } }): Promise<Metadata> {
+    const username = params.username?.[0] ? decodeURIComponent(params.username[0]) : 'user'
 
-    if (!host) {
-        console.error('Error: NEXT_PUBLIC_BASE_URL is not defined')
-        return { title }
-    }
+    const defaultTitle = `Request Money from ${username} | Peanut`
+    const defaultDescription = `Request digital dollars from ${username} using Peanut. Create and share P2P payment requests easily.`
+
+    const baseMetadata = generateBaseMetadata({
+        title: defaultTitle,
+        description: defaultDescription,
+        image: '/metadata-img.png',
+        keywords: 'crypto request, P2P request, digital dollar request',
+    })
 
     return {
-        title,
-        description: 'Request cryptocurrency from friends, family, or anyone else using Peanut on any chain.',
-        icons: {
-            icon: '/logo-favicon.png',
-        },
+        ...baseMetadata,
+        title: defaultTitle,
+        description: defaultDescription,
         openGraph: {
-            images: [{ url: previewUrl }],
+            ...baseMetadata.openGraph,
+            title: defaultTitle,
+            description: defaultDescription,
         },
         twitter: {
-            card: 'summary_large_image',
-            title,
-            description: 'Request cryptocurrency from friends, family, or anyone else using Peanut on any chain.',
+            ...baseMetadata.twitter,
+            title: defaultTitle,
+            description: defaultDescription,
         },
-        keywords: 'crypto payment, crypto transfer, crypto send, payment link',
     }
 }
 

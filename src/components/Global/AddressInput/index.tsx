@@ -1,9 +1,9 @@
 'use client'
 import { isAddress } from 'viem'
 
-import { validateEnsName } from '@/utils'
 import { resolveEns } from '@/app/actions/ens'
 import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
+import { validateEnsName } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 
 type AddressInputProps = {
@@ -31,7 +31,6 @@ const AddressInput = ({ placeholder = 'Enter a valid address', value, onUpdate, 
     return (
         <ValidatedInput
             placeholder={placeholder}
-            label="To"
             value={value}
             debounceTime={750}
             validate={checkAddress}

@@ -15,12 +15,10 @@ import {
 } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { type ITokenPriceData } from '@/interfaces'
-import { estimateIfIsStableCoinFromPrice, getUserPreferences } from '@/utils'
+import { getUserPreferences } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
-
-type inputDenominationType = 'USD' | 'TOKEN'
 
 export const tokenSelectorContext = createContext({
     selectedTokenAddress: '',
@@ -32,8 +30,6 @@ export const tokenSelectorContext = createContext({
     updateSelectedChainID: (chainID: string) => {},
     selectedTokenPrice: 0 as number | undefined,
     setSelectedTokenPrice: (price: number | undefined) => {},
-    inputDenomination: 'TOKEN' as inputDenominationType,
-    setInputDenomination: (denomination: inputDenominationType) => {},
     refetchXchainRoute: false as boolean,
     setRefetchXchainRoute: (value: boolean) => {},
     resetTokenContextProvider: () => {},
@@ -42,6 +38,8 @@ export const tokenSelectorContext = createContext({
     selectedTokenData: undefined as ITokenPriceData | undefined,
     isFetchingTokenData: false as boolean,
     supportedSquidChainsAndTokens: {} as Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>,
+    selectedTokenBalance: undefined as string | undefined,
+    setSelectedTokenBalance: (balance: string | undefined) => {},
 })
 
 /**
@@ -85,7 +83,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenData.address)
     const [selectedChainID, setSelectedChainID] = useState(initialTokenData.chainId)
     const [selectedTokenPrice, setSelectedTokenPrice] = useState<number | undefined>(isPeanutWallet ? 1 : undefined)
-    const [inputDenomination, setInputDenomination] = useState<inputDenominationType>(isPeanutWallet ? 'USD' : 'TOKEN')
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
     const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(initialTokenData.decimals)
     const [isXChain, setIsXChain] = useState<boolean>(false)
@@ -93,6 +90,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [selectedTokenData, setSelectedTokenData] = useState<ITokenPriceData | undefined>(
         isPeanutWallet ? peanutWalletTokenData : undefined
     )
+    const [selectedTokenBalance, setSelectedTokenBalance] = useState<string | undefined>(undefined)
     const [supportedSquidChainsAndTokens, setSupportedSquidChainsAndTokens] = useState<
         Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>
     >({})
@@ -116,7 +114,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         setSelectedTokenAddress(tokenData.address)
         setSelectedTokenDecimals(tokenData.decimals)
         setSelectedTokenPrice(isPeanutWallet ? 1 : undefined)
-        setInputDenomination(isPeanutWallet ? 'USD' : 'TOKEN')
         setSelectedTokenData(isPeanutWallet ? peanutWalletTokenData : undefined)
     }
 
@@ -138,7 +135,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                     } as ITokenPriceData)
                     setSelectedTokenPrice(1)
                     setSelectedTokenDecimals(PEANUT_WALLET_TOKEN_DECIMALS)
-                    setInputDenomination('USD')
                     return
                 }
 
@@ -159,7 +155,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                     } as ITokenPriceData)
                     setSelectedTokenPrice(1)
                     setSelectedTokenDecimals(token.decimals)
-                    setInputDenomination('USD')
                     return
                 }
 
@@ -168,7 +163,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                     setSelectedTokenData(undefined)
                     setSelectedTokenPrice(undefined)
                     setSelectedTokenDecimals(undefined)
-                    setInputDenomination('TOKEN')
                     return
                 }
 
@@ -179,16 +173,10 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                     setSelectedTokenPrice(tokenPriceResponse.price)
                     setSelectedTokenDecimals(tokenPriceResponse.decimals)
                     setSelectedTokenData(tokenPriceResponse)
-                    if (estimateIfIsStableCoinFromPrice(tokenPriceResponse.price)) {
-                        setInputDenomination('USD')
-                    } else {
-                        setInputDenomination('TOKEN')
-                    }
                 } else {
                     setSelectedTokenData(undefined)
                     setSelectedTokenPrice(undefined)
                     setSelectedTokenDecimals(undefined)
-                    setInputDenomination('TOKEN')
                 }
             } catch (error) {
                 Sentry.captureException(error)
@@ -206,7 +194,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             setRefetchXchainRoute(true)
             setSelectedTokenPrice(undefined)
             setSelectedTokenDecimals(undefined)
-            setInputDenomination('TOKEN')
 
             fetchAndSetTokenPrice(selectedTokenAddress, selectedChainID)
             return () => {
@@ -232,8 +219,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 updateSelectedChainID,
                 selectedTokenPrice,
                 setSelectedTokenPrice,
-                inputDenomination,
-                setInputDenomination,
                 refetchXchainRoute,
                 setRefetchXchainRoute,
                 resetTokenContextProvider,
@@ -242,6 +227,8 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 selectedTokenData,
                 isFetchingTokenData,
                 supportedSquidChainsAndTokens,
+                selectedTokenBalance,
+                setSelectedTokenBalance,
             }}
         >
             {children}

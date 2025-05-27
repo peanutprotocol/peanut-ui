@@ -1,7 +1,7 @@
-import PaymentLayoutWrapper from './payment-layout-wrapper'
+import { BASE_URL } from '@/constants'
 import { printableAddress } from '@/utils'
 import { isAddress } from 'viem'
-import { BASE_URL } from '@/constants'
+import PaymentLayoutWrapper from './payment-layout-wrapper'
 
 function getPreviewUrl(
     host: string,
@@ -29,7 +29,7 @@ function getPreviewUrl(
 
 export async function generateMetadata({ params }: any) {
     let title = 'Request Payment | Peanut'
-    let previewUrl = '/metadata-img.jpg'
+    let previewUrl = '/metadata-img.png'
     const host = BASE_URL
 
     if (!host) {
@@ -67,7 +67,7 @@ export async function generateMetadata({ params }: any) {
     } else if (amount) {
         title = `${isAddress(recipient) ? printableAddress(recipient) : recipient} is requesting $${amount}`
     } else {
-        title = `${isAddress(recipient) ? printableAddress(recipient) : recipient} is requesting funds`
+        title = `${isAddress(recipient) ? printableAddress(recipient) : recipient} | Peanut`
     }
 
     return {
@@ -84,7 +84,6 @@ export async function generateMetadata({ params }: any) {
             title,
             description: 'Send cryptocurrency to friends, family, or anyone else using Peanut on any chain.',
         },
-        keywords: 'crypto payment, crypto transfer, crypto send, payment link',
     }
 }
 

@@ -1,5 +1,5 @@
-import { Metadata } from 'next'
 import { BASE_URL } from '@/constants'
+import { Metadata } from 'next'
 
 export function generateMetadata({
     title,
@@ -23,7 +23,7 @@ export function generateMetadata({
             title,
             description,
             url: BASE_URL,
-            siteName: 'Peanut Protocol',
+            siteName: 'Peanut',
             images: [{ url: image, width: 1200, height: 630, alt: title }],
         },
         twitter: {

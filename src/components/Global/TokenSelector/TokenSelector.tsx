@@ -50,9 +50,10 @@ const Section: React.FC<SectionProps> = ({ title, icon, children, className, tit
 interface NewTokenSelectorProps {
     classNameButton?: string
     viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
+    disabled?: boolean
 }
 
-const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other' }) => {
+const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other', disabled }) => {
     // state to track content height
     const contentRef = useRef<HTMLDivElement>(null)
     const drawerHeightVh = useDynamicHeight(contentRef, { maxHeightVh: 90, minHeightVh: 10, extraVhOffset: 5 })
@@ -80,6 +81,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         setSelectedChainID,
         selectedTokenAddress,
         selectedChainID,
+        setSelectedTokenBalance,
     } = useContext(tokenSelectorContext)
 
     // drawer utility functions
@@ -168,6 +170,17 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         [closeDrawer, setSelectedTokenAddress, setSelectedChainID]
     )
 
+    useEffect(() => {
+        const tokenBalance = sourceBalances.find(
+            (balance) =>
+                areEvmAddressesEqual(balance.address, selectedTokenAddress) &&
+                String(balance.chainId) === selectedChainID
+        )
+        if (tokenBalance) {
+            setSelectedTokenBalance(tokenBalance.amount.toString())
+        }
+    }, [selectedTokenAddress, selectedChainID, sourceBalances])
+
     const handleDefaultTokenSelect = useCallback(() => {
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
@@ -223,6 +236,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     let buttonChainName: string | undefined = undefined
     let buttonFormattedBalance: string | null = null
     let buttonLogoURI: string | undefined = undefined
+    let buttonChainLogoURI: string | undefined = peanutWalletTokenDetails?.chainLogoURI
 
     if (isExternalWalletConnected) {
         if (selectedTokenAddress && selectedChainID) {
@@ -258,6 +272,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 buttonSymbol = generalTokenDetails.symbol
                 buttonLogoURI = generalTokenDetails.logoURI
                 buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
+                buttonChainLogoURI = chainInfo.chainIconURI
             }
         }
     }
@@ -518,6 +533,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                     classNameButton
                 )}
                 shadowSize="4"
+                disabled={disabled}
             >
                 <div className="flex flex-grow items-center justify-between gap-3 overflow-hidden">
                     <div className="flex items-center gap-2 overflow-hidden">
@@ -532,12 +548,23 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                     onError={() => setButtonImageError(true)}
                                 />
                             ) : (
-                                <Icon name="currency" size={24} />
+                                <Icon name="plus" size={24} />
+                            )}
+                            {buttonChainLogoURI && buttonLogoURI && (
+                                <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2 dark:border-black dark:bg-grey-1">
+                                    <Image
+                                        src={buttonChainLogoURI}
+                                        alt={`Chain logo`}
+                                        width={16}
+                                        height={16}
+                                        className="rounded-full"
+                                    />
+                                </div>
                             )}
                         </div>
                         <div className="flex flex-col items-start overflow-hidden">
                             <span className="truncate text-base font-semibold text-black">
-                                {buttonSymbol || 'Select Token'}
+                                {buttonSymbol || 'Select a token'}
                                 {buttonChainName && (
                                     <span className="ml-1 text-sm font-medium text-grey-1">
                                         on <span className="capitalize">{buttonChainName}</span>

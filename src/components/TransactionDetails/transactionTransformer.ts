@@ -40,6 +40,20 @@ export interface TransactionDetails {
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
     }
+    sourceView?: 'status' | 'history'
+    tokenDisplayDetails?: {
+        tokenSymbol?: string
+        tokenIconUrl?: string
+        chainName?: string
+        chainIconUrl?: string
+    }
+    networkFeeDetails?: {
+        amountDisplay: string
+        moreInfoText?: string
+    }
+    peanutFeeDetails?: {
+        amountDisplay: string
+    }
 }
 
 /**
@@ -90,13 +104,15 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             transactionCardType = 'send'
             if (entry.userRole === EHistoryUserRole.SENDER) {
                 nameForDetails =
-                    entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Sent via Link'
+                    entry.recipientAccount?.username || entry.recipientAccount?.identifier || "You're sending via link"
                 isPeerActuallyUser = !!entry.recipientAccount?.isUser
+                isLinkTx = !isPeerActuallyUser
             } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
                 direction = 'receive'
-                transactionCardType = 'add'
+                transactionCardType = 'receive'
                 nameForDetails = entry.senderAccount?.username || entry.senderAccount?.identifier || 'Received via Link'
                 isPeerActuallyUser = !!entry.senderAccount?.isUser
+                isLinkTx = !isPeerActuallyUser
             } else if (entry.userRole === EHistoryUserRole.BOTH) {
                 isPeerActuallyUser = true
                 uiStatus = 'cancelled'
@@ -236,6 +252,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             isLinkTransaction: isLinkTx,
             transactionCardType: transactionCardType,
         },
+        sourceView: 'history',
     }
 
     return {

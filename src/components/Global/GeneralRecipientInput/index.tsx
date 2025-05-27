@@ -1,15 +1,14 @@
 'use client'
+import { resolveEns } from '@/app/actions/ens'
+import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
+import { useRecentRecipients } from '@/hooks/useRecentRecipients'
+import * as interfaces from '@/interfaces'
+import { validateBankAccount, validateEnsName } from '@/utils'
+import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
+import * as Senty from '@sentry/nextjs'
 import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
-import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
-import { validateBankAccount } from '@/utils'
-import { resolveEns } from '@/app/actions/ens'
 import { isAddress } from 'viem'
-import * as interfaces from '@/interfaces'
-import { useRecentRecipients } from '@/hooks/useRecentRecipients'
-import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
-import { validateEnsName } from '@/utils'
-import * as Senty from '@sentry/nextjs'
 
 type GeneralRecipientInputProps = {
     className?: string
@@ -17,6 +16,7 @@ type GeneralRecipientInputProps = {
     recipient: { name: string | undefined; address: string }
     onUpdate: (update: GeneralRecipientUpdate) => void
     infoText?: string
+    showInfoText?: boolean
 }
 
 export type GeneralRecipientUpdate = {
@@ -33,11 +33,12 @@ const GeneralRecipientInput = ({
     onUpdate,
     className,
     infoText,
+    showInfoText = true,
 }: GeneralRecipientInputProps) => {
     const recipientType = useRef<interfaces.RecipientType>('address')
     const errorMessage = useRef('')
     const resolvedAddress = useRef('')
-    const { getSuggestions, addRecipient } = useRecentRecipients()
+    const { addRecipient } = useRecentRecipients()
 
     const checkAddress = useCallback(async (recipient: string): Promise<boolean> => {
         try {
@@ -123,9 +124,8 @@ const GeneralRecipientInput = ({
 
     return (
         <div className="w-full">
-            <label className="mb-2 block text-left text-sm font-bold">Claim to</label>
+            <label className="mb-2 block text-left text-sm font-bold">Where do you want to receive this?</label>
             <ValidatedInput
-                label="To"
                 value={recipient.name ?? recipient.address}
                 placeholder={placeholder}
                 validate={checkAddress}
@@ -133,8 +133,7 @@ const GeneralRecipientInput = ({
                 className={className}
                 autoComplete="on"
                 name="bank-account"
-                suggestions={getSuggestions(recipientType.current)}
-                infoText={infoText}
+                infoText={showInfoText ? infoText : undefined}
                 formatDisplayValue={formatDisplayValue}
             />
         </div>

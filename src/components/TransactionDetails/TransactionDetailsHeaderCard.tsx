@@ -7,6 +7,7 @@ import { printableAddress } from '@/utils'
 import React from 'react'
 import { isAddress as isWalletAddress } from 'viem'
 import Card from '../Global/Card'
+import { Icon, IconName } from '../Global/Icons/Icon'
 
 export type TransactionDirection = 'send' | 'receive' | 'request_sent' | 'request_received' | 'withdraw' | 'add'
 
@@ -29,7 +30,7 @@ const getTitle = (
 ): React.ReactNode => {
     let titleText = userName
 
-    if (isLinkTransaction) {
+    if (isLinkTransaction && (status === 'pending' || status === 'cancelled' || !userName)) {
         switch (direction) {
             case 'send':
                 titleText = 'Sent via Link'
@@ -50,7 +51,11 @@ const getTitle = (
         const displayName = isAddress ? printableAddress(userName) : userName
         switch (direction) {
             case 'send':
-                titleText = `${status === 'completed' ? 'Sent' : 'Sending'} to ${displayName}`
+                if (status === 'pending' || status === 'cancelled') {
+                    titleText = displayName
+                } else {
+                    titleText = `${status === 'completed' ? 'Sent' : 'Sending'} to ${displayName}`
+                }
                 break
             case 'request_received':
                 titleText = `${displayName} is requesting`
@@ -76,6 +81,27 @@ const getTitle = (
     return <span className="flex items-center gap-1">{titleText}</span>
 }
 
+const getIcon = (direction: TransactionDirection, isLinkTransaction?: boolean): IconName | undefined => {
+    if (isLinkTransaction) {
+        return undefined
+    }
+
+    switch (direction) {
+        case 'send':
+            return 'arrow-up-right'
+        case 'request_sent':
+        case 'receive':
+        case 'request_received':
+            return 'arrow-down-left'
+        case 'withdraw':
+            return 'arrow-up'
+        case 'add':
+            return 'arrow-down'
+        default:
+            return undefined
+    }
+}
+
 export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCardProps> = ({
     direction,
     userName,
@@ -88,6 +114,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 }) => {
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
+
+    const icon = getIcon(direction, isLinkTransaction)
 
     return (
         <Card className="relative p-4 md:p-6" position="single">
@@ -102,13 +130,14 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     size="medium"
                 />
                 <div className="space-y-1">
-                    <h2 className="text-sm font-medium text-grey-1">
+                    <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
+                        {icon && <Icon name={icon} size={10} />}
                         {getTitle(direction, userName, isLinkTransaction, status)}
                     </h2>
                     <h1
                         className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' ? 'text-grey-1 line-through' : ''}`}
                     >
-                        ${amountDisplay}
+                        $ {amountDisplay}
                     </h1>
                 </div>
             </div>

@@ -1,5 +1,6 @@
 import { ComponentType, FC, SVGProps } from 'react'
 import { AchievementsIcon } from './achievements'
+import { AlertIcon } from './alert'
 import { ArrowDownIcon } from './arrow-down'
 import { ArrowDownLeftIcon } from './arrow-down-left'
 import { ArrowUpIcon } from './arrow-up'
@@ -8,27 +9,35 @@ import { BankIcon } from './bank'
 import { CameraIcon } from './camera'
 import { CancelIcon } from './cancel'
 import { CheckIcon } from './check'
+import { CheckCircleIcon } from './check-circle'
 import { ChevronUpIcon } from './chevron-up'
+import { ClipIcon } from './clip'
 import { CopyIcon } from './copy'
 import { CurrencyIcon } from './currency'
 import { DocsIcon } from './docs'
 import { DownloadIcon } from './download'
+import { ErrorIcon } from './error'
 import { ExchangeIcon } from './exchange'
+import { ExchangeArrowsIcon } from './exchange-arrows'
+import { ExternalLinkIcon } from './external-link'
 import { EyeIcon } from './eye'
 import { EyeSlashIcon } from './eye-slash'
 import { FeesIcon } from './fees'
 import { GiftIcon } from './gift'
 import { HistoryIcon } from './history'
 import { HomeIcon } from './home'
+import { InfoIcon } from './Info'
 import { LinkIcon } from './link'
 import { LogoutIcon } from './logout'
 import { PaperClipIcon } from './paper-clip'
 import { PeanutSupportIcon } from './peanut-support'
+import { PlusIcon } from './plus'
 import { QrCodeIcon } from './qr-code'
 import { SearchIcon } from './search'
 import { ShareIcon } from './share'
 import { SmileIcon } from './smile'
 import { StarIcon } from './star'
+import { SwitchIcon } from './switch'
 import { TxnOffIcon } from './txn-off'
 import { UserIcon } from './user'
 import { UserPlusIcon } from './user-plus'
@@ -38,6 +47,7 @@ import { WalletOutlineIcon } from './wallet-outline'
 
 // available icon names
 export type IconName =
+    | 'alert'
     | 'arrow-down'
     | 'arrow-down-left'
     | 'arrow-up'
@@ -47,6 +57,7 @@ export type IconName =
     | 'check'
     | 'chevron-up'
     | 'copy'
+    | 'check-circle'
     | 'cancel'
     | 'download'
     | 'eye'
@@ -74,6 +85,13 @@ export type IconName =
     | 'qr-code'
     | 'history'
     | 'docs'
+    | 'error'
+    | 'clip'
+    | 'info'
+    | 'external-link'
+    | 'plus'
+    | 'exchange-arrows'
+    | 'switch'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -117,6 +135,15 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'qr-code': QrCodeIcon,
     history: HistoryIcon,
     docs: DocsIcon,
+    error: ErrorIcon,
+    clip: ClipIcon,
+    info: InfoIcon,
+    'external-link': ExternalLinkIcon,
+    plus: PlusIcon,
+    'exchange-arrows': ExchangeArrowsIcon,
+    alert: AlertIcon,
+    switch: SwitchIcon,
+    'check-circle': CheckCircleIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

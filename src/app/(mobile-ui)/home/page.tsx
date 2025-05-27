@@ -3,7 +3,6 @@
 import { PeanutArmHoldingBeer } from '@/assets'
 import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import AddFunds from '@/components/AddFunds'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'

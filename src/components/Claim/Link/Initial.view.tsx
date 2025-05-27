@@ -1,15 +1,9 @@
 'use client'
 
-import { Button, Card } from '@/components/0_Bruddle'
-import Divider from '@/components/0_Bruddle/Divider'
-import { CrispButton } from '@/components/CrispChat'
-import AddressLink from '@/components/Global/AddressLink'
-import FlowHeader from '@/components/Global/FlowHeader'
+import { Button } from '@/components/0_Bruddle'
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
-import GuestLoginCta from '@/components/Global/GuestLoginCta'
-import Icon from '@/components/Global/Icon'
-import MoreInfo from '@/components/Global/MoreInfo'
-import PeanutSponsored from '@/components/Global/PeanutSponsored'
+import NavHeader from '@/components/Global/NavHeader'
+import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import {
     MAX_CASHOUT_LIMIT,
@@ -21,35 +15,30 @@ import { ActionType, estimatePoints } from '@/components/utils/utils'
 import * as consts from '@/constants'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { TOOLTIPS } from '@/constants/tooltips'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
 import {
     areEvmAddressesEqual,
-    checkifImageType,
     ErrorHandler,
     fetchWithSentry,
     formatTokenAmount,
     getBridgeChainName,
     getBridgeTokenName,
+    saveRedirectUrl,
+    printableAddress,
+    jsonStringify,
 } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
-import { Popover } from '@headlessui/react'
 import * as Sentry from '@sentry/nextjs'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useQueryClient } from '@tanstack/react-query'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
 import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
-
-const isPeanutClaimOnlyMode = () => {
-    if (typeof window === 'undefined') return false
-    const urlParams = new URLSearchParams(window.location.search)
-    return urlParams.get('t') === 'pnt'
-}
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -72,7 +61,6 @@ export const InitialClaimLinkView = ({
     setUserType,
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
-    const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -92,12 +80,14 @@ export const InitialClaimLinkView = ({
         setRefetchXchainRoute,
         isXChain,
         setIsXChain,
-        supportedSquidChainsAndTokens,
     } = useContext(tokenSelectorContext)
     const { claimLink } = useClaimLink()
     const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
+    const [claimToExternalWallet, setClaimToExternalWallet] = useState<boolean>(false)
+    const router = useRouter()
     const { user } = useAuth()
     const queryClient = useQueryClient()
+    const searchParams = useSearchParams()
 
     const resetSelectedToken = useCallback(() => {
         if (isPeanutWallet) {
@@ -108,6 +98,10 @@ export const InitialClaimLinkView = ({
             setSelectedTokenAddress(claimLinkData.tokenAddress)
         }
     }, [claimLinkData, isPeanutWallet])
+
+    const isPeanutClaimOnlyMode = useMemo(() => {
+        return searchParams.get('t') === 'pnt'
+    }, [searchParams])
 
     const handleClaimLink = useCallback(async () => {
         setLoadingState('Loading')
@@ -121,7 +115,7 @@ export const InitialClaimLinkView = ({
         try {
             setLoadingState('Executing transaction')
             if (isPeanutWallet) {
-                await sendLinksApi.claim(user?.user.username!, claimLinkData.link)
+                await sendLinksApi.claim(user?.user.username ?? address, claimLinkData.link)
 
                 setClaimType('claim')
                 onCustom('SUCCESS')
@@ -471,282 +465,151 @@ export const InitialClaimLinkView = ({
 
     const getButtonText = () => {
         if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
-            return 'Proceed'
+            return 'Review'
         }
         if (selectedRoute || (isXChain && hasFetchedRoute)) {
-            return 'Proceed'
+            return 'Review'
         }
-        return 'Claim Now'
+
+        if (isLoading) {
+            return 'Claiming'
+        }
+
+        return 'Claim'
+    }
+
+    const guestAction = () => {
+        if (!!user?.user.userId || claimToExternalWallet) return null
+        return (
+            <div className="space-y-4">
+                <Button
+                    shadowSize="4"
+                    onClick={() => {
+                        saveRedirectUrl()
+                        router.push('/setup')
+                    }}
+                    className="w-full"
+                >
+                    Sign In
+                </Button>
+                {!isPeanutClaimOnlyMode && (
+                    <Button
+                        variant="primary-soft"
+                        shadowSize="4"
+                        onClick={() => setClaimToExternalWallet(true)}
+                        className="w-full"
+                    >
+                        Claim to External Wallet
+                    </Button>
+                )}
+            </div>
+        )
     }
 
     return (
-        <div>
-            {!!user && <FlowHeader />}
-            <Card className="shadow-none sm:shadow-4">
-                <Card.Header>
-                    <Card.Title className="mx-auto">
-                        <div className="flex w-full flex-col items-center justify-center gap-2">
-                            {isReward ? (
-                                <span>You received</span>
-                            ) : (
-                                <>
-                                    <AddressLink
-                                        address={claimLinkData.sender?.username ?? claimLinkData.senderAddress}
-                                    />{' '}
-                                    sent you
-                                </>
-                            )}
-                            {!isReward && tokenPrice ? (
-                                <label className="text-h2">
-                                    $
-                                    {formatTokenAmount(
-                                        Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) *
-                                            tokenPrice
-                                    )}
-                                </label>
-                            ) : (
-                                <label className="text-h2 ">
-                                    {formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)}{' '}
-                                    {claimLinkData.tokenSymbol}
-                                </label>
-                            )}
-                        </div>
-                    </Card.Title>
-                    <Card.Description className="mx-auto">
-                        {(attachment.message || attachment.attachmentUrl) && (
-                            <>
-                                <div
-                                    className={`flex w-full items-center justify-center gap-2 ${checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
-                                >
-                                    {attachment.message && (
-                                        <label className="max-w-full text-h8">
-                                            Ref: <span className="font-normal"> {attachment.message} </span>
-                                        </label>
-                                    )}
-                                    {attachment.attachmentUrl && (
-                                        <a
-                                            href={attachment.attachmentUrl}
-                                            download
-                                            target="_blank"
-                                            className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-grey-1 underline "
-                                        >
-                                            <Icon name={'download'} />
-                                            Download attachment
-                                        </a>
-                                    )}
-                                </div>
-                                <div className="flex w-full border-t border-dotted border-black" />
-                            </>
-                        )}
-                    </Card.Description>
-                </Card.Header>
-                <Card.Content className="flex flex-col gap-2">
-                    {/* Token Selector
-                     * We don't want to show this if we're claiming to peanut wallet. Else its okay
-                     */}
-                    {!isPeanutWallet &&
-                        recipientType !== 'iban' &&
-                        recipientType !== 'us' &&
-                        !isPeanutClaimOnlyMode() && <TokenSelector viewType="claim" />}
-                    {/* Route Information & Peanut Sponsored
-                     * Shows when:
-                     * - Has valid recipient
-                     * - Recipient type is NOT iban/us
-                     * Displays cross-chain route info if applicable
-                     */}
-                    {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
-                        <div className="flex w-full flex-col items-center justify-center gap-2 py-2">
-                            {selectedRoute && (
-                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-grey-1">
-                                    <div className="flex w-max flex-row items-center justify-center gap-1">
-                                        <Icon name={'forward'} className="h-4 fill-grey-1" />
-                                        <label className="font-bold">Route</label>
-                                    </div>
-                                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                        {isXchainLoading ? (
-                                            <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                        ) : (
-                                            selectedRoute && (
-                                                <>
-                                                    {
-                                                        consts.supportedPeanutChains.find(
-                                                            (chain) =>
-                                                                chain.chainId === selectedRoute.route.params.fromChain
-                                                        )?.name
-                                                    }
-                                                    <Icon name={'arrow-next'} className="h-4 fill-grey-1" />{' '}
-                                                    {
-                                                        supportedSquidChainsAndTokens[
-                                                            selectedRoute.route.params.toChain
-                                                        ]?.axelarChainName
-                                                    }
-                                                    <MoreInfo
-                                                        text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
-                                                            consts.supportedPeanutChains.find(
-                                                                (chain) =>
-                                                                    chain.chainId ===
-                                                                    selectedRoute.route.params.fromChain
-                                                            )?.name
-                                                        } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                                            supportedSquidChainsAndTokens[
-                                                                selectedRoute.route.params.toChain
-                                                            ]?.axelarChainName
-                                                        }.`}
-                                                    />
-                                                </>
-                                            )
-                                        )}
-                                    </span>
-                                </div>
-                            )}
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="md:hidden">
+                <NavHeader
+                    title="Claim"
+                    onPrev={() => {
+                        if (user?.user.userId) {
+                            router.push('/home')
+                        } else {
+                            router.push('/setup')
+                        }
+                    }}
+                />
+            </div>
+            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <PeanutActionDetailsCard
+                    avatarSize="small"
+                    transactionType="CLAIM_LINK"
+                    recipientType="USERNAME"
+                    recipientName={claimLinkData.sender?.username ?? printableAddress(claimLinkData.senderAddress)}
+                    amount={
+                        isReward
+                            ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!
+                            : (formatTokenAmount(
+                                  Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
+                              ) ?? '')
+                    }
+                    tokenSymbol={claimLinkData.tokenSymbol}
+                    message={attachment.message}
+                    fileUrl={attachment.attachmentUrl}
+                />
 
-                            {!isXchainLoading && <PeanutSponsored />}
-                        </div>
+                {/* Token Selector
+                 * We don't want to show this if we're claiming to peanut wallet. Else its okay
+                 */}
+                {!isPeanutWallet &&
+                    recipientType !== 'iban' &&
+                    recipientType !== 'us' &&
+                    !isPeanutClaimOnlyMode &&
+                    !!claimToExternalWallet && <TokenSelector viewType="claim" />}
+
+                {/* Alternative options section with divider */}
+                {!isPeanutClaimOnlyMode && (
+                    <>
+                        {/* Manual Input Section - Always visible in non-peanut-only mode */}
+                        {!isPeanutWallet && !!claimToExternalWallet && (
+                            <GeneralRecipientInput
+                                placeholder="Enter an address or ENS"
+                                recipient={recipient}
+                                onUpdate={(update: GeneralRecipientUpdate) => {
+                                    setRecipient(update.recipient)
+                                    if (!update.recipient.address) {
+                                        setRecipientType('address')
+                                        // Reset loading state when input is cleared
+                                        setLoadingState('Idle')
+                                    } else {
+                                        setRecipientType(update.type)
+                                    }
+                                    setIsValidRecipient(update.isValid)
+                                    setErrorState({
+                                        showError: !update.isValid,
+                                        errorMessage: update.errorMessage,
+                                    })
+                                    setInputChanging(update.isChanging)
+                                }}
+                                showInfoText={false}
+                            />
+                        )}
+                    </>
+                )}
+
+                <div className="space-y-4">
+                    {guestAction()}
+                    {(!!claimToExternalWallet || !!user?.user.userId) && (
+                        <Button
+                            icon={'arrow-down'}
+                            shadowSize="4"
+                            onClick={() => {
+                                if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+                                    setRefetchXchainRoute(true)
+                                    onNext()
+                                } else if (recipientType === 'iban' || recipientType === 'us') {
+                                    handleIbanRecipient()
+                                } else if (selectedRoute || (isXChain && hasFetchedRoute)) {
+                                    onNext()
+                                } else {
+                                    handleClaimLink()
+                                }
+                            }}
+                            loading={isLoading || isXchainLoading}
+                            disabled={
+                                isLoading ||
+                                isXchainLoading ||
+                                inputChanging ||
+                                !isValidRecipient ||
+                                (isXChain && !selectedRoute && (!hasFetchedRoute || isXchainLoading))
+                            }
+                            className="text-sm md:text-base"
+                        >
+                            {getButtonText()}
+                        </Button>
                     )}
-                    <div className="flex w-full flex-col items-center justify-center">
-                        {(!recipient.address || !isValidRecipient) && (
-                            <>
-                                {/* Guest Login CTA (Peanut Wallet) */}
-                                {/* Always hide connect wallet - user can use the manual input field */}
-                                {(isPeanutClaimOnlyMode() || !user) && recipient.address.length === 0 && (
-                                    <GuestLoginCta view="CLAIM" hideConnectWallet={true} />
-                                )}
-
-                                {!isPeanutClaimOnlyMode() && recipient.address.length === 0 && (
-                                    <Divider text="or" className="-mt-2 mb-2 text-grey-1" />
-                                )}
-                            </>
-                        )}
-
-                        {/* Alternative options section with divider */}
-                        {!isPeanutClaimOnlyMode() && (
-                            <>
-                                {/* Manual Input Section - Always visible in non-peanut-only mode */}
-                                <div className="flex w-full flex-col gap-4">
-                                    {!isPeanutWallet && (
-                                        <GeneralRecipientInput
-                                            className="pl-8"
-                                            placeholder="wallet address, ENS name or bank account"
-                                            recipient={recipient}
-                                            onUpdate={(update: GeneralRecipientUpdate) => {
-                                                setRecipient(update.recipient)
-                                                if (!update.recipient.address) {
-                                                    setRecipientType('address')
-                                                    // Reset loading state when input is cleared
-                                                    setLoadingState('Idle')
-                                                } else {
-                                                    setRecipientType(update.type)
-                                                }
-                                                setIsValidRecipient(update.isValid)
-                                                setErrorState({
-                                                    showError: !update.isValid,
-                                                    errorMessage: update.errorMessage,
-                                                })
-                                                setInputChanging(update.isChanging)
-                                            }}
-                                            infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
-                                        />
-                                    )}
-
-                                    {/* Claim Button - show when there's any input, disabled until valid */}
-                                    {recipient.address && (
-                                        <Button
-                                            onClick={() => {
-                                                if (
-                                                    isPeanutWallet &&
-                                                    Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id
-                                                ) {
-                                                    setRefetchXchainRoute(true)
-                                                    onNext()
-                                                } else if (recipientType === 'iban' || recipientType === 'us') {
-                                                    handleIbanRecipient()
-                                                } else if (selectedRoute || (isXChain && hasFetchedRoute)) {
-                                                    onNext()
-                                                } else {
-                                                    handleClaimLink()
-                                                }
-                                            }}
-                                            loading={isLoading || isXchainLoading}
-                                            disabled={
-                                                isLoading ||
-                                                isXchainLoading ||
-                                                inputChanging ||
-                                                !isValidRecipient ||
-                                                (isXChain && !selectedRoute && (!hasFetchedRoute || isXchainLoading))
-                                            }
-                                            className="text-sm md:text-base"
-                                        >
-                                            {getButtonText()}
-                                        </Button>
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        {/* Error Messages */}
-                        {errorState.showError && (
-                            <div className="text-start">
-                                {errorState.errorMessage === 'offramp unavailable' ? (
-                                    <label className="text-h8 font-normal text-red">
-                                        You can not claim this token to your bank account.{' '}
-                                        <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
-                                    </label>
-                                ) : (
-                                    <>
-                                        {errorState.errorMessage === 'No route found for the given token pair.' && (
-                                            <>
-                                                <label className="text-h8 font-normal text-red">
-                                                    {isPeanutWallet
-                                                        ? 'This token cannot be claimed from peanut wallet. You can use an external wallet'
-                                                        : errorState.errorMessage}
-                                                </label>{' '}
-                                                {!isPeanutWallet && (
-                                                    <span
-                                                        className="cursor-pointer text-h8 font-normal text-red underline"
-                                                        onClick={() => {
-                                                            setSelectedRoute(null)
-                                                            setHasFetchedRoute(false)
-                                                            setErrorState({
-                                                                showError: false,
-                                                                errorMessage: '',
-                                                            })
-                                                            resetSelectedToken()
-                                                        }}
-                                                    >
-                                                        reset
-                                                    </span>
-                                                )}
-                                            </>
-                                        )}
-                                        {errorState.errorMessage === 'offramp_lt_minimum' && (
-                                            <label className="text-h8 font-normal text-red">
-                                                You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank
-                                                account.
-                                            </label>
-                                        )}
-                                        {errorState.errorMessage === 'offramp_mt_maximum' && (
-                                            <label className="text-h8 font-normal text-red">
-                                                You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank
-                                                account.
-                                            </label>
-                                        )}
-                                        {![
-                                            'offramp_lt_minimum',
-                                            'offramp_mt_maximum',
-                                            'No route found for the given token pair.',
-                                        ].includes(errorState.errorMessage) && (
-                                            <label className="text-h8 font-normal text-red">
-                                                {errorState.errorMessage}
-                                            </label>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                    <Popover id="HEpPuXFz" />
-                </Card.Content>
-            </Card>
+                </div>
+            </div>
         </div>
     )
 }
