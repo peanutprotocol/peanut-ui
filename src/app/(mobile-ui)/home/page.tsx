@@ -80,8 +80,8 @@ export default function Home() {
                 </div>
                 <div className="space-y-4">
                     <ActionButtonGroup>
-                        <AddFunds cta={<ActionButton label="Add" action="add" size="small" />} />
-                        <ActionButtonWithHref label="Withdraw" action="withdraw" href="/cashout" size="small" />
+                        <ActionButtonWithHref label="Add" action="add" href="/add-money" size="small" />
+                        <ActionButtonWithHref label="Withdraw" action="withdraw" href="/withdraw" size="small" />
                     </ActionButtonGroup>
 
                     <WalletBalance
@@ -190,8 +190,8 @@ function ActionButton({ label, action, variant = 'primary-soft', size = 'small' 
             <div className={twMerge(
                 'flex items-center justify-center',
                 size === 'small'
-                    ? 'size-[22px] md:size-[23px]'  // Tamaños para botones pequeños (Add/Withdraw)
-                    : 'size-[22px] md:size-[23px]'   // Tamaños para botones grandes (Send/Request)
+                    ? 'size-[22px] md:size-[23px]'  // Add/Withdraw size
+                    : 'size-[22px] md:size-[23px]'   // Send/Request size
             )}>
                 {(() => {
                     switch (action) {
@@ -217,8 +217,8 @@ function ActionButton({ label, action, variant = 'primary-soft', size = 'small' 
             className={twMerge(
                 'flex cursor-pointer items-center justify-center rounded-full w-auto',
                 size === 'large'
-                    ? 'gap-x-2 h-12 px-6 md:h-14 md:px-7' // Tamaños para botones grandes (Send/Request)
-                    : 'gap-x-1 h-10 px-5 md:h-12 md:px-6' // Tamaños para botones pequeños (Add/Withdraw)
+                    ? 'gap-x-2 h-12 px-6 md:h-14 md:px-7' // Send/Request size 
+                    : 'gap-x-1 h-10 px-5 md:h-12 md:px-6' // Add/Withdraw size
             )}
             shadowSize="4"
             size={size}
@@ -227,8 +227,8 @@ function ActionButton({ label, action, variant = 'primary-soft', size = 'small' 
             <span className={twMerge(
                 'font-semibold whitespace-nowrap',
                 size === 'small'
-                    ? 'text-sm md:text-base' // Tamaños para botones pequeños (Add/Withdraw)
-                    : 'text-base md:text-lg' // Tamaños para botones grandes (Send/Request)
+                    ? 'text-sm md:text-base' // Add/Withdraw size
+                    : 'text-base md:text-lg' // Send/Request size 
             )}>
                 {label}
             </span>
