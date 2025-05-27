@@ -19,7 +19,13 @@ export default function WithdrawPage() {
     const router = useRouter()
     const [step, setStep] = useState<WithdrawStep>('inputAmount')
     const [rawTokenAmount, setRawTokenAmount] = useState<string>('')
-    const { amountToWithdraw: amountFromContext, setAmountToWithdraw, setError, error } = useWithdrawFlow()
+    const {
+        amountToWithdraw: amountFromContext,
+        setAmountToWithdraw,
+        setError,
+        error,
+        setRecipient,
+    } = useWithdrawFlow()
 
     const { balance } = useWallet()
 
@@ -31,6 +37,10 @@ export default function WithdrawPage() {
         const formattedBalance = formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
         return formattedBalance
     }, [balance])
+
+    useEffect(() => {
+        setRecipient({ address: '', name: '' })
+    }, [])
 
     useEffect(() => {
         if (amountFromContext && parseFloat(amountFromContext) > 0) {
