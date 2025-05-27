@@ -27,7 +27,6 @@ interface Props {
 
 export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) {
     const isDirectPay = flow === 'direct_pay'
-    const isWithdrawFlow = flow === 'withdraw'
     const isAddMoneyFlow = flow === 'add_money'
     const dispatch = useAppDispatch()
     const { currentView, parsedPaymentData, chargeDetails } = usePaymentStore()
@@ -243,7 +242,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     ) {
         const username = parsedPaymentData.recipient.identifier
         const handleSendClick = () => {
-            router.push(`/pay/${username}`)
+            router.push(`/send/${username}`)
         }
         return (
             <PublicProfile
@@ -276,7 +275,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 <InitialPaymentView
                     {...(parsedPaymentData as ParsedURL)}
                     isAddMoneyFlow={isAddMoneyFlow}
-                    isWithdrawFlow={isWithdrawFlow}
                     currency={
                         currencyCode
                             ? {

@@ -5,8 +5,9 @@ import config, { MAINTAINABLE_ROUTES } from '@/config/routesUnderMaintenance'
 export const dynamic = 'force-dynamic'
 
 export const metadata = generateMetadata({
-    title: 'Cash Out Crypto | Peanut',
-    description: 'Convert your crypto to fiat and withdraw directly to your bank account. Fast, secure crypto offramp.',
+    title: 'Cash Out | Peanut',
+    description:
+        'Cash out your digital dollars with Peanut. Convert to your local currency and transfer to your bank with ease.',
     keywords: 'crypto cashout, offramp, crypto to bank, digital dollars, fiat withdrawal',
 })
 

@@ -1,6 +1,6 @@
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
-import { ContextProvider } from '@/context'
 import { PeanutProvider } from '@/config'
+import { ContextProvider } from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
 import { Viewport } from 'next'
 import { Londrina_Solid, Roboto_Flex, Sniglet } from 'next/font/google'
@@ -40,12 +40,12 @@ const knerdFilled = localFont({
 })
 
 export const metadata = generateMetadata({
-    title: 'Peanut Protocol | Cross-Chain Payment Infrastructure',
+    title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
     description:
-        'Seamless cross-chain payment infrastructure for sending and receiving digital assets. Built for both developers and consumers to abstract away blockchain complexities with chain-agnostic transfers, stablecoin conversions, and fiat offramps.',
+        'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars. Easily transfer funds across borders. Enjoy cheap, instant remittances and cash out to local banks without technical hassle.',
     image: '/metadata-img.png',
     keywords:
-        'blockchain payments, cross-chain transfers, payment infrastructure, crypto payments, stablecoin conversion, fiat offramp, web3 payments, blockchain protocol',
+        'peer-to-peer payments, send money instantly, request money, fast global transfers, remittances, digital dollar transfers, Latin America, Argentina, Brazil, P2P payments, crypto payments, stablecoin, digital dollars',
 })
 
 export const viewport: Viewport = {

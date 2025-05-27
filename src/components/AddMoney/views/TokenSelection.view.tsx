@@ -35,7 +35,6 @@ const TokenSelectionView: React.FC<TokenSelectionViewProps> = ({ onTokenSelect, 
                                         width={32}
                                         height={32}
                                         loading="lazy"
-                                        className="rounded-full"
                                     />
                                 }
                                 className="px-4 py-3.5"

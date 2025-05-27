@@ -40,7 +40,6 @@ import { useAccount } from 'wagmi'
 export type PaymentFlowProps = {
     isPintaReq?: boolean
     isAddMoneyFlow?: boolean
-    isWithdrawFlow?: boolean
     currency?: {
         code: string
         symbol: string
@@ -62,7 +61,6 @@ export const PaymentForm = ({
     currencyAmount,
     setCurrencyAmount,
     isAddMoneyFlow,
-    isWithdrawFlow,
 }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -349,7 +347,7 @@ export const PaymentForm = ({
             return
         }
 
-        if (!isActivePeanutWallet && isWagmiConnected && selectedTokenData && selectedChainID) {
+        if (!isActivePeanutWallet && isWagmiConnected && selectedTokenData && selectedChainID && !!chargeDetails) {
             dispatch(paymentActions.setView('CONFIRM'))
             return
         }
@@ -416,7 +414,7 @@ export const PaymentForm = ({
             return 'Connect Wallet'
         }
 
-        if (isAddMoneyFlow || isWithdrawFlow) {
+        if (isAddMoneyFlow) {
             return 'Review'
         }
 
@@ -578,14 +576,12 @@ export const PaymentForm = ({
             <NavHeader
                 onPrev={() => {
                     if (isAddMoneyFlow) {
-                        router.push('/add-money')
-                    } else if (isWithdrawFlow) {
-                        router.push('/withdraw')
+                        router.push('/add-money/crypto')
                     } else {
                         router.push('/home')
                     }
                 }}
-                title={isAddMoneyFlow ? 'Add Money' : isWithdrawFlow ? 'Withdraw' : 'Send'}
+                title={isAddMoneyFlow ? 'Add Money' : 'Send'}
             />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isAddMoneyFlow && isWagmiConnected && (
@@ -610,7 +606,7 @@ export const PaymentForm = ({
                     </Button>
                 )}
                 {/* Recipient Info Card */}
-                {recipient && !isAddMoneyFlow && !isWithdrawFlow && (
+                {recipient && !isAddMoneyFlow && (
                     <UserCard
                         type="send"
                         username={recipientDisplayName}
@@ -635,9 +631,11 @@ export const PaymentForm = ({
 
                 {!isActivePeanutWallet && isConnected && !isAddMoneyFlow && (
                     <div className="space-y-2">
-                        <div className="text-sm font-bold">Select token and chain to pay with</div>
+                        {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
+                            <div className="text-sm font-bold">Select token and chain to pay with</div>
+                        )}
                         <TokenSelector viewType="req_pay" />
-                        {!isPeanutWalletUSDC && (
+                        {!isPeanutWalletUSDC && selectedTokenAddress && selectedChainID && (
                             <div className="pt-1 text-center text-xs text-grey-1">
                                 <span>Use USDC on Arbitrum for free transactions!</span>
                             </div>

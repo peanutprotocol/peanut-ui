@@ -38,7 +38,7 @@ const GeneralRecipientInput = ({
     const recipientType = useRef<interfaces.RecipientType>('address')
     const errorMessage = useRef('')
     const resolvedAddress = useRef('')
-    const { getSuggestions, addRecipient } = useRecentRecipients()
+    const { addRecipient } = useRecentRecipients()
 
     const checkAddress = useCallback(async (recipient: string): Promise<boolean> => {
         try {
@@ -122,7 +122,6 @@ const GeneralRecipientInput = ({
         <div className="w-full">
             <label className="mb-2 block text-left text-sm font-bold">Where do you want to receive this?</label>
             <ValidatedInput
-                label="To"
                 value={recipient.name ?? recipient.address}
                 placeholder={placeholder}
                 validate={checkAddress}
@@ -130,7 +129,6 @@ const GeneralRecipientInput = ({
                 className={className}
                 autoComplete="on"
                 name="bank-account"
-                suggestions={getSuggestions(recipientType.current)}
                 infoText={showInfoText ? infoText : undefined}
                 formatDisplayValue={formatDisplayValue}
             />

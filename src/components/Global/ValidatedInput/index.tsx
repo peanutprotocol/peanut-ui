@@ -7,7 +7,6 @@ import { Icon } from '../Icons/Icon'
 import Loading from '../Loading'
 
 type ValidatedInputProps = {
-    label?: string
     value: string
     placeholder?: string
     debounceTime?: number
@@ -16,7 +15,6 @@ type ValidatedInputProps = {
     className?: string
     autoComplete?: string
     name?: string
-    suggestions?: string[]
     infoText?: string
     formatDisplayValue?: (value: string) => string
 }
@@ -28,7 +26,6 @@ export type InputUpdate = {
 }
 
 const ValidatedInput = ({
-    label,
     placeholder = '',
     value,
     debounceTime = 750,
@@ -37,7 +34,6 @@ const ValidatedInput = ({
     className,
     autoComplete,
     name,
-    suggestions,
     infoText,
     formatDisplayValue,
 }: ValidatedInputProps) => {
@@ -182,7 +178,6 @@ const ValidatedInput = ({
                     autoCorrect="off"
                     autoCapitalize="off"
                     name={name}
-                    list={suggestions ? listId.current : undefined}
                     translate="no"
                     style={{
                         WebkitTapHighlightColor: 'transparent',
@@ -215,13 +210,6 @@ const ValidatedInput = ({
                     </div>
                 )}
             </div>
-            {suggestions && (
-                <datalist id={listId.current}>
-                    {suggestions.map((suggestion, index) => (
-                        <option key={index} value={suggestion} />
-                    ))}
-                </datalist>
-            )}
         </div>
     )
 }

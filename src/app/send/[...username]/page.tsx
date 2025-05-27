@@ -1,18 +1,35 @@
-import PaymentLayoutWrapper from '@/app/[...recipient]/payment-layout-wrapper'
+import PaymentPage from '@/app/[...recipient]/client'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
+import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { Metadata } from 'next'
+import { use } from 'react'
+
+type PageProps = {
+    params: Promise<{ username?: string[] }>
+}
+
+export default function DirectPaymentPage(props: PageProps) {
+    const params = use(props.params)
+    const usernameSegments = params.username ?? []
+
+    const recipient = usernameSegments
+
+    return (
+        <PageContainer className="min-h-[inherit]">
+            <PaymentPage recipient={recipient} flow="direct_pay" />
+        </PageContainer>
+    )
+}
 
 export async function generateMetadata({ params }: { params: { username: string[] } }): Promise<Metadata> {
     const username = params.username?.[0] ? decodeURIComponent(params.username[0]) : 'user'
 
-    const defaultTitle = `Request Money from ${username} | Peanut`
-    const defaultDescription = `Request digital dollars from ${username} using Peanut. Create and share P2P payment requests easily.`
+    const defaultTitle = `Send Money to ${username} | Peanut`
+    const defaultDescription = `Send digital dollars to ${username} quickly and securely with Peanut.`
 
     const baseMetadata = generateBaseMetadata({
         title: defaultTitle,
         description: defaultDescription,
-        image: '/metadata-img.png',
-        keywords: 'crypto request, P2P request, digital dollar request',
     })
 
     return {
@@ -30,8 +47,4 @@ export async function generateMetadata({ params }: { params: { username: string[
             description: defaultDescription,
         },
     }
-}
-
-export default function DirectRequestLayout({ children }: { children: React.ReactNode }) {
-    return <PaymentLayoutWrapper>{children}</PaymentLayoutWrapper>
 }

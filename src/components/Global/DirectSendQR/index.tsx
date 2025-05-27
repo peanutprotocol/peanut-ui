@@ -190,9 +190,9 @@ export default function DirectSendQr({
     const dispatch = useAppDispatch()
     const toast = useToast()
     const { user } = useAuth()
-    const profileUrl = useMemo(() => {
+    const payUserUrl = useMemo(() => {
         if (!user?.user.username) return ''
-        return `${BASE_URL}/${user.user.username}`
+        return `${BASE_URL}/pay/${user.user.username}`
     }, [user?.user.username])
 
     const processQRCode = async (data: string): Promise<{ success: boolean; error?: string }> => {
@@ -390,7 +390,7 @@ export default function DirectSendQr({
                 <>
                     <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
                     <QRBottomDrawer
-                        url={profileUrl}
+                        url={payUserUrl}
                         collapsedTitle="My QR"
                         expandedTitle="Show QR to Get Paid"
                         text="Let others scan this to pay you"

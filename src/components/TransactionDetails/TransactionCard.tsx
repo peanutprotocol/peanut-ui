@@ -117,27 +117,27 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             isLinkTransaction={isLinkTx}
                             transactionType={type}
                             context="card"
-                            size="extra-small"
+                            size="small"
                         />
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
                             <div className="flex flex-row items-center gap-2">
-                                {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
-                                <div className="max-w-40 truncate font-roboto text-sm font-medium">
+                                {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-pink-1" />}
+                                <div className="max-w-40 truncate font-roboto text-[16px] font-medium">
                                     <AddressLink address={name} isLink={false} />
                                 </div>
                             </div>
                             {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-gray-500">
                                 {getActionIcon(type, transaction.direction)}
-                                <span className="text-[10px] capitalize">{type}</span>
+                                <span className="text-[14px] capitalize">{type}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* amount and status on the right side */}
-                    <div className="flex flex-col items-end space-y-0.5">
-                        <span className="font-roboto text-xs font-medium">{finalDisplayAmount}</span>
+                    <div className="flex flex-col items-end space-y-1">
+                        <span className="font-roboto text-[16px] font-medium">{finalDisplayAmount}</span>
                         {status && <StatusBadge status={status} />}
                     </div>
                 </div>
@@ -156,7 +156,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 // helper functions
 function getActionIcon(type: TransactionType, direction: TransactionDirection): React.ReactNode {
     let iconName: IconName | null = null
-    let iconSize = 6
+    let iconSize = 8
 
     switch (type) {
         case 'send':

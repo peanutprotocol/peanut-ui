@@ -19,7 +19,7 @@ export const SendRouterView = () => {
             linkCardTitle="Pay anyone with a link!"
             linkCardDescription="Create a link and send them money"
             onLinkCardClick={() => setIsSendingByLink(true)}
-            onUserSelect={(username) => router.push(`/pay/${username}`)}
+            onUserSelect={(username) => router.push(`/send/${username}`)}
         />
     )
 }

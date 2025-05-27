@@ -10,6 +10,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 
 type AddMoneyCryptoStep = 'sourceSelection' | 'tokenSelection' | 'networkSelection' | 'riskModal' | 'qrScreen'
 
@@ -122,6 +123,7 @@ const AddMoneyCryptoPage = () => {
                     visible={true}
                     onClose={handleBackToNetworkSelectionFromRisk}
                     icon={'alert'}
+                    modalClassName="backdrop-blur"
                     title={`Only send ${selectedToken.symbol} on ${selectedNetwork.name}`}
                     description="Sending funds via any other network will result in a permanent loss of funds. Peanut is not responsible for any loss of funds due to incorrect network selection."
                     checkbox={{
@@ -136,7 +138,10 @@ const AddMoneyCryptoPage = () => {
                             disabled: !isRiskAccepted,
                             variant: isRiskAccepted ? 'purple' : 'stroke',
                             shadowSize: '4',
-                            className: !isRiskAccepted ? 'border-grey-2 text-grey-2' : '',
+                            className: twMerge(
+                                !isRiskAccepted ? 'border-grey-2 text-grey-2' : '',
+                                'text-black border border-black h-11 hover:text-black'
+                            ),
                         },
                     ]}
                     modalPanelClassName="max-w-xs"

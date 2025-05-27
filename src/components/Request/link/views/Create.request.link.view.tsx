@@ -79,7 +79,7 @@ export const CreateRequestLinkView = () => {
         // use debouncedTokenValue when in the process of creating a link with attachment
         const valueToShow = hasAttachment && isCreatingLink ? debouncedTokenValue : _tokenValue
 
-        return `${window.location.origin}${valueToShow ? `/${user?.user.username}/${valueToShow}USDC` : `/pay/${user?.user.username}`}`
+        return `${window.location.origin}${valueToShow ? `/${user?.user.username}/${valueToShow}USDC` : `/send/${user?.user.username}`}`
     }, [user?.user.username, _tokenValue, debouncedTokenValue, generatedLink, hasAttachment, isCreatingLink])
 
     const createRequestLink = useCallback(
@@ -106,10 +106,17 @@ export const CreateRequestLinkView = () => {
                 return
             }
             if (!tokenValue) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Please enter a token amount',
-                })
+                if (
+                    (attachmentOptions?.message && attachmentOptions.message !== ' ') ||
+                    attachmentOptions?.rawFile ||
+                    attachmentOptions?.fileUrl
+                ) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Please enter a token amount',
+                    })
+                    return
+                }
                 return
             }
 
@@ -226,6 +233,7 @@ export const CreateRequestLinkView = () => {
         setIsCreatingLink(false)
         return link ?? ''
     }, [
+        recipientAddress,
         generatedLink,
         qrCodeLink,
         tokenValue,
@@ -236,7 +244,11 @@ export const CreateRequestLinkView = () => {
     ])
 
     useEffect(() => {
-        if (!_tokenValue) return
+        if (!_tokenValue) {
+            setTokenValue('')
+            setUsdValue('')
+            setGeneratedLink(null)
+        }
         setTokenValue(_tokenValue)
         if (selectedTokenPrice) {
             setUsdValue((parseFloat(_tokenValue) * selectedTokenPrice).toString())
@@ -251,17 +263,8 @@ export const CreateRequestLinkView = () => {
         }
 
         if (address) {
-            // reset states first
-            setRecipientAddress('')
-            setIsValidRecipient(false)
-
-            // set recipient to connected wallet address with a delay
-            setTimeout(() => {
-                setRecipientAddress(address)
-                setIsValidRecipient(true)
-            }, 100)
-
-            // set chain and token for Peanut Wallet
+            setRecipientAddress(address)
+            setIsValidRecipient(true)
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         }
@@ -355,7 +358,15 @@ export const CreateRequestLinkView = () => {
                 })
             }
         }
-    }, [debouncedAttachmentOptions, debouncedTokenValue, isValidRecipient, isCreatingLink, generatedLink, _tokenValue])
+    }, [
+        debouncedAttachmentOptions,
+        debouncedTokenValue,
+        isValidRecipient,
+        isCreatingLink,
+        generatedLink,
+        _tokenValue,
+        recipientAddress,
+    ])
 
     // check for token value debouncing
     const isDebouncing =

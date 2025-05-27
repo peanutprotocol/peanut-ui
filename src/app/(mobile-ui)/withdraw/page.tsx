@@ -19,7 +19,13 @@ export default function WithdrawPage() {
     const router = useRouter()
     const [step, setStep] = useState<WithdrawStep>('inputAmount')
     const [rawTokenAmount, setRawTokenAmount] = useState<string>('')
-    const { setAmountToWithdraw, setError, error } = useWithdrawFlow()
+    const {
+        amountToWithdraw: amountFromContext,
+        setAmountToWithdraw,
+        setError,
+        error,
+        setRecipient,
+    } = useWithdrawFlow()
 
     const { balance } = useWallet()
 
@@ -31,6 +37,22 @@ export default function WithdrawPage() {
         const formattedBalance = formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
         return formattedBalance
     }, [balance])
+
+    useEffect(() => {
+        setRecipient({ address: '', name: '' })
+    }, [])
+
+    useEffect(() => {
+        if (amountFromContext && parseFloat(amountFromContext) > 0) {
+            setStep('selectMethod')
+            if (!rawTokenAmount) {
+                setRawTokenAmount(amountFromContext)
+            }
+        } else {
+            setStep('inputAmount')
+            setRawTokenAmount('')
+        }
+    }, [amountFromContext])
 
     const validateAmount = useCallback(
         (amountStr: string): boolean => {
@@ -71,8 +93,14 @@ export default function WithdrawPage() {
     )
 
     useEffect(() => {
-        validateAmount(rawTokenAmount)
-    }, [rawTokenAmount, validateAmount])
+        if (rawTokenAmount === '') {
+            if (!amountFromContext) {
+                setError({ showError: false, errorMessage: '' })
+            }
+        } else {
+            validateAmount(rawTokenAmount)
+        }
+    }, [rawTokenAmount, validateAmount, setError, amountFromContext])
 
     const handleAmountContinue = () => {
         // the button is disabled if amount is not > 0.
@@ -80,7 +108,6 @@ export default function WithdrawPage() {
         if (validateAmount(rawTokenAmount)) {
             if (parseFloat(rawTokenAmount) > 0) {
                 setAmountToWithdraw(rawTokenAmount)
-                setStep('selectMethod')
             }
         }
     }
@@ -118,7 +145,9 @@ export default function WithdrawPage() {
                 flow="withdraw"
                 pageTitle="Withdraw"
                 mainHeading="How would you like to withdraw?"
-                onBackClick={() => setStep('inputAmount')}
+                onBackClick={() => {
+                    setAmountToWithdraw('')
+                }}
             />
         )
     }

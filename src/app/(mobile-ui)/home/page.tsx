@@ -79,7 +79,7 @@ export default function Home() {
                 </div>
                 <div className="space-y-4">
                     <ActionButtonGroup>
-                        <ActionButtonWithHref label="Add money" action="add" href="/add-money" size="small" />
+                        <ActionButtonWithHref label="Add" action="add" href="/add-money" size="small" />
                         <ActionButtonWithHref label="Withdraw" action="withdraw" href="/withdraw" size="small" />
                     </ActionButtonGroup>
 
@@ -135,8 +135,8 @@ function WalletBalance({
         if (isBalanceHidden) {
             return (
                 <span className="inline-flex items-center">
-                    <span className="relative top-1">* * * *</span>
-                </span>
+                    <span className="relative top-1 text-[48px]">****</span>
+                </span> // amount of * is equal to the amount of numbers, if 1 = *, if 20 = **, if 100 = ***
             )
         }
 
@@ -144,15 +144,15 @@ function WalletBalance({
     }, [isBalanceHidden, balance])
 
     return (
-        <div className="flex items-center gap-2">
-            <div className="flex items-end gap-2 text-4xl font-black leading-none sm:text-[2.5rem]">
+        <div className="flex items-center gap-4">
+            <div className="flex items-end gap-2 text-[48px] font-black leading-none md:text-[56px]">
                 {isFetchingBalance ? (
                     <span className="block pl-3">
                         <Loading />
                     </span>
                 ) : (
                     <>
-                        <span className="text-xl">$ </span>
+                        <span className="text-[32px] md:text-[40px]">$ </span>
                         {balanceDisplay}
                     </>
                 )}
@@ -160,8 +160,12 @@ function WalletBalance({
 
             {!isFetchingBalance && (
                 <button onClick={onToggleBalanceVisibility}>
-                    <Icon name={isBalanceHidden ? 'eye-slash' : 'eye'} className={'h-6 w-6'} fill={'black'} />
-                </button>
+                    <Icon
+                        name={isBalanceHidden ? 'eye-slash' : 'eye'}
+                        className={'h-8 w-8 md:h-10 md:w-10'}
+                        fill={'black'}
+                    />
+                </button> // no balance <> no icon
             )}
         </div>
     )
@@ -184,20 +188,26 @@ function ActionButtonWithHref({ label, action, href, variant = 'primary-soft', s
 }
 
 function ActionButton({ label, action, variant = 'primary-soft', size = 'small' }: Omit<ActionButtonProps, 'href'>) {
-    // get icon based on action type
     const renderIcon = (): React.ReactNode => {
         return (
-            <div className="flex size-5 items-center justify-center">
+            <div
+                className={twMerge(
+                    'flex items-center justify-center',
+                    size === 'small'
+                        ? 'size-[22px] md:size-[23px]' // Add/Withdraw size
+                        : 'size-[22px] md:size-[23px]' // Send/Request size
+                )}
+            >
                 {(() => {
                     switch (action) {
                         case 'send':
-                            return <Icon name="arrow-up-right" size={8} fill="currentColor" />
+                            return <Icon name="arrow-up-right" className="h-full w-full" fill="currentColor" />
                         case 'withdraw':
-                            return <Icon name="arrow-up" size={8} fill="currentColor" />
+                            return <Icon name="arrow-up" className="h-full w-full" fill="currentColor" />
                         case 'add':
-                            return <Icon name="arrow-down" size={8} fill="currentColor" />
+                            return <Icon name="arrow-down" className="h-full w-full" fill="currentColor" />
                         case 'request':
-                            return <Icon name="arrow-down-left" size={8} fill="currentColor" />
+                            return <Icon name="arrow-down-left" className="h-full w-full" fill="currentColor" />
                         default:
                             return null
                     }
@@ -205,18 +215,30 @@ function ActionButton({ label, action, variant = 'primary-soft', size = 'small' 
             </div>
         )
     }
+
     return (
         <Button
             variant={variant}
             className={twMerge(
-                'flex cursor-pointer items-center justify-center rounded-full',
-                size === 'large' ? 'min-w-[145px] px-6 py-3' : 'min-w-[120px] px-4 py-2'
+                'flex w-auto cursor-pointer items-center justify-center rounded-full',
+                size === 'large'
+                    ? 'h-12 gap-x-2 px-6 md:h-14 md:px-7' // Send/Request size
+                    : 'h-10 gap-x-1 px-5 md:h-12 md:px-6' // Add/Withdraw size
             )}
             shadowSize="4"
             size={size}
         >
             {renderIcon()}
-            <span className={twMerge('font-bold', size === 'small' ? 'text-xs' : 'text-sm')}>{label}</span>
+            <span
+                className={twMerge(
+                    'whitespace-nowrap font-semibold',
+                    size === 'small'
+                        ? 'text-sm md:text-base' // Add/Withdraw size
+                        : 'text-base md:text-lg' // Send/Request size
+                )}
+            >
+                {label}
+            </span>
         </Button>
     )
 }
