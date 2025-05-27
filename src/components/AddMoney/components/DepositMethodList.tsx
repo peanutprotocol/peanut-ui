@@ -18,9 +18,10 @@ export interface DepositMethod {
 interface DepositMethodListProps {
     methods: DepositMethod[]
     onItemClick: (method: DepositMethod) => void
+    isAllMethodsView?: boolean
 }
 
-export const DepositMethodList = ({ methods, onItemClick }: DepositMethodListProps) => {
+export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = false }: DepositMethodListProps) => {
     return (
         <div className="flex flex-col">
             {methods.map((method, index) => {
@@ -36,7 +37,7 @@ export const DepositMethodList = ({ methods, onItemClick }: DepositMethodListPro
                     determinedPosition = 'single'
                 } else if (isFirstOverall) {
                     determinedPosition = 'first'
-                } else if (isCryptoAtSlot0 && isCurrentMethodCountry && index === 1) {
+                } else if (isCryptoAtSlot0 && isCurrentMethodCountry && index === 1 && isAllMethodsView) {
                     // if crypto card is at methods[0], and this is the country card at methods[1],
                     // treat this country card as 'first' in its own group.
                     determinedPosition = 'first'
@@ -47,7 +48,7 @@ export const DepositMethodList = ({ methods, onItemClick }: DepositMethodListPro
                 }
 
                 const classNames = []
-                if (method.type === 'crypto') {
+                if (method.type === 'crypto' && isAllMethodsView) {
                     classNames.push('mb-2')
                 }
 

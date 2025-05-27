@@ -349,6 +349,11 @@ export const PaymentForm = ({
             return
         }
 
+        if (!isActivePeanutWallet && isWagmiConnected && selectedTokenData && selectedChainID && !!chargeDetails) {
+            dispatch(paymentActions.setView('CONFIRM'))
+            return
+        }
+
         dispatch(paymentActions.setError(null))
 
         const requestedToken = chargeDetails?.tokenAddress ?? requestDetails?.tokenAddress

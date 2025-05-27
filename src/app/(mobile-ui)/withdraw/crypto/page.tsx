@@ -1,6 +1,7 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
+import AddressLink from '@/components/Global/AddressLink'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import ConfirmWithdrawView from '@/components/Withdraw/views/Confirm.withdraw.view'
@@ -18,7 +19,6 @@ import {
     TRequestChargeResponse,
     TRequestResponse,
 } from '@/services/services.types'
-import { printableAddress } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
@@ -238,7 +238,12 @@ export default function WithdrawCryptoPage() {
                         currencyAmount={`$ ${amountToWithdraw}`}
                         isWithdrawFlow={true}
                         redirectTo="/withdraw"
-                        message={`${printableAddress(withdrawData.address)}`}
+                        message={
+                            <AddressLink
+                                className="text-sm font-normal text-grey-1 no-underline"
+                                address={withdrawData.address}
+                            />
+                        }
                     />
                 </>
             )}

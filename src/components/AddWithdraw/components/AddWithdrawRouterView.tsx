@@ -28,6 +28,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const [recentMethodsState, setRecentMethodsState] = useState<RecentMethod[]>([])
     const [showAllMethods, setShowAllMethods] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
+    const [isLoadingPreferences, setIsLoadingPreferences] = useState(true)
 
     const baseRoute = flow === 'add' ? '/add-money' : '/withdraw'
 
@@ -40,6 +41,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         } else {
             setShowAllMethods(true)
         }
+        setIsLoadingPreferences(false)
     }, [flow])
 
     const handleMethodSelected = (method: DepositMethod) => {
@@ -69,10 +71,8 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
         if (flow === 'add') {
             updateUserPreferences({ ...prefs, recentAddMethods: updatedRecentList })
-            setRecentMethodsState(updatedRecentList)
         } else {
             updateUserPreferences({ ...prefs, recentWithdrawMethods: updatedRecentList })
-            setRecentMethodsState(updatedRecentList)
         }
 
         router.push(method.path)
@@ -133,13 +133,21 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
     const defaultBackNavigation = () => router.push('/home')
 
+    if (isLoadingPreferences) {
+        return null
+    }
+
     if (!showAllMethods && recentMethodsState.length > 0) {
         return (
             <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <div className="flex h-full flex-col justify-center space-y-2">
                     <h2 className="text-base font-bold">Recent methods</h2>
-                    <DepositMethodList methods={recentMethodsState} onItemClick={handleMethodSelected} />
+                    <DepositMethodList
+                        methods={recentMethodsState}
+                        onItemClick={handleMethodSelected}
+                        isAllMethodsView={false}
+                    />
                 </div>
                 <Button icon="plus" className="mb-5 mt-auto" onClick={() => setShowAllMethods(true)} shadowSize="4">
                     Select new method
@@ -170,7 +178,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     />
                 ) : (
                     <div className="flex-1 overflow-y-auto">
-                        <DepositMethodList methods={filteredAllMethods} onItemClick={handleMethodSelected} />
+                        <DepositMethodList
+                            methods={filteredAllMethods}
+                            onItemClick={handleMethodSelected}
+                            isAllMethodsView={true}
+                        />
                     </div>
                 )}
             </div>

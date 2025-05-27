@@ -62,7 +62,7 @@ export default function ConfirmPaymentView({
         isFeeEstimationError,
         cancelOperation: cancelPaymentOperation,
     } = usePaymentInitiator()
-    const { selectedTokenData, selectedChainID, selectedTokenAddress } = useContext(tokenSelectorContext)
+    const { selectedTokenData, selectedChainID } = useContext(tokenSelectorContext)
     const { isConnected: isPeanutWallet, address: peanutWalletAddress, fetchBalance } = useWallet()
     const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
     const { rewardWalletBalance } = useWalletStore()
@@ -285,7 +285,7 @@ export default function ConfirmPaymentView({
                     <PeanutActionDetailsCard
                         avatarSize="small"
                         transactionType={isAddMoneyFlow ? 'ADD_MONEY' : 'REQUEST_PAYMENT'}
-                        recipientType="USERNAME"
+                        recipientType={parsedPaymentData.recipient.recipientType ?? 'USERNAME'}
                         recipientName={
                             parsedPaymentData.recipient.identifier || chargeDetails?.requestLink?.recipientAddress || ''
                         }
@@ -328,14 +328,18 @@ export default function ConfirmPaymentView({
 
                     {isAddMoneyFlow && <PaymentInfoRow label="From" value={printableAddress(wagmiAddress ?? '')} />}
 
-                    {!isFeeEstimationError && !isPeanutWallet && (
-                        <PaymentInfoRow
-                            loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
-                            label="Network fee"
-                            value={`$${feeCalculations.estimatedFee}`}
-                            moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
-                        />
-                    )}
+                    <PaymentInfoRow
+                        loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
+                        label={isCrossChainPayment ? 'Max network fee' : 'Network fee'}
+                        value={
+                            isFeeEstimationError ? '-' : isPeanutWallet ? '$ 0.00' : `$ ${feeCalculations.estimatedFee}`
+                        }
+                        moreInfoText={
+                            isPeanutWallet
+                                ? 'This transaction is sponsored by Peanut.'
+                                : 'This transaction may face slippage due to token conversion or cross-chain bridging.'
+                        }
+                    />
 
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ 0.00`} />
                 </Card>

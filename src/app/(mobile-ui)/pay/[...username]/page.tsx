@@ -14,7 +14,11 @@ export default function DirectPaymentPage(props: PageProps) {
 
     const recipient = usernameSegments
 
-    router.push(`/send/${recipient[0]}`)
+    if (recipient[0]) {
+        router.push(`/send/${recipient[0]}`)
+    } else {
+        router.push('/send')
+    }
 
     return null
 }

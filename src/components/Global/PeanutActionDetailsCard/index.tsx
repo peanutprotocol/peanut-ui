@@ -1,16 +1,17 @@
 import AvatarWithBadge, { AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
+import { RecipientType } from '@/lib/url-parser/types/payment'
 import { printableAddress } from '@/utils'
 import { getColorForUsername } from '@/utils/color.utils'
+import { useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { isAddress } from 'viem'
 import Attachment from '../Attachment'
 import Card from '../Card'
 import { Icon, IconName } from '../Icons/Icon'
 
 interface PeanutActionDetailsCardProps {
     transactionType: 'REQUEST' | 'RECEIVED_LINK' | 'CLAIM_LINK' | 'REQUEST_PAYMENT' | 'ADD_MONEY' | 'WITHDRAW'
-    recipientType: 'USERNAME' | 'ADDRESS'
+    recipientType: RecipientType
     recipientName: string
     message?: string
     amount: string
@@ -34,7 +35,7 @@ export default function PeanutActionDetailsCard({
     avatarSize = 'medium',
 }: PeanutActionDetailsCardProps) {
     const renderRecipient = () => {
-        if (isAddress(recipientName)) return printableAddress(recipientName)
+        if (recipientType === 'ADDRESS') return printableAddress(recipientName)
 
         return recipientName
     }
@@ -66,26 +67,25 @@ export default function PeanutActionDetailsCard({
         )
     }
 
+    const getAvatarIcon = useCallback((): IconName | undefined => {
+        if (viewType === 'SUCCESS') return 'check'
+        if (recipientType !== 'USERNAME' || transactionType === 'ADD_MONEY' || transactionType === 'WITHDRAW')
+            return 'wallet-outline'
+        return undefined
+    }, [])
+
     return (
         <Card className={twMerge('flex items-center gap-3 p-4', className)}>
             <div className="flex items-center gap-3">
                 <AvatarWithBadge
-                    icon={
-                        viewType === 'SUCCESS'
-                            ? 'check'
-                            : recipientType !== 'USERNAME' ||
-                                transactionType === 'ADD_MONEY' ||
-                                transactionType === 'WITHDRAW'
-                              ? 'wallet-outline'
-                              : undefined
-                    }
+                    icon={getAvatarIcon()}
                     size={avatarSize}
                     name={viewType === 'NORMAL' ? recipientName : undefined}
                     inlineStyle={{
                         backgroundColor:
                             viewType === 'SUCCESS'
                                 ? '#29CC6A'
-                                : transactionType === 'ADD_MONEY'
+                                : transactionType === 'ADD_MONEY' || recipientType === 'ADDRESS'
                                   ? '#FFC900'
                                   : getColorForUsername(recipientName).backgroundColor,
                     }}
