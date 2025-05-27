@@ -6,15 +6,19 @@ import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 import { getCardPosition } from '../Global/Card'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
  */
 const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; username?: string }) => {
+    const { user } = useUserStore()
+    const isLoggedIn = !!user?.user.userId || false
     // fetch the latest 5 transaction history entries
     const mode = isPublic ? 'public' : 'latest'
     const limit = isPublic ? 20 : 5
@@ -85,7 +89,12 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     }
 
     return (
-        <div className="mx-auto w-full space-y-3 pb-28 md:max-w-2xl md:space-y-3">
+        <div
+            className={twMerge(
+                'mx-auto w-full space-y-3 pb-28 md:max-w-2xl md:space-y-3',
+                isLoggedIn ? 'pb-28' : 'pb-0'
+            )}
+        >
             {/* link to the full history page */}
             {pendingRequests.length > 0 && !isPublic && (
                 <>

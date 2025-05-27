@@ -245,13 +245,15 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             router.push(`/send/${username}`)
         }
         return (
-            <PublicProfile
-                username={username}
-                fullName={username} // todo: replace with actual full name, getByUsername only returns username
-                isVerified={user?.user.kycStatus === 'approved'}
-                isLoggedIn={!!user}
-                onSendClick={handleSendClick}
-            />
+            <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-start')}>
+                <PublicProfile
+                    username={username}
+                    fullName={username} // todo: replace with actual full name, getByUsername only returns username
+                    isVerified={user?.user.kycStatus === 'approved'}
+                    isLoggedIn={!!user}
+                    onSendClick={handleSendClick}
+                />
+            </div>
         )
     }
 

@@ -17,6 +17,7 @@ interface NetworkListItemProps {
     onClick?: () => void
     rightContent?: React.ReactNode
     titleClassName?: HTMLSpanElement['className']
+    iconClassName?: HTMLImageElement['className']
 }
 
 const NetworkListItem: React.FC<NetworkListItemProps> = ({
@@ -28,6 +29,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
     onClick,
     rightContent,
     titleClassName,
+    iconClassName,
 }) => {
     const [iconError, setIconError] = useState(false)
 
@@ -61,7 +63,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                                     alt={`${name} logo`}
                                     width={32}
                                     height={32}
-                                    className={twMerge('rounded-full')}
+                                    className={twMerge('rounded-full', iconClassName)}
                                     onError={() => setIconError(true)}
                                 />
                             ) : (

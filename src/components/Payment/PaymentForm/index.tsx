@@ -584,7 +584,7 @@ export const PaymentForm = ({
                 title={isAddMoneyFlow ? 'Add Money' : 'Send'}
             />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                {isAddMoneyFlow && isWagmiConnected && (
+                {isWagmiConnected && (
                     <Button
                         icon="switch"
                         iconPosition="right"
