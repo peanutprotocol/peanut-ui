@@ -122,7 +122,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
                             <div className="flex flex-row items-center gap-2">
-                                {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-pink-1" />}
+                                {isPending && <div className="bg-pink-1 h-2 w-2 animate-pulsate rounded-full" />}
                                 <div className="max-w-40 truncate font-roboto text-[16px] font-medium">
                                     <AddressLink address={name} isLink={false} />
                                 </div>

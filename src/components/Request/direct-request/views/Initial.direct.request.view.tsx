@@ -9,7 +9,6 @@ import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import UserCard from '@/components/User/UserCard'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { RecipientType } from '@/interfaces'
 import { useUserStore } from '@/redux/hooks'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { ApiUser, usersApi } from '@/services/users'
@@ -32,8 +31,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         fileUrl: undefined,
         rawFile: undefined,
     })
-    const [isValidRecipient, setIsValidRecipient] = useState(false)
-    const [inputChanging, setInputChanging] = useState<boolean>(false)
     const [currentInputValue, setCurrentInputValue] = useState<string>('')
     const [view, setView] = useState<'initial' | 'confirm' | 'success'>('initial')
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
@@ -45,7 +42,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const [recipientType, setRecipientType] = useState<RecipientType>('address')
     const resetRequestState = () => {
         setView('initial')
         setCurrentInputValue('')
@@ -152,25 +148,20 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     />
                     {!authUser?.user.userId && (
                         <GeneralRecipientInput
-                            placeholder="Enter an address or ENS"
+                            placeholder="Enter a username, an address or ENS"
                             recipient={recipient}
                             onUpdate={(update: GeneralRecipientUpdate) => {
                                 setRecipient(update.recipient)
                                 if (!update.recipient.address) {
-                                    setRecipientType('address')
                                     setErrorState({
                                         showError: false,
                                         errorMessage: '',
                                     })
-                                } else {
-                                    setRecipientType(update.type)
                                 }
-                                setIsValidRecipient(update.isValid)
                                 setErrorState({
                                     showError: !update.isValid,
                                     errorMessage: update.errorMessage,
                                 })
-                                setInputChanging(update.isChanging)
                             }}
                             showInfoText={false}
                         />

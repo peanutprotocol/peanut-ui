@@ -49,7 +49,7 @@ describe('Recipient Validation', () => {
         })
 
         it('should throw for unresolvable ENS names', async () => {
-            await expect(validateAndResolveRecipient('nonexistent.eth')).rejects.toThrow('Error resolving ENS name')
+            await expect(validateAndResolveRecipient('nonexistent.eth')).rejects.toThrow('ENS name not found')
         })
 
         it('should validate Ethereum addresses', async () => {
