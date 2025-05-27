@@ -10,25 +10,36 @@ interface SearchInputProps {
     className?: string
 }
 
-export const SearchInput = ({ value, onChange, onClear, inputRef, className }: SearchInputProps) => {
+export const SearchInput = ({
+    value,
+    onChange,
+    onClear,
+    inputRef,
+    className,
+}: SearchInputProps) => {
     return (
         <div className={`relative ${className}`}>
+            {/* icono lupa */}
             <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                <Icon name="search" size={20} />
+                <Icon name="search" size={15} />
             </div>
+
+            {/* input */}
             <BaseInput
                 ref={inputRef}
                 type="text"
                 value={value}
                 onChange={onChange}
-                placeholder="Name or username"
-                className="h-10 w-full rounded-sm border border-black pl-12 pr-10"
+                placeholder="Search by name or username"
+                className="h-10 w-full rounded-sm border border-black pl-10 pr-10 font-normal caret-[#FF90E8] focus:outline-none focus:ring-0 focus:border-black"
             />
+
+            {/* botón limpiar */}
             {value && (
                 <Button
                     variant="transparent"
                     onClick={onClear}
-                    className="absolute right-4 top-1/2 h-8 w-6 -translate-y-1/2 p-0"
+                    className="absolute right-2 top-1/2 h-8 w-6 -translate-y-1/2 p-0"
                 >
                     <Icon name="cancel" size={16} />
                 </Button>
