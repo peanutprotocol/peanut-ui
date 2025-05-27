@@ -93,10 +93,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     return (
         <div className="w-full space-y-8 self-start">
-            <NavHeader
-                title={currentCountry.title}
-                onPrev={() => router.push(flow === 'add' ? '/add-money' : '/withdraw')}
-            />
+            <NavHeader title={currentCountry.title} onPrev={() => router.back()} />
             <div className="flex-1 overflow-y-auto">
                 {flow === 'add' && methods?.add && renderPaymentMethods('Add money via', methods.add)}
                 {flow === 'withdraw' &&

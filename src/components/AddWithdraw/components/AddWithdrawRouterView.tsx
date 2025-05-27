@@ -159,7 +159,21 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     // show all methods view
     return (
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
-            <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
+            <NavHeader
+                title={pageTitle}
+                onPrev={() => {
+                    if (recentMethodsState.length > 0 && showAllMethods) {
+                        // if in 'all methods' view and there were recent methods, go back to 'recent methods' view.
+                        setShowAllMethods(false)
+                    } else if (onBackClick) {
+                        // if onBackClick is provided (e.g., to go to previous step like amount input)
+                        onBackClick()
+                    } else {
+                        // fallback for flows where onBackClick might not be set (e.g., initial 'add money' view with no recent)
+                        defaultBackNavigation()
+                    }
+                }}
+            />
 
             <div className="flex h-full w-full flex-1 flex-col justify-start space-y-2">
                 <h2 className="text-base font-bold">{mainHeading}</h2>
