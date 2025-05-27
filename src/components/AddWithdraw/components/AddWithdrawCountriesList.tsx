@@ -51,11 +51,15 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             description={method.description}
                             descriptionClassName={'text-xs'}
                             leftIcon={
-                                typeof method.icon === 'string' ? (
+                                typeof method.icon === 'string' || method.icon === undefined ? (
                                     <AvatarWithBadge
                                         icon={method.icon as IconName}
-                                        name={method.id}
+                                        name={method.title ?? method.id}
                                         size="extra-small"
+                                        inlineStyle={{
+                                            backgroundColor:
+                                                method.icon === ('bank' as IconName) ? '#FFC900' : undefined,
+                                        }}
                                     />
                                 ) : (
                                     <Image
