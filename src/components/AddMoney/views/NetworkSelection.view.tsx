@@ -52,6 +52,11 @@ const NetworkSelectionView: React.FC<NetworkSelectionViewProps> = ({ onNetworkSe
                                 name={squidChainDetails?.axelarChainName ?? network.name}
                                 iconUrl={squidChainDetails?.chainIconURI ?? network.iconUrl}
                                 isComingSoon={isComingSoon}
+                                iconClassName={
+                                    index === allNetworks.length - 1 || index === allNetworks.length - 2
+                                        ? 'rounded-none'
+                                        : 'rounded-full'
+                                }
                                 onClick={() =>
                                     onNetworkSelect({
                                         chainId: squidChainDetails?.chainId ?? network.chainId,

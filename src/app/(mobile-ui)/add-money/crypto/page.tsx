@@ -7,7 +7,6 @@ import TokenSelectionView from '@/components/AddMoney/views/TokenSelection.view'
 import ActionModal from '@/components/Global/ActionModal'
 import NavHeader from '@/components/Global/NavHeader'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useUserStore } from '@/redux/hooks'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -17,7 +16,6 @@ type AddMoneyCryptoStep = 'sourceSelection' | 'tokenSelection' | 'networkSelecti
 const AddMoneyCryptoPage = () => {
     const router = useRouter()
     const { address: peanutWalletAddress } = useWallet()
-    const { user: authUser } = useUserStore()
     const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('sourceSelection')
     const [selectedSource, setSelectedSource] = useState<CryptoSource | null>(null)
     const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(null)
@@ -81,8 +79,40 @@ const AddMoneyCryptoPage = () => {
         return <TokenSelectionView onTokenSelect={handleTokenSelected} onBack={handleBackToSourceSelection} />
     }
 
-    if (currentStep === 'networkSelection' && selectedSource && selectedToken) {
-        return <NetworkSelectionView onNetworkSelect={handleNetworkSelected} onBack={handleBackToTokenSelection} />
+    if ((currentStep === 'networkSelection' || currentStep === 'riskModal') && selectedSource && selectedToken) {
+        return (
+            <>
+                <NetworkSelectionView onNetworkSelect={handleNetworkSelected} onBack={handleBackToTokenSelection} />
+                {currentStep === 'riskModal' && selectedToken && selectedNetwork && (
+                    <ActionModal
+                        visible={true}
+                        onClose={handleBackToNetworkSelectionFromRisk}
+                        icon={'alert'}
+                        title={`Only send ${selectedToken.symbol} on ${selectedNetwork.name}`}
+                        description="Sending funds via any other network will result in a permanent loss of funds. Peanut is not responsible for any loss of funds due to incorrect network selection."
+                        checkbox={{
+                            text: 'I understand and accept the risk.',
+                            checked: isRiskAccepted,
+                            onChange: setIsRiskAccepted,
+                        }}
+                        ctas={[
+                            {
+                                text: 'Continue',
+                                onClick: handleRiskContinue,
+                                disabled: !isRiskAccepted,
+                                variant: isRiskAccepted ? 'purple' : 'stroke',
+                                shadowSize: '4',
+                                className: twMerge(
+                                    !isRiskAccepted ? 'border-grey-2 text-grey-2' : '',
+                                    'text-black border border-black h-11 hover:text-black'
+                                ),
+                            },
+                        ]}
+                        modalPanelClassName="max-w-xs"
+                    />
+                )}
+            </>
+        )
     }
 
     if (currentStep === 'qrScreen' && selectedSource && selectedToken && selectedNetwork) {
@@ -97,57 +127,25 @@ const AddMoneyCryptoPage = () => {
     }
 
     return (
-        <>
-            <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
-                <NavHeader title="Add Money" onPrev={() => router.back()} />
-                <div className="flex flex-col gap-2 px-1">
-                    <h2 className="text-base font-bold">Where are you adding from?</h2>
+        <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
+            <NavHeader title="Add Money" onPrev={() => router.back()} />
+            <div className="flex flex-col gap-2 px-1">
+                <h2 className="text-base font-bold">Where are you adding from?</h2>
 
-                    {/* Exchanges Section */}
-                    <div className="flex flex-col gap-2">
-                        <CryptoSourceListCard sources={CRYPTO_EXCHANGES} onItemClick={handleCryptoSourceSelected} />
-                    </div>
+                {/* Exchanges Section */}
+                <div className="flex flex-col gap-2">
+                    <CryptoSourceListCard sources={CRYPTO_EXCHANGES} onItemClick={handleCryptoSourceSelected} />
+                </div>
 
-                    {/* Wallets Section - with a top margin for separation */}
-                    <div className="mt-1 flex flex-col gap-2 pb-5">
-                        <CryptoSourceListCard
-                            sources={CRYPTO_WALLETS}
-                            onItemClick={() => router.push('/add-money/crypto/direct')}
-                        />
-                    </div>
+                {/* Wallets Section - with a top margin for separation */}
+                <div className="mt-1 flex flex-col gap-2 pb-5">
+                    <CryptoSourceListCard
+                        sources={CRYPTO_WALLETS}
+                        onItemClick={() => router.push('/add-money/crypto/direct')}
+                    />
                 </div>
             </div>
-
-            {currentStep === 'riskModal' && selectedToken && selectedNetwork && (
-                <ActionModal
-                    visible={true}
-                    onClose={handleBackToNetworkSelectionFromRisk}
-                    icon={'alert'}
-                    modalClassName="backdrop-blur"
-                    title={`Only send ${selectedToken.symbol} on ${selectedNetwork.name}`}
-                    description="Sending funds via any other network will result in a permanent loss of funds. Peanut is not responsible for any loss of funds due to incorrect network selection."
-                    checkbox={{
-                        text: 'I understand and accept the risk.',
-                        checked: isRiskAccepted,
-                        onChange: setIsRiskAccepted,
-                    }}
-                    ctas={[
-                        {
-                            text: 'Continue',
-                            onClick: handleRiskContinue,
-                            disabled: !isRiskAccepted,
-                            variant: isRiskAccepted ? 'purple' : 'stroke',
-                            shadowSize: '4',
-                            className: twMerge(
-                                !isRiskAccepted ? 'border-grey-2 text-grey-2' : '',
-                                'text-black border border-black h-11 hover:text-black'
-                            ),
-                        },
-                    ]}
-                    modalPanelClassName="max-w-xs"
-                />
-            )}
-        </>
+        </div>
     )
 }
 

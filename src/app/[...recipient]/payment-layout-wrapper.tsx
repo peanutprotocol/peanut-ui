@@ -4,11 +4,15 @@ import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import { ThemeProvider } from '@/config'
+import { useUserStore } from '@/redux/hooks'
 
 import classNames from 'classnames'
 import { twMerge } from 'tailwind-merge'
 
 export default function PaymentLayoutWrapper({ children }: { children: React.ReactNode }) {
+    const { user } = useUserStore()
+    const isUserLoggedIn = !!user?.user.userId || false
+
     return (
         <div className="flex min-h-[100dvh] w-full bg-background">
             {/* Wrapper div for desktop layout */}
@@ -28,11 +32,19 @@ export default function PaymentLayoutWrapper({ children }: { children: React.Rea
                     </div>
 
                     {/* Scrollable content area */}
-                    <div className={classNames(twMerge('flex-1 overflow-y-auto bg-background p-6 pb-24 md:pb-6'))}>
+                    <div
+                        className={classNames(
+                            twMerge(
+                                'flex-1 overflow-y-auto bg-background p-6 md:pb-6',
+                                isUserLoggedIn ? 'pb-24' : 'pb-6'
+                            )
+                        )}
+                    >
                         <ThemeProvider>
                             <div
                                 className={twMerge(
-                                    'flex min-h-[calc(100dvh-160px)] w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%-160px)]'
+                                    'flex w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%-160px)]',
+                                    isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]'
                                 )}
                             >
                                 {children}

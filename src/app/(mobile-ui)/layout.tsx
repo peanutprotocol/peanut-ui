@@ -1,6 +1,6 @@
 'use client'
 
-import { GenericBanner } from '@/components/Global/Banner/GenericBanner'
+import { GenericBanner } from '@/components/Global/Banner'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TopNavbar from '@/components/Global/TopNavbar'
@@ -24,6 +24,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const { isFetchingUser, user } = useAuth()
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
+    const isUserLoggedIn = !!user?.user.userId || false
 
     const isHome = pathName === '/home'
     const isHistory = pathName === '/history'
@@ -76,9 +77,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         )
 
     return (
-        <div className="flex h-[100dvh] w-full bg-background">
+        <div className="flex min-h-[100dvh] w-full bg-background">
             {/* Wrapper div for desktop layout */}
-            <div className="flex h-full w-full flex-col">
+            <div className="flex w-full">
                 {/* Sidebar - Fixed on desktop */}
                 {showFullPeanutWallet && (
                     <div className="hidden md:block">
@@ -109,7 +110,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             twMerge(
                                 'relative flex-1 overflow-y-auto bg-background p-6 pb-24 md:pb-6',
                                 !!isSupport && 'p-0 pb-20 md:p-6',
-                                !!isHome && 'p-0 md:p-6 md:pr-0'
+                                !!isHome && 'p-0 md:p-6 md:pr-0',
+                                isUserLoggedIn ? 'pb-24' : 'pb-6'
                             )
                         )}
                     >
@@ -117,9 +119,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             {showFullPeanutWallet ? (
                                 <div
                                     className={twMerge(
-                                        'flex min-h-[calc(100dvh-160px)] w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%-160px)]',
+                                        'flex w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%-160px)]',
                                         alignStart && 'items-start',
-                                        isSupport && 'h-full'
+                                        isSupport && 'h-full',
+                                        isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]'
                                     )}
                                 >
                                     {children}

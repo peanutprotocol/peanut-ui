@@ -1,6 +1,7 @@
 import { PEANUT_LOGO } from '@/assets'
 import DirectSendQr from '@/components/Global/DirectSendQR'
 import { Icon, IconName, Icon as NavIcon } from '@/components/Global/Icons/Icon'
+import { useUserStore } from '@/redux/hooks'
 import classNames from 'classnames'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -95,6 +96,8 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => (
 
 const WalletNavigation: React.FC = () => {
     const pathName = usePathname()
+    const { user } = useUserStore()
+    const isLoggedIn = !!user?.user.userId || false
 
     return (
         <div>
@@ -106,7 +109,7 @@ const WalletNavigation: React.FC = () => {
                     <NavSection paths={desktopPaths} pathName={pathName} />
                 </div>
             </div>
-            <MobileNav pathName={pathName} />
+            {isLoggedIn && <MobileNav pathName={pathName} />}
         </div>
     )
 }
