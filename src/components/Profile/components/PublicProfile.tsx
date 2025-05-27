@@ -10,10 +10,11 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import Image from 'next/image'
 import Link from 'next/link'
 import ProfileHeader from './ProfileHeader'
+import { useState, useEffect } from 'react'
+import { usersApi } from '@/services/users'
 
 interface PublicProfileProps {
     username: string
-    fullName: string
     isVerified?: boolean
     isLoggedIn?: boolean
     onSendClick?: () => void
@@ -21,12 +22,12 @@ interface PublicProfileProps {
 
 const PublicProfile: React.FC<PublicProfileProps> = ({
     username,
-    fullName,
     isVerified = false,
     isLoggedIn = false,
     onSendClick,
 }) => {
     const dispatch = useAppDispatch()
+    const [fullName, setFullName] = useState<string>(username)
 
     // Handle send button click
     const handleSend = () => {
@@ -36,6 +37,12 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
             dispatch(paymentActions.setView('INITIAL'))
         }
     }
+
+    useEffect(() => {
+        usersApi.getByUsername(username).then((user) => {
+            if (user?.fullName) setFullName(user.fullName)
+        })
+    }, [username])
 
     return (
         <div className="flex h-full w-full flex-col space-y-4 bg-background">
