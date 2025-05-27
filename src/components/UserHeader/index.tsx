@@ -12,14 +12,15 @@ interface UserHeaderProps {
 export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) => {
     return (
         <div className="flex items-center gap-1.5">
-            <Link href={`/profile`} className="flex items-center gap-1.5">
+            <Link href={`/profile`} className="flex items-center gap-2">
                 <AvatarWithBadge
                     size="extra-small"
+                    className="h-7 w-7 text-[11px] md:h-8 md:w-8 md:text-[13px]"
                     isVerified={isVerified}
                     achievementsBadgeSize="extra-small"
                     name={fullName || username}
                 />
-                <div className="text-sm font-bold">{`${BASE_URL.replace('https://', '')}/${username}`}</div>
+                <div className="text-sm font-semibold md:text-base">{username}</div>
             </Link>
             <CopyToClipboard textToCopy={`${BASE_URL}/${username}`} fill="black" iconSize={'4'} />
         </div>

@@ -17,26 +17,31 @@ export const SearchInput = ({
     onClear,
     inputRef,
     className,
-    placeholder = 'Name or username',
+    placeholder = 'Search by name or username',
 }: SearchInputProps) => {
     return (
         <div className={`relative ${className}`}>
+            {/* icono lupa */}
             <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                <Icon name="search" size={20} />
+                <Icon name="search" size={15} />
             </div>
+
+            {/* input */}
             <BaseInput
                 ref={inputRef}
                 type="text"
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
-                className="h-10 w-full rounded-sm border border-black pl-12 pr-10"
+                className="h-10 w-full rounded-sm border border-black pl-10 pr-10 font-normal caret-[#FF90E8] focus:border-black focus:outline-none focus:ring-0"
             />
+
+            {/* botón limpiar */}
             {value && (
                 <Button
                     variant="transparent"
                     onClick={onClear}
-                    className="absolute right-4 top-1/2 h-8 w-6 -translate-y-1/2 p-0"
+                    className="absolute right-2 top-1/2 h-8 w-6 -translate-y-1/2 p-0"
                 >
                     <Icon name="cancel" size={16} />
                 </Button>
