@@ -1,6 +1,6 @@
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
-export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL'
+export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'
 
 export interface TimelineEntry {
     status: TStatus

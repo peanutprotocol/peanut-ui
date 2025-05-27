@@ -54,8 +54,7 @@ export const Claim = ({}) => {
     })
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
-    const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
-        useTransactionDetailsDrawer()
+    const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const router = useRouter()
 
     const [initialKYCStep, setInitialKYCStep] = useState<number>(0)

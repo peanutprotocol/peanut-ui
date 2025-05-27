@@ -206,7 +206,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                 }
                             />
                         )}
-                        {transaction.memo && (
+                        {transaction.memo?.trim() && (
                             <PaymentInfoRow
                                 label="Comment"
                                 value={transaction.memo}

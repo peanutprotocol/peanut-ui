@@ -15,10 +15,15 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { formatAmount } from '@/utils'
+import { formatAmount, getInitialsFromName } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
+import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { StatusType } from '@/components/Global/Badges/StatusBadge'
 
 interface Props {
     recipient: string[]
@@ -44,6 +49,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         price: currencyPrice,
     } = useCurrency(searchParams.get('currency'))
     const [currencyAmount, setCurrencyAmount] = useState<string>('')
+    const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
 
     const isMountedRef = useRef(true)
 
@@ -215,6 +221,73 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [dispatch, chargeId])
 
+    const transactionForDrawer: TransactionDetails | null = useMemo(() => {
+        if (!chargeDetails) return null
+
+        let status: StatusType
+        switch (chargeDetails.timeline[0].status) {
+            case 'NEW':
+            case 'PENDING':
+                status = 'pending'
+                break
+            case 'SIGNED':
+                status = 'processing'
+                break
+            case 'COMPLETED':
+            case 'SUCCESSFUL':
+                status = 'completed'
+                break
+            case 'CANCELLED':
+                status = 'cancelled'
+                break
+            case 'FAILED':
+            case 'EXPIRED':
+                status = 'failed'
+                break
+            default:
+                status = 'pending'
+                break
+        }
+
+        const recipientAccount = chargeDetails.requestLink.recipientAccount
+        const isCurrentUser = recipientAccount?.userId === user?.user.userId
+        if (status === 'pending' && !isCurrentUser) {
+            return null
+        }
+
+        const username = recipientAccount?.user.username
+        let details: Partial<TransactionDetails> = {
+            id: chargeDetails.uuid,
+            status,
+            amount: Number(chargeDetails.tokenAmount),
+            date: new Date(chargeDetails.createdAt),
+            tokenSymbol: chargeDetails.tokenSymbol,
+            initials: getInitialsFromName(username ?? ''),
+            memo: chargeDetails.requestLink.reference ?? undefined,
+            attachmentUrl: chargeDetails.requestLink.attachmentUrl ?? undefined,
+            cancelledDate: status === 'cancelled' ? new Date(chargeDetails.timeline[0].time) : undefined,
+            extraDataForDrawer: {
+                isLinkTransaction: true,
+                originalType: EHistoryEntryType.REQUEST,
+                originalUserRole: isCurrentUser ? EHistoryUserRole.RECIPIENT : EHistoryUserRole.SENDER,
+                link: window.location.href,
+            },
+            userName: username ?? chargeDetails.requestLink.recipientAddress,
+            sourceView: 'history',
+            peanutFeeDetails: {
+                amountDisplay: '$ 0.00',
+            },
+        }
+
+        return details as TransactionDetails
+    }, [chargeDetails, user?.user.userId])
+
+    useEffect(() => {
+        if (!transactionForDrawer) return
+        dispatch(paymentActions.setView('STATUS'))
+        openTransactionDetails(transactionForDrawer)
+    }, [transactionForDrawer, currentView])
+
     if (error) {
         return (
             <div className="mx-auto h-full w-full space-y-8 self-center md:w-6/12">
@@ -315,6 +388,13 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     )}
                 </>
             )}
+            <TransactionDetailsDrawer
+                isOpen={isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id}
+                onClose={() => {
+                    router.push('/home')
+                }}
+                transaction={selectedTransaction}
+            />
         </div>
     )
 }
