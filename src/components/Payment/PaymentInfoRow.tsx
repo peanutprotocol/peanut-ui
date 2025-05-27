@@ -30,7 +30,7 @@ export const PaymentInfoRow = ({
                 <label className={twMerge('text-xs font-semibold')}>{label}</label>
                 {moreInfoText && (
                     <div
-                        className="relative z-40 flex items-center justify-center px-2"
+                        className="relative z-20 flex items-center justify-center px-2"
                         role="button"
                         tabIndex={0}
                         aria-describedby={tooltipId}
@@ -44,14 +44,14 @@ export const PaymentInfoRow = ({
                         />
                         {showMoreInfo && (
                             <div
-                                className="absolute left-5 top-1/2 z-50 ml-2 w-max max-w-[210px] -translate-y-1/2 transform rounded-sm border border-black bg-white p-3 text-xs font-normal shadow-sm md:max-w-xs"
+                                className="absolute left-5 top-1/2 z-30 ml-2 w-max max-w-[210px] -translate-y-1/2 transform rounded-sm border border-black bg-white p-3 text-xs font-normal shadow-sm md:max-w-xs"
                                 id={tooltipId}
                                 role="tooltip"
                                 aria-hidden={!showMoreInfo}
                             >
                                 <div className="relative">
                                     <div className="absolute -left-5 top-1/2 h-0 w-0 -translate-y-1/2 transform border-b-[9px] border-r-[8px] border-t-[9px] border-b-transparent border-r-black border-t-transparent"></div>
-                                    <div className="absolute -left-[19px] top-1/2 z-40 h-0 w-0 -translate-y-1/2 transform border-b-[9px] border-r-[8px] border-t-[9px] border-b-transparent border-r-white border-t-transparent"></div>
+                                    <div className="absolute -left-[19px] top-1/2 z-20 h-0 w-0 -translate-y-1/2 transform border-b-[9px] border-r-[8px] border-t-[9px] border-b-transparent border-r-white border-t-transparent"></div>
                                     {moreInfoText}
                                 </div>
                             </div>

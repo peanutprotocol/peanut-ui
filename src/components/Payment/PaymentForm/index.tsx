@@ -40,6 +40,7 @@ import { useAccount } from 'wagmi'
 export type PaymentFlowProps = {
     isPintaReq?: boolean
     isAddMoneyFlow?: boolean
+    isDirectPay?: boolean
     currency?: {
         code: string
         symbol: string
@@ -61,6 +62,7 @@ export const PaymentForm = ({
     currencyAmount,
     setCurrencyAmount,
     isAddMoneyFlow,
+    isDirectPay,
 }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -584,7 +586,7 @@ export const PaymentForm = ({
                 title={isAddMoneyFlow ? 'Add Money' : 'Send'}
             />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                {isWagmiConnected && (
+                {isWagmiConnected && (!isDirectPay || isAddMoneyFlow) && (
                     <Button
                         icon="switch"
                         iconPosition="right"

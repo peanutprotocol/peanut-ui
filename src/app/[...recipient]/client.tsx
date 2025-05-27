@@ -277,6 +277,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 <InitialPaymentView
                     {...(parsedPaymentData as ParsedURL)}
                     isAddMoneyFlow={isAddMoneyFlow}
+                    isDirectPay={isDirectPay}
                     currency={
                         currencyCode
                             ? {
