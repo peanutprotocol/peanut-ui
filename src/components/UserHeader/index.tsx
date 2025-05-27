@@ -15,7 +15,7 @@ export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) 
             <Link href={`/profile`} className="flex items-center gap-2">
                 <AvatarWithBadge
                     size="extra-small"
-                    className="w-7 h-7 text-[11px] md:w-8 md:h-8 md:text-[13px]"
+                    className="h-7 w-7 text-[11px] md:h-8 md:w-8 md:text-[13px]"
                     isVerified={isVerified}
                     achievementsBadgeSize="extra-small"
                     name={fullName || username}

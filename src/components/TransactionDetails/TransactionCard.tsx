@@ -94,8 +94,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         const decimalsForDisplay = actualCurrencyCode // If it's a known currency (USD, ARS)
             ? defaultDisplayDecimals
             : transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK // Example: check token specific decimals if available
-                ? ((transaction.extraDataForDrawer as any)?.tokenDecimalsForDisplay ?? 6) // Fallback to 6 for tokens
-                : 6 // General fallback for other tokens
+              ? ((transaction.extraDataForDrawer as any)?.tokenDecimalsForDisplay ?? 6) // Fallback to 6 for tokens
+              : 6 // General fallback for other tokens
 
         finalDisplayAmount = `${displaySymbol}${formatNumberForDisplay(amountString, { maxDecimals: decimalsForDisplay })}`
         if (transaction.tokenSymbol && !actualCurrencyCode) {

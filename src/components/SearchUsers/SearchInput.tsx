@@ -10,13 +10,7 @@ interface SearchInputProps {
     className?: string
 }
 
-export const SearchInput = ({
-    value,
-    onChange,
-    onClear,
-    inputRef,
-    className,
-}: SearchInputProps) => {
+export const SearchInput = ({ value, onChange, onClear, inputRef, className }: SearchInputProps) => {
     return (
         <div className={`relative ${className}`}>
             {/* icono lupa */}
@@ -31,7 +25,7 @@ export const SearchInput = ({
                 value={value}
                 onChange={onChange}
                 placeholder="Search by name or username"
-                className="h-10 w-full rounded-sm border border-black pl-10 pr-10 font-normal caret-[#FF90E8] focus:outline-none focus:ring-0 focus:border-black"
+                className="h-10 w-full rounded-sm border border-black pl-10 pr-10 font-normal caret-[#FF90E8] focus:border-black focus:outline-none focus:ring-0"
             />
 
             {/* botón limpiar */}
