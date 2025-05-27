@@ -26,16 +26,14 @@ export const PaymentInfoRow = ({
                 hideBottomBorder && 'border-none'
             )}
         >
-            <div className="relative flex items-center gap-1">
+            <div className="relative flex items-center">
                 <label className={twMerge('text-xs font-semibold')}>{label}</label>
                 {moreInfoText && (
                     <div
-                        className="relative z-40"
+                        className="relative z-40 flex items-center justify-center px-2"
                         role="button"
                         tabIndex={0}
                         aria-describedby={tooltipId}
-                        onMouseEnter={() => setShowMoreInfo(true)}
-                        onMouseLeave={() => setShowMoreInfo(false)}
                         onFocus={() => setShowMoreInfo(true)}
                         onBlur={() => setShowMoreInfo(false)}
                     >
@@ -46,7 +44,7 @@ export const PaymentInfoRow = ({
                         />
                         {showMoreInfo && (
                             <div
-                                className="absolute left-4 top-1/2 z-50 ml-2 w-max max-w-[210px] -translate-y-1/2 transform rounded-sm border border-black bg-white p-3 text-xs font-normal shadow-sm md:max-w-xs"
+                                className="absolute left-5 top-1/2 z-50 ml-2 w-max max-w-[210px] -translate-y-1/2 transform rounded-sm border border-black bg-white p-3 text-xs font-normal shadow-sm md:max-w-xs"
                                 id={tooltipId}
                                 role="tooltip"
                                 aria-hidden={!showMoreInfo}

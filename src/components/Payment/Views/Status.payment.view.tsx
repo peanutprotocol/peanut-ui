@@ -18,13 +18,13 @@ import { ApiUser } from '@/services/users'
 import { formatAmount, getInitialsFromName, printableAddress } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo } from 'react'
+import { ReactNode, useEffect, useMemo } from 'react'
 import { useDispatch } from 'react-redux'
 
 type DirectSuccessViewProps = {
     user?: ApiUser
     amount?: string
-    message?: string
+    message?: string | ReactNode
     recipientType?: RecipientType
     type: 'SEND' | 'REQUEST'
     headerTitle?: string

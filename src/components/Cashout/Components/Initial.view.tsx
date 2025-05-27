@@ -346,7 +346,6 @@ export const InitialCashoutView = ({
                                 <label className="text-left text-h8 font-light">Cash out to a bank account:</label>
                                 <ValidatedInput
                                     placeholder="IBAN / US account number"
-                                    label="To"
                                     value={bankAccountNumber}
                                     className="uppercase"
                                     debounceTime={750}

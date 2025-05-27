@@ -6,6 +6,7 @@ import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
+import { getColorForUsername } from '@/utils/color.utils'
 import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import EmptyState from '../../Global/EmptyStates/EmptyState'
@@ -51,11 +52,17 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             description={method.description}
                             descriptionClassName={'text-xs'}
                             leftIcon={
-                                typeof method.icon === 'string' ? (
+                                typeof method.icon === 'string' || method.icon === undefined ? (
                                     <AvatarWithBadge
                                         icon={method.icon as IconName}
-                                        name={method.id}
+                                        name={method.title ?? method.id}
                                         size="extra-small"
+                                        inlineStyle={{
+                                            backgroundColor:
+                                                method.icon === ('bank' as IconName)
+                                                    ? '#FFC900'
+                                                    : getColorForUsername(method.title).backgroundColor,
+                                        }}
                                     />
                                 ) : (
                                     <Image
@@ -89,10 +96,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     return (
         <div className="w-full space-y-8 self-start">
-            <NavHeader
-                title={currentCountry.title}
-                onPrev={() => router.push(flow === 'add' ? '/add-money' : '/withdraw')}
-            />
+            <NavHeader title={currentCountry.title} onPrev={() => router.back()} />
             <div className="flex-1 overflow-y-auto">
                 {flow === 'add' && methods?.add && renderPaymentMethods('Add money via', methods.add)}
                 {flow === 'withdraw' &&

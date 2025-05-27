@@ -23,7 +23,7 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { ErrorHandler, formatAmount, printableAddress } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
@@ -49,7 +49,6 @@ export default function ConfirmPaymentView({
     const searchParams = useSearchParams()
     const chargeIdFromUrl = searchParams.get('chargeId')
     const { chargeDetails, parsedPaymentData, beerQuantity } = usePaymentStore()
-    const router = useRouter()
     const {
         initiatePayment,
         prepareTransactionDetails,
@@ -71,10 +70,26 @@ export default function ConfirmPaymentView({
 
     const walletAddress = useMemo(() => peanutWalletAddress ?? wagmiAddress, [peanutWalletAddress, wagmiAddress])
 
-    const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
+    const {
+        tokenIconUrl: sendingTokenIconUrl,
+        chainIconUrl: sendingChainIconUrl,
+        resolvedChainName: sendingResolvedChainName,
+        resolvedTokenSymbol: sendingResolvedTokenSymbol,
+    } = useTokenChainIcons({
         chainId: selectedChainID,
         tokenAddress: selectedTokenData?.address,
         tokenSymbol: selectedTokenData?.symbol,
+    })
+
+    const {
+        tokenIconUrl: requestedTokenIconUrl,
+        chainIconUrl: requestedChainIconUrl,
+        resolvedChainName: requestedResolvedChainName,
+        resolvedTokenSymbol: requestedResolvedTokenSymbol,
+    } = useTokenChainIcons({
+        chainId: chargeDetails?.chainId,
+        tokenAddress: chargeDetails?.tokenAddress,
+        tokenSymbol: chargeDetails?.tokenSymbol,
     })
 
     const showExternalWalletConfirmationModal = useMemo((): boolean => {
@@ -164,10 +179,10 @@ export default function ConfirmPaymentView({
     const getButtonText = useCallback(() => {
         if (isProcessing) {
             if (isAddMoneyFlow) return 'Adding money'
-            return loadingStep === 'Idle' ? 'Sending' : loadingStep
+            return loadingStep === 'Idle' ? 'Send' : 'Sending'
         }
         if (isAddMoneyFlow) return 'Add Money'
-        if (isEstimatingGas || isCalculatingFees || isPreparingTx) return 'Sending'
+        if (isEstimatingGas || isCalculatingFees || isPreparingTx) return 'Send'
         if (isPintaReq) return 'Confirm Payment'
         return 'Send'
     }, [isProcessing, loadingStep, isPreparingTx, isEstimatingGas, isCalculatingFees, isPintaReq, isAddMoneyFlow])
@@ -247,6 +262,12 @@ export default function ConfirmPaymentView({
         )
     }
 
+    const isCrossChainPayment = useMemo((): boolean => {
+        if (!chargeDetails || !selectedTokenData || !selectedChainID) return false
+
+        return chargeDetails.chainId !== selectedChainID
+    }, [chargeDetails, selectedTokenData, selectedChainID])
+
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader
@@ -264,7 +285,7 @@ export default function ConfirmPaymentView({
                     <PeanutActionDetailsCard
                         avatarSize="small"
                         transactionType={isAddMoneyFlow ? 'ADD_MONEY' : 'REQUEST_PAYMENT'}
-                        recipientType="USERNAME"
+                        recipientType={parsedPaymentData.recipient.recipientType ?? 'USERNAME'}
                         recipientName={
                             parsedPaymentData.recipient.identifier || chargeDetails?.requestLink?.recipientAddress || ''
                         }
@@ -276,49 +297,49 @@ export default function ConfirmPaymentView({
                 )}
 
                 <Card className="rounded-sm">
+                    {isCrossChainPayment && (
+                        <PaymentInfoRow
+                            label="Requested"
+                            value={
+                                <TokenChainInfoDisplay
+                                    tokenIconUrl={requestedTokenIconUrl}
+                                    chainIconUrl={requestedChainIconUrl}
+                                    resolvedTokenSymbol={requestedResolvedTokenSymbol}
+                                    fallbackTokenSymbol={selectedTokenData?.symbol || ''}
+                                    resolvedChainName={requestedResolvedChainName}
+                                    fallbackChainName={selectedChainID || ''}
+                                />
+                            }
+                        />
+                    )}
                     <PaymentInfoRow
-                        label="Token and network"
+                        label={isCrossChainPayment ? `Sending` : 'Token and network'}
                         value={
-                            <div className="flex items-center gap-2">
-                                {selectedTokenData && (
-                                    <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
-                                        <DisplayIcon
-                                            iconUrl={tokenIconUrl}
-                                            altText={resolvedTokenSymbol || 'token'}
-                                            fallbackName={resolvedTokenSymbol || 'T'}
-                                            sizeClass="h-6 w-6"
-                                        />
-                                        {chainIconUrl && (
-                                            <div className="absolute -bottom-1 -right-1">
-                                                <DisplayIcon
-                                                    iconUrl={chainIconUrl}
-                                                    altText={resolvedChainName || 'chain'}
-                                                    fallbackName={resolvedChainName || 'C'}
-                                                    sizeClass="h-3.5 w-3.5"
-                                                    className="rounded-full border-2 border-white dark:border-grey-4"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                <span>
-                                    {resolvedTokenSymbol || selectedTokenData?.symbol} on{' '}
-                                    <span className="capitalize">{resolvedChainName || selectedChainID}</span>
-                                </span>
-                            </div>
+                            <TokenChainInfoDisplay
+                                tokenIconUrl={sendingTokenIconUrl}
+                                chainIconUrl={sendingChainIconUrl}
+                                resolvedTokenSymbol={sendingResolvedTokenSymbol}
+                                fallbackTokenSymbol={selectedTokenData?.symbol || ''}
+                                resolvedChainName={sendingResolvedChainName}
+                                fallbackChainName={selectedChainID || ''}
+                            />
                         }
                     />
 
                     {isAddMoneyFlow && <PaymentInfoRow label="From" value={printableAddress(wagmiAddress ?? '')} />}
 
-                    {!isFeeEstimationError && !isPeanutWallet && !isWagmiConnected && (
-                        <PaymentInfoRow
-                            loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
-                            label="Network fee"
-                            value={`$${feeCalculations.estimatedFee}`}
-                            moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
-                        />
-                    )}
+                    <PaymentInfoRow
+                        loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
+                        label={isCrossChainPayment ? 'Max network fee' : 'Network fee'}
+                        value={
+                            isFeeEstimationError ? '-' : isPeanutWallet ? '$ 0.00' : `$ ${feeCalculations.estimatedFee}`
+                        }
+                        moreInfoText={
+                            isPeanutWallet
+                                ? 'This transaction is sponsored by Peanut.'
+                                : 'This transaction may face slippage due to token conversion or cross-chain bridging.'
+                        }
+                    />
 
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ 0.00`} />
                 </Card>
@@ -352,6 +373,58 @@ export default function ConfirmPaymentView({
                     preventClose={true}
                 />
             </div>
+        </div>
+    )
+}
+
+interface TokenChainInfoDisplayProps {
+    tokenIconUrl?: string
+    chainIconUrl?: string
+    resolvedTokenSymbol?: string
+    fallbackTokenSymbol: string
+    resolvedChainName?: string
+    fallbackChainName: string
+}
+
+function TokenChainInfoDisplay({
+    tokenIconUrl,
+    chainIconUrl,
+    resolvedTokenSymbol,
+    fallbackTokenSymbol,
+    resolvedChainName,
+    fallbackChainName,
+}: TokenChainInfoDisplayProps) {
+    const tokenSymbol = resolvedTokenSymbol || fallbackTokenSymbol
+    const chainName = resolvedChainName || fallbackChainName
+
+    return (
+        <div className="flex items-center gap-2">
+            {(tokenIconUrl || chainIconUrl) && (
+                <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                    {tokenIconUrl && (
+                        <DisplayIcon
+                            iconUrl={tokenIconUrl}
+                            altText={`${tokenSymbol} token`}
+                            fallbackName={tokenSymbol.charAt(0) || 'T'}
+                            sizeClass="h-6 w-6"
+                        />
+                    )}
+                    {chainIconUrl && (
+                        <div className="absolute -bottom-1 -right-1">
+                            <DisplayIcon
+                                iconUrl={chainIconUrl}
+                                altText={`${chainName} chain`}
+                                fallbackName={chainName.charAt(0) || 'C'}
+                                sizeClass="h-3.5 w-3.5"
+                                className="rounded-full border-2 border-white dark:border-grey-4"
+                            />
+                        </div>
+                    )}
+                </div>
+            )}
+            <span>
+                {tokenSymbol} on <span className="capitalize">{chainName}</span>
+            </span>
         </div>
     )
 }

@@ -35,7 +35,11 @@ export const SearchResultCard = ({
         <Card
             onClick={isDisabled ? undefined : handleCardClick}
             position={position}
-            className={twMerge('cursor-pointer hover:bg-gray-50', isDisabled ? 'bg-grey-4' : '', className)}
+            className={twMerge(
+                'cursor-pointer hover:bg-gray-50',
+                isDisabled ? 'bg-grey-4 hover:bg-grey-4' : '',
+                className
+            )}
         >
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

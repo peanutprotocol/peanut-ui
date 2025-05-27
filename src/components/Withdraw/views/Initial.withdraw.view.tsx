@@ -122,7 +122,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     loading={isProcessing}
                     className="w-full"
                 >
-                    {isProcessing ? 'Processing' : 'Review'}
+                    Review
                 </Button>
 
                 {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
