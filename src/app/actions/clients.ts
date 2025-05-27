@@ -46,7 +46,6 @@ export const getFeeOptions = unstable_cache(
     async (chainId: ChainId, preparedTx: PreparedTx): Promise<string> => {
         try {
             const client = await getPublicClient(chainId)
-            console.dir(client)
             const [feeEstimates, gas] = await Promise.all([
                 client.estimateFeesPerGas(),
                 client.estimateGas({

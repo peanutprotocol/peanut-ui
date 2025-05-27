@@ -475,13 +475,21 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                     chainDataFromSquid?.tokens.some((squidToken) =>
                         areEvmAddressesEqual(squidToken.address, balance.address)
                     ) ?? false
+                // TODO: remove on coral integration
+                // USDT in mainnet is not an erc20 token and needs to have the
+                // allowance reseted to 0 before using it. Is not being used
+                // currently in prod so we are not investing time in supporting
+                // it.
+                const isUsdtInMainnet =
+                    balance.chainId === '1' &&
+                    areEvmAddressesEqual(balance.address, '0xdac17f958d2ee523a2206206994597c13d831ec7')
                 return (
                     <TokenListItem
                         key={`${balance.address}_${String(balance.chainId)}_user_balance`}
                         balance={balance}
                         onClick={() => handleTokenSelect(balance)}
                         isSelected={isSelected}
-                        isSquidSupported={isTokenSupportedBySquid}
+                        isEnabled={isTokenSupportedBySquid && !isUsdtInMainnet}
                     />
                 )
             })

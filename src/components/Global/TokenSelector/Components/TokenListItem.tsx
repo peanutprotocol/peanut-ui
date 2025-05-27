@@ -15,7 +15,7 @@ interface TokenListItemProps {
     position?: CardPosition
     className?: string
     isPopularToken?: boolean
-    isSquidSupported?: boolean
+    isEnabled?: boolean
 }
 
 const TokenListItem: React.FC<TokenListItemProps> = ({
@@ -25,7 +25,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
     position = 'single',
     className,
     isPopularToken = false,
-    isSquidSupported = true,
+    isEnabled = true,
 }) => {
     const [tokenPlaceholder, setTokenPlaceholder] = useState(false)
     const [chainLogoPlaceholder, setChainLogoPlaceholder] = useState(false)
@@ -51,17 +51,17 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
             className={twMerge(
                 'cursor-pointer rounded-sm shadow-sm',
                 isSelected && 'bg-primary-3',
-                !isSquidSupported && 'cursor-not-allowed opacity-70',
+                !isEnabled && 'cursor-not-allowed opacity-70',
                 className
             )}
-            onClick={isSquidSupported ? onClick : undefined}
+            onClick={isEnabled ? onClick : undefined}
         >
             <Card
                 position={position}
                 className={twMerge(
                     'shadow-4 !overflow-visible border border-black p-4 py-3.5',
                     isSelected ? 'bg-primary-3' : 'bg-white',
-                    !isSquidSupported && 'bg-grey-2'
+                    !isEnabled && 'bg-grey-2'
                 )}
                 border={true}
             >
@@ -123,7 +123,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                             </div>
                         </div>
                     ) : (
-                        (isSquidSupported || isPopularToken) && (
+                        (isEnabled || isPopularToken) && (
                             <Icon name="chevron-up" size={32} className="h-8 w-8 flex-shrink-0 rotate-90 text-black" />
                         )
                     )}
