@@ -96,7 +96,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         }, [])
 
         const buttonClasses = twMerge(
-            `btn w-full flex items-center gap-2 transition-all duration-100  active:translate-x-[3px] active:translate-y-[[${shadowSize}px] active:[box-shadow:0px_0px_rgb(0_0_0)] notranslate`,
+            `btn w-full flex items-center gap-2 transition-all duration-100 active:translate-x-[3px] active:translate-y-[${shadowSize}px] active:shadow-none notranslate`,
             buttonVariants[variant],
             variant === 'transparent' && props.disabled && 'disabled:bg-transparent disabled:border-transparent',
             size && buttonSizes[size],
