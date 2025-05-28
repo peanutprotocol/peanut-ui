@@ -151,7 +151,9 @@ export function useTransactionHistory({
                     case 'SEND_LINK':
                         const password = getFromLocalStorage(`sendLink::password::${entry.uuid}`)
                         const { contractVersion, depositIdx } = extraData
-                        link = `${BASE_URL}/claim?c=${entry.chainId}&v=${contractVersion}&i=${depositIdx}#p=${password}`
+                        if (password) {
+                            link = `${BASE_URL}/claim?c=${entry.chainId}&v=${contractVersion}&i=${depositIdx}#p=${password}`
+                        }
                         const tokenDetails = getTokenDetails({
                             tokenAddress: entry.tokenAddress as Hash,
                             chainId: entry.chainId,

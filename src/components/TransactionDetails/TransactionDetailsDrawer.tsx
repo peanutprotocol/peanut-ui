@@ -58,6 +58,15 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
         )
     }, [transaction])
 
+    const isPendingSentLink = useMemo(() => {
+        if (!transaction) return false
+        return (
+            transaction.status === 'pending' &&
+            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
+            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
+        )
+    }, [transaction])
+
     // calculate drawer height based on content, with min/max constraints
     const drawerHeightVh = useDynamicHeight(contentRef, {
         maxHeightVh: 90, // max 90% of viewport height
@@ -293,6 +302,13 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                     <span>Cancel link</span>
                                 </Button>
                             )}
+                    </div>
+                )}
+
+                {isPendingSentLink && !shouldShowQrShare && (
+                    <div className="flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-grey-1">
+                        <Icon name="info" size={20} />
+                        Use the device where you created it to cancel or re-share this link.
                     </div>
                 )}
 
