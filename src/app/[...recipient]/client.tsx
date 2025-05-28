@@ -1,5 +1,6 @@
 'use client'
 
+import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
@@ -7,8 +8,12 @@ import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
+import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useAuth } from '@/context/authContext'
 import { useCurrency } from '@/hooks/useCurrency'
+import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
+import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { EParseUrlError, parsePaymentURL, ParseUrlError } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
@@ -17,13 +22,8 @@ import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { formatAmount, getInitialsFromName } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { StatusType } from '@/components/Global/Badges/StatusBadge'
 
 interface Props {
     recipient: string[]
@@ -279,14 +279,33 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             },
         }
 
+        if (isAddMoneyFlow) {
+            details.extraDataForDrawer = {
+                isLinkTransaction: false,
+                originalType: EHistoryEntryType.DEPOSIT,
+                originalUserRole: EHistoryUserRole.SENDER,
+            }
+            details.direction = 'add'
+            details.userName = user?.user.username ?? 'Your Account'
+            details.initials = getInitialsFromName(user?.user.username ?? 'YA')
+        }
+
         return details as TransactionDetails
-    }, [chargeDetails, user?.user.userId])
+    }, [chargeDetails, user?.user.userId, isAddMoneyFlow, user?.user.username])
 
     useEffect(() => {
         if (!transactionForDrawer) return
+
+        // if add money flow and in initial or confirm view, don't auto set status
+        if (isAddMoneyFlow && (currentView === 'INITIAL' || currentView === 'CONFIRM')) {
+            if (!chargeId) {
+                return
+            }
+        }
+
         dispatch(paymentActions.setView('STATUS'))
         openTransactionDetails(transactionForDrawer)
-    }, [transactionForDrawer, currentView])
+    }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isAddMoneyFlow, chargeId])
 
     if (error) {
         return (
