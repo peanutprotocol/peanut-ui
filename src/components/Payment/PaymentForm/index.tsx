@@ -575,16 +575,7 @@ export const PaymentForm = ({
 
     return (
         <div className="flex h-full min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader
-                onPrev={() => {
-                    if (isAddMoneyFlow) {
-                        router.push('/add-money/crypto')
-                    } else {
-                        router.push('/home')
-                    }
-                }}
-                title={isAddMoneyFlow ? 'Add Money' : 'Send'}
-            />
+            <NavHeader onPrev={router.back} title={isAddMoneyFlow ? 'Add Money' : 'Send'} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isWagmiConnected && (!isDirectPay || isAddMoneyFlow) && (
                     <Button
