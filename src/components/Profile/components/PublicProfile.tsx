@@ -12,6 +12,7 @@ import Link from 'next/link'
 import ProfileHeader from './ProfileHeader'
 import { useState, useEffect } from 'react'
 import { usersApi } from '@/services/users'
+import { useRouter } from 'next/navigation'
 
 interface PublicProfileProps {
     username: string
@@ -28,6 +29,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
 }) => {
     const dispatch = useAppDispatch()
     const [fullName, setFullName] = useState<string>(username)
+    const router = useRouter()
 
     // Handle send button click
     const handleSend = () => {
@@ -54,7 +56,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                         <Image src={PEANUT_LOGO_BLACK} alt="Peanut Text" height={12} />
                     </div>
                 ) : (
-                    <NavHeader hideLabel />
+                    <NavHeader onPrev={router.back} hideLabel />
                 )}
             </div>
 

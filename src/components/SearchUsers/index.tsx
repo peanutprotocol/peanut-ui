@@ -7,6 +7,7 @@ import { Button } from '../0_Bruddle'
 import { SearchInput } from './SearchInput'
 import { SearchResults } from './SearchResults'
 import { useRecentUsers } from '@/hooks/useRecentUsers'
+import { useRouter } from 'next/navigation'
 
 interface SearchContentProps {
     closePortal: () => void
@@ -17,6 +18,7 @@ const SearchContent = ({ closePortal, recentTransactions }: SearchContentProps) 
     const inputRef = useRef<HTMLInputElement>(null)
     const { searchTerm, setSearchTerm, searchResults, isSearching, error, showMinCharError, showNoResults } =
         useUserSearch()
+    const router = useRouter()
 
     const handleSearchChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,6 +58,7 @@ const SearchContent = ({ closePortal, recentTransactions }: SearchContentProps) 
                     showMinCharError={showMinCharError}
                     showNoResults={showNoResults}
                     recentTransactions={recentTransactions}
+                    onUserSelect={(username) => router.push(`/${username}`)}
                 />
 
                 {error && <div className="mt-2 text-sm text-error">{error}</div>}

@@ -15,7 +15,7 @@ interface SearchResultsProps {
     showNoResults: boolean
     className?: string
     recentTransactions?: Pick<ApiUser, 'userId' | 'username' | 'fullName'>[]
-    onUserSelect?: (username: string) => void
+    onUserSelect: (username: string) => void
 }
 
 export const SearchResults = ({
@@ -53,7 +53,7 @@ export const SearchResults = ({
                                 title={user.fullName || user.username}
                                 description={`@${user.username}`}
                                 leftIcon={<AvatarWithBadge size="extra-small" name={user.fullName || user.username} />}
-                                onClick={() => onUserSelect && onUserSelect(user.username)}
+                                onClick={() => onUserSelect(user.username)}
                             />
                         ))}
                     </div>
@@ -93,7 +93,7 @@ export const SearchResults = ({
                                     leftIcon={
                                         <AvatarWithBadge size="extra-small" name={user.fullName || user.username} />
                                     }
-                                    onClick={() => onUserSelect && onUserSelect(user.username)}
+                                    onClick={() => onUserSelect(user.username)}
                                     position={
                                         recentTransactions.length === 1
                                             ? 'single'
