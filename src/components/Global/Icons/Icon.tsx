@@ -29,6 +29,7 @@ import { HomeIcon } from './home'
 import { InfoIcon } from './Info'
 import { LinkIcon } from './link'
 import { LogoutIcon } from './logout'
+import { MobileInstallIcon } from './mobile-install'
 import { PaperClipIcon } from './paper-clip'
 import { PeanutSupportIcon } from './peanut-support'
 import { PlusIcon } from './plus'
@@ -92,6 +93,7 @@ export type IconName =
     | 'plus'
     | 'exchange-arrows'
     | 'switch'
+    | 'mobile-install'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -144,6 +146,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     alert: AlertIcon,
     switch: SwitchIcon,
     'check-circle': CheckCircleIcon,
+    'mobile-install': MobileInstallIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
