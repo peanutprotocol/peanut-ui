@@ -9,7 +9,6 @@ export const RequestRouterView = () => {
         <RouterViewWrapper
             title="Request"
             linkCardTitle="Request via link"
-            linkCardDescription="No account needed to pay "
             onLinkCardClick={() => router.push('/request/create')}
             onUserSelect={(username) => router.push(`/request/${username}`)}
         />
