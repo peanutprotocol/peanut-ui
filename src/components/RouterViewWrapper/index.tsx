@@ -52,7 +52,7 @@ const RouterViewWrapper = ({ title, onPrev, linkCardTitle, onLinkCardClick, onUs
                             showMinCharError={showMinCharError}
                             showNoResults={showNoResults}
                             onUserSelect={onUserSelect}
-                            recentTransactions={recentTransactions}
+                            recentTransactions={recentTransactions.slice(0, 3)}
                         />
 
                         {error && <div className="mt-2 text-sm text-error">{error}</div>}
