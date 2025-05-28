@@ -286,8 +286,8 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 originalUserRole: EHistoryUserRole.SENDER,
             }
             details.direction = 'add'
-            details.userName = user?.user.username ?? 'Your Account'
-            details.initials = getInitialsFromName(user?.user.username ?? 'YA')
+            details.userName = user?.user.username ?? undefined
+            details.initials = getInitialsFromName(user?.user.full_name ?? user?.user?.username ?? 'PU')
         }
 
         return details as TransactionDetails
