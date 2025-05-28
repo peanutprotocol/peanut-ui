@@ -100,7 +100,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         finalDisplayAmount = `${displaySymbol}${formatNumberForDisplay(amountString, { maxDecimals: decimalsForDisplay })}`
         if (transaction.tokenSymbol && !actualCurrencyCode) {
             // Append token symbol if it's a token transaction
-            finalDisplayAmount += ` ${transaction.tokenSymbol}`
+
+            finalDisplayAmount = `${transaction.currencySymbol}${finalDisplayAmount} ${!transaction.currencySymbol ? transaction.tokenSymbol : ''}`
         }
     }
 
