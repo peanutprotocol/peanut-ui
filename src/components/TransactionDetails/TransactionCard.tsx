@@ -10,6 +10,8 @@ import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHisto
 import { formatNumberForDisplay } from '@/utils'
 import React from 'react'
 import AddressLink from '../Global/AddressLink'
+import { STABLE_COINS } from '@/constants'
+import Image from 'next/image'
 
 export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout' | 'receive'
 
@@ -56,6 +58,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
     const userNameForAvatar = transaction.userName
+    const avatarUrl = transaction.extraDataForDrawer?.rewardData?.avatarUrl
 
     let finalDisplayAmount = ''
     const actualCurrencyCode = transaction.currency?.code
@@ -83,8 +86,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         }
         finalDisplayAmount = `${arsSign}${getDisplayCurrencySymbol('ARS')}${formatNumberForDisplay(transaction.currency.amount, { maxDecimals: defaultDisplayDecimals })}`
     } else {
+        const isStableCoin = transaction.tokenSymbol && STABLE_COINS.includes(transaction.tokenSymbol)
         const displaySymbol =
-            transaction.tokenSymbol && !actualCurrencyCode // If it's a token amount not a fiat currency
+            transaction.tokenSymbol && !isStableCoin && !actualCurrencyCode // If it's a token amount not a fiat currency
                 ? '' // No currency symbol prefix for tokens like ETH, BNB, just the amount and then tokenSymbol
                 : transaction.currencySymbol || getDisplayCurrencySymbol(actualCurrencyCode) // Use provided sign+symbol or derive symbol
 
@@ -98,10 +102,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
               : 6 // General fallback for other tokens
 
         finalDisplayAmount = `${displaySymbol}${formatNumberForDisplay(amountString, { maxDecimals: decimalsForDisplay })}`
-        if (transaction.tokenSymbol && !actualCurrencyCode) {
+        if (!isStableCoin && !actualCurrencyCode) {
             // Append token symbol if it's a token transaction
 
-            finalDisplayAmount = `${transaction.currencySymbol}${finalDisplayAmount} ${!transaction.currencySymbol ? transaction.tokenSymbol : ''}`
+            finalDisplayAmount = `${displaySymbol}${finalDisplayAmount} ${transaction.tokenSymbol}`
         }
     }
 
@@ -112,14 +116,30 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
-                        <TransactionAvatarBadge
-                            initials={initials}
-                            userName={userNameForAvatar}
-                            isLinkTransaction={isLinkTx}
-                            transactionType={type}
-                            context="card"
-                            size="small"
-                        />
+                        {avatarUrl ? (
+                            <div
+                                className={
+                                    'flex h-12 w-12 items-center justify-center rounded-full border border-black bg-white py-2.5 pl-3.5 pr-0.5'
+                                }
+                            >
+                                <Image
+                                    src={avatarUrl}
+                                    alt="Icon"
+                                    className="size-6 object-contain"
+                                    width={30}
+                                    height={30}
+                                />
+                            </div>
+                        ) : (
+                            <TransactionAvatarBadge
+                                initials={initials}
+                                userName={userNameForAvatar}
+                                isLinkTransaction={isLinkTx}
+                                transactionType={type}
+                                context="card"
+                                size="small"
+                            />
+                        )}
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
                             <div className="flex flex-row items-center gap-2">
