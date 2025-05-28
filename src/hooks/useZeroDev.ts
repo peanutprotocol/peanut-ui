@@ -97,6 +97,7 @@ export const useZeroDev = () => {
                     hash: userOpHash,
                 })
 
+                setLoadingState('Idle')
                 dispatch(zerodevActions.setIsSendingUserOp(false))
 
                 return receipt.receipt
