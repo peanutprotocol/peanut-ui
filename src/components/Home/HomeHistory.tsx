@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { getCardPosition } from '../Global/Card'
+import { BASE_URL } from '@/constants'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -48,6 +49,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     } else {
                         wsEntry.extraData = { usdAmount: wsEntry.amount.toString() }
                     }
+                    wsEntry.extraData.link = `${BASE_URL}/${wsEntry.recipientAccount.username || wsEntry.recipientAccount.identifier}?chargeId=${wsEntry.uuid}`
                     entries.unshift(wsEntry)
                 }
             })
