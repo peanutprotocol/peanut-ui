@@ -3,6 +3,7 @@
 import Icon from '@/components/Global/Icon'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
+import { BASE_URL } from '@/constants'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
@@ -48,6 +49,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     } else {
                         wsEntry.extraData = { usdAmount: wsEntry.amount.toString() }
                     }
+                    wsEntry.extraData.link = `${BASE_URL}/${wsEntry.recipientAccount.username || wsEntry.recipientAccount.identifier}?chargeId=${wsEntry.uuid}`
                     entries.unshift(wsEntry)
                 }
             })

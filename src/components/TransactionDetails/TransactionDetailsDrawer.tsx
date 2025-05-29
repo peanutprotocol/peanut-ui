@@ -87,7 +87,9 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     if (!transaction) return null
 
     // format data for display
-    const amountDisplay = formatAmount(transaction.amount as number)
+    const amountDisplay = transaction.extraDataForDrawer?.rewardData
+        ? `${transaction.amount} ${transaction.extraDataForDrawer.rewardData.symbol}`
+        : `$ ${formatAmount(transaction.amount as number)}`
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
     // determine if the qr code and sharing section should be shown
@@ -127,6 +129,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                     isVerified={transaction.isVerified}
                     isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
                     transactionType={transaction.extraDataForDrawer?.transactionCardType}
+                    avatarUrl={transaction.extraDataForDrawer?.rewardData?.avatarUrl}
                 />
 
                 {/* details card (date, fee, memo) and more */}

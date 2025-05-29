@@ -8,6 +8,7 @@ import React from 'react'
 import { isAddress as isWalletAddress } from 'viem'
 import Card from '../Global/Card'
 import { Icon, IconName } from '../Global/Icons/Icon'
+import Image from 'next/image'
 
 export type TransactionDirection = 'send' | 'receive' | 'request_sent' | 'request_received' | 'withdraw' | 'add'
 
@@ -20,6 +21,7 @@ interface TransactionDetailsHeaderCardProps {
     isVerified?: boolean
     isLinkTransaction?: boolean
     transactionType?: TransactionType
+    avatarUrl?: string
 }
 
 const getTitle = (
@@ -111,6 +113,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     isVerified = false,
     isLinkTransaction = false,
     transactionType,
+    avatarUrl,
 }) => {
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
@@ -120,15 +123,21 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     return (
         <Card className="relative p-4 md:p-6" position="single">
             <div className="flex items-center gap-3">
-                <TransactionAvatarBadge
-                    initials={initials}
-                    userName={userName}
-                    isLinkTransaction={isLinkTransaction}
-                    isVerified={isVerified}
-                    transactionType={typeForAvatar}
-                    context="header"
-                    size="medium"
-                />
+                {avatarUrl ? (
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-black py-1 pl-4">
+                        <Image src={avatarUrl} alt="Icon" className="object-contain" width={35} height={35} />
+                    </div>
+                ) : (
+                    <TransactionAvatarBadge
+                        initials={initials}
+                        userName={userName}
+                        isLinkTransaction={isLinkTransaction}
+                        isVerified={isVerified}
+                        transactionType={typeForAvatar}
+                        context="header"
+                        size="medium"
+                    />
+                )}
                 <div className="space-y-1">
                     <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
                         {icon && <Icon name={icon} size={10} />}
@@ -137,7 +146,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     <h1
                         className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' ? 'text-grey-1 line-through' : ''}`}
                     >
-                        $ {amountDisplay}
+                        {amountDisplay}
                     </h1>
                 </div>
             </div>
