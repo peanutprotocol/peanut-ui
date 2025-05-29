@@ -21,6 +21,7 @@ import {
     CreateChargeRequest,
     PaymentCreationResponse,
     TCharge,
+    TChargeTransactionType,
     TRequestChargeResponse,
 } from '@/services/services.types'
 import { areEvmAddressesEqual, ErrorHandler, isAddressZero, isNativeCurrency } from '@/utils'
@@ -46,6 +47,7 @@ export interface InitiatePaymentPayload {
     }
     currencyAmount?: string
     isAddMoneyFlow?: boolean
+    transactionType?: TChargeTransactionType
 }
 
 interface InitiationResult {
@@ -521,6 +523,7 @@ export const usePaymentInitiator = () => {
                         tokenDecimals: Number(recipientTokenDecimals),
                         recipientAddress: payload.recipient?.resolvedAddress,
                     },
+                    transactionType: payload.transactionType,
                 }
 
                 console.log('Creating charge with payload:', createChargeRequestPayload)

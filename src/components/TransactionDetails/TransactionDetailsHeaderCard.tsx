@@ -4,11 +4,11 @@ import StatusBadge, { StatusType } from '@/components/Global/Badges/StatusBadge'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { TransactionType } from '@/components/TransactionDetails/TransactionCard'
 import { printableAddress } from '@/utils'
+import Image from 'next/image'
 import React from 'react'
 import { isAddress as isWalletAddress } from 'viem'
 import Card from '../Global/Card'
 import { Icon, IconName } from '../Global/Icons/Icon'
-import Image from 'next/image'
 
 export type TransactionDirection = 'send' | 'receive' | 'request_sent' | 'request_received' | 'withdraw' | 'add'
 
@@ -33,9 +33,10 @@ const getTitle = (
     let titleText = userName
 
     if (isLinkTransaction && (status === 'pending' || status === 'cancelled' || !userName)) {
+        const displayName = userName
         switch (direction) {
             case 'send':
-                titleText = 'Sent via Link'
+                titleText = displayName
                 break
             case 'request_sent':
                 titleText = 'Requested via Link'
@@ -56,23 +57,31 @@ const getTitle = (
                 if (status === 'pending' || status === 'cancelled') {
                     titleText = displayName
                 } else {
-                    titleText = `${status === 'completed' ? 'Sent' : 'Sending'} to ${displayName}`
+                    if (displayName === "You're sending via link") {
+                        titleText = 'You sent via link'
+                    } else {
+                        titleText = `${status === 'completed' ? 'Sent' : 'Sending'} to ${displayName}`
+                    }
                 }
                 break
             case 'request_received':
                 titleText = `${displayName} is requesting`
                 break
             case 'receive':
-                titleText = `Received from ${displayName}`
+                if (displayName === 'Received via Link') {
+                    titleText = 'You received via link'
+                } else {
+                    titleText = `Received from ${displayName}`
+                }
                 break
             case 'request_sent':
                 titleText = `${status === 'completed' ? 'Requested' : 'Requesting'} from ${displayName}`
                 break
             case 'withdraw':
-                titleText = `Withdrawing to ${displayName}`
+                titleText = `${status === 'completed' ? 'Withdrew' : 'Withdrawing'} to ${displayName}`
                 break
             case 'add':
-                titleText = `Added from ${displayName}`
+                titleText = `${status === 'completed' ? 'Added' : 'Adding'} to ${displayName}`
                 break
             default:
                 titleText = displayName

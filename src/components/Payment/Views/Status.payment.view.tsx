@@ -158,7 +158,7 @@ const DirectSuccessView = ({
     const getTitle = () => {
         if (isAddMoneyFlow) return 'You successfully added'
         if (isWithdrawFlow) return 'You just withdrew'
-        if (type === 'SEND') return 'You sent'
+        if (type === 'SEND') return 'You sent '
         if (type === 'REQUEST') return 'You requested '
     }
 

@@ -1,11 +1,10 @@
-import { BASE_URL, PEANUT_API_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { BASE_URL, PEANUT_API_URL } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { fetchWithSentry, getFromLocalStorage, getTokenDetails } from '@/utils'
+import { fetchWithSentry, formatAmount, getFromLocalStorage, getTokenDetails } from '@/utils'
 import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import Cookies from 'js-cookie'
-import type { Hash } from 'viem'
-import { formatUnits } from 'viem'
+import { formatUnits, type Hash } from 'viem'
 
 type LatestHistoryResult = QueryObserverResult<HistoryResponse>
 type InfiniteHistoryResult = InfiniteQueryObserverResult<InfiniteData<HistoryResponse>>
@@ -16,6 +15,7 @@ export enum EHistoryEntryType {
     DEPOSIT = 'DEPOSIT',
     SEND_LINK = 'SEND_LINK',
     DIRECT_SEND = 'DIRECT_SEND',
+    WITHDRAW = 'WITHDRAW',
 }
 
 export enum EHistoryUserRole {
@@ -167,14 +167,22 @@ export function useTransactionHistory({
                         usdAmount = entry.amount.toString()
                         break
                     case 'DIRECT_SEND':
-                        tokenSymbol = 'USDC'
+                        tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break
-                    case 'DEPOSIT':
-                        tokenSymbol = 'USDC'
-                        usdAmount = formatUnits(BigInt(entry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
+                    case EHistoryEntryType.DEPOSIT:
+                        tokenSymbol = entry.tokenSymbol
+                        usdAmount = entry.amount.toString()
+                        break
+                    case EHistoryEntryType.WITHDRAW:
+                        tokenSymbol = entry.tokenSymbol
+                        usdAmount = entry.amount.toString()
                         break
                     default:
+                        if (entry.amount && !usdAmount) {
+                            usdAmount = entry.amount.toString()
+                        }
+                        tokenSymbol = entry.tokenSymbol
                         break
                 }
                 return {
@@ -185,7 +193,7 @@ export function useTransactionHistory({
                     extraData: {
                         ...extraData,
                         link,
-                        usdAmount: `$${usdAmount}`,
+                        usdAmount: `$${formatAmount(usdAmount)}`,
                     },
                 }
             }),

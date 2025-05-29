@@ -1,9 +1,9 @@
+import { PeanutArmHoldingBeer } from '@/assets'
 import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import { TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { EHistoryEntryType, EHistoryUserRole, HistoryEntry } from '@/hooks/useTransactionHistory'
 import { getExplorerUrl, getInitialsFromName } from '@/utils/general.utils'
-import { PeanutArmHoldingBeer } from '@/assets'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -117,7 +117,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             transactionCardType = 'send'
             if (entry.userRole === EHistoryUserRole.SENDER) {
                 nameForDetails =
-                    entry.recipientAccount?.username || entry.recipientAccount?.identifier || "You're sending via link"
+                    entry.recipientAccount?.username ||
+                    entry.recipientAccount?.identifier ||
+                    (entry.status === 'COMPLETED' ? 'You sent via link' : "You're sending via link")
                 isPeerActuallyUser = !!entry.recipientAccount?.isUser
                 isLinkTx = !isPeerActuallyUser
             } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
@@ -157,6 +159,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                 }
             }
             isLinkTx = !isPeerActuallyUser
+            break
+        case EHistoryEntryType.WITHDRAW:
+            direction = 'withdraw'
+            transactionCardType = 'withdraw'
+            nameForDetails = entry.recipientAccount?.identifier || 'External Account'
+            isPeerActuallyUser = false
             break
         case EHistoryEntryType.CASHOUT:
             direction = 'withdraw'

@@ -153,6 +153,7 @@ export default function ConfirmPaymentView({
             currency,
             currencyAmount,
             isAddMoneyFlow: !!isAddMoneyFlow,
+            transactionType: isAddMoneyFlow ? 'DEPOSIT' : 'REQUEST',
         })
 
         if (result.success) {

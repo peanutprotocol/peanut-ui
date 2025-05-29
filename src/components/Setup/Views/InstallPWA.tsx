@@ -117,6 +117,16 @@ const InstallPWA = ({
         })
     }, [])
 
+    useEffect(() => {
+        // show modal by default on desktop
+        if (deviceType === 'desktop' && !isUnsupportedBrowser) {
+            const timer = setTimeout(() => {
+                setShowModal(true)
+            }, 500)
+            return () => clearTimeout(timer)
+        }
+    }, [deviceType, isUnsupportedBrowser])
+
     const handleInstall = useCallback(async () => {
         if (!deferredPrompt) return
         dispatch(setupActions.setLoading(true))

@@ -124,6 +124,7 @@ export default function WithdrawCryptoPage() {
                         tokenDecimals: Number(completeWithdrawData.token.decimals),
                         recipientAddress: completeWithdrawData.address,
                     },
+                    transactionType: 'WITHDRAW',
                 }
                 const createdCharge: TCharge = await chargesApi.create(chargePayload)
 
