@@ -105,12 +105,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     }
 
     return (
-        <div
-            className={twMerge(
-                'mx-auto w-full space-y-3 pb-28 md:max-w-2xl md:space-y-3',
-                isLoggedIn ? 'pb-28' : 'pb-0'
-            )}
-        >
+        <div className={twMerge('mx-auto w-full space-y-3 md:max-w-2xl md:space-y-3', isLoggedIn ? 'pb-4' : 'pb-0')}>
             {/* link to the full history page */}
             {pendingRequests.length > 0 && !isPublic && (
                 <>

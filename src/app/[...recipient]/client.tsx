@@ -297,14 +297,16 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         if (!transactionForDrawer) return
 
         // if add money flow and in initial or confirm view, don't auto set status
-        if (isAddMoneyFlow && (currentView === 'INITIAL' || currentView === 'CONFIRM')) {
-            if (!chargeId) {
-                return
-            }
+        if (isAddMoneyFlow && (currentView === 'INITIAL' || currentView === 'CONFIRM') && !chargeId) {
+            return
         }
 
         dispatch(paymentActions.setView('STATUS'))
-        openTransactionDetails(transactionForDrawer)
+
+        // only open transaction details drawer if not add money flow
+        if (!isAddMoneyFlow) {
+            openTransactionDetails(transactionForDrawer)
+        }
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isAddMoneyFlow, chargeId])
 
     if (error) {

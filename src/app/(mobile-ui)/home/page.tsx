@@ -16,10 +16,12 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore, useWalletStore } from '@/redux/hooks'
 import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences } from '@/utils'
+import { useDisconnect } from '@reown/appkit/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { useAccount } from 'wagmi'
 
 export default function Home() {
     const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
@@ -29,6 +31,8 @@ export default function Home() {
         const prefs = getUserPreferences()
         return prefs?.balanceHidden ?? false
     })
+    const { isConnected: isWagmiConnected } = useAccount()
+    const { disconnect: disconnectWagmi } = useDisconnect()
 
     const { isFetchingUser, addAccount } = useAuth()
     const { user } = useUserStore()
@@ -61,6 +65,13 @@ export default function Home() {
             })
         }
     }, [user, address])
+
+    // always reset external wallet connection on home page
+    useEffect(() => {
+        if (isWagmiConnected) {
+            disconnectWagmi()
+        }
+    }, [isWagmiConnected, disconnectWagmi])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
