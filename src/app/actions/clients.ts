@@ -74,7 +74,7 @@ export const getFeeOptions = unstable_cache(
                 }),
             ])
             return jsonStringify({
-                gas: gas * 140n / 100n, // Add 40% to estimated gas
+                gas: (gas * 140n) / 100n, // Add 40% to estimated gas
                 maxFeePerGas: feeEstimates.maxFeePerGas,
                 maxPriorityFeePerGas: feeEstimates.maxPriorityFeePerGas,
                 error: null,

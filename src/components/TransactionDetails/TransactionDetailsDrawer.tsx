@@ -88,7 +88,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
 
     // format data for display
     const amountDisplay = transaction.extraDataForDrawer?.rewardData
-        ? `${transaction.amount} ${transaction.extraDataForDrawer.rewardData.symbol}`
+        ? transaction.extraDataForDrawer.rewardData.formatAmount(transaction.amount)
         : `$ ${formatAmount(transaction.amount as number)}`
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
