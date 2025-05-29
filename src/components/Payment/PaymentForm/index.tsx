@@ -24,7 +24,7 @@ import {
 } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
-import { usePaymentInitiator } from '@/hooks/usePaymentInitiator'
+import { InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
@@ -367,7 +367,7 @@ export const PaymentForm = ({
             tokenAmount = (parseFloat(inputUsdValue) / requestedTokenPrice).toString()
         }
 
-        const payload = {
+        const payload: InitiatePaymentPayload = {
             recipient: recipient,
             tokenAmount,
             isPintaReq: false, // explicitly set to false for non-PINTA requests
@@ -376,6 +376,7 @@ export const PaymentForm = ({
             currency,
             currencyAmount,
             isAddMoneyFlow: !!isAddMoneyFlow,
+            transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectPay ? 'DIRECT_SEND' : 'REQUEST',
         }
 
         console.log('Initiating payment with payload:', payload)

@@ -67,10 +67,10 @@ const getTitle = (
                 titleText = `${status === 'completed' ? 'Requested' : 'Requesting'} from ${displayName}`
                 break
             case 'withdraw':
-                titleText = `Withdrawing to ${displayName}`
+                titleText = `${status === 'completed' ? 'Withdrew' : 'Withdrawing'} to ${displayName}`
                 break
             case 'add':
-                titleText = `Added from ${displayName}`
+                titleText = `${status === 'completed' ? 'Added' : 'Adding'} to ${displayName}`
                 break
             default:
                 titleText = displayName

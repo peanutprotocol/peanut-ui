@@ -1,6 +1,7 @@
 'use client'
 
 import { CardPosition } from '@/components/Global/Card'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -65,7 +66,12 @@ const HistoryPage = () => {
     if (isError) {
         console.error(error)
         Sentry.captureException(error)
-        return <div className="w-full py-4 text-center">Error loading history: {error?.message}</div>
+        return (
+            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+                <h2 className="text-base font-bold">Transactions</h2>{' '}
+                <EmptyState icon="alert" title="Error loading transactions!" description="Please try again later" />
+            </div>
+        )
     }
 
     if (allEntries.length === 0) {

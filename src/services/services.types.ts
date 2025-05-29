@@ -98,6 +98,8 @@ export interface RequestProps {
     requesteeUsername?: string
 }
 
+export type TChargeTransactionType = 'REQUEST' | 'DIRECT_SEND' | 'DEPOSIT' | 'WITHDRAW'
+
 export interface CreateChargeRequest {
     pricing_type: 'fixed_price'
     local_price: LocalPrice
@@ -106,6 +108,7 @@ export interface CreateChargeRequest {
     requestProps?: RequestProps
     attachment?: File
     reference?: string
+    transactionType?: TChargeTransactionType
 }
 
 export interface TCharge {

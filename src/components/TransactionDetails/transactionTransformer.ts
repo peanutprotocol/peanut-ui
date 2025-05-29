@@ -145,6 +145,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             }
             isLinkTx = !isPeerActuallyUser
             break
+        case EHistoryEntryType.WITHDRAW:
+            direction = 'withdraw'
+            transactionCardType = 'withdraw'
+            nameForDetails = entry.recipientAccount?.identifier || 'External Account'
+            isPeerActuallyUser = false
+            break
         case EHistoryEntryType.CASHOUT:
             direction = 'withdraw'
             transactionCardType = 'withdraw'
