@@ -46,26 +46,29 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // todo: @dev to customize the design of this component,
     // docs here: https://github.com/BoxFactura/pulltorefresh.js
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            PullToRefresh.init({
-                mainElement: 'body', // target element for pull to refresh
-                onRefresh: () => {
-                    // simulate a refresh action
-                    window.location.reload()
-                },
-                instructionsPullToRefresh: 'Pull down to refresh',
-                instructionsReleaseToRefresh: 'Release to refresh',
-                instructionsRefreshing: 'Refreshing...',
-                // enable for all ios devices (safari and pwa)
-                shouldPullToRefresh: () => /iPad|iPhone|iPod/.test(navigator.userAgent),
-            })
-        }
+        if (typeof window === 'undefined') return
 
-        // clean up when the component is removed
+        PullToRefresh.init({
+            mainElement: 'body',
+            onRefresh: () => {
+                window.location.reload()
+            },
+            instructionsPullToRefresh: 'Pull down to refresh',
+            instructionsReleaseToRefresh: 'Release to refresh',
+            instructionsRefreshing: 'Refreshing...',
+            shouldPullToRefresh: () => {
+                const el = document.querySelector('body')
+                if (!el) return false
+
+                return el.scrollTop === 0 && window.scrollY === 0
+            },
+            distThreshold: 70,
+            distMax: 120,
+            distReload: 80,
+        })
+
         return () => {
-            if (typeof window !== 'undefined') {
-                PullToRefresh.destroyAll()
-            }
+            PullToRefresh.destroyAll()
         }
     }, [])
 
