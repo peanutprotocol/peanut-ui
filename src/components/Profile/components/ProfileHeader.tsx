@@ -21,7 +21,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, isVerifie
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const contentRef = useRef<HTMLDivElement>(null)
     const drawerHeightVh = useDynamicHeight(contentRef, { maxHeightVh: 90, minHeightVh: 10, extraVhOffset: 5 })
-    const currentExpandedHeight = drawerHeightVh ?? 60
+    const currentExpandedHeight = drawerHeightVh ?? 80
     const currentHalfHeight = Math.min(60, drawerHeightVh ?? 60)
 
     const profileUrl = `${BASE_URL}/${username}`
