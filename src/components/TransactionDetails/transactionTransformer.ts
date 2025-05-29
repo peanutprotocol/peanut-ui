@@ -11,11 +11,15 @@ import { getExplorerUrl, getInitialsFromName } from '@/utils/general.utils'
 
 export type RewardData = {
     symbol: string
+    formatAmount: (amount: number | bigint) => string
+    getSymbol: (amount: number | bigint) => string
     avatarUrl: string
 }
 const REWARD_TOKENS: { [key: string]: RewardData } = {
     '0x9ae69fdff2fa97e34b680752d8e70dfd529ea6ca': {
         symbol: 'Beers',
+        formatAmount: (amount: number | bigint) => (Number(amount) === 1 ? '1 Beer' : `${amount.toString()} Beers`),
+        getSymbol: (amount: number | bigint) => (Number(amount) === 1 ? 'Beer' : 'Beers'),
         avatarUrl: PeanutArmHoldingBeer,
     },
 }
@@ -257,7 +261,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         amount: amount,
         currency: rewardData ? undefined : entry.currency,
         currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
-        tokenSymbol: rewardData?.symbol ?? entry.tokenSymbol,
+        tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
         initials: getInitialsFromName(nameForDetails),
         status: uiStatus,
         isVerified: entry.recipientAccount?.isUser || entry.senderAccount?.isUser || false,
