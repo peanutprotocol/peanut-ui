@@ -4,7 +4,7 @@ import { fetchWithSentry, formatAmount, getFromLocalStorage, getTokenDetails } f
 import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import Cookies from 'js-cookie'
-import type { Hash } from 'viem'
+import { formatUnits, type Hash } from 'viem'
 
 type LatestHistoryResult = QueryObserverResult<HistoryResponse>
 type InfiniteHistoryResult = InfiniteQueryObserverResult<InfiniteData<HistoryResponse>>
@@ -158,8 +158,8 @@ export function useTransactionHistory({
                             tokenAddress: entry.tokenAddress as Hash,
                             chainId: entry.chainId,
                         })
-                        usdAmount = entry.amount.toString()
-                        tokenSymbol = tokenDetails?.symbol ?? entry.tokenSymbol ?? ''
+                        usdAmount = formatUnits(BigInt(entry.amount), tokenDetails?.decimals ?? 6)
+                        tokenSymbol = tokenDetails?.symbol ?? ''
                         break
                     case 'REQUEST':
                         link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
