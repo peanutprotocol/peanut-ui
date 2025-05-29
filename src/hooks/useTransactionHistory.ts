@@ -170,10 +170,23 @@ export function useTransactionHistory({
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break
-                    case EHistoryEntryType.DEPOSIT:
-                        tokenSymbol = entry.tokenSymbol
-                        usdAmount = entry.amount.toString()
+                    case EHistoryEntryType.DEPOSIT: {
+                        const details = getTokenDetails({
+                            tokenAddress: entry.tokenAddress as Hash,
+                            chainId: entry.chainId,
+                        })
+                        tokenSymbol = details?.symbol ?? entry.tokenSymbol
+
+                        try {
+                            // attempt to parse entry.amount as BigInt (wei for on-chain tx)
+                            const amountAsBigInt = BigInt(entry.amount)
+                            usdAmount = formatUnits(amountAsBigInt, details?.decimals ?? 6)
+                        } catch (e) {
+                            // if BigInt conversion fails, assume entry.amount is already in final units (e.g. for charges)
+                            usdAmount = entry.amount.toString()
+                        }
                         break
+                    }
                     case EHistoryEntryType.WITHDRAW:
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
