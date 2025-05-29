@@ -141,11 +141,11 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                 value={formatDate(transaction.date as Date)}
                                 hideBottomBorder={
                                     !transaction.tokenDisplayDetails &&
-                                    transaction.sourceView === 'status' &&
                                     !transaction.cancelledDate &&
                                     !transaction.fee &&
                                     !transaction.memo &&
-                                    !transaction.attachmentUrl
+                                    !transaction.attachmentUrl &&
+                                    transaction.status === 'pending'
                                 }
                             />
                         )}

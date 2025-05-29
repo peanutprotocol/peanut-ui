@@ -33,9 +33,10 @@ const getTitle = (
     let titleText = userName
 
     if (isLinkTransaction && (status === 'pending' || status === 'cancelled' || !userName)) {
+        const displayName = userName
         switch (direction) {
             case 'send':
-                titleText = 'Sent via Link'
+                titleText = displayName
                 break
             case 'request_sent':
                 titleText = 'Requested via Link'
