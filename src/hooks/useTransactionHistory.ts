@@ -1,4 +1,4 @@
-import { BASE_URL, PEANUT_API_URL } from '@/constants'
+import { BASE_URL, PEANUT_API_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { fetchWithSentry, formatAmount, getFromLocalStorage, getTokenDetails } from '@/utils'
 import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
@@ -177,12 +177,10 @@ export function useTransactionHistory({
                         })
                         tokenSymbol = details?.symbol ?? entry.tokenSymbol
 
-                        try {
-                            // attempt to parse entry.amount as BigInt (wei for on-chain tx)
-                            const amountAsBigInt = BigInt(entry.amount)
-                            usdAmount = formatUnits(amountAsBigInt, details?.decimals ?? 6)
-                        } catch (e) {
-                            // if BigInt conversion fails, assume entry.amount is already in final units (e.g. for charges)
+                        if (entry.extraData?.blockNumber) {
+                            // direct deposits are always in wei
+                            usdAmount = formatUnits(BigInt(entry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
+                        } else {
                             usdAmount = entry.amount.toString()
                         }
                         break
