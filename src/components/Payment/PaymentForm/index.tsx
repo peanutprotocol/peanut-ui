@@ -643,7 +643,7 @@ export const PaymentForm = ({
 
                 <div className="space-y-4">
                     {guestAction()}
-                    {isConnected && !error && (
+                    {isConnected && (
                         <Button
                             variant="purple"
                             loading={isProcessing}
@@ -655,25 +655,6 @@ export const PaymentForm = ({
                             iconSize={16}
                         >
                             {getButtonText()}
-                        </Button>
-                    )}
-                    {isConnected && error && (
-                        <Button
-                            variant="purple"
-                            loading={isProcessing}
-                            shadowSize="4"
-                            onClick={() => {
-                                setInputTokenAmount('')
-                                setUsdValue('')
-                                setCurrencyAmount?.('')
-                                dispatch(paymentActions.setError(null))
-                            }}
-                            disabled={isProcessing}
-                            className="w-full"
-                            icon="retry"
-                            iconSize={16}
-                        >
-                            Retry
                         </Button>
                     )}
                     {isXChainPeanutWalletReq && !isAddMoneyFlow && (
