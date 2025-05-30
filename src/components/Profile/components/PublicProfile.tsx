@@ -32,8 +32,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
 }) => {
     const dispatch = useAppDispatch()
     const [fullName, setFullName] = useState<string>(username)
-    const [totalSent, setTotalSent] = useState<string>('0')
-    const [totalReceived, setTotalReceived] = useState<string>('0')
+    const [totalSent, setTotalSent] = useState<string>('0.00')
+    const [totalReceived, setTotalReceived] = useState<string>('0.00')
     const { user } = useAuth()
     const router = useRouter()
 
@@ -100,7 +100,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                     </Link>
                 </div>
 
-                {!!user && (
+                {totalSent !== '0.00' && totalReceived !== '0.00' && (
                     <div className="space-y-6">
                         <div>
                             <Card position="first">
