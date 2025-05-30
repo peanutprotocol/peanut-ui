@@ -30,7 +30,7 @@ import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { areEvmAddressesEqual, ErrorHandler, formatAmount, floorFixed } from '@/utils'
+import { areEvmAddressesEqual, ErrorHandler, formatAmount } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -83,7 +83,7 @@ export const PaymentForm = ({
     const { initiatePayment, isProcessing, error: initiatorError } = usePaymentInitiator()
 
     const peanutWalletBalance = useMemo(() => {
-        const formattedBalance = floorFixed(Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)), 2)
+        const formattedBalance = formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
         return formattedBalance
     }, [balance])
 
@@ -152,7 +152,10 @@ export const PaymentForm = ({
     useEffect(() => {
         dispatch(paymentActions.setError(null))
 
-        if (!inputTokenAmount || isNaN(parseFloat(inputTokenAmount)) || parseFloat(inputTokenAmount) <= 0) {
+        const currentInputAmountStr = String(inputTokenAmount)
+        const parsedInputAmount = parseFloat(currentInputAmountStr.replace(/,/g, ''))
+
+        if (!currentInputAmountStr || isNaN(parsedInputAmount) || parsedInputAmount <= 0) {
             // if input is invalid or zero, no balance check is needed yet, or clear error if it was for insufficient balance
             return
         }
@@ -166,7 +169,8 @@ export const PaymentForm = ({
                         dispatch(paymentActions.setError('Cannot verify balance: token data incomplete.'))
                         return
                     }
-                    if (Number(selectedTokenBalance) < Number(inputTokenAmount)) {
+                    const numericSelectedTokenBalance = parseFloat(String(selectedTokenBalance).replace(/,/g, ''))
+                    if (numericSelectedTokenBalance < parsedInputAmount) {
                         dispatch(paymentActions.setError('Insufficient balance in connected wallet'))
                     } else {
                         dispatch(paymentActions.setError(null))
@@ -179,9 +183,8 @@ export const PaymentForm = ({
                 // regular send/pay or PINTA flow
                 if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
                     // peanut wallet payment
-                    const walletNumeric = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
-                    const inputNumeric = parseFloat(String(inputTokenAmount).replace(/,/g, ''))
-                    if (walletNumeric < inputNumeric) {
+                    const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
+                    if (walletNumeric < parsedInputAmount) {
                         dispatch(paymentActions.setError('Insufficient balance'))
                     } else {
                         dispatch(paymentActions.setError(null))
@@ -198,7 +201,8 @@ export const PaymentForm = ({
                         dispatch(paymentActions.setError('Cannot verify balance: token data incomplete.'))
                         return
                     }
-                    if (selectedTokenBalance < inputTokenAmount) {
+                    const numericSelectedTokenBalance = parseFloat(String(selectedTokenBalance).replace(/,/g, ''))
+                    if (numericSelectedTokenBalance < parsedInputAmount) {
                         dispatch(paymentActions.setError('Insufficient balance'))
                     } else {
                         dispatch(paymentActions.setError(null))
@@ -221,7 +225,7 @@ export const PaymentForm = ({
         }
     }, [
         selectedTokenBalance,
-        balance,
+        peanutWalletBalance,
         selectedTokenAddress,
         inputTokenAmount,
         isActivePeanutWallet,
@@ -574,6 +578,10 @@ export const PaymentForm = ({
         )
     }, [selectedTokenData, selectedChainID])
 
+    const isInsufficientBalanceError = useMemo(() => {
+        return error?.includes("You don't have enough balance.")
+    }, [error])
+
     return (
         <div className="flex h-full min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={router.back} title={isAddMoneyFlow ? 'Add Money' : 'Send'} />
@@ -643,7 +651,7 @@ export const PaymentForm = ({
 
                 <div className="space-y-4">
                     {guestAction()}
-                    {isConnected && (
+                    {isConnected && (!error || isInsufficientBalanceError) && (
                         <Button
                             variant="purple"
                             loading={isProcessing}
@@ -655,6 +663,22 @@ export const PaymentForm = ({
                             iconSize={16}
                         >
                             {getButtonText()}
+                        </Button>
+                    )}
+                    {isConnected && error && !isInsufficientBalanceError && (
+                        <Button
+                            variant="purple"
+                            loading={isProcessing}
+                            shadowSize="4"
+                            onClick={() => {
+                                handleInitiatePayment()
+                            }}
+                            disabled={isProcessing}
+                            className="w-full"
+                            icon="retry"
+                            iconSize={16}
+                        >
+                            Retry
                         </Button>
                     )}
                     {isXChainPeanutWalletReq && !isAddMoneyFlow && (
