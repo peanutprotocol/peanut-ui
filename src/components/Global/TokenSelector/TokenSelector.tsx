@@ -7,8 +7,6 @@ import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
 import BottomDrawer from '@/components/Global/BottomDrawer'
-import Card from '@/components/Global/Card'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
 import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
@@ -73,8 +71,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const prevExternalAddress = useRef<string | null>(externalWalletAddress ?? null)
     // state for image loading errors
     const [buttonImageError, setButtonImageError] = useState(false)
-    const [defaultTokenImageError, setDefaultTokenImageError] = useState(false)
-    const [defaultChainImageError, setDefaultChainImageError] = useState(false)
     const {
         supportedSquidChainsAndTokens,
         setSelectedTokenAddress,
@@ -180,12 +176,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             setSelectedTokenBalance(tokenBalance.amount.toString())
         }
     }, [selectedTokenAddress, selectedChainID, sourceBalances])
-
-    const handleDefaultTokenSelect = useCallback(() => {
-        setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-        setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-        closeDrawer()
-    }, [closeDrawer, setSelectedTokenAddress, setSelectedChainID])
 
     // renders network list view
     const handleSearchNetwork = useCallback(() => {
@@ -405,8 +395,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     }, [popularTokensList, searchValue, isExternalWalletConnected])
 
     // visibility flags
-    const showDefaultTxnTokenSection = useMemo(() => !isExternalWalletConnected, [isExternalWalletConnected])
-
     const showPopularTokensList = useMemo(() => !isExternalWalletConnected, [isExternalWalletConnected])
     const showUserTokensList = useMemo(() => isExternalWalletConnected, [isExternalWalletConnected])
 
@@ -618,75 +606,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                         />
                     ) : (
                         <div className="relative flex flex-col space-y-4">
-                            {/* Default transaction token section  */}
-                            {showDefaultTxnTokenSection && (
-                                <>
-                                    <Section title="Free transaction token!">
-                                        <Card
-                                            className={twMerge(
-                                                'shadow-4 cursor-pointer border border-black p-3',
-                                                selectedTokenAddress?.toLowerCase() ===
-                                                    PEANUT_WALLET_TOKEN.toLowerCase() &&
-                                                    selectedChainID === PEANUT_WALLET_CHAIN.id.toString() &&
-                                                    !isExternalWalletConnected
-                                                    ? 'bg-primary-3'
-                                                    : 'bg-white',
-                                                classNameButton
-                                            )}
-                                            onClick={handleDefaultTokenSelect}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="relative h-8 w-8">
-                                                        {peanutWalletTokenDetails?.logoURI &&
-                                                        !defaultTokenImageError ? (
-                                                            <Image
-                                                                src={peanutWalletTokenDetails.logoURI}
-                                                                alt={`${peanutWalletTokenDetails?.symbol} logo`}
-                                                                width={28}
-                                                                height={28}
-                                                                className="rounded-full"
-                                                                onError={() => setDefaultTokenImageError(true)}
-                                                            />
-                                                        ) : peanutWalletTokenDetails?.symbol ? (
-                                                            <AvatarWithBadge
-                                                                name={peanutWalletTokenDetails.symbol}
-                                                                size="extra-small"
-                                                            />
-                                                        ) : (
-                                                            <Icon name="currency" size={28} />
-                                                        )}
-                                                        {peanutWalletTokenDetails?.chainLogoURI &&
-                                                        !defaultChainImageError ? (
-                                                            <Image
-                                                                src={peanutWalletTokenDetails.chainLogoURI}
-                                                                alt={`${peanutWalletTokenDetails?.chainName}`}
-                                                                width={16}
-                                                                height={16}
-                                                                className="absolute -right-1 bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2"
-                                                                onError={() => setDefaultChainImageError(true)}
-                                                            />
-                                                        ) : null}
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-semibold text-black">USDC on Arbitrum</p>
-                                                        <p className="text-sm text-gray-600">
-                                                            No gas fees with this token.
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <Icon
-                                                    name="chevron-up"
-                                                    size={32}
-                                                    className="h-8 w-8 rotate-90 text-black"
-                                                />
-                                            </div>
-                                        </Card>
-                                    </Section>
-                                    <Divider className="p-0" />
-                                </>
-                            )}
-
                             {/* Popular chains section - rendered for all views */}
                             <>
                                 <Section title="Select a network">
@@ -718,13 +637,19 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 <Divider className="p-0" dividerClassname="border-grey-1" />
                             </>
 
-                            <div className="sticky -top-1 z-10 bg-background py-3">
+                            <div className="sticky -top-1 z-10 space-y-2 bg-background py-3">
                                 <SearchInput
                                     value={searchValue}
                                     onChange={setSearchValue}
                                     onClear={() => setSearchValue('')}
                                     placeholder="Search for a token or paste address"
                                 />
+                                <div className="flex items-center justify-center gap-2">
+                                    <Icon name="info" size={10} className="text-grey-1" />
+                                    <span className="text-xs font-normal text-grey-1">
+                                        Transactions using USDC on Arbitrum are sponsored
+                                    </span>
+                                </div>
                             </div>
 
                             {/* Popular tokens section - rendered only when there is no wallet connected */}
