@@ -147,7 +147,7 @@ function WalletBalance({
             return (
                 <span className="inline-flex items-center">
                     <span className="relative top-1 text-[48px]">****</span>
-                </span> // amount of * is equal to the amount of numbers, if 1 = *, if 20 = **, if 100 = ***
+                </span>
             )
         }
 

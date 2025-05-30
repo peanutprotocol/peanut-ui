@@ -11,7 +11,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { tokenSelectorContext } from '@/context'
 import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { IToken, IUserBalance } from '@/interfaces'
-import { areEvmAddressesEqual, fetchWalletBalances, formatAmount, isNativeCurrency } from '@/utils'
+import { areEvmAddressesEqual, fetchWalletBalances, formatTokenAmount, isNativeCurrency } from '@/utils'
 import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import EmptyState from '../EmptyStates/EmptyState'
@@ -245,7 +245,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
             }
             if (userBalanceDetails) {
-                buttonFormattedBalance = formatAmount(userBalanceDetails.amount)
+                buttonFormattedBalance = formatTokenAmount(userBalanceDetails.amount) ?? null
             } else {
                 if (generalTokenDetails) buttonFormattedBalance = '0'
             }

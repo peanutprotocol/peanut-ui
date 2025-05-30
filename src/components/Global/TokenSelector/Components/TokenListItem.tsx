@@ -2,7 +2,7 @@ import Card, { CardPosition } from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { IUserBalance } from '@/interfaces'
-import { formatAmount } from '@/utils'
+import { formatAmountWithSignificantDigits, formatAmount } from '@/utils'
 import Image from 'next/image'
 import React, { useContext, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -43,7 +43,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
 
     const formattedBalance = useMemo(() => {
         if (isPopularToken || !balance.amount || typeof balance.decimals === 'undefined') return null
-        return formatAmount(balance.amount)
+        return formatAmountWithSignificantDigits(balance.amount, 4)
     }, [balance.amount, balance.decimals])
 
     return (

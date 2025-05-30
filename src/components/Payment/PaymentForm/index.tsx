@@ -30,7 +30,7 @@ import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
-import { areEvmAddressesEqual, ErrorHandler, formatAmount } from '@/utils'
+import { areEvmAddressesEqual, ErrorHandler, formatAmount, floorFixed } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -83,7 +83,7 @@ export const PaymentForm = ({
     const { initiatePayment, isProcessing, error: initiatorError } = usePaymentInitiator()
 
     const peanutWalletBalance = useMemo(() => {
-        const formattedBalance = formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
+        const formattedBalance = floorFixed(Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)), 2)
         return formattedBalance
     }, [balance])
 
@@ -166,7 +166,7 @@ export const PaymentForm = ({
                         dispatch(paymentActions.setError('Cannot verify balance: token data incomplete.'))
                         return
                     }
-                    if (selectedTokenBalance < inputTokenAmount) {
+                    if (Number(selectedTokenBalance) < Number(inputTokenAmount)) {
                         dispatch(paymentActions.setError('Insufficient balance in connected wallet'))
                     } else {
                         dispatch(paymentActions.setError(null))
@@ -179,7 +179,7 @@ export const PaymentForm = ({
                 // regular send/pay or PINTA flow
                 if (isActivePeanutWallet && areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)) {
                     // peanut wallet payment
-                    const walletNumeric = parseFloat(String(peanutWalletBalance).replace(/,/g, ''))
+                    const walletNumeric = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
                     const inputNumeric = parseFloat(String(inputTokenAmount).replace(/,/g, ''))
                     if (walletNumeric < inputNumeric) {
                         dispatch(paymentActions.setError('Insufficient balance'))
@@ -221,7 +221,7 @@ export const PaymentForm = ({
         }
     }, [
         selectedTokenBalance,
-        peanutWalletBalance,
+        balance,
         selectedTokenAddress,
         inputTokenAmount,
         isActivePeanutWallet,
