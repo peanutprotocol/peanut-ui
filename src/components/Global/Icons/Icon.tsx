@@ -34,6 +34,7 @@ import { PaperClipIcon } from './paper-clip'
 import { PeanutSupportIcon } from './peanut-support'
 import { PlusIcon } from './plus'
 import { QrCodeIcon } from './qr-code'
+import { RetryIcon } from './retry'
 import { SearchIcon } from './search'
 import { ShareIcon } from './share'
 import { SmileIcon } from './smile'
@@ -94,6 +95,7 @@ export type IconName =
     | 'exchange-arrows'
     | 'switch'
     | 'mobile-install'
+    | 'retry'
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -147,6 +149,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     switch: SwitchIcon,
     'check-circle': CheckCircleIcon,
     'mobile-install': MobileInstallIcon,
+    retry: RetryIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

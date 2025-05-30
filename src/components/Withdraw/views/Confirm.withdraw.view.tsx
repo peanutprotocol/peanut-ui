@@ -103,16 +103,30 @@ export default function ConfirmWithdrawView({
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ ${peanutFee}`} />
                 </Card>
 
-                <Button
-                    variant="purple"
-                    shadowSize="4"
-                    onClick={onConfirm}
-                    disabled={isProcessing}
-                    loading={isProcessing}
-                    className="w-full"
-                >
-                    {isProcessing ? 'Withdrawing' : 'Withdraw'}
-                </Button>
+                {error ? (
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        onClick={onConfirm}
+                        disabled={isProcessing}
+                        loading={isProcessing}
+                        className="w-full"
+                        icon="retry"
+                    >
+                        Retry
+                    </Button>
+                ) : (
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        onClick={onConfirm}
+                        disabled={isProcessing}
+                        loading={isProcessing}
+                        className="w-full"
+                    >
+                        {isProcessing ? 'Withdrawing' : 'Withdraw'}
+                    </Button>
+                )}
 
                 {error && <ErrorAlert description={error} />}
             </div>

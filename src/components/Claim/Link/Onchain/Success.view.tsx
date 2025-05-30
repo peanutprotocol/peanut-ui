@@ -2,16 +2,16 @@ import { Button } from '@/components/0_Bruddle'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { useAuth } from '@/context/authContext'
 import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
-import { printableAddress, getTokenDetails } from '@/utils'
+import { getTokenDetails, printableAddress } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
-import * as _consts from '../../Claim.consts'
-import { formatUnits } from 'viem'
 import type { Hash } from 'viem'
-import { useAuth } from '@/context/authContext'
+import { formatUnits } from 'viem'
+import * as _consts from '../../Claim.consts'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -93,7 +93,7 @@ export const SuccessClaimLinkView = ({
                     tokenSymbol={claimLinkData.tokenSymbol}
                     message={`from ${claimLinkData.sender?.username || printableAddress(claimLinkData.senderAddress)}`}
                 />
-                {!!authUser?.user.userId && (
+                {!!authUser?.user.userId ? (
                     <Button
                         shadowSize="4"
                         onClick={() => {
@@ -103,6 +103,10 @@ export const SuccessClaimLinkView = ({
                         className="w-full"
                     >
                         Back to home
+                    </Button>
+                ) : (
+                    <Button icon="user-plus" onClick={() => router.push('/setup')} shadowSize="4">
+                        Create Account
                     </Button>
                 )}
             </div>

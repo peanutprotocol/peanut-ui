@@ -61,14 +61,19 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     }
 
     const isDisabled = useMemo(() => {
-        return !user?.username || !currentInputValue || (!!authUser?.user.userId ? !address : !recipient.address)
+        const parsedAmount = parseFloat(currentInputValue)
+        const isAmountInvalid = isNaN(parsedAmount) || parsedAmount <= 0
+        const isIdentityLogicMissing = !!authUser?.user.userId ? !address : !recipient.address
+        return !user?.username || isAmountInvalid || isIdentityLogicMissing
     }, [user?.username, currentInputValue, address, recipient.address, authUser?.user.userId])
 
     const createRequestCharge = useCallback(async () => {
         if (isDisabled) {
-            throw new Error('Username or amount is missing')
+            setErrorState({ showError: true, errorMessage: 'Username or amount is missing' })
+            return
         }
         setLoadingState('Requesting')
+        setErrorState({ showError: false, errorMessage: '' })
         try {
             await usersApi.requestByUsername({
                 username: user!.username,
@@ -78,13 +83,23 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             })
             setLoadingState('Idle')
             setView('success')
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating request charge:', error)
             captureException(error)
+            setErrorState({ showError: true, errorMessage: error.message || 'Failed to create request.' })
             setLoadingState('Idle')
         }
-    }, [isDisabled, user?.username, currentInputValue, address, attachmentOptions])
-
+    }, [
+        isDisabled,
+        user?.username,
+        currentInputValue,
+        address,
+        attachmentOptions,
+        setLoadingState,
+        authUser,
+        recipient.address,
+        setErrorState,
+    ])
     useEffect(() => {
         async function fetchUser() {
             try {
@@ -152,32 +167,58 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                             recipient={recipient}
                             onUpdate={(update: GeneralRecipientUpdate) => {
                                 setRecipient(update.recipient)
-                                if (!update.recipient.address) {
-                                    setErrorState({
-                                        showError: false,
-                                        errorMessage: '',
-                                    })
+                                if (update.isChanging) {
+                                    setErrorState({ showError: false, errorMessage: '' })
+                                } else {
+                                    if (!update.isValid && update.errorMessage) {
+                                        setErrorState({ showError: true, errorMessage: update.errorMessage })
+                                    } else {
+                                        if (
+                                            (update.isValid && update.recipient.address) ||
+                                            (!update.isValid && !update.errorMessage)
+                                        ) {
+                                            setErrorState({ showError: false, errorMessage: '' })
+                                        } else {
+                                            setErrorState({
+                                                showError: true,
+                                                errorMessage: update.errorMessage || 'Validating recipient...',
+                                            })
+                                        }
+                                    }
                                 }
-                                setErrorState({
-                                    showError: !update.isValid,
-                                    errorMessage: update.errorMessage,
-                                })
                             }}
                             showInfoText={false}
                         />
                     )}
 
-                    {errorState.errorMessage && <ErrorAlert description={errorState.errorMessage} />}
+                    {errorState.showError ? (
+                        <Button
+                            variant="purple"
+                            shadowSize="4"
+                            onClick={() => {
+                                setRecipient({ address: '', name: '' })
+                                setErrorState({ showError: false, errorMessage: '' })
+                                setCurrentInputValue('')
+                            }}
+                            loading={isLoading}
+                            className="w-full"
+                            icon="retry"
+                        >
+                            Reset
+                        </Button>
+                    ) : (
+                        <Button
+                            shadowSize="4"
+                            onClick={createRequestCharge}
+                            disabled={isDisabled || isLoading}
+                            loading={isLoading}
+                            icon="arrow-down-left"
+                        >
+                            {isLoading ? loadingState : 'Request'}
+                        </Button>
+                    )}
 
-                    <Button
-                        shadowSize="4"
-                        onClick={createRequestCharge}
-                        disabled={isDisabled || isLoading}
-                        loading={isLoading}
-                        icon="arrow-down-left"
-                    >
-                        {isLoading ? loadingState : 'Request'}
-                    </Button>
+                    {errorState.errorMessage && <ErrorAlert description={errorState.errorMessage} />}
                 </div>
             </div>
         </div>
