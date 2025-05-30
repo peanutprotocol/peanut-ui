@@ -136,14 +136,20 @@ const LinkSendInitialView = () => {
             />
 
             <div className="flex flex-col gap-4">
-                <Button
-                    shadowSize="4"
-                    onClick={handleOnNext}
-                    loading={isLoading}
-                    disabled={isLoading || !tokenValue || !!errorState?.showError}
-                >
-                    {isLoading ? 'Creating link' : 'Create link'}
-                </Button>
+                {errorState?.showError ? (
+                    <Button shadowSize="4" icon="retry" onClick={handleOnNext} loading={isLoading} disabled={isLoading}>
+                        Retry
+                    </Button>
+                ) : (
+                    <Button
+                        shadowSize="4"
+                        onClick={handleOnNext}
+                        loading={isLoading}
+                        disabled={isLoading || !tokenValue || !!errorState?.showError}
+                    >
+                        {isLoading ? 'Creating link' : 'Create link'}
+                    </Button>
+                )}
                 {errorState?.showError && <ErrorAlert description={errorState.errorMessage} />}
             </div>
         </div>

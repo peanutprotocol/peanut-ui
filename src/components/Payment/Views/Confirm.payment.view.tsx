@@ -272,7 +272,7 @@ export default function ConfirmPaymentView({
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader
-                title="Send"
+                title={isAddMoneyFlow ? 'Add Money' : 'Send'}
                 onPrev={() => {
                     dispatch(paymentActions.setView('INITIAL'))
                     window.history.replaceState(null, '', `${window.location.pathname}`)
@@ -281,7 +281,7 @@ export default function ConfirmPaymentView({
                 }}
             />
 
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="my-auto flex h-full flex-col justify-center space-y-4 pb-5">
                 {parsedPaymentData?.recipient && (
                     <PeanutActionDetailsCard
                         avatarSize="small"
@@ -346,17 +346,31 @@ export default function ConfirmPaymentView({
                 </Card>
 
                 <div className="flex flex-col gap-4">
-                    <Button
-                        disabled={!isConnected || isLoading || isFeeEstimationError}
-                        onClick={handlePayment}
-                        loading={isLoading}
-                        shadowSize="4"
-                        className="w-full"
-                        icon={getIcon()}
-                        iconSize={14}
-                    >
-                        {getButtonText()}
-                    </Button>
+                    {paymentError ? (
+                        <Button
+                            disabled={isLoading}
+                            onClick={handlePayment}
+                            loading={isLoading}
+                            shadowSize="4"
+                            className="w-full"
+                            icon="retry"
+                            iconSize={14}
+                        >
+                            Retry
+                        </Button>
+                    ) : (
+                        <Button
+                            disabled={!isConnected || isLoading || isFeeEstimationError}
+                            onClick={handlePayment}
+                            loading={isLoading}
+                            shadowSize="4"
+                            className="w-full"
+                            icon={getIcon()}
+                            iconSize={14}
+                        >
+                            {getButtonText()}
+                        </Button>
+                    )}
                     {paymentError && (
                         <div className="space-y-2">
                             <ErrorAlert description={paymentError} />
