@@ -3,7 +3,7 @@ import React from 'react'
 import { generateMetadata } from '@/app/metadata'
 
 export const metadata = generateMetadata({
-    title: 'Transaction History | Peanut',
+    title: 'History | Peanut',
     description:
         'View your transaction history with Peanut. Track your P2P digital dollar payments, transfers, and claims.',
 })

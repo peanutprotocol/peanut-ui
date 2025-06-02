@@ -8,7 +8,7 @@ import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
-import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useAuth } from '@/context/authContext'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -255,7 +255,11 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             return null
         }
 
-        const username = recipientAccount?.user.username
+        const username =
+            recipientAccount?.user?.username ||
+            recipientAccount?.identifier ||
+            chargeDetails.requestLink.recipientAddress
+        const originalUserRole = isCurrentUser ? EHistoryUserRole.RECIPIENT : EHistoryUserRole.SENDER
         let details: Partial<TransactionDetails> = {
             id: chargeDetails.uuid,
             status,
@@ -267,9 +271,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             attachmentUrl: chargeDetails.requestLink.attachmentUrl ?? undefined,
             cancelledDate: status === 'cancelled' ? new Date(chargeDetails.timeline[0].time) : undefined,
             extraDataForDrawer: {
-                isLinkTransaction: true,
+                isLinkTransaction: originalUserRole === EHistoryUserRole.SENDER && isCurrentUser,
                 originalType: EHistoryEntryType.REQUEST,
-                originalUserRole: isCurrentUser ? EHistoryUserRole.RECIPIENT : EHistoryUserRole.SENDER,
+                originalUserRole: originalUserRole,
                 link: window.location.href,
             },
             userName: username ?? chargeDetails.requestLink.recipientAddress,
@@ -395,6 +399,8 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 <>
                     {parsedPaymentData?.token?.symbol === 'PNT' ? (
                         <PintaReqPaySuccessView />
+                    ) : isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
+                        <TransactionDetailsReceipt transaction={selectedTransaction} />
                     ) : (
                         <DirectSuccessView
                             headerTitle={isAddMoneyFlow ? 'Add Money' : 'Send'}
@@ -409,13 +415,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     )}
                 </>
             )}
-            <TransactionDetailsDrawer
-                isOpen={isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id}
-                onClose={() => {
-                    router.push('/home')
-                }}
-                transaction={selectedTransaction}
-            />
         </div>
     )
 }
