@@ -13,6 +13,9 @@ import ProfileHeader from './ProfileHeader'
 import { useState, useEffect } from 'react'
 import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
+import { formatExtendedNumber } from '@/utils'
+import Card from '@/components/Global/Card'
+import { useAuth } from '@/context/authContext'
 
 interface PublicProfileProps {
     username: string
@@ -29,6 +32,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
 }) => {
     const dispatch = useAppDispatch()
     const [fullName, setFullName] = useState<string>(username)
+    const [totalSent, setTotalSent] = useState<string>('0.00')
+    const [totalReceived, setTotalReceived] = useState<string>('0.00')
+    const { user } = useAuth()
     const router = useRouter()
 
     // Handle send button click
@@ -43,6 +49,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
     useEffect(() => {
         usersApi.getByUsername(username).then((user) => {
             if (user?.fullName) setFullName(user.fullName)
+            setTotalSent(user.totalUsdSent)
+            setTotalReceived(user.totalUsdReceived)
         })
     }, [username])
 
@@ -92,31 +100,26 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                     </Link>
                 </div>
 
-                {/*
-                <div className="space-y-6">
-                    {!!hasTransactions && (
+                {totalSent !== '0.00' && totalReceived !== '0.00' && (
+                    <div className="space-y-6">
                         <div>
                             <Card position="first">
                                 <div className="flex items-center justify-between py-2">
                                     <span className="font-medium">Total sent to</span>
-                                    <span className="font-medium">
-                                        ${formatExtendedNumber(transactions?.sent || 0)}
-                                    </span>
+                                    <span className="font-medium">${formatExtendedNumber(totalSent)}</span>
                                 </div>
                             </Card>
                             <Card position="last">
                                 <div className="flex items-center justify-between py-2">
                                     <span className="font-medium">Total received from</span>
-                                    <span className="font-medium">
-                                        ${formatExtendedNumber(transactions?.received || 0)}
-                                    </span>
+                                    <span className="font-medium">${formatExtendedNumber(totalReceived)}</span>
                                 </div>
                             </Card>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                </div>
-
+                {/*
                 {!hasTransactions && (
                     <div className="relative flex flex-col items-center">
                         <Card position="single" className="z-10 mt-28 space-y-2 p-4 text-center">
