@@ -15,7 +15,7 @@ const setupSlice = createSlice({
     name: SETUP,
     initialState,
     reducers: {
-        setHandle: (state, action: PayloadAction<string>) => {
+        setUsername: (state, action: PayloadAction<string>) => {
             state.username = action.payload
         },
         resetSetup: (state) => {
