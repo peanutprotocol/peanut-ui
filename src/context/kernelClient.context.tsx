@@ -74,7 +74,6 @@ export const createKernelClientForChain = async <C extends Chain>(
     const kernelClient = createKernelAccountClient({
         account: kernelAccount,
         chain: chain,
-        // fast mode: https://docs.zerodev.app/sdk/core-api/sponsor-gas#ultrarelay
         bundlerTransport: http(bundlerUrl),
         pollingInterval: 500,
         userOperation:
