@@ -145,7 +145,6 @@ export const TransactionDetailsReceipt = ({
             (transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST &&
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
-    if (!transaction) return null
     return (
         <div ref={contentRef} className="space-y-4 pb-8">
             {/* show qr code at the top if applicable */}
