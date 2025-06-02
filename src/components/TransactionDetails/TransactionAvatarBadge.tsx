@@ -80,8 +80,8 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
                 iconFillColor = AVATAR_TEXT_DARK
             } else if (displayInitials) {
                 const colors = getColorForUsername(userName)
-                calculatedBgColor = colors.backgroundColor
-                textColor = AVATAR_TEXT_DARK
+                calculatedBgColor = colors.lightShade
+                textColor = colors.darkShade
                 displayIconName = undefined
             } else {
                 // fallback for send/request if no initials and not link/address
