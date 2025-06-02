@@ -69,6 +69,8 @@ export const usersApi = {
             },
             attachment: attachment?.rawFile,
             reference: attachment?.message,
+            mimeType: attachment?.rawFile?.type,
+            filename: attachment?.rawFile?.name,
         })
     },
 }

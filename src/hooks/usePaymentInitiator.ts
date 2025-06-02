@@ -49,7 +49,7 @@ export interface InitiatePaymentPayload {
     currencyAmount?: string
     isAddMoneyFlow?: boolean
     transactionType?: TChargeTransactionType
-    attachmentOptions?: IAttachmentOptions & { mimeType?: string }
+    attachmentOptions?: IAttachmentOptions
 }
 
 interface InitiationResult {
@@ -536,8 +536,9 @@ export const usePaymentInitiator = () => {
                 if (payload.attachmentOptions?.message) {
                     createChargeRequestPayload.reference = payload.attachmentOptions.message
                 }
-                if (payload.attachmentOptions?.mimeType) {
-                    createChargeRequestPayload.mimeType = payload.attachmentOptions.mimeType
+
+                if (payload.attachmentOptions?.rawFile?.type) {
+                    createChargeRequestPayload.mimeType = payload.attachmentOptions.rawFile.type
                 }
 
                 console.log('Creating charge with payload:', createChargeRequestPayload)
