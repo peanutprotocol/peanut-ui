@@ -1,16 +1,26 @@
 import { PEANUT_API_URL } from '@/constants'
-import { CreateChargeRequest, PaymentCreationResponse, TCharge, TRequestChargeResponse } from './services.types'
-import Cookies from 'js-cookie'
 import { fetchWithSentry, jsonParse } from '@/utils'
+import Cookies from 'js-cookie'
+import { CreateChargeRequest, PaymentCreationResponse, TCharge, TRequestChargeResponse } from './services.types'
 
 export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {
-        const response = await fetchWithSentry(`/api/proxy/charges`, {
+        const formData = new FormData()
+
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== undefined) {
+                // check if the value is an object and not a File/Blob
+                if (typeof value === 'object' && !(value instanceof File) && !(value instanceof Blob)) {
+                    formData.append(key, JSON.stringify(value))
+                } else {
+                    formData.append(key, value)
+                }
+            }
+        })
+
+        const response = await fetchWithSentry(`/api/proxy/withFormData/charges`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
+            body: formData,
         })
 
         if (!response.ok) {

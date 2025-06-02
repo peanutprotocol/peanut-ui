@@ -5,6 +5,7 @@ import { Button } from '@/components/0_Bruddle'
 import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import FileUploadInput from '@/components/Global/FileUploadInput'
 import FlowHeader from '@/components/Global/FlowHeader'
 import GuestLoginCta from '@/components/Global/GuestLoginCta'
 import { IconName } from '@/components/Global/Icons/Icon'
@@ -67,7 +68,13 @@ export const PaymentForm = ({
     const dispatch = useAppDispatch()
     const router = useRouter()
     const { user } = useAuth()
-    const { requestDetails, chargeDetails, beerQuantity, error: paymentStoreError } = usePaymentStore()
+    const {
+        requestDetails,
+        chargeDetails,
+        beerQuantity,
+        error: paymentStoreError,
+        attachmentOptions,
+    } = usePaymentStore()
     const { isConnected: isPeanutWallet, balance } = useWallet()
     const { isConnected: isWagmiConnected, status } = useAccount()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
@@ -381,6 +388,7 @@ export const PaymentForm = ({
             currencyAmount,
             isAddMoneyFlow: !!isAddMoneyFlow,
             transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectPay ? 'DIRECT_SEND' : 'REQUEST',
+            attachmentOptions: attachmentOptions,
         }
 
         console.log('Initiating payment with payload:', payload)
@@ -647,6 +655,15 @@ export const PaymentForm = ({
 
                 {isWagmiConnected && isAddMoneyFlow && (
                     <TokenSelector viewType="add" disabled={!isWagmiConnected && isAddMoneyFlow} />
+                )}
+
+                {isDirectPay && (
+                    <FileUploadInput
+                        placeholder="Comment"
+                        attachmentOptions={attachmentOptions}
+                        setAttachmentOptions={(options) => dispatch(paymentActions.setAttachmentOptions(options))}
+                        className="h-11"
+                    />
                 )}
 
                 <div className="space-y-4">

@@ -109,6 +109,8 @@ export interface CreateChargeRequest {
     attachment?: File
     reference?: string
     transactionType?: TChargeTransactionType
+    mimeType?: string
+    filename?: string
 }
 
 export interface TCharge {
