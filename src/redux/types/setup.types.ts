@@ -1,7 +1,7 @@
 import { ISetupStep } from '@/components/Setup/Setup.types'
 
 export interface ISetupState {
-    handle: string
+    username: string
     currentStep: number
     direction: number
     isLoading: boolean

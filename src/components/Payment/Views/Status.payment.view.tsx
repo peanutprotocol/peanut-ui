@@ -109,6 +109,8 @@ const DirectSuccessView = ({
             },
             userName: user?.username || parsedPaymentData?.recipient?.identifier,
             sourceView: 'status',
+            memo: chargeDetails.requestLink?.reference || undefined,
+            attachmentUrl: chargeDetails.requestLink?.attachmentUrl || undefined,
             tokenDisplayDetails: {
                 tokenSymbol: resolvedTokenSymbol || chargeDetails.tokenSymbol,
                 chainName: resolvedChainName,

@@ -4,7 +4,7 @@ import { SETUP } from '../constants'
 import { ISetupState } from '../types/setup.types'
 
 const initialState: ISetupState = {
-    handle: '',
+    username: '',
     currentStep: 1,
     direction: 0,
     isLoading: false,
@@ -15,11 +15,11 @@ const setupSlice = createSlice({
     name: SETUP,
     initialState,
     reducers: {
-        setHandle: (state, action: PayloadAction<string>) => {
-            state.handle = action.payload
+        setUsername: (state, action: PayloadAction<string>) => {
+            state.username = action.payload
         },
         resetSetup: (state) => {
-            state.handle = ''
+            state.username = ''
             state.currentStep = 1
             state.direction = 0
             state.isLoading = false

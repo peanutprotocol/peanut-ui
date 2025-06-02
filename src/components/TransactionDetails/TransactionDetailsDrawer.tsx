@@ -231,7 +231,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                 label="Network fee"
                                 value={transaction.networkFeeDetails.amountDisplay}
                                 moreInfoText={transaction.networkFeeDetails.moreInfoText}
-                                hideBottomBorder
+                                hideBottomBorder={!transaction.attachmentUrl}
                             />
                         )}
 

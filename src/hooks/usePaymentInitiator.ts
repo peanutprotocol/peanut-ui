@@ -15,6 +15,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
+import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import {
@@ -48,6 +49,7 @@ export interface InitiatePaymentPayload {
     currencyAmount?: string
     isAddMoneyFlow?: boolean
     transactionType?: TChargeTransactionType
+    attachmentOptions?: IAttachmentOptions
 }
 
 interface InitiationResult {
@@ -524,6 +526,19 @@ export const usePaymentInitiator = () => {
                         recipientAddress: payload.recipient?.resolvedAddress,
                     },
                     transactionType: payload.transactionType,
+                }
+
+                // add attachment if present
+                if (payload.attachmentOptions?.rawFile) {
+                    createChargeRequestPayload.attachment = payload.attachmentOptions.rawFile
+                    createChargeRequestPayload.filename = payload.attachmentOptions.rawFile.name
+                }
+                if (payload.attachmentOptions?.message) {
+                    createChargeRequestPayload.reference = payload.attachmentOptions.message
+                }
+
+                if (payload.attachmentOptions?.rawFile?.type) {
+                    createChargeRequestPayload.mimeType = payload.attachmentOptions.rawFile.type
                 }
 
                 console.log('Creating charge with payload:', createChargeRequestPayload)
