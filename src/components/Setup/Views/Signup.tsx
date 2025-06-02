@@ -11,41 +11,41 @@ import { useState } from 'react'
 
 const SignupStep = () => {
     const dispatch = useAppDispatch()
-    const { handle } = useSetupStore()
+    const { username } = useSetupStore()
     const [error, setError] = useState('')
     const { handleNext, isLoading } = useSetupFlow()
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
 
-    const checkHandleValidity = async (handle: string): Promise<boolean> => {
+    const checkUsernameValidity = async (username: string): Promise<boolean> => {
         // clear error when starting a new validation
         setError('')
 
         // handle empty input
-        if (!handle) {
-            setError('Handle is required')
+        if (!username) {
+            setError('Username is required')
             return false
         }
 
         // check length requirement
-        if (handle.length < 4) {
-            setError('Handle must be at least 4 characters long')
+        if (username.length < 4) {
+            setError('Username must be at least 4 characters long')
             return false
         }
-        if (handle.length > 12) {
-            setError('Handle must be at most 12 characters long')
+        if (username.length > 12) {
+            setError('Username must be at most 12 characters long')
             return false
         }
 
         // check character requirement
-        if (!handle.match(/^[a-z][a-z0-9_]{3,11}$/)) {
-            setError('Handle must contain only lowercase letters, numbers and underscores and start with a letter')
+        if (!username.match(/^[a-z][a-z0-9_]{3,11}$/)) {
+            setError('Username must contain only lowercase letters, numbers and underscores and start with a letter')
             return false
         }
 
         try {
             // here we expect 404 or 400 so dont use the fetchWithSentry helper
-            const res = await fetchWithSentry(`${next_proxy_url}/get/users/username/${handle}`, {
+            const res = await fetchWithSentry(`${next_proxy_url}/get/users/username/${username}`, {
                 method: 'HEAD',
             })
             switch (res.status) {
@@ -88,7 +88,7 @@ const SignupStep = () => {
         isChanging: boolean
         isValid: boolean
     }) => {
-        dispatch(setupActions.setHandle(value.toLowerCase()))
+        dispatch(setupActions.setUsername(value.toLowerCase()))
         setIsValid(isValid)
         setIsChanging(isChanging)
 
@@ -105,10 +105,10 @@ const SignupStep = () => {
                     <div className="flex items-center gap-2">
                         <ValidatedInput
                             className=""
-                            placeholder="Choose your handle"
-                            value={handle}
+                            placeholder="Choose your username"
+                            value={username}
                             debounceTime={750}
-                            validate={checkHandleValidity}
+                            validate={checkUsernameValidity}
                             onUpdate={handleInputUpdate}
                         />
                         <Button

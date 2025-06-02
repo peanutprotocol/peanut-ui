@@ -1,3 +1,4 @@
+import type { FeeOptions } from '@/app/actions/clients'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import {
     PEANUT_WALLET_CHAIN,
@@ -14,23 +15,24 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
+import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import {
     CreateChargeRequest,
     PaymentCreationResponse,
     TCharge,
+    TChargeTransactionType,
     TRequestChargeResponse,
 } from '@/services/services.types'
 import { areEvmAddressesEqual, ErrorHandler, isAddressZero, isNativeCurrency } from '@/utils'
 import { useAppKitAccount } from '@reown/appkit/react'
+import { captureException } from '@sentry/nextjs'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Hex, TransactionReceipt } from 'viem'
 import { useConfig, useSendTransaction, useSwitchChain, useAccount as useWagmiAccount } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
-import { captureException } from '@sentry/nextjs'
-import type { FeeOptions } from '@/app/actions/clients'
 
 export interface InitiatePaymentPayload {
     recipient: ParsedURL['recipient']
@@ -45,6 +47,9 @@ export interface InitiatePaymentPayload {
         price: number
     }
     currencyAmount?: string
+    isAddMoneyFlow?: boolean
+    transactionType?: TChargeTransactionType
+    attachmentOptions?: IAttachmentOptions
 }
 
 interface InitiationResult {
@@ -89,6 +94,7 @@ export const usePaymentInitiator = () => {
     const [transactionHash, setTransactionHash] = useState<string | null>(null)
     const [paymentDetails, setPaymentDetails] = useState<PaymentCreationResponse | null>(null)
     const [isEstimatingGas, setIsEstimatingGas] = useState(false)
+    const [currentOperationIsAddMoney, setCurrentOperationIsAddMoney] = useState(false)
 
     // calculate fee details
     const [feeCalculations, setFeeCalculations] = useState({
@@ -158,10 +164,33 @@ export const usePaymentInitiator = () => {
     useEffect(() => {
         if (!activeChargeDetails || (!unsignedTx && !xChainUnsignedTxs)) return
 
+        let determinedEstimatorAccount: Hex | undefined
+
+        if (xChainUnsignedTxs && xChainUnsignedTxs.length > 0) {
+            // xChain transactions are always for the external (Wagmi) wallet
+            determinedEstimatorAccount = wagmiAddress as Hex | undefined
+        } else if (unsignedTx) {
+            // for unsignedTx, check if it's an Add Money operation or dependent on PeanutWallet state
+            if (currentOperationIsAddMoney) {
+                determinedEstimatorAccount = wagmiAddress as Hex | undefined
+            } else {
+                determinedEstimatorAccount = (isPeanutWallet ? peanutWalletAddress : wagmiAddress) as Hex | undefined
+            }
+        }
+
+        if (!determinedEstimatorAccount) {
+            console.warn(
+                'Gas estimation skipped: No valid estimator account found (wagmiAddress or peanutWalletAddress). Ensure one is connected and active for the flow.'
+            )
+            setError('Cannot estimate fees: Wallet address not found.')
+            setIsFeeEstimationError(true)
+            return
+        }
+
         setIsEstimatingGas(true)
         setIsFeeEstimationError(false)
         estimateGasFee({
-            from: (peanutWalletAddress ?? wagmiAddress) as Hex,
+            from: determinedEstimatorAccount as Hex,
             chainId: isXChain ? selectedChainID : activeChargeDetails.chainId,
             preparedTxs: isXChain || diffTokens ? xChainUnsignedTxs! : [unsignedTx!],
         })
@@ -294,7 +323,9 @@ export const usePaymentInitiator = () => {
 
     // prepare transaction details (called from Confirm view)
     const prepareTransactionDetails = useCallback(
-        async (chargeDetails: TRequestChargeResponse) => {
+        async (chargeDetails: TRequestChargeResponse, isAddMoneyFlowContext?: boolean) => {
+            setCurrentOperationIsAddMoney(!!isAddMoneyFlowContext)
+
             if (!selectedTokenData || (!peanutWalletAddress && !wagmiAddress)) {
                 console.warn('Missing data for transaction preparation')
                 return
@@ -314,7 +345,10 @@ export const usePaymentInitiator = () => {
                 totalMax: '0.00',
             })
 
-            if (isPeanutWallet) {
+            // If PeanutWallet is connected AND it's NOT an Add Money flow (which mandates external wallet),
+            // then we can assume preparation is for Peanut Wallet.
+            // Otherwise, proceed to prepare for external wallet.
+            if (isPeanutWallet && !isAddMoneyFlowContext) {
                 setEstimatedFromValue(chargeDetails.tokenAmount)
                 setIsPreparingTx(false)
                 return
@@ -491,6 +525,20 @@ export const usePaymentInitiator = () => {
                         tokenDecimals: Number(recipientTokenDecimals),
                         recipientAddress: payload.recipient?.resolvedAddress,
                     },
+                    transactionType: payload.transactionType,
+                }
+
+                // add attachment if present
+                if (payload.attachmentOptions?.rawFile) {
+                    createChargeRequestPayload.attachment = payload.attachmentOptions.rawFile
+                    createChargeRequestPayload.filename = payload.attachmentOptions.rawFile.name
+                }
+                if (payload.attachmentOptions?.message) {
+                    createChargeRequestPayload.reference = payload.attachmentOptions.message
+                }
+
+                if (payload.attachmentOptions?.rawFile?.type) {
+                    createChargeRequestPayload.mimeType = payload.attachmentOptions.rawFile.type
                 }
 
                 console.log('Creating charge with payload:', createChargeRequestPayload)
@@ -708,8 +756,7 @@ export const usePaymentInitiator = () => {
             } catch (txError: any) {
                 // re-throw the error with the current step context
                 console.error(`Transaction failed during ${currentStep}:`, txError)
-                let parsedError = ErrorHandler(txError)
-                throw new Error(parsedError)
+                throw txError
             }
 
             const txHash = receipt.transactionHash
@@ -762,27 +809,44 @@ export const usePaymentInitiator = () => {
             try {
                 // 1. determine Charge Details
                 const { chargeDetails, chargeCreated: created } = await determineChargeDetails(payload)
-                determinedChargeDetails = chargeDetails // Store for potential error handling cleanup
+                determinedChargeDetails = chargeDetails
                 chargeCreated = created
                 console.log('Proceeding with charge details:', determinedChargeDetails.uuid)
 
                 // 2. handle charge state
-                if (chargeCreated && (payload.isPintaReq || !isPeanutWallet)) {
+                if (chargeCreated && (payload.isPintaReq || payload.isAddMoneyFlow || !isPeanutWallet)) {
                     console.log(
-                        `Charge created for ${payload.isPintaReq ? 'Pinta Request' : 'External Wallet'}. Returning Charge Created status.`
+                        `Charge created. Transitioning to Confirm view for: ${
+                            payload.isPintaReq
+                                ? 'Pinta Request'
+                                : payload.isAddMoneyFlow
+                                  ? 'Add Money Flow'
+                                  : 'External Wallet'
+                        }.`
                     )
                     setLoadingStep('Charge Created')
                     return { status: 'Charge Created', charge: determinedChargeDetails, success: false }
                 }
 
                 // 3. execute payment based on wallet type
-                if (isPeanutWallet && peanutWalletAddress) {
+                if (payload.isAddMoneyFlow) {
+                    if (!wagmiAddress) {
+                        console.error('Add Money flow requires an external wallet (WAGMI) to be connected.')
+                        throw new Error('External wallet not connected for Add Money flow.')
+                    }
+                    console.log('Executing External Wallet transaction for Add Money flow.')
+                    // Ensure charge details are passed, even if just created.
+                    if (!determinedChargeDetails)
+                        throw new Error('Charge details missing for Add Money external payment.')
+                    return await handleExternalWalletPayment(determinedChargeDetails)
+                } else if (isPeanutWallet && peanutWalletAddress) {
                     console.log(
                         `Executing Peanut Wallet transaction (chargeCreated: ${chargeCreated}, isPintaReq: ${payload.isPintaReq})`
                     )
                     return await handlePeanutWalletPayment(determinedChargeDetails, payload)
                 } else if (!isPeanutWallet) {
-                    console.log('Handling payment for External Wallet (called from Confirm view).')
+                    console.log('Handling payment for External Wallet (non-AddMoney, called from Confirm view).')
+                    if (!determinedChargeDetails) throw new Error('Charge details missing for External Wallet payment.')
                     return await handleExternalWalletPayment(determinedChargeDetails)
                 } else {
                     console.error('Invalid payment state: Could not determine wallet type or required action.')
@@ -810,6 +874,7 @@ export const usePaymentInitiator = () => {
             handleExternalWalletPayment,
             isPeanutWallet,
             peanutWalletAddress,
+            wagmiAddress,
             handleError,
             setLoadingStep,
             setError,
@@ -898,6 +963,11 @@ export const usePaymentInitiator = () => {
         []
     )
 
+    const cancelOperation = useCallback(() => {
+        setError('Please confirm the request in your wallet.')
+        setLoadingStep('Error')
+    }, [setError, setLoadingStep])
+
     return {
         initiatePayment,
         prepareTransactionDetails,
@@ -919,5 +989,6 @@ export const usePaymentInitiator = () => {
         isEstimatingGas,
         isXChain,
         diffTokens,
+        cancelOperation,
     }
 }

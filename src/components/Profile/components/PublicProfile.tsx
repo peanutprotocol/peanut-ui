@@ -4,16 +4,18 @@ import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import HomeHistory from '@/components/Home/HomeHistory'
 import { useAppDispatch } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import Image from 'next/image'
 import Link from 'next/link'
 import ProfileHeader from './ProfileHeader'
-import HomeHistory from '@/components/Home/HomeHistory'
+import { useState, useEffect } from 'react'
+import { usersApi } from '@/services/users'
+import { useRouter } from 'next/navigation'
 
 interface PublicProfileProps {
     username: string
-    fullName: string
     isVerified?: boolean
     isLoggedIn?: boolean
     onSendClick?: () => void
@@ -21,12 +23,13 @@ interface PublicProfileProps {
 
 const PublicProfile: React.FC<PublicProfileProps> = ({
     username,
-    fullName,
     isVerified = false,
     isLoggedIn = false,
     onSendClick,
 }) => {
     const dispatch = useAppDispatch()
+    const [fullName, setFullName] = useState<string>(username)
+    const router = useRouter()
 
     // Handle send button click
     const handleSend = () => {
@@ -37,17 +40,23 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
         }
     }
 
+    useEffect(() => {
+        usersApi.getByUsername(username).then((user) => {
+            if (user?.fullName) setFullName(user.fullName)
+        })
+    }, [username])
+
     return (
         <div className="flex h-full w-full flex-col space-y-4 bg-background">
             {/* Logo - Only shown in guest view */}
             <div>
                 {!isLoggedIn ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 md:hidden">
                         <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" height={24} />
                         <Image src={PEANUT_LOGO_BLACK} alt="Peanut Text" height={12} />
                     </div>
                 ) : (
-                    <NavHeader hideLabel />
+                    <NavHeader onPrev={router.back} hideLabel />
                 )}
             </div>
 

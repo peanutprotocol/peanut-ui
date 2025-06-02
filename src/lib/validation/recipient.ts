@@ -1,13 +1,13 @@
 import { isAddress } from 'viem'
 
-import { PEANUT_API_URL } from '@/constants'
-import { fetchWithSentry } from '@/utils'
 import { resolveEns } from '@/app/actions/ens'
+import { PEANUT_API_URL } from '@/constants'
+import { AccountType } from '@/interfaces'
+import { usersApi } from '@/services/users'
+import { fetchWithSentry } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { RecipientValidationError } from '../url-parser/errors'
 import { RecipientType } from '../url-parser/types/payment'
-import { usersApi } from '@/services/users'
-import { AccountType } from '@/interfaces'
 
 export async function validateAndResolveRecipient(
     recipient: string
@@ -19,7 +19,7 @@ export async function validateAndResolveRecipient(
             // resolve the ENS name to address
             const resolvedAddress = await resolveEns(recipient)
             if (!resolvedAddress) {
-                throw new RecipientValidationError('Error resolving ENS name')
+                throw new RecipientValidationError('ENS name not found')
             }
             return {
                 identifier: recipient,
@@ -71,10 +71,10 @@ export const getRecipientType = (recipient: string): RecipientType => {
 }
 
 // utility function to check if a handle is a valid peanut username
-export const verifyPeanutUsername = async (handle: string): Promise<boolean> => {
+export const verifyPeanutUsername = async (username: string): Promise<boolean> => {
     try {
         // we are in server, call the api directly
-        const res = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${handle}`, {
+        const res = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
             method: 'HEAD',
         })
         const isValidPeanutUsername = res.status === 200

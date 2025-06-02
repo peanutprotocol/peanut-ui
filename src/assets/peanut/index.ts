@@ -8,4 +8,3 @@ export { default as PEANUTMAN_LOGO } from './peanutman-logo.svg'
 export { default as PEANUTMAN_PRESENTING } from './peanutman-presenting.svg'
 export { default as PEANUTMAN_SAD } from './peanutman-sad.svg'
 
-

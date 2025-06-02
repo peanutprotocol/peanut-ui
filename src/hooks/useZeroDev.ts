@@ -1,16 +1,16 @@
 'use client'
 
 import * as consts from '@/constants/zerodev.consts'
-import { useAuth } from '@/context/authContext'
 import { loadingStateContext } from '@/context'
+import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { saveToLocalStorage } from '@/utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
-import { Hex } from 'viem'
 import type { TransactionReceipt } from 'viem'
+import { Hex } from 'viem'
 
 // types
 type UserOpEncodedParams = {
@@ -28,15 +28,15 @@ export const useZeroDev = () => {
     const { setWebAuthnKey, getClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
 
-    // Future note: could be `${handle}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIM || 'peanut.me'}` (have to change BE too)
-    const _getPasskeyName = (handle: string) => `${handle}.peanut.wallet`
+    // Future note: could be `${username}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIM || 'peanut.me'}` (have to change BE too)
+    const _getPasskeyName = (username: string) => `${username}.peanut.wallet`
 
     // register function
-    const handleRegister = async (handle: string): Promise<void> => {
+    const handleRegister = async (username: string): Promise<void> => {
         dispatch(zerodevActions.setIsRegistering(true))
         try {
             const webAuthnKey = await toWebAuthnKey({
-                passkeyName: _getPasskeyName(handle),
+                passkeyName: _getPasskeyName(username),
                 passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Register,
                 passkeyServerHeaders: {},
@@ -97,6 +97,7 @@ export const useZeroDev = () => {
                     hash: userOpHash,
                 })
 
+                setLoadingState('Idle')
                 dispatch(zerodevActions.setIsSendingUserOp(false))
 
                 return receipt.receipt

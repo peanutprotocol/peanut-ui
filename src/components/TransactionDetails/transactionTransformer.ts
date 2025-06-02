@@ -1,3 +1,4 @@
+import { PeanutArmHoldingBeer } from '@/assets'
 import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import { TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
@@ -7,6 +8,21 @@ import { getExplorerUrl, getInitialsFromName } from '@/utils/general.utils'
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
  */
+
+export type RewardData = {
+    symbol: string
+    formatAmount: (amount: number | bigint) => string
+    getSymbol: (amount: number | bigint) => string
+    avatarUrl: string
+}
+const REWARD_TOKENS: { [key: string]: RewardData } = {
+    '0x9ae69fdff2fa97e34b680752d8e70dfd529ea6ca': {
+        symbol: 'Beers',
+        formatAmount: (amount: number | bigint) => (Number(amount) === 1 ? '1 Beer' : `${amount.toString()} Beers`),
+        getSymbol: (amount: number | bigint) => (Number(amount) === 1 ? 'Beer' : 'Beers'),
+        avatarUrl: PeanutArmHoldingBeer,
+    },
+}
 
 /**
  * defines the structure of the data expected by the transaction details drawer component.
@@ -39,6 +55,21 @@ export interface TransactionDetails {
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
+        rewardData?: RewardData
+    }
+    sourceView?: 'status' | 'history'
+    tokenDisplayDetails?: {
+        tokenSymbol?: string
+        tokenIconUrl?: string
+        chainName?: string
+        chainIconUrl?: string
+    }
+    networkFeeDetails?: {
+        amountDisplay: string
+        moreInfoText?: string
+    }
+    peanutFeeDetails?: {
+        amountDisplay: string
     }
 }
 
@@ -90,13 +121,17 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             transactionCardType = 'send'
             if (entry.userRole === EHistoryUserRole.SENDER) {
                 nameForDetails =
-                    entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Sent via Link'
+                    entry.recipientAccount?.username ||
+                    entry.recipientAccount?.identifier ||
+                    (entry.status === 'COMPLETED' ? 'You sent via link' : "You're sending via link")
                 isPeerActuallyUser = !!entry.recipientAccount?.isUser
+                isLinkTx = !isPeerActuallyUser
             } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
                 direction = 'receive'
-                transactionCardType = 'add'
+                transactionCardType = 'receive'
                 nameForDetails = entry.senderAccount?.username || entry.senderAccount?.identifier || 'Received via Link'
                 isPeerActuallyUser = !!entry.senderAccount?.isUser
+                isLinkTx = !isPeerActuallyUser
             } else if (entry.userRole === EHistoryUserRole.BOTH) {
                 isPeerActuallyUser = true
                 uiStatus = 'cancelled'
@@ -128,6 +163,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                 }
             }
             isLinkTx = !isPeerActuallyUser
+            break
+        case EHistoryEntryType.WITHDRAW:
+            direction = 'withdraw'
+            transactionCardType = 'withdraw'
+            nameForDetails = entry.recipientAccount?.identifier || 'External Account'
+            isPeerActuallyUser = false
             break
         case EHistoryEntryType.CASHOUT:
             direction = 'withdraw'
@@ -210,15 +251,17 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         }
     }
 
+    const rewardData = REWARD_TOKENS[entry.tokenAddress?.toLowerCase()]
+
     // build the final transactiondetails object for the ui
     const transactionDetails: TransactionDetails = {
         id: entry.uuid,
         direction: direction,
         userName: nameForDetails,
         amount: amount,
-        currency: entry.currency,
+        currency: rewardData ? undefined : entry.currency,
         currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
-        tokenSymbol: entry.tokenSymbol,
+        tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
         initials: getInitialsFromName(nameForDetails),
         status: uiStatus,
         isVerified: entry.recipientAccount?.isUser || entry.senderAccount?.isUser || false,
@@ -234,8 +277,10 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             originalUserRole: entry.userRole as EHistoryUserRole,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
-            transactionCardType: transactionCardType,
+            transactionCardType,
+            rewardData,
         },
+        sourceView: 'history',
     }
 
     return {

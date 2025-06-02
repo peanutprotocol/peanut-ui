@@ -3,14 +3,12 @@ import { Button } from '@/components/0_Bruddle'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
-import { ArrowDownLeftIcon } from '@/components/Global/Icons/arrow-down-left'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import UserCard from '@/components/User/UserCard'
 import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { RecipientType } from '@/interfaces'
 import { useUserStore } from '@/redux/hooks'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { ApiUser, usersApi } from '@/services/users'
@@ -33,8 +31,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         fileUrl: undefined,
         rawFile: undefined,
     })
-    const [isValidRecipient, setIsValidRecipient] = useState(false)
-    const [inputChanging, setInputChanging] = useState<boolean>(false)
     const [currentInputValue, setCurrentInputValue] = useState<string>('')
     const [view, setView] = useState<'initial' | 'confirm' | 'success'>('initial')
     const { setLoadingState, loadingState, isLoading } = useContext(loadingStateContext)
@@ -46,7 +42,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const [recipientType, setRecipientType] = useState<RecipientType>('address')
     const resetRequestState = () => {
         setView('initial')
         setCurrentInputValue('')
@@ -66,14 +61,19 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     }
 
     const isDisabled = useMemo(() => {
-        return !user?.username || !currentInputValue || (!!authUser?.user.userId ? !address : !recipient.address)
+        const parsedAmount = parseFloat(currentInputValue)
+        const isAmountInvalid = isNaN(parsedAmount) || parsedAmount <= 0
+        const isIdentityLogicMissing = !!authUser?.user.userId ? !address : !recipient.address
+        return !user?.username || isAmountInvalid || isIdentityLogicMissing
     }, [user?.username, currentInputValue, address, recipient.address, authUser?.user.userId])
 
     const createRequestCharge = useCallback(async () => {
         if (isDisabled) {
-            throw new Error('Username or amount is missing')
+            setErrorState({ showError: true, errorMessage: 'Username or amount is missing' })
+            return
         }
         setLoadingState('Requesting')
+        setErrorState({ showError: false, errorMessage: '' })
         try {
             await usersApi.requestByUsername({
                 username: user!.username,
@@ -83,13 +83,23 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             })
             setLoadingState('Idle')
             setView('success')
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating request charge:', error)
             captureException(error)
+            setErrorState({ showError: true, errorMessage: error.message || 'Failed to create request.' })
             setLoadingState('Idle')
         }
-    }, [isDisabled, user?.username, currentInputValue, address, attachmentOptions])
-
+    }, [
+        isDisabled,
+        user?.username,
+        currentInputValue,
+        address,
+        attachmentOptions,
+        setLoadingState,
+        authUser,
+        recipient.address,
+        setErrorState,
+    ])
     useEffect(() => {
         async function fetchUser() {
             try {
@@ -118,6 +128,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         amount={formatAmount(currentInputValue)}
                         message={attachmentOptions.message}
                         type="REQUEST"
+                        redirectTo="/request"
                     />
                 </div>
             </div>
@@ -127,7 +138,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             {!!authUser?.user.userId ? (
-                <NavHeader onPrev={() => router.push('/request')} title="Request" />
+                <NavHeader onPrev={() => router.back()} title="Request" />
             ) : (
                 <div className="text-center text-xl font-extrabold md:hidden">Request</div>
             )}
@@ -145,47 +156,69 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     />
 
                     <FileUploadInput
+                        placeholder="Comment"
                         attachmentOptions={attachmentOptions}
                         setAttachmentOptions={setAttachmentOptions}
+                        className="h-11"
                     />
                     {!authUser?.user.userId && (
                         <GeneralRecipientInput
-                            placeholder="Enter an address or ENS"
+                            placeholder="Enter a username, an address or ENS"
                             recipient={recipient}
                             onUpdate={(update: GeneralRecipientUpdate) => {
                                 setRecipient(update.recipient)
-                                if (!update.recipient.address) {
-                                    setRecipientType('address')
-                                    setErrorState({
-                                        showError: false,
-                                        errorMessage: '',
-                                    })
+                                if (update.isChanging) {
+                                    setErrorState({ showError: false, errorMessage: '' })
                                 } else {
-                                    setRecipientType(update.type)
+                                    if (!update.isValid && update.errorMessage) {
+                                        setErrorState({ showError: true, errorMessage: update.errorMessage })
+                                    } else {
+                                        if (
+                                            (update.isValid && update.recipient.address) ||
+                                            (!update.isValid && !update.errorMessage)
+                                        ) {
+                                            setErrorState({ showError: false, errorMessage: '' })
+                                        } else {
+                                            setErrorState({
+                                                showError: true,
+                                                errorMessage: update.errorMessage || 'Validating recipient...',
+                                            })
+                                        }
+                                    }
                                 }
-                                setIsValidRecipient(update.isValid)
-                                setErrorState({
-                                    showError: !update.isValid,
-                                    errorMessage: update.errorMessage,
-                                })
-                                setInputChanging(update.isChanging)
                             }}
+                            showInfoText={false}
                         />
                     )}
 
-                    {errorState.errorMessage && <ErrorAlert description={errorState.errorMessage} />}
+                    {errorState.showError ? (
+                        <Button
+                            variant="purple"
+                            shadowSize="4"
+                            onClick={() => {
+                                setRecipient({ address: '', name: '' })
+                                setErrorState({ showError: false, errorMessage: '' })
+                                setCurrentInputValue('')
+                            }}
+                            loading={isLoading}
+                            className="w-full"
+                            icon="retry"
+                        >
+                            Reset
+                        </Button>
+                    ) : (
+                        <Button
+                            shadowSize="4"
+                            onClick={createRequestCharge}
+                            disabled={isDisabled || isLoading}
+                            loading={isLoading}
+                            icon="arrow-down-left"
+                        >
+                            {isLoading ? loadingState : 'Request'}
+                        </Button>
+                    )}
 
-                    <Button
-                        shadowSize="4"
-                        onClick={createRequestCharge}
-                        disabled={isDisabled || isLoading}
-                        loading={isLoading}
-                    >
-                        <div className="flex size-6 items-center justify-center">
-                            <ArrowDownLeftIcon />
-                        </div>
-                        {isLoading ? loadingState : 'Request'}
-                    </Button>
+                    {errorState.errorMessage && <ErrorAlert description={errorState.errorMessage} />}
                 </div>
             </div>
         </div>

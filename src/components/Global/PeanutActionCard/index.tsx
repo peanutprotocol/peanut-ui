@@ -8,7 +8,7 @@ interface PeanutActionCardProps {
 const PeanutActionCard = ({ type }: PeanutActionCardProps) => {
     return (
         <Card className="flex items-center gap-2 p-4">
-            <div className={`flex size-8 items-center justify-center rounded-full bg-secondary-7 font-bold`}>
+            <div className={`flex size-8 items-center justify-center rounded-full bg-primary-1 font-bold`}>
                 <Icon name="link" size={16} />
             </div>
             <div>

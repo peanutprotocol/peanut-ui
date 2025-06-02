@@ -1,8 +1,7 @@
 import { PEANUT_LOGO } from '@/assets'
-import { NavIconsName } from '@/components/0_Bruddle'
 import DirectSendQr from '@/components/Global/DirectSendQR'
-import Icon from '@/components/Global/Icon'
-import { Icon as NavIcon } from '@/components/Global/Icons/Icon'
+import { Icon, IconName, Icon as NavIcon } from '@/components/Global/Icons/Icon'
+import { useUserStore } from '@/redux/hooks'
 import classNames from 'classnames'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -11,18 +10,18 @@ import { usePathname } from 'next/navigation'
 type NavPathProps = {
     name: string
     href: string
-    icon: NavIconsName
+    icon: IconName
+    size?: number
 }
 
 // todo: update icons based on new the design
 const desktopPaths: NavPathProps[] = [
-    { name: 'Send', href: '/send', icon: 'send' },
-    { name: 'Request', href: '/request', icon: 'request' },
-    { name: 'Cashout', href: '/cashout', icon: 'cashout' },
-    { name: 'History', href: '/history', icon: 'history' },
-
-    { name: 'Docs', href: 'https://docs.peanut.to/', icon: 'docs' },
-    { name: 'Support', href: '/support', icon: 'support' },
+    { name: 'Send', href: '/send', icon: 'arrow-up-right', size: 10 },
+    { name: 'Request', href: '/request', icon: 'arrow-down-left', size: 10 },
+    { name: 'Cashout', href: '/cashout', icon: 'arrow-down', size: 12 },
+    { name: 'History', href: '/history', icon: 'history', size: 16 },
+    { name: 'Docs', href: 'https://docs.peanut.to/', icon: 'docs', size: 16 },
+    { name: 'Support', href: '/support', icon: 'peanut-support', size: 16 },
 ]
 
 type NavSectionProps = {
@@ -32,22 +31,28 @@ type NavSectionProps = {
 
 const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => (
     <>
-        {paths.map(({ name, href, icon }) => (
-            <Link
-                href={href}
-                key={name}
-                className={classNames('flex items-center gap-3 hover:cursor-pointer hover:text-white/80', {
-                    'text-primary-1': pathName === href,
-                })}
-                onClick={() => {
-                    if (pathName === href) {
-                        window.location.reload()
-                    }
-                }}
-            >
-                <Icon name={icon} className="block h-4 w-4" />
-                <span className="block w-fit pt-0.5 text-center text-base font-semibold">{name}</span>
-            </Link>
+        {paths.map(({ name, href, icon, size }, index) => (
+            <>
+                <Link
+                    href={href}
+                    key={`${name}-${index}`}
+                    className={classNames(
+                        'flex items-center gap-3 text-white hover:cursor-pointer hover:text-white/80',
+                        {
+                            'text-primary-1': pathName === href,
+                        }
+                    )}
+                    onClick={() => {
+                        if (pathName === href) {
+                            window.location.reload()
+                        }
+                    }}
+                >
+                    <Icon name={icon} className="block text-white" size={size} />
+                    <span className="block w-fit pt-0.5 text-center text-base font-semibold">{name}</span>
+                </Link>
+                {index === 3 && <div className="w-full border-b border-grey-1" />}
+            </>
         ))}
     </>
 )
@@ -91,6 +96,8 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => (
 
 const WalletNavigation: React.FC = () => {
     const pathName = usePathname()
+    const { user } = useUserStore()
+    const isLoggedIn = !!user?.user.userId || false
 
     return (
         <div>
@@ -102,7 +109,7 @@ const WalletNavigation: React.FC = () => {
                     <NavSection paths={desktopPaths} pathName={pathName} />
                 </div>
             </div>
-            <MobileNav pathName={pathName} />
+            {isLoggedIn && <MobileNav pathName={pathName} />}
         </div>
     )
 }

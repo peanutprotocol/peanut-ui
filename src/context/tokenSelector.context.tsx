@@ -59,10 +59,10 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         logoURI: PEANUT_WALLET_TOKEN_IMG_URL,
     } as ITokenPriceData
 
-    const peanutDefaultTokenData = {
-        address: PEANUT_WALLET_TOKEN,
-        chainId: PEANUT_WALLET_CHAIN.id.toString(),
-        decimals: PEANUT_WALLET_TOKEN_DECIMALS,
+    const emptyTokenData = {
+        address: '',
+        chainId: '',
+        decimals: undefined,
     }
 
     // Initialize with default values
@@ -76,7 +76,8 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         }
 
         const { lastUsedToken } = getUserPreferences() ?? {}
-        return lastUsedToken ?? peanutDefaultTokenData
+        // if no peanut wallet and no last used token, defailt to none
+        return lastUsedToken ?? emptyTokenData
     })()
 
     const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenData.address)
@@ -107,7 +108,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                   chainId: PEANUT_WALLET_CHAIN.id.toString(),
                   decimals: PEANUT_WALLET_TOKEN_DECIMALS,
               }
-            : (lastUsedToken ?? peanutDefaultTokenData)
+            : (lastUsedToken ?? emptyTokenData)
 
         setSelectedChainID(tokenData.chainId)
         setSelectedTokenAddress(tokenData.address)

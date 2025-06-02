@@ -9,16 +9,19 @@ import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { BASE_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
+import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { fetchTokenSymbol, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -36,6 +39,7 @@ export const CreateRequestLinkView = () => {
         selectedTokenData,
     } = useContext(context.tokenSelectorContext)
     const { setLoadingState } = useContext(context.loadingStateContext)
+    const queryClient = useQueryClient()
 
     const peanutWalletBalance = useMemo(() => {
         return printableUsdc(balance)
@@ -75,10 +79,10 @@ export const CreateRequestLinkView = () => {
         // use debouncedTokenValue when in the process of creating a link with attachment
         const valueToShow = hasAttachment && isCreatingLink ? debouncedTokenValue : _tokenValue
 
-        return `${window.location.origin}${valueToShow ? `/${user?.user.username}/${valueToShow}USDC` : `/pay/${user?.user.username}`}`
+        return `${window.location.origin}${valueToShow ? `/${user?.user.username}/${valueToShow}USDC` : `/send/${user?.user.username}`}`
     }, [user?.user.username, _tokenValue, debouncedTokenValue, generatedLink, hasAttachment, isCreatingLink])
 
-    const handleOnNext = useCallback(
+    const createRequestLink = useCallback(
         async ({
             recipientAddress,
             tokenAddress,
@@ -102,10 +106,17 @@ export const CreateRequestLinkView = () => {
                 return
             }
             if (!tokenValue) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Please enter a token amount',
-                })
+                if (
+                    (attachmentOptions?.message && attachmentOptions.message !== ' ') ||
+                    attachmentOptions?.rawFile ||
+                    attachmentOptions?.fileUrl
+                ) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Please enter a token amount',
+                    })
+                    return
+                }
                 return
             }
 
@@ -139,9 +150,23 @@ export const CreateRequestLinkView = () => {
                     mimeType: attachmentOptions?.rawFile?.type,
                     filename: attachmentOptions?.rawFile?.name,
                 })
-                const link = getRequestLink(requestDetails)
-                setGeneratedLink(link)
+                const charge = await chargesApi.create({
+                    pricing_type: 'fixed_price',
+                    local_price: {
+                        amount: requestDetails.tokenAmount,
+                        currency: 'USD',
+                    },
+                    baseUrl: BASE_URL,
+                    requestId: requestDetails.uuid,
+                })
+                const link = getRequestLink({
+                    ...requestDetails,
+                    uuid: undefined,
+                    chargeId: charge.data.id,
+                })
                 toast.success('Link created successfully!')
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                return link
             } catch (error) {
                 setErrorState({
                     showError: true,
@@ -150,6 +175,7 @@ export const CreateRequestLinkView = () => {
                 console.error('Failed to create link:', error)
                 Sentry.captureException(error)
                 toast.error('Failed to create link')
+                return ''
             } finally {
                 setLoadingState('Idle')
                 setIsCreatingLink(false)
@@ -158,8 +184,71 @@ export const CreateRequestLinkView = () => {
         [user?.user.username, toast]
     )
 
+    const handleOnNext = useCallback(
+        async ({
+            recipientAddress,
+            tokenAddress,
+            chainId,
+            tokenValue,
+            tokenData,
+            attachmentOptions,
+        }: {
+            recipientAddress: string | undefined
+            tokenAddress: string
+            chainId: string
+            tokenValue: string | undefined
+            tokenData: Pick<IToken, 'chainId' | 'address' | 'decimals' | 'symbol'> | undefined
+            attachmentOptions: IFileUploadInputProps['attachmentOptions']
+        }) => {
+            const link = await createRequestLink({
+                recipientAddress,
+                tokenAddress,
+                chainId,
+                tokenValue,
+                tokenData,
+                attachmentOptions,
+            })
+            setGeneratedLink(link ?? null)
+        },
+        [createRequestLink]
+    )
+
+    const generateLink = useCallback(async () => {
+        if (generatedLink) return generatedLink
+        if (Number(tokenValue) === 0) return qrCodeLink
+        setIsCreatingLink(true)
+        const link = await createRequestLink({
+            recipientAddress,
+            tokenAddress: selectedTokenAddress,
+            chainId: selectedChainID,
+            tokenValue,
+            tokenData: selectedTokenData,
+            attachmentOptions: {
+                message: ' ',
+                fileUrl: undefined,
+                rawFile: undefined,
+            },
+        })
+        setGeneratedLink(link ?? null)
+        setIsCreatingLink(false)
+        return link ?? ''
+    }, [
+        recipientAddress,
+        generatedLink,
+        qrCodeLink,
+        tokenValue,
+        selectedTokenAddress,
+        selectedChainID,
+        selectedTokenData,
+        createRequestLink,
+    ])
+
     useEffect(() => {
-        if (!_tokenValue) return
+        if (!_tokenValue) {
+            setTokenValue('')
+            setUsdValue('')
+            setGeneratedLink(null)
+        }
         setTokenValue(_tokenValue)
         if (selectedTokenPrice) {
             setUsdValue((parseFloat(_tokenValue) * selectedTokenPrice).toString())
@@ -174,17 +263,8 @@ export const CreateRequestLinkView = () => {
         }
 
         if (address) {
-            // reset states first
-            setRecipientAddress('')
-            setIsValidRecipient(false)
-
-            // set recipient to connected wallet address with a delay
-            setTimeout(() => {
-                setRecipientAddress(address)
-                setIsValidRecipient(true)
-            }, 100)
-
-            // set chain and token for Peanut Wallet
+            setRecipientAddress(address)
+            setIsValidRecipient(true)
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         }
@@ -196,6 +276,9 @@ export const CreateRequestLinkView = () => {
         if (debounceTimerRef.current) {
             clearTimeout(debounceTimerRef.current)
         }
+
+        // reset error state when attachment options change
+        setErrorState({ showError: false, errorMessage: '' })
 
         // check if attachments are completely cleared
         const hasNoAttachments = !attachmentOptions?.rawFile && !attachmentOptions?.message
@@ -275,7 +358,15 @@ export const CreateRequestLinkView = () => {
                 })
             }
         }
-    }, [debouncedAttachmentOptions, debouncedTokenValue, isValidRecipient, isCreatingLink, generatedLink, _tokenValue])
+    }, [
+        debouncedAttachmentOptions,
+        debouncedTokenValue,
+        isValidRecipient,
+        isCreatingLink,
+        generatedLink,
+        _tokenValue,
+        recipientAddress,
+    ])
 
     // check for token value debouncing
     const isDebouncing =
@@ -315,7 +406,12 @@ export const CreateRequestLinkView = () => {
                     }}
                     walletBalance={peanutWalletBalance}
                 />
-                <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
+                <FileUploadInput
+                    className="h-11"
+                    placeholder="Comment"
+                    attachmentOptions={attachmentOptions}
+                    setAttachmentOptions={setAttachmentOptions}
+                />
 
                 {(hasAttachment && isCreatingLink) || isDebouncing ? (
                     <Button disabled={true} shadowSize="4">
@@ -324,7 +420,7 @@ export const CreateRequestLinkView = () => {
                         </div>
                     </Button>
                 ) : (
-                    <ShareButton url={qrCodeLink}>Share Link</ShareButton>
+                    <ShareButton generateUrl={generateLink}>Share Link</ShareButton>
                 )}
                 {errorState.showError && (
                     <div className="text-start">

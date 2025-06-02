@@ -347,7 +347,7 @@ export function formatAmountWithSignificantDigits(amount: number, significantDig
     if (amount === 0) return amount.toFixed(significantDigits)
     let fractionDigits = Math.floor(Math.log10(1 / amount)) + significantDigits
     fractionDigits = fractionDigits < 0 ? 0 : fractionDigits
-    return amount.toFixed(fractionDigits)
+    return floorFixed(amount, fractionDigits)
 }
 
 export function formatTokenAmount(amount?: number, maxFractionDigits?: number) {
@@ -679,6 +679,16 @@ export const getOfframpClaimsFromLocalStorage = () => {
     }
 }
 
+export interface RecentMethod {
+    type: 'crypto' | 'country'
+    id: string
+    title: string
+    description?: string
+    iconUrl?: string
+    currency?: string
+    path: string
+}
+
 export type UserPreferences = {
     lastUsedToken?: {
         chainId: string
@@ -692,6 +702,8 @@ export type UserPreferences = {
         id: string
     }
     balanceHidden?: boolean
+    recentAddMethods?: RecentMethod[]
+    recentWithdrawMethods?: RecentMethod[]
 }
 
 export const updateUserPreferences = (partialPrefs: Partial<UserPreferences>): UserPreferences | undefined => {

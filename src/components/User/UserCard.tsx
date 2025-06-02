@@ -1,47 +1,72 @@
 import { RecipientType } from '@/lib/url-parser/types/payment'
+import { getColorForUsername } from '@/utils/color.utils'
 import { useCallback } from 'react'
 import AddressLink from '../Global/AddressLink'
+import Attachment from '../Global/Attachment'
 import Card from '../Global/Card'
-import { Icon } from '../Global/Icons/Icon'
-import AvatarWithBadge from '../Profile/AvatarWithBadge'
+import { Icon, IconName } from '../Global/Icons/Icon'
+import AvatarWithBadge, { AvatarSize } from '../Profile/AvatarWithBadge'
 
 interface UserCardProps {
-    type: 'send' | 'request' | 'payment'
+    type: 'send' | 'request' | 'received_link'
     username: string
     fullName?: string
     recipientType?: RecipientType
+    size?: AvatarSize
+    message?: string
+    fileUrl?: string
 }
 
-const UserCard = ({ type, username, fullName, recipientType }: UserCardProps) => {
-    const getTitle = useCallback(() => {
-        if (type === 'send') return `You're sending money to`
-        if (type === 'request') return `Requesting money from`
-        if (type === 'payment') return `You're paying`
-    }, [type])
+const UserCard = ({
+    type,
+    username,
+    fullName,
+    recipientType,
+    size = 'extra-small',
+    message,
+    fileUrl,
+}: UserCardProps) => {
+    const getIcon = (): IconName | undefined => {
+        if (type === 'send') return 'arrow-up-right'
+        if (type === 'request') return 'arrow-down-left'
+        if (type === 'received_link') return 'arrow-down-left'
+    }
 
-    // TODO: remove after pizzaaaa
-    const isPizza = username.toLowerCase() === 'nshc92'
+    const getTitle = useCallback(() => {
+        const icon = getIcon()
+        let title = ''
+        if (type === 'send') title = `You're sending money to`
+        if (type === 'request') title = `Requesting money from`
+        if (type === 'received_link') title = `You received`
+
+        return (
+            <div className="flex items-center gap-2 text-xs font-normal text-grey-1">
+                {icon && <Icon name={icon} size={8} />} {title}
+            </div>
+        )
+    }, [type])
 
     return (
         <Card className="flex items-center gap-2 p-4">
-            {isPizza ? (
-                <AvatarWithBadge size="extra-small" name={'🍕'} />
-            ) : recipientType !== 'USERNAME' ? (
-                <div className={'flex size-8 items-center justify-center rounded-full bg-yellow-5 font-bold'}>
-                    <Icon name="wallet-outline" size={16} />
-                </div>
-            ) : (
-                <AvatarWithBadge size="extra-small" name={fullName || username} />
-            )}
+            <AvatarWithBadge
+                icon={recipientType !== 'USERNAME' ? 'wallet-outline' : undefined}
+                inlineStyle={{
+                    backgroundColor:
+                        recipientType !== 'USERNAME'
+                            ? '#FFD700'
+                            : getColorForUsername(fullName || username).backgroundColor,
+                }}
+                size={size}
+                name={fullName || username}
+            />
             <div>
-                <div className="text-xs text-grey-1">{getTitle()}</div>
-                {isPizza ? (
-                    <div className="text-sm font-medium">Pizza Data</div>
-                ) : recipientType !== 'USERNAME' ? (
-                    <AddressLink address={username} />
+                {getTitle()}
+                {recipientType !== 'USERNAME' ? (
+                    <AddressLink address={username} className="text-base font-medium" />
                 ) : (
-                    <div className="text-sm font-medium">{fullName || username}</div>
+                    <div className="text-base font-medium">{fullName || username}</div>
                 )}
+                <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
             </div>
         </Card>
     )

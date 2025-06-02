@@ -15,7 +15,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const resolvedSearchParams = await searchParams
 
-    let title = 'Claim your tokens!'
+    let title = 'Claim Payment | Peanut'
     const host = BASE_URL
 
     let linkDetails = undefined
@@ -60,6 +60,7 @@ export async function generateMetadata({
 
     return {
         title,
+        description: 'Receive this payment to your Peanut account, or directly to your bank account.',
         icons: { icon: '/favicon.ico' },
         openGraph: {
             images: [

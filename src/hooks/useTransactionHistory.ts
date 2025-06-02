@@ -1,11 +1,10 @@
 import { BASE_URL, PEANUT_API_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { fetchWithSentry, getFromLocalStorage, getTokenDetails } from '@/utils'
+import { fetchWithSentry, formatAmount, getFromLocalStorage, getTokenDetails } from '@/utils'
 import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import Cookies from 'js-cookie'
-import type { Hash } from 'viem'
-import { formatUnits } from 'viem'
+import { formatUnits, type Hash } from 'viem'
 
 type LatestHistoryResult = QueryObserverResult<HistoryResponse>
 type InfiniteHistoryResult = InfiniteQueryObserverResult<InfiniteData<HistoryResponse>>
@@ -16,6 +15,7 @@ export enum EHistoryEntryType {
     DEPOSIT = 'DEPOSIT',
     SEND_LINK = 'SEND_LINK',
     DIRECT_SEND = 'DIRECT_SEND',
+    WITHDRAW = 'WITHDRAW',
 }
 
 export enum EHistoryUserRole {
@@ -151,7 +151,9 @@ export function useTransactionHistory({
                     case 'SEND_LINK':
                         const password = getFromLocalStorage(`sendLink::password::${entry.uuid}`)
                         const { contractVersion, depositIdx } = extraData
-                        link = `${BASE_URL}/claim?c=${entry.chainId}&v=${contractVersion}&i=${depositIdx}#p=${password}`
+                        if (password) {
+                            link = `${BASE_URL}/claim?c=${entry.chainId}&v=${contractVersion}&i=${depositIdx}#p=${password}`
+                        }
                         const tokenDetails = getTokenDetails({
                             tokenAddress: entry.tokenAddress as Hash,
                             chainId: entry.chainId,
@@ -160,19 +162,38 @@ export function useTransactionHistory({
                         tokenSymbol = tokenDetails?.symbol ?? ''
                         break
                     case 'REQUEST':
-                        link = `${process.env.NEXT_PUBLIC_BASE_URL}/pay/${entry.recipientAccount.username}?chargeId=${entry.uuid}`
+                        link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break
                     case 'DIRECT_SEND':
-                        tokenSymbol = 'USDC'
+                        tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break
-                    case 'DEPOSIT':
-                        tokenSymbol = 'USDC'
-                        usdAmount = formatUnits(BigInt(entry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
+                    case EHistoryEntryType.DEPOSIT: {
+                        const details = getTokenDetails({
+                            tokenAddress: entry.tokenAddress as Hash,
+                            chainId: entry.chainId,
+                        })
+                        tokenSymbol = details?.symbol ?? entry.tokenSymbol
+
+                        if (entry.extraData?.blockNumber) {
+                            // direct deposits are always in wei
+                            usdAmount = formatUnits(BigInt(entry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
+                        } else {
+                            usdAmount = entry.amount.toString()
+                        }
+                        break
+                    }
+                    case EHistoryEntryType.WITHDRAW:
+                        tokenSymbol = entry.tokenSymbol
+                        usdAmount = entry.amount.toString()
                         break
                     default:
+                        if (entry.amount && !usdAmount) {
+                            usdAmount = entry.amount.toString()
+                        }
+                        tokenSymbol = entry.tokenSymbol
                         break
                 }
                 return {
@@ -183,7 +204,7 @@ export function useTransactionHistory({
                     extraData: {
                         ...extraData,
                         link,
-                        usdAmount: `$${usdAmount}`,
+                        usdAmount: `$${formatAmount(usdAmount)}`,
                     },
                 }
             }),

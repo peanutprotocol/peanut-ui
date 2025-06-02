@@ -46,11 +46,11 @@ export const getFeeOptions = unstable_cache(
     async (chainId: ChainId, preparedTx: PreparedTx): Promise<string> => {
         try {
             const client = await getPublicClient(chainId)
-            console.dir(client)
+            const fromAccount = preparedTx.from ?? preparedTx.account
             const [feeEstimates, gas] = await Promise.all([
                 client.estimateFeesPerGas(),
                 client.estimateGas({
-                    account: preparedTx.from ?? preparedTx.account,
+                    account: fromAccount,
                     data: preparedTx.data,
                     to: preparedTx.to,
                     value: BigInt(preparedTx.value),
@@ -65,7 +65,7 @@ export const getFeeOptions = unstable_cache(
                                   stateDiff: Array.from(Array(11).keys())
                                       .map(BigInt)
                                       .map((slotNumber) => ({
-                                          slot: calculateAllowanceSlot(preparedTx.account, preparedTx.to, slotNumber),
+                                          slot: calculateAllowanceSlot(fromAccount, preparedTx.to, slotNumber),
                                           value: numberToHex(maxUint256),
                                       })),
                               },
@@ -74,7 +74,7 @@ export const getFeeOptions = unstable_cache(
                 }),
             ])
             return jsonStringify({
-                gas,
+                gas: (gas * 140n) / 100n, // Add 40% to estimated gas
                 maxFeePerGas: feeEstimates.maxFeePerGas,
                 maxPriorityFeePerGas: feeEstimates.maxPriorityFeePerGas,
                 error: null,

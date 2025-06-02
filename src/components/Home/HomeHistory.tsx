@@ -1,20 +1,25 @@
 'use client'
 
 import Icon from '@/components/Global/Icon'
-import PeanutLoading from '@/components/Global/PeanutLoading'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
+import { BASE_URL } from '@/constants'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
-import { CardPosition } from '../Global/Card'
-import { useMemo, useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
+import Card, { CardPosition, getCardPosition } from '../Global/Card'
+import EmptyState from '../Global/EmptyStates/EmptyState'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
  */
 const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; username?: string }) => {
+    const { user } = useUserStore()
+    const isLoggedIn = !!user?.user.userId || false
     // fetch the latest 5 transaction history entries
     const mode = isPublic ? 'public' : 'latest'
     const limit = isPublic ? 20 : 5
@@ -44,6 +49,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     } else {
                         wsEntry.extraData = { usdAmount: wsEntry.amount.toString() }
                     }
+                    wsEntry.extraData.link = `${BASE_URL}/${wsEntry.recipientAccount.username || wsEntry.recipientAccount.identifier}?chargeId=${wsEntry.uuid}`
                     entries.unshift(wsEntry)
                 }
             })
@@ -62,30 +68,46 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 
     // show loading state
     if (isLoading) {
-        return <PeanutLoading />
+        return (
+            <div className="space-y-2">
+                <h2 className="text-base font-bold">Transactions</h2>
+                <div className="flex flex-col">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                        <HistorySkeleton key={index} position={getCardPosition(index, 5)} />
+                    ))}
+                </div>
+            </div>
+        )
     }
 
     // show error state
     if (isError) {
         console.error(error)
         Sentry.captureException(error)
-        return <div className="w-full py-4 text-center">error loading history: {error?.message}</div>
+        return (
+            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+                <h2 className="text-base font-bold">Recent Transactions</h2>{' '}
+                <EmptyState icon="alert" title="Error loading transactions!" description="Please try again later" />
+            </div>
+        )
     }
 
     // show empty state if no transactions exist
     if (!combinedEntries.length) {
         return (
-            <div className="mx-auto mt-6 w-full space-y-2 md:max-w-2xl md:space-y-3">
-                <h2 className="text-base font-bold">transactions</h2> {/* use lowercase consistent with history page */}
-                <div className="h-full w-full border-t border-n-1 py-8 text-center">
-                    <p className="text-sm text-gray-500">no transactions yet</p>
-                </div>
+            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+                <h2 className="text-base font-bold">Recent Transactions</h2>{' '}
+                <EmptyState
+                    icon="txn-off"
+                    title="No transactions yet!"
+                    description="Start by sending or requesting money"
+                />
             </div>
         )
     }
 
     return (
-        <div className="mx-auto w-full space-y-3 pb-28 md:max-w-2xl md:space-y-3">
+        <div className={twMerge('mx-auto w-full space-y-3 md:max-w-2xl md:space-y-3', isLoggedIn ? 'pb-4' : 'pb-0')}>
             {/* link to the full history page */}
             {pendingRequests.length > 0 && !isPublic && (
                 <>
@@ -97,14 +119,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                             const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
 
                             // determine card position for styling (first, middle, last, single)
-                            let position: CardPosition = 'middle'
-                            if (pendingRequests.length === 1) {
-                                position = 'single'
-                            } else if (index === 0) {
-                                position = 'first'
-                            } else if (index === pendingRequests.length - 1) {
-                                position = 'last'
-                            }
+                            const position = getCardPosition(index, pendingRequests.length)
 
                             return (
                                 <TransactionCard
@@ -141,17 +156,10 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                         const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
 
                         // determine card position for styling (first, middle, last, single)
-                        let position: CardPosition = 'middle'
                         const filteredEntries = combinedEntries.filter(
                             (entry) => !pendingRequests.some((r) => r.uuid === entry.uuid)
                         )
-                        if (filteredEntries.length === 1) {
-                            position = 'single'
-                        } else if (index === 0) {
-                            position = 'first'
-                        } else if (index === filteredEntries.length - 1) {
-                            position = 'last'
-                        }
+                        const position = getCardPosition(index, filteredEntries.length)
 
                         return (
                             <TransactionCard
@@ -172,3 +180,15 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 }
 
 export default HomeHistory
+
+export const HistorySkeleton = ({ position }: { position: CardPosition }) => {
+    return (
+        <Card position={position} className="flex items-center justify-between gap-3">
+            <div className="h-8 w-8 min-w-8 animate-pulse rounded-full bg-grey-2" />
+            <div className="w-full space-y-2.5">
+                <div className="h-4.5 w-full animate-pulse rounded-full bg-grey-2" />
+                <div className="h-3 w-1/3 animate-pulse rounded-full bg-grey-2" />
+            </div>
+        </Card>
+    )
+}

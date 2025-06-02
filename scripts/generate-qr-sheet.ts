@@ -65,9 +65,8 @@ const QRCode: React.FC<{ value: string }> = ({ value }) => {
                         src: `data:image/png;base64,${peanutLogoBase64}`,
                         alt: 'Peanut Logo',
                         style: {
-                            width: '100%',
-                            height: '100%',
-                            borderRadius: '50%',
+                            width: '95%',
+                            height: '95%',
                             objectFit: 'contain',
                         },
                     }),

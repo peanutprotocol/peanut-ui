@@ -1,5 +1,6 @@
 import React, { forwardRef, useEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { Icon, IconName } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
 
 export type ButtonVariant =
@@ -17,13 +18,18 @@ type ButtonShape = 'default' | 'square'
 type ShadowSize = '4' | '6' | '8'
 type ShadowType = 'primary' | 'secondary'
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: ButtonVariant
     size?: ButtonSize
     shape?: ButtonShape
     shadowSize?: ShadowSize
     shadowType?: ShadowType
     loading?: boolean
+    icon?: IconName
+    iconPosition?: 'left' | 'right'
+    iconClassName?: string
+    iconSize?: number
+    iconContainerClassName?: HTMLDivElement['className']
 }
 
 const buttonVariants: Record<ButtonVariant, string> = {
@@ -61,7 +67,25 @@ const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ children, className, loading, variant = 'purple', size, shape, shadowSize, shadowType, ...props }, ref) => {
+    (
+        {
+            children,
+            className,
+            loading,
+            variant = 'purple',
+            size,
+            shape,
+            shadowSize,
+            shadowType,
+            icon,
+            iconPosition = 'left',
+            iconSize,
+            iconClassName,
+            iconContainerClassName,
+            ...props
+        },
+        ref
+    ) => {
         const localRef = useRef<HTMLButtonElement>(null)
         const buttonRef = (ref as React.RefObject<HTMLButtonElement>) || localRef
 
@@ -72,7 +96,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         }, [])
 
         const buttonClasses = twMerge(
-            `btn w-full flex items-center gap-2 transform transition-all hover:shadow-none hover:translate-x-[3px] hover:translate-y-[${shadowSize}px] notranslate`,
+            `btn w-full flex items-center gap-2 transition-all duration-100 active:translate-x-[3px] active:translate-y-[${shadowSize}px] active:shadow-none notranslate`,
             buttonVariants[variant],
             variant === 'transparent' && props.disabled && 'disabled:bg-transparent disabled:border-transparent',
             size && buttonSizes[size],
@@ -81,10 +105,25 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             className
         )
 
+        const renderIcon = () => {
+            if (!icon || loading) return null
+            return (
+                <div className={twMerge('flex size-6 items-center justify-center', iconContainerClassName)}>
+                    <Icon
+                        size={iconSize}
+                        name={icon}
+                        className={twMerge(!iconSize && 'min-h-4 min-w-4', iconClassName)}
+                    />
+                </div>
+            )
+        }
+
         return (
             <button className={twMerge(buttonClasses, 'notranslate')} ref={buttonRef} translate="no" {...props}>
                 {loading && <Loading />}
+                {iconPosition === 'left' && renderIcon()}
                 {children}
+                {iconPosition === 'right' && renderIcon()}
             </button>
         )
     }

@@ -107,6 +107,8 @@ export const ErrorHandler = (error: any) => {
             return 'You do not have enough balance to complete the transaction.'
         } else if (error.toString().includes('does not match the target chain for the transaction')) {
             return 'Failed to switch network. Try switching to the correct network manually.'
+        } else if (error.toString().includes('Insufficient balance')) {
+            return "You don't have enough balance."
         } else {
             return 'Something failed. Please try again.'
         }

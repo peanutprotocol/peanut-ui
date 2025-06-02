@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import React from 'react'
+import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
@@ -15,6 +15,9 @@ interface NetworkListItemProps {
     isSelected?: boolean
     isComingSoon?: boolean
     onClick?: () => void
+    rightContent?: React.ReactNode
+    titleClassName?: HTMLSpanElement['className']
+    iconClassName?: HTMLImageElement['className']
 }
 
 const NetworkListItem: React.FC<NetworkListItemProps> = ({
@@ -24,7 +27,12 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
     isSelected = false,
     isComingSoon = false,
     onClick,
+    rightContent,
+    titleClassName,
+    iconClassName,
 }) => {
+    const [iconError, setIconError] = useState(false)
+
     return (
         <Button
             key={chainId}
@@ -49,24 +57,29 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                 <div className="relative flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                         <div className="relative h-8 w-8">
-                            {iconUrl ? (
+                            {iconUrl && !iconError ? (
                                 <Image
                                     src={iconUrl}
                                     alt={`${name} logo`}
                                     width={32}
                                     height={32}
-                                    className={twMerge(!isComingSoon && 'rounded-full')}
+                                    className={twMerge('rounded-full', iconClassName)}
+                                    onError={() => setIconError(true)}
                                 />
                             ) : (
                                 <AvatarWithBadge size="extra-small" name={name} />
                             )}
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-base font-semibold capitalize text-black">{name}</span>
+                            <span className={twMerge('text-base font-semibold capitalize text-black', titleClassName)}>
+                                {name}
+                            </span>
                         </div>
                     </div>
                     {isComingSoon ? (
                         <StatusBadge status="soon" />
+                    ) : rightContent ? (
+                        rightContent
                     ) : (
                         <Icon name="chevron-up" className="size-6 rotate-90 text-black" />
                     )}

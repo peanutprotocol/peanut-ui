@@ -48,6 +48,9 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     // determine Icon, background, and colors based on type and context
     switch (transactionType) {
         case 'withdraw':
+            displayIconName = 'wallet-outline'
+            displayInitials = undefined
+            break
         case 'cashout':
             displayIconName = 'bank'
             displayInitials = undefined
@@ -57,9 +60,10 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
         case 'add':
             displayIconName = 'wallet-outline'
             displayInitials = undefined
-            calculatedBgColor = context === 'card' ? AVATAR_TEXT_DARK : AVATAR_WALLET_BG
-            iconFillColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
-            textColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
+            // todo: revisit wen more deposit types are added
+            // calculatedBgColor = context === 'card' ? AVATAR_TEXT_DARK : AVATAR_WALLET_BG
+            // iconFillColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
+            // textColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
             break
         case 'send':
         case 'request':

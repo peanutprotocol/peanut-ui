@@ -1,6 +1,6 @@
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
-export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL'
+export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'
 
 export interface TimelineEntry {
     status: TStatus
@@ -98,14 +98,19 @@ export interface RequestProps {
     requesteeUsername?: string
 }
 
+export type TChargeTransactionType = 'REQUEST' | 'DIRECT_SEND' | 'DEPOSIT' | 'WITHDRAW'
+
 export interface CreateChargeRequest {
     pricing_type: 'fixed_price'
     local_price: LocalPrice
     baseUrl: string
     requestId?: string
-    requestProps: RequestProps
+    requestProps?: RequestProps
     attachment?: File
     reference?: string
+    transactionType?: TChargeTransactionType
+    mimeType?: string
+    filename?: string
 }
 
 export interface TCharge {

@@ -1,6 +1,6 @@
 import * as interfaces from '@/interfaces'
 import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
-import { arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
+import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
 
 export const peanutWalletIsInPreview = true
 
@@ -10,6 +10,7 @@ export const SQUID_INTEGRATOR_ID = '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C'
 export const SQUID_API_URL = 'https://apiplus.squidrouter.com/v2'
 
 export const infuraRpcUrls: Record<number, string> = {
+    [mainnet.id]: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [arbitrum.id]: `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_KEY}`,
     [polygon.id]: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,

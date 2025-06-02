@@ -44,7 +44,7 @@ export async function generateMetadata({
     const resolvedSearchParams = await searchParams
 
     let title = 'Request Payment | Peanut'
-    let previewUrl = '/metadata-img.jpg'
+    let previewUrl = '/metadata-img.png'
     const uuid = resolvedSearchParams.id
         ? Array.isArray(resolvedSearchParams.id)
             ? resolvedSearchParams.id[0]

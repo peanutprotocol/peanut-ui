@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { Button } from '../0_Bruddle'
+import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
@@ -42,6 +43,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     const isPendingRequestee = useMemo(() => {
         if (!transaction) return false
         return (
+            transaction.status === 'pending' &&
             transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
             transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
         )
@@ -50,8 +52,18 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     const isPendingRequester = useMemo(() => {
         if (!transaction) return false
         return (
+            transaction.status === 'pending' &&
             transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
             transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.RECIPIENT
+        )
+    }, [transaction])
+
+    const isPendingSentLink = useMemo(() => {
+        if (!transaction) return false
+        return (
+            transaction.status === 'pending' &&
+            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
+            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
         )
     }, [transaction])
 
@@ -75,8 +87,9 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     if (!transaction) return null
 
     // format data for display
-    const amountDisplay = formatAmount(transaction.amount as number)
-    const dateDisplay = formatDate(transaction.date as Date)
+    const amountDisplay = transaction.extraDataForDrawer?.rewardData
+        ? transaction.extraDataForDrawer.rewardData.formatAmount(transaction.amount)
+        : `$ ${formatAmount(transaction.amount as number)}`
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
     // determine if the qr code and sharing section should be shown
@@ -116,9 +129,10 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                     isVerified={transaction.isVerified}
                     isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
                     transactionType={transaction.extraDataForDrawer?.transactionCardType}
+                    avatarUrl={transaction.extraDataForDrawer?.rewardData?.avatarUrl}
                 />
 
-                {/* details card (date, fee, memo) */}
+                {/* details card (date, fee, memo) and more */}
                 <Card position={shouldShowQrShare ? 'first' : 'single'} className="px-4 py-0" border={true}>
                     <div className="space-y-0">
                         {transaction.date && (
@@ -126,13 +140,52 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                 label={transaction.status === 'cancelled' ? 'Created' : 'Date'}
                                 value={formatDate(transaction.date as Date)}
                                 hideBottomBorder={
+                                    !transaction.tokenDisplayDetails &&
                                     !transaction.cancelledDate &&
                                     !transaction.fee &&
                                     !transaction.memo &&
-                                    !transaction.attachmentUrl
+                                    !transaction.attachmentUrl &&
+                                    transaction.status === 'pending'
                                 }
                             />
                         )}
+
+                        {transaction.tokenDisplayDetails && transaction.sourceView === 'history' && (
+                            <PaymentInfoRow
+                                label="Token and network"
+                                value={
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                            {/* Main token icon */}
+                                            <DisplayIcon
+                                                iconUrl={transaction.tokenDisplayDetails.tokenIconUrl}
+                                                altText={transaction.tokenDisplayDetails.tokenSymbol || 'token'}
+                                                fallbackName={transaction.tokenDisplayDetails.tokenSymbol || 'T'}
+                                                sizeClass="h-6 w-6"
+                                            />
+                                            {/* Smaller chain icon, absolutely positioned */}
+                                            {transaction.tokenDisplayDetails.chainIconUrl && (
+                                                <div className="absolute -bottom-1 -right-1">
+                                                    <DisplayIcon
+                                                        iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
+                                                        altText={transaction.tokenDisplayDetails.chainName || 'chain'}
+                                                        fallbackName={transaction.tokenDisplayDetails.chainName || 'C'}
+                                                        sizeClass="h-3.5 w-3.5"
+                                                        className="rounded-full border-2 border-white dark:border-grey-4"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span>
+                                            {transaction.tokenDisplayDetails.tokenSymbol} on{' '}
+                                            {transaction.tokenDisplayDetails.chainName}
+                                        </span>
+                                    </div>
+                                }
+                                hideBottomBorder={!transaction.networkFeeDetails && !transaction.peanutFeeDetails}
+                            />
+                        )}
+
                         {transaction.status === 'cancelled' &&
                             transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.BOTH &&
                             transaction.cancelledDate && (
@@ -155,13 +208,33 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                                 hideBottomBorder={!transaction.memo && !transaction.attachmentUrl}
                             />
                         )}
-                        {transaction.memo && (
+
+                        {transaction.status !== 'pending' && (
                             <PaymentInfoRow
-                                label="Memo"
+                                label="Peanut fee"
+                                value={'$ 0'}
+                                hideBottomBorder={
+                                    !transaction.memo && !transaction.attachmentUrl && !transaction.networkFeeDetails
+                                }
+                            />
+                        )}
+                        {transaction.memo?.trim() && (
+                            <PaymentInfoRow
+                                label="Comment"
                                 value={transaction.memo}
                                 hideBottomBorder={!transaction.attachmentUrl}
                             />
                         )}
+
+                        {transaction.networkFeeDetails && transaction.sourceView === 'status' && (
+                            <PaymentInfoRow
+                                label="Network fee"
+                                value={transaction.networkFeeDetails.amountDisplay}
+                                moreInfoText={transaction.networkFeeDetails.moreInfoText}
+                                hideBottomBorder={!transaction.attachmentUrl}
+                            />
+                        )}
+
                         {transaction.attachmentUrl && (
                             <PaymentInfoRow
                                 label="Attachment"
@@ -235,8 +308,18 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                     </div>
                 )}
 
+                {isPendingSentLink && !shouldShowQrShare && (
+                    <div className="flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-grey-1">
+                        <Icon name="info" size={20} />
+                        Use the device where you created it to cancel or re-share this link.
+                    </div>
+                )}
+
                 {isPendingRequester && (
                     <Button
+                        icon="cancel"
+                        iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
+                        iconClassName="p-1"
                         onClick={() => {
                             setIsLoading(true)
                             chargesApi
@@ -261,7 +344,6 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
-                        <Icon name="cancel" />
                         Cancel request
                     </Button>
                 )}
@@ -279,6 +361,9 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                             Pay
                         </Button>
                         <Button
+                            icon="cancel"
+                            iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
+                            iconClassName="p-1"
                             onClick={() => {
                                 setIsLoading(true)
                                 chargesApi
@@ -303,7 +388,6 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                             shadowSize="4"
                             className="flex w-full items-center gap-1"
                         >
-                            <Icon name="cancel" />
                             Reject request
                         </Button>
                     </div>

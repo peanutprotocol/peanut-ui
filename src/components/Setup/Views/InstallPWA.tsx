@@ -1,14 +1,15 @@
 import peanutPointing from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_06/PNGS_konradurban_06_11.png'
 import { Button } from '@/components/0_Bruddle'
+import { Icon } from '@/components/Global/Icons/Icon'
 import Modal from '@/components/Global/Modal'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useEffect, useState, useCallback } from 'react'
 import { BeforeInstallPromptEvent } from '@/components/Setup/Setup.types'
-import { setupActions } from '@/redux/slices/setup-slice'
-import { useAppDispatch } from '@/redux/hooks'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/authContext'
+import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useAppDispatch } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -116,6 +117,16 @@ const InstallPWA = ({
         })
     }, [])
 
+    useEffect(() => {
+        // show modal by default on desktop
+        if (deviceType === 'desktop' && !isUnsupportedBrowser) {
+            const timer = setTimeout(() => {
+                setShowModal(true)
+            }, 500)
+            return () => clearTimeout(timer)
+        }
+    }, [deviceType, isUnsupportedBrowser])
+
     const handleInstall = useCallback(async () => {
         if (!deferredPrompt) return
         dispatch(setupActions.setLoading(true))
@@ -167,29 +178,18 @@ const InstallPWA = ({
 
     // Desktop instructions tell the user to install on their phone
     const DesktopInstructions = () => (
-        <div>
-            <div className="space-y-4">
-                <StepTitle text="Install on your Phone" />
-                <p className="mb-4">
-                    For the best experience, we recommend installing Peanut on your phone. Scan this QR code with your
-                    phone's camera:
+        <div className="flex flex-col items-center justify-center gap-6">
+            <div className={'flex size-12 items-center justify-center rounded-full bg-primary-1'}>
+                <Icon name="mobile-install" size={24} />
+            </div>
+            <div className="space-y-3 text-center">
+                <StepTitle text="Peanut is mobile first!" />
+                <p className="max-w-[220px] text-lg font-normal text-grey-1">
+                    For a better experience, use Peanut on your phone.
                 </p>
-                <div className="mx-auto rounded-lg bg-background p-4">
-                    <QRCodeWrapper url={process.env.NEXT_PUBLIC_BASE_URL + '/setup' || window.location.origin} />
-                </div>
-                {/* TODO: we need to have setup instructions after login! This currently wont fully work */}
-                <p className="text-center text-sm text-gray-600">
-                    After scanning, log in with your passkey and follow the installation instructions.
-                </p>
-                {canInstall && (
-                    <div className="mt-4 border-t pt-4">
-                        <p className="mb-2 text-sm text-gray-600">Alternatively, you can install on desktop:</p>
-                        <Button onClick={handleInstall} className="w-full">
-                            <InstallPWADesktopIcon />
-                            Install Peanut
-                        </Button>
-                    </div>
-                )}
+            </div>
+            <div className="mx-auto rounded-lg">
+                <QRCodeWrapper url={process.env.NEXT_PUBLIC_BASE_URL + '/setup' || window.location.origin} />
             </div>
         </div>
     )
@@ -266,7 +266,7 @@ const InstallPWA = ({
                 )}
                 <div className="space-y-4 p-6">
                     {getInstructions()}
-                    {!canInstall && (
+                    {!canInstall && deviceType !== 'desktop' && (
                         <Button
                             onClick={() => {
                                 setShowModal(false)

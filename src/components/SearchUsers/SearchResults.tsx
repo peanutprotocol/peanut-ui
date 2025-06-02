@@ -4,6 +4,7 @@ import Card from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
 import PeanutLoading from '../Global/PeanutLoading'
+import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import { SearchResultCard } from './SearchResultCard'
 
 interface SearchResultsProps {
@@ -14,7 +15,7 @@ interface SearchResultsProps {
     showNoResults: boolean
     className?: string
     recentTransactions?: Pick<ApiUser, 'userId' | 'username' | 'fullName'>[]
-    onUserSelect?: (username: string) => void
+    onUserSelect: (username: string) => void
 }
 
 export const SearchResults = ({
@@ -39,9 +40,6 @@ export const SearchResults = ({
                     <div className="flex-1 overflow-y-auto">
                         {results.map((user, index) => (
                             <SearchResultCard
-                                key={user.userId}
-                                username={user.username}
-                                fullName={user.fullName}
                                 position={
                                     results.length === 1
                                         ? 'single'
@@ -51,7 +49,11 @@ export const SearchResults = ({
                                             ? 'last'
                                             : 'middle'
                                 }
-                                onClick={onUserSelect}
+                                key={user.userId}
+                                title={user.fullName || user.username}
+                                description={`@${user.username}`}
+                                leftIcon={<AvatarWithBadge size="extra-small" name={user.fullName || user.username} />}
+                                onClick={() => onUserSelect(user.username)}
                             />
                         ))}
                     </div>
@@ -86,9 +88,12 @@ export const SearchResults = ({
                             {recentTransactions.map((user, index) => (
                                 <SearchResultCard
                                     key={user.userId}
-                                    username={user.username}
-                                    fullName={user.fullName}
-                                    onClick={onUserSelect}
+                                    title={user.fullName || user.username}
+                                    description={`@${user.username}`}
+                                    leftIcon={
+                                        <AvatarWithBadge size="extra-small" name={user.fullName || user.username} />
+                                    }
+                                    onClick={() => onUserSelect(user.username)}
                                     position={
                                         recentTransactions.length === 1
                                             ? 'single'
