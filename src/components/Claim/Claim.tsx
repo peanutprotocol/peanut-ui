@@ -1,30 +1,29 @@
 'use client'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { useCallback, useContext, useEffect, useState, useMemo } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'
+import { StatusType } from '@/components/Global/Badges/StatusBadge'
+import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import * as consts from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
+import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
+import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
 import { ESendLinkStatus, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
-import { isStableCoin } from '@/utils'
+import { getInitialsFromName, getTokenDetails, isStableCoin } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
+import { useRouter } from 'next/navigation'
+import type { Hash } from 'viem'
+import { formatUnits } from 'viem'
 import PageContainer from '../0_Bruddle/PageContainer'
 import PeanutLoading from '../Global/PeanutLoading'
 import * as _consts from './Claim.consts'
 import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
-import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
-import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { StatusType } from '@/components/Global/Badges/StatusBadge'
-import { getInitialsFromName, getTokenDetails } from '@/utils'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import type { Hash } from 'viem'
-import { formatUnits } from 'viem'
-import { useRouter } from 'next/navigation'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -276,13 +275,7 @@ export const Claim = ({}) => {
             )}
             {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <genericViews.WrongPasswordClaimLink />}
             {linkState === _consts.claimLinkStateType.NOT_FOUND && <genericViews.NotFoundClaimLink />}
-            <TransactionDetailsDrawer
-                isOpen={isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id}
-                onClose={() => {
-                    router.push('/home')
-                }}
-                transaction={selectedTransaction}
-            />
+            <TransactionDetailsReceipt transaction={selectedTransaction} />
         </PageContainer>
     )
 }
