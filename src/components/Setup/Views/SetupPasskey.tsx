@@ -3,16 +3,16 @@ import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { WalletProviderType } from '@/interfaces'
-import { useSetupStore, useAppDispatch } from '@/redux/hooks'
+import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { useEffect, useState } from 'react'
 import { getFromLocalStorage } from '@/utils'
-import { useRouter } from 'next/navigation'
 import * as Sentry from '@sentry/nextjs'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 const SetupPasskey = () => {
     const dispatch = useAppDispatch()
-    const { handle } = useSetupStore()
+    const { username } = useSetupStore()
     const { isLoading } = useSetupFlow()
     const { handleRegister, address } = useZeroDev()
     const { user } = useAuth()
@@ -56,7 +56,7 @@ const SetupPasskey = () => {
                 onClick={async () => {
                     dispatch(setupActions.setLoading(true))
                     try {
-                        await handleRegister(handle)
+                        await handleRegister(username)
                     } catch (e) {
                         Sentry.captureException(e)
                         console.error('Error registering passkey:', e)
