@@ -9,7 +9,6 @@ import { BeforeInstallPromptEvent, ScreenId } from '@/components/Setup/Setup.typ
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -86,8 +85,6 @@ const InstallPWA = ({
             setTimeout(() => {
                 setInstallComplete(true)
                 setIsPWAInstalled(true)
-                setShowModal(false)
-                dispatch(setupActions.setLoading(false))
                 setIsInstallInProgress(false)
                 setInstallCancelled(false)
             }, 1000)
@@ -101,7 +98,7 @@ const InstallPWA = ({
                 window.removeEventListener('appinstalled', handleAppInstalled)
             }
         }
-    }, [dispatch])
+    }, [])
 
     useEffect(() => {
         if (
@@ -123,39 +120,30 @@ const InstallPWA = ({
         try {
             await deferredPrompt.prompt()
             const { outcome } = await deferredPrompt.userChoice
-            if (outcome === 'accepted') {
-                // 'appinstalled' event will handle completion
-                // If appinstalled doesn't fire reliably, might need a fallback here
-                // For now, we let appinstalled handle setInstallComplete
-            } else {
-                // outcome === 'dismissed'
+            if (outcome === 'dismissed') {
                 setInstallCancelled(true)
-                dispatch(setupActions.setLoading(false)) // Stop global loading if any was set
                 setIsInstallInProgress(false)
             }
         } catch (error) {
             console.error('Error during PWA installation prompt:', error)
             toast.error('PWA installation failed. Please try again.')
-            dispatch(setupActions.setLoading(false)) // stop global loading
             setIsInstallInProgress(false)
         }
-    }, [deferredPrompt, dispatch, toast])
+    }, [deferredPrompt, toast])
 
     const AndroidPWASpecificInstallFlow = () => {
+        // Scenario 1: Install finished (either PWA already there, or 'appinstalled' event fired)
         if (isPWAInstalled || installComplete) {
             return (
                 <div className="flex flex-col gap-4">
                     <Button
                         onClick={() => {
                             if (window.matchMedia('(display-mode: standalone)').matches) {
-                                // Already in PWA, proceed to the next logical step (e.g., welcome)
                                 handleNext()
                             } else {
-                                // Not in PWA. Try to open the PWA by simulating a click on an anchor tag.
-                                // This sometimes has a higher chance of triggering the PWA than direct window.location.href.
                                 const link = document.createElement('a')
                                 link.href = '/setup'
-                                link.target = '_blank' // sometimes opening in a new tab context can help kick it to the PWA
+                                link.target = '_blank'
                                 document.body.appendChild(link)
                                 link.click()
                                 document.body.removeChild(link)
@@ -163,7 +151,7 @@ const InstallPWA = ({
                         }}
                         className="w-full"
                         shadowSize="4"
-                        loading={isSetupFlowLoading} // This loading is from useSetupFlow, for page transitions
+                        loading={isSetupFlowLoading}
                     >
                         Open Peanut app
                     </Button>
@@ -171,16 +159,22 @@ const InstallPWA = ({
             )
         }
 
+        // Scenario 2: Installation is in progress (user clicked "Add", waiting for 'appinstalled')
+        if (isInstallInProgress) {
+            return (
+                <div className="flex flex-col items-center gap-4">
+                    <Button disabled={true} className="w-full" shadowSize="4" loading={true}>
+                        Installing
+                    </Button>
+                </div>
+            )
+        }
+
+        // Scenario 3: Ready to install (or installation was cancelled)
         if (canInstall && deferredPrompt) {
             return (
                 <div className="flex flex-col items-center gap-4">
-                    <Button
-                        onClick={handleInstall}
-                        disabled={isInstallInProgress || isSetupFlowLoading}
-                        className="w-full"
-                        shadowSize="4"
-                        loading={isInstallInProgress}
-                    >
+                    <Button onClick={handleInstall} disabled={isSetupFlowLoading} className="w-full" shadowSize="4">
                         Add Peanut to Home Screen
                     </Button>
                     {installCancelled && (
@@ -189,8 +183,8 @@ const InstallPWA = ({
                 </div>
             )
         }
-        // Fallback if PWA cannot be installed via prompt (e.g. already installed but states are not synced, or no prompt event)
-        // This part might need review based on how `canInstall` and `deferredPrompt` behave post-install attempt if appinstalled is missed
+
+        // Scenario 4: Fallback (cannot initiate automatic install)
         return (
             <div className="space-y-2 text-center">
                 <p className="text-sm text-grey-1">Could not initiate automatic installation.</p>
