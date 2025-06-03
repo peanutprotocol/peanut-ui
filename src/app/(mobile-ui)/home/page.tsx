@@ -5,6 +5,7 @@ import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
+import IOSInstallPWAModal from '@/components/Global/IOSInstallPWAModal'
 import Loading from '@/components/Global/Loading'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
@@ -37,6 +38,8 @@ export default function Home() {
     const { isFetchingUser, addAccount } = useAuth()
     const { user } = useUserStore()
     const username = user?.user.username
+
+    const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
 
     const userFullName = useMemo(() => {
         if (!user) return
@@ -72,6 +75,22 @@ export default function Home() {
             disconnectWagmi()
         }
     }, [isWagmiConnected, disconnectWagmi])
+
+    // effect for showing iOS PWA Install modal
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const isIOS =
+                /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+            const hasSeenModalThisSession = sessionStorage.getItem('hasSeenIOSPWAPromptThisSession')
+
+            if (isIOS && !isStandalone && !hasSeenModalThisSession) {
+                setShowIOSPWAInstallModal(true)
+                sessionStorage.setItem('hasSeenIOSPWAPromptThisSession', 'true')
+            }
+        }
+    }, [])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -127,6 +146,8 @@ export default function Home() {
                 {/* Render the new Rewards Card Modal */}
                 <RewardsCardModal visible={isRewardsModalOpen} onClose={() => setIsRewardsModalOpen(false)} />
             </div>
+            {/* iOS PWA Install Modal */}
+            <IOSInstallPWAModal visible={showIOSPWAInstallModal} onClose={() => setShowIOSPWAInstallModal(false)} />
         </PageContainer>
     )
 }
