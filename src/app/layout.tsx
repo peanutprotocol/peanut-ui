@@ -5,6 +5,7 @@ import { FooterVisibilityProvider } from '@/context/footerVisibility'
 import { Viewport } from 'next'
 import { Londrina_Solid, Roboto_Flex, Sniglet } from 'next/font/google'
 import localFont from 'next/font/local'
+import Script from 'next/script'
 import '../styles/globals.css'
 import { generateMetadata } from './metadata'
 
@@ -58,9 +59,38 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en">
+            {/* 
+                Google Tag Manager (script for head) 
+                Added using Next.js Script component.
+                The 'afterInteractive' strategy loads the script after the page becomes interactive.
+
+                IMPORTANT: Regarding existing Google Analytics (GA4)
+                Your project initializes GA4 directly in src/config/peanut.config.tsx using ReactGA.initialize(...).
+                If you intend to manage GA4 via GTM (which is common), 
+                you should remove or comment out that direct GA4 initialization to avoid double-tracking events.
+                Consult with your marketing team on how GA4 should be managed (directly or via GTM).
+            */}
+            <Script id="google-tag-manager" strategy="afterInteractive">
+                {`
+(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-5MGHBCQ9');
+                `}
+            </Script>
             <body
                 className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} chakra-ui-light font-sans`}
             >
+                {/* Google Tag Manager (noscript for body) */}
+                <noscript>
+                    <iframe
+                        src="https://www.googletagmanager.com/ns.html?id=GTM-5MGHBCQ9"
+                        height="0"
+                        width="0"
+                        style={{ display: 'none', visibility: 'hidden' }}
+                    ></iframe>
+                </noscript>
                 <PeanutProvider>
                     <ContextProvider>
                         <FooterVisibilityProvider>
