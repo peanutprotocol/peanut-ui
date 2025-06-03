@@ -61,7 +61,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                             backgroundColor:
                                                 method.icon === ('bank' as IconName)
                                                     ? '#FFC900'
-                                                    : getColorForUsername(method.title).backgroundColor,
+                                                    : getColorForUsername(method.title).lightShade,
+                                            color: method.icon === ('bank' as IconName) ? 'black' : 'black',
                                         }}
                                     />
                                 ) : (

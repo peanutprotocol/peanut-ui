@@ -11,6 +11,7 @@ import { fetchWithSentry } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { chargesApi } from './charges'
 import { TCharge } from './services.types'
+import Cookies from 'js-cookie'
 
 type ApiAccount = {
     identifier: string
@@ -24,6 +25,8 @@ export type ApiUser = {
     fullName: string
     firstName: string
     lastName: string
+    totalUsdSent: string
+    totalUsdReceived: string
 }
 
 export interface UserSearchResponse {
@@ -32,7 +35,12 @@ export interface UserSearchResponse {
 
 export const usersApi = {
     getByUsername: async (username: string): Promise<ApiUser> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`)
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+            },
+        })
         return await response.json()
     },
 

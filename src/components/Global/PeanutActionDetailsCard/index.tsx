@@ -2,7 +2,7 @@ import AvatarWithBadge, { AvatarSize } from '@/components/Profile/AvatarWithBadg
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { RecipientType } from '@/lib/url-parser/types/payment'
 import { printableAddress } from '@/utils'
-import { getColorForUsername } from '@/utils/color.utils'
+import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
 import { useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Attachment from '../Attachment'
@@ -85,9 +85,19 @@ export default function PeanutActionDetailsCard({
                         backgroundColor:
                             viewType === 'SUCCESS'
                                 ? '#29CC6A'
-                                : transactionType === 'ADD_MONEY' || recipientType === 'ADDRESS'
+                                : transactionType === 'ADD_MONEY' ||
+                                    recipientType === 'ADDRESS' ||
+                                    recipientType === 'ENS'
                                   ? '#FFC900'
-                                  : getColorForUsername(recipientName).backgroundColor,
+                                  : getColorForUsername(recipientName).darkShade,
+                        color:
+                            viewType === 'SUCCESS'
+                                ? AVATAR_TEXT_DARK
+                                : transactionType === 'ADD_MONEY' ||
+                                    recipientType === 'ADDRESS' ||
+                                    recipientType === 'ENS'
+                                  ? AVATAR_TEXT_DARK
+                                  : getColorForUsername(recipientName).darkShade,
                     }}
                 />
             </div>

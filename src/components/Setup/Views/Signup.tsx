@@ -38,8 +38,8 @@ const SignupStep = () => {
         }
 
         // check character requirement
-        if (!username.match(/^[a-z][a-z0-9_]{3,11}$/)) {
-            setError('Username must contain only lowercase letters, numbers and underscores and start with a letter')
+        if (!username.match(/^[a-z][a-z0-9]{3,11}$/)) {
+            setError('Username must contain only lowercase letters and numbers and start with a letter')
             return false
         }
 

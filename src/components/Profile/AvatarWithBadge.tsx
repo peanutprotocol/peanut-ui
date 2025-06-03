@@ -70,9 +70,10 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                 // apply dynamic styles (e.g., background color)
 
                 style={{
-                    background: name ? getColorForUsername(name).backgroundColor : undefined,
+                    background: name ? getColorForUsername(name).lightShade : undefined,
+                    border: name && !icon ? `1px solid ${getColorForUsername(name).darkShade}` : undefined,
+                    color: name ? getColorForUsername(name).darkShade : !icon ? textColor : undefined,
                     ...inlineStyle,
-                    color: !icon ? textColor : undefined,
                 }}
             >
                 {/* display icon if provided, otherwise display initials */}
