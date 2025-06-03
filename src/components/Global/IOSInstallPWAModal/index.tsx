@@ -46,16 +46,34 @@ const IOSInstallPWAModal: React.FC<IOSInstallPWAModalProps> = ({ visible, onClos
     // default to standard instructions (Chrome, Safari, Arc)
     if (browserType === 'safari' || browserType === 'chrome' || browserType === 'other') {
         descriptionTextJsx = (
-            <p className="text-sm text-grey-1 dark:text-white">
-                Tap the <Icon name="share" size={16} /> Share icon then on "Add To Home Screen"
+            <p className="flex flex-col items-center gap-1 text-sm text-grey-1">
+                <span className="flex items-center gap-2">
+                    Tap the
+                    <span className="flex items-center gap-1 font-bold">
+                        <Icon name="share" size={16} /> Share icon
+                    </span>
+                </span>
+                <span>
+                    {' '}
+                    then on <span className="font-bold"> “Add To Home Screen”</span>
+                </span>
             </p>
         )
     } else {
         // fallback for Brave and potentially other non-standard WebKit browsers
         descriptionTextJsx = (
-            <p className="text-sm text-grey-1 dark:text-white">
-                Open the app in the Safari Browser, tap the <Icon name="share" size={16} /> Share icon and then on "Add
-                To Home Screen"
+            <p className="flex flex-col items-center gap-1 text-sm text-grey-1">
+                <span className="flex items-center gap-2">Open the app in the Safari Browser,</span>
+                <span className="flex items-center gap-2">
+                    tap the
+                    <span className="flex items-center gap-1 font-bold">
+                        <Icon name="share" size={16} /> Share icon
+                    </span>
+                </span>
+                <span>
+                    {' '}
+                    then on <span className="font-bold"> “Add To Home Screen”</span>
+                </span>
             </p>
         )
     }
@@ -77,7 +95,6 @@ const IOSInstallPWAModal: React.FC<IOSInstallPWAModalProps> = ({ visible, onClos
             description={descriptionTextJsx}
             icon="mobile-install"
             ctas={ctas}
-            modalClassName="w-full max-w-xs"
         />
     )
 }
