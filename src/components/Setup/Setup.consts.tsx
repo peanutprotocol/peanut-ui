@@ -18,6 +18,17 @@ export const setupSteps: ISetupStep[] = [
         imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
     },
     {
+        screenId: 'android-initial-pwa-install',
+        layoutType: 'standard',
+        title: 'Get the full experience',
+        description: 'Keep your wallet one tap away. Safe, fast, and on your home screen.',
+        image: PEANUTMAN_MOBILE,
+        component: InstallPWA,
+        showBackButton: false,
+        showSkipButton: false,
+        imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
+    },
+    {
         screenId: 'pwa-install',
         layoutType: 'standard',
         title: 'Install Peanut on your phone',
@@ -25,7 +36,7 @@ export const setupSteps: ISetupStep[] = [
         image: PEANUTMAN_MOBILE,
         component: InstallPWA,
         showBackButton: false,
-        showSkipButton: false,
+        showSkipButton: true,
         imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
     },
     {

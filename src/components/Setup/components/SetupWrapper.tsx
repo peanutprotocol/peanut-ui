@@ -234,6 +234,7 @@ export const SetupWrapper = memo(
                                         canInstall,
                                         deviceType,
                                         unsupportedBrowser,
+                                        screenId,
                                     })
                                 }
                                 return child

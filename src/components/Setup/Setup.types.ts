@@ -5,6 +5,7 @@ export type ScreenId =
     | 'passkey-success'
     | 'notification-permission'
     | 'pwa-install'
+    | 'android-initial-pwa-install'
     | 'add-wallets'
     | 'success'
     | 'unsupported-browser'
@@ -23,6 +24,7 @@ export type ScreenProps = {
     success: undefined
     'contact-info': undefined
     'pwa-install': undefined
+    'android-initial-pwa-install': undefined
     'unsupported-browser': undefined
 }
 

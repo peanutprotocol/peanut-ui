@@ -1,14 +1,16 @@
 'use client'
 
+import { useToast } from '@/components/0_Bruddle/Toast'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
-import { BeforeInstallPromptEvent } from '@/components/Setup/Setup.types'
+import { BeforeInstallPromptEvent, ScreenId } from '@/components/Setup/Setup.types'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect, useState } from 'react'
 
 export default function SetupPage() {
+    const toast = useToast()
     const { steps } = useSetupStore()
     const { step, handleNext, handleBack } = useSetupFlow()
     const [direction, setDirection] = useState(0)
@@ -17,64 +19,87 @@ export default function SetupPage() {
     const [canInstall, setCanInstall] = useState(false)
     const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('desktop')
     const dispatch = useAppDispatch()
-    const [unsupportedBrowser, setUnsupportedBrowser] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
-        // Check if the browser supports passkeys
-        const checkPasskeySupport = async () => {
-            setIsLoading(true)
-            try {
-                const hasPasskeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-                setUnsupportedBrowser(!hasPasskeySupport)
+        setIsLoading(true)
 
-                // If browser doesn't support passkeys, show the unsupported browser screen
-                if (!hasPasskeySupport) {
-                    const unsupportedBrowserIndex = steps.findIndex((s) => s.screenId === 'unsupported-browser')
-                    if (unsupportedBrowserIndex !== -1) {
-                        dispatch(setupActions.setStep(unsupportedBrowserIndex + 1))
-                    }
-                }
-            } catch (error) {
-                // If we can't check, assume it's unsupported
-                setUnsupportedBrowser(true)
-                const unsupportedBrowserIndex = steps.findIndex((s) => s.screenId === 'unsupported-browser')
-                if (unsupportedBrowserIndex !== -1) {
-                    dispatch(setupActions.setStep(unsupportedBrowserIndex + 1))
-                }
-            } finally {
-                setIsLoading(false)
+        const determineInitialStep = async () => {
+            let passkeySupport = true
+            try {
+                passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+            } catch (e) {
+                passkeySupport = false
+                console.error('Error checking passkey support:', e)
             }
+
+            let initialStepId: ScreenId
+            const unsupportedBrowserStepExists = steps.find((s) => s.screenId === 'unsupported-browser')
+
+            if (!passkeySupport && unsupportedBrowserStepExists) {
+                initialStepId = 'unsupported-browser'
+            } else {
+                // detect device type only if passkeys are supported or unsupported-browser step doesn't exist
+                const userAgent = navigator.userAgent
+                const isIOSDevice =
+                    /iPad|iPhone|iPod/.test(userAgent) ||
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+                const isAndroidDevice = /Android/i.test(userAgent)
+
+                let currentDeviceType: 'ios' | 'android' | 'desktop' = 'desktop'
+                if (isIOSDevice) {
+                    currentDeviceType = 'ios'
+                } else if (isAndroidDevice) {
+                    currentDeviceType = 'android'
+                }
+                setDeviceType(currentDeviceType)
+
+                if (currentDeviceType === 'android') {
+                    setCanInstall(true)
+                    setDeferredPrompt({
+                        prompt: async () => {
+                            setTimeout(() => {
+                                window.dispatchEvent(new Event('appinstalled'))
+                            }, 1500)
+                            return Promise.resolve()
+                        },
+                        userChoice: new Promise((resolve) => {
+                            setTimeout(() => {
+                                resolve({ outcome: 'accepted', platform: 'web' })
+                            }, 1000)
+                        }),
+                        platforms: ['web'],
+                    } as BeforeInstallPromptEvent)
+                }
+
+                if (currentDeviceType === 'android') {
+                    initialStepId = 'android-initial-pwa-install'
+                } else if (currentDeviceType === 'ios') {
+                    initialStepId = 'welcome'
+                } else {
+                    // esktop
+                    initialStepId = 'pwa-install'
+                }
+            }
+
+            const initialStepIndex = steps.findIndex((s) => s.screenId === initialStepId)
+            if (initialStepIndex !== -1) {
+                dispatch(setupActions.setStep(initialStepIndex + 1))
+            } else {
+                dispatch(setupActions.setStep(1))
+            }
+            setIsLoading(false)
         }
 
-        checkPasskeySupport()
+        determineInitialStep()
 
-        // Store the install prompt
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault()
-            console.log('beforeinstallprompt', e)
             setDeferredPrompt(e as BeforeInstallPromptEvent)
             setCanInstall(true)
         }
-
-        // Detect device type
-        const isIOSDevice = /iPad|iPhone|iPod|Mac|Macintosh/.test(navigator.userAgent)
-        const isMobileDevice = /Android|webOS|iPad|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-            navigator.userAgent
-        )
-
-        // For desktop, default to iOS if on Mac, otherwise Android
-        if (!isMobileDevice) {
-            setDeviceType('desktop')
-        } else {
-            if (isIOSDevice) {
-                setDeviceType('ios')
-            } else {
-                setDeviceType('android')
-            }
-        }
-
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
         }
@@ -116,7 +141,6 @@ export default function SetupPage() {
             deferredPrompt={deferredPrompt}
             canInstall={canInstall}
             deviceType={deviceType}
-            unsupportedBrowser={unsupportedBrowser}
         >
             <step.component />
         </SetupWrapper>
