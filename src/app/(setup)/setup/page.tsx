@@ -141,6 +141,8 @@ export default function SetupPage() {
             deferredPrompt={deferredPrompt}
             canInstall={canInstall}
             deviceType={deviceType}
+            titleClassName={step.titleClassName}
+            contentClassName={step.contentClassName}
         >
             <step.component />
         </SetupWrapper>

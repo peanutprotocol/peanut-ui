@@ -10,7 +10,7 @@ export type ScreenId =
     | 'success'
     | 'unsupported-browser'
 
-export type LayoutType = 'welcome' | 'signup' | 'standard'
+export type LayoutType = 'signup' | 'standard' | 'android-initial-pwa-install'
 
 export type ScreenProps = {
     welcome: undefined
@@ -44,6 +44,8 @@ export interface ISetupStep {
     showBackButton?: boolean
     showSkipButton?: boolean
     imageClassName?: string
+    titleClassName?: string
+    contentClassName?: string
 }
 
 export interface BeforeInstallPromptEvent extends Event {

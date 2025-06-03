@@ -18,10 +18,11 @@ interface SetupWrapperProps {
     screenId: ScreenId
     children: ReactNode
     image?: string
-    imageClassName?: string
+    imageClassName?: HTMLDivElement['className']
     title?: string
     description?: string
-    contentClassName?: string
+    contentClassName?: HTMLDivElement['className']
+    titleClassName?: HTMLDivElement['className']
     showBackButton?: boolean
     showSkipButton?: boolean
     onBack?: () => void
@@ -36,9 +37,9 @@ interface SetupWrapperProps {
 
 // define responsive height classes for different layout types
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
-    welcome: 'min-h-[45vh] md:min-h-full', // welcome view has smaller container height
     signup: 'min-h-[55vh] md:min-h-full', // signup view has larger container height
     standard: 'min-h-[50vh] md:min-h-full', // rest all views has medium container height
+    'android-initial-pwa-install': 'min-h-[60vh] md:min-h-full',
 }
 
 // define animated star decorations positions and sizes
@@ -96,14 +97,14 @@ const ImageSection = ({
 }: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName'>) => {
     if (!image) return null
 
-    const isWelcomeOrSignup = layoutType === 'welcome' || layoutType === 'signup'
+    const isSignup = layoutType === 'signup'
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
     const imageClass = !!imageClassName
         ? imageClassName
         : 'w-full max-w-[80%] md:max-w-[75%] lg:max-w-xl object-contain relative'
 
     // special rendering for welcome/signup screens with animated decorations
-    if (isWelcomeOrSignup) {
+    if (isSignup) {
         return (
             <div
                 className={twMerge(
@@ -182,6 +183,7 @@ export const SetupWrapper = memo(
         canInstall,
         deviceType,
         unsupportedBrowser,
+        titleClassName,
     }: SetupWrapperProps) => {
         return (
             <div className="flex min-h-[100dvh] flex-col">
@@ -221,9 +223,16 @@ export const SetupWrapper = memo(
                             )}
                         >
                             {title && (
-                                <h1 className="w-full text-left text-3xl font-extrabold leading-tight">{title}</h1>
+                                <h1
+                                    className={twMerge(
+                                        'w-full text-left text-xl font-extrabold leading-tight',
+                                        titleClassName
+                                    )}
+                                >
+                                    {title}
+                                </h1>
                             )}
-                            {description && <p className="text-base">{description}</p>}
+                            {description && <p className="text-base font-medium text-black">{description}</p>}
                         </div>
                         {/* main content area */}
                         <div className="mx-auto w-full md:max-w-xs">

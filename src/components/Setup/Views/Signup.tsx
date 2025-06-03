@@ -1,4 +1,5 @@
-import { Button, Card } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { next_proxy_url } from '@/constants'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -50,10 +51,10 @@ const SignupStep = () => {
             })
             switch (res.status) {
                 case 200:
-                    setError('Handle already taken')
+                    setError('Username already taken')
                     return false
                 case 400:
-                    setError('Handle is invalid, please use a different one')
+                    setError('Username is invalid, please use a different one')
                     return false
                 case 404:
                     // handle is available
@@ -99,29 +100,32 @@ const SignupStep = () => {
     }
 
     return (
-        <Card className="border-0">
-            <Card.Content className="flex h-full min-h-42 flex-col justify-between p-0 md:min-h-32">
-                <div className="w-full space-y-2">
+        <>
+            <div className="flex h-full min-h-32 flex-col justify-between md:pt-5">
+                <div className="mb-auto w-full space-y-2.5">
                     <div className="flex items-center gap-2">
                         <ValidatedInput
-                            className=""
-                            placeholder="Choose your username"
+                            placeholder="Enter a username"
                             value={username}
                             debounceTime={750}
                             validate={checkUsernameValidity}
                             onUpdate={handleInputUpdate}
                         />
                         <Button
-                            className="w-4/12"
-                            loading={isLoading || isChanging}
+                            className="h-12 w-4/12"
+                            loading={isLoading}
                             shadowSize="4"
                             onClick={() => handleNext(async () => isValid)}
                             disabled={!isValid || isChanging || isLoading}
                         >
-                            Create
+                            Next
                         </Button>
                     </div>
-                    {error && <p className="text-sm font-bold text-error">{error}</p>}
+                    {error && (
+                        <div className="pb-1">
+                            <ErrorAlert description={error} className="gap-2 text-xs" iconSize={14} />
+                        </div>
+                    )}
                 </div>
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
@@ -129,15 +133,15 @@ const SignupStep = () => {
                         <Link
                             rel="noopener noreferrer"
                             target="_blank"
-                            className="underline underline-offset-2"
                             href="https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a?pvs=4"
                         >
-                            T&C and Privacy Policy
+                            <span className="underline underline-offset-2">T&C</span> and{' '}
+                            <span className="underline underline-offset-2">Privacy Policy</span>
                         </Link>{' '}
                     </p>
                 </div>
-            </Card.Content>
-        </Card>
+            </div>
+        </>
     )
 }
 
