@@ -57,15 +57,12 @@ export default function SetupPage() {
                     setCanInstall(true)
                     setDeferredPrompt({
                         prompt: async () => {
-                            setTimeout(() => {
-                                window.dispatchEvent(new Event('appinstalled'))
-                            }, 1500)
                             return Promise.resolve()
                         },
                         userChoice: new Promise((resolve) => {
                             setTimeout(() => {
                                 resolve({ outcome: 'accepted', platform: 'web' })
-                            }, 1000)
+                            }, 500)
                         }),
                         platforms: ['web'],
                     } as BeforeInstallPromptEvent)
