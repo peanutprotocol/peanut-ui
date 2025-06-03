@@ -9,6 +9,7 @@ import { BeforeInstallPromptEvent, ScreenId } from '@/components/Setup/Setup.typ
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -87,7 +88,7 @@ const InstallPWA = ({
                 setIsPWAInstalled(true)
                 setIsInstallInProgress(false)
                 setInstallCancelled(false)
-            }, 1000)
+            }, 3000)
         }
 
         if (typeof window !== 'undefined') {
@@ -137,10 +138,14 @@ const InstallPWA = ({
             return (
                 <div className="flex flex-col gap-4">
                     <Button
-                        onClick={() => {
+                        onClick={async () => {
                             if (window.matchMedia('(display-mode: standalone)').matches) {
                                 handleNext()
                             } else {
+                                dispatch(setupActions.setLoading(true))
+                                await new Promise((resolve) => setTimeout(resolve, 2000))
+                                dispatch(setupActions.setLoading(false))
+
                                 const link = document.createElement('a')
                                 link.href = '/setup'
                                 link.target = '_blank'
