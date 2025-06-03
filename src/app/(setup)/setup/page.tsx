@@ -1,6 +1,5 @@
 'use client'
 
-import { useToast } from '@/components/0_Bruddle/Toast'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { BeforeInstallPromptEvent, ScreenId } from '@/components/Setup/Setup.types'
@@ -10,7 +9,6 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect, useState } from 'react'
 
 export default function SetupPage() {
-    const toast = useToast()
     const { steps } = useSetupStore()
     const { step, handleNext, handleBack } = useSetupFlow()
     const [direction, setDirection] = useState(0)
@@ -39,12 +37,13 @@ export default function SetupPage() {
             if (!passkeySupport && unsupportedBrowserStepExists) {
                 initialStepId = 'unsupported-browser'
             } else {
-                // detect device type only if passkeys are supported or unsupported-browser step doesn't exist
                 const userAgent = navigator.userAgent
                 const isIOSDevice =
                     /iPad|iPhone|iPod/.test(userAgent) ||
                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
                 const isAndroidDevice = /Android/i.test(userAgent)
+                const isStandalonePWA =
+                    typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches
 
                 let currentDeviceType: 'ios' | 'android' | 'desktop' = 'desktop'
                 if (isIOSDevice) {
@@ -54,7 +53,7 @@ export default function SetupPage() {
                 }
                 setDeviceType(currentDeviceType)
 
-                if (currentDeviceType === 'android') {
+                if (currentDeviceType === 'android' && !isStandalonePWA) {
                     setCanInstall(true)
                     setDeferredPrompt({
                         prompt: async () => {
@@ -73,11 +72,15 @@ export default function SetupPage() {
                 }
 
                 if (currentDeviceType === 'android') {
-                    initialStepId = 'android-initial-pwa-install'
+                    if (isStandalonePWA) {
+                        initialStepId = 'welcome'
+                    } else {
+                        initialStepId = 'android-initial-pwa-install'
+                    }
                 } else if (currentDeviceType === 'ios') {
                     initialStepId = 'welcome'
                 } else {
-                    // esktop
+                    // desktop
                     initialStepId = 'pwa-install'
                 }
             }

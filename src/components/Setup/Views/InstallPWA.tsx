@@ -149,12 +149,10 @@ const InstallPWA = ({
                         onClick={() => {
                             if (window.matchMedia('(display-mode: standalone)').matches) {
                                 // Already in PWA, proceed to the next logical step (e.g., welcome)
-                                // This relies on useSetupFlow's handleNext to go to 'welcome' eventually
-                                // If 'pwa-install' is directly next, this might need a goToStep('welcome') type action.
                                 handleNext()
                             } else {
-                                // not in PWA, try to launch it by navigating to its start_url
-                                window.location.href = '/home'
+                                // not in PWA, try to launch it by navigating to its start_url, but targeting the setup flow
+                                window.location.href = '/setup'
                             }
                         }}
                         className="w-full"
