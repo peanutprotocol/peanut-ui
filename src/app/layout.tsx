@@ -63,12 +63,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Google Tag Manager (script for head) 
                 Added using Next.js Script component.
                 The 'afterInteractive' strategy loads the script after the page becomes interactive.
-
-                IMPORTANT: Regarding existing Google Analytics (GA4)
-                Your project initializes GA4 directly in src/config/peanut.config.tsx using ReactGA.initialize(...).
-                If you intend to manage GA4 via GTM (which is common), 
-                you should remove or comment out that direct GA4 initialization to avoid double-tracking events.
-                Consult with your marketing team on how GA4 should be managed (directly or via GTM).
             */}
             <Script id="google-tag-manager" strategy="afterInteractive">
                 {`
