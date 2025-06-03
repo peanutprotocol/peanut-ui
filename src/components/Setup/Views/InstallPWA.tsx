@@ -151,8 +151,14 @@ const InstallPWA = ({
                                 // Already in PWA, proceed to the next logical step (e.g., welcome)
                                 handleNext()
                             } else {
-                                // not in PWA, try to launch it by navigating to its start_url, but targeting the setup flow
-                                window.location.href = '/setup'
+                                // Not in PWA. Try to open the PWA by simulating a click on an anchor tag.
+                                // This sometimes has a higher chance of triggering the PWA than direct window.location.href.
+                                const link = document.createElement('a')
+                                link.href = '/setup'
+                                link.target = '_blank' // sometimes opening in a new tab context can help kick it to the PWA
+                                document.body.appendChild(link)
+                                link.click()
+                                document.body.removeChild(link)
                             }
                         }}
                         className="w-full"
