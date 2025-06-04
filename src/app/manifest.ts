@@ -1,5 +1,12 @@
 import type { MetadataRoute } from 'next'
 
+const getBaseUrl = () => {
+    if (process.env.VERCEL_ENV === 'preview') {
+        return `https://${process.env.VERCEL_BRANCH_URL}`
+    }
+    return process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
+}
+
 export default function manifest(): MetadataRoute.Manifest {
     let name = 'Peanut'
     switch (process.env.NODE_ENV) {
@@ -45,17 +52,17 @@ export default function manifest(): MetadataRoute.Manifest {
         protocol_handlers: [
             {
                 protocol: 'web+peanut',
-                url: '/home',
+                url: `${getBaseUrl()}/home`,
             },
         ],
         related_applications: [
             {
                 platform: 'webapp',
-                url: 'https://peanut.me/manifest.webmanifest',
+                url: `${getBaseUrl()}/manifest.webmanifest`,
             },
             {
                 platform: 'ios',
-                url: 'https://peanut.me',
+                url: getBaseUrl(),
             },
         ],
         scope: '/',

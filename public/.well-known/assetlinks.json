@@ -1,0 +1,16 @@
+[
+    {
+        "relation": ["delegate_permission/common.query_webapk"],
+        "target": {
+            "namespace": "web",
+            "site": "https://peanut.me/manifest.webmanifest"
+        }
+    },
+    {
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {
+            "namespace": "web",
+            "site": "https://peanut.me"
+        }
+    }
+]
