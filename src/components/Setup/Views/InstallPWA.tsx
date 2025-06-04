@@ -7,6 +7,7 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { BeforeInstallPromptEvent, ScreenId } from '@/components/Setup/Setup.types'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { updateUserPreferences, getUserPreferences } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -27,20 +28,19 @@ const InstallPWA = ({
     const { handleNext, isLoading: isSetupFlowLoading } = useSetupFlow()
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
-    const [isPWAInstalled, setIsPWAInstalled] = useState(false)
+
+    const [isPWAInstalled, setIsPWAInstalled] = useState(() => {
+        if (typeof window === 'undefined') return false
+        const pwaInstalledByMedia = window.matchMedia('(display-mode: standalone)').matches
+        const prefs = getUserPreferences()
+        return pwaInstalledByMedia || !!prefs?.isPwaInstalled
+    })
+
     const { user } = useAuth()
     const { push } = useRouter()
 
-    const [isUnsupportedBrowserLocal, setIsUnsupportedBrowserLocal] = useState(false)
-    const [isLoadingLocal, setIsLoadingLocal] = useState(true)
     const [installCancelled, setInstallCancelled] = useState(false)
     const [isInstallInProgress, setIsInstallInProgress] = useState(false)
-
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            setIsPWAInstalled(window.matchMedia('(display-mode: standalone)').matches)
-        }
-    }, [])
 
     useEffect(() => {
         if (!!user) push('/home')
@@ -53,6 +53,7 @@ const InstallPWA = ({
                 setIsPWAInstalled(true)
                 setIsInstallInProgress(false)
                 setInstallCancelled(false)
+                updateUserPreferences({ isPwaInstalled: true })
             }, 10000) // 10 seconds delay until install is complete
         }
 
@@ -67,17 +68,13 @@ const InstallPWA = ({
     }, [])
 
     useEffect(() => {
-        if (
-            screenId === 'pwa-install' &&
-            (deviceType === 'desktop' || deviceType === 'ios') &&
-            !isUnsupportedBrowserLocal
-        ) {
+        if (screenId === 'pwa-install' && (deviceType === 'desktop' || deviceType === 'ios')) {
             const timer = setTimeout(() => {
                 setShowModal(true)
             }, 500)
             return () => clearTimeout(timer)
         }
-    }, [deviceType, screenId, isUnsupportedBrowserLocal])
+    }, [deviceType, screenId])
 
     const handleInstall = useCallback(async () => {
         if (!deferredPrompt) return
@@ -179,14 +176,6 @@ const InstallPWA = ({
         </div>
     )
 
-    if (isLoadingLocal && screenId !== 'android-initial-pwa-install') {
-        return (
-            <div className="flex min-h-[100px] items-center justify-center">
-                <Icon name="retry" className="animate-spin" size={24} />
-            </div>
-        )
-    }
-
     switch (screenId) {
         case 'android-initial-pwa-install':
             return <AndroidPWASpecificInstallFlow />
@@ -204,11 +193,7 @@ const InstallPWA = ({
                                 shadowSize="4"
                                 variant="purple"
                             >
-                                {isUnsupportedBrowserLocal
-                                    ? 'Open in Main Browser'
-                                    : installComplete
-                                      ? 'Open in the App'
-                                      : 'Install App'}
+                                {installComplete ? 'Open in the App' : 'Install App'}
                             </Button>
                         </div>
                         {showModal && (
