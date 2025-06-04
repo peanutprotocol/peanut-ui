@@ -103,6 +103,7 @@ const InstallPWA = ({
     useEffect(() => {
         const handleInstall = async () => {
             const isInstalled = await checkPreviewInstallation()
+            alert('isInstalled 👀  ' + isInstalled)
 
             if (isInstalled) {
                 console.log('PWA successfully installed on preview')
@@ -114,9 +115,15 @@ const InstallPWA = ({
             }
         }
 
-        window.addEventListener('appinstalled', handleInstall)
-        return () => window.removeEventListener('appinstalled', handleInstall)
-    }, [checkPreviewInstallation])
+        if (typeof window !== 'undefined') {
+            window.addEventListener('appinstalled', handleInstall)
+        }
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('appinstalled', handleInstall)
+            }
+        }
+    }, [])
 
     // useEffect(() => {
     //     const handleAppInstalled = () => {
@@ -128,14 +135,14 @@ const InstallPWA = ({
     //         }, 10000) // 10 seconds delay until install is complete
     //     }
 
+    // if (typeof window !== 'undefined') {
+    //     window.addEventListener('appinstalled', handleAppInstalled)
+    // }
+    // return () => {
     //     if (typeof window !== 'undefined') {
-    //         window.addEventListener('appinstalled', handleAppInstalled)
+    //         window.removeEventListener('appinstalled', handleAppInstalled)
     //     }
-    //     return () => {
-    //         if (typeof window !== 'undefined') {
-    //             window.removeEventListener('appinstalled', handleAppInstalled)
-    //         }
-    //     }
+    // }
     // }, [])
 
     useEffect(() => {
