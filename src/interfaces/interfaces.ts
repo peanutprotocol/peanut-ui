@@ -237,22 +237,20 @@ export interface IBridgeAccount {
     business_name: string | null
     beneficiary_address_valid?: boolean // Optional, only present in US account
     last_4: string
-
-    // Use a union type for the account-specific details
-    account_details: IBridgeIbanDetails | IBridgeUsAccountDetails
+    iban?: IBridgeIbanDetails
+    account?: IBridgeUsAccountDetails
 }
 
 interface IBridgeIbanDetails {
-    type: 'iban'
     last_4: string
     bic: string
     country: string
 }
 
 interface IBridgeUsAccountDetails {
-    type: 'us'
     last_4: string
     routing_number: string
+    checking_or_savings: 'checking' | 'savings'
 }
 
 interface IBridgeDepositInstructions {
