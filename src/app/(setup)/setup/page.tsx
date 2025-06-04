@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import { IconName } from '@/components/Global/Icons/Icon'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
-import UnsupportedBrowserModal, { inAppSignatures } from '@/components/Global/UnsupportedBrowserModal'
+import { inAppSignatures } from '@/components/Global/UnsupportedBrowserModal'
 
 // webview check
 const isLikelyWebview = () => {
@@ -183,29 +183,26 @@ export default function SetupPage() {
     }
 
     return (
-        <>
-            <UnsupportedBrowserModal allowClose={false} />
-            <SetupWrapper
-                layoutType={step.layoutType}
-                screenId={step.screenId}
-                image={step.image}
-                title={step.title}
-                description={step.description}
-                showBackButton={step.showBackButton}
-                showSkipButton={step.showSkipButton}
-                imageClassName={step.imageClassName}
-                onBack={handleBack}
-                onSkip={() => handleNext()}
-                step={currentStepIndex}
-                direction={direction}
-                deferredPrompt={deferredPrompt}
-                canInstall={canInstall}
-                deviceType={deviceType}
-                titleClassName={step.titleClassName}
-                contentClassName={step.contentClassName}
-            >
-                <step.component />
-            </SetupWrapper>
-        </>
+        <SetupWrapper
+            layoutType={step.layoutType}
+            screenId={step.screenId}
+            image={step.image}
+            title={step.title}
+            description={step.description}
+            showBackButton={step.showBackButton}
+            showSkipButton={step.showSkipButton}
+            imageClassName={step.imageClassName}
+            onBack={handleBack}
+            onSkip={() => handleNext()}
+            step={currentStepIndex}
+            direction={direction}
+            deferredPrompt={deferredPrompt}
+            canInstall={canInstall}
+            deviceType={deviceType}
+            titleClassName={step.titleClassName}
+            contentClassName={step.contentClassName}
+        >
+            <step.component />
+        </SetupWrapper>
     )
 }
