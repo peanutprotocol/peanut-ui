@@ -7,6 +7,8 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect, useState } from 'react'
+import ActionModal from '@/components/Global/ActionModal'
+import { IconName } from '@/components/Global/Icons/Icon'
 
 export default function SetupPage() {
     const { steps } = useSetupStore()
@@ -18,6 +20,7 @@ export default function SetupPage() {
     const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('desktop')
     const dispatch = useAppDispatch()
     const [isLoading, setIsLoading] = useState(true)
+    const [showDeviceNotSupportedModal, setShowDeviceNotSupportedModal] = useState(false)
 
     useEffect(() => {
         setIsLoading(true)
@@ -26,9 +29,13 @@ export default function SetupPage() {
             let passkeySupport = true
             try {
                 passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+                if (!passkeySupport) {
+                    setShowDeviceNotSupportedModal(true)
+                }
             } catch (e) {
                 passkeySupport = false
                 console.error('Error checking passkey support:', e)
+                setShowDeviceNotSupportedModal(true)
             }
 
             let initialStepId: ScreenId
@@ -123,6 +130,21 @@ export default function SetupPage() {
 
     // todo: add loading state
     if (!step) return null
+
+    if (showDeviceNotSupportedModal) {
+        return (
+            <ActionModal
+                visible={true}
+                onClose={() => {}}
+                title="Device not supported!"
+                description="This device doesn't support some of the technologies Peanut needs to work properly. Please try opening this link on a newer phone."
+                icon={'alert' as IconName}
+                preventClose={true}
+                hideModalCloseButton={true}
+                ctas={[]}
+            />
+        )
+    }
 
     return (
         <SetupWrapper
