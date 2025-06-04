@@ -68,7 +68,7 @@ export const KYCComponent = () => {
                 </div>
             ) : (
                 <GlobalKYCComponent
-                    intialStep={user?.user?.email ? 1 : 0}
+                    initialStep={user?.user?.email ? 1 : 0}
                     offrampForm={{
                         email: user?.user?.email ?? '',
                         name: user?.user?.full_name ?? '',

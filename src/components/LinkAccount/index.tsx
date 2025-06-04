@@ -1,5 +1,5 @@
 'use client'
-import { GlobaLinkAccountComponent } from '../Global/LinkAccountComponent'
+import { GlobalLinkAccountComponent } from '../Global/LinkAccountComponent'
 import { useAuth } from '@/context/authContext'
 import * as assets from '@/assets'
 import Link from 'next/link'
@@ -66,7 +66,7 @@ export const LinkAccountComponent = () => {
                     )}
                 </div>
             ) : (
-                <GlobaLinkAccountComponent />
+                <GlobalLinkAccountComponent />
             )}
         </div>
     )

@@ -109,12 +109,12 @@ export async function POST(request: NextRequest, response: NextResponse) {
             },
         })
     } catch (error: any) {
-        console.error('Error occured while fetching recent transactions:', error)
+        console.error('Error occurred while fetching recent transactions:', error)
 
         return NextResponse.json({
             status: 500,
             body: {
-                error: 'Error occured while fetching recent transactions',
+                error: 'Error occurred while fetching recent transactions',
             },
         })
     }
