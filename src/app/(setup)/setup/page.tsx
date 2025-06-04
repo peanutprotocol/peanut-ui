@@ -26,6 +26,9 @@ export default function SetupPage() {
         setIsLoading(true)
 
         const determineInitialStep = async () => {
+            // add a small delay to allow browser state to settle after navigation
+            await new Promise((resolve) => setTimeout(resolve, 100))
+
             let passkeySupport = true
             try {
                 passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()

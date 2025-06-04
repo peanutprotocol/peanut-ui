@@ -18,7 +18,7 @@ const UnsupportedBrowserModal = ({ allowClose = true }: { allowClose?: boolean }
             const inAppSignatures = [
                 'WebView',
                 '(iPhone|iPod|iPad)(?!.*Safari\/)',
-                'Android.*(wv|\.0\.0\.0)',
+                'Android.*wv',
                 'FBAN',
                 'FBAV',
                 'Instagram',
