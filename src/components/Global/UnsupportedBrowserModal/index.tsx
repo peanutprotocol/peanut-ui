@@ -31,6 +31,7 @@ export const inAppSignatures = [
     'LinkedInApp', // LinkedIn in-app
     'SnapKit', // Snapchat Kit
     'Instagram 100.', // Instagram WebView variant
+    'Electron', // Electron App
 ]
 
 const UnsupportedBrowserModal = ({
