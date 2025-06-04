@@ -60,7 +60,7 @@ export default function SetupPage() {
             )
 
             if (currentlyInWebview) {
-                if (!passkeySupport && unsupportedBrowserStepExists) {
+                if (unsupportedBrowserStepExists) {
                     initialStepId = 'unsupported-browser'
                     setShowBrowserNotSupportedModal(true)
                 }
@@ -120,7 +120,7 @@ export default function SetupPage() {
                     )
                     dispatch(setupActions.setStep(1))
                 }
-            } else if (!showDeviceNotSupportedModal) {
+            } else if (!showDeviceNotSupportedModal && !showBrowserNotSupportedModal) {
                 console.warn('Initial step ID was not determined, no modal shown. Defaulting to step 1.')
                 dispatch(setupActions.setStep(1))
             }
