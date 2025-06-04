@@ -10,10 +10,13 @@ interface IOSInstallPWAModalProps {
 }
 
 // basic iOS browser detection (can be refined)
-const getIOSBrowserType = (): 'safari' | 'chrome' | 'brave' | 'other' => {
+const getIOSBrowserType = (): 'safari' | 'chrome' | 'brave' | 'firefox' | 'other' => {
     const ua = navigator.userAgent
     if (/CriOS/.test(ua)) {
         return 'chrome' // chrome on iOS
+    }
+    if (/FxiOS/.test(ua)) {
+        return 'firefox' // firefox on iOS
     }
     if (/Brave/.test(ua) && /Mobile/.test(ua) && /Safari/.test(ua)) {
         return 'brave' // brave on iOS
@@ -33,7 +36,7 @@ const getIOSBrowserType = (): 'safari' | 'chrome' | 'brave' | 'other' => {
 }
 
 const IOSInstallPWAModal: React.FC<IOSInstallPWAModalProps> = ({ visible, onClose }) => {
-    const [browserType, setBrowserType] = useState<'safari' | 'chrome' | 'brave' | 'other'>('other')
+    const [browserType, setBrowserType] = useState<'safari' | 'chrome' | 'brave' | 'firefox' | 'other'>('other')
 
     useEffect(() => {
         if (visible) {
