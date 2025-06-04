@@ -33,8 +33,14 @@ export const inAppSignatures = [
     'Instagram 100.', // Instagram WebView variant
 ]
 
-const UnsupportedBrowserModal = ({ allowClose = true }: { allowClose?: boolean }) => {
-    const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(false)
+const UnsupportedBrowserModal = ({
+    allowClose = true,
+    visible = false,
+}: {
+    allowClose?: boolean
+    visible?: boolean
+}) => {
+    const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(!visible || false)
     const [copyButtonText, setCopyButtonText] = useState('Copy Link')
     const toast = useToast()
 
@@ -61,7 +67,7 @@ const UnsupportedBrowserModal = ({ allowClose = true }: { allowClose?: boolean }
         }
     }, [])
 
-    if (!showInAppBrowserModalViaDetection) {
+    if (!showInAppBrowserModalViaDetection && !visible) {
         return null
     }
 

@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import { IconName } from '@/components/Global/Icons/Icon'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
-import { inAppSignatures } from '@/components/Global/UnsupportedBrowserModal'
+import UnsupportedBrowserModal, { inAppSignatures } from '@/components/Global/UnsupportedBrowserModal'
 
 // webview check
 const isLikelyWebview = () => {
@@ -33,6 +33,7 @@ export default function SetupPage() {
     const dispatch = useAppDispatch()
     const [isLoading, setIsLoading] = useState(true)
     const [showDeviceNotSupportedModal, setShowDeviceNotSupportedModal] = useState(false)
+    const [showBrowserNotSupportedModal, setShowBrowserNotSupportedModal] = useState(false)
 
     useEffect(() => {
         setIsLoading(true)
@@ -54,18 +55,20 @@ export default function SetupPage() {
 
             const currentlyInWebview = isLikelyWebview()
             let initialStepId: ScreenId | undefined = undefined
-            const masterUnsupportedBrowserStepExists = masterSetupSteps.find(
+            const unsupportedBrowserStepExists = masterSetupSteps.find(
                 (s: ISetupStep) => s.screenId === 'unsupported-browser'
             )
 
             if (currentlyInWebview) {
-                if (!passkeySupport && masterUnsupportedBrowserStepExists) {
+                if (!passkeySupport && unsupportedBrowserStepExists) {
                     initialStepId = 'unsupported-browser'
+                    setShowBrowserNotSupportedModal(true)
                 }
             } else {
                 if (!passkeySupport) {
-                    if (masterUnsupportedBrowserStepExists) {
+                    if (unsupportedBrowserStepExists) {
                         initialStepId = 'unsupported-browser'
+                        setShowBrowserNotSupportedModal(true)
                     } else {
                         setShowDeviceNotSupportedModal(true)
                         setIsLoading(false)
@@ -180,6 +183,10 @@ export default function SetupPage() {
                 ctas={[]}
             />
         )
+    }
+
+    if (showBrowserNotSupportedModal) {
+        return <UnsupportedBrowserModal visible={true} allowClose={false} />
     }
 
     return (
