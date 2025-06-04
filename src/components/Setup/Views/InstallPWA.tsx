@@ -4,7 +4,6 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Modal from '@/components/Global/Modal'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { BeforeInstallPromptEvent, ScreenId } from '@/components/Setup/Setup.types'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -17,13 +16,11 @@ const InstallPWA = ({
     canInstall,
     deferredPrompt,
     deviceType,
-    unsupportedBrowser,
     screenId,
 }: {
     canInstall?: boolean
     deferredPrompt?: BeforeInstallPromptEvent | null
     deviceType?: 'ios' | 'android' | 'desktop'
-    unsupportedBrowser?: boolean
     screenId?: ScreenId
 }) => {
     const toast = useToast()
@@ -36,7 +33,6 @@ const InstallPWA = ({
 
     const [isUnsupportedBrowserLocal, setIsUnsupportedBrowserLocal] = useState(false)
     const [isLoadingLocal, setIsLoadingLocal] = useState(true)
-    const [showUnsupportedBrowserModal, setShowUnsupportedBrowserModal] = useState(false)
     const [installCancelled, setInstallCancelled] = useState(false)
     const [isInstallInProgress, setIsInstallInProgress] = useState(false)
 
@@ -49,34 +45,6 @@ const InstallPWA = ({
     useEffect(() => {
         if (!!user) push('/home')
     }, [user])
-
-    useEffect(() => {
-        setIsLoadingLocal(true)
-        if (unsupportedBrowser !== undefined) {
-            setIsUnsupportedBrowserLocal(unsupportedBrowser)
-            setShowUnsupportedBrowserModal(unsupportedBrowser)
-            setIsLoadingLocal(false)
-        } else {
-            if (typeof window !== 'undefined' && 'PublicKeyCredential' in window) {
-                PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-                    .then((hasPasskeySupport) => {
-                        setIsUnsupportedBrowserLocal(!hasPasskeySupport)
-                        setShowUnsupportedBrowserModal(!hasPasskeySupport)
-                    })
-                    .catch(() => {
-                        setIsUnsupportedBrowserLocal(true)
-                        setShowUnsupportedBrowserModal(true)
-                    })
-                    .finally(() => {
-                        setIsLoadingLocal(false)
-                    })
-            } else {
-                setIsUnsupportedBrowserLocal(true)
-                setShowUnsupportedBrowserModal(true)
-                setIsLoadingLocal(false)
-            }
-        }
-    }, [unsupportedBrowser])
 
     useEffect(() => {
         const handleAppInstalled = () => {
@@ -216,17 +184,6 @@ const InstallPWA = ({
             <div className="flex min-h-[100px] items-center justify-center">
                 <Icon name="retry" className="animate-spin" size={24} />
             </div>
-        )
-    }
-
-    if (isUnsupportedBrowserLocal) {
-        return (
-            <UnsupportedBrowserModal
-                visible={showUnsupportedBrowserModal}
-                onClose={() => {
-                    setShowUnsupportedBrowserModal(false)
-                }}
-            />
         )
     }
 

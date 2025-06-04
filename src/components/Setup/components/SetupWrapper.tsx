@@ -32,7 +32,6 @@ interface SetupWrapperProps {
     deferredPrompt?: BeforeInstallPromptEvent | null
     canInstall?: boolean
     deviceType?: 'ios' | 'android' | 'desktop'
-    unsupportedBrowser?: boolean
 }
 
 // define responsive height classes for different layout types
@@ -182,7 +181,6 @@ export const SetupWrapper = memo(
         deferredPrompt,
         canInstall,
         deviceType,
-        unsupportedBrowser,
         titleClassName,
     }: SetupWrapperProps) => {
         return (
@@ -242,7 +240,6 @@ export const SetupWrapper = memo(
                                         deferredPrompt,
                                         canInstall,
                                         deviceType,
-                                        unsupportedBrowser,
                                         screenId,
                                     })
                                 }
