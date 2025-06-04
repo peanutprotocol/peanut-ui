@@ -66,18 +66,13 @@ export default function SetupPage() {
                 }
             } else {
                 if (!passkeySupport) {
-                    if (unsupportedBrowserStepExists) {
-                        initialStepId = 'unsupported-browser'
-                        setShowBrowserNotSupportedModal(true)
-                    } else {
-                        setShowDeviceNotSupportedModal(true)
-                        setIsLoading(false)
-                        return
-                    }
+                    setShowDeviceNotSupportedModal(true)
+                    setIsLoading(false)
+                    return
                 }
             }
 
-            if (initialStepId === undefined) {
+            if (initialStepId === undefined && !showDeviceNotSupportedModal) {
                 const userAgent = navigator.userAgent
                 const isIOSDevice =
                     /iPad|iPhone|iPod/.test(userAgent) ||
