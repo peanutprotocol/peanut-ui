@@ -32,20 +32,22 @@ export default function SetupPage() {
             let passkeySupport = true
             try {
                 passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-                if (!passkeySupport) {
-                    setShowDeviceNotSupportedModal(true)
-                }
             } catch (e) {
                 passkeySupport = false
                 console.error('Error checking passkey support:', e)
-                setShowDeviceNotSupportedModal(true)
             }
 
-            let initialStepId: ScreenId
+            let initialStepId: ScreenId | undefined = undefined
             const unsupportedBrowserStepExists = steps.find((s) => s.screenId === 'unsupported-browser')
 
-            if (!passkeySupport && unsupportedBrowserStepExists) {
-                initialStepId = 'unsupported-browser'
+            if (!passkeySupport) {
+                if (unsupportedBrowserStepExists) {
+                    initialStepId = 'unsupported-browser'
+                } else {
+                    setShowDeviceNotSupportedModal(true)
+                    setIsLoading(false)
+                    return
+                }
             } else {
                 const userAgent = navigator.userAgent
                 const isIOSDevice =
@@ -92,11 +94,21 @@ export default function SetupPage() {
                 }
             }
 
-            const initialStepIndex = steps.findIndex((s) => s.screenId === initialStepId)
-            if (initialStepIndex !== -1) {
-                dispatch(setupActions.setStep(initialStepIndex + 1))
+            if (initialStepId) {
+                const initialStepIndex = steps.findIndex((s) => s.screenId === initialStepId)
+                if (initialStepIndex !== -1) {
+                    dispatch(setupActions.setStep(initialStepIndex + 1))
+                } else {
+                    console.warn(`Could not find step index for screenId: ${initialStepId}, defaulting to step 1.`)
+                    dispatch(setupActions.setStep(1))
+                }
             } else {
-                dispatch(setupActions.setStep(1))
+                if (!showDeviceNotSupportedModal) {
+                    console.warn(
+                        'Initial step ID was not determined and no device support modal shown, defaulting to step 1.'
+                    )
+                    dispatch(setupActions.setStep(1))
+                }
             }
             setIsLoading(false)
         }
