@@ -7,7 +7,6 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { BeforeInstallPromptEvent, ScreenId } from '@/components/Setup/Setup.types'
 import { useAuth } from '@/context/authContext'
-import { usePwaUtils } from '@/hooks/usePwaUtils'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
@@ -32,7 +31,6 @@ const InstallPWA = ({
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
     const [isPWAInstalled, setIsPWAInstalled] = useState(false)
-    const { checkIsPwaInstalled, checkPreviewInstallation } = usePwaUtils()
     const { user } = useAuth()
     const { push } = useRouter()
 
@@ -80,70 +78,25 @@ const InstallPWA = ({
         }
     }, [unsupportedBrowser])
 
-    // useEffect(() => {
-    //     const checkAfterInstall = async () => {
-    //         const isInstalled = await checkIsPwaInstalled()
-    //         console.log('isInstalled', isInstalled)
-    //         if (isInstalled) {
-    // console.log('PWA successfully installed')
-    // setInstallComplete(true)
-    // setIsPWAInstalled(true)
-    // setIsInstallInProgress(false)
-    // setInstallCancelled(false)
-    //             alert('PWA successfully installed from checkIsPwaInstalled')
-    //         }
-    //     }
-    //     console.log('gm')
-
-    //     window.addEventListener('appinstalled', checkAfterInstall)
-    //     return () => window.removeEventListener('appinstalled', checkAfterInstall)
-    // }, [checkIsPwaInstalled])
-
-    // preview installation
     useEffect(() => {
-        const handleInstall = async () => {
-            const isInstalled = await checkPreviewInstallation()
-            alert('isInstalled 👀  ' + isInstalled)
-
-            if (isInstalled) {
-                console.log('PWA successfully installed on preview')
+        const handleAppInstalled = () => {
+            setTimeout(() => {
                 setInstallComplete(true)
                 setIsPWAInstalled(true)
                 setIsInstallInProgress(false)
                 setInstallCancelled(false)
-                alert('PWA successfully installed on preview')
-            }
+            }, 10000) // 10 seconds delay until install is complete
         }
 
         if (typeof window !== 'undefined') {
-            window.addEventListener('appinstalled', handleInstall)
+            window.addEventListener('appinstalled', handleAppInstalled)
         }
         return () => {
             if (typeof window !== 'undefined') {
-                window.removeEventListener('appinstalled', handleInstall)
+                window.removeEventListener('appinstalled', handleAppInstalled)
             }
         }
     }, [])
-
-    // useEffect(() => {
-    //     const handleAppInstalled = () => {
-    //         setTimeout(() => {
-    //             setInstallComplete(true)
-    //             setIsPWAInstalled(true)
-    //             setIsInstallInProgress(false)
-    //             setInstallCancelled(false)
-    //         }, 10000) // 10 seconds delay until install is complete
-    //     }
-
-    // if (typeof window !== 'undefined') {
-    //     window.addEventListener('appinstalled', handleAppInstalled)
-    // }
-    // return () => {
-    //     if (typeof window !== 'undefined') {
-    //         window.removeEventListener('appinstalled', handleAppInstalled)
-    //     }
-    // }
-    // }, [])
 
     useEffect(() => {
         if (
