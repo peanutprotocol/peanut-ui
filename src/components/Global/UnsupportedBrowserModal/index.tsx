@@ -6,6 +6,23 @@ import { IconName } from '@/components/Global/Icons/Icon'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
 import { useEffect, useState } from 'react'
 
+export const inAppSignatures = [
+    'WebView',
+    '(iPhone|iPod|iPad)(?!.*Safari\/)',
+    'Android.*wv',
+    'FBAN',
+    'FBAV',
+    'Instagram',
+    'Twitter',
+    'Snapchat',
+    'Line',
+    'WhatsApp',
+    'WeChat',
+    'TelegramBot',
+    'Telegram',
+    'Puffin',
+]
+
 const UnsupportedBrowserModal = ({ allowClose = true }: { allowClose?: boolean }) => {
     const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(false)
     const [copyButtonText, setCopyButtonText] = useState('Copy Link')
@@ -15,22 +32,7 @@ const UnsupportedBrowserModal = ({ allowClose = true }: { allowClose?: boolean }
         // in-app browser detection - only run if not manually triggered
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
             const ua = navigator.userAgent || navigator.vendor || (window as any).opera
-            const inAppSignatures = [
-                'WebView',
-                '(iPhone|iPod|iPad)(?!.*Safari\/)',
-                'Android.*wv',
-                'FBAN',
-                'FBAV',
-                'Instagram',
-                'Twitter',
-                'Snapchat',
-                'Line',
-                'WhatsApp',
-                'WeChat',
-                'TelegramBot',
-                'Telegram',
-                'Puffin',
-            ]
+
             let isLikelyInApp = inAppSignatures.some((sig) => new RegExp(sig, 'i').test(ua))
 
             const isStandalonePWA = window.matchMedia('(display-mode: standalone)').matches

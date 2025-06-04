@@ -9,6 +9,14 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import { IconName } from '@/components/Global/Icons/Icon'
+import { inAppSignatures } from '@/components/Global/UnsupportedBrowserModal'
+
+// webview check
+const isLikelyWebview = () => {
+    if (typeof navigator === 'undefined') return false
+    const ua = navigator.userAgent || navigator.vendor || (window as any).opera
+    return inAppSignatures.some((sig) => new RegExp(sig, 'i').test(ua))
+}
 
 export default function SetupPage() {
     const { steps } = useSetupStore()
@@ -40,15 +48,24 @@ export default function SetupPage() {
             let initialStepId: ScreenId | undefined = undefined
             const unsupportedBrowserStepExists = steps.find((s) => s.screenId === 'unsupported-browser')
 
+            const currentlyInWebview = isLikelyWebview()
+
             if (!passkeySupport) {
                 if (unsupportedBrowserStepExists) {
                     initialStepId = 'unsupported-browser'
-                } else {
+                } else if (!currentlyInWebview) {
+                    // Only show generic device modal if:
+                    // 1. Passkeys not supported
+                    // 2. No specific 'unsupported-browser' step is defined
+                    // 3. We are NOT in a known webview (where UnsupportedBrowserModal from layout should ideally handle it)
                     setShowDeviceNotSupportedModal(true)
                     setIsLoading(false)
                     return
+                } else {
+                    dispatch(setupActions.setStep(1))
                 }
             } else {
+                // passkeys are supported
                 const userAgent = navigator.userAgent
                 const isIOSDevice =
                     /iPad|iPhone|iPod/.test(userAgent) ||
