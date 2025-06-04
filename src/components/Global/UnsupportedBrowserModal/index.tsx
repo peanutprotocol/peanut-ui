@@ -41,7 +41,7 @@ const UnsupportedBrowserModal = ({
     allowClose?: boolean
     visible?: boolean
 }) => {
-    const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(!visible || false)
+    const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(false)
     const [copyButtonText, setCopyButtonText] = useState('Copy Link')
     const toast = useToast()
 
