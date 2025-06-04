@@ -246,14 +246,14 @@ export async function createExternalAccount(
                     const existingAccount = accounts.find((account: interfaces.IBridgeAccount) => {
                         if (accountType === 'iban') {
                             return (
-                                account.account_details.type === 'iban' &&
-                                account.account_details.last_4 === accountDetails.accountNumber.slice(-4)
+                                account.account_type === 'iban' &&
+                                account.iban?.last_4 === accountDetails.accountNumber.slice(-4)
                             )
                         } else {
                             return (
-                                account.account_details.type === 'us' &&
-                                account.account_details.last_4 === accountDetails.accountNumber.slice(-4) &&
-                                account.account_details.routing_number === accountDetails.routingNumber
+                                account.account_type === 'us' &&
+                                account.account?.last_4 === accountDetails.accountNumber.slice(-4) &&
+                                account.account?.routing_number === accountDetails.routingNumber
                             )
                         }
                     })
