@@ -41,8 +41,9 @@ export async function GET(req: NextRequest) {
         (
             <PaymentCardOG
                 link={link}
-                iconSrc={`${origin}/peanut-brand/peanut-icon.svg`}
-                logoSrc={`${origin}/peanut-brand/peanut-logo.svg`}
+                iconSrc={`${origin}/icons/peanut-icon.svg`}
+                logoSrc={`${origin}/logos/peanut-logo.svg`}
+                scribbleSrc={`${origin}/scribble.svg`}
             />
         ),
         {

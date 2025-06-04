@@ -1,4 +1,5 @@
 import { PaymentLink } from "@/interfaces";
+// import { Scribble } from "@/assets/illustrations";
 
 function usernamePxWidth(name: string) {
   const charPx = 0.6 * 80; // ≈48 px per glyph
@@ -9,15 +10,15 @@ export function PaymentCardOG({
   link,
   iconSrc,
   logoSrc,
+  scribbleSrc
 }: {
   link: PaymentLink;
   iconSrc: string;
   logoSrc: string;
+  scribbleSrc: string;
 }) {
   /* ----- palette ----- */
   const pink = "#fe91e6";
-  const scribbleSrc =
-    "https://img.notionusercontent.com/s3/prod-files-secure%2Fb08e0384-3fae-465c-8ce5-c02ee949214b%2Fa31955a0-ca83-45e5-a7dc-c97538770602%2FVector_(1).svg/size/?exp=1747525540&sig=SIwQkLtIyYVghKSBBpc7XQSga_fKqRoAuVTOH1TZxag&id=1f383811-7579-80cb-b98d-e4ac52963610&table=block";
   const scribbleWidth = usernamePxWidth(link.username);
 
   /* ----- outer white frame ----- */
