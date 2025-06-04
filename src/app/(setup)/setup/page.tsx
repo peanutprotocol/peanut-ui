@@ -2,19 +2,23 @@
 
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
-import { BeforeInstallPromptEvent, ScreenId } from '@/components/Setup/Setup.types'
+import { BeforeInstallPromptEvent, ScreenId, ISetupStep } from '@/components/Setup/Setup.types'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import { IconName } from '@/components/Global/Icons/Icon'
-import { inAppSignatures } from '@/components/Global/UnsupportedBrowserModal'
+import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
+import UnsupportedBrowserModal, { inAppSignatures } from '@/components/Global/UnsupportedBrowserModal'
 
 // webview check
 const isLikelyWebview = () => {
     if (typeof navigator === 'undefined') return false
     const ua = navigator.userAgent || navigator.vendor || (window as any).opera
+    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
+        return false
+    }
     return inAppSignatures.some((sig) => new RegExp(sig, 'i').test(ua))
 }
 
@@ -34,7 +38,10 @@ export default function SetupPage() {
         setIsLoading(true)
 
         const determineInitialStep = async () => {
-            // add a small delay to allow browser state to settle after navigation
+            if (!steps || steps.length === 0) {
+                console.warn('determineInitialStep: Redux steps not yet loaded. Will retry when steps update.')
+                return
+            }
             await new Promise((resolve) => setTimeout(resolve, 100))
 
             let passkeySupport = true
@@ -45,27 +52,29 @@ export default function SetupPage() {
                 console.error('Error checking passkey support:', e)
             }
 
-            let initialStepId: ScreenId | undefined = undefined
-            const unsupportedBrowserStepExists = steps.find((s) => s.screenId === 'unsupported-browser')
-
             const currentlyInWebview = isLikelyWebview()
+            let initialStepId: ScreenId | undefined = undefined
+            const masterUnsupportedBrowserStepExists = masterSetupSteps.find(
+                (s: ISetupStep) => s.screenId === 'unsupported-browser'
+            )
 
-            if (!passkeySupport) {
-                if (unsupportedBrowserStepExists) {
+            if (currentlyInWebview) {
+                if (!passkeySupport && masterUnsupportedBrowserStepExists) {
                     initialStepId = 'unsupported-browser'
-                } else if (!currentlyInWebview) {
-                    // Only show generic device modal if:
-                    // 1. Passkeys not supported
-                    // 2. No specific 'unsupported-browser' step is defined
-                    // 3. We are NOT in a known webview (where UnsupportedBrowserModal from layout should ideally handle it)
-                    setShowDeviceNotSupportedModal(true)
-                    setIsLoading(false)
-                    return
-                } else {
-                    dispatch(setupActions.setStep(1))
                 }
             } else {
-                // passkeys are supported
+                if (!passkeySupport) {
+                    if (masterUnsupportedBrowserStepExists) {
+                        initialStepId = 'unsupported-browser'
+                    } else {
+                        setShowDeviceNotSupportedModal(true)
+                        setIsLoading(false)
+                        return
+                    }
+                }
+            }
+
+            if (initialStepId === undefined) {
                 const userAgent = navigator.userAgent
                 const isIOSDevice =
                     /iPad|iPhone|iPod/.test(userAgent) ||
@@ -75,11 +84,8 @@ export default function SetupPage() {
                     typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches
 
                 let currentDeviceType: 'ios' | 'android' | 'desktop' = 'desktop'
-                if (isIOSDevice) {
-                    currentDeviceType = 'ios'
-                } else if (isAndroidDevice) {
-                    currentDeviceType = 'android'
-                }
+                if (isIOSDevice) currentDeviceType = 'ios'
+                else if (isAndroidDevice) currentDeviceType = 'android'
                 setDeviceType(currentDeviceType)
 
                 if (currentDeviceType === 'android' && !isStandalonePWA) {
@@ -98,34 +104,27 @@ export default function SetupPage() {
                 }
 
                 if (currentDeviceType === 'android') {
-                    if (isStandalonePWA) {
-                        initialStepId = 'welcome'
-                    } else {
-                        initialStepId = 'android-initial-pwa-install'
-                    }
+                    initialStepId = isStandalonePWA ? 'welcome' : 'android-initial-pwa-install'
                 } else if (currentDeviceType === 'ios') {
                     initialStepId = 'welcome'
                 } else {
-                    // desktop
                     initialStepId = 'pwa-install'
                 }
             }
 
             if (initialStepId) {
-                const initialStepIndex = steps.findIndex((s) => s.screenId === initialStepId)
+                const initialStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === initialStepId)
                 if (initialStepIndex !== -1) {
                     dispatch(setupActions.setStep(initialStepIndex + 1))
                 } else {
-                    console.warn(`Could not find step index for screenId: ${initialStepId}, defaulting to step 1.`)
-                    dispatch(setupActions.setStep(1))
-                }
-            } else {
-                if (!showDeviceNotSupportedModal) {
                     console.warn(
-                        'Initial step ID was not determined and no device support modal shown, defaulting to step 1.'
+                        `Could not find step index in Redux steps for screenId: ${initialStepId}. Defaulting to step 1.`
                     )
                     dispatch(setupActions.setStep(1))
                 }
+            } else if (!showDeviceNotSupportedModal) {
+                console.warn('Initial step ID was not determined, no modal shown. Defaulting to step 1.')
+                dispatch(setupActions.setStep(1))
             }
             setIsLoading(false)
         }
@@ -146,8 +145,7 @@ export default function SetupPage() {
 
     useEffect(() => {
         if (step) {
-            // determine direction based on new step index
-            const newIndex = steps.findIndex((s) => s.screenId === step.screenId)
+            const newIndex = steps.findIndex((s: ISetupStep) => s.screenId === step.screenId)
             setDirection(newIndex > currentStepIndex ? 1 : -1)
             setCurrentStepIndex(newIndex)
         }
@@ -160,8 +158,14 @@ export default function SetupPage() {
             </div>
         )
 
-    // todo: add loading state
-    if (!step) return null
+    if (!step) {
+        console.warn('SetupPage: No current step found, possibly due to empty Redux steps or initialization issue.')
+        return (
+            <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+                <PeanutLoading />
+            </div>
+        )
+    }
 
     if (showDeviceNotSupportedModal) {
         return (
@@ -179,26 +183,29 @@ export default function SetupPage() {
     }
 
     return (
-        <SetupWrapper
-            layoutType={step.layoutType}
-            screenId={step.screenId}
-            image={step.image}
-            title={step.title}
-            description={step.description}
-            showBackButton={step.showBackButton}
-            showSkipButton={step.showSkipButton}
-            imageClassName={step.imageClassName}
-            onBack={handleBack}
-            onSkip={() => handleNext()}
-            step={currentStepIndex}
-            direction={direction}
-            deferredPrompt={deferredPrompt}
-            canInstall={canInstall}
-            deviceType={deviceType}
-            titleClassName={step.titleClassName}
-            contentClassName={step.contentClassName}
-        >
-            <step.component />
-        </SetupWrapper>
+        <>
+            <UnsupportedBrowserModal allowClose={false} />
+            <SetupWrapper
+                layoutType={step.layoutType}
+                screenId={step.screenId}
+                image={step.image}
+                title={step.title}
+                description={step.description}
+                showBackButton={step.showBackButton}
+                showSkipButton={step.showSkipButton}
+                imageClassName={step.imageClassName}
+                onBack={handleBack}
+                onSkip={() => handleNext()}
+                step={currentStepIndex}
+                direction={direction}
+                deferredPrompt={deferredPrompt}
+                canInstall={canInstall}
+                deviceType={deviceType}
+                titleClassName={step.titleClassName}
+                contentClassName={step.contentClassName}
+            >
+                <step.component />
+            </SetupWrapper>
+        </>
     )
 }

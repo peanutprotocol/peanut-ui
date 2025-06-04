@@ -16,7 +16,6 @@ import PullToRefresh from 'pulltorefreshjs'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
-import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 
 const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$)/
 
@@ -83,7 +82,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     return (
         <div className="flex min-h-[100dvh] w-full bg-background">
-            <UnsupportedBrowserModal />
             {/* Wrapper div for desktop layout */}
             <div className="flex w-full">
                 {/* Sidebar - Fixed on desktop */}

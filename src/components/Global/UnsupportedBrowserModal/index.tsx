@@ -8,19 +8,29 @@ import { useEffect, useState } from 'react'
 
 export const inAppSignatures = [
     'WebView',
-    '(iPhone|iPod|iPad)(?!.*Safari\/)',
-    'Android.*wv',
-    'FBAN',
-    'FBAV',
-    'Instagram',
-    'Twitter',
-    'Snapchat',
-    'Line',
-    'WhatsApp',
-    'WeChat',
-    'TelegramBot',
-    'Telegram',
-    'Puffin',
+    '(iPhone|iPod|iPad)(?!.*Safari\\/)', // iOS WebView
+    'Android.*wv', // Android WebView
+    'FBAN', // Facebook App
+    'FBAV', // Facebook App
+    'Instagram', // Instagram App
+    'Twitter', // Twitter App
+    'Snapchat', // Snapchat App
+    'Line', // LINE App
+    'WhatsApp', // WhatsApp
+    'WeChat', // WeChat
+    'TelegramBot', // Telegram bot WebView
+    'Telegram', // Telegram in-app
+    'TelegramWebApp', // Telegram Web App
+    'Puffin', // Puffin browser (non-standard)
+    'Discord', // Discord in-app browser
+    'TikTok', // TikTok App
+    'Messenger', // Facebook Messenger
+    'Viber', // Viber App
+    'Reddit', // Reddit App
+    'Pinterest', // Pinterest App
+    'LinkedInApp', // LinkedIn in-app
+    'SnapKit', // Snapchat Kit
+    'Instagram 100.', // Instagram WebView variant
 ]
 
 const UnsupportedBrowserModal = ({ allowClose = true }: { allowClose?: boolean }) => {
