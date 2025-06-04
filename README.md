@@ -18,6 +18,15 @@ cp .env.example .env
 pnpm dev
 ```
 
+## Initializing the `src/assets/animations` Submodule
+
+This repo uses a Git submodule for all animation assets. After cloning, run:
+
+```bash
+git submodule init
+git submodule update
+```
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ## Code Formatting
