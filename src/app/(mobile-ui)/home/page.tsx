@@ -23,6 +23,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
+import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
 
 export default function Home() {
     const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
@@ -40,6 +41,7 @@ export default function Home() {
     const username = user?.user.username
 
     const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
+    const [showAddMoneyPromptModal, setShowAddMoneyPromptModal] = useState(false)
 
     const userFullName = useMemo(() => {
         if (!user) return
@@ -67,7 +69,7 @@ export default function Home() {
                 userId: user.user.userId,
             })
         }
-    }, [user, address])
+    }, [user, address, addAccount])
 
     // always reset external wallet connection on home page
     useEffect(() => {
@@ -91,6 +93,24 @@ export default function Home() {
             }
         }
     }, [])
+
+    // effect for showing add money prompt modal
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !isFetchingBalance) {
+            const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
+
+            // show if:
+            // 1. balance is zero.
+            // 2. user hasn't seen this prompt in the current session.
+            // 3. the iOS PWA install modal is not currently active.
+            // this allows the modal on any device (iOS/Android) and in any display mode (PWA/browser),
+            // as long as the PWA modal (which is iOS & browser-specific) isn't taking precedence.
+            if (balance === 0n && !hasSeenAddMoneyPromptThisSession && !showIOSPWAInstallModal) {
+                setShowAddMoneyPromptModal(true)
+                sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
+            }
+        }
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -148,6 +168,9 @@ export default function Home() {
             </div>
             {/* iOS PWA Install Modal */}
             <IOSInstallPWAModal visible={showIOSPWAInstallModal} onClose={() => setShowIOSPWAInstallModal(false)} />
+
+            {/* Add Money Prompt Modal */}
+            <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} />
         </PageContainer>
     )
 }
