@@ -15,9 +15,16 @@ interface ProfileHeaderProps {
     username: string
     isVerified?: boolean
     className?: string
+    showShareButton?: boolean
 }
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, isVerified = false, className }) => {
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({
+    name,
+    username,
+    isVerified = false,
+    className,
+    showShareButton = true,
+}) => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const contentRef = useRef<HTMLDivElement>(null)
     const drawerHeightVh = useDynamicHeight(contentRef, { maxHeightVh: 90, minHeightVh: 10, extraVhOffset: 5 })
@@ -36,21 +43,23 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, username, isVerifie
                 <h1 className="mb-4 text-2xl font-bold">{name}</h1>
 
                 {/* Username with share drawer */}
-                <Button
-                    size="large"
-                    variant="primary-soft"
-                    shadowSize="4"
-                    className="flex h-10 w-fit items-center justify-center rounded-full py-3 pl-6 pr-4"
-                    onClick={() => {
-                        navigator.clipboard.writeText(profileUrl)
-                        setIsDrawerOpen(true)
-                    }}
-                >
-                    <div className="text-sm font-semibold">{profileUrl.replace('https://', '')}</div>
-                    <div className="-ml-2">
-                        <Icon name="share" size={16} fill="black" />
-                    </div>
-                </Button>
+                {showShareButton && (
+                    <Button
+                        size="large"
+                        variant="primary-soft"
+                        shadowSize="4"
+                        className="flex h-10 w-fit items-center justify-center rounded-full py-3 pl-6 pr-4"
+                        onClick={() => {
+                            navigator.clipboard.writeText(profileUrl)
+                            setIsDrawerOpen(true)
+                        }}
+                    >
+                        <div className="text-sm font-semibold">{profileUrl.replace('https://', '')}</div>
+                        <div className="-ml-2">
+                            <Icon name="share" size={16} fill="black" />
+                        </div>
+                    </Button>
+                )}
             </div>
             {isDrawerOpen && (
                 <>

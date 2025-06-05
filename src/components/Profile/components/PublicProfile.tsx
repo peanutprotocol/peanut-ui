@@ -70,7 +70,13 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
 
             <div className="space-y-8">
                 {/* Profile Header - Using the reusable component */}
-                <ProfileHeader name={fullName} username={username} isVerified={isVerified} className="mb-6" />
+                <ProfileHeader
+                    showShareButton={false}
+                    name={fullName}
+                    username={username}
+                    isVerified={isVerified}
+                    className="mb-6"
+                />
 
                 {/* Action Buttons */}
                 <div className="flex items-center justify-normal gap-4">
