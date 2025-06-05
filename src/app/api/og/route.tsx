@@ -36,6 +36,14 @@ export async function GET(req: NextRequest) {
         })
     }
 
+    // create an object with all arrow SVG paths
+    const arrowSrcs = {
+        topLeft: `${origin}/arrows/top-left-arrows.svg`,
+        topRight: `${origin}/arrows/top-right-arrow.svg`,
+        bottomLeft: `${origin}/arrows/bottom-left-arrow.svg`,
+        bottomRight: `${origin}/arrows/bottom-right-arrow.svg`
+    }
+
     const link: PaymentLink = { type, username, amount, status: 'unclaimed' }
     return new ImageResponse(
         (
@@ -44,6 +52,7 @@ export async function GET(req: NextRequest) {
                 iconSrc={`${origin}/icons/peanut-icon.svg`}
                 logoSrc={`${origin}/logos/peanut-logo.svg`}
                 scribbleSrc={`${origin}/scribble.svg`}
+                arrowSrcs={arrowSrcs}
             />
         ),
         {

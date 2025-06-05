@@ -1,5 +1,4 @@
 import { PaymentLink } from "@/interfaces";
-// import { Scribble } from "@/assets/illustrations";
 
 function usernamePxWidth(name: string) {
   const charPx = 0.6 * 80; // ≈48 px per glyph
@@ -10,12 +9,19 @@ export function PaymentCardOG({
   link,
   iconSrc,
   logoSrc,
-  scribbleSrc
+  scribbleSrc,
+  arrowSrcs
 }: {
   link: PaymentLink;
   iconSrc: string;
   logoSrc: string;
   scribbleSrc: string;
+  arrowSrcs: {
+    topLeft: string;
+    topRight: string;
+    bottomLeft: string;
+    bottomRight: string;
+  };
 }) {
   /* ----- palette ----- */
   const pink = "#fe91e6";
@@ -28,7 +34,6 @@ export function PaymentCardOG({
         display: "flex",
         justifyContent: "center",
         backgroundColor: "#ffffff",
-        borderRadius: 24, // Tailwind rounded-2xl
         padding: 16,
         width: 1200,
         height: 630,
@@ -42,7 +47,7 @@ export function PaymentCardOG({
           flexDirection: "column",
           alignItems: "center",
           gap: 16,
-          width: 1000,
+          width: '100%',
           border: "3px solid #000",
           backgroundColor: pink,
           padding: 48,
@@ -54,14 +59,14 @@ export function PaymentCardOG({
           style={{
             position: "absolute",
             top: 24,
-            left: 24,
+            left: 34,
             display: "flex",
             alignItems: "center",
             gap: 12,
           }}
         >
-          <img src={iconSrc} width={36} height={36} alt="Peanut icon" />
-          <img src={logoSrc} width={100} height={24} alt="Peanut" />
+          <img src={iconSrc} width={36} height={46} alt="Peanut icon" />
+          <img src={logoSrc} width={132} height={26} alt="Peanut" />
         </div>
 
         {/*  username  */}
@@ -82,6 +87,7 @@ export function PaymentCardOG({
               fontWeight: 700,
               fontSize: 80,
               margin: 0,
+              letterSpacing: "-0.05em",
             }}
           >
             {link.username}
@@ -107,8 +113,10 @@ export function PaymentCardOG({
           style={{
             fontFamily: "Montserrat Medium",
             fontWeight: 500,
-            fontSize: 36,
+            fontSize: 46,
             margin: 0,
+            marginTop: -12,
+            letterSpacing: "-0.03em",
           }}
         >
           {link.type === "send" ? "is sending you" : "is requesting"}
@@ -120,17 +128,47 @@ export function PaymentCardOG({
           style={{
             position: "relative",
             display: "block", // only flex | block | none | -webkit-box are allowed
-            fontSize: 200, // px
+            fontSize: 250, // px
             lineHeight: 1,
             margin: 0,
             marginTop: 30,
           }}
         >
+          {/* Top-left arrow */}
+          <img 
+            src={arrowSrcs.topLeft}
+            width={100}
+            height={100}
+            alt=""
+            style={{
+              position: "absolute",
+              top: -110,
+              left: -60,
+              pointerEvents: "none",
+            }}
+          />
+          
+          {/* Top-right arrow */}
+          <img 
+            src={arrowSrcs.topRight}
+            width={130}
+            height={80}
+            alt=""
+            style={{
+              position: "absolute",
+              top: -90,
+              right: -100,
+              pointerEvents: "none",
+              transform: "rotate(5deg)"
+            }}
+          />
+          
           {/* 1) white fill — stays in normal flow */}
           <span
             style={{
               fontFamily: "Knerd Filled",
               color: "#fff",
+              letterSpacing: "-0.08em",
             }}
           >
             ${link.amount}
@@ -146,10 +184,42 @@ export function PaymentCardOG({
               fontFamily: "Knerd Outline",
               color: "#000",
               pointerEvents: "none", // just in case
+              transformOrigin: "top left",
+              transform: "scaleX(1.01) scaleY(1.01)",
+              letterSpacing: "-0.08em",
             }}
           >
             ${link.amount}
           </span>
+          
+          {/* Bottom-left arrow */}
+          <img 
+            src={arrowSrcs.bottomLeft}
+            width={64}
+            height={96}
+            alt=""
+            style={{
+              position: "absolute",
+              bottom: 10,
+              left: -20,
+              pointerEvents: "none",
+            }}
+          />
+          
+          {/* Bottom-right arrow */}
+          <img 
+            src={arrowSrcs.bottomRight}
+            width={40}
+            height={60}
+            alt=""
+            style={{
+              position: "absolute",
+              bottom: 10,
+              right: -20,
+              pointerEvents: "none",
+              transform: "rotate(-15deg)"
+            }}
+          />
         </p>
       </div>
     </div>
