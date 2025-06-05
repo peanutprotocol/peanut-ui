@@ -106,7 +106,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                     </Link>
                 </div>
 
-                {totalSent !== '0.00' && totalReceived !== '0.00' && (
+                {!!user && totalSent !== '0.00' && totalReceived !== '0.00' && (
                     <div className="space-y-6">
                         <div>
                             <Card position="first">
