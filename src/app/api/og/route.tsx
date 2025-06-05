@@ -15,7 +15,7 @@ const getFont = (file: string) => fs.readFile(path.join(fontDir, file))
 
 export async function GET(req: NextRequest) {
     // grab the full origin (protocol + host + port)
-    const origin = await getOrigin() || BASE_URL
+    const origin = (await getOrigin()) || BASE_URL
 
     // fetch the four fonts in parallel
     const [knerdFilled, knerdOutline, montserratMedium, montserratSemibold] = await Promise.all([
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
         topLeft: `${origin}/arrows/top-left-arrows.svg`,
         topRight: `${origin}/arrows/top-right-arrow.svg`,
         bottomLeft: `${origin}/arrows/bottom-left-arrow.svg`,
-        bottomRight: `${origin}/arrows/bottom-right-arrow.svg`
+        bottomRight: `${origin}/arrows/bottom-right-arrow.svg`,
     }
 
     const link: PaymentLink = { type, username, amount, status: 'unclaimed' }
