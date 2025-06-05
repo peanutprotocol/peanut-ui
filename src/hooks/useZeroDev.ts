@@ -19,6 +19,17 @@ type UserOpEncodedParams = {
     data?: Hex | undefined
 }
 
+// custom error class for passkey-related errors
+class PasskeyError extends Error {
+    constructor(
+        message: string,
+        public code: string
+    ) {
+        super(message)
+        this.name = 'PasskeyError'
+    }
+}
+
 const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
 export const useZeroDev = () => {
@@ -28,7 +39,7 @@ export const useZeroDev = () => {
     const { setWebAuthnKey, getClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
 
-    // Future note: could be `${username}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIM || 'peanut.me'}` (have to change BE too)
+    // Future note: could be `${username}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || 'peanut.me'}` (have to change BE too)
     const _getPasskeyName = (username: string) => `${username}.peanut.wallet`
 
     // register function
@@ -60,6 +71,7 @@ export const useZeroDev = () => {
         dispatch(zerodevActions.setIsLoggingIn(true))
         try {
             const passkeyServerHeaders: Record<string, string> = {}
+
             if (user?.user?.username) {
                 passkeyServerHeaders['x-username'] = user.user.username
             }
@@ -75,9 +87,17 @@ export const useZeroDev = () => {
             setWebAuthnKey(webAuthnKey)
             saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
         } catch (e) {
+            const error = e as Error
+            if (error.name === 'NotAllowedError') {
+                dispatch(zerodevActions.setIsLoggingIn(false))
+                throw new PasskeyError(
+                    'Login was canceled or no passkey found. Please try again or register.',
+                    'LOGIN_CANCELED'
+                )
+            }
             console.error('Error logging in', e)
             dispatch(zerodevActions.setIsLoggingIn(false))
-            throw e
+            throw new PasskeyError('An unexpected error occurred during login.', 'LOGIN_ERROR')
         }
     }
 
@@ -109,6 +129,7 @@ export const useZeroDev = () => {
         },
         [getClientForChain]
     )
+
     return {
         isKernelClientReady,
         setIsKernelClientReady: (value: boolean) => dispatch(zerodevActions.setIsKernelClientReady(value)),

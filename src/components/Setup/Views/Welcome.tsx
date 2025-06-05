@@ -1,3 +1,5 @@
+'use client'
+
 import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAuth } from '@/context/authContext'
@@ -17,7 +19,18 @@ const WelcomeStep = () => {
 
     useEffect(() => {
         if (!!user) push('/home')
-    }, [user])
+    }, [user, push])
+
+    const handleError = (error: any) => {
+        const errorMessage =
+            error.code === 'LOGIN_CANCELED'
+                ? 'Login was canceled. Please try again.'
+                : error.code === 'NO_PASSKEY'
+                  ? 'No passkey found. Please create a wallet first.'
+                  : 'An unexpected error occurred during login.'
+        toast.error(errorMessage)
+        Sentry.captureException(error, { extra: { errorCode: error.code } })
+    }
 
     return (
         <Card className="border-0">
@@ -28,6 +41,7 @@ const WelcomeStep = () => {
                 <Button
                     loading={isLoggingIn}
                     shadowSize="4"
+                    disabled={isLoggingIn}
                     className="h-11"
                     variant="primary-soft"
                     onClick={() => {
@@ -40,8 +54,7 @@ const WelcomeStep = () => {
                                 }
                             })
                             .catch((e) => {
-                                toast.error('Error logging in')
-                                Sentry.captureException(e)
+                                handleError(e)
                             })
                     }}
                 >
