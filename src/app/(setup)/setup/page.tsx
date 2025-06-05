@@ -10,43 +10,8 @@ import { useEffect, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import { IconName } from '@/components/Global/Icons/Icon'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
-import UnsupportedBrowserModal, { inAppSignatures } from '@/components/Global/UnsupportedBrowserModal'
-
-// webview check
-const isLikelyWebview = () => {
-    if (typeof navigator === 'undefined') return false
-    const uaString = navigator.userAgent || navigator.vendor || (window as any).opera
-    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
-        return false
-    }
-    return inAppSignatures.some((sig) => new RegExp(sig, 'i').test(uaString))
-}
-
-const isDeviceOsSupported = (ua: string): boolean => {
-    if (!ua) return true
-    const androidMatch = ua.match(/Android\s+(\d+)(?:\.(\d+))?(?:\.(\d+))?/i)
-    if (androidMatch) {
-        const majorVersion = parseInt(androidMatch[1], 10)
-        return majorVersion >= 9
-    }
-    const iosMatch = ua.match(/(?:CPU OS|iPhone OS|iPad; CPU OS)\s+(\d+)(?:_(\d+))?(?:_(\d+))?/i)
-    if (iosMatch) {
-        const majorVersion = parseInt(iosMatch[1], 10)
-        return majorVersion >= 16
-    }
-    return true
-}
-
-const getDeviceTypeForLogic = (ua: string): 'ios' | 'android' | 'desktop' => {
-    if (!ua) return 'desktop'
-    const isIOS =
-        /iPad|iPhone|iPod/.test(ua) ||
-        (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-    const isAndroid = /Android/i.test(ua)
-    if (isIOS) return 'ios'
-    if (isAndroid) return 'android'
-    return 'desktop'
-}
+import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
+import { isLikelyWebview, isDeviceOsSupported, getDeviceTypeForLogic } from '@/components/Setup/Setup.utils'
 
 export default function SetupPage() {
     const { steps } = useSetupStore()
@@ -67,11 +32,12 @@ export default function SetupPage() {
         const determineInitialStep = async () => {
             if (!steps || steps.length === 0) {
                 console.warn('determineInitialStep: Redux steps not yet loaded. Will retry when steps update.')
-                setIsLoading(false) // Prevent infinite loading if steps never arrive
+                setIsLoading(false) // prevent infinite loading if steps never arrive
                 return
             }
-            await new Promise((resolve) => setTimeout(resolve, 100))
+            await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
 
+            // check for native passkey support
             let passkeySupport = true
             try {
                 passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
@@ -83,8 +49,10 @@ export default function SetupPage() {
             const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
             const localDeviceType = getDeviceTypeForLogic(ua)
             const osSupportedByVersion = isDeviceOsSupported(ua)
-            const webviewByUASignature = isLikelyWebview() // Uses inAppSignatures
+            const webviewByUASignature = isLikelyWebview() // initial webview check based on ua signatures
 
+            // webview detection: if it's an ios device, looks like safari, lacks passkey support,
+            // and wasn't caught by signatures, it's likely a restricted webview (e.g., telegram)
             let effectiveCurrentlyInWebview = webviewByUASignature
             if (localDeviceType === 'ios' && /Safari/.test(ua) && !passkeySupport && !webviewByUASignature) {
                 effectiveCurrentlyInWebview = true
@@ -98,31 +66,35 @@ export default function SetupPage() {
             )
             let determinedSetupInitialStepId: ScreenId | undefined = undefined
 
+            // main decision logic for showing modals or proceeding with setup
             if (effectiveCurrentlyInWebview) {
+                // if in a webview and passkeys aren't supported (and the unsupported browser step is defined),
+                // show the unsupported browser modal
                 if (!passkeySupport && unsupportedBrowserStepExists) {
                     setShowBrowserNotSupportedModal(true)
                     setIsLoading(false)
-                    // Set deviceType state here if needed for the browser modal's debug info, though it's less critical there
                     setDeviceType(localDeviceType)
                     return
                 }
             } else {
-                // Not in an effective webview
+                // not in an effective webview
                 if (!osSupportedByVersion) {
+                    // if os version is too old, show device not supported modal
                     setShowDeviceNotSupportedModal(true)
                     setIsLoading(false)
-                    setDeviceType(localDeviceType) // Set for modal debug
+                    setDeviceType(localDeviceType)
                     return
                 } else if (!passkeySupport) {
-                    // OS is supported, but general passkey check fails
+                    // if os is fine but passkeys are still not supported (e.g., old browser on supported os),
+                    // show device not supported modal
                     setShowDeviceNotSupportedModal(true)
                     setIsLoading(false)
-                    setDeviceType(localDeviceType) // Set for modal debug
+                    setDeviceType(localDeviceType)
                     return
                 }
             }
 
-            // If no modal was triggered, proceed to determine actual setup step and set deviceType state
+            // if no modal was triggered, proceed to determine actual setup step
             setDeviceType(localDeviceType)
 
             const isStandalonePWA =
@@ -130,7 +102,7 @@ export default function SetupPage() {
 
             if (localDeviceType === 'android' && !isStandalonePWA) {
                 setCanInstall(true)
-                setDeferredPrompt({} as BeforeInstallPromptEvent) // Simplified
+                setDeferredPrompt({} as BeforeInstallPromptEvent)
             }
 
             if (localDeviceType === 'android') {
@@ -188,8 +160,8 @@ export default function SetupPage() {
             </div>
         )
 
+    // if no step is determined and no blocking modal is shown, it's an issue
     if (!step && !showDeviceNotSupportedModal && !showBrowserNotSupportedModal) {
-        // Added modal checks
         console.warn('SetupPage: No current step found, and no blocking modal. Possibly init issue.')
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
@@ -198,35 +170,13 @@ export default function SetupPage() {
         )
     }
 
-    // For debug display in modals, we use current state or re-evaluate.
-    // The `deviceType` state might not be updated if modal is shown before setDeviceType call completes a render cycle.
-    // However, `localDeviceType` was set in the paths leading to modals in `determineInitialStep`.
-    // The user's current placement of debug string construction needs to be respected.
-
-    const uaForDebug = typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'
-    const displayCurrentlyInWebviewForDebug = isLikelyWebview()
-    const displayIsOsSupportedForDebug = isDeviceOsSupported(uaForDebug)
-    const displayDeviceTypeForDebug = deviceType // Uses current state, might be 'desktop' if modal shown early.
-    // More accurate would be to pass localDeviceType if modal is shown
-
-    const displayUnsupportedBrowserStepExistsForDebug = masterSetupSteps.find(
-        (s: ISetupStep) => s.screenId === 'unsupported-browser'
-    )
-        ? 'Exists'
-        : 'Missing'
-
-    const browserModalDebugDescription = `Debug Info: In Webview: ${displayCurrentlyInWebviewForDebug}, Unsupported Step: ${displayUnsupportedBrowserStepExistsForDebug}. UA: ${uaForDebug}. This modal is shown because passkey support was likely unavailable in this webview context.`
-
     if (showDeviceNotSupportedModal) {
-        // To ensure the deviceType in this specific modal's debug is accurate for the check that triggered it,
-        // we should use the deviceType determined at that point. Since it's complex to pass it down directly here
-        // without further refactoring, the state `deviceType` will be used, which is now set before early returns.
         return (
             <ActionModal
                 visible={true}
-                onClose={() => {}}
+                onClose={() => {}} // no action on close for this modal
                 title="Device not supported!"
-                description={`Debug Info: OS Supported: ${displayIsOsSupportedForDebug}, In Webview: ${displayCurrentlyInWebviewForDebug}, Device Type: ${displayDeviceTypeForDebug}. Passkey check failed in this context. UA: ${uaForDebug}. FOR unsupported-browser modal, see below.\n${browserModalDebugDescription}`}
+                description="This device doesn't support some of the technologies Peanut needs to work properly. Please try opening this link on a newer phone."
                 icon={'alert' as IconName}
                 preventClose={true}
                 hideModalCloseButton={true}
@@ -236,14 +186,11 @@ export default function SetupPage() {
     }
 
     if (showBrowserNotSupportedModal) {
-        // If this modal is shown, effectiveCurrentlyInWebview was true.
-        // The descriptionOverride was removed by user, so this will use its default.
-        // For debugging, they are looking at the DeviceNotSupportedModal which now includes browser modal info.
         return <UnsupportedBrowserModal visible={true} allowClose={false} />
     }
 
+    // fallback if step is still null after modal checks, though unlikely
     if (!step) {
-        // Fallback if step is still null after modals are checked
         console.warn('SetupPage: No current step after modal checks.')
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
@@ -268,7 +215,7 @@ export default function SetupPage() {
             direction={direction}
             deferredPrompt={deferredPrompt}
             canInstall={canInstall}
-            deviceType={deviceType} // Uses the state variable `deviceType`
+            deviceType={deviceType}
             titleClassName={step.titleClassName}
             contentClassName={step.contentClassName}
         >

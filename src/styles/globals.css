@@ -5,7 +5,7 @@
 @layer base {
     body {
         /* disable text selection */
-        /* @apply select-none; */
+        @apply select-none;
         /* disable tap highlight */
         -webkit-tap-highlight-color: transparent;
     }
