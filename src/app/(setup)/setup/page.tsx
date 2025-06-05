@@ -22,6 +22,28 @@ const isLikelyWebview = () => {
     return inAppSignatures.some((sig) => new RegExp(sig, 'i').test(ua))
 }
 
+const isDeviceOsSupported = (ua: string): boolean => {
+    if (!ua) return true // Default to supported if UA is unavailable, passkey check will still run
+
+    // Check Android version (e.g., "Android 9", "Android 10.0")
+    const androidMatch = ua.match(/Android\s+(\d+)(?:\.(\d+))?(?:\.(\d+))?/i)
+    if (androidMatch) {
+        const majorVersion = parseInt(androidMatch[1], 10)
+        return majorVersion >= 9
+    }
+
+    // Check iOS/iPadOS version (e.g., "CPU OS 16_0 like Mac OS X", "iPhone OS 15_2", "iPad; CPU OS 16_1")
+    const iosMatch = ua.match(/(?:CPU OS|iPhone OS|iPad; CPU OS)\s+(\d+)(?:_(\d+))?(?:_(\d+))?/i)
+    if (iosMatch) {
+        const majorVersion = parseInt(iosMatch[1], 10)
+        return majorVersion >= 16
+    }
+
+    // For other OSes (Desktop, other mobile OS), assume supported by this specific OS version check.
+    // The general passkeySupport check will still apply.
+    return true
+}
+
 export default function SetupPage() {
     const { steps } = useSetupStore()
     const { step, handleNext, handleBack } = useSetupFlow()
@@ -54,26 +76,33 @@ export default function SetupPage() {
             }
 
             const currentlyInWebview = isLikelyWebview()
-            let initialStepId: ScreenId | undefined = undefined
+            const ua = navigator.userAgent
+            const isOsSupportedByVersion = isDeviceOsSupported(ua)
             const unsupportedBrowserStepExists = masterSetupSteps.find(
                 (s: ISetupStep) => s.screenId === 'unsupported-browser'
             )
+            let determinedSetupInitialStepId: ScreenId | undefined = undefined
 
             if (currentlyInWebview) {
-                if (unsupportedBrowserStepExists) {
-                    initialStepId = 'unsupported-browser'
+                if (!passkeySupport && unsupportedBrowserStepExists) {
                     setShowBrowserNotSupportedModal(true)
+                    setIsLoading(false)
+                    return
                 }
             } else {
-                if (!passkeySupport) {
+                if (!isOsSupportedByVersion) {
+                    setShowDeviceNotSupportedModal(true)
+                    setIsLoading(false)
+                    return
+                } else if (!passkeySupport) {
                     setShowDeviceNotSupportedModal(true)
                     setIsLoading(false)
                     return
                 }
             }
 
-            if (initialStepId === undefined && !showDeviceNotSupportedModal) {
-                const userAgent = navigator.userAgent
+            if (determinedSetupInitialStepId === undefined && !showDeviceNotSupportedModal) {
+                const userAgent = ua
                 const isIOSDevice =
                     /iPad|iPhone|iPod/.test(userAgent) ||
                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
@@ -88,40 +117,30 @@ export default function SetupPage() {
 
                 if (currentDeviceType === 'android' && !isStandalonePWA) {
                     setCanInstall(true)
-                    setDeferredPrompt({
-                        prompt: async () => {
-                            return Promise.resolve()
-                        },
-                        userChoice: new Promise((resolve) => {
-                            setTimeout(() => {
-                                resolve({ outcome: 'accepted', platform: 'web' })
-                            }, 500)
-                        }),
-                        platforms: ['web'],
-                    } as BeforeInstallPromptEvent)
+                    setDeferredPrompt({} as BeforeInstallPromptEvent)
                 }
 
                 if (currentDeviceType === 'android') {
-                    initialStepId = isStandalonePWA ? 'welcome' : 'android-initial-pwa-install'
+                    determinedSetupInitialStepId = isStandalonePWA ? 'welcome' : 'android-initial-pwa-install'
                 } else if (currentDeviceType === 'ios') {
-                    initialStepId = 'welcome'
+                    determinedSetupInitialStepId = 'welcome'
                 } else {
-                    initialStepId = 'pwa-install'
+                    determinedSetupInitialStepId = 'pwa-install'
                 }
             }
 
-            if (initialStepId) {
-                const initialStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === initialStepId)
+            if (determinedSetupInitialStepId) {
+                const initialStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === determinedSetupInitialStepId)
                 if (initialStepIndex !== -1) {
                     dispatch(setupActions.setStep(initialStepIndex + 1))
                 } else {
                     console.warn(
-                        `Could not find step index in Redux steps for screenId: ${initialStepId}. Defaulting to step 1.`
+                        `Could not find step index in Redux steps for screenId: ${determinedSetupInitialStepId}. Defaulting to step 1.`
                     )
                     dispatch(setupActions.setStep(1))
                 }
             } else if (!showDeviceNotSupportedModal && !showBrowserNotSupportedModal) {
-                console.warn('Initial step ID was not determined, no modal shown. Defaulting to step 1.')
+                console.warn('No specific initial step ID determined. Defaulting to step 1.')
                 dispatch(setupActions.setStep(1))
             }
             setIsLoading(false)
