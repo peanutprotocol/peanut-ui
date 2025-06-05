@@ -184,13 +184,32 @@ export default function SetupPage() {
         )
     }
 
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'
+    // The passkeySupport variable is not directly in scope here,
+    // but its effect is that this modal is shown when it's false (in non-webview, OS-supported cases).
+    // We can't directly display passkeySupport here without re-evaluating or storing it more globally accessible to this render block.
+    // For now, we'll indicate the context.
+
+    // Re-evaluate isLikelyWebview and isDeviceOsSupported for display purposes, assuming ua is available.
+    // Note: This re-evaluation is for display only. The actual logic uses values determined in useEffect.
+    const displayCurrentlyInWebview = isLikelyWebview() // Uses the function defined in the module
+    const displayIsOsSupported = isDeviceOsSupported(ua) // Uses the function defined in the module
+
+    const displayUnsupportedBrowserStepExists = masterSetupSteps.find(
+        (s: ISetupStep) => s.screenId === 'unsupported-browser'
+    )
+        ? 'Exists'
+        : 'Missing'
+
+    const debugDescription = `Debug Info: In Webview: ${displayCurrentlyInWebview}, Unsupported Step: ${displayUnsupportedBrowserStepExists}. UA: ${ua}. This modal is shown because passkey support was likely unavailable in this webview context.`
     if (showDeviceNotSupportedModal) {
         return (
             <ActionModal
                 visible={true}
                 onClose={() => {}}
                 title="Device not supported!"
-                description="This device doesn't support some of the technologies Peanut needs to work properly. Please try opening this link on a newer phone."
+                description={`Debug Info: OS Supported: ${displayIsOsSupported}, In Webview: ${displayCurrentlyInWebview}, Device Type: ${deviceType}. Passkey check failed in this context. UA: ${ua}. FOR unsupported-browser modal, see below.
+                ${debugDescription}}`}
                 icon={'alert' as IconName}
                 preventClose={true}
                 hideModalCloseButton={true}
