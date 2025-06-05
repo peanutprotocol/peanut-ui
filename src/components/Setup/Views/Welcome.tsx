@@ -30,9 +30,6 @@ const WelcomeStep = () => {
                   : 'An unexpected error occurred during login.'
         toast.error(errorMessage)
         Sentry.captureException(error, { extra: { errorCode: error.code } })
-        if (error.code === 'NO_PASSKEY') {
-            handleNext() // Redirect to registration
-        }
     }
 
     return (
@@ -47,19 +44,18 @@ const WelcomeStep = () => {
                     disabled={isLoggingIn}
                     className="h-11"
                     variant="primary-soft"
-                    onClick={async () => {
-                        try {
-                            await handleLogin()
-                            const localStorageRedirect = getFromLocalStorage('redirect')
-                            if (localStorageRedirect) {
-                                localStorage.removeItem('redirect')
-                                push(localStorageRedirect)
-                            } else {
-                                push('/home')
-                            }
-                        } catch (e: any) {
-                            handleError(e)
-                        }
+                    onClick={() => {
+                        handleLogin()
+                            .then(() => {
+                                const localStorageRedirect = getFromLocalStorage('redirect')
+                                if (localStorageRedirect) {
+                                    localStorage.removeItem('redirect') // Clear the redirect URL
+                                    push(localStorageRedirect)
+                                }
+                            })
+                            .catch((e) => {
+                                handleError(e)
+                            })
                     }}
                 >
                     Log In

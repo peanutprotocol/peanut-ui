@@ -2,6 +2,7 @@
 
 import * as consts from '@/constants/zerodev.consts'
 import { loadingStateContext } from '@/context'
+import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
@@ -33,6 +34,7 @@ const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
 export const useZeroDev = () => {
     const dispatch = useAppDispatch()
+    const { user } = useAuth()
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
     const { setWebAuthnKey, getClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
@@ -70,8 +72,12 @@ export const useZeroDev = () => {
         try {
             const passkeyServerHeaders: Record<string, string> = {}
 
+            if (user?.user?.username) {
+                passkeyServerHeaders['x-username'] = user.user.username
+            }
+
             const webAuthnKey = await toWebAuthnKey({
-                passkeyName: '', // empty to let browser handle selection
+                passkeyName: '[]',
                 passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Login,
                 passkeyServerHeaders,
