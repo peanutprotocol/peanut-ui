@@ -704,6 +704,7 @@ export type UserPreferences = {
     balanceHidden?: boolean
     recentAddMethods?: RecentMethod[]
     recentWithdrawMethods?: RecentMethod[]
+    isPwaInstalled?: boolean
 }
 
 export const updateUserPreferences = (partialPrefs: Partial<UserPreferences>): UserPreferences | undefined => {

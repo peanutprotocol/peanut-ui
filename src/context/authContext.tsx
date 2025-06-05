@@ -1,14 +1,14 @@
 'use client'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { useUserQuery } from '@/hooks/query/user'
 import * as interfaces from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { type GetUserLinksResponse, fetchWithSentry } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { createContext, ReactNode, useContext, useState } from 'react'
-import { useToast } from '@/components/0_Bruddle/Toast'
-import { useQueryClient } from '@tanstack/react-query'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -155,6 +155,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
                 // clear JWT cookie by setting it to expire
                 document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
+                // clear the iOS PWA prompt session flag
+                if (typeof window !== 'undefined') {
+                    sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
+                }
 
                 await fetchUser()
                 dispatch(setupActions.resetSetup())
