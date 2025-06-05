@@ -35,7 +35,7 @@ const NetworkSelectionView: React.FC<NetworkSelectionViewProps> = ({ onNetworkSe
     const allNetworks = [...popularNetworks, ...comingSoonNetworks]
 
     return (
-        <div className="w-full space-y-8">
+        <div className="w-full space-y-8 self-start">
             <NavHeader title="Add Money" onPrev={onBack} />
             <div className="flex h-full w-full flex-col justify-start gap-2 self-start pb-5 md:pb-0">
                 <h2 className="text-base font-bold">What network will you use?</h2>
