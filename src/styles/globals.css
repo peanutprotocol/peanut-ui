@@ -12,7 +12,6 @@
 }
 
 @layer utilities {
-
     /* remove ios-specific button styling */
     button,
     [type='button'] {
@@ -75,7 +74,7 @@ Firefox input[type='number'] {
     }
 }
 
-.scroller>span {
+.scroller > span {
     position: absolute;
     top: 0;
     animation: slide 10s infinite;
