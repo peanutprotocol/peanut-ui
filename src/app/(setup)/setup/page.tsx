@@ -10,17 +10,8 @@ import { useEffect, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import { IconName } from '@/components/Global/Icons/Icon'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
-import UnsupportedBrowserModal, { inAppSignatures } from '@/components/Global/UnsupportedBrowserModal'
-
-// webview check
-const isLikelyWebview = () => {
-    if (typeof navigator === 'undefined') return false
-    const ua = navigator.userAgent || navigator.vendor || (window as any).opera
-    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
-        return false
-    }
-    return inAppSignatures.some((sig) => new RegExp(sig, 'i').test(ua))
-}
+import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
+import { isLikelyWebview, isDeviceOsSupported, getDeviceTypeForLogic } from '@/components/Setup/Setup.utils'
 
 export default function SetupPage() {
     const { steps } = useSetupStore()
@@ -41,10 +32,12 @@ export default function SetupPage() {
         const determineInitialStep = async () => {
             if (!steps || steps.length === 0) {
                 console.warn('determineInitialStep: Redux steps not yet loaded. Will retry when steps update.')
+                setIsLoading(false) // prevent infinite loading if steps never arrive
                 return
             }
-            await new Promise((resolve) => setTimeout(resolve, 100))
+            await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
 
+            // check for native passkey support
             let passkeySupport = true
             try {
                 passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
@@ -53,77 +46,88 @@ export default function SetupPage() {
                 console.error('Error checking passkey support:', e)
             }
 
-            const currentlyInWebview = isLikelyWebview()
-            let initialStepId: ScreenId | undefined = undefined
+            const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
+            const localDeviceType = getDeviceTypeForLogic(ua)
+            const osSupportedByVersion = isDeviceOsSupported(ua)
+            const webviewByUASignature = isLikelyWebview() // initial webview check based on ua signatures
+
+            // webview detection: if it's an ios device, looks like safari, lacks passkey support,
+            // and wasn't caught by signatures, it's likely a restricted webview (e.g., telegram)
+            let effectiveCurrentlyInWebview = webviewByUASignature
+            if (localDeviceType === 'ios' && /Safari/.test(ua) && !passkeySupport && !webviewByUASignature) {
+                effectiveCurrentlyInWebview = true
+                console.warn(
+                    'INFO: Detected likely iOS webview (Safari-like UA, no passkey support, not caught by signatures).'
+                )
+            }
+
             const unsupportedBrowserStepExists = masterSetupSteps.find(
                 (s: ISetupStep) => s.screenId === 'unsupported-browser'
             )
+            let determinedSetupInitialStepId: ScreenId | undefined = undefined
 
-            if (currentlyInWebview) {
-                if (unsupportedBrowserStepExists) {
-                    initialStepId = 'unsupported-browser'
+            // main decision logic for showing modals or proceeding with setup
+            if (effectiveCurrentlyInWebview) {
+                // if in a webview and passkeys aren't supported (and the unsupported browser step is defined),
+                // show the unsupported browser modal
+                if (!passkeySupport && unsupportedBrowserStepExists) {
                     setShowBrowserNotSupportedModal(true)
+                    setIsLoading(false)
+                    setDeviceType(localDeviceType)
+                    return
                 }
             } else {
-                if (!passkeySupport) {
+                // not in an effective webview
+                if (!osSupportedByVersion) {
+                    // if os version is too old, show device not supported modal
                     setShowDeviceNotSupportedModal(true)
                     setIsLoading(false)
+                    setDeviceType(localDeviceType)
+                    return
+                } else if (!passkeySupport) {
+                    // if os is fine but passkeys are still not supported (e.g., old browser on supported os),
+                    // show device not supported modal
+                    setShowDeviceNotSupportedModal(true)
+                    setIsLoading(false)
+                    setDeviceType(localDeviceType)
                     return
                 }
             }
 
-            if (initialStepId === undefined && !showDeviceNotSupportedModal) {
-                const userAgent = navigator.userAgent
-                const isIOSDevice =
-                    /iPad|iPhone|iPod/.test(userAgent) ||
-                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-                const isAndroidDevice = /Android/i.test(userAgent)
-                const isStandalonePWA =
-                    typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches
+            // if no modal was triggered, proceed to determine actual setup step
+            setDeviceType(localDeviceType)
 
-                let currentDeviceType: 'ios' | 'android' | 'desktop' = 'desktop'
-                if (isIOSDevice) currentDeviceType = 'ios'
-                else if (isAndroidDevice) currentDeviceType = 'android'
-                setDeviceType(currentDeviceType)
+            const isStandalonePWA =
+                typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches
 
-                if (currentDeviceType === 'android' && !isStandalonePWA) {
-                    setCanInstall(true)
-                    setDeferredPrompt({
-                        prompt: async () => {
-                            return Promise.resolve()
-                        },
-                        userChoice: new Promise((resolve) => {
-                            setTimeout(() => {
-                                resolve({ outcome: 'accepted', platform: 'web' })
-                            }, 500)
-                        }),
-                        platforms: ['web'],
-                    } as BeforeInstallPromptEvent)
-                }
-
-                if (currentDeviceType === 'android') {
-                    initialStepId = isStandalonePWA ? 'welcome' : 'android-initial-pwa-install'
-                } else if (currentDeviceType === 'ios') {
-                    initialStepId = 'welcome'
-                } else {
-                    initialStepId = 'pwa-install'
-                }
+            if (localDeviceType === 'android' && !isStandalonePWA) {
+                setCanInstall(true)
+                setDeferredPrompt({} as BeforeInstallPromptEvent)
             }
 
-            if (initialStepId) {
-                const initialStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === initialStepId)
+            if (localDeviceType === 'android') {
+                determinedSetupInitialStepId = isStandalonePWA ? 'welcome' : 'android-initial-pwa-install'
+            } else if (localDeviceType === 'ios') {
+                determinedSetupInitialStepId = 'welcome'
+            } else {
+                determinedSetupInitialStepId = 'pwa-install'
+            }
+
+            if (determinedSetupInitialStepId) {
+                const initialStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === determinedSetupInitialStepId)
                 if (initialStepIndex !== -1) {
                     dispatch(setupActions.setStep(initialStepIndex + 1))
                 } else {
                     console.warn(
-                        `Could not find step index in Redux steps for screenId: ${initialStepId}. Defaulting to step 1.`
+                        `Could not find step index for screenId: ${determinedSetupInitialStepId}. Defaulting to step 1.`
                     )
                     dispatch(setupActions.setStep(1))
                 }
-            } else if (!showDeviceNotSupportedModal && !showBrowserNotSupportedModal) {
-                console.warn('Initial step ID was not determined, no modal shown. Defaulting to step 1.')
+            } else {
+                console.warn('No specific initial step ID determined. Defaulting to step 1.')
                 dispatch(setupActions.setStep(1))
             }
+
             setIsLoading(false)
         }
 
@@ -156,8 +160,9 @@ export default function SetupPage() {
             </div>
         )
 
-    if (!step) {
-        console.warn('SetupPage: No current step found, possibly due to empty Redux steps or initialization issue.')
+    // if no step is determined and no blocking modal is shown, it's an issue
+    if (!step && !showDeviceNotSupportedModal && !showBrowserNotSupportedModal) {
+        console.warn('SetupPage: No current step found, and no blocking modal. Possibly init issue.')
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                 <PeanutLoading />
@@ -169,7 +174,7 @@ export default function SetupPage() {
         return (
             <ActionModal
                 visible={true}
-                onClose={() => {}}
+                onClose={() => {}} // no action on close for this modal
                 title="Device not supported!"
                 description="This device doesn't support some of the technologies Peanut needs to work properly. Please try opening this link on a newer phone."
                 icon={'alert' as IconName}
@@ -182,6 +187,16 @@ export default function SetupPage() {
 
     if (showBrowserNotSupportedModal) {
         return <UnsupportedBrowserModal visible={true} allowClose={false} />
+    }
+
+    // fallback if step is still null after modal checks, though unlikely
+    if (!step) {
+        console.warn('SetupPage: No current step after modal checks.')
+        return (
+            <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+                <PeanutLoading />
+            </div>
+        )
     }
 
     return (
