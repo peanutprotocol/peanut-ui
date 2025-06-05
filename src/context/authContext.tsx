@@ -9,6 +9,7 @@ import { useAppKit } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { createContext, ReactNode, useContext, useState } from 'react'
+import { captureException } from '@sentry/nextjs'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -166,11 +167,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 router.replace('/setup')
 
                 toast.success('Logged out successfully')
-            } else {
-                console.error('Failed to log out user')
-                toast.error('Failed to log out')
             }
         } catch (error) {
+            captureException(error)
             console.error('Error logging out user', error)
             toast.error('Error logging out')
         } finally {
