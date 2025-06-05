@@ -4,6 +4,8 @@ import type { NextRequest } from 'next/server'
 import { PaymentLink } from '@/interfaces'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { BASE_URL } from '@/constants'
+import getOrigin from '@/lib/hosting/get-origin'
 
 export const runtime = 'nodejs' //node.js instead of edge!
 
@@ -13,7 +15,7 @@ const getFont = (file: string) => fs.readFile(path.join(fontDir, file))
 
 export async function GET(req: NextRequest) {
     // grab the full origin (protocol + host + port)
-    const origin = new URL(req.url).origin
+    const origin = await getOrigin() || BASE_URL
 
     // fetch the four fonts in parallel
     const [knerdFilled, knerdOutline, montserratMedium, montserratSemibold] = await Promise.all([

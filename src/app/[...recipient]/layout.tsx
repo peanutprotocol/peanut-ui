@@ -2,6 +2,7 @@ import { BASE_URL } from '@/constants'
 import { printableAddress } from '@/utils'
 import { isAddress } from 'viem'
 import PaymentLayoutWrapper from './payment-layout-wrapper'
+import getOrigin from '@/lib/hosting/get-origin'
 
 function getPreviewUrl(
     host: string,
@@ -29,13 +30,7 @@ function getPreviewUrl(
 
 export async function generateMetadata({ params }: any) {
     let title = 'Request Payment | Peanut'
-    let previewUrl = '/metadata-img.png'
-    const host = BASE_URL
-
-    if (!host) {
-        console.error('Error: NEXT_PUBLIC_BASE_URL is not defined')
-        return { title }
-    }
+    const siteUrl: string = (await getOrigin()) || BASE_URL // getOrigin for getting the origin of the site regardless of its a vercel preview or not
 
     let recipient = params.recipient[0]
 
@@ -54,13 +49,15 @@ export async function generateMetadata({ params }: any) {
         }
     }
 
-    const previewData = {
-        tokenAmount: amount || '0',
-        recipientAddress: recipient,
-        tokenSymbol: token?.toUpperCase(),
-    }
+    const ogUrl = new URL(`${siteUrl}/api/og`)
+    ogUrl.searchParams.set('type', 'request')
+    ogUrl.searchParams.set('username', recipient)
+    ogUrl.searchParams.set('amount', String(amount))
 
-    previewUrl = getPreviewUrl(host, previewData)
+    if (!siteUrl) {
+        console.error('Error: NEXT_PUBLIC_BASE_URL is not defined')
+        return { title }
+    }
 
     if (amount && token) {
         title = `${isAddress(recipient) ? printableAddress(recipient) : recipient} is requesting ${amount} ${token.toUpperCase()}`
@@ -77,12 +74,15 @@ export async function generateMetadata({ params }: any) {
             icon: '/logo-favicon.png',
         },
         openGraph: {
-            images: [{ url: previewUrl }],
+            title,
+            description: 'Seamless payment infrastructure for sending and receiving digital assets.',
+            images: [{ url: ogUrl.toString(), width: 1200, height: 630 }],
         },
         twitter: {
             card: 'summary_large_image',
             title,
             description: 'Send cryptocurrency to friends, family, or anyone else using Peanut on any chain.',
+            images: [ogUrl.toString()],
         },
     }
 }
