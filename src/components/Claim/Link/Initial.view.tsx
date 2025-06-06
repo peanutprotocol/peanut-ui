@@ -28,7 +28,6 @@ import {
     getBridgeTokenName,
     saveRedirectUrl,
     printableAddress,
-    jsonStringify,
 } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
@@ -60,6 +59,8 @@ export const InitialClaimLinkView = ({
     setOfframpForm,
     setUserType,
     setInitialKYCStep,
+    setClaimToExternalWallet,
+    claimToExternalWallet,
 }: _consts.IClaimScreenProps) => {
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
@@ -83,7 +84,6 @@ export const InitialClaimLinkView = ({
     } = useContext(tokenSelectorContext)
     const { claimLink } = useClaimLink()
     const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
-    const [claimToExternalWallet, setClaimToExternalWallet] = useState<boolean>(false)
     const router = useRouter()
     const { user } = useAuth()
     const queryClient = useQueryClient()
@@ -93,15 +93,27 @@ export const InitialClaimLinkView = ({
         if (isPeanutWallet) {
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-        } else {
-            setSelectedChainID(claimLinkData.chainId)
-            setSelectedTokenAddress(claimLinkData.tokenAddress)
         }
     }, [claimLinkData, isPeanutWallet])
 
     const isPeanutClaimOnlyMode = useMemo(() => {
         return searchParams.get('t') === 'pnt'
     }, [searchParams])
+
+    // set token selector chain/token to peanut wallet chain/token if recipient type is username
+    useEffect(() => {
+        if (recipientType === 'username') {
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+            if (Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+                setRefetchXchainRoute(true)
+                setIsXChain(true)
+            }
+        } else {
+            setSelectedChainID(claimLinkData.chainId)
+            setSelectedTokenAddress(claimLinkData.tokenAddress)
+        }
+    }, [recipientType, claimLinkData.chainId, claimLinkData.tokenAddress])
 
     const handleClaimLink = useCallback(async () => {
         setLoadingState('Loading')
@@ -373,7 +385,16 @@ export const InitialClaimLinkView = ({
                 setLoadingState('Idle')
             }
         },
-        [claimLinkData, isXChain, selectedChainID, selectedTokenAddress, setLoadingState]
+        [
+            claimLinkData,
+            isXChain,
+            selectedChainID,
+            selectedTokenAddress,
+            setLoadingState,
+            recipient,
+            recipientType,
+            routes,
+        ]
     )
 
     useEffect(() => {
@@ -384,7 +405,7 @@ export const InitialClaimLinkView = ({
             }
         }
 
-        if (refetchXchainRoute) {
+        if (refetchXchainRoute && recipient.address) {
             setIsXchainLoading(true)
             setLoadingState('Fetching route')
             setErrorState({
@@ -401,7 +422,7 @@ export const InitialClaimLinkView = ({
         return () => {
             isMounted = false
         }
-    }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute])
+    }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute, recipient.address])
 
     useEffect(() => {
         if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
@@ -412,7 +433,6 @@ export const InitialClaimLinkView = ({
     }, [recipientType])
 
     useEffect(() => {
-        setRecipient({ name: undefined, address: '' })
         setSelectedRoute(null)
         setHasFetchedRoute(false)
 
@@ -423,12 +443,9 @@ export const InitialClaimLinkView = ({
                 setRefetchXchainRoute(true)
                 setIsXChain(true)
             }
-        } else {
-            setSelectedChainID(claimLinkData.chainId)
-            setSelectedTokenAddress(claimLinkData.tokenAddress)
         }
 
-        if (address) {
+        if (address && !recipient.address) {
             setRecipient({ name: undefined, address })
         }
     }, [isPeanutWallet, address])
@@ -508,18 +525,24 @@ export const InitialClaimLinkView = ({
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <div className="md:hidden">
-                <NavHeader
-                    title="Claim"
-                    onPrev={() => {
-                        if (user?.user.userId) {
-                            router.push('/home')
-                        } else {
-                            router.push('/setup')
-                        }
-                    }}
-                />
-            </div>
+            {!!user?.user.userId || claimToExternalWallet ? (
+                <div className="md:hidden">
+                    <NavHeader
+                        title="Claim"
+                        onPrev={() => {
+                            if (claimToExternalWallet) {
+                                setClaimToExternalWallet(false)
+                            } else {
+                                router.push('/home')
+                            }
+                        }}
+                    />
+                </div>
+            ) : (
+                <div className="-mt-1 md:hidden">
+                    <div className="pb-1 text-center text-2xl font-extrabold">Claim</div>
+                </div>
+            )}
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <PeanutActionDetailsCard
                     avatarSize="small"
@@ -545,37 +568,46 @@ export const InitialClaimLinkView = ({
                     recipientType !== 'iban' &&
                     recipientType !== 'us' &&
                     !isPeanutClaimOnlyMode &&
-                    !!claimToExternalWallet && <TokenSelector viewType="claim" />}
+                    !!claimToExternalWallet && (
+                        <TokenSelector viewType="claim" disabled={recipientType === 'username'} />
+                    )}
 
-                {/* Alternative options section with divider */}
-                {!isPeanutClaimOnlyMode && (
-                    <>
-                        {/* Manual Input Section - Always visible in non-peanut-only mode */}
-                        {!isPeanutWallet && !!claimToExternalWallet && (
-                            <GeneralRecipientInput
-                                placeholder="Enter a username, an address or ENS"
-                                recipient={recipient}
-                                onUpdate={(update: GeneralRecipientUpdate) => {
-                                    setRecipient(update.recipient)
-                                    if (!update.recipient.address) {
-                                        setRecipientType('address')
-                                        // Reset loading state when input is cleared
-                                        setLoadingState('Idle')
-                                    } else {
-                                        setRecipientType(update.type)
-                                    }
-                                    setIsValidRecipient(update.isValid)
-                                    setErrorState({
-                                        showError: !update.isValid,
-                                        errorMessage: update.errorMessage,
-                                    })
-                                    setInputChanging(update.isChanging)
-                                }}
-                                showInfoText={false}
-                            />
-                        )}
-                    </>
-                )}
+                <div className="space-y-2">
+                    {/* Alternative options section with divider */}
+                    {!isPeanutClaimOnlyMode && (
+                        <>
+                            {/* Manual Input Section - Always visible in non-peanut-only mode */}
+                            {!isPeanutWallet && !!claimToExternalWallet && (
+                                <GeneralRecipientInput
+                                    placeholder="Enter a username, an address or ENS"
+                                    recipient={recipient}
+                                    onUpdate={(update: GeneralRecipientUpdate) => {
+                                        setRecipient(update.recipient)
+                                        if (!update.recipient.address) {
+                                            setRecipientType('address')
+                                            // Reset loading state when input is cleared
+                                            setLoadingState('Idle')
+                                        } else {
+                                            setRecipientType(update.type)
+                                        }
+                                        setIsValidRecipient(update.isValid)
+                                        setErrorState({
+                                            showError: !update.isValid,
+                                            errorMessage: update.errorMessage,
+                                        })
+                                        setInputChanging(update.isChanging)
+                                    }}
+                                    showInfoText={false}
+                                />
+                            )}
+                        </>
+                    )}
+                    {recipientType === 'username' && !!claimToExternalWallet && (
+                        <div className="text-xs text-grey-1">
+                            You can only claim USDC on Arbitrum for Peanut Wallet users.
+                        </div>
+                    )}
+                </div>
 
                 <div className="space-y-4">
                     {guestAction()}
