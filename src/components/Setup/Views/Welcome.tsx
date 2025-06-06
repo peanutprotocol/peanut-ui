@@ -1,12 +1,14 @@
+'use client'
+
 import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { getFromLocalStorage } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { getFromLocalStorage } from '@/utils'
 
 const WelcomeStep = () => {
     const { handleNext } = useSetupFlow()
@@ -17,17 +19,31 @@ const WelcomeStep = () => {
 
     useEffect(() => {
         if (!!user) push('/home')
-    }, [user])
+    }, [user, push])
+
+    const handleError = (error: any) => {
+        const errorMessage =
+            error.code === 'LOGIN_CANCELED'
+                ? 'Login was canceled. Please try again.'
+                : error.code === 'NO_PASSKEY'
+                  ? 'No passkey found. Please create a wallet first.'
+                  : 'An unexpected error occurred during login.'
+        toast.error(errorMessage)
+        Sentry.captureException(error, { extra: { errorCode: error.code } })
+    }
 
     return (
         <Card className="border-0">
             <Card.Content className="space-y-4 p-0 pt-4">
-                <Button shadowSize="4" onClick={() => handleNext()}>
-                    Sign up
+                <Button shadowSize="4" className="h-11" onClick={() => handleNext()}>
+                    Create your wallet
                 </Button>
                 <Button
                     loading={isLoggingIn}
-                    variant="transparent-dark"
+                    shadowSize="4"
+                    disabled={isLoggingIn}
+                    className="h-11"
+                    variant="primary-soft"
                     onClick={() => {
                         handleLogin()
                             .then(() => {
@@ -38,12 +54,11 @@ const WelcomeStep = () => {
                                 }
                             })
                             .catch((e) => {
-                                toast.error('Error logging in')
-                                Sentry.captureException(e)
+                                handleError(e)
                             })
                     }}
                 >
-                    Log in
+                    Log In
                 </Button>
             </Card.Content>
         </Card>

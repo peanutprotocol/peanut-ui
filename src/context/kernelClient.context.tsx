@@ -122,13 +122,16 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     const [clientsByChain, setClientsByChain] = useState<Record<string, GenericSmartAccountClient>>({})
     const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
     const dispatch = useAppDispatch()
-    const { fetchUser } = useAuth()
+    const { fetchUser, logoutUser } = useAuth()
 
     // lifecycle hooks
     useEffect(() => {
         const storedWebAuthnKey = getFromLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY)
         if (storedWebAuthnKey) {
             setWebAuthnKey(storedWebAuthnKey)
+        } else {
+            // avoid mixed state
+            logoutUser()
         }
     }, [])
 

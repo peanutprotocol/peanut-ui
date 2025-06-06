@@ -167,6 +167,7 @@ export function useTransactionHistory({
                         usdAmount = entry.amount.toString()
                         break
                     case 'DIRECT_SEND':
+                        link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break

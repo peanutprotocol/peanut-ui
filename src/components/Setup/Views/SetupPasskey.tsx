@@ -49,27 +49,29 @@ const SetupPasskey = () => {
     }, [address, user])
 
     return (
-        <div className="flex h-full flex-col justify-end gap-2 text-center">
-            <Button
-                loading={isLoading}
-                disabled={isLoading}
-                onClick={async () => {
-                    dispatch(setupActions.setLoading(true))
-                    try {
-                        await handleRegister(username)
-                    } catch (e) {
-                        Sentry.captureException(e)
-                        console.error('Error registering passkey:', e)
-                        setError('Error registering passkey.')
-                        dispatch(setupActions.setLoading(false))
-                    }
-                }}
-                className="text-nowrap"
-                shadowSize="4"
-            >
-                Add a Passkey
-            </Button>
-            {error && <p className="text-sm font-bold text-error">{error}</p>}
+        <div>
+            <div className="flex h-full flex-col justify-between gap-3 p-0 ">
+                <Button
+                    loading={isLoading}
+                    disabled={isLoading}
+                    onClick={async () => {
+                        dispatch(setupActions.setLoading(true))
+                        try {
+                            await handleRegister(username)
+                        } catch (e) {
+                            Sentry.captureException(e)
+                            console.error('Error registering passkey:', e)
+                            setError('Error registering passkey.')
+                            dispatch(setupActions.setLoading(false))
+                        }
+                    }}
+                    className="text-nowrap"
+                    shadowSize="4"
+                >
+                    Set it up
+                </Button>
+                {error && <p className="text-sm font-bold text-error">{error}</p>}
+            </div>
         </div>
     )
 }

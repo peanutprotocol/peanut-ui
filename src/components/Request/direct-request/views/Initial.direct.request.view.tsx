@@ -198,7 +198,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                             onClick={() => {
                                 setRecipient({ address: '', name: '' })
                                 setErrorState({ showError: false, errorMessage: '' })
-                                setCurrentInputValue('')
                             }}
                             loading={isLoading}
                             className="w-full"

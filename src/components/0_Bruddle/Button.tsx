@@ -40,7 +40,7 @@ const buttonVariants: Record<ButtonVariant, string> = {
     'transparent-dark': 'btn-transparent-dark',
     green: 'bg-green-1',
     yellow: 'bg-secondary-1',
-    'primary-soft': 'bg-primary-3',
+    'primary-soft': 'bg-white',
     transparent:
         'bg-transparent border-none hover:bg-transparent !active:bg-transparent focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent',
 }

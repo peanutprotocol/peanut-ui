@@ -72,12 +72,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         }
     }, [])
 
-    if (!isReady || (isFetchingUser && !user && !hasToken))
+    if (!isReady || (isFetchingUser && !user && !hasToken)) {
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                 <PeanutLoading />
             </div>
         )
+    }
 
     return (
         <div className="flex min-h-[100dvh] w-full bg-background">

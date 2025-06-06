@@ -243,7 +243,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 buttonSymbol = generalTokenDetails.symbol
                 buttonLogoURI = generalTokenDetails.logoURI
                 buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
-                buttonChainLogoURI = chainInfo.chainIconURI
             }
             if (userBalanceDetails) {
                 buttonFormattedBalance = formatTokenAmount(userBalanceDetails.amount) ?? null

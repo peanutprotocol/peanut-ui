@@ -1,5 +1,5 @@
 import { RecipientType } from '@/lib/url-parser/types/payment'
-import { getColorForUsername } from '@/utils/color.utils'
+import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
 import { useCallback } from 'react'
 import AddressLink from '../Global/AddressLink'
 import Attachment from '../Global/Attachment'
@@ -52,9 +52,11 @@ const UserCard = ({
                 icon={recipientType !== 'USERNAME' ? 'wallet-outline' : undefined}
                 inlineStyle={{
                     backgroundColor:
+                        recipientType !== 'USERNAME' ? '#FFD700' : getColorForUsername(fullName || username).lightShade,
+                    color:
                         recipientType !== 'USERNAME'
-                            ? '#FFD700'
-                            : getColorForUsername(fullName || username).backgroundColor,
+                            ? AVATAR_TEXT_DARK
+                            : getColorForUsername(fullName || username).darkShade,
                 }}
                 size={size}
                 name={fullName || username}

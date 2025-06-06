@@ -5,6 +5,7 @@ import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
+import IOSInstallPWAModal from '@/components/Global/IOSInstallPWAModal'
 import Loading from '@/components/Global/Loading'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import RewardsModal from '@/components/Global/RewardsModal'
@@ -22,6 +23,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
+import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
 
 export default function Home() {
     const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
@@ -37,6 +39,9 @@ export default function Home() {
     const { isFetchingUser, addAccount } = useAuth()
     const { user } = useUserStore()
     const username = user?.user.username
+
+    const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
+    const [showAddMoneyPromptModal, setShowAddMoneyPromptModal] = useState(false)
 
     const userFullName = useMemo(() => {
         if (!user) return
@@ -64,7 +69,7 @@ export default function Home() {
                 userId: user.user.userId,
             })
         }
-    }, [user, address])
+    }, [user, address, addAccount])
 
     // always reset external wallet connection on home page
     useEffect(() => {
@@ -72,6 +77,42 @@ export default function Home() {
             disconnectWagmi()
         }
     }, [isWagmiConnected, disconnectWagmi])
+
+    // effect for showing iOS PWA Install modal
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const isIOS =
+                /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+            const hasSeenModalThisSession = sessionStorage.getItem('hasSeenIOSPWAPromptThisSession')
+
+            if (isIOS && !isStandalone && !hasSeenModalThisSession && !user?.hasPwaInstalled) {
+                setShowIOSPWAInstallModal(true)
+                sessionStorage.setItem('hasSeenIOSPWAPromptThisSession', 'true')
+            } else {
+                setShowIOSPWAInstallModal(false)
+            }
+        }
+    }, [user?.hasPwaInstalled])
+
+    // effect for showing add money prompt modal
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !isFetchingBalance) {
+            const hasSeenAddMoneyPromptThisSession = sessionStorage.getItem('hasSeenAddMoneyPromptThisSession')
+
+            // show if:
+            // 1. balance is zero.
+            // 2. user hasn't seen this prompt in the current session.
+            // 3. the iOS PWA install modal is not currently active.
+            // this allows the modal on any device (iOS/Android) and in any display mode (PWA/browser),
+            // as long as the PWA modal (which is iOS & browser-specific) isn't taking precedence.
+            if (balance === 0n && !hasSeenAddMoneyPromptThisSession && !showIOSPWAInstallModal) {
+                setShowAddMoneyPromptModal(true)
+                sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
+            }
+        }
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -127,6 +168,11 @@ export default function Home() {
                 {/* Render the new Rewards Card Modal */}
                 <RewardsCardModal visible={isRewardsModalOpen} onClose={() => setIsRewardsModalOpen(false)} />
             </div>
+            {/* iOS PWA Install Modal */}
+            <IOSInstallPWAModal visible={showIOSPWAInstallModal} onClose={() => setShowIOSPWAInstallModal(false)} />
+
+            {/* Add Money Prompt Modal */}
+            <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} />
         </PageContainer>
     )
 }
