@@ -100,6 +100,21 @@ export const InitialClaimLinkView = ({
         return searchParams.get('t') === 'pnt'
     }, [searchParams])
 
+    // set token selector chain/token to peanut wallet chain/token if recipient type is username
+    useEffect(() => {
+        if (recipientType === 'username') {
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+            if (Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+                setRefetchXchainRoute(true)
+                setIsXChain(true)
+            }
+        } else {
+            setSelectedChainID(claimLinkData.chainId)
+            setSelectedTokenAddress(claimLinkData.tokenAddress)
+        }
+    }, [recipientType, claimLinkData.chainId, claimLinkData.tokenAddress])
+
     const handleClaimLink = useCallback(async () => {
         setLoadingState('Loading')
         setErrorState({
@@ -553,37 +568,46 @@ export const InitialClaimLinkView = ({
                     recipientType !== 'iban' &&
                     recipientType !== 'us' &&
                     !isPeanutClaimOnlyMode &&
-                    !!claimToExternalWallet && <TokenSelector viewType="claim" />}
+                    !!claimToExternalWallet && (
+                        <TokenSelector viewType="claim" disabled={recipientType === 'username'} />
+                    )}
 
-                {/* Alternative options section with divider */}
-                {!isPeanutClaimOnlyMode && (
-                    <>
-                        {/* Manual Input Section - Always visible in non-peanut-only mode */}
-                        {!isPeanutWallet && !!claimToExternalWallet && (
-                            <GeneralRecipientInput
-                                placeholder="Enter a username, an address or ENS"
-                                recipient={recipient}
-                                onUpdate={(update: GeneralRecipientUpdate) => {
-                                    setRecipient(update.recipient)
-                                    if (!update.recipient.address) {
-                                        setRecipientType('address')
-                                        // Reset loading state when input is cleared
-                                        setLoadingState('Idle')
-                                    } else {
-                                        setRecipientType(update.type)
-                                    }
-                                    setIsValidRecipient(update.isValid)
-                                    setErrorState({
-                                        showError: !update.isValid,
-                                        errorMessage: update.errorMessage,
-                                    })
-                                    setInputChanging(update.isChanging)
-                                }}
-                                showInfoText={false}
-                            />
-                        )}
-                    </>
-                )}
+                <div className="space-y-2">
+                    {/* Alternative options section with divider */}
+                    {!isPeanutClaimOnlyMode && (
+                        <>
+                            {/* Manual Input Section - Always visible in non-peanut-only mode */}
+                            {!isPeanutWallet && !!claimToExternalWallet && (
+                                <GeneralRecipientInput
+                                    placeholder="Enter a username, an address or ENS"
+                                    recipient={recipient}
+                                    onUpdate={(update: GeneralRecipientUpdate) => {
+                                        setRecipient(update.recipient)
+                                        if (!update.recipient.address) {
+                                            setRecipientType('address')
+                                            // Reset loading state when input is cleared
+                                            setLoadingState('Idle')
+                                        } else {
+                                            setRecipientType(update.type)
+                                        }
+                                        setIsValidRecipient(update.isValid)
+                                        setErrorState({
+                                            showError: !update.isValid,
+                                            errorMessage: update.errorMessage,
+                                        })
+                                        setInputChanging(update.isChanging)
+                                    }}
+                                    showInfoText={false}
+                                />
+                            )}
+                        </>
+                    )}
+                    {recipientType === 'username' && !!claimToExternalWallet && (
+                        <div className="text-xs text-grey-1">
+                            You can only claim USDC on Arbitrum for Peanut Wallet users.
+                        </div>
+                    )}
+                </div>
 
                 <div className="space-y-4">
                     {guestAction()}
