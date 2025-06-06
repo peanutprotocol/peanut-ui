@@ -51,6 +51,7 @@ export const Claim = ({}) => {
         password: '',
         recipient: '',
     })
+    const [claimToExternalWallet, setClaimToExternalWallet] = useState<boolean>(false)
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
@@ -269,6 +270,8 @@ export const Claim = ({}) => {
                             setUserId,
                             initialKYCStep,
                             setInitialKYCStep,
+                            claimToExternalWallet,
+                            setClaimToExternalWallet,
                         } as unknown as _consts.IClaimScreenProps
                     }
                 />

@@ -56,6 +56,8 @@ export interface IClaimScreenProps {
     setUserId: (id: string | undefined) => void
     initialKYCStep: number
     setInitialKYCStep: (step: number) => void
+    claimToExternalWallet: boolean
+    setClaimToExternalWallet: (claimToExternalWallet: boolean) => void
 }
 
 export enum claimLinkStateType {

@@ -28,7 +28,6 @@ import {
     getBridgeTokenName,
     saveRedirectUrl,
     printableAddress,
-    jsonStringify,
 } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
@@ -60,6 +59,8 @@ export const InitialClaimLinkView = ({
     setOfframpForm,
     setUserType,
     setInitialKYCStep,
+    setClaimToExternalWallet,
+    claimToExternalWallet,
 }: _consts.IClaimScreenProps) => {
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
@@ -83,7 +84,6 @@ export const InitialClaimLinkView = ({
     } = useContext(tokenSelectorContext)
     const { claimLink } = useClaimLink()
     const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
-    const [claimToExternalWallet, setClaimToExternalWallet] = useState<boolean>(false)
     const router = useRouter()
     const { user } = useAuth()
     const queryClient = useQueryClient()
@@ -93,9 +93,6 @@ export const InitialClaimLinkView = ({
         if (isPeanutWallet) {
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-        } else {
-            setSelectedChainID(claimLinkData.chainId)
-            setSelectedTokenAddress(claimLinkData.tokenAddress)
         }
     }, [claimLinkData, isPeanutWallet])
 
@@ -373,7 +370,16 @@ export const InitialClaimLinkView = ({
                 setLoadingState('Idle')
             }
         },
-        [claimLinkData, isXChain, selectedChainID, selectedTokenAddress, setLoadingState]
+        [
+            claimLinkData,
+            isXChain,
+            selectedChainID,
+            selectedTokenAddress,
+            setLoadingState,
+            recipient,
+            recipientType,
+            routes,
+        ]
     )
 
     useEffect(() => {
@@ -384,7 +390,7 @@ export const InitialClaimLinkView = ({
             }
         }
 
-        if (refetchXchainRoute) {
+        if (refetchXchainRoute && recipient.address) {
             setIsXchainLoading(true)
             setLoadingState('Fetching route')
             setErrorState({
@@ -401,7 +407,7 @@ export const InitialClaimLinkView = ({
         return () => {
             isMounted = false
         }
-    }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute])
+    }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute, recipient.address])
 
     useEffect(() => {
         if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
@@ -412,7 +418,6 @@ export const InitialClaimLinkView = ({
     }, [recipientType])
 
     useEffect(() => {
-        setRecipient({ name: undefined, address: '' })
         setSelectedRoute(null)
         setHasFetchedRoute(false)
 
@@ -423,12 +428,9 @@ export const InitialClaimLinkView = ({
                 setRefetchXchainRoute(true)
                 setIsXChain(true)
             }
-        } else {
-            setSelectedChainID(claimLinkData.chainId)
-            setSelectedTokenAddress(claimLinkData.tokenAddress)
         }
 
-        if (address) {
+        if (address && !recipient.address) {
             setRecipient({ name: undefined, address })
         }
     }, [isPeanutWallet, address])
@@ -508,18 +510,24 @@ export const InitialClaimLinkView = ({
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <div className="md:hidden">
-                <NavHeader
-                    title="Claim"
-                    onPrev={() => {
-                        if (user?.user.userId) {
-                            router.push('/home')
-                        } else {
-                            router.push('/setup')
-                        }
-                    }}
-                />
-            </div>
+            {!!user?.user.userId || claimToExternalWallet ? (
+                <div className="md:hidden">
+                    <NavHeader
+                        title="Claim"
+                        onPrev={() => {
+                            if (claimToExternalWallet) {
+                                setClaimToExternalWallet(false)
+                            } else {
+                                router.push('/home')
+                            }
+                        }}
+                    />
+                </div>
+            ) : (
+                <div className="-mt-1 md:hidden">
+                    <div className="pb-1 text-center text-2xl font-extrabold">Claim</div>
+                </div>
+            )}
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <PeanutActionDetailsCard
                     avatarSize="small"

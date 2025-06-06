@@ -89,7 +89,7 @@ export default function PeanutActionDetailsCard({
                                     recipientType === 'ADDRESS' ||
                                     recipientType === 'ENS'
                                   ? '#FFC900'
-                                  : getColorForUsername(recipientName).darkShade,
+                                  : getColorForUsername(recipientName).lightShade,
                         color:
                             viewType === 'SUCCESS'
                                 ? AVATAR_TEXT_DARK
