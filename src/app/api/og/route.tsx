@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     // fetch the four fonts in parallel
     let knerdFilled, knerdOutline, montserratMedium, montserratSemibold
     try {
-        ;[knerdFilled, knerdOutline, montserratMedium, montserratSemibold] = await Promise.all([
+        [knerdFilled, knerdOutline, montserratMedium, montserratSemibold] = await Promise.all([
             getFont('knerd-filled.ttf'),
             getFont('knerd-outline.ttf'),
             getFont('montserrat-medium.ttf'),
