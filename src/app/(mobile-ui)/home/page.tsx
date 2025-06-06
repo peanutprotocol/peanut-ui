@@ -87,12 +87,14 @@ export default function Home() {
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
             const hasSeenModalThisSession = sessionStorage.getItem('hasSeenIOSPWAPromptThisSession')
 
-            if (isIOS && !isStandalone && !hasSeenModalThisSession) {
+            if (isIOS && !isStandalone && !hasSeenModalThisSession && !user?.hasPwaInstalled) {
                 setShowIOSPWAInstallModal(true)
                 sessionStorage.setItem('hasSeenIOSPWAPromptThisSession', 'true')
+            } else {
+                setShowIOSPWAInstallModal(false)
             }
         }
-    }, [])
+    }, [user?.hasPwaInstalled])
 
     // effect for showing add money prompt modal
     useEffect(() => {
