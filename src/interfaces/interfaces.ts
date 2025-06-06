@@ -374,6 +374,7 @@ export interface IUserProfile {
     accounts: Account[]
     contacts: Contact[]
     totalPoints: number
+    hasPwaInstalled: boolean
     user: User
     pointsPerReferral: Array<{
         address: string
