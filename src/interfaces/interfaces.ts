@@ -288,13 +288,13 @@ interface Transaction {
     created_at: string
 }
 
-export type LinkStatus = 'loading' | 'unclaimed' | 'claimed' | 'expired' | 'cancelled';
+export type LinkStatus = 'loading' | 'unclaimed' | 'claimed' | 'expired' | 'cancelled'
 
 export interface PaymentLink {
-  type: 'send' | 'request';
-  amount: number;
-  username: string;       // creator or requester
-  status: LinkStatus;
+    type: 'send' | 'request'
+    amount: number
+    username: string // creator or requester
+    status: LinkStatus
 }
 
 interface ReferralConnection {
