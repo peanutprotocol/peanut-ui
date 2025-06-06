@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     // fetch the four fonts in parallel
     let knerdFilled, knerdOutline, montserratMedium, montserratSemibold
     try {
-        [knerdFilled, knerdOutline, montserratMedium, montserratSemibold] = await Promise.all([
+        ;[knerdFilled, knerdOutline, montserratMedium, montserratSemibold] = await Promise.all([
             getFont('knerd-filled.ttf'),
             getFont('knerd-outline.ttf'),
             getFont('montserrat-medium.ttf'),
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     const typeParam = searchParams.get('type') ?? 'generic' // validate the type to catch errors
     const type = ['send', 'request', 'generic'].includes(typeParam)
         ? (typeParam as 'send' | 'request' | 'generic')
-        : 'generic'    
+        : 'generic'
     const username = searchParams.get('username')! // username will always exist. If it doesn't, page will 404
     const amount = Number(searchParams.get('amount') ?? 0)
 
