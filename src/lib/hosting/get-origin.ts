@@ -12,6 +12,5 @@ export default async function getOrigin(): Promise<string> {
     const forwardedProto = h.get('x-forwarded-proto')
     const protocol = forwardedProto || (process.env.NODE_ENV === 'production' ? 'https' : 'http')
 
-
     return `${protocol}://${host}`
 }
