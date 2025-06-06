@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: any) {
     ogUrl.searchParams.set('amount', String(amount))
 
     if (!siteUrl) {
-        console.error('Error: NEXT_PUBLIC_BASE_URL is not defined')
+        console.error('Error: Unable to determine site origin')
         return { title }
     }
 

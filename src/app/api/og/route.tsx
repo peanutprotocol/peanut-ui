@@ -1,6 +1,6 @@
-import { ImageResponse } from '@vercel/og'
+import { ImageResponse } from 'next/og'
 import { PaymentCardOG } from '@/components/og/PaymentCardOG'
-import type { NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { PaymentLink } from '@/interfaces'
 import { promises as fs } from 'fs'
 import path from 'path'
@@ -11,23 +11,39 @@ export const runtime = 'nodejs' //node.js instead of edge!
 
 // loads a font once and keeps it cached in the module
 const fontDir = path.join(process.cwd(), 'src', 'assets', 'fonts')
-const getFont = (file: string) => fs.readFile(path.join(fontDir, file))
+const getFont = async (file: string) => {
+    try {
+        return await fs.readFile(path.join(fontDir, file))
+    } catch (err) {
+        console.error(`Failed to load font "${file}":`, err)
+        throw new Error(`Font file "${file}" could not be loaded`)
+    }
+}
 
 export async function GET(req: NextRequest) {
     // grab the full origin (protocol + host + port)
     const origin = await getOrigin() || BASE_URL
 
     // fetch the four fonts in parallel
-    const [knerdFilled, knerdOutline, montserratMedium, montserratSemibold] = await Promise.all([
-        getFont('knerd-filled.ttf'),
-        getFont('knerd-outline.ttf'),
-        getFont('montserrat-medium.ttf'),
-        getFont('montserrat-semibold.ttf'),
-    ])
+    let knerdFilled, knerdOutline, montserratMedium, montserratSemibold
+    try {
+        [knerdFilled, knerdOutline, montserratMedium, montserratSemibold] = await Promise.all([
+            getFont('knerd-filled.ttf'),
+            getFont('knerd-outline.ttf'),
+            getFont('montserrat-medium.ttf'),
+            getFont('montserrat-semibold.ttf'),
+        ])
+    } catch (err) {
+        console.error('Error loading fonts for OG image:', err)
+        return new NextResponse('Internal Server Error', { status: 500 })
+    }
 
     const { searchParams } = new URL(req.url)
-    const type = (searchParams.get('type') ?? 'generic') as 'send' | 'request' | 'generic'
-    const username = searchParams.get('username') ?? 'Peanut'
+    const typeParam = searchParams.get('type') ?? 'generic' // validate the type to catch errors
+    const type = ['send', 'request', 'generic'].includes(typeParam)
+        ? (typeParam as 'send' | 'request' | 'generic')
+        : 'generic'    
+    const username = searchParams.get('username')! // username will always exist. If it doesn't, page will 404
     const amount = Number(searchParams.get('amount') ?? 0)
 
     if (type === 'generic') {

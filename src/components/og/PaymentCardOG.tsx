@@ -66,7 +66,7 @@ export function PaymentCardOG({
           }}
         >
           <img src={iconSrc} width={36} height={46} alt="Peanut icon" />
-          <img src={logoSrc} width={132} height={26} alt="Peanut" />
+          <img src={logoSrc} width={132} height={26} alt="Peanut logo" />
         </div>
 
         {/*  username  */}
