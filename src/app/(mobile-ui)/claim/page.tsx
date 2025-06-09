@@ -33,12 +33,12 @@ export async function generateMetadata({
                 }
             })
             const url = `${siteUrl}/claim?${queryParams.toString()}`
-            
+
             const [linkDetailsResult, txDetailsResult] = await Promise.allSettled([
                 getLinkDetails(url),
-                sendLinksApi.getNoPubKey(url)
+                sendLinksApi.getNoPubKey(url),
             ])
-            
+
             linkDetails = linkDetailsResult.status === 'fulfilled' ? linkDetailsResult.value : undefined
             txDetails = txDetailsResult.status === 'fulfilled' ? txDetailsResult.value : undefined
 
@@ -58,13 +58,12 @@ export async function generateMetadata({
         }
     }
 
-
-    let previewUrl;
+    let previewUrl
     if (linkDetails && !linkDetails.claimed) {
         const ogUrl = new URL(`${siteUrl}/api/og`)
         ogUrl.searchParams.set('type', 'send')
-        ogUrl.searchParams.set('username', txDetails!.sender.username)
-        ogUrl.searchParams.set('amount', Math.floor(Number(linkDetails.tokenAmount)).toString()) // @bozzi ALWAYS ROUNDING DOWN JUST IN CASE (also, design looked like it didn't accept decimals) 
+        ogUrl.searchParams.set('username', txDetails?.sender?.username || 'Anonymous')
+        ogUrl.searchParams.set('amount', Math.floor(Number(linkDetails.tokenAmount)).toString()) // @bozzi ALWAYS ROUNDING DOWN JUST IN CASE (also, design looked like it didn't accept decimals)
         previewUrl = ogUrl.toString()
     }
 
@@ -73,19 +72,21 @@ export async function generateMetadata({
         description: 'Receive this payment to your Peanut account, or directly to your bank account.',
         icons: { icon: '/favicon.ico' },
         openGraph: {
-            images: [
-                {
-                    url: previewUrl!,
-                    width: 1200,
-                    height: 630,
-                },
-            ],
+            images: previewUrl
+                ? [
+                      {
+                          url: previewUrl,
+                          width: 1200,
+                          height: 630,
+                      },
+                  ]
+                : [],
         },
         twitter: {
             card: 'summary_large_image',
             title,
             description: 'Claim your tokens using Peanut Protocol',
-            images: [previewUrl!],
+            images: previewUrl ? [previewUrl] : [],
         },
     }
 }
