@@ -1,6 +1,8 @@
 import { getLinkDetails } from '@/app/actions/claimLinks'
 import { Claim } from '@/components'
 import { BASE_URL } from '@/constants'
+import getOrigin from '@/lib/hosting/get-origin'
+import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount } from '@/utils'
 import { Metadata } from 'next'
 
@@ -16,9 +18,10 @@ export async function generateMetadata({
     const resolvedSearchParams = await searchParams
 
     let title = 'Claim Payment | Peanut'
-    const host = BASE_URL
+    const siteUrl: string = (await getOrigin()) || BASE_URL // getOrigin for getting the origin of the site regardless of its a vercel preview or not
 
     let linkDetails = undefined
+    let txDetails = undefined
     if (resolvedSearchParams.i && resolvedSearchParams.c) {
         try {
             const queryParams = new URLSearchParams()
@@ -29,8 +32,15 @@ export async function generateMetadata({
                     queryParams.append(key, val)
                 }
             })
-            const url = `${host}/claim?${queryParams.toString()}`
-            linkDetails = await getLinkDetails(url)
+            const url = `${siteUrl}/claim?${queryParams.toString()}`
+            
+            const [linkDetailsResult, txDetailsResult] = await Promise.allSettled([
+                getLinkDetails(url),
+                sendLinksApi.getNoPubKey(url)
+            ])
+            
+            linkDetails = linkDetailsResult.status === 'fulfilled' ? linkDetailsResult.value : undefined
+            txDetails = txDetailsResult.status === 'fulfilled' ? txDetailsResult.value : undefined
 
             if (!linkDetails.claimed) {
                 title =
@@ -48,14 +58,14 @@ export async function generateMetadata({
         }
     }
 
-    let previewUrl = '/metadata-img.png'
+
+    let previewUrl;
     if (linkDetails && !linkDetails.claimed) {
-        const url = new URL('/api/preview-image', host)
-        url.searchParams.append('amount', linkDetails.tokenAmount.toString())
-        url.searchParams.append('tokenSymbol', linkDetails.tokenSymbol)
-        url.searchParams.append('address', linkDetails.senderAddress)
-        url.searchParams.append('previewType', 'CLAIM')
-        previewUrl = url.toString()
+        const ogUrl = new URL(`${siteUrl}/api/og`)
+        ogUrl.searchParams.set('type', 'send')
+        ogUrl.searchParams.set('username', txDetails!.sender.username)
+        ogUrl.searchParams.set('amount', Math.floor(Number(linkDetails.tokenAmount)).toString()) // @bozzi ALWAYS ROUNDING DOWN JUST IN CASE (also, design looked like it didn't accept decimals) 
+        previewUrl = ogUrl.toString()
     }
 
     return {
@@ -65,9 +75,9 @@ export async function generateMetadata({
         openGraph: {
             images: [
                 {
-                    url: previewUrl,
-                    width: 400,
-                    height: 200,
+                    url: previewUrl!,
+                    width: 1200,
+                    height: 630,
                 },
             ],
         },
@@ -75,7 +85,7 @@ export async function generateMetadata({
             card: 'summary_large_image',
             title,
             description: 'Claim your tokens using Peanut Protocol',
-            images: [previewUrl],
+            images: [previewUrl!],
         },
     }
 }

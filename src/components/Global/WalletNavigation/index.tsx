@@ -1,3 +1,4 @@
+import React from 'react'
 import { PEANUT_LOGO } from '@/assets'
 import DirectSendQr from '@/components/Global/DirectSendQR'
 import { Icon, IconName, Icon as NavIcon } from '@/components/Global/Icons/Icon'
@@ -32,10 +33,9 @@ type NavSectionProps = {
 const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => (
     <>
         {paths.map(({ name, href, icon, size }, index) => (
-            <>
+            <React.Fragment key={`${name}-${index}`}>
                 <Link
                     href={href}
-                    key={`${name}-${index}`}
                     className={classNames(
                         'flex items-center gap-3 text-white hover:cursor-pointer hover:text-white/80',
                         {
@@ -52,7 +52,7 @@ const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => (
                     <span className="block w-fit pt-0.5 text-center text-base font-semibold">{name}</span>
                 </Link>
                 {index === 3 && <div className="w-full border-b border-grey-1" />}
-            </>
+            </React.Fragment>
         ))}
     </>
 )
