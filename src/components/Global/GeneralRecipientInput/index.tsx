@@ -58,13 +58,14 @@ const GeneralRecipientInput = ({
             } else {
                 try {
                     const validation = await validateAndResolveRecipient(trimmedInput)
-                    
+
                     // Only accept ENS accounts, reject usernames
                     if (validation.recipientType.toLowerCase() === 'username') {
-                        errorMessage.current = 'Peanut usernames are not supported for withdraws. Please enter a valid address or go to the "Send" page.'
+                        errorMessage.current =
+                            'Peanut usernames are not supported for withdraws. Please enter a valid address or go to the "Send" page.'
                         return false
                     }
-                    
+
                     isValid = true
                     resolvedAddress.current = validation.resolvedAddress
                     type = validation.recipientType.toLowerCase() as interfaces.RecipientType
@@ -92,7 +93,8 @@ const GeneralRecipientInput = ({
             let _update: GeneralRecipientUpdate
             if (update.isValid) {
                 errorMessage.current = ''
-                _update = { //the logic is here to avoid adding ens and username to the recent recipients IF THIS IS A WITHDRAWAL
+                _update = {
+                    //the logic is here to avoid adding ens and username to the recent recipients IF THIS IS A WITHDRAWAL
                     recipient:
                         'ens' === recipientType.current
                             ? { address: resolvedAddress.current, name: sanitizedValue }
