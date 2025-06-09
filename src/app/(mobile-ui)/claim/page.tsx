@@ -33,12 +33,12 @@ export async function generateMetadata({
                 }
             })
             const url = `${siteUrl}/claim?${queryParams.toString()}`
-            
+
             const [linkDetailsResult, txDetailsResult] = await Promise.allSettled([
                 getLinkDetails(url),
-                sendLinksApi.getNoPubKey(url)
+                sendLinksApi.getNoPubKey(url),
             ])
-            
+
             linkDetails = linkDetailsResult.status === 'fulfilled' ? linkDetailsResult.value : undefined
             txDetails = txDetailsResult.status === 'fulfilled' ? txDetailsResult.value : undefined
 
@@ -58,13 +58,12 @@ export async function generateMetadata({
         }
     }
 
-
-    let previewUrl;
+    let previewUrl
     if (linkDetails && !linkDetails.claimed) {
         const ogUrl = new URL(`${siteUrl}/api/og`)
         ogUrl.searchParams.set('type', 'send')
         ogUrl.searchParams.set('username', txDetails!.sender.username)
-        ogUrl.searchParams.set('amount', Math.floor(Number(linkDetails.tokenAmount)).toString()) // @bozzi ALWAYS ROUNDING DOWN JUST IN CASE (also, design looked like it didn't accept decimals) 
+        ogUrl.searchParams.set('amount', Math.floor(Number(linkDetails.tokenAmount)).toString()) // @bozzi ALWAYS ROUNDING DOWN JUST IN CASE (also, design looked like it didn't accept decimals)
         previewUrl = ogUrl.toString()
     }
 
