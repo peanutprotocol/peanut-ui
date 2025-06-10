@@ -17,6 +17,7 @@ type GeneralRecipientInputProps = {
     onUpdate: (update: GeneralRecipientUpdate) => void
     infoText?: string
     showInfoText?: boolean
+    isWithdrawal?: boolean
 }
 
 export type GeneralRecipientUpdate = {
@@ -34,6 +35,7 @@ const GeneralRecipientInput = ({
     className,
     infoText,
     showInfoText = true,
+    isWithdrawal = false,
 }: GeneralRecipientInputProps) => {
     const recipientType = useRef<interfaces.RecipientType>('address')
     const errorMessage = useRef('')
@@ -60,8 +62,8 @@ const GeneralRecipientInput = ({
                     const validation = await validateAndResolveRecipient(trimmedInput)
                     
                     // Only accept ENS accounts, reject usernames
-                    if (validation.recipientType.toLowerCase() === 'username') {
-                        errorMessage.current = 'Peanut usernames are not supported for withdraws. Please enter a valid address or go to the "Send" page.'
+                    if (isWithdrawal && validation.recipientType.toLowerCase() === 'username') {
+                        errorMessage.current = 'Peanut usernames are not supported for withdraws.'
                         return false
                     }
                     
@@ -127,7 +129,7 @@ const GeneralRecipientInput = ({
 
     return (
         <div className="w-full">
-            <label className="mb-2 block text-left text-sm font-bold">Where do you want to receive this?</label>
+            <label className="mb-2 block text-left text-sm font-bold">Wallet address</label>
             <ValidatedInput
                 value={recipient.name ?? recipient.address}
                 placeholder={placeholder}

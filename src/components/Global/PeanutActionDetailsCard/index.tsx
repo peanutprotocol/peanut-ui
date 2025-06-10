@@ -20,6 +20,7 @@ interface PeanutActionDetailsCardProps {
     className?: HTMLDivElement['className']
     fileUrl?: string
     avatarSize?: AvatarSize
+    iconFillColor?: string
 }
 
 export default function PeanutActionDetailsCard({
@@ -33,6 +34,7 @@ export default function PeanutActionDetailsCard({
     className,
     fileUrl,
     avatarSize = 'medium',
+    iconFillColor
 }: PeanutActionDetailsCardProps) {
     const renderRecipient = () => {
         if (recipientType === 'ADDRESS') return printableAddress(recipientName)
@@ -99,6 +101,7 @@ export default function PeanutActionDetailsCard({
                                   ? AVATAR_TEXT_DARK
                                   : getColorForUsername(recipientName).darkShade,
                     }}
+                    iconFillColor={iconFillColor}
                 />
             </div>
 

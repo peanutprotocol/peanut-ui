@@ -70,15 +70,19 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                 // apply dynamic styles (e.g., background color)
 
                 style={{
-                    background: name ? getColorForUsername(name).lightShade : undefined,
-                    border: name && !icon ? `1px solid ${getColorForUsername(name).darkShade}` : undefined,
-                    color: name ? getColorForUsername(name).darkShade : !icon ? textColor : undefined,
                     ...inlineStyle,
+                    background: iconFillColor
+                    ? iconFillColor
+                    : name
+                      ? getColorForUsername(name).lightShade
+                      : undefined,      
+                    border: name && !icon ? `1px solid ${getColorForUsername(name).darkShade}` : undefined,
+                    color: name ? getColorForUsername(name).darkShade : !icon ? textColor : icon === 'wallet-outline' ? 'black' : undefined,
                 }}
             >
                 {/* display icon if provided, otherwise display initials */}
                 {icon ? (
-                    <Icon name={icon} size={iconSizeMap[size]} fill={iconFillColor} style={{ color: textColor }} />
+                    <Icon name={icon} size={iconSizeMap[size]} fill={iconFillColor} style={{ color: textColor, backgroundColor: iconFillColor }} />
                 ) : (
                     initials
                 )}
