@@ -86,6 +86,7 @@ export default function PeanutActionDetailsCard({
                             viewType === 'SUCCESS'
                                 ? '#29CC6A'
                                 : transactionType === 'ADD_MONEY' ||
+                                    (transactionType === 'WITHDRAW' && recipientType === 'USERNAME') ||
                                     recipientType === 'ADDRESS' ||
                                     recipientType === 'ENS'
                                   ? '#FFC900'
@@ -94,6 +95,7 @@ export default function PeanutActionDetailsCard({
                             viewType === 'SUCCESS'
                                 ? AVATAR_TEXT_DARK
                                 : transactionType === 'ADD_MONEY' ||
+                                    (transactionType === 'WITHDRAW' && recipientType === 'USERNAME') ||
                                     recipientType === 'ADDRESS' ||
                                     recipientType === 'ENS'
                                   ? AVATAR_TEXT_DARK
