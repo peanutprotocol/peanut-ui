@@ -37,7 +37,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     inlineStyle,
     textColor,
     iconBackgroundColor,
-    iconFillColor
+    iconFillColor,
 }) => {
     const sizeClasses: Record<AvatarSize, string> = {
         'extra-small': 'h-8 w-8 text-xs',
@@ -74,17 +74,28 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                 style={{
                     ...inlineStyle,
                     background: iconBackgroundColor
-                    ? iconBackgroundColor
-                    : name
-                      ? getColorForUsername(name).lightShade
-                      : undefined,      
+                        ? iconBackgroundColor
+                        : name
+                          ? getColorForUsername(name).lightShade
+                          : undefined,
                     border: name && !icon ? `1px solid ${getColorForUsername(name).darkShade}` : undefined,
-                    color: name ? getColorForUsername(name).darkShade : !icon ? textColor : icon === 'wallet-outline' ? 'black' : undefined,
+                    color: name
+                        ? getColorForUsername(name).darkShade
+                        : !icon
+                          ? textColor
+                          : icon === 'wallet-outline'
+                            ? 'black'
+                            : undefined,
                 }}
             >
                 {/* display icon if provided, otherwise display initials */}
                 {icon ? (
-                    <Icon name={icon} size={iconSizeMap[size]} fill={iconFillColor} style={{ color: textColor, backgroundColor: iconBackgroundColor }} />
+                    <Icon
+                        name={icon}
+                        size={iconSizeMap[size]}
+                        fill={iconFillColor}
+                        style={{ color: textColor, backgroundColor: iconBackgroundColor }}
+                    />
                 ) : (
                     initials
                 )}

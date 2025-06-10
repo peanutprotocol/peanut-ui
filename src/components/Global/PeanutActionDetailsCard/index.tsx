@@ -34,7 +34,7 @@ export default function PeanutActionDetailsCard({
     className,
     fileUrl,
     avatarSize = 'medium',
-    iconBackgroundColor
+    iconBackgroundColor,
 }: PeanutActionDetailsCardProps) {
     const renderRecipient = () => {
         if (recipientType === 'ADDRESS') return printableAddress(recipientName)
