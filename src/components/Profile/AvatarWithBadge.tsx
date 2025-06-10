@@ -19,6 +19,7 @@ interface AvatarWithBadgeProps {
     achievementsBadgeSize?: AchievementsBadgeSize
     inlineStyle?: React.CSSProperties // for dynamic background colors based on username (hex codes)
     textColor?: string
+    iconBackgroundColor?: string
     iconFillColor?: string
 }
 
@@ -35,7 +36,8 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     achievementsBadgeSize = 'small',
     inlineStyle,
     textColor,
-    iconFillColor,
+    iconBackgroundColor,
+    iconFillColor
 }) => {
     const sizeClasses: Record<AvatarSize, string> = {
         'extra-small': 'h-8 w-8 text-xs',
@@ -71,8 +73,8 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
 
                 style={{
                     ...inlineStyle,
-                    background: iconFillColor
-                    ? iconFillColor
+                    background: iconBackgroundColor
+                    ? iconBackgroundColor
                     : name
                       ? getColorForUsername(name).lightShade
                       : undefined,      
@@ -82,7 +84,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
             >
                 {/* display icon if provided, otherwise display initials */}
                 {icon ? (
-                    <Icon name={icon} size={iconSizeMap[size]} fill={iconFillColor} style={{ color: textColor, backgroundColor: iconFillColor }} />
+                    <Icon name={icon} size={iconSizeMap[size]} fill={iconFillColor} style={{ color: textColor, backgroundColor: iconBackgroundColor }} />
                 ) : (
                     initials
                 )}

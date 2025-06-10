@@ -87,7 +87,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     recipientName={''}
                     amount={formatAmount(amount)}
                     tokenSymbol={selectedTokenData?.symbol ?? ''}
-                    iconFillColor={getTailwindColorValueWithFallback('secondary-1')}
+                    iconBackgroundColor={getTailwindColorValueWithFallback('secondary-1')}
                 />
 
                 {/* token selector is not needed for withdrawals right now, the only token peanut wallet supports is USDC on arb, this will be re-added once x-chain support is added */}
