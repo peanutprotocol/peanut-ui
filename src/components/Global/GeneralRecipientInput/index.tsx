@@ -63,8 +63,7 @@ const GeneralRecipientInput = ({
 
                     // Only accept ENS accounts, reject usernames
                     if (isWithdrawal && validation.recipientType.toLowerCase() === 'username') {
-                        errorMessage.current =
-                            'Peanut usernames are not supported for withdrawals.'
+                        errorMessage.current = 'Peanut usernames are not supported for withdrawals.'
                         return false
                     }
 
