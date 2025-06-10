@@ -104,6 +104,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                         setInputChanging(update.isChanging)
                     }}
                     showInfoText={false}
+                    isWithdrawal
                 />
 
                 <Button
