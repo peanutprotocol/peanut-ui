@@ -32,10 +32,9 @@ type NavSectionProps = {
 const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => (
     <>
         {paths.map(({ name, href, icon, size }, index) => (
-            <>
+            <div key={`${name}-${index}`}>
                 <Link
                     href={href}
-                    key={`${name}-${index}`}
                     className={classNames(
                         'flex items-center gap-3 text-white hover:cursor-pointer hover:text-white/80',
                         {
@@ -52,7 +51,7 @@ const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => (
                     <span className="block w-fit pt-0.5 text-center text-base font-semibold">{name}</span>
                 </Link>
                 {index === 3 && <div className="w-full border-b border-grey-1" />}
-            </>
+            </div>
         ))}
     </>
 )
