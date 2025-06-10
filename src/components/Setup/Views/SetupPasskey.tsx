@@ -64,7 +64,10 @@ const SetupPasskey = () => {
                             } catch (e) {
                                 if (e instanceof WebAuthnError) {
                                     // https://github.com/MasterKale/SimpleWebAuthn/blob/master/packages/browser/src/helpers/identifyRegistrationError.ts
-                                    if (e.message.includes('timed out or was not allowed')) {
+                                    if (
+                                        e.message.includes('timed out or was not allowed') ||
+                                        e.message.includes('denied permission')
+                                    ) {
                                         setError('Passkey registration timed out or cancelled. Please try again.')
                                         dispatch(setupActions.setLoading(false))
                                         return
