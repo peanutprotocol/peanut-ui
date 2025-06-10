@@ -207,7 +207,7 @@ const ValidatedInput = ({
                                 <Icon size={20} className="text-secondary-2" name="error" />
                             </div>
                         ) : !!isSetupFlow && !!isValid && !isInputChanging ? (
-                            <div className="bg-secondary-8 mr-2 flex size-5 items-center justify-center rounded-full">
+                            <div className="mr-2 flex size-5 items-center justify-center rounded-full bg-secondary-8">
                                 <Icon size={12} className=" rounded-full p-0 text-white" name="check" />
                             </div>
                         ) : (
