@@ -9,6 +9,7 @@ import { getFromLocalStorage } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { WebAuthnError } from '@simplewebauthn/browser'
 
 const SetupPasskey = () => {
     const dispatch = useAppDispatch()
@@ -59,9 +60,20 @@ const SetupPasskey = () => {
                         try {
                             await handleRegister(username)
                         } catch (e) {
-                            Sentry.captureException(e)
+                            if (e instanceof WebAuthnError) {
+                                // https://github.com/MasterKale/SimpleWebAuthn/blob/master/packages/browser/src/helpers/identifyRegistrationError.ts
+                                if (e.message.includes('timed out or was not allowed')) {
+                                    setError('Passkey registration timed out or cancelled. Please try again.')
+                                    dispatch(setupActions.setLoading(false))
+                                    return
+                                } else {
+                                    setError(e.message)
+                                }
+                            } else {
+                                setError('Error registering passkey.')
+                            }
                             console.error('Error registering passkey:', e)
-                            setError('Error registering passkey.')
+                            Sentry.captureException(e)
                             dispatch(setupActions.setLoading(false))
                         }
                     }}
