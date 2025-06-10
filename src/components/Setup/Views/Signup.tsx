@@ -9,6 +9,7 @@ import { fetchWithSentry } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 
 const SignupStep = () => {
     const dispatch = useAppDispatch()
@@ -110,6 +111,13 @@ const SignupStep = () => {
                             debounceTime={750}
                             validate={checkUsernameValidity}
                             onUpdate={handleInputUpdate}
+                            isSetupFlow
+                            isInputChanging={isChanging}
+                            className={twMerge(
+                                !isValid && !isChanging && 'border-error dark:border-error',
+                                isValid && !isChanging && 'border-secondary-8 dark:border-secondary-8',
+                                'rounded-sm'
+                            )}
                         />
                         <Button
                             className="h-12 w-4/12"
