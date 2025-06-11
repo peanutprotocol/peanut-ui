@@ -36,9 +36,9 @@ interface SetupWrapperProps {
 
 // define responsive height classes for different layout types
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
-    signup: 'min-h-[55vh] md:min-h-full', // signup view has larger container height
-    standard: 'min-h-[50vh] md:min-h-full', // rest all views has medium container height
-    'android-initial-pwa-install': 'min-h-[60vh] md:min-h-full',
+    signup: 'min-h-[55dvh] md:min-h-full', // signup view has larger container height
+    standard: 'min-h-[50dvh] md:min-h-full', // rest all views has medium container height
+    'android-initial-pwa-install': 'min-h-[60dvh] md:min-h-full',
 }
 
 // define animated star decorations positions and sizes

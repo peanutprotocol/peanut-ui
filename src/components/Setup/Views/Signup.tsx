@@ -102,7 +102,7 @@ const SignupStep = () => {
 
     return (
         <>
-            <div className="flex h-full min-h-32 flex-col justify-between md:pt-5">
+            <div className="flex h-full flex-col justify-between gap-11 md:pt-5">
                 <div className="mb-auto w-full space-y-2.5">
                     <div className="flex items-center gap-2">
                         <ValidatedInput
@@ -114,8 +114,8 @@ const SignupStep = () => {
                             isSetupFlow
                             isInputChanging={isChanging}
                             className={twMerge(
-                                !isValid && !isChanging && 'border-error dark:border-error',
-                                isValid && !isChanging && 'border-secondary-8 dark:border-secondary-8',
+                                !isValid && !isChanging && !!username && 'border-error dark:border-error',
+                                isValid && !isChanging && !!username && 'border-secondary-8 dark:border-secondary-8',
                                 'rounded-sm'
                             )}
                         />
