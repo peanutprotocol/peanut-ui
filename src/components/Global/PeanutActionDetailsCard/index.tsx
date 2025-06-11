@@ -110,7 +110,8 @@ export default function PeanutActionDetailsCard({
                     {tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() ? '$ ' : ''}
                     {amount}
 
-                    {tokenSymbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() && ` ${tokenSymbol}`}
+                    {tokenSymbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() &&
+                        ` ${tokenSymbol.toLowerCase() === 'pnt' ? (Number(amount) === 1 ? 'Beer' : 'Beers') : tokenSymbol}`}
                 </h2>
 
                 <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
