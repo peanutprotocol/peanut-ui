@@ -10,7 +10,6 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { ITokenPriceData } from '@/interfaces'
 import { formatAmount } from '@/utils/general.utils'
-import { getTailwindColorValueWithFallback } from '@/utils/tailwind-colors'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
 import { useContext, useEffect } from 'react'
@@ -87,7 +86,6 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     recipientName={''}
                     amount={formatAmount(amount)}
                     tokenSymbol={selectedTokenData?.symbol ?? ''}
-                    iconBackgroundColor={getTailwindColorValueWithFallback('secondary-1')}
                 />
 
                 {/* token selector is not needed for withdrawals right now, the only token peanut wallet supports is USDC on arb, this will be re-added once x-chain support is added */}

@@ -19,7 +19,6 @@ interface AvatarWithBadgeProps {
     achievementsBadgeSize?: AchievementsBadgeSize
     inlineStyle?: React.CSSProperties // for dynamic background colors based on username (hex codes)
     textColor?: string
-    iconBackgroundColor?: string
     iconFillColor?: string
 }
 
@@ -36,7 +35,6 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     achievementsBadgeSize = 'small',
     inlineStyle,
     textColor,
-    iconBackgroundColor,
     iconFillColor,
 }) => {
     const sizeClasses: Record<AvatarSize, string> = {
@@ -72,30 +70,15 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                 // apply dynamic styles (e.g., background color)
 
                 style={{
-                    ...inlineStyle,
-                    background: iconBackgroundColor
-                        ? iconBackgroundColor
-                        : name
-                          ? getColorForUsername(name).lightShade
-                          : undefined,
+                    background: name ? getColorForUsername(name).lightShade : undefined,
                     border: name && !icon ? `1px solid ${getColorForUsername(name).darkShade}` : undefined,
-                    color: name
-                        ? getColorForUsername(name).darkShade
-                        : !icon
-                          ? textColor
-                          : icon === 'wallet-outline'
-                            ? 'black'
-                            : undefined,
+                    color: name ? getColorForUsername(name).darkShade : !icon ? textColor : undefined,
+                    ...inlineStyle,
                 }}
             >
                 {/* display icon if provided, otherwise display initials */}
                 {icon ? (
-                    <Icon
-                        name={icon}
-                        size={iconSizeMap[size]}
-                        fill={iconFillColor}
-                        style={{ color: textColor, backgroundColor: iconBackgroundColor }}
-                    />
+                    <Icon name={icon} size={iconSizeMap[size]} fill={iconFillColor} style={{ color: textColor }} />
                 ) : (
                     initials
                 )}
