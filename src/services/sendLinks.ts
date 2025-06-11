@@ -175,6 +175,20 @@ export const sendLinksApi = {
         return data
     },
 
+    // like the get function, but no public key needed to get TX details
+    getNoPubKey: async (link: string): Promise<SendLink> => {
+        const params = getParamsFromLink(link)
+        const url = `${PEANUT_API_URL}/send-links?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}`
+        const response = await fetchWithSentry(url, {
+            method: 'GET',
+        })
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        const data: SendLink = jsonParse(await response.text())
+        return data
+    },
+
     getByPubKey: async (pubKey: string): Promise<SendLink> => {
         const url = `${PEANUT_API_URL}/send-links/${pubKey}`
         const response = await fetchWithSentry(url, {
