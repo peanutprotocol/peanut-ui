@@ -52,7 +52,7 @@ const SetupPasskey = () => {
 
     return (
         <div>
-            <div className="flex h-full min-h-32 flex-col justify-between p-0 md:min-h-32">
+            <div className="flex h-full flex-col justify-between gap-11 p-0 md:min-h-32">
                 <div className="flex h-full flex-col justify-end gap-2 text-center">
                     <Button
                         loading={isLoading}
