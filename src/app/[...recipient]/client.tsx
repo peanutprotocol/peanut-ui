@@ -34,7 +34,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const isDirectPay = flow === 'direct_pay'
     const isAddMoneyFlow = flow === 'add_money'
     const dispatch = useAppDispatch()
-    const { currentView, parsedPaymentData, chargeDetails } = usePaymentStore()
+    const { currentView, parsedPaymentData, chargeDetails, paymentDetails } = usePaymentStore()
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
     const [isRequestDetailsFetching, setIsRequestDetailsFetching] = useState(false)
@@ -264,7 +264,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             id: chargeDetails.uuid,
             status,
             amount: Number(chargeDetails.tokenAmount),
-            date: new Date(chargeDetails?.fulfillmentPayment?.createdAt || chargeDetails.createdAt),
+            date: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
             tokenSymbol: chargeDetails.tokenSymbol,
             initials: getInitialsFromName(username ?? ''),
             memo: chargeDetails.requestLink.reference ?? undefined,
@@ -295,7 +295,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
 
         return details as TransactionDetails
-    }, [chargeDetails, user?.user.userId, isAddMoneyFlow, user?.user.username])
+    }, [chargeDetails, user?.user.userId, isAddMoneyFlow, user?.user.username, paymentDetails])
 
     useEffect(() => {
         if (!transactionForDrawer) return
