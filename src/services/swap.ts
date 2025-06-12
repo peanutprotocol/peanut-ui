@@ -243,7 +243,16 @@ async function findOptimalFromAmount(
             iterations++
 
             if (receivedAmount >= targetToAmount) {
-                const overage = Number(receivedAmount - targetToAmount) / Number(targetToAmount)
+                const diff = receivedAmount - targetToAmount
+                const target = targetToAmount
+
+                let overage: number
+                if (diff <= Number.MAX_SAFE_INTEGER && target <= Number.MAX_SAFE_INTEGER) {
+                    overage = Number(diff) / Number(target)
+                } else {
+                    // Handle very large numbers with careful scaling
+                    overage = Number(diff / (target / 1_000_000_000_000_000_000n)) / 1e18
+                }
 
                 if (overage <= maxOverage) {
                     return response
