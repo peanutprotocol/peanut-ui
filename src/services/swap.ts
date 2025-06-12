@@ -174,7 +174,6 @@ type SquidRouteResponse = {
  * We use this when we fetch the route several times while finding the optimal fromAmount.
  */
 async function getSquidRouteRaw(params: SquidGetRouteParams): Promise<SquidRouteResponse> {
-    console.dir(params)
     const response = await fetchWithSentry(`${process.env.SQUID_API_URL!}/v2/route`, {
         method: 'POST',
         headers: {
@@ -185,7 +184,6 @@ async function getSquidRouteRaw(params: SquidGetRouteParams): Promise<SquidRoute
     })
 
     if (!response.ok) {
-        console.dir(response)
         throw new Error(`Failed to get route: ${response.status}`)
     }
 
