@@ -24,6 +24,8 @@ import { formatAmount, getInitialsFromName } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { GenericBanner } from '@/components/Global/Banner'
+import { createPortal } from 'react-dom'
 
 interface Props {
     recipient: string[]
@@ -370,6 +372,15 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     // default payment flow
     return (
         <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-center')}>
+            {createPortal(
+                <div className="fixed left-0 right-0 top-5 z-50">
+                    <GenericBanner
+                        message="Upstream incident is affecting payments with external wallets. Follow in status.reown.com"
+                        backgroundColor="bg-secondary-1"
+                    />
+                </div>,
+                document.body
+            )}
             {currentView === 'INITIAL' && (
                 <InitialPaymentView
                     {...(parsedPaymentData as ParsedURL)}
