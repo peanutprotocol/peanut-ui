@@ -348,8 +348,9 @@ export async function getRoute({ from, to, ...amount }: RouteParams): Promise<Pe
         const toTokenPrice = await fetchTokenPrice(to.tokenAddress, to.chainId)
         if (!toTokenPrice) throw new Error('Could not fetch to token price')
 
-        const targetToAmount = BigInt(
-            Math.floor((parseFloat(amount.toUsd) / toTokenPrice.price) * 10 ** toTokenPrice.decimals)
+        const targetToAmount = parseUnits(
+            (parseFloat(amount.toUsd) / toTokenPrice.price).toFixed(toTokenPrice.decimals),
+            toTokenPrice.decimals
         )
 
         response = await findOptimalFromAmount(
