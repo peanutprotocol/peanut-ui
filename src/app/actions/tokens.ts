@@ -76,10 +76,7 @@ export const fetchTokenPrice = unstable_cache(
             const json: { data: IMobulaMarketData } = await mobulaResponse.json()
 
             if (mobulaResponse.ok) {
-                let decimals = json.data.decimals
-                if (decimals === undefined) {
-                    decimals = json.data.contracts.find((contract) => contract.blockchainId === chainId)!.decimals
-                }
+                const decimals = json.data.contracts.find((contract) => contract.blockchainId === chainId)!.decimals
                 let data = {
                     price: json.data.price,
                     chainId: chainId,
