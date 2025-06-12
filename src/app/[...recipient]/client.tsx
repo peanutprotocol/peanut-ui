@@ -264,7 +264,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             id: chargeDetails.uuid,
             status,
             amount: Number(chargeDetails.tokenAmount),
-            date: new Date(chargeDetails.createdAt),
+            date: new Date(chargeDetails?.fulfillmentPayment?.createdAt || chargeDetails.createdAt),
             tokenSymbol: chargeDetails.tokenSymbol,
             initials: getInitialsFromName(username ?? ''),
             memo: chargeDetails.requestLink.reference ?? undefined,
