@@ -48,9 +48,9 @@ export const PartnerBarLocation = ({ text = 'partner bars.' }: { text?: string }
 }
 
 const RewardsModal = () => {
-    const [showModal, setShowModal] = useState<boolean>(true)
+    const [showModal, setShowModal] = useState<boolean>(false)
     const [rewardLinks, setRewardLinks] = useState<RewardLink[]>([])
-    const [error, setError] = useState<string>('')
+    const [activeReward, setActiveReward] = useState<RewardLink | undefined>(undefined)
     const { user } = useAuth()
     const router = useRouter()
 
@@ -64,7 +64,10 @@ const RewardsModal = () => {
         */
     }
 
-    const activeReward = getActiveReward()
+    useEffect(() => {
+        const activeReward = getActiveReward()
+        setActiveReward(activeReward)
+    }, [rewardLinks])
 
     // get modal content based on active reward
     const getModalContent = () => {
@@ -108,14 +111,17 @@ const RewardsModal = () => {
                 })
                 .catch((_err) => {
                     console.log('rewards api err', _err)
-                    setError('Failed to fetch rewards')
                 })
         }
     }, [user])
 
-    if (!rewardLinks.length || !activeReward) {
-        return null
-    }
+    useEffect(() => {
+        if (!rewardLinks.length || !activeReward) {
+            setShowModal(false)
+        } else {
+            setShowModal(true)
+        }
+    }, [rewardLinks, activeReward])
 
     const modalContent = getModalContent()
 
