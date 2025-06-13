@@ -47,7 +47,7 @@ const DirectSuccessView = ({
     redirectTo = '/home',
 }: DirectSuccessViewProps) => {
     const router = useRouter()
-    const { chargeDetails, parsedPaymentData, usdAmount } = usePaymentStore()
+    const { chargeDetails, parsedPaymentData, usdAmount, paymentDetails } = usePaymentStore()
     const dispatch = useDispatch()
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
         useTransactionDetailsDrawer()
@@ -87,19 +87,14 @@ const DirectSuccessView = ({
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!chargeDetails) return null
 
-        const firstPayment =
-            chargeDetails.payments && chargeDetails.payments.length > 0 ? chargeDetails.payments[0] : null
-
-        const txTimestamp = firstPayment?.createdAt || chargeDetails.createdAt
-
         const networkFeeDisplayValue = '$ 0.00' // fee is zero for peanut wallet txns
         const peanutFeeDisplayValue = '$ 0.00' // peanut doesn't charge fees yet
 
         let details: Partial<TransactionDetails> = {
-            id: firstPayment?.payerTransactionHash,
+            id: paymentDetails?.payerTransactionHash,
             status: 'completed' as StatusType,
-            amount: usdAmount ? Number(usdAmount) : parseFloat(amountValue),
-            date: new Date(txTimestamp),
+            amount: parseFloat(amountValue),
+            date: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
             tokenSymbol: chargeDetails.tokenSymbol,
             direction: 'send', // only showing receipt for send txns
             initials: getInitialsFromName(recipientName),
@@ -142,6 +137,7 @@ const DirectSuccessView = ({
         chainIconUrl,
         resolvedChainName,
         resolvedTokenSymbol,
+        paymentDetails,
         usdAmount,
     ])
 

@@ -35,7 +35,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const isDirectPay = flow === 'direct_pay'
     const isAddMoneyFlow = flow === 'add_money'
     const dispatch = useAppDispatch()
-    const { currentView, parsedPaymentData, chargeDetails, usdAmount } = usePaymentStore()
+    const { currentView, parsedPaymentData, chargeDetails, paymentDetails, usdAmount } = usePaymentStore()
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
     const [isRequestDetailsFetching, setIsRequestDetailsFetching] = useState(false)
@@ -279,8 +279,8 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         let details: Partial<TransactionDetails> = {
             id: chargeDetails.uuid,
             status,
-            amount: usdAmount ? Number(usdAmount) : Number(chargeDetails.tokenAmount),
-            date: new Date(chargeDetails.createdAt),
+            amount: Number(chargeDetails.tokenAmount),
+            date: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
             tokenSymbol: chargeDetails.tokenSymbol,
             initials: getInitialsFromName(username ?? ''),
             memo: chargeDetails.requestLink.reference ?? undefined,
@@ -312,7 +312,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
 
         return details as TransactionDetails
-    }, [chargeDetails, user?.user.userId, isAddMoneyFlow, user?.user.username, usdAmount])
+    }, [chargeDetails, user?.user.userId, isAddMoneyFlow, user?.user.username, usdAmount, paymentDetails])
 
     useEffect(() => {
         if (!transactionForDrawer) return
