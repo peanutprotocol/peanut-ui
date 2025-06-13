@@ -17,6 +17,7 @@ type GeneralRecipientInputProps = {
     onUpdate: (update: GeneralRecipientUpdate) => void
     infoText?: string
     showInfoText?: boolean
+    isWithdrawal?: boolean
 }
 
 export type GeneralRecipientUpdate = {
@@ -34,6 +35,7 @@ const GeneralRecipientInput = ({
     className,
     infoText,
     showInfoText = true,
+    isWithdrawal = false,
 }: GeneralRecipientInputProps) => {
     const recipientType = useRef<interfaces.RecipientType>('address')
     const errorMessage = useRef('')
@@ -58,6 +60,13 @@ const GeneralRecipientInput = ({
             } else {
                 try {
                     const validation = await validateAndResolveRecipient(trimmedInput)
+
+                    // Only accept ENS accounts, reject usernames
+                    if (isWithdrawal && validation.recipientType.toLowerCase() === 'username') {
+                        errorMessage.current = 'Peanut usernames are not supported for withdrawals.'
+                        return false
+                    }
+
                     isValid = true
                     resolvedAddress.current = validation.resolvedAddress
                     type = validation.recipientType.toLowerCase() as interfaces.RecipientType
@@ -86,8 +95,9 @@ const GeneralRecipientInput = ({
             if (update.isValid) {
                 errorMessage.current = ''
                 _update = {
+                    //the logic is here to avoid adding ens and username to the recent recipients IF THIS IS A WITHDRAWAL
                     recipient:
-                        'ens' === recipientType.current || recipientType.current === 'username'
+                        'ens' === recipientType.current
                             ? { address: resolvedAddress.current, name: sanitizedValue }
                             : { address: sanitizedValue, name: undefined },
                     type: recipientType.current,
@@ -120,7 +130,7 @@ const GeneralRecipientInput = ({
 
     return (
         <div className="w-full">
-            <label className="mb-2 block text-left text-sm font-bold">Where do you want to receive this?</label>
+            <label className="mb-2 block text-left text-sm font-bold">Wallet address</label>
             <ValidatedInput
                 value={recipient.name ?? recipient.address}
                 placeholder={placeholder}

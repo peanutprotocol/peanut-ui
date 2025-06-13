@@ -1,6 +1,6 @@
 import Icon from '@/components/Global/Icon'
 import { Dialog, Transition } from '@headlessui/react'
-import { Fragment } from 'react'
+import { Fragment, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 type ModalProps = {
@@ -38,10 +38,13 @@ const Modal = ({
     onPrev,
     preventClose = false,
 }: ModalProps) => {
+    let dialogRef = useRef(null)
+
     return (
         <Transition show={visible} as={Fragment}>
             <Dialog
-                initialFocus={initialFocus}
+                ref={dialogRef}
+                initialFocus={initialFocus ?? dialogRef}
                 className={`fixed inset-0 z-20 flex items-center overflow-auto scroll-smooth md:p-6 md:px-4 ${className}`}
                 onClose={() => {
                     if (!preventClose) {

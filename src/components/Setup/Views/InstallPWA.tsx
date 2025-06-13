@@ -7,9 +7,9 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { BeforeInstallPromptEvent, ScreenId } from '@/components/Setup/Setup.types'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { updateUserPreferences, getUserPreferences } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
+import { captureException } from '@sentry/nextjs'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -28,19 +28,40 @@ const InstallPWA = ({
     const { handleNext, isLoading: isSetupFlowLoading } = useSetupFlow()
     const [showModal, setShowModal] = useState(false)
     const [installComplete, setInstallComplete] = useState(false)
-
-    const [isPWAInstalled, setIsPWAInstalled] = useState(() => {
-        if (typeof window === 'undefined') return false
-        const pwaInstalledByMedia = window.matchMedia('(display-mode: standalone)').matches
-        const prefs = getUserPreferences()
-        return pwaInstalledByMedia || !!prefs?.isPwaInstalled
-    })
-
+    const [installCancelled, setInstallCancelled] = useState(false)
+    const [isInstallInProgress, setIsInstallInProgress] = useState(false)
+    const [isPWAInstalled, setIsPWAInstalled] = useState(false)
     const { user } = useAuth()
     const { push } = useRouter()
 
-    const [installCancelled, setInstallCancelled] = useState(false)
-    const [isInstallInProgress, setIsInstallInProgress] = useState(false)
+    useEffect(() => {
+        if (installComplete) {
+            setIsPWAInstalled(true)
+            return
+        }
+        if (typeof window === 'undefined') return
+
+        const checkInstallation = async () => {
+            const pwaInstalledByMedia = window.matchMedia('(display-mode: standalone)').matches
+            if (pwaInstalledByMedia) {
+                setIsPWAInstalled(true)
+                return
+            }
+            const _navigator = window.navigator as Navigator & {
+                getInstalledRelatedApps: () => Promise<
+                    { platform: string; url?: string; id?: string; version?: string }[]
+                >
+            }
+            const installedApps = (await _navigator.getInstalledRelatedApps()) ?? []
+            if (installedApps.length > 0) {
+                setIsPWAInstalled(true)
+            } else {
+                setIsPWAInstalled(false)
+            }
+        }
+
+        checkInstallation()
+    }, [installComplete])
 
     useEffect(() => {
         if (!!user) push('/home')
@@ -50,10 +71,8 @@ const InstallPWA = ({
         const handleAppInstalled = () => {
             setTimeout(() => {
                 setInstallComplete(true)
-                setIsPWAInstalled(true)
                 setIsInstallInProgress(false)
                 setInstallCancelled(false)
-                updateUserPreferences({ isPwaInstalled: true })
             }, 10000) // 10 seconds delay until install is complete
         }
 
@@ -77,7 +96,7 @@ const InstallPWA = ({
     }, [deviceType, screenId])
 
     const handleInstall = useCallback(async () => {
-        if (!deferredPrompt) return
+        if (!deferredPrompt?.prompt) return
         setIsInstallInProgress(true)
         setInstallCancelled(false)
         try {
@@ -89,7 +108,8 @@ const InstallPWA = ({
             }
         } catch (error) {
             console.error('Error during PWA installation prompt:', error)
-            toast.error('PWA installation failed. Please try again.')
+            captureException(error)
+            toast.error(JSON.stringify(deferredPrompt))
             setIsInstallInProgress(false)
         }
     }, [deferredPrompt, toast])
@@ -134,7 +154,7 @@ const InstallPWA = ({
         }
 
         // Scenario 3: Ready to install (or installation was cancelled)
-        if (canInstall && deferredPrompt) {
+        if (canInstall && deferredPrompt?.prompt) {
             return (
                 <div className="flex flex-col items-center gap-4">
                     <Button onClick={handleInstall} disabled={isSetupFlowLoading} className="w-full" shadowSize="4">

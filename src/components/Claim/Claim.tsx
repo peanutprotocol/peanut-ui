@@ -5,7 +5,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'
 import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsDrawer'
-import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { TransactionDetails, REWARD_TOKENS } from '@/components/TransactionDetails/transactionTransformer'
 import * as consts from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
@@ -95,6 +95,8 @@ export const Claim = ({}) => {
             chainId: claimLinkData.chainId,
         })
 
+        const rewardData = REWARD_TOKENS[claimLinkData.tokenAddress.toLowerCase()]
+
         let details: Partial<TransactionDetails> = {
             id: claimLinkData.pubKey,
             status,
@@ -110,6 +112,7 @@ export const Claim = ({}) => {
                 originalType: EHistoryEntryType.SEND_LINK,
                 originalUserRole: EHistoryUserRole.SENDER,
                 link: claimLinkData.link,
+                rewardData,
             },
             userName:
                 claimLinkData.claim?.recipient?.username ?? claimLinkData.claim?.recipientAddress ?? 'Send via Link',

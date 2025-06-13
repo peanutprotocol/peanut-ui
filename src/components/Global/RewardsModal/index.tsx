@@ -12,7 +12,7 @@ import Icon from '../Icon'
 import Modal from '../Modal'
 
 enum REWARD_ASSET_TYPE {
-    'PNT' = 'aleph_pinta_mar_2025_welcome_pnt',
+    'PNT' = 'stable_day_berlin_blockchain_week_2025_1_pnt',
     'USDC' = 'aleph_pinta_mar_2025_welcome_usdc',
     'DEPOSIT' = 'aleph_pinta_mar_2025_deposit_reward_pnt',
 }
@@ -25,7 +25,6 @@ export const RewardDetails = () => {
                 <div className="text-xs font-semibold">Exclusive benefits:</div>
             </div>
             <ul className="list-disc space-y-1 px-4 text-xs">
-                <li className="list-item">You will receive 1 additional beer each week during the event</li>
                 <li className="list-item">Visit our booth to unlock more rewards</li>
             </ul>
         </div>
@@ -49,15 +48,15 @@ export const PartnerBarLocation = ({ text = 'partner bars.' }: { text?: string }
 }
 
 const RewardsModal = () => {
-    const [showModal, setShowModal] = useState<boolean>(true)
+    const [showModal, setShowModal] = useState<boolean>(false)
     const [rewardLinks, setRewardLinks] = useState<RewardLink[]>([])
-    const [error, setError] = useState<string>('')
+    const [activeReward, setActiveReward] = useState<RewardLink | undefined>(undefined)
     const { user } = useAuth()
     const router = useRouter()
 
     // get active reward link (pnt first, then usdc)
     const getActiveReward = () => {
-        return rewardLinks.find((r) => r.assetCode === REWARD_ASSET_TYPE.DEPOSIT)
+        return rewardLinks.find((r) => r.assetCode === REWARD_ASSET_TYPE.PNT)
         /*
         const pntReward = rewardLinks.find((r) => r.assetCode === REWARD_ASSET_TYPE.PNT)
         const usdcReward = rewardLinks.find((r) => r.assetCode === REWARD_ASSET_TYPE.USDC)
@@ -65,20 +64,23 @@ const RewardsModal = () => {
         */
     }
 
-    const activeReward = getActiveReward()
+    useEffect(() => {
+        const activeReward = getActiveReward()
+        setActiveReward(activeReward)
+    }, [rewardLinks])
 
     // get modal content based on active reward
     const getModalContent = () => {
         //TODO: change after aleph event
         return {
-            title: 'Deposit Confirmed!',
+            title: 'Welcome to Peanut!',
             subtitle: (
                 <span>
-                    Here's <span className="font-bold">2 Beers</span> to celebrate your first deposit to your{' '}
+                    Here's <span className="font-bold">a Beer</span> to celebrate your new{' '}
                     <span className="font-bold">Peanut Wallet</span>
                 </span>
             ),
-            ctaText: 'Claim your Beers!',
+            ctaText: 'Claim your Beer!',
         }
         /*
         if (!activeReward) return null
@@ -109,14 +111,17 @@ const RewardsModal = () => {
                 })
                 .catch((_err) => {
                     console.log('rewards api err', _err)
-                    setError('Failed to fetch rewards')
                 })
         }
     }, [user])
 
-    if (!rewardLinks.length || !activeReward) {
-        return null
-    }
+    useEffect(() => {
+        if (!rewardLinks.length || !activeReward) {
+            setShowModal(false)
+        } else {
+            setShowModal(true)
+        }
+    }, [rewardLinks, activeReward])
 
     const modalContent = getModalContent()
 
@@ -139,8 +144,8 @@ const RewardsModal = () => {
                             </div>
                             {activeReward?.assetCode === REWARD_ASSET_TYPE.PNT ? (
                                 <p className="text-xs">
-                                    During Crecimiento, in Buenos Aires, use your Pinta Tokens to enjoy free beers at
-                                    any <PartnerBarLocation />
+                                    During Stablecoin Day at Berlin Blockchain Week, use your Beer Tokens to enjoy free
+                                    beers at the Peanut booth
                                 </p>
                             ) : (
                                 <p className="text-xs">Your seamless crypto experience starts now.</p>

@@ -17,6 +17,8 @@ type ValidatedInputProps = {
     name?: string
     infoText?: string
     formatDisplayValue?: (value: string) => string
+    isSetupFlow?: boolean
+    isInputChanging?: boolean
 }
 
 export type InputUpdate = {
@@ -36,6 +38,8 @@ const ValidatedInput = ({
     name,
     infoText,
     formatDisplayValue,
+    isSetupFlow = false,
+    isInputChanging = false,
 }: ValidatedInputProps) => {
     const [isValid, setIsValid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
@@ -147,9 +151,11 @@ const ValidatedInput = ({
 
     return (
         <div
-            className={`relative w-full border border-n-1 bg-white focus:border-primary-1 dark:border-white ${
-                value && !isValidating && !isValid && debouncedValue === value ? ' border-red dark:border-red' : ''
-            } ${className}`}
+            className={twMerge(
+                'relative w-full border border-n-1 bg-white focus:border-primary-1 dark:border-white',
+                value && !isValidating && !isValid && debouncedValue === value ? ' border-error dark:border-error' : '',
+                className
+            )}
             translate="no"
         >
             <div className="absolute left-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-1">
@@ -195,6 +201,14 @@ const ValidatedInput = ({
                         {isValidating ? (
                             <div className="flex h-full w-12 items-center justify-center dark:bg-n-1">
                                 <Loading />
+                            </div>
+                        ) : !!isSetupFlow && !isValid && !isInputChanging ? (
+                            <div className="mr-2 flex h-full items-center justify-center rounded-full">
+                                <Icon size={20} className="text-secondary-2" name="error" />
+                            </div>
+                        ) : !!isSetupFlow && !!isValid && !isInputChanging ? (
+                            <div className="mr-2 flex size-5 items-center justify-center rounded-full bg-secondary-8">
+                                <Icon size={12} className=" rounded-full p-0 text-white" name="check" />
                             </div>
                         ) : (
                             <button

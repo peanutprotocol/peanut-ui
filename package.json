@@ -39,6 +39,7 @@
         "@safe-global/safe-apps-sdk": "^9.1.0",
         "@sentry/nextjs": "^8.39.0",
         "@serwist/next": "^9.0.10",
+        "@simplewebauthn/browser": "^8.3.7",
         "@squirrel-labs/peanut-sdk": "^0.6.2",
         "@tanstack/react-query": "5.8.4",
         "@typeform/embed-react": "^3.20.0",
