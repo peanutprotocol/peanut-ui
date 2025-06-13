@@ -48,7 +48,7 @@ export default function ConfirmPaymentView({
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
     const chargeIdFromUrl = searchParams.get('chargeId')
-    const { chargeDetails, parsedPaymentData, beerQuantity } = usePaymentStore()
+    const { chargeDetails, parsedPaymentData, beerQuantity, usdAmount } = usePaymentStore()
     const {
         initiatePayment,
         prepareTransactionDetails,
@@ -194,6 +194,20 @@ export default function ConfirmPaymentView({
         return 'arrow-up-right'
     }, [isAddMoneyFlow])
 
+    const amountForDisplay = useMemo(() => {
+        if (usdAmount) {
+            return `$ ${formatAmount(Number(usdAmount))}`
+        }
+        return formatAmount(chargeDetails?.tokenAmount ?? '')
+    }, [usdAmount, chargeDetails?.tokenAmount])
+
+    const symbolForDisplay = useMemo(() => {
+        if (usdAmount) {
+            return ''
+        }
+        return chargeDetails?.tokenSymbol ?? ''
+    }, [usdAmount, chargeDetails?.tokenSymbol])
+
     if (!chargeDetails && !paymentError) {
         return chargeIdFromUrl ? <PeanutLoading /> : null
     }
@@ -290,8 +304,8 @@ export default function ConfirmPaymentView({
                         recipientName={
                             parsedPaymentData.recipient.identifier || chargeDetails?.requestLink?.recipientAddress || ''
                         }
-                        amount={formatAmount(chargeDetails?.tokenAmount ?? '')}
-                        tokenSymbol={chargeDetails?.tokenSymbol ?? ''}
+                        amount={amountForDisplay}
+                        tokenSymbol={symbolForDisplay}
                         message={chargeDetails?.requestLink?.reference ?? ''}
                         fileUrl={chargeDetails?.requestLink?.attachmentUrl ?? ''}
                     />

@@ -21,6 +21,7 @@ const initialState: IPaymentState = {
     resolvedAddress: null,
     error: null,
     beerQuantity: 0,
+    usdAmount: null,
 }
 
 const paymentSlice = createSlice({
@@ -59,6 +60,9 @@ const paymentSlice = createSlice({
         },
         setBeerQuantity: (state, action: PayloadAction<number>) => {
             state.beerQuantity = action.payload
+        },
+        setUsdAmount: (state, action: PayloadAction<string | null>) => {
+            state.usdAmount = action.payload
         },
         resetPaymentState: (state) => {
             return initialState

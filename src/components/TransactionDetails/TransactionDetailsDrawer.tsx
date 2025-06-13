@@ -132,7 +132,9 @@ export const TransactionDetailsReceipt = ({
     // format data for display
     const amountDisplay = transaction.extraDataForDrawer?.rewardData
         ? transaction.extraDataForDrawer.rewardData.formatAmount(transaction.amount)
-        : `$ ${formatAmount(transaction.amount as number)}`
+        : transaction.currency?.amount
+          ? `$ ${formatAmount(Number(transaction.currency.amount))}`
+          : `$ ${formatAmount(transaction.amount as number)}`
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
     // determine if the qr code and sharing section should be shown

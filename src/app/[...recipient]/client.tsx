@@ -24,6 +24,7 @@ import { formatAmount, getInitialsFromName } from '@/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { fetchTokenPrice } from '@/app/actions/tokens'
 
 interface Props {
     recipient: string[]
@@ -34,7 +35,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const isDirectPay = flow === 'direct_pay'
     const isAddMoneyFlow = flow === 'add_money'
     const dispatch = useAppDispatch()
-    const { currentView, parsedPaymentData, chargeDetails, paymentDetails } = usePaymentStore()
+    const { currentView, parsedPaymentData, chargeDetails, paymentDetails, usdAmount } = usePaymentStore()
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
     const [isRequestDetailsFetching, setIsRequestDetailsFetching] = useState(false)
@@ -117,8 +118,23 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         if (chargeId) {
             chargesApi
                 .get(chargeId)
-                .then((charge) => {
+                .then(async (charge) => {
                     dispatch(paymentActions.setChargeDetails(charge))
+
+                    const isCurrencyValueReliable =
+                        charge.currencyCode === 'USD' &&
+                        charge.currencyAmount &&
+                        String(charge.currencyAmount) !== String(charge.tokenAmount)
+
+                    if (isCurrencyValueReliable) {
+                        dispatch(paymentActions.setUsdAmount(Number(charge.currencyAmount).toFixed(2)))
+                    } else {
+                        const priceData = await fetchTokenPrice(charge.tokenAddress, charge.chainId)
+                        if (priceData?.price) {
+                            const usdValue = Number(charge.tokenAmount) * priceData.price
+                            dispatch(paymentActions.setUsdAmount(usdValue.toFixed(2)))
+                        }
+                    }
 
                     // check latest payment status if payments exist
                     if (charge.payments && charge.payments.length > 0) {
@@ -134,7 +150,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     setError(getDefaultError(!!user))
                 })
         }
-    }, [chargeId])
+    }, [chargeId, dispatch, user])
 
     // fetch requests for the recipient only when id is not available in the URL
     useEffect(() => {
@@ -281,6 +297,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             peanutFeeDetails: {
                 amountDisplay: '$ 0.00',
             },
+            currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
         }
 
         if (isAddMoneyFlow) {
@@ -295,7 +312,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
 
         return details as TransactionDetails
-    }, [chargeDetails, user?.user.userId, isAddMoneyFlow, user?.user.username, paymentDetails])
+    }, [chargeDetails, user?.user.userId, isAddMoneyFlow, user?.user.username, usdAmount, paymentDetails])
 
     useEffect(() => {
         if (!transactionForDrawer) return
