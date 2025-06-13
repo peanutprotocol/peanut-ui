@@ -199,6 +199,8 @@ export interface TRequestChargeResponse {
             }
         }
     }
+    currencyAmount?: string
+    currencyCode?: string
 }
 
 // create payment response

@@ -16,4 +16,5 @@ export interface IPaymentState {
     resolvedAddress: string | null
     error: string | null
     beerQuantity: number
+    usdAmount: string | null
 }

@@ -47,7 +47,7 @@ const DirectSuccessView = ({
     redirectTo = '/home',
 }: DirectSuccessViewProps) => {
     const router = useRouter()
-    const { chargeDetails, parsedPaymentData } = usePaymentStore()
+    const { chargeDetails, parsedPaymentData, usdAmount } = usePaymentStore()
     const dispatch = useDispatch()
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
         useTransactionDetailsDrawer()
@@ -75,12 +75,13 @@ const DirectSuccessView = ({
     }, [amount, chargeDetails])
 
     const displayAmount = useMemo(() => {
+        if (usdAmount) return `$ ${formatAmount(Number(usdAmount))}`
         if (currencyAmount) return currencyAmount
         if (!chargeDetails && !!amountValue) return `$ ${formatAmount(amountValue)}`
         return chargeDetails?.tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
             ? `$ ${formatAmount(amountValue)}`
             : `${formatAmount(amountValue)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
-    }, [amountValue, chargeDetails, currencyAmount])
+    }, [amountValue, chargeDetails, currencyAmount, usdAmount])
 
     // construct transaction details for the drawer
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
@@ -97,7 +98,7 @@ const DirectSuccessView = ({
         let details: Partial<TransactionDetails> = {
             id: firstPayment?.payerTransactionHash,
             status: 'completed' as StatusType,
-            amount: parseFloat(amountValue),
+            amount: usdAmount ? Number(usdAmount) : parseFloat(amountValue),
             date: new Date(txTimestamp),
             tokenSymbol: chargeDetails.tokenSymbol,
             direction: 'send', // only showing receipt for send txns
@@ -124,6 +125,7 @@ const DirectSuccessView = ({
             peanutFeeDetails: {
                 amountDisplay: peanutFeeDisplayValue,
             },
+            currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
         }
 
         return details as TransactionDetails
@@ -140,6 +142,7 @@ const DirectSuccessView = ({
         chainIconUrl,
         resolvedChainName,
         resolvedTokenSymbol,
+        usdAmount,
     ])
 
     useEffect(() => {
