@@ -118,48 +118,24 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         if (chargeId) {
             chargesApi
                 .get(chargeId)
-useEffect(() => {
-    if (!chargeId) return
+                .then(async (charge) => {
+                    dispatch(paymentActions.setChargeDetails(charge))
 
-    let stale = false
-    ;(async () => {
-        try {
-            const charge = await chargesApi.get(chargeId)
-            dispatch(paymentActions.setChargeDetails(charge))
+                    const isCurrencyValueReliable =
+                        charge.currencyCode === 'USD' &&
+                        charge.currencyAmount &&
+                        String(charge.currencyAmount) !== String(charge.tokenAmount)
 
-            const isCurrencyValueReliable =
-                charge.currencyCode === 'USD' &&
-                charge.currencyAmount &&
-                String(charge.currencyAmount) !== String(charge.tokenAmount)
+                    if (isCurrencyValueReliable) {
+                        dispatch(paymentActions.setUsdAmount(Number(charge.currencyAmount).toFixed(2)))
+                    } else {
+                        const priceData = await fetchTokenPrice(charge.tokenAddress, charge.chainId)
+                        if (priceData?.price) {
+                            const usdValue = Number(charge.tokenAmount) * priceData.price
+                            dispatch(paymentActions.setUsdAmount(usdValue.toFixed(2)))
+                        }
+                    }
 
-            if (isCurrencyValueReliable) {
-                dispatch(
-                    paymentActions.setUsdAmount(
-                        Number(charge.currencyAmount).toFixed(2)
-                    )
-                )
-            } else {
-                const priceData = await fetchTokenPrice(
-                    charge.tokenAddress,
-                    charge.chainId
-                )
-                if (priceData?.price) {
-                    const usdValue =
-                        Number(charge.tokenAmount) * priceData.price
-                    dispatch(
-                        paymentActions.setUsdAmount(usdValue.toFixed(2))
-                    )
-                }
-            }
-        } catch (err) {
-            if (!stale) setError(getDefaultError(!!user))
-        }
-    })()
-
-    return () => {
-        stale = true
-    }
-}, [chargeId, dispatch, user])
                     // check latest payment status if payments exist
                     if (charge.payments && charge.payments.length > 0) {
                         const latestPayment = charge.payments[charge.payments.length - 1]
