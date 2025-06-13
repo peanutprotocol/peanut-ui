@@ -4,6 +4,7 @@ import { parseUnits, formatUnits } from 'viem'
 
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { fetchWithSentry } from '@/utils'
+import { SQUID_API_URL } from '@/constants'
 
 type TokenInfo = {
     address: Address
@@ -174,7 +175,7 @@ type SquidRouteResponse = {
  * We use this when we fetch the route several times while finding the optimal fromAmount.
  */
 async function getSquidRouteRaw(params: SquidGetRouteParams): Promise<SquidRouteResponse> {
-    const response = await fetchWithSentry(`${process.env.SQUID_API_URL!}/v2/route`, {
+    const response = await fetchWithSentry(`${SQUID_API_URL}/v2/route`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
