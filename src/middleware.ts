@@ -9,7 +9,7 @@ export function middleware(request: NextRequest) {
     // Handle promo link redirection
     if (isPromoLink(url)) {
         const fragment = url.searchParams.toString()
-        const redirectUrl = `https://peanut.to/claim?&${promoList[fragment]}`
+        const redirectUrl = `https://peanut.me/claim?&${promoList[fragment]}`
         return NextResponse.redirect(redirectUrl)
     }
 
