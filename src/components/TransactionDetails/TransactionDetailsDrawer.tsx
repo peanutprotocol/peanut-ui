@@ -206,7 +206,7 @@ export const TransactionDetailsReceipt = ({
                                                     altText={transaction.tokenDisplayDetails.chainName || 'chain'}
                                                     fallbackName={transaction.tokenDisplayDetails.chainName || 'C'}
                                                     sizeClass="h-3.5 w-3.5"
-                                                    className="dark:border-grey-4 rounded-full border-2 border-white"
+                                                    className="rounded-full border-2 border-white dark:border-grey-4"
                                                 />
                                             </div>
                                         )}
@@ -346,7 +346,7 @@ export const TransactionDetailsReceipt = ({
             )}
 
             {isPendingSentLink && !shouldShowQrShare && (
-                <div className="text-grey-1 flex items-center justify-center gap-1.5 text-center text-xs font-semibold">
+                <div className="flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-grey-1">
                     <Icon name="info" size={20} />
                     Use the device where you created it to cancel or re-share this link.
                 </div>
@@ -437,7 +437,7 @@ export const TransactionDetailsReceipt = ({
             {/* support link section */}
             <Link
                 href={'/support'}
-                className="text-grey-1 flex items-center justify-center gap-2 text-sm font-medium underline transition-colors hover:text-black"
+                className="flex items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
             >
                 <Icon name="peanut-support" size={16} className="text-grey-1" />
                 Issues with this transaction?
