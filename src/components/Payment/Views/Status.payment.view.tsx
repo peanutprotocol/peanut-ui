@@ -181,7 +181,7 @@ const DirectSuccessView = ({
                     <div className="flex items-center gap-3">
                         <div
                             className={
-                                'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
+                                'bg-success-3 flex h-12 w-12 min-w-12 items-center justify-center rounded-full font-bold'
                             }
                         >
                             <Icon name="check" size={24} />
@@ -189,13 +189,13 @@ const DirectSuccessView = ({
                     </div>
 
                     <div className="space-y-1">
-                        <h1 className="text-sm font-normal text-grey-1">
+                        <h1 className="text-grey-1 text-sm font-normal">
                             {getTitle()}
                             {!isAddMoneyFlow &&
                                 !isWithdrawFlow &&
                                 (recipientType !== 'USERNAME' ? (
                                     <AddressLink
-                                        className="text-sm font-normal text-grey-1 no-underline"
+                                        className="text-grey-1 text-sm font-normal no-underline"
                                         address={recipientName}
                                     />
                                 ) : (
@@ -204,7 +204,7 @@ const DirectSuccessView = ({
                         </h1>
                         <h2 className="text-2xl font-extrabold">{displayAmount}</h2>
                         {message && (
-                            <p className="text-sm font-medium text-grey-1">
+                            <p className="text-grey-1 text-sm font-medium">
                                 {isWithdrawFlow ? 'to' : 'for'} {message}
                             </p>
                         )}
