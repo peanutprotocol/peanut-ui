@@ -22,9 +22,10 @@ import {
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 export default function WithdrawCryptoPage() {
+    const resetTimerRef = useRef<NodeJS.Timeout | null>(null)
     const router = useRouter()
     const dispatch = useAppDispatch()
     const { chargeDetails: activeChargeDetailsFromStore } = usePaymentStore()
@@ -183,13 +184,44 @@ export default function WithdrawCryptoPage() {
 
         if (result.success && result.txHash) {
             setCurrentView('STATUS')
+
+            // reset the entire withdraw flow after successful payment
+            resetTimerRef.current = setTimeout(() => {
+                setAmountToWithdraw('')
+                setWithdrawData(null)
+                setCurrentView('INITIAL')
+
+                // clear any errors
+                setPaymentError(null)
+                dispatch(paymentActions.setError(null))
+
+                // clear charge details
+                dispatch(paymentActions.setChargeDetails(null))
+            }, 3000) // wait 3 seconds to show success status before resetting
         } else {
             console.error('Withdrawal execution failed:', result.error)
             const errMsg = result.error || 'Withdrawal processing failed.'
             setPaymentError(errMsg)
             dispatch(paymentActions.setError(errMsg))
         }
-    }, [activeChargeDetailsFromStore, withdrawData, amountToWithdraw, dispatch, initiatePayment, setCurrentView])
+    }, [
+        activeChargeDetailsFromStore,
+        withdrawData,
+        amountToWithdraw,
+        dispatch,
+        initiatePayment,
+        setCurrentView,
+        setAmountToWithdraw,
+        setWithdrawData,
+        setPaymentError,
+    ])
+
+    useEffect(
+        () => () => {
+            if (resetTimerRef.current) clearTimeout(resetTimerRef.current)
+        },
+        []
+    )
 
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')
