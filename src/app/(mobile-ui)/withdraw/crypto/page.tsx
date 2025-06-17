@@ -22,9 +22,10 @@ import {
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 export default function WithdrawCryptoPage() {
+    const resetTimerRef = useRef<NodeJS.Timeout | null>(null)
     const router = useRouter()
     const dispatch = useAppDispatch()
     const { chargeDetails: activeChargeDetailsFromStore } = usePaymentStore()
@@ -185,7 +186,7 @@ export default function WithdrawCryptoPage() {
             setCurrentView('STATUS')
 
             // reset the entire withdraw flow after successful payment
-            setTimeout(() => {
+            resetTimerRef.current = setTimeout(() => {
                 setAmountToWithdraw('')
                 setWithdrawData(null)
                 setCurrentView('INITIAL')
@@ -214,6 +215,13 @@ export default function WithdrawCryptoPage() {
         setWithdrawData,
         setPaymentError,
     ])
+
+    useEffect(
+        () => () => {
+            if (resetTimerRef.current) clearTimeout(resetTimerRef.current)
+        },
+        []
+    )
 
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')
