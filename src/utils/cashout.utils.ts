@@ -1,10 +1,8 @@
 import * as consts from '@/constants'
-import * as interfaces from '@/interfaces'
 import { areEvmAddressesEqual, fetchWithSentry } from '@/utils'
-import * as Sentry from '@sentry/nextjs'
-import { generateKeysFromString, getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
-import countries from 'i18n-iso-countries'
+import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { parseUnits } from 'viem'
+import { isIBAN } from 'validator'
 
 const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
 
@@ -33,57 +31,6 @@ export const convertPersonaUrl = (url: string) => {
     const origin = encodeURIComponent(isInAllowedFrame() ? new URL(document.referrer).origin : window.location.origin)
 
     return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=${origin}&fields[developer_id]=${developerId}&reference-id=${referenceId}`
-}
-
-const fetchUser = async (accountIdentifier: string): Promise<any> => {
-    const response = await fetchWithSentry(`/api/peanut/user/fetch-user?accountIdentifier=${accountIdentifier}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    })
-
-    if (response.status === 404) {
-        return undefined
-    }
-
-    const data = await response.json()
-    return data
-}
-
-const createUser = async (
-    bridgeCustomerId: string,
-    email: string,
-    fullName: string,
-    physicalAddress?: {
-        street_line_1: string
-        city: string
-        country: string
-        state: string
-        postal_code: string
-    },
-    userDetails?: any
-): Promise<any> => {
-    const response = await fetchWithSentry('/api/peanut/user/create-user', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            bridgeCustomerId,
-            email,
-            fullName,
-            physicalAddress,
-            userDetails,
-        }),
-    })
-
-    if (!response.ok) {
-        throw new Error('Failed to create user')
-    }
-
-    const data = await response.json()
-    return data
 }
 
 export const createAccount = async (
@@ -117,22 +64,6 @@ export const createAccount = async (
     return data
 }
 
-async function fetchApi(url: string, method: string, body?: any): Promise<any> {
-    const response = await fetchWithSentry(url, {
-        method,
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: body ? JSON.stringify(body) : undefined,
-    })
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch data from ${url}`)
-    }
-
-    return await response.json()
-}
-
 export type KYCStatus = 'not_started' | 'under_review' | 'approved' | 'rejected' | 'incomplete'
 
 export type GetUserLinksResponse = {
@@ -148,168 +79,6 @@ export type GetUserLinksResponse = {
     created_at: string
     customer_id: string
     persona_inquiry_type: string
-}
-
-export async function getUserLinks({
-    full_name,
-    email,
-}: {
-    full_name: string
-    email: string
-}): Promise<GetUserLinksResponse> {
-    console.log('getUserLinks input:', { full_name, email })
-
-    if (!full_name?.trim() || !email?.trim()) {
-        console.error('Invalid input:', { full_name, email })
-        throw new Error('Name and email are required')
-    }
-
-    const response = await fetchApi('/api/bridge/user/new/get-links', 'POST', {
-        type: 'individual',
-        full_name: full_name.trim(),
-        email: email.trim(),
-    })
-
-    console.log('getUserLinks response:', response)
-
-    if (!response.id) {
-        throw new Error('Failed to create Bridge customer')
-    }
-
-    // ensure we have a customer_id
-    if (!response.customer_id) {
-        console.error('No customer_id in response:', response)
-        throw new Error('Failed to get customer ID')
-    }
-
-    return response
-}
-
-export async function getStatus(userId: string, type: string) {
-    return await fetchApi('/api/bridge/user/new/get-status', 'POST', {
-        userId,
-        type,
-    })
-}
-
-export async function getCustomer(customerId: string) {
-    return await fetchApi('/api/bridge/get-user-by-id', 'POST', {
-        customerId,
-    })
-}
-
-async function getExternalAccounts(customerId: string) {
-    return await fetchApi('/api/bridge/external-account/get-all-for-customerId', 'POST', {
-        customerId,
-    })
-}
-
-export async function awaitStatusCompletion(
-    userId: string,
-    type: string,
-    initialStatus: string,
-    link: string,
-    setTosLinkOpened: Function,
-    setKycLinkOpened: Function,
-    tosLinkOpened: boolean,
-    kycLinkOpened: boolean
-) {
-    let status = initialStatus
-
-    while (status !== 'approved') {
-        const statusData = await getStatus(userId, type)
-        status = statusData[`${type}_status`]
-
-        if (status === 'under_review') {
-            if (type === 'tos') throw new Error('TOS_UNDER_REVIEW')
-            else if (type === 'kyc') throw new Error('KYC_UNDER_REVIEW')
-        } else if (status !== 'approved') {
-            await new Promise((resolve) => setTimeout(resolve, 5000)) // wait 5 seconds before checking again
-        }
-    }
-}
-
-export async function createExternalAccount(
-    customerId: string,
-    accountType: 'iban' | 'us',
-    accountDetails: any,
-    address: any,
-    accountOwnerName: string
-): Promise<interfaces.IResponse> {
-    try {
-        const response = await fetchWithSentry(
-            `/api/bridge/external-account/create-external-account?customerId=${customerId}`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    accountType,
-                    accountDetails,
-                    address: address ? address : {},
-                    accountOwnerName,
-                }),
-            }
-        )
-
-        const responseData = await response.json()
-
-        if (!response.ok) {
-            try {
-                if (responseData.code && responseData.code === 'duplicate_external_account') {
-                    // if bridge account already exists, fetch existing accounts
-                    const allAccounts = await fetchWithSentry(`/api/bridge/external-account/get-all-for-customerId`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            customerId,
-                        }),
-                    })
-
-                    const accounts = await allAccounts.json()
-                    // find matching account based on account details
-                    const existingAccount = accounts.find((account: interfaces.IBridgeAccount) => {
-                        if (accountType === 'iban') {
-                            return (
-                                account.account_details.type === 'iban' &&
-                                account.account_details.last_4 === accountDetails.accountNumber.slice(-4)
-                            )
-                        } else {
-                            return (
-                                account.account_details.type === 'us' &&
-                                account.account_details.last_4 === accountDetails.accountNumber.slice(-4) &&
-                                account.account_details.routing_number === accountDetails.routingNumber
-                            )
-                        }
-                    })
-
-                    if (!existingAccount) {
-                        throw new Error('Could not find matching existing account')
-                    }
-
-                    return {
-                        success: true,
-                        data: existingAccount,
-                    } as interfaces.IResponse
-                }
-            } catch (error) {
-                console.error('Error creating external account', response)
-                throw new Error('Unexpected error')
-            }
-        }
-
-        return {
-            success: true,
-            data: responseData,
-        } as interfaces.IResponse
-    } catch (error) {
-        console.error('Error:', error)
-        Sentry.captureException(error)
-        throw new Error(`Failed to create external account. Error: ${error}`)
-    }
 }
 
 export const validateAccountFormData = async (formData: any, setAccountFormError: any) => {
@@ -363,144 +132,8 @@ export const validateAccountFormData = async (formData: any, setAccountFormError
     return isValid
 }
 
-export async function createLiquidationAddress(
-    customerId: string,
-    chainName: string,
-    tokenName: string,
-    externalAccountId: string,
-    destinationPaymentRail: string,
-    destinationCurrency: string
-): Promise<interfaces.IBridgeLiquidationAddress> {
-    try {
-        // First, try to find an existing liquidation address
-        const existingAddresses = await getLiquidationAddresses(customerId)
-        const existingAddress = existingAddresses.find(
-            (address) =>
-                address.chain === chainName &&
-                address.currency === tokenName &&
-                address.external_account_id === externalAccountId &&
-                address.destination_payment_rail === destinationPaymentRail &&
-                address.destination_currency === destinationCurrency
-        )
-
-        if (existingAddress) {
-            console.log('Found existing liquidation address:', existingAddress)
-            return existingAddress
-        }
-
-        // If no existing address found, create a new one
-        const response = await fetchWithSentry('/api/bridge/liquidation-address/create', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                customer_id: customerId,
-                chain: chainName,
-                currency: tokenName,
-                external_account_id: externalAccountId,
-                destination_payment_rail: destinationPaymentRail,
-                destination_currency: destinationCurrency,
-            }),
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-            console.error('Failed to create liquidation address:', data)
-
-            // Handle the case where the external account doesn't belong to this customer
-            if (data.error === 'external_account_mismatch') {
-                console.log('External account mismatch, fetching correct account...')
-                // We need to fetch the correct external account for this customer
-                const accountsResponse = await fetchWithSentry(`/api/bridge/external-account/get-all-for-customerId`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        customerId,
-                    }),
-                })
-
-                if (!accountsResponse.ok) {
-                    throw new Error('Failed to fetch customer accounts')
-                }
-
-                const accountsResponseData = await accountsResponse.json()
-
-                const accountsData = accountsResponseData.data
-
-                // Ensure we have an array of accounts
-                if (!Array.isArray(accountsData)) {
-                    console.error('Unexpected accounts response:', accountsData)
-                    throw new Error('Invalid accounts data received')
-                }
-
-                // Find a matching account by type
-                const matchingAccount = accountsData.find((account: interfaces.IBridgeAccount) => {
-                    console.log('Checking account:', account)
-                    return account.account_type === (destinationPaymentRail === 'sepa' ? 'iban' : 'us')
-                })
-
-                if (!matchingAccount) {
-                    throw new Error('No matching account found for this customer')
-                }
-
-                console.log('Found matching account:', matchingAccount.id)
-
-                // Try creating the liquidation address again with the correct external account ID
-                return await createLiquidationAddress(
-                    customerId,
-                    chainName,
-                    tokenName,
-                    matchingAccount.id,
-                    destinationPaymentRail,
-                    destinationCurrency
-                )
-            }
-
-            throw new Error(data.error || `Failed to create liquidation address: ${data.details || response.status}`)
-        }
-
-        return data as interfaces.IBridgeLiquidationAddress
-    } catch (error) {
-        console.error('Error in createLiquidationAddress:', error)
-        Sentry.captureException(error)
-        throw error instanceof Error ? error : new Error('Failed to create liquidation address')
-    }
-}
-
-export const getLiquidationAddresses = async (customerId: string): Promise<interfaces.IBridgeLiquidationAddress[]> => {
-    const response = await fetchWithSentry(`/api/bridge/liquidation-address/get-all?customerId=${customerId}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    })
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch liquidation addresses')
-    }
-
-    const data: interfaces.IBridgeLiquidationAddress[] = await response.json()
-    console.log(`successfully fetched liquidation addresses: ${data}`)
-    return data
-}
-
-export function getThreeCharCountryCodeFromIban(iban: string): string {
-    if (!iban || typeof iban !== 'string' || iban.length < 2) {
-        throw new Error('Invalid IBAN')
-    }
-
-    const twoCharCountryCode = iban.substring(0, 2).toUpperCase()
-    const threeCharCountryCode = countries.alpha2ToAlpha3(twoCharCountryCode)
-
-    if (!threeCharCountryCode) {
-        throw new Error('Invalid country code in IBAN')
-    }
-
-    return threeCharCountryCode
+export async function validateIban(iban: string): Promise<boolean> {
+    return isIBAN(iban)
 }
 
 export function getBridgeTokenName(chainId: string, tokenAddress: string): string | undefined {
@@ -514,18 +147,6 @@ export function getBridgeTokenName(chainId: string, tokenAddress: string): strin
 
 export function getBridgeChainName(chainId: string): string | undefined {
     const chain = consts.supportedBridgeChainsDictionary.find((chain) => chain.chainId === chainId)?.chain
-    return chain ?? undefined
-}
-
-export function getTokenAddressFromBridgeTokenName(chainId: string, tokenName: string): string | undefined {
-    const token = consts.supportedBridgeTokensDictionary
-        .find((chain) => chain.chainId === chainId)
-        ?.tokens.find((token) => token.token === tokenName.toLowerCase())?.address
-
-    return token ?? undefined
-}
-export function getChainIdFromBridgeChainName(chainName: string): string | undefined {
-    const chain = consts.supportedBridgeChainsDictionary.find((chain) => chain.chain === chainName)?.chainId
     return chain ?? undefined
 }
 
@@ -563,54 +184,6 @@ async function validateBic(bic: string): Promise<boolean> {
         return false
     } else {
         return true
-    }
-}
-
-export async function submitCashoutLink(data: {
-    link: string
-    bridgeCustomerId: string
-    liquidationAddressId: string
-    cashoutTransactionHash: string
-    externalAccountId: string
-    chainId: string
-    tokenName: string
-    promoCode?: string
-    trackParam?: string
-}) {
-    const fragment = data.link.split('#')[1]
-    const password = new URLSearchParams(fragment).get('p')!
-    const { address: pubKey } = generateKeysFromString(password)
-
-    try {
-        const response = await fetchWithSentry('/api/peanut/submit-cashout-link', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                bridgeCustomerId: data.bridgeCustomerId,
-                liquidationAddressId: data.liquidationAddressId,
-                cashoutTransactionHash: data.cashoutTransactionHash,
-                // note: this externalAccountId is the account_id, not bridge_account_id, passing the bridge_account_id will result in a error
-                // todo: rename this field in backend
-                externalAccountId: data.externalAccountId,
-                chainId: data.chainId,
-                tokenName: data.tokenName,
-                pubKey,
-                promoCode: data.promoCode,
-                trackParam: data.trackParam,
-            }),
-        })
-
-        if (!response.ok) {
-            throw new Error(`Failed to submit cashout link, status: ${response.status}`)
-        }
-
-        const result = await response.json()
-        return result
-    } catch (error) {
-        console.error('Error in submitCashoutLink:', error)
-        throw error
     }
 }
 
@@ -664,33 +237,6 @@ export const CashoutStatusDescriptions: { [key in CashoutStatus]: string } = {
     CANCELED: 'The transaction has been canceled by the user or system.',
     ERROR: 'An error occurred during the cashout process.',
     RETURNED: 'The funds have been returned to the original account or address.',
-}
-
-export async function getCashoutStatus(link: string): Promise<CashoutTransaction> {
-    try {
-        // Extract pubKey from the link
-        const fragment = link.split('#')[1]
-        const password = new URLSearchParams(fragment).get('p')!
-        const { address: pubKey } = generateKeysFromString(password)
-
-        const response = await fetchWithSentry('/api/peanut/get-cashout-status', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ pubKey }),
-        })
-
-        if (!response.ok) {
-            throw new Error(`Failed to get cashout status, status: ${response.status}`)
-        }
-
-        const result = await response.json()
-        return result
-    } catch (error) {
-        console.error('Error in getCashoutStatus:', error)
-        throw error
-    }
 }
 
 export const fetchRouteRaw = async (
