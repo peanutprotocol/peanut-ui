@@ -24,7 +24,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
 import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
-import { KycStatusItem } from '@/components/Kyc/KycStatusItem'
+// import { KycStatusItem } from '@/components/Kyc/KycStatusItem'
 
 export default function Home() {
     const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
@@ -163,8 +163,8 @@ export default function Home() {
                     />
                 </div>
 
-                {/* <InitiateKYCModal isOpen={true} onClose={() => {}} /> */}
-                <KycStatusItem />
+                {/* todo: @dev render this history items */}
+                {/* <KycStatusItem /> */}
                 <HomeHistory username={username ?? undefined} />
                 <RewardsModal />
 
