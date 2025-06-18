@@ -207,11 +207,12 @@ export interface IBridgeAccount {
     account_details: IBridgeIbanDetails | IBridgeUsAccountDetails
 }
 
-interface IBridgeIbanDetails {
+export interface IBridgeIbanDetails {
     type: 'iban'
     last_4: string
     bic: string
     country: string
+    routing_number: string
 }
 
 interface IBridgeUsAccountDetails {
@@ -315,10 +316,14 @@ interface User {
     profile_picture: string | null
     username: string | null
     kycStatus: KYCStatus
+    kycStartedAt?: string
+    kycApprovedAt?: string
+    kycRejectedAt?: string
     bridge_customer_id: string | null
     full_name: string
     telegram: string | null
     hasPwAccess: boolean
+    accounts: Account[]
 }
 
 // based on the API's AccountType
@@ -355,10 +360,11 @@ export type ChainIdType =
 export interface Account {
     account_id: string
     user_id: string
-    bridge_account_id: string
+    bridge_account_id: string | null
     account_type: AccountType
+    type: AccountType
     account_identifier: string
-    account_details: string
+    account_details: string | { [key: string]: any } | null
     created_at: string
     updated_at: string
     points: number
@@ -366,10 +372,39 @@ export interface Account {
     referred_users_points: number
     totalReferralPoints: number
     chain_id: ChainIdType
+    bic?: string
+    routing_number?: string
     connector?: {
         iconUrl: string
         name: string
     }
+}
+
+// @dev note, redeclaring this interface cuz they keys are mismatched in differnet accounts object, this needs to be consistent
+export interface TAccount {
+    id: string
+    userId: string
+    bridgeAccountId: string
+    type: AccountType
+    identifier: string
+    details: {
+        bankName: string | null
+        accountOwnerName: string
+        countryCode: string
+        countryName: string
+    }
+    createdAt: string
+    updatedAt: string
+    points: number
+    referrerAddress: string | null
+    referredUsersPoints: number
+    chainId: string | null
+    connectorUuid: string | null
+    bic: string | null
+    routingNumber: string | null
+    connector: null
+    transactions: Transaction[]
+    referrals: ReferralConnection[]
 }
 
 export interface IUserProfile {

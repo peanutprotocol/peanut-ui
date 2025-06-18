@@ -3,7 +3,6 @@ import * as onchainViews from './Onchain'
 import { InitialClaimLinkView } from './Initial.view'
 import * as _consts from '../Claim.consts'
 import * as interfaces from '@/interfaces'
-import { OfframpSuccessView, OfframpConfirmView } from '@/components/Offramp'
 import {
     IOfframpSuccessScreenProps,
     OfframpType,
@@ -23,10 +22,9 @@ const FlowManager = ({
 }) => {
     const viewComponents: _consts.IFlowManagerClaimComponents = {
         INITIAL: InitialClaimLinkView,
-        CONFIRM:
-            recipientType !== 'iban' && recipientType !== 'us' ? onchainViews.ConfirmClaimLinkView : OfframpConfirmView,
-        SUCCESS:
-            recipientType !== 'iban' && recipientType !== 'us' ? onchainViews.SuccessClaimLinkView : OfframpSuccessView,
+        // todo: @dev note, handle bank claims in links-v2 project
+        CONFIRM: onchainViews.ConfirmClaimLinkView,
+        SUCCESS: onchainViews.SuccessClaimLinkView,
     }
 
     let componentProps: ClaimPropsType = props

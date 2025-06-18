@@ -267,3 +267,28 @@ export type RewardLink = {
         name: string
     }
 }
+
+// offramp service types
+export interface TCreateOfframpRequest {
+    amount: string
+    developer_fee: string
+    onBehalfOf: string
+    source: {
+        paymentRail: string
+        currency: string
+        fromAddress?: string
+    }
+    destination: {
+        paymentRail: string
+        currency: string
+        externalAccountId: string
+    }
+}
+
+export interface TCreateOfframpResponse {
+    transferId: string
+    depositInstructions: {
+        toAddress: string
+        blockchainMemo?: string
+    }
+}

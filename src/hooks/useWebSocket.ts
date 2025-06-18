@@ -8,23 +8,33 @@ interface UseWebSocketOptions {
     autoConnect?: boolean
     username?: string
     onHistoryEntry?: (entry: HistoryEntry) => void
+    onKycStatusUpdate?: (status: string) => void
     onConnect?: () => void
     onDisconnect?: () => void
     onError?: (error: Event) => void
 }
 
 export const useWebSocket = (options: UseWebSocketOptions = {}) => {
-    const { autoConnect = true, username, onHistoryEntry, onConnect, onDisconnect, onError } = options
+    const {
+        autoConnect = true,
+        username,
+        onHistoryEntry,
+        onKycStatusUpdate,
+        onConnect,
+        onDisconnect,
+        onError,
+    } = options
 
     const [status, setStatus] = useState<WebSocketStatus>('disconnected')
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([])
     const wsRef = useRef<PeanutWebSocket | null>(null)
-    const callbacksRef = useRef({ onHistoryEntry, onConnect, onDisconnect, onError })
 
-    // Update callbacks ref when props change
+    const callbacksRef = useRef({ onHistoryEntry, onKycStatusUpdate, onConnect, onDisconnect, onError })
+
+    // Update callbacks ref when
     useEffect(() => {
-        callbacksRef.current = { onHistoryEntry, onConnect, onDisconnect, onError }
-    }, [onHistoryEntry, onConnect, onDisconnect, onError])
+        callbacksRef.current = { onHistoryEntry, onKycStatusUpdate, onConnect, onDisconnect, onError }
+    }, [onHistoryEntry, onKycStatusUpdate, onConnect, onDisconnect, onError])
 
     // Connect to WebSocket
     const connect = useCallback(() => {
@@ -91,11 +101,21 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             }
         }
 
+        const handleKycStatusUpdate = (data: { status: string }) => {
+            console.log(`[WebSocket] Received 'kyc_status_update' for user: ${username}`, data)
+            if (callbacksRef.current.onKycStatusUpdate) {
+                callbacksRef.current.onKycStatusUpdate(data.status)
+            } else {
+                console.log(`[WebSocket] No onKycStatusUpdate callback registered for user: ${username}`)
+            }
+        }
+
         // Register event handlers
         ws.on('connect', handleConnect)
         ws.on('disconnect', handleDisconnect)
         ws.on('error', handleError)
         ws.on('history_entry', handleHistoryEntry)
+        ws.on('kyc_status_update', handleKycStatusUpdate)
 
         // Auto-connect if enabled
         if (autoConnect) {
@@ -108,6 +128,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             ws.off('disconnect', handleDisconnect)
             ws.off('error', handleError)
             ws.off('history_entry', handleHistoryEntry)
+            ws.off('kyc_status_update', handleKycStatusUpdate)
         }
     }, [autoConnect, connect, username])
 

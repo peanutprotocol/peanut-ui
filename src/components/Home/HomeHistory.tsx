@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Card, { CardPosition, getCardPosition } from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'
+import { KycStatusItem } from '../Kyc/KycStatusItem'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -142,11 +143,12 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                 <h2 className="text-base font-bold">Latest Transactions</h2>
             ) : (
                 <Link href="/history" className="flex items-center justify-between">
-                    <h2 className="text-base font-bold">Transactions</h2>
+                    <h2 className="text-base font-bold">Activity</h2>
                     <Icon width={30} height={30} name="arrow-next" />
                 </Link>
             )}
             {/* container for the transaction cards */}
+            <KycStatusItem position={combinedEntries.length > 0 ? 'first' : 'single'} />
             <div className="h-full w-full">
                 {/* map over the latest entries and render transactioncard */}
                 {combinedEntries
