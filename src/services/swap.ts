@@ -1,9 +1,10 @@
 'use server'
 import type { Address, Hash, Hex } from 'viem'
-import { parseUnits, formatUnits } from 'viem'
+import { parseUnits, formatUnits, encodeFunctionData, erc20Abi } from 'viem'
 
-import { fetchTokenPrice } from '@/app/actions/tokens'
-import { fetchWithSentry } from '@/utils'
+import { fetchTokenPrice, estimateTransactionCostUsd } from '@/app/actions/tokens'
+import { getPublicClient, type ChainId } from '@/app/actions/clients'
+import { fetchWithSentry, isNativeCurrency } from '@/utils'
 import { SQUID_API_URL } from '@/constants'
 
 type TokenInfo = {
@@ -171,6 +172,71 @@ type SquidRouteResponse = {
 }
 
 /**
+ * Check current allowance for a token
+ */
+async function checkTokenAllowance(
+    tokenAddress: Address,
+    ownerAddress: Address,
+    spenderAddress: Address,
+    chainId: string
+): Promise<bigint> {
+    const client = await getPublicClient(Number(chainId) as ChainId)
+
+    const allowance = await client.readContract({
+        address: tokenAddress,
+        abi: erc20Abi,
+        functionName: 'allowance',
+        args: [ownerAddress, spenderAddress],
+    })
+
+    return allowance
+}
+
+/**
+ * Create an approve transaction
+ */
+function createApproveTransaction(
+    tokenAddress: Address,
+    spenderAddress: Address,
+    amount: bigint
+): { to: Address; data: Hex; value: string } {
+    const data = encodeFunctionData({
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [spenderAddress, amount],
+    })
+
+    return {
+        to: tokenAddress,
+        data,
+        value: '0',
+    }
+}
+
+/**
+ * Estimate gas cost for approve transaction in USD
+ */
+async function estimateApprovalCostUsd(
+    tokenAddress: Address,
+    spenderAddress: Address,
+    amount: bigint,
+    fromAddress: Address,
+    chainId: string
+): Promise<number> {
+    const estimateCost = await estimateTransactionCostUsd(
+        fromAddress,
+        tokenAddress,
+        encodeFunctionData({
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [spenderAddress, amount],
+        }),
+        chainId
+    )
+    return estimateCost
+}
+
+/**
  * Fetch the route from the squid API.
  * We use this when we fetch the route several times while finding the optimal fromAmount.
  */
@@ -202,20 +268,33 @@ async function getSquidRouteRaw(params: SquidGetRouteParams): Promise<SquidRoute
 async function findOptimalFromAmount(
     params: Omit<SquidGetRouteParams, 'fromAmount'>,
     targetToAmount: bigint,
-    toTokenPrice?: { price: number; decimals: number }
+    _toTokenPrice?: { price: number; decimals: number }
 ): Promise<SquidRouteResponse> {
     // Only fetch if not provided
-    const tokenPrice = toTokenPrice || (await fetchTokenPrice(params.toToken, params.toChain))
-    if (!tokenPrice) throw new Error('Could not fetch to token price')
+    const [toTokenPrice, fromTokenPrice] = await Promise.all([
+        _toTokenPrice ? Promise.resolve(_toTokenPrice) : fetchTokenPrice(params.toToken, params.toChain),
+        fetchTokenPrice(params.fromToken, params.fromChain),
+    ])
+    if (!toTokenPrice) throw new Error('Could not fetch to token price')
+    if (!fromTokenPrice) throw new Error('Could not fetch from token price')
 
-    const targetUsd = Number(formatUnits(targetToAmount, tokenPrice.decimals)) * tokenPrice.price
+    const targetUsd = Number(formatUnits(targetToAmount, toTokenPrice.decimals)) * toTokenPrice.price
+    const initialFromAmount = parseUnits((targetUsd / fromTokenPrice.price).toString(), fromTokenPrice.decimals)
+    console.info('findOptimalFromAmount', { params, targetToAmount, toTokenPrice, targetUsd })
 
     // Dynamic tolerances based on USD amount
     // This is needed because for different quantities the slippage is different
     // for example 0.4% of 10 USD is different than 0.4% of 1000 USD
     let maxOverage: number
     let rangeMultiplier: { low: number; high: number }
-    if (targetUsd < 10) {
+    if (targetUsd < 0.1) {
+        // Really small amounts, mainly used for testing
+        maxOverage = 0.05 // 5%
+        rangeMultiplier = { low: 0.945, high: 1.15 }
+    } else if (targetUsd < 1) {
+        maxOverage = 0.01 // 1%
+        rangeMultiplier = { low: 0.985, high: 1.03 }
+    } else if (targetUsd < 10) {
         maxOverage = 0.005 // 0.5%
         rangeMultiplier = { low: 0.9925, high: 1.015 }
     } else if (targetUsd < 1000) {
@@ -226,8 +305,8 @@ async function findOptimalFromAmount(
         rangeMultiplier = { low: 0.995, high: 1.01 }
     }
 
-    let lowBound = (targetToAmount * BigInt(Math.floor(rangeMultiplier.low * 10000))) / 10000n
-    let highBound = (targetToAmount * BigInt(Math.floor(rangeMultiplier.high * 10000))) / 10000n
+    let lowBound = (initialFromAmount * BigInt(Math.floor(rangeMultiplier.low * 10000))) / 10000n
+    let highBound = (initialFromAmount * BigInt(Math.floor(rangeMultiplier.high * 10000))) / 10000n
 
     let bestResult: { response: SquidRouteResponse; overage: number } | null = null
     let iterations = 0
@@ -240,10 +319,11 @@ async function findOptimalFromAmount(
 
         try {
             const response = await getSquidRouteRaw(testParams)
-            const receivedAmount = BigInt(response.route.estimate.toAmount)
-            iterations++
-
+            const receivedAmount = BigInt(response.route.estimate.toAmountMin)
+            console.log('receivedAmount', receivedAmount)
+            console.log('targetToAmount', targetToAmount)
             if (receivedAmount >= targetToAmount) {
+                iterations++
                 const diff = receivedAmount - targetToAmount
                 const target = targetToAmount
 
@@ -282,6 +362,7 @@ async function findOptimalFromAmount(
 export type PeanutCrossChainRoute = {
     expiry: string
     type: 'swap' | 'rfq'
+    fromAmount: string
     transactions: {
         to: Address
         data: Hex
@@ -307,6 +388,8 @@ export type PeanutCrossChainRoute = {
 export async function getRoute({ from, to, ...amount }: RouteParams): Promise<PeanutCrossChainRoute> {
     let fromAmount: string
     let response: SquidRouteResponse
+
+    console.info('getRoute', { from, to }, amount)
 
     if (amount.fromAmount) {
         fromAmount = amount.fromAmount.toString()
@@ -379,28 +462,91 @@ export async function getRoute({ from, to, ...amount }: RouteParams): Promise<Pe
 
     const route = response.route
 
-    const feeCostsUsd = [...route.estimate.feeCosts, ...route.estimate.gasCosts].reduce(
+    let feeCostsUsd = [...route.estimate.feeCosts, ...route.estimate.gasCosts].reduce(
         (sum, cost) => sum + Number(cost.amountUsd),
         0
     )
 
-    return {
+    const transactions: {
+        to: Address
+        data: Hex
+        value: string
+        feeOptions: {
+            gasLimit: string
+            maxFeePerGas: string
+            maxPriorityFeePerGas: string
+            gasPrice: string
+        }
+    }[] = []
+
+    // Check if approval is needed for non-native tokens
+    if (!isNativeCurrency(from.tokenAddress)) {
+        const fromAmount = BigInt(route.estimate.fromAmount)
+        const spenderAddress = route.transactionRequest.target
+
+        try {
+            const currentAllowance = await checkTokenAllowance(
+                from.tokenAddress,
+                from.address,
+                spenderAddress,
+                from.chainId
+            )
+
+            // If current allowance is insufficient, create approve transaction
+            if (currentAllowance < fromAmount) {
+                const approveTransaction = createApproveTransaction(from.tokenAddress, spenderAddress, fromAmount)
+
+                // Add approval transaction to the beginning of transactions array
+                transactions.push({
+                    ...approveTransaction,
+                    feeOptions: {
+                        gasLimit: route.transactionRequest.gasLimit,
+                        maxFeePerGas: route.transactionRequest.maxFeePerGas,
+                        maxPriorityFeePerGas: route.transactionRequest.maxPriorityFeePerGas,
+                        gasPrice: route.transactionRequest.gasPrice,
+                    },
+                })
+
+                // Add approval cost to fee costs
+                const approvalCostUsd = await estimateApprovalCostUsd(
+                    from.tokenAddress,
+                    spenderAddress,
+                    fromAmount,
+                    from.address,
+                    from.chainId
+                )
+                feeCostsUsd += approvalCostUsd
+            }
+        } catch (error) {
+            console.error('Error checking allowance:', error)
+            // Continue without approval transaction if there's an error
+        }
+    }
+
+    // Add the main swap transaction
+    transactions.push({
+        to: route.transactionRequest.target,
+        data: route.transactionRequest.data,
+        value: route.transactionRequest.value,
+        feeOptions: {
+            gasLimit: route.transactionRequest.gasLimit,
+            maxFeePerGas: route.transactionRequest.maxFeePerGas,
+            maxPriorityFeePerGas: route.transactionRequest.maxPriorityFeePerGas,
+            gasPrice: route.transactionRequest.gasPrice,
+        },
+    })
+
+    const xChainRoute = {
         expiry: route.transactionRequest.expiry,
         type: route.estimate.actions[0].type,
-        transactions: [
-            {
-                to: route.transactionRequest.target,
-                data: route.transactionRequest.data,
-                value: route.transactionRequest.value,
-                feeOptions: {
-                    gasLimit: route.transactionRequest.gasLimit,
-                    maxFeePerGas: route.transactionRequest.maxFeePerGas,
-                    maxPriorityFeePerGas: route.transactionRequest.maxPriorityFeePerGas,
-                    gasPrice: route.transactionRequest.gasPrice,
-                },
-            },
-        ],
+        fromAmount: route.estimate.fromAmount,
+        transactions,
         feeCostsUsd,
         rawResponse: response,
     }
+
+    console.info('xChainRoute', xChainRoute)
+    console.info('xChainRoute created with expiry:', route.transactionRequest.expiry)
+
+    return xChainRoute
 }
