@@ -52,7 +52,13 @@ export async function generateMetadata({ params }: any) {
     const ogUrl = new URL(`${siteUrl}/api/og`)
     ogUrl.searchParams.set('type', 'request')
     ogUrl.searchParams.set('username', recipient)
-    ogUrl.searchParams.set('amount', String(amount))
+    if (amount) {
+        // if its amount, make request/claim social preview, otherwise make receipt social preview
+        ogUrl.searchParams.set('amount', String(amount))
+    } else {
+        //receipt social preview
+        ogUrl.searchParams.set('isReceipt', 'true')
+    }
 
     if (!siteUrl) {
         console.error('Error: Unable to determine site origin')
