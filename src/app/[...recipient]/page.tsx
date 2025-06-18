@@ -65,8 +65,6 @@ export async function generateMetadata({ params, searchParams }: any) {
             return { title }
         }
 
-        console.log('isPaid', isPaid)
-
         if (amount && token) {
             title = `${isAddress(recipient) ? printableAddress(recipient) : recipient} is requesting ${amount} ${token.toUpperCase()}`
         } else if (amount) {
