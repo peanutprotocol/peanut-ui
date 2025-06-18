@@ -6,7 +6,7 @@ export function Banner() {
     if (pathname === '/cashout') return null
     return (
         <GenericBanner
-            message="New product out! Try peanut.me now and earn rewards on our Beta program."
+            message="New product out! Try peanut.me now and earn rewards on our Beta program"
             backgroundColor="bg-purple-1"
         />
     )
