@@ -171,7 +171,9 @@ export async function estimateTransactionCostUsd(
         const gasCostWei = gasEstimate * gasPrice
 
         const nativeTokenPrice = await fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId)
-        const estimatedCostUsd = nativeTokenPrice ? Number(formatUnits(gasCostWei, nativeTokenPrice.decimals)) * nativeTokenPrice.price : 0.01
+        const estimatedCostUsd = nativeTokenPrice
+            ? Number(formatUnits(gasCostWei, nativeTokenPrice.decimals)) * nativeTokenPrice.price
+            : 0.01
 
         return estimatedCostUsd
     } catch (error) {
