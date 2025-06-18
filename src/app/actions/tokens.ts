@@ -2,10 +2,11 @@
 import { unstable_cache } from 'next/cache'
 import { fetchWithSentry, isAddressZero, estimateIfIsStableCoinFromPrice } from '@/utils'
 import { type ITokenPriceData } from '@/interfaces'
-import type { Address } from 'viem'
 import { parseAbi } from 'viem'
 import { type ChainId, getPublicClient } from '@/app/actions/clients'
-import { getTokenDetails } from '@/utils'
+import { getTokenDetails, NATIVE_TOKEN_ADDRESS, isStableCoin } from '@/utils'
+import { formatUnits } from 'viem'
+import type { Address, Hex } from 'viem'
 
 type IMobulaMarketData = {
     id: number
@@ -86,7 +87,7 @@ export const fetchTokenPrice = unstable_cache(
                     decimals,
                     logoURI: json.data.logo,
                 }
-                if (estimateIfIsStableCoinFromPrice(json.data.price)) {
+                if (isStableCoin(data.symbol) || estimateIfIsStableCoinFromPrice(json.data.price)) {
                     data.price = 1
                 }
                 return data
@@ -143,3 +144,39 @@ export const fetchTokenDetails = unstable_cache(
         tags: ['fetchTokenDetails'],
     }
 )
+
+/**
+ * Estimate gas cost for transaction in USD
+ */
+export async function estimateTransactionCostUsd(
+    fromAddress: Address,
+    contractAddress: Address,
+    data: Hex,
+    chainId: string
+): Promise<number> {
+    try {
+        const client = await getPublicClient(Number(chainId) as ChainId)
+
+        // Estimate gas for approve transaction
+        const gasEstimate = await client.estimateGas({
+            account: fromAddress,
+            to: contractAddress,
+            data,
+        })
+
+        // Get current gas price
+        const gasPrice = await client.getGasPrice()
+
+        // Calculate gas cost in native token
+        const gasCostWei = gasEstimate * gasPrice
+
+        const nativeTokenPrice = await fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId)
+        const estimatedCostUsd = nativeTokenPrice ? Number(formatUnits(gasCostWei, 18)) * nativeTokenPrice.price : 0.01
+
+        return estimatedCostUsd
+    } catch (error) {
+        console.error('Error estimating transaction cost:', error)
+        // Return a conservative estimate if we can't calculate exact cost
+        return 0.01
+    }
+}

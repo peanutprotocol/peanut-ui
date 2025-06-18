@@ -13,6 +13,7 @@ import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
+import RouteExpiryTimer from '@/components/Global/RouteExpiryTimer'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context'
 import { usePaymentInitiator } from '@/hooks/usePaymentInitiator'
@@ -37,6 +38,7 @@ type ConfirmPaymentViewProps = {
     }
     currencyAmount?: string
     isAddMoneyFlow?: boolean
+    isDirectPay?: boolean
 }
 
 export default function ConfirmPaymentView({
@@ -44,6 +46,7 @@ export default function ConfirmPaymentView({
     currency,
     currencyAmount,
     isAddMoneyFlow,
+    isDirectPay = false,
 }: ConfirmPaymentViewProps) {
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
@@ -56,17 +59,28 @@ export default function ConfirmPaymentView({
         isPreparingTx,
         loadingStep,
         error: paymentError,
-        feeCalculations,
+        estimatedGasCost,
         isCalculatingFees,
         isEstimatingGas,
         isFeeEstimationError,
         cancelOperation: cancelPaymentOperation,
+        xChainRoute,
     } = usePaymentInitiator()
     const { selectedTokenData, selectedChainID } = useContext(tokenSelectorContext)
     const { isConnected: isPeanutWallet, address: peanutWalletAddress, fetchBalance } = useWallet()
     const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
     const { rewardWalletBalance } = useWalletStore()
     const queryClient = useQueryClient()
+
+    const networkFee = useMemo(() => {
+        if (!estimatedGasCost || isPeanutWallet) return '$ 0.00'
+        if (isFeeEstimationError) return '-'
+        if (estimatedGasCost < 0.01) {
+            return '$ <0.01'
+        } else {
+            return `$ ${estimatedGasCost.toFixed(2)}`
+        }
+    }, [estimatedGasCost, isPeanutWallet, isFeeEstimationError])
 
     const walletAddress = useMemo(() => peanutWalletAddress ?? wagmiAddress, [peanutWalletAddress, wagmiAddress])
 
@@ -95,11 +109,13 @@ export default function ConfirmPaymentView({
     const showExternalWalletConfirmationModal = useMemo((): boolean => {
         if (isCalculatingFees || isEstimatingGas) return false
 
-        return isProcessing && (!isPeanutWallet || isAddMoneyFlow)
-            ? ['Switching Network', 'Sending Transaction', 'Confirming Transaction', 'Preparing Transaction'].includes(
-                  loadingStep
-              )
-            : false
+        return (
+            isProcessing &&
+            (!isPeanutWallet || !!isAddMoneyFlow) &&
+            ['Switching Network', 'Sending Transaction', 'Confirming Transaction', 'Preparing Transaction'].includes(
+                loadingStep
+            )
+        )
     }, [isProcessing, isPeanutWallet, loadingStep, isAddMoneyFlow, isCalculatingFees, isEstimatingGas])
 
     useEffect(() => {
@@ -121,9 +137,13 @@ export default function ConfirmPaymentView({
 
     useEffect(() => {
         if (chargeDetails && selectedTokenData && selectedChainID) {
-            prepareTransactionDetails(chargeDetails, isAddMoneyFlow)
+            if (isDirectPay) {
+                prepareTransactionDetails(chargeDetails)
+            } else {
+                prepareTransactionDetails(chargeDetails, false, chargeDetails.tokenAmount)
+            }
         }
-    }, [chargeDetails, walletAddress, selectedTokenData, selectedChainID, prepareTransactionDetails, isAddMoneyFlow])
+    }, [chargeDetails, walletAddress, selectedTokenData, selectedChainID, prepareTransactionDetails])
 
     const isConnected = useMemo(() => isPeanutWallet || isWagmiConnected, [isPeanutWallet, isWagmiConnected])
     const isInsufficientRewardsBalance = useMemo(() => {
@@ -135,6 +155,12 @@ export default function ConfirmPaymentView({
         () => isProcessing || isPreparingTx || isCalculatingFees || isEstimatingGas,
         [isProcessing, isPreparingTx, isCalculatingFees, isEstimatingGas]
     )
+
+    const handleRouteRefresh = useCallback(async () => {
+        if (!chargeDetails) return
+        console.log('Refreshing route due to expiry...')
+        await prepareTransactionDetails(chargeDetails)
+    }, [chargeDetails, prepareTransactionDetails])
 
     const handlePayment = useCallback(async () => {
         if (!chargeDetails || !parsedPaymentData) return
@@ -269,6 +295,17 @@ export default function ConfirmPaymentView({
         return chargeDetails.chainId !== selectedChainID
     }, [chargeDetails, selectedTokenData, selectedChainID])
 
+    const routeTypeError = useMemo((): string | null => {
+        if (!isCrossChainPayment || !xChainRoute || !isPeanutWallet) return null
+
+        // For peanut wallet flows, only RFQ routes are allowed
+        if (xChainRoute.type === 'swap') {
+            return 'This route requires external wallet payment. Peanut Wallet only supports RFQ (Request for Quote) routes.'
+        }
+
+        return null
+    }, [isCrossChainPayment, xChainRoute, isPeanutWallet])
+
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader
@@ -294,6 +331,15 @@ export default function ConfirmPaymentView({
                         tokenSymbol={chargeDetails?.tokenSymbol ?? ''}
                         message={chargeDetails?.requestLink?.reference ?? ''}
                         fileUrl={chargeDetails?.requestLink?.attachmentUrl ?? ''}
+                        showTimer={isCrossChainPayment}
+                        timerExpiry={xChainRoute?.expiry}
+                        isTimerLoading={isCalculatingFees || isPreparingTx}
+                        onTimerNearExpiry={handleRouteRefresh}
+                        onTimerExpired={() => {
+                            console.log('Route expired')
+                        }}
+                        disableTimerRefetch={isProcessing}
+                        timerError={routeTypeError}
                     />
                 )}
 
@@ -332,9 +378,7 @@ export default function ConfirmPaymentView({
                     <PaymentInfoRow
                         loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
                         label={isCrossChainPayment ? 'Max network fee' : 'Network fee'}
-                        value={
-                            isFeeEstimationError ? '-' : isPeanutWallet ? '$ 0.00' : `$ ${feeCalculations.estimatedFee}`
-                        }
+                        value={networkFee}
                         moreInfoText={
                             isPeanutWallet
                                 ? 'This transaction is sponsored by Peanut.'
@@ -360,7 +404,7 @@ export default function ConfirmPaymentView({
                         </Button>
                     ) : (
                         <Button
-                            disabled={!isConnected || isLoading || isFeeEstimationError}
+                            disabled={!isConnected || isLoading || isFeeEstimationError || !!routeTypeError}
                             onClick={handlePayment}
                             loading={isLoading}
                             shadowSize="4"
@@ -371,9 +415,9 @@ export default function ConfirmPaymentView({
                             {getButtonText()}
                         </Button>
                     )}
-                    {paymentError && (
+                    {(paymentError || routeTypeError) && (
                         <div className="space-y-2">
-                            <ErrorAlert description={paymentError} />
+                            <ErrorAlert description={paymentError || routeTypeError || ''} />
                         </div>
                     )}
                 </div>

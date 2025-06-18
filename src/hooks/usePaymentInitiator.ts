@@ -1,5 +1,4 @@
 import type { FeeOptions } from '@/app/actions/clients'
-import { useCreateLink } from '@/components/Create/useCreateLink'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
@@ -8,7 +7,6 @@ import {
     PINTA_WALLET_TOKEN,
     PINTA_WALLET_TOKEN_DECIMALS,
     PINTA_WALLET_TOKEN_SYMBOL,
-    SQUID_API_URL,
 } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -25,14 +23,16 @@ import {
     TChargeTransactionType,
     TRequestChargeResponse,
 } from '@/services/services.types'
-import { areEvmAddressesEqual, ErrorHandler, isAddressZero, isNativeCurrency } from '@/utils'
+import { areEvmAddressesEqual, ErrorHandler, isNativeCurrency } from '@/utils'
 import { useAppKitAccount } from '@reown/appkit/react'
-import { captureException } from '@sentry/nextjs'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import type { Hex, TransactionReceipt } from 'viem'
+import { parseUnits } from 'viem'
+import type { TransactionReceipt, Address, Hex } from 'viem'
 import { useConfig, useSendTransaction, useSwitchChain, useAccount as useWagmiAccount } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
+import { getRoute, type PeanutCrossChainRoute } from '@/services/swap'
+import { estimateTransactionCostUsd } from '@/app/actions/tokens'
 
 export interface InitiatePaymentPayload {
     recipient: ParsedURL['recipient']
@@ -74,12 +74,10 @@ export const usePaymentInitiator = () => {
     const { chain: connectedWalletChain } = useWagmiAccount()
 
     const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
-    const [txFee, setTxFee] = useState<string>('0')
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | null>(null)
     const [xChainUnsignedTxs, setXChainUnsignedTxs] = useState<peanutInterfaces.IPeanutUnsignedTransaction[] | null>(
         null
     )
-    const { estimateGasFee } = useCreateLink()
     const [feeOptions, setFeeOptions] = useState<Partial<FeeOptions>[]>([])
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
 
@@ -94,15 +92,7 @@ export const usePaymentInitiator = () => {
     const [transactionHash, setTransactionHash] = useState<string | null>(null)
     const [paymentDetails, setPaymentDetails] = useState<PaymentCreationResponse | null>(null)
     const [isEstimatingGas, setIsEstimatingGas] = useState(false)
-    const [currentOperationIsAddMoney, setCurrentOperationIsAddMoney] = useState(false)
-
-    // calculate fee details
-    const [feeCalculations, setFeeCalculations] = useState({
-        networkFee: { expected: '0.00', max: '0.00' },
-        slippage: undefined as { expected: string; max: string } | undefined,
-        estimatedFee: '0.00',
-        totalMax: '0.00',
-    })
+    const [xChainRoute, setXChainRoute] = useState<PeanutCrossChainRoute | null>(null)
 
     // use chargeDetails from the store primarily, fallback to createdChargeDetails
     const activeChargeDetails = useMemo(
@@ -120,7 +110,7 @@ export const usePaymentInitiator = () => {
         return !areEvmAddressesEqual(selectedTokenData.address, activeChargeDetails.tokenAddress)
     }, [selectedTokenData, activeChargeDetails])
 
-    const isProcessing = useMemo(
+    const isProcessing = useMemo<boolean>(
         () => loadingStep !== 'Idle' && loadingStep !== 'Success' && loadingStep !== 'Error',
         [loadingStep]
     )
@@ -144,158 +134,14 @@ export const usePaymentInitiator = () => {
 
         setUnsignedTx(null)
         setXChainUnsignedTxs(null)
+        setXChainRoute(null)
         setEstimatedFromValue('0')
-        setTxFee('0')
         setSlippagePercentage(undefined)
         setEstimatedGasCost(undefined)
         setFeeOptions([])
-        setFeeCalculations({
-            networkFee: { expected: '0.00', max: '0.00' },
-            slippage: undefined,
-            estimatedFee: '0.00',
-            totalMax: '0.00',
-        })
-
         setTransactionHash(null)
         setPaymentDetails(null)
     }, [selectedChainID, selectedTokenAddress, requestDetails])
-
-    // estimate gas fee when transaction is prepared
-    useEffect(() => {
-        if (!activeChargeDetails || (!unsignedTx && !xChainUnsignedTxs)) return
-
-        let determinedEstimatorAccount: Hex | undefined
-
-        if (xChainUnsignedTxs && xChainUnsignedTxs.length > 0) {
-            // xChain transactions are always for the external (Wagmi) wallet
-            determinedEstimatorAccount = wagmiAddress as Hex | undefined
-        } else if (unsignedTx) {
-            // for unsignedTx, check if it's an Add Money operation or dependent on PeanutWallet state
-            if (currentOperationIsAddMoney) {
-                determinedEstimatorAccount = wagmiAddress as Hex | undefined
-            } else {
-                determinedEstimatorAccount = (isPeanutWallet ? peanutWalletAddress : wagmiAddress) as Hex | undefined
-            }
-        }
-
-        if (!determinedEstimatorAccount) {
-            console.warn(
-                'Gas estimation skipped: No valid estimator account found (wagmiAddress or peanutWalletAddress). Ensure one is connected and active for the flow.'
-            )
-            setError('Cannot estimate fees: Wallet address not found.')
-            setIsFeeEstimationError(true)
-            return
-        }
-
-        setIsEstimatingGas(true)
-        setIsFeeEstimationError(false)
-        estimateGasFee({
-            from: determinedEstimatorAccount as Hex,
-            chainId: isXChain ? selectedChainID : activeChargeDetails.chainId,
-            preparedTxs: isXChain || diffTokens ? xChainUnsignedTxs! : [unsignedTx!],
-        })
-            .then(({ transactionCostUSD, feeOptions: calculatedFeeOptions }) => {
-                if (transactionCostUSD) setEstimatedGasCost(transactionCostUSD)
-                if (calculatedFeeOptions) setFeeOptions(calculatedFeeOptions)
-            })
-            .catch((error) => {
-                console.error('Error calculating transaction cost:', error)
-                captureException(error)
-                setIsFeeEstimationError(true)
-                setError(`Failed to estimate gas fee: ${ErrorHandler(error)}`)
-            })
-            .finally(() => {
-                setIsEstimatingGas(false)
-            })
-    }, [unsignedTx, xChainUnsignedTxs, activeChargeDetails, isXChain, diffTokens, selectedChainID, estimateGasFee])
-
-    // calculate display fees
-    useEffect(() => {
-        if (!activeChargeDetails || !selectedTokenData || isEstimatingGas || isPreparingTx) {
-            return
-        }
-
-        const EXPECTED_NETWORK_FEE_MULTIPLIER = 0.7
-        const EXPECTED_SLIPPAGE_MULTIPLIER = 0.1
-        setIsCalculatingFees(true)
-        let timerId: NodeJS.Timeout | undefined
-
-        try {
-            // determine the base fee depending on the transaction type
-            const baseNetworkFee = isPeanutWallet ? 0 : Number(estimatedGasCost || 0)
-
-            const networkFee = {
-                // expected fee is always a fraction of the base fee
-                expected: baseNetworkFee * EXPECTED_NETWORK_FEE_MULTIPLIER,
-                // max fee is the full base fee determined above
-                max: baseNetworkFee,
-            }
-
-            const slippage =
-                (isXChain || diffTokens) && calculatedSlippage
-                    ? {
-                          expected: Number(calculatedSlippage) * EXPECTED_SLIPPAGE_MULTIPLIER,
-                          max: Number(calculatedSlippage),
-                      }
-                    : undefined
-
-            const totalMax =
-                Number(estimatedFromValue) * selectedTokenData!.price + networkFee.max + (slippage?.max || 0)
-
-            const formatNumberSafely = (num: number) => {
-                if (isNaN(num) || !isFinite(num)) return '0.00'
-                return num < 0.01 && num > 0 ? ' <0.01' : num.toFixed(2)
-            }
-
-            setFeeCalculations({
-                networkFee: {
-                    expected: formatNumberSafely(networkFee.expected),
-                    max: formatNumberSafely(networkFee.max),
-                },
-                slippage: slippage
-                    ? {
-                          expected: formatNumberSafely(slippage.expected),
-                          max: formatNumberSafely(slippage.max),
-                      }
-                    : undefined,
-                estimatedFee: formatNumberSafely(networkFee.expected + (slippage?.expected || 0)),
-                totalMax: formatNumberSafely(totalMax),
-            })
-        } catch (error) {
-            console.error('Error calculating fees:', error)
-            setIsFeeEstimationError(true)
-            setError('Failed to calculate fees')
-            setFeeCalculations({
-                networkFee: { expected: '0.00', max: '0.00' },
-                slippage: undefined,
-                estimatedFee: '0.00',
-                totalMax: '0.00',
-            })
-        } finally {
-            // schedule setting isCalculatingFees to false
-            timerId = setTimeout(() => {
-                setIsCalculatingFees(false)
-            }, 100)
-        }
-
-        return () => {
-            if (timerId) {
-                clearTimeout(timerId)
-            }
-        }
-    }, [
-        isXChain,
-        diffTokens,
-        txFee,
-        calculatedSlippage,
-        activeChargeDetails,
-        selectedTokenData,
-        isPeanutWallet,
-        estimatedGasCost,
-        estimatedFromValue,
-        isEstimatingGas,
-        isPreparingTx,
-    ])
 
     const handleError = useCallback(
         (err: unknown, step: string): InitiationResult => {
@@ -323,9 +169,8 @@ export const usePaymentInitiator = () => {
 
     // prepare transaction details (called from Confirm view)
     const prepareTransactionDetails = useCallback(
-        async (chargeDetails: TRequestChargeResponse, isAddMoneyFlowContext?: boolean) => {
-            setCurrentOperationIsAddMoney(!!isAddMoneyFlowContext)
-
+        async (chargeDetails: TRequestChargeResponse, isWithdrawFlow?: boolean, usdAmount?: string) => {
+            isWithdrawFlow = isWithdrawFlow ?? false
             if (!selectedTokenData || (!peanutWalletAddress && !wagmiAddress)) {
                 console.warn('Missing data for transaction preparation')
                 return
@@ -335,59 +180,63 @@ export const usePaymentInitiator = () => {
             setIsFeeEstimationError(false)
             setUnsignedTx(null)
             setXChainUnsignedTxs(null)
+            setXChainRoute(null)
 
             setEstimatedGasCost(undefined)
             setFeeOptions([])
-            setFeeCalculations({
-                networkFee: { expected: '0.00', max: '0.00' },
-                slippage: undefined,
-                estimatedFee: '0.00',
-                totalMax: '0.00',
-            })
-
-            // If PeanutWallet is connected AND it's NOT an Add Money flow (which mandates external wallet),
-            // then we can assume preparation is for Peanut Wallet.
-            // Otherwise, proceed to prepare for external wallet.
-            if (isPeanutWallet && !isAddMoneyFlowContext) {
-                setEstimatedFromValue(chargeDetails.tokenAmount)
-                setIsPreparingTx(false)
-                return
-            }
-
             setIsPreparingTx(true)
 
             try {
-                const _isXChain = selectedChainID !== chargeDetails.chainId
-                const _diffTokens = !areEvmAddressesEqual(selectedTokenData.address, chargeDetails.tokenAddress)
+                const fromTokenAddress = isWithdrawFlow ? PEANUT_WALLET_TOKEN : selectedTokenData.address
+                const fromChainId = isWithdrawFlow ? PEANUT_WALLET_CHAIN.id.toString() : selectedChainID
+                const _isXChain = fromChainId !== chargeDetails.chainId
+                const _diffTokens = !areEvmAddressesEqual(fromTokenAddress, chargeDetails.tokenAddress)
                 setIsXChain(_isXChain)
 
                 if (_isXChain || _diffTokens) {
                     setLoadingStep('Preparing Transaction')
-                    const txData = await prepareXChainTransaction(
-                        {
-                            address: selectedTokenData.address,
-                            chainId: selectedTokenData.chainId,
-                            decimals: selectedTokenData.decimals || 18,
+                    const senderAddress = isPeanutWallet ? peanutWalletAddress : wagmiAddress
+                    setIsCalculatingFees(true)
+                    const amount = usdAmount
+                        ? {
+                              fromUsd: usdAmount,
+                          }
+                        : {
+                              toAmount: parseUnits(chargeDetails.tokenAmount, chargeDetails.tokenDecimals),
+                          }
+                    const xChainRoute = await getRoute({
+                        from: {
+                            address: senderAddress as Address,
+                            tokenAddress: fromTokenAddress as Address,
+                            chainId: fromChainId,
                         },
-                        {
-                            recipientAddress: chargeDetails.requestLink.recipientAddress,
+                        to: {
+                            address: chargeDetails.requestLink.recipientAddress as Address,
+                            tokenAddress: chargeDetails.tokenAddress as Address,
                             chainId: chargeDetails.chainId,
-                            tokenAmount: chargeDetails.tokenAmount,
-                            tokenAddress: chargeDetails.tokenAddress,
-                            tokenDecimals: chargeDetails.tokenDecimals,
-                            tokenType: Number(chargeDetails.tokenType),
                         },
-                        peanutWalletAddress ?? wagmiAddress!
-                    )
+                        ...amount,
+                    })
 
+                    /*
                     if (!txData?.unsignedTxs) {
                         throw new Error('Failed to prepare cross-chain transaction')
                     }
+                    */
 
-                    setXChainUnsignedTxs(txData.unsignedTxs)
-                    setEstimatedFromValue(txData.estimatedFromAmount)
-                    setTxFee(txData.feeEstimation)
-                    setSlippagePercentage(txData.slippagePercentage)
+                    const slippagePercentage = Number(xChainRoute.fromAmount) / Number(chargeDetails.tokenAmount) - 1
+                    setXChainRoute(xChainRoute)
+                    setXChainUnsignedTxs(
+                        xChainRoute.transactions.map((tx) => ({
+                            to: tx.to,
+                            data: tx.data,
+                            value: BigInt(tx.value),
+                        }))
+                    )
+                    setIsCalculatingFees(false)
+                    setEstimatedGasCost(xChainRoute.feeCostsUsd)
+                    setEstimatedFromValue(xChainRoute.fromAmount)
+                    setSlippagePercentage(slippagePercentage)
                 } else {
                     setLoadingStep('Preparing Transaction')
                     const tx = peanut.prepareRequestLinkFulfillmentTransaction({
@@ -402,9 +251,18 @@ export const usePaymentInitiator = () => {
                         throw new Error('Failed to prepare transaction')
                     }
 
+                    setIsCalculatingFees(true)
+                    setEstimatedGasCost(
+                        await estimateTransactionCostUsd(
+                            tx.unsignedTx.from! as Address,
+                            tx.unsignedTx.to! as Address,
+                            tx.unsignedTx.data! as Hex,
+                            selectedChainID
+                        )
+                    )
+                    setIsCalculatingFees(false)
                     setUnsignedTx(tx.unsignedTx)
                     setEstimatedFromValue(chargeDetails.tokenAmount)
-                    setTxFee('0')
                     setSlippagePercentage(undefined)
                 }
                 setLoadingStep('Idle')
@@ -586,27 +444,8 @@ export const usePaymentInitiator = () => {
 
     // helper function: Handle Peanut Wallet payment
     const handlePeanutWalletPayment = useCallback(
-        async (chargeDetails: TRequestChargeResponse, payload: InitiatePaymentPayload): Promise<InitiationResult> => {
+        async (chargeDetails: TRequestChargeResponse): Promise<InitiationResult> => {
             setLoadingStep('Preparing Transaction')
-
-            // determine expected chain, token, and decimals based on whether it's a pinta request.
-            const isPintaSpecific = payload.isPintaReq
-            const expectedChainId = isPintaSpecific
-                ? PINTA_WALLET_CHAIN.id.toString()
-                : PEANUT_WALLET_CHAIN.id.toString()
-            const expectedTokenAddress = isPintaSpecific ? PINTA_WALLET_TOKEN : PEANUT_WALLET_TOKEN
-            const expectedTokenDecimals = isPintaSpecific ? PINTA_WALLET_TOKEN_DECIMALS : PEANUT_WALLET_TOKEN_DECIMALS
-
-            // validate that the charge details match the expected parameters for payment.
-            if (
-                chargeDetails.chainId !== expectedChainId ||
-                chargeDetails.tokenAddress.toLowerCase() !== expectedTokenAddress.toLowerCase() ||
-                chargeDetails.tokenDecimals !== expectedTokenDecimals
-            ) {
-                const errorMsg = `Charge details mismatch expected values for ${isPintaSpecific ? 'Pinta' : 'Peanut'} payment. Expected Chain: ${expectedChainId}, Token: ${expectedTokenAddress}, Decimals: ${expectedTokenDecimals}. Got Chain: ${chargeDetails.chainId}, Token: ${chargeDetails.tokenAddress}, Decimals: ${chargeDetails.tokenDecimals}`
-                console.error(errorMsg)
-                throw new Error(errorMsg)
-            }
 
             // validate required properties for preparing the transaction.
             if (
@@ -620,25 +459,19 @@ export const usePaymentInitiator = () => {
                 throw new Error('Charge data is missing required properties for transaction preparation.')
             }
 
-            // prepare the transaction using peanut sdk.
-            const tx = peanut.prepareRequestLinkFulfillmentTransaction({
-                recipientAddress: chargeDetails.requestLink.recipientAddress,
-                tokenAddress: chargeDetails.tokenAddress,
-                tokenAmount: chargeDetails.tokenAmount,
-                tokenDecimals: chargeDetails.tokenDecimals,
-                tokenType: Number(chargeDetails.tokenType) as peanutInterfaces.EPeanutLinkType,
-            })
-
-            if (!tx?.unsignedTx) {
-                console.error('Failed to prepare Peanut Wallet transaction (SDK returned null/undefined unsignedTx).')
-                throw new Error('Failed to prepare Peanut Wallet transaction')
+            const transactionsToSend = xChainUnsignedTxs ?? (unsignedTx ? [unsignedTx] : null)
+            if (!transactionsToSend || transactionsToSend.length === 0) {
+                console.error('No transaction prepared to send for peanut wallet.')
+                throw new Error('No transaction prepared to send.')
             }
-            const peanutUnsignedTx = tx.unsignedTx
+            console.log('Transactions prepared for sending:', transactionsToSend)
 
-            // send the prepared transaction via the usewallet hook.
             setLoadingStep('Sending Transaction')
 
-            const receipt: TransactionReceipt = await sendTransactions([peanutUnsignedTx], chargeDetails.chainId)
+            const receipt: TransactionReceipt = await sendTransactions(
+                transactionsToSend,
+                PEANUT_WALLET_CHAIN.id.toString()
+            )
 
             // validation of the received receipt.
             if (!receipt || !receipt.transactionHash) {
@@ -654,9 +487,9 @@ export const usePaymentInitiator = () => {
             setLoadingStep('Updating Payment Status')
             const payment: PaymentCreationResponse = await chargesApi.createPayment({
                 chargeId: chargeDetails.uuid,
-                chainId: chargeDetails.chainId,
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 hash: receipt.transactionHash,
-                tokenAddress: chargeDetails.tokenAddress,
+                tokenAddress: PEANUT_WALLET_TOKEN,
             })
             console.log('Backend payment creation response:', payment)
 
@@ -668,7 +501,7 @@ export const usePaymentInitiator = () => {
             console.log('Peanut Wallet payment successful.')
             return { status: 'Success', charge: chargeDetails, payment, txHash: receipt.transactionHash, success: true }
         },
-        [dispatch, sendTransactions]
+        [sendTransactions, xChainUnsignedTxs, unsignedTx]
     )
 
     // helper function: Handle External Wallet payment
@@ -843,7 +676,7 @@ export const usePaymentInitiator = () => {
                     console.log(
                         `Executing Peanut Wallet transaction (chargeCreated: ${chargeCreated}, isPintaReq: ${payload.isPintaReq})`
                     )
-                    return await handlePeanutWalletPayment(determinedChargeDetails, payload)
+                    return await handlePeanutWalletPayment(determinedChargeDetails)
                 } else if (!isPeanutWallet) {
                     console.log('Handling payment for External Wallet (non-AddMoney, called from Confirm view).')
                     if (!determinedChargeDetails) throw new Error('Charge details missing for External Wallet payment.')
@@ -884,85 +717,6 @@ export const usePaymentInitiator = () => {
         ]
     )
 
-    // helper function to prepare cross-chain transactions
-    const prepareXChainTransaction = useCallback(
-        async (
-            tokenData: {
-                address: string
-                chainId: string | number
-                decimals: number
-            },
-            requestLink: {
-                recipientAddress: string
-                chainId: string | number
-                tokenAmount: string
-                tokenAddress: string
-                tokenDecimals: number
-                tokenType: number
-            },
-            senderAddress: string
-        ) => {
-            if (!tokenData?.address || !tokenData?.chainId || tokenData?.decimals === undefined) {
-                throw new Error('Invalid token data for cross-chain transaction')
-            }
-
-            try {
-                const formattedTokenAmount = Number(requestLink.tokenAmount).toFixed(requestLink.tokenDecimals)
-
-                const linkDetails = {
-                    recipientAddress: requestLink.recipientAddress,
-                    chainId: requestLink.chainId.toString(),
-                    tokenAmount: formattedTokenAmount,
-                    tokenAddress: requestLink.tokenAddress,
-                    tokenDecimals: requestLink.tokenDecimals,
-                    tokenType: Number(requestLink.tokenType),
-                }
-
-                const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
-                    fromToken: tokenData.address,
-                    fromChainId: tokenData.chainId.toString(),
-                    senderAddress,
-                    squidRouterUrl: `${SQUID_API_URL}/route`,
-                    provider: await peanut.getDefaultProvider(tokenData.chainId.toString()),
-                    tokenType: isAddressZero(tokenData.address)
-                        ? peanutInterfaces.EPeanutLinkType.native
-                        : peanutInterfaces.EPeanutLinkType.erc20,
-                    fromTokenDecimals: tokenData.decimals,
-                    linkDetails,
-                })
-
-                if (!xchainUnsignedTxs) {
-                    throw new Error('Failed to prepare cross-chain transaction (SDK returned null/undefined)')
-                }
-
-                return xchainUnsignedTxs
-            } catch (error) {
-                console.error('Cross-chain preparation error:', error)
-                let errorBody = undefined
-                try {
-                    if (error instanceof Error && error.message.startsWith('{')) {
-                        errorBody = JSON.parse(error.message)
-                    } else if (typeof (error as any)?.body === 'string' && (error as any).body.startsWith('{')) {
-                        errorBody = JSON.parse((error as any).body)
-                        if (errorBody?.error?.message) errorBody.message = errorBody.error.message
-                    }
-                } catch (e) {
-                    console.log('Failed to parse error as JSON, using original error message')
-                }
-
-                if (errorBody && errorBody.message) {
-                    const code = errorBody.code || errorBody.errorCode || (error as any).code
-                    throw new Error(`Cross-chain prep failed: ${errorBody.message}${code ? ` (Code: ${code})` : ''}`)
-                } else {
-                    throw new Error(
-                        error instanceof Error ? error.message : 'Failed to estimate cross-chain transaction details'
-                    )
-                }
-            }
-        },
-        []
-    )
-
     const cancelOperation = useCallback(() => {
         setError('Please confirm the request in your wallet.')
         setLoadingStep('Error')
@@ -978,17 +732,17 @@ export const usePaymentInitiator = () => {
         activeChargeDetails,
         transactionHash,
         paymentDetails,
-        txFee,
         slippagePercentage,
         estimatedFromValue,
         xChainUnsignedTxs,
+        estimatedGasCost,
         unsignedTx,
-        feeCalculations,
         isCalculatingFees,
         isFeeEstimationError,
         isEstimatingGas,
         isXChain,
         diffTokens,
         cancelOperation,
+        xChainRoute,
     }
 }

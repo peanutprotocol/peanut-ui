@@ -8,6 +8,7 @@ import ConfirmWithdrawView from '@/components/Withdraw/views/Confirm.withdraw.vi
 import InitialWithdrawView from '@/components/Withdraw/views/Initial.withdraw.view'
 import { useWithdrawFlow, WithdrawData } from '@/context/WithdrawFlowContext'
 import { InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
@@ -21,13 +22,15 @@ import {
 } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { PEANUT_WALLET_CHAIN } from '@/constants'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
     const dispatch = useAppDispatch()
     const { chargeDetails: activeChargeDetailsFromStore } = usePaymentStore()
+    const { isConnected: isPeanutWallet } = useWallet()
     const {
         amountToWithdraw,
         setAmountToWithdraw,
@@ -47,8 +50,11 @@ export default function WithdrawCryptoPage() {
         initiatePayment,
         isProcessing,
         error: paymentErrorFromHook,
-        feeCalculations,
+        estimatedGasCost,
         prepareTransactionDetails,
+        xChainRoute,
+        isCalculatingFees,
+        isPreparingTx,
     } = usePaymentInitiator()
 
     useEffect(() => {
@@ -68,9 +74,11 @@ export default function WithdrawCryptoPage() {
 
     useEffect(() => {
         if (currentView === 'CONFIRM' && activeChargeDetailsFromStore && withdrawData) {
-            prepareTransactionDetails(activeChargeDetailsFromStore, false)
+            console.log('Preparing withdraw transaction details...')
+            console.dir(activeChargeDetailsFromStore)
+            prepareTransactionDetails(activeChargeDetailsFromStore, true, amountToWithdraw)
         }
-    }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails])
+    }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, amountToWithdraw])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -191,6 +199,13 @@ export default function WithdrawCryptoPage() {
         }
     }, [activeChargeDetailsFromStore, withdrawData, amountToWithdraw, dispatch, initiatePayment, setCurrentView])
 
+    const handleRouteRefresh = useCallback(async () => {
+        if (!activeChargeDetailsFromStore) return
+        console.log('Refreshing withdraw route due to expiry...')
+        console.log('About to call prepareTransactionDetails with:', activeChargeDetailsFromStore)
+        await prepareTransactionDetails(activeChargeDetailsFromStore, true, amountToWithdraw)
+    }, [activeChargeDetailsFromStore, prepareTransactionDetails, amountToWithdraw])
+
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')
         setPaymentError(null)
@@ -198,8 +213,48 @@ export default function WithdrawCryptoPage() {
         dispatch(paymentActions.setChargeDetails(null))
     }, [dispatch, setCurrentView])
 
-    const displayError = paymentError
+    // Check if this is a cross-chain withdrawal (align with usePaymentInitiator logic)
+    const isCrossChainWithdrawal = useMemo<boolean>(() => {
+        if (!withdrawData || !activeChargeDetailsFromStore) return false
+
+        // In withdraw flow, we're moving from Peanut Wallet to the selected chain
+        // This matches the logic in usePaymentInitiator for withdraw flows
+        const fromChainId = isPeanutWallet ? PEANUT_WALLET_CHAIN.id.toString() : withdrawData.chain.chainId
+        const toChainId = activeChargeDetailsFromStore.chainId
+
+        console.log('Cross-chain check:', {
+            fromChainId,
+            toChainId,
+            isPeanutWallet,
+            isCrossChain: fromChainId !== toChainId,
+        })
+
+        return fromChainId !== toChainId
+    }, [withdrawData, activeChargeDetailsFromStore, isPeanutWallet])
+
+    // Check for route type errors (similar to payment flow)
+    const routeTypeError = useMemo<string | null>(() => {
+        if (!isCrossChainWithdrawal || !xChainRoute || !isPeanutWallet) return null
+
+        // For peanut wallet flows, only RFQ routes are allowed
+        if (xChainRoute.type === 'swap') {
+            return 'This token pair is not available for withdraw.'
+        }
+
+        return null
+    }, [isCrossChainWithdrawal, xChainRoute, isPeanutWallet])
+
+    const displayError = paymentError ?? routeTypeError
     const confirmButtonDisabled = !activeChargeDetailsFromStore || isProcessing
+    const shouldShowRetry = !!displayError
+
+    // Get network fee from route or fallback
+    const networkFee = useCallback(() => {
+        if (xChainRoute?.feeCostsUsd) {
+            return xChainRoute.feeCostsUsd < 0.01 ? '$ <0.01' : `$ ${xChainRoute.feeCostsUsd.toFixed(2)}`
+        }
+        return '$ 0.00'
+    }, [xChainRoute])
 
     if (!amountToWithdraw) {
         return <PeanutLoading />
@@ -224,9 +279,14 @@ export default function WithdrawCryptoPage() {
                     toAddress={withdrawData.address}
                     onConfirm={handleConfirmWithdrawal}
                     onBack={handleBackFromConfirm}
-                    isProcessing={confirmButtonDisabled}
+                    isProcessing={isProcessing}
                     error={displayError}
-                    networkFee={feeCalculations?.estimatedFee}
+                    networkFee={networkFee()}
+                    // Timer props for cross-chain withdrawals
+                    isCrossChain={isCrossChainWithdrawal}
+                    routeExpiry={xChainRoute?.expiry}
+                    isRouteLoading={isCalculatingFees || isPreparingTx}
+                    onRouteRefresh={handleRouteRefresh}
                 />
             )}
 

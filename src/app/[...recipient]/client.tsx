@@ -393,6 +393,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
                     currencyAmount={currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined}
                     isAddMoneyFlow={isAddMoneyFlow}
+                    isDirectPay={isDirectPay}
                 />
             )}
             {currentView === 'STATUS' && (

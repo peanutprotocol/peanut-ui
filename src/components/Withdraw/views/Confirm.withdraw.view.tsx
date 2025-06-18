@@ -24,6 +24,11 @@ interface WithdrawConfirmViewProps {
     onBack: () => void
     isProcessing?: boolean
     error?: string | null
+    // Timer props for cross-chain withdrawals
+    isCrossChain?: boolean
+    routeExpiry?: string
+    isRouteLoading?: boolean
+    onRouteRefresh?: () => void
 }
 
 export default function ConfirmWithdrawView({
@@ -37,6 +42,10 @@ export default function ConfirmWithdrawView({
     onBack,
     isProcessing,
     error,
+    isCrossChain = false,
+    routeExpiry,
+    isRouteLoading = false,
+    onRouteRefresh,
 }: WithdrawConfirmViewProps) {
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
         chainId: chain.chainId,
@@ -55,7 +64,16 @@ export default function ConfirmWithdrawView({
                     recipientType="USERNAME"
                     recipientName={''}
                     amount={formatAmount(amount)}
-                    tokenSymbol={token.symbol}
+                    tokenSymbol="USDC"
+                    showTimer={isCrossChain}
+                    timerExpiry={routeExpiry}
+                    isTimerLoading={isRouteLoading}
+                    onTimerNearExpiry={onRouteRefresh}
+                    onTimerExpired={() => {
+                        console.log('Withdraw route expired')
+                    }}
+                    disableTimerRefetch={isProcessing}
+                    timerError={error?.includes('not available for withdraw') ? error : null}
                 />
 
                 <Card className="rounded-sm">
@@ -97,7 +115,7 @@ export default function ConfirmWithdrawView({
                     />
                     <PaymentInfoRow
                         label="Max network fee"
-                        value={`$ ${networkFee}`}
+                        value={networkFee}
                         moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
                     />
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ ${peanutFee}`} />
@@ -107,9 +125,16 @@ export default function ConfirmWithdrawView({
                     <Button
                         variant="purple"
                         shadowSize="4"
-                        onClick={onConfirm}
-                        disabled={isProcessing}
-                        loading={isProcessing}
+                        onClick={() => {
+                            // If it's a route type error, refresh the route, otherwise retry confirm
+                            if (error.includes('not available for withdraw') && onRouteRefresh) {
+                                onRouteRefresh()
+                            } else {
+                                onConfirm()
+                            }
+                        }}
+                        disabled={false}
+                        loading={false}
                         className="w-full"
                         icon="retry"
                     >
@@ -120,7 +145,7 @@ export default function ConfirmWithdrawView({
                         variant="purple"
                         shadowSize="4"
                         onClick={onConfirm}
-                        disabled={isProcessing}
+                        disabled={isProcessing || isRouteLoading}
                         loading={isProcessing}
                         className="w-full"
                     >
