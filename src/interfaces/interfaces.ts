@@ -319,6 +319,8 @@ interface User {
     kycStartedAt?: string
     kycApprovedAt?: string
     kycRejectedAt?: string
+    tosStatus?: string
+    tosAcceptedAt?: string
     bridge_customer_id: string | null
     full_name: string
     telegram: string | null

@@ -1,7 +1,7 @@
 import { HistoryEntry } from '@/hooks/useTransactionHistory'
 
 export type WebSocketMessage = {
-    type: 'ping' | 'pong' | 'history_entry' | 'kyc_status_update'
+    type: 'ping' | 'pong' | 'history_entry' | 'kyc_status_update' | 'persona_tos_status_update'
     data?: HistoryEntry
 }
 
@@ -105,8 +105,14 @@ export class PeanutWebSocket {
                     break
 
                 case 'kyc_status_update':
-                    if (message.data?.status) {
+                    if (message.data && 'status' in (message.data as object)) {
                         this.emit('kyc_status_update', message.data)
+                    }
+                    break
+
+                case 'persona_tos_status_update':
+                    if (message.data && 'status' in (message.data as object)) {
+                        this.emit('persona_tos_status_update', message.data)
                     }
                     break
 

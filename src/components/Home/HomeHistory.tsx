@@ -97,7 +97,11 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     if (!combinedEntries.length) {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <h2 className="text-base font-bold">Recent Transactions</h2>{' '}
+                <div className="space-y-3">
+                    <h2 className="text-base font-bold">Activity</h2>
+                    <KycStatusItem position="single" />
+                </div>
+                <h2 className="text-base font-bold">Recent Transactions</h2>
                 <EmptyState
                     icon="txn-off"
                     title="No transactions yet!"

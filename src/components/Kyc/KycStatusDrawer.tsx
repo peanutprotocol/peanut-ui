@@ -53,8 +53,8 @@ export const KycStatusDrawer = ({
                 try {
                     // the initiateKyc endpoint returns rejection reasons if they exist
                     const response = await initiateKyc()
-                    if (response.reasons && response.reasons.length > 0) {
-                        setRejectionReason(response.reasons[0].reason)
+                    if (response.data?.reasons && response.data.reasons.length > 0) {
+                        setRejectionReason(response.data.reasons[0].reason)
                     } else if (response.error) {
                         setRejectionReason(response.error)
                     } else {

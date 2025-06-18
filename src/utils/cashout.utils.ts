@@ -169,7 +169,7 @@ export async function validateBankAccount(bankAccount: string): Promise<boolean>
     }
 }
 
-async function validateBic(bic: string): Promise<boolean> {
+export async function validateBic(bic: string): Promise<boolean> {
     const response = await fetchWithSentry(`/api/peanut/iban/validate-bic`, {
         method: 'POST',
         headers: {

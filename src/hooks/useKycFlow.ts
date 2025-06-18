@@ -45,6 +45,11 @@ export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
         onKycStatusUpdate: (newStatus) => {
             setLiveKycStatus(newStatus as KYCStatus)
         },
+        onTosUpdate: (data) => {
+            if (data.accepted) {
+                handleIframeClose()
+            }
+        },
     })
 
     // listen for persona events
@@ -83,15 +88,21 @@ export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
     const handleInitiateKyc = async () => {
         setIsLoading(true)
         setError(null)
-        try {
-            const response = await initiateKyc()
-            setApiResponse(response)
 
-            // if there's a tos link, show it first. otherwise, go straight to kyc.
-            if (response.tosLink) {
-                setIframeOptions({ src: response.tosLink, visible: true })
-            } else if (response.kycLink) {
-                const kycUrl = convertPersonaUrl(response.kycLink)
+        const response = await initiateKyc()
+
+        if (response.error) {
+            setError(response.error)
+            setIsLoading(false)
+            return
+        }
+        if (response.data) {
+            setApiResponse(response.data)
+            // if there's a tos link and it's not yet approved, show it first.
+            if (response.data.tosLink && response.data.tosStatus !== 'approved') {
+                setIframeOptions({ src: response.data.tosLink, visible: true })
+            } else if (response.data.kycLink) {
+                const kycUrl = convertPersonaUrl(response.data.kycLink)
                 setIframeOptions({
                     src: kycUrl,
                     visible: true,
@@ -100,11 +111,8 @@ export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
             } else {
                 setError('Could not retrieve verification links. Please try again.')
             }
-        } catch (e: any) {
-            setError(e.message || 'An unknown error occurred.')
-        } finally {
-            setIsLoading(false)
         }
+        setIsLoading(false)
     }
 
     const handleIframeClose = () => {

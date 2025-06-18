@@ -9,6 +9,7 @@ interface UseWebSocketOptions {
     username?: string
     onHistoryEntry?: (entry: HistoryEntry) => void
     onKycStatusUpdate?: (status: string) => void
+    onTosUpdate?: (data: { accepted: boolean }) => void
     onConnect?: () => void
     onDisconnect?: () => void
     onError?: (error: Event) => void
@@ -20,6 +21,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         username,
         onHistoryEntry,
         onKycStatusUpdate,
+        onTosUpdate,
         onConnect,
         onDisconnect,
         onError,
@@ -29,12 +31,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([])
     const wsRef = useRef<PeanutWebSocket | null>(null)
 
-    const callbacksRef = useRef({ onHistoryEntry, onKycStatusUpdate, onConnect, onDisconnect, onError })
+    const callbacksRef = useRef({ onHistoryEntry, onKycStatusUpdate, onTosUpdate, onConnect, onDisconnect, onError })
 
     // Update callbacks ref when
     useEffect(() => {
-        callbacksRef.current = { onHistoryEntry, onKycStatusUpdate, onConnect, onDisconnect, onError }
-    }, [onHistoryEntry, onKycStatusUpdate, onConnect, onDisconnect, onError])
+        callbacksRef.current = { onHistoryEntry, onKycStatusUpdate, onTosUpdate, onConnect, onDisconnect, onError }
+    }, [onHistoryEntry, onKycStatusUpdate, onTosUpdate, onConnect, onDisconnect, onError])
 
     // Connect to WebSocket
     const connect = useCallback(() => {
@@ -102,11 +104,18 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         }
 
         const handleKycStatusUpdate = (data: { status: string }) => {
-            console.log(`[WebSocket] Received 'kyc_status_update' for user: ${username}`, data)
             if (callbacksRef.current.onKycStatusUpdate) {
                 callbacksRef.current.onKycStatusUpdate(data.status)
             } else {
                 console.log(`[WebSocket] No onKycStatusUpdate callback registered for user: ${username}`)
+            }
+        }
+
+        const handleTosUpdate = (data: { status: string }) => {
+            if (callbacksRef.current.onTosUpdate) {
+                callbacksRef.current.onTosUpdate({ accepted: data.status === 'approved' })
+            } else {
+                console.log(`[WebSocket] No onTosUpdate callback registered for user: ${username}`)
             }
         }
 
@@ -116,6 +125,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         ws.on('error', handleError)
         ws.on('history_entry', handleHistoryEntry)
         ws.on('kyc_status_update', handleKycStatusUpdate)
+        ws.on('persona_tos_status_update', handleTosUpdate)
 
         // Auto-connect if enabled
         if (autoConnect) {
@@ -129,6 +139,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             ws.off('error', handleError)
             ws.off('history_entry', handleHistoryEntry)
             ws.off('kyc_status_update', handleKycStatusUpdate)
+            ws.off('persona_tos_status_update', handleTosUpdate)
         }
     }, [autoConnect, connect, username])
 
