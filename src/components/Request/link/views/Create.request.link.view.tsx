@@ -215,7 +215,8 @@ export const CreateRequestLinkView = () => {
 
     const generateLink = useCallback(async () => {
         if (generatedLink) return generatedLink
-        if (Number(tokenValue) === 0) return qrCodeLink
+        if (Number(tokenValue) === 0 && !hasAttachment) return qrCodeLink
+
         setIsCreatingLink(true)
         const link = await createRequestLink({
             recipientAddress,
@@ -223,11 +224,13 @@ export const CreateRequestLinkView = () => {
             chainId: selectedChainID,
             tokenValue,
             tokenData: selectedTokenData,
-            attachmentOptions: {
-                message: ' ',
-                fileUrl: undefined,
-                rawFile: undefined,
-            },
+            attachmentOptions: hasAttachment
+                ? attachmentOptions
+                : {
+                      message: ' ',
+                      fileUrl: undefined,
+                      rawFile: undefined,
+                  },
         })
         setGeneratedLink(link ?? null)
         setIsCreatingLink(false)
@@ -241,7 +244,22 @@ export const CreateRequestLinkView = () => {
         selectedChainID,
         selectedTokenData,
         createRequestLink,
+        hasAttachment,
+        attachmentOptions,
     ])
+
+    // update the sharebutton section to remove the loading state logic:
+    {
+        isCreatingLink ? (
+            <Button disabled={true} shadowSize="4">
+                <div className="flex w-full flex-row items-center justify-center gap-2">
+                    <Loading /> {' Loading'}
+                </div>
+            </Button>
+        ) : (
+            <ShareButton generateUrl={generateLink}>Share Link</ShareButton>
+        )
+    }
 
     useEffect(() => {
         if (!_tokenValue) {
@@ -336,38 +354,6 @@ export const CreateRequestLinkView = () => {
         }
     }, [_tokenValue])
 
-    // handle link creation based on input changes
-    useEffect(() => {
-        // only create link if there's an attachment, valid recipient, token value, and no link already being created and debounced token value matches the current token value
-        if (
-            hasAttachment &&
-            isValidRecipient &&
-            debouncedTokenValue &&
-            !isCreatingLink &&
-            debouncedTokenValue === _tokenValue
-        ) {
-            // check if we need to create a new link (either no link exists or token value changed)
-            if (!generatedLink) {
-                handleOnNext({
-                    recipientAddress,
-                    tokenAddress: selectedTokenAddress,
-                    chainId: selectedChainID,
-                    tokenValue,
-                    tokenData: selectedTokenData,
-                    attachmentOptions: debouncedAttachmentOptions,
-                })
-            }
-        }
-    }, [
-        debouncedAttachmentOptions,
-        debouncedTokenValue,
-        isValidRecipient,
-        isCreatingLink,
-        generatedLink,
-        _tokenValue,
-        recipientAddress,
-    ])
-
     // check for token value debouncing
     const isDebouncing =
         (hasAttachment &&
@@ -382,7 +368,7 @@ export const CreateRequestLinkView = () => {
             <div className="w-full space-y-4">
                 <PeanutActionCard type="request" />
 
-                <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
+                <QRCodeWrapper url={qrCodeLink} isLoading={isCreatingLink} />
 
                 <TokenAmountInput
                     className="w-full"
