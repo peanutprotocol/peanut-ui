@@ -7,20 +7,22 @@ import Image from 'next/image'
 interface CancelLinkModalProps {
     visible: boolean
     amount: string
-    onCancel: () => void
+    /** Called to close the modal without cancelling the link */
+    onClose: () => void
+    /** Called when the user confirms cancellation */
+    onConfirm: () => void
 }
 
-const CancelLinkModal: React.FC<CancelLinkModalProps> = ({ visible, amount, onCancel }) => {
+const CancelLinkModal: React.FC<CancelLinkModalProps> = ({ visible, amount, onClose, onConfirm }) => {
     const ctas: ActionModalButtonProps[] = [
         {
             text: 'Cancel & Return Funds',
-            onClick: onCancel,
+            onClick: onConfirm,
             variant: 'purple',
             shadowSize: '4',
             className: 'h-10 md:py-2.5 text-sm !font-bold w-full',
         },
     ]
-
     const title = 'Cancel this link?'
     const description = (
         <>
@@ -30,11 +32,10 @@ const CancelLinkModal: React.FC<CancelLinkModalProps> = ({ visible, amount, onCa
             Once cancelled, nobody will be able to claim it.
         </>
     )
-
     return (
         <ActionModal
             visible={visible}
-            onClose={onCancel}
+            onClose={onClose}
             icon={<Image src="/icons/no-tx.svg" alt="No transactions" width={48} height={48} />}
             iconContainerClassName="!bg-transparent !p-0"
             title={title}

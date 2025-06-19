@@ -55,7 +55,12 @@ const LinkSendSuccessView = () => {
 
     return (
         <div className="relative space-y-8">
-            <CancelLinkModal visible={showCancelModal} amount={String(tokenValue)} onCancel={handleConfirmCancel} />
+            <CancelLinkModal
+                visible={showCancelModal}
+                amount={String(tokenValue)}
+                onClose={() => setShowCancelModal(false)}
+                onConfirm={handleConfirmCancel}
+            />
             {isLoading && <PeanutLoading coverFullScreen />}
             <NavHeader
                 icon="cancel"
