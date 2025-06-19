@@ -9,6 +9,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
+import CancelLinkModal from '@/components/Send/link/CancelLinkModal'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
@@ -93,6 +94,28 @@ export const TransactionDetailsReceipt = ({
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
 
+    const [showCancelModal, setShowCancelModal] = useState(false)
+    const handleConfirmCancel = () => {
+        setShowCancelModal(false)
+        setIsLoading && setIsLoading(true)
+        sendLinksApi
+            .claim(user!.user.username!, transaction?.extraDataForDrawer!.link!)
+            .then(() => {
+                setTimeout(() => {
+                    fetchBalance()
+                    queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] }).then(() => {
+                        setIsLoading && setIsLoading(false)
+                        onClose && onClose()
+                    })
+                }, 3000)
+            })
+            .catch((error) => {
+                captureException(error)
+                console.error('Error cancelling link:', error)
+                setIsLoading && setIsLoading(false)
+            })
+    }
+
     const isPendingRequestee = useMemo(() => {
         if (!transaction) return false
         return (
@@ -149,6 +172,12 @@ export const TransactionDetailsReceipt = ({
 
     return (
         <div ref={contentRef} className="space-y-4 pb-8">
+            <CancelLinkModal
+                visible={showCancelModal}
+                amount={amountDisplay}
+                onClose={() => setShowCancelModal(false)}
+                onConfirm={handleConfirmCancel}
+            />
             {/* show qr code at the top if applicable */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
                 <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
@@ -305,30 +334,7 @@ export const TransactionDetailsReceipt = ({
                         setIsLoading &&
                         onClose && (
                             <Button
-                                onClick={() => {
-                                    setIsLoading(true)
-                                    sendLinksApi
-                                        .claim(user!.user.username!, transaction.extraDataForDrawer!.link!)
-                                        .then(() => {
-                                            // Claiming takes time, so we need to invalidate both transaction query types
-                                            setTimeout(() => {
-                                                fetchBalance()
-                                                queryClient
-                                                    .invalidateQueries({
-                                                        queryKey: [TRANSACTIONS],
-                                                    })
-                                                    .then(() => {
-                                                        setIsLoading(false)
-                                                        onClose()
-                                                    })
-                                            }, 3000)
-                                        })
-                                        .catch((error) => {
-                                            captureException(error)
-                                            console.error('Error claiming link:', error)
-                                            setIsLoading(false)
-                                        })
-                                }}
+                                onClick={() => setShowCancelModal(true)}
                                 variant={'primary-soft'}
                                 className="flex w-full items-center gap-1"
                                 shadowSize="4"
