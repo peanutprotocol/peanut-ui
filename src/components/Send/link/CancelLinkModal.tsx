@@ -7,9 +7,9 @@ import Image from 'next/image'
 interface CancelLinkModalProps {
     visible: boolean
     amount: string
-    /** Called to close the modal without cancelling the link */
+    /** called to close the modal without cancelling the link */
     onClose: () => void
-    /** Called when the user confirms cancellation */
+    /** called when the user confirms cancellation */
     onConfirm: () => void
 }
 
