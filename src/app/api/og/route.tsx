@@ -7,6 +7,7 @@ import path from 'path'
 import { BASE_URL } from '@/constants'
 import getOrigin from '@/lib/hosting/get-origin'
 import { ReceiptCardOG } from '@/components/og/ReceiptCardOG'
+import { printableAddress } from '@/utils'
 
 export const runtime = 'nodejs' //node.js instead of edge!
 
@@ -44,7 +45,10 @@ export async function GET(req: NextRequest) {
     const type = ['send', 'request', 'generic'].includes(typeParam)
         ? (typeParam as 'send' | 'request' | 'generic')
         : 'generic'
-    const username = searchParams.get('username')! // username will always exist. If it doesn't, page will 404
+    const username =
+        searchParams.get('username')!.length > 12
+            ? printableAddress(searchParams.get('username')!)
+            : searchParams.get('username')! // username will always exist. If it doesn't, page will 404 + format the length if its too long/an ethereum address
     const amount = Number(searchParams.get('amount') ?? 0)
     const isReceipt = searchParams.get('isReceipt') || 'false'
 
