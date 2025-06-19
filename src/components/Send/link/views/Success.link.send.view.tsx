@@ -15,6 +15,7 @@ import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import CancelLinkModal from '@/components/Send/link/CancelLinkModal'
 
 const LinkSendSuccessView = () => {
     const dispatch = useAppDispatch()
@@ -24,9 +25,37 @@ const LinkSendSuccessView = () => {
     const { fetchBalance } = useWallet()
     const { user } = useUserStore()
     const [isLoading, setIsLoading] = useState<boolean>(false)
+    const [showCancelModal, setShowCancelModal] = useState(false)
+
+    const handleConfirmCancel = () => {
+        setShowCancelModal(false)
+        setIsLoading(true)
+        sendLinksApi
+            .claim(user!.user.username!, link!)
+            .then(() => {
+                setTimeout(() => {
+                    fetchBalance()
+                    queryClient
+                        .invalidateQueries({
+                            queryKey: ['transactions'],
+                        })
+                        .then(() => {
+                            setIsLoading(false)
+                            router.push('/home')
+                            dispatch(sendFlowActions.resetSendFlow())
+                        })
+                }, 3000)
+            })
+            .catch((error) => {
+                captureException(error)
+                console.error('Error claiming link:', error)
+                setIsLoading(false)
+            })
+    }
 
     return (
         <div className="relative space-y-8">
+            <CancelLinkModal visible={showCancelModal} amount={String(tokenValue)} onCancel={handleConfirmCancel} />
             {isLoading && <PeanutLoading coverFullScreen />}
             <NavHeader
                 icon="cancel"
@@ -54,31 +83,7 @@ const LinkSendSuccessView = () => {
                             Share link
                         </ShareButton>
                         <Button
-                            onClick={() => {
-                                setIsLoading(true)
-                                sendLinksApi
-                                    .claim(user!.user.username!, link)
-                                    .then(() => {
-                                        // Claiming takes time, so we need to invalidate both transaction query types
-                                        setTimeout(() => {
-                                            fetchBalance()
-                                            queryClient
-                                                .invalidateQueries({
-                                                    queryKey: ['transactions'],
-                                                })
-                                                .then(() => {
-                                                    setIsLoading(false)
-                                                    router.push('/home')
-                                                    dispatch(sendFlowActions.resetSendFlow())
-                                                })
-                                        }, 3000)
-                                    })
-                                    .catch((error) => {
-                                        captureException(error)
-                                        console.error('Error claiming link:', error)
-                                        setIsLoading(false)
-                                    })
-                            }}
+                            onClick={() => setShowCancelModal(true)}
                             variant={'primary-soft'}
                             className="flex w-full items-center gap-1"
                             shadowSize="4"
