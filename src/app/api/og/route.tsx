@@ -6,6 +6,8 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { BASE_URL } from '@/constants'
 import getOrigin from '@/lib/hosting/get-origin'
+import { ReceiptCardOG } from '@/components/og/ReceiptCardOG'
+import { printableAddress } from '@/utils'
 
 export const runtime = 'nodejs' //node.js instead of edge!
 
@@ -43,8 +45,12 @@ export async function GET(req: NextRequest) {
     const type = ['send', 'request', 'generic'].includes(typeParam)
         ? (typeParam as 'send' | 'request' | 'generic')
         : 'generic'
-    const username = searchParams.get('username')! // username will always exist. If it doesn't, page will 404
+    const username =
+        searchParams.get('username')!.length > 12
+            ? printableAddress(searchParams.get('username')!)
+            : searchParams.get('username')! // username will always exist. If it doesn't, page will 404 + format the length if its too long/an ethereum address
     const amount = Number(searchParams.get('amount') ?? 0)
+    const isReceipt = searchParams.get('isReceipt') || 'false'
 
     if (type === 'generic') {
         return new ImageResponse(<div style={{}}>Peanut Protocol</div>, {
@@ -52,6 +58,30 @@ export async function GET(req: NextRequest) {
             height: 630,
             fonts: [{ name: 'Montserrat', data: montserratMedium, style: 'normal' }],
         })
+    }
+
+    if (isReceipt === 'true') {
+        const link: PaymentLink = { type, username, amount, status: 'unclaimed' }
+        return new ImageResponse(
+            (
+                <ReceiptCardOG
+                    link={link}
+                    iconSrc={`${origin}/icons/peanut-icon.svg`}
+                    logoSrc={`${origin}/logos/peanut-logo.svg`}
+                    scribbleSrc={`${origin}/scribble.svg`}
+                />
+            ),
+            {
+                width: 1200,
+                height: 630,
+                fonts: [
+                    { name: 'Knerd Filled', data: knerdFilled, style: 'normal' },
+                    { name: 'Knerd Outline', data: knerdOutline, style: 'normal' },
+                    { name: 'Montserrat Medium', data: montserratMedium, style: 'normal' },
+                    { name: 'Montserrat SemiBold', data: montserratSemibold, style: 'normal' },
+                ],
+            }
+        )
     }
 
     // create an object with all arrow SVG paths

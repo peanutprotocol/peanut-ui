@@ -154,6 +154,7 @@ export interface PaymentCreationResponse {
     paidTokenAddress: string
     payerChainId: string
     payerTransactionHash: string
+    createdAt: string
     requestCharge: {
         uuid: string
         chainId: string
@@ -199,6 +200,8 @@ export interface TRequestChargeResponse {
             }
         }
     }
+    currencyAmount?: string
+    currencyCode?: string
 }
 
 // create payment response
