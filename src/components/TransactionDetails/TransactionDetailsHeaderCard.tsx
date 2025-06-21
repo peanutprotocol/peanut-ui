@@ -10,7 +10,14 @@ import { isAddress as isWalletAddress } from 'viem'
 import Card from '../Global/Card'
 import { Icon, IconName } from '../Global/Icons/Icon'
 
-export type TransactionDirection = 'send' | 'receive' | 'request_sent' | 'request_received' | 'withdraw' | 'add'
+export type TransactionDirection =
+    | 'send'
+    | 'receive'
+    | 'request_sent'
+    | 'request_received'
+    | 'withdraw'
+    | 'add'
+    | 'bank_withdraw'
 
 interface TransactionDetailsHeaderCardProps {
     direction: TransactionDirection
@@ -78,6 +85,9 @@ const getTitle = (
                 titleText = `${status === 'completed' ? 'Requested' : 'Requesting'} from ${displayName}`
                 break
             case 'withdraw':
+                titleText = `${status === 'completed' ? 'Withdrew' : 'Withdrawing'} to ${displayName}`
+                break
+            case 'bank_withdraw':
                 titleText = `${status === 'completed' ? 'Withdrew' : 'Withdrawing'} to ${displayName}`
                 break
             case 'add':

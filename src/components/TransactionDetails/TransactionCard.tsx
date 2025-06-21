@@ -13,7 +13,7 @@ import AddressLink from '../Global/AddressLink'
 import { STABLE_COINS } from '@/constants'
 import Image from 'next/image'
 
-export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout' | 'receive'
+export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout' | 'receive' | 'bank_withdraw'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -112,7 +112,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     return (
         <>
             {/* the clickable card */}
-            <Card position={position} onClick={handleClick}>
+            <Card position={position} onClick={handleClick} className="cursor-pointer">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
@@ -151,7 +151,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-gray-500">
                                 {getActionIcon(type, transaction.direction)}
-                                <span className="text-[14px] capitalize">{type}</span>
+                                <span className="text-[14px] capitalize">
+                                    {type === 'bank_withdraw' ? 'Withdraw' : type}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -194,6 +196,7 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
             iconName = 'arrow-down-left'
             break
         case 'withdraw':
+        case 'bank_withdraw':
         case 'cashout':
             iconName = 'arrow-up'
             iconSize = 8

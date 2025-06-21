@@ -16,6 +16,7 @@ export enum EHistoryEntryType {
     SEND_LINK = 'SEND_LINK',
     DIRECT_SEND = 'DIRECT_SEND',
     WITHDRAW = 'WITHDRAW',
+    BRIDGE_OFFRAMP = 'BRIDGE_OFFRAMP',
 }
 
 export enum EHistoryUserRole {
@@ -187,6 +188,10 @@ export function useTransactionHistory({
                         break
                     }
                     case EHistoryEntryType.WITHDRAW:
+                        tokenSymbol = entry.tokenSymbol
+                        usdAmount = entry.amount.toString()
+                        break
+                    case EHistoryEntryType.BRIDGE_OFFRAMP:
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break
