@@ -1,13 +1,22 @@
 'use client'
 import { Button } from '@/components/0_Bruddle'
 import { DepositMethod, DepositMethodList } from '@/components/AddMoney/components/DepositMethodList'
-import { countryData as ALL_METHODS_DATA } from '@/components/AddMoney/consts' // Renamed for clarity
+import { countryData as ALL_METHODS_DATA, countryCodeMap } from '@/components/AddMoney/consts'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchUsers/SearchInput'
-import { RecentMethod, getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
+import { RecentMethod, getUserPreferences, updateUserPreferences, shortenAddressLong } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { FC, useEffect, useMemo, useState } from 'react'
+import { useUserStore } from '@/redux/hooks'
+import { AccountType, Account } from '@/interfaces'
+import Image from 'next/image'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
+import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
+import Divider from '@/components/0_Bruddle/Divider'
+import Card from '@/components/Global/Card'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -25,7 +34,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     onBackClick,
 }) => {
     const router = useRouter()
+    const { user } = useUserStore()
+    const { setSelectedBankAccount } = useWithdrawFlow()
     const [recentMethodsState, setRecentMethodsState] = useState<RecentMethod[]>([])
+    const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     const [showAllMethods, setShowAllMethods] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [isLoadingPreferences, setIsLoadingPreferences] = useState(true)
@@ -33,21 +45,36 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const baseRoute = flow === 'add' ? '/add-money' : '/withdraw'
 
     useEffect(() => {
-        const prefs = getUserPreferences()
-        const currentRecentMethods = flow === 'add' ? prefs?.recentAddMethods : prefs?.recentWithdrawMethods
-        if (currentRecentMethods && currentRecentMethods.length > 0) {
-            setRecentMethodsState(currentRecentMethods)
-            setShowAllMethods(false)
+        setIsLoadingPreferences(true)
+        if (flow === 'withdraw') {
+            const bankAccounts =
+                user?.accounts.filter((acc) => acc.type === AccountType.IBAN || acc.type === AccountType.US) ?? []
+
+            if (bankAccounts.length > 0) {
+                setSavedAccounts(bankAccounts as unknown as Account[])
+                setShowAllMethods(false)
+            } else {
+                setSavedAccounts([])
+                setShowAllMethods(false)
+            }
         } else {
-            setShowAllMethods(true)
+            // 'add' flow logic
+            const prefs = getUserPreferences()
+            const currentRecentMethods = prefs?.recentAddMethods ?? []
+            if (currentRecentMethods.length > 0) {
+                setRecentMethodsState(currentRecentMethods)
+                setShowAllMethods(false)
+            } else {
+                setShowAllMethods(true)
+            }
         }
         setIsLoadingPreferences(false)
-    }, [flow])
+    }, [flow, user])
 
     const handleMethodSelected = (method: DepositMethod) => {
         const newRecentMethod: RecentMethod = {
             id: method.id,
-            type: method.type,
+            type: method.type as 'crypto' | 'country',
             title: method.title,
             description: method.description,
             iconUrl: method.iconUrl,
@@ -72,7 +99,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         if (flow === 'add') {
             updateUserPreferences({ ...prefs, recentAddMethods: updatedRecentList })
         } else {
-            updateUserPreferences({ ...prefs, recentWithdrawMethods: updatedRecentList })
+            // for withdraw, we don't save to recents from the 'all methods' list, we show saved accounts
         }
 
         router.push(method.path)
@@ -84,6 +111,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             return {
                 ...method,
                 path: path,
+                type: method.type as 'crypto' | 'country',
             }
         })
     }, [baseRoute])
@@ -137,14 +165,64 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         return null
     }
 
-    if (!showAllMethods && recentMethodsState.length > 0) {
+    if (flow === 'withdraw' && savedAccounts.length === 0 && !showAllMethods) {
+        return (
+            <div className="flex min-h-[inherit] flex-col justify-start gap-8">
+                <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
+                <Card className="my-auto flex flex-col items-center justify-center gap-4 p-4">
+                    <div className="space-y-2">
+                        <AvatarWithBadge icon="alert" size="small" className="mx-auto bg-yellow-1" />
+                        <div className="space-y-1 text-center">
+                            <h2 className="text-lg font-bold">No accounts yet</h2>
+                            <p className="text-sm text-grey-1">
+                                Add your accounts details once
+                                <br />
+                                to withdraw in one tap.
+                            </p>
+                        </div>
+                    </div>
+                    <Button icon="plus" onClick={() => setShowAllMethods(true)} shadowSize="4" className="w-full">
+                        Add account
+                    </Button>
+                </Card>
+            </div>
+        )
+    }
+
+    // Render saved accounts for withdraw flow if they exist and we're not in 'showAll' mode
+    if (flow === 'withdraw' && !showAllMethods && savedAccounts.length > 0) {
+        return (
+            <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+                <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
+                <div className="space-y-4">
+                    <div className="flex h-full flex-col justify-center space-y-2">
+                        <h2 className="text-base font-bold">Saved accounts</h2>
+                        <SavedAccountsList
+                            accounts={savedAccounts}
+                            onItemClick={(account, path) => {
+                                setSelectedBankAccount(account)
+                                router.push(path)
+                            }}
+                        />
+                    </div>
+                    <Divider textClassname="font-bold text-grey-1" dividerClassname="bg-grey-1" text="or" />
+                    <Button icon="plus" onClick={() => setShowAllMethods(true)} shadowSize="4">
+                        Select new method
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
+    // Render recent methods for add flow
+    if (flow === 'add' && !showAllMethods && recentMethodsState.length > 0) {
         return (
             <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <div className="flex h-full flex-col justify-center space-y-2">
                     <h2 className="text-base font-bold">Recent methods</h2>
                     <DepositMethodList
-                        methods={recentMethodsState}
+                        methods={recentMethodsState as DepositMethod[]}
                         onItemClick={handleMethodSelected}
                         isAllMethodsView={false}
                     />
@@ -156,20 +234,18 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         )
     }
 
-    // show all methods view
+    // show all methods view for both flows
     return (
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
             <NavHeader
                 title={pageTitle}
                 onPrev={() => {
-                    if (recentMethodsState.length > 0 && showAllMethods) {
-                        // if in 'all methods' view and there were recent methods, go back to 'recent methods' view.
+                    const hasRecentOrSaved = flow === 'add' ? recentMethodsState.length > 0 : savedAccounts.length > 0
+                    if (hasRecentOrSaved && showAllMethods) {
                         setShowAllMethods(false)
                     } else if (onBackClick) {
-                        // if onBackClick is provided (e.g., to go to previous step like amount input)
                         onBackClick()
                     } else {
-                        // fallback for flows where onBackClick might not be set (e.g., initial 'add money' view with no recent)
                         defaultBackNavigation()
                     }
                 }}
@@ -200,6 +276,79 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     </div>
                 )}
             </div>
+        </div>
+    )
+}
+
+// component to render saved bank accounts
+const SavedAccountsList: FC<{ accounts: Account[]; onItemClick: (account: Account, path: string) => void }> = ({
+    accounts,
+    onItemClick,
+}) => {
+    return (
+        <div className="flex flex-col">
+            {accounts.map((account, index) => {
+                let details: { countryCode?: string; countryName?: string; country?: string } = {}
+                if (typeof account.details === 'string') {
+                    try {
+                        details = JSON.parse(account.details)
+                    } catch (error) {
+                        console.error('Failed to parse account_details:', error)
+                    }
+                } else if (typeof account.details === 'object' && account.details !== null) {
+                    details = account.details as { country?: string }
+                }
+
+                const threeLetterCountryCode = (details.countryCode ?? '').toUpperCase()
+                const twoLetterCountryCode = countryCodeMap[threeLetterCountryCode] ?? threeLetterCountryCode
+
+                const countryCodeForFlag = twoLetterCountryCode.toLowerCase() ?? ''
+
+                let countryInfo
+                if (account.type === AccountType.US) {
+                    countryInfo = ALL_METHODS_DATA.find((c) => c.id === 'US')
+                } else {
+                    countryInfo = details.countryName
+                        ? ALL_METHODS_DATA.find((c) => c.title.toLowerCase() === details.countryName?.toLowerCase())
+                        : ALL_METHODS_DATA.find((c) => c.id === threeLetterCountryCode)
+                }
+
+                const path = countryInfo ? `/withdraw/${countryInfo.path}/bank` : '/withdraw'
+                const isSingle = accounts.length === 1
+                const isFirst = index === 0
+                const isLast = index === accounts.length - 1
+
+                let position: 'first' | 'last' | 'middle' | 'single' = 'middle'
+                if (isSingle) position = 'single'
+                else if (isFirst) position = 'first'
+                else if (isLast) position = 'last'
+
+                return (
+                    <SearchResultCard
+                        key={account.id}
+                        title={shortenAddressLong(account.identifier, 6)}
+                        position={position}
+                        onClick={() => onItemClick(account, path)}
+                        className="p-4 py-2.5"
+                        leftIcon={
+                            <div className="relative h-8 w-8">
+                                {countryCodeForFlag && (
+                                    <Image
+                                        src={`https://flagcdn.com/w160/${account.type === AccountType.US ? 'us' : countryCodeForFlag}.png`}
+                                        alt={`${details.countryName ?? 'country'} flag`}
+                                        width={80}
+                                        height={80}
+                                        className="h-8 w-8 rounded-full object-cover"
+                                    />
+                                )}
+                                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-400 p-1">
+                                    <Icon name="bank" className="h-full w-full text-black" />
+                                </div>
+                            </div>
+                        }
+                    />
+                )
+            })}
         </div>
     )
 }
