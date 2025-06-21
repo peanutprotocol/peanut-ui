@@ -24,6 +24,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
 import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
+import { AccountType } from '@/interfaces'
 
 export default function Home() {
     const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
@@ -45,7 +46,7 @@ export default function Home() {
 
     const userFullName = useMemo(() => {
         if (!user) return
-        return user.user.full_name
+        return user.user.fullName
     }, [user])
 
     const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -62,7 +63,7 @@ export default function Home() {
     useEffect(() => {
         // We have some users that didn't have the peanut wallet created
         // correctly, so we need to create it
-        if (address && user && !user.accounts.some((a) => a.account_type === 'peanut-wallet')) {
+        if (address && user && !user.accounts.some((a) => a.type === AccountType.PEANUT_WALLET)) {
             addAccount({
                 accountIdentifier: address,
                 accountType: 'peanut-wallet',

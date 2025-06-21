@@ -4,7 +4,7 @@ import { useUserQuery } from '@/hooks/query/user'
 import * as interfaces from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { type GetUserLinksResponse, fetchWithSentry } from '@/utils'
+import { fetchWithSentry } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -16,7 +16,6 @@ interface AuthContextType {
     userId: string | undefined
     username: string | undefined
     fetchUser: () => Promise<interfaces.IUserProfile | null>
-    updateBridgeCustomerData: (customer: GetUserLinksResponse) => Promise<void>
     addBYOW: () => Promise<void>
     addAccount: ({
         accountIdentifier,
@@ -59,35 +58,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
-
-    const updateBridgeCustomerData = async (customer: GetUserLinksResponse) => {
-        if (!user) return
-
-        try {
-            const response = await fetchWithSentry('/api/peanut/user/update-user', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    bridge_customer_id: customer.id,
-                    userId: user.user.userId,
-                    kycStatus: customer.kyc_status,
-                }),
-            })
-
-            if (response.ok) {
-                const updatedUserData: any = await response.json()
-                if (updatedUserData.success) {
-                    fetchUser()
-                }
-            } else {
-                console.error('Failed to update user')
-            }
-        } catch (error) {
-            console.error('Error updating user', error)
-        }
-    }
 
     const addBYOW = async () => {
         // we open the web3modal, so the user can disconnect the previous wallet,
@@ -185,7 +155,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 user: user ?? null,
                 userId: user?.user?.userId,
                 username: user?.user?.username ?? undefined,
-                updateBridgeCustomerData,
                 fetchUser: legacy_fetchUser,
                 addBYOW,
                 addAccount,

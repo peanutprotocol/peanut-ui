@@ -1,56 +1,60 @@
-'use client'
-import * as assets from '@/assets'
-import { useAuth } from '@/context/authContext'
-import Link from 'next/link'
-import { Button, Card } from '../0_Bruddle'
-import Divider from '../0_Bruddle/Divider'
-import { GlobalKYCComponent } from '../Global/KYCComponent'
+import ActionModal from '@/components/Global/ActionModal'
+import { useKycFlow } from '@/hooks/useKycFlow'
+import IframeWrapper from '@/components/Global/IframeWrapper'
+import { KycVerificationInProgressModal } from './KycVerificationInProgressModal'
+import { IconName } from '@/components/Global/Icons/Icon'
 
-export const KYCComponent = () => {
-    const { user, isFetchingUser } = useAuth()
+interface KycModalFlowProps {
+    isOpen: boolean
+    onClose: () => void
+    onKycSuccess?: () => void
+}
 
-    if (!user && isFetchingUser) {
-        return (
-            <div className="relative flex w-full items-center justify-center">
-                <div className="animate-spin">
-                    <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
-                    <span className="sr-only">Loading...</span>
-                </div>
-            </div>
-        )
-    }
+export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess }: KycModalFlowProps) => {
+    const {
+        isLoading,
+        error,
+        iframeOptions,
+        isVerificationModalOpen,
+        handleInitiateKyc,
+        handleIframeClose,
+        closeVerificationModal,
+    } = useKycFlow({ onKycSuccess })
 
-    if (user && user?.user?.kycStatus === 'approved') {
-        return (
-            <Card className="shadow-none sm:shadow-4">
-                <Card.Header>
-                    <Card.Title>Welcome back, {user?.user?.username ?? user?.user?.email}</Card.Title>
-                    <Card.Description>You have already completed the KYC process!</Card.Description>
-                </Card.Header>
-                <Card.Content className="col gap-4 py-4">
-                    <Link href={'/cashout'} className="w-full">
-                        <Button>Go to Cashout</Button>
-                    </Link>
-                    <Divider text="OR" />
-                    <Link href={'/home'} className="w-full">
-                        <Button variant="stroke">Go to Dashboard</Button>
-                    </Link>
-                </Card.Content>
-            </Card>
-        )
+    const handleVerifyClick = () => {
+        onClose()
+        handleInitiateKyc()
     }
 
     return (
-        <GlobalKYCComponent
-            intialStep={user?.user?.email ? 1 : 0}
-            offrampForm={{
-                email: user?.user?.email ?? '',
-                name: user?.user?.full_name ?? '',
-                password: '',
-                recipient: '',
-            }}
-            setOfframpForm={() => {}}
-            onCompleted={() => {}}
-        />
+        <>
+            <ActionModal
+                visible={isOpen}
+                onClose={onClose}
+                title="Verify your identity first"
+                description="To continue, you need to complete identity verification. This usually takes just a few minutes."
+                icon={'badge' as IconName}
+                ctas={[
+                    {
+                        text: isLoading ? 'Loading...' : 'Verify now',
+                        onClick: handleVerifyClick,
+                        variant: 'purple',
+                        disabled: isLoading,
+                        shadowSize: '4',
+                        icon: 'check-circle',
+                        className: 'h-11',
+                    },
+                    {
+                        hidden: !error,
+                        text: error ?? 'Retry',
+                        onClick: onClose,
+                        variant: 'transparent',
+                        className: 'underline text-sm !font-normal w-full !transform-none !pt-2 text-error-3',
+                    },
+                ]}
+            />
+            <IframeWrapper {...iframeOptions} onClose={handleIframeClose} />
+            <KycVerificationInProgressModal isOpen={isVerificationModalOpen} onClose={closeVerificationModal} />
+        </>
     )
 }

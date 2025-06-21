@@ -38,10 +38,10 @@ export const ProfileEditView = () => {
     // check if email is already set
     const isEmailSet = !!user?.user.email
 
-    // populate name and surname from full_name
+    // populate name and surname from fullName
     useEffect(() => {
-        if (user?.user.full_name) {
-            const { name, surname } = splitName(user.user.full_name)
+        if (user?.user.fullName) {
+            const { name, surname } = splitName(user.user.fullName)
             setFormData((prev) => ({
                 ...prev,
                 name,
@@ -49,7 +49,7 @@ export const ProfileEditView = () => {
                 email: user.user.email || '',
             }))
         }
-    }, [user?.user.full_name, user?.user.email, splitName])
+    }, [user?.user.fullName, user?.user.email, splitName])
 
     // handle input field changes
     const handleChange = useCallback((field: string, value: string) => {
@@ -71,7 +71,7 @@ export const ProfileEditView = () => {
                 return
             }
 
-            // combine name and surname for full_name
+            // combine name and surname for fullName
             const fullName = `${formData.name} ${formData.surname}`.trim()
 
             // prepare request payload
@@ -105,7 +105,7 @@ export const ProfileEditView = () => {
         }
     }, [formData, user, fetchUser, router, isEmailSet])
 
-    const fullName = user?.user.full_name || user?.user?.username || ''
+    const fullName = user?.user.fullName || user?.user?.username || ''
     const username = user?.user.username || ''
 
     return (

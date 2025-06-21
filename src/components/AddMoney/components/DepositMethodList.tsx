@@ -4,6 +4,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
+import { countryCodeMap } from '../consts'
 
 export interface DepositMethod {
     type: 'crypto' | 'country'
@@ -52,6 +53,11 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                     classNames.push('mb-2')
                 }
 
+                const threeLetterCountryCode = (method.id ?? '').toUpperCase()
+                const twoLetterCountryCode = countryCodeMap[threeLetterCountryCode] ?? threeLetterCountryCode
+
+                const countryCodeForFlag = twoLetterCountryCode.toLowerCase() ?? ''
+
                 return (
                     <SearchResultCard
                         key={`${method.type}-${method.id}`}
@@ -62,11 +68,11 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                                 <AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />
                             ) : method.type === 'country' ? (
                                 <Image
-                                    src={`https://flagcdn.com/w320/${method.id.toLowerCase()}.png`}
+                                    src={`https://flagcdn.com/w160/${countryCodeForFlag.toLowerCase()}.png`}
                                     alt={`${method.title} flag`}
-                                    width={32}
-                                    height={32}
-                                    className="min-h-8 min-w-8 rounded-full object-fill object-center shadow-sm"
+                                    width={80}
+                                    height={80}
+                                    className="h-8 w-8 rounded-full object-fill object-center shadow-sm"
                                     loading="lazy"
                                 />
                             ) : (

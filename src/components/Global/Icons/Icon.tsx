@@ -46,6 +46,9 @@ import { UserPlusIcon } from './user-plus'
 import { WalletIcon } from './wallet'
 import { WalletCancelIcon } from './wallet-cancel'
 import { WalletOutlineIcon } from './wallet-outline'
+import { BadgeIcon } from './badge'
+import { UserIdIcon } from './user-id'
+import { ClockIcon } from './clock'
 
 // available icon names
 export type IconName =
@@ -96,6 +99,10 @@ export type IconName =
     | 'switch'
     | 'mobile-install'
     | 'retry'
+    | 'badge'
+    | 'user-id'
+    | 'clock'
+
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
     size?: number | string
@@ -108,6 +115,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'arrow-up': ArrowUpIcon,
     'arrow-up-right': ArrowUpRightIcon,
     bank: BankIcon,
+    badge: BadgeIcon,
     camera: CameraIcon,
     check: CheckIcon,
     'chevron-up': ChevronUpIcon,
@@ -150,6 +158,8 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'check-circle': CheckCircleIcon,
     'mobile-install': MobileInstallIcon,
     retry: RetryIcon,
+    'user-id': UserIdIcon,
+    clock: ClockIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
