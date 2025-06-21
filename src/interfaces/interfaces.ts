@@ -321,8 +321,8 @@ interface User {
     kycRejectedAt?: string
     tosStatus?: string
     tosAcceptedAt?: string
-    bridge_customer_id: string | null
-    full_name: string
+    bridgeCustomerId: string | null
+    fullName: string
     telegram: string | null
     hasPwAccess: boolean
     accounts: Account[]
@@ -360,30 +360,6 @@ export type ChainIdType =
     | '1313161554'
 
 export interface Account {
-    account_id: string
-    user_id: string
-    bridge_account_id: string | null
-    account_type: AccountType
-    type: AccountType
-    account_identifier: string
-    account_details: string | { [key: string]: any } | null
-    created_at: string
-    updated_at: string
-    points: number
-    referrer: string | null
-    referred_users_points: number
-    totalReferralPoints: number
-    chain_id: ChainIdType
-    bic?: string
-    routing_number?: string
-    connector?: {
-        iconUrl: string
-        name: string
-    }
-}
-
-// @dev note, redeclaring this interface cuz they keys are mismatched in differnet accounts object, this needs to be consistent
-export interface TAccount {
     id: string
     userId: string
     bridgeAccountId: string
@@ -402,9 +378,12 @@ export interface TAccount {
     referredUsersPoints: number
     chainId: string | null
     connectorUuid: string | null
-    bic: string | null
-    routingNumber: string | null
-    connector: null
+    bic?: string
+    routingNumber?: string
+    connector?: {
+        iconUrl: string
+        name: string
+    }
     transactions: Transaction[]
     referrals: ReferralConnection[]
 }

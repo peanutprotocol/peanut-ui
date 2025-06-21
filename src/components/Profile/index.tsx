@@ -14,7 +14,7 @@ export const Profile = () => {
         await logoutUser()
     }
 
-    const fullName = user?.user.full_name || user?.user?.username || 'Anonymous User'
+    const fullName = user?.user.fullName || user?.user?.username || 'Anonymous User'
     const username = user?.user.username || 'anonymous'
 
     return (

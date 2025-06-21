@@ -291,7 +291,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             }
             details.direction = 'add'
             details.userName = user?.user.username ?? undefined
-            details.initials = getInitialsFromName(user?.user.full_name ?? user?.user?.username ?? 'PU')
+            details.initials = getInitialsFromName(user?.user.fullName ?? user?.user?.username ?? 'PU')
         }
 
         return details as TransactionDetails

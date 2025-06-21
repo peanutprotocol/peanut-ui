@@ -7,7 +7,15 @@ import { formatDate } from '@/utils'
 
 // this component shows the kyc status when it's failed/rejected.
 // it displays the reason for the failure and provides a retry button.
-export const KycFailed = ({ reason, kycRejectedAt }: { reason: string | null; kycRejectedAt?: string }) => {
+export const KycFailed = ({
+    reason,
+    kycRejectedAt,
+    onRetry,
+}: {
+    reason: string | null
+    kycRejectedAt?: string
+    onRetry: () => void
+}) => {
     const rejectedOn = useMemo(() => {
         if (!kycRejectedAt) return 'N/A'
         try {
@@ -27,7 +35,7 @@ export const KycFailed = ({ reason, kycRejectedAt }: { reason: string | null; ky
                 <PaymentInfoRow label="Reason" value={reason || 'An unknown error occurred.'} hideBottomBorder />
             </Card>
             {/* as requested, this button is currently for ui purposes and will be implemented later. */}
-            <Button icon="retry" variant="purple" className="w-full" shadowSize="4">
+            <Button icon="retry" variant="purple" className="w-full" shadowSize="4" onClick={onRetry}>
                 Retry verification
             </Button>
         </div>

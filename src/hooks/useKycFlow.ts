@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { IFrameWrapperProps } from '@/components/Global/IframeWrapper'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -25,6 +25,7 @@ interface UseKycFlowOptions {
 export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
     const { user } = useUserStore()
     const router = useRouter()
+    const isMounted = useRef(false)
 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -77,11 +78,18 @@ export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
 
     // when the final status is received, close the verification modal
     useEffect(() => {
-        if (liveKycStatus === 'approved') {
-            setIsVerificationModalOpen(false)
-            onKycSuccess?.()
-        } else if (liveKycStatus === 'rejected') {
-            setIsVerificationModalOpen(false)
+        // We only want to run this effect on updates, not on the initial mount
+        // to prevent `onKycSuccess` from being called when the component first renders
+        // with an already-approved status.
+        if (isMounted.current) {
+            if (liveKycStatus === 'approved') {
+                setIsVerificationModalOpen(false)
+                onKycSuccess?.()
+            } else if (liveKycStatus === 'rejected') {
+                setIsVerificationModalOpen(false)
+            }
+        } else {
+            isMounted.current = true
         }
     }, [liveKycStatus, onKycSuccess])
 

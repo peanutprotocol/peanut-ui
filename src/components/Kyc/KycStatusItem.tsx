@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import Card, { CardPosition } from '@/components/Global/Card'
 import { KycStatusDrawer } from './KycStatusDrawer'
 import { useUserStore } from '@/redux/hooks'
@@ -6,29 +6,35 @@ import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import StatusBadge, { StatusType } from '../Global/Badges/StatusBadge'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { KYCStatus, formatDate } from '@/utils'
+import { HTMLAttributes } from 'react'
+import { twMerge } from 'tailwind-merge'
 
 // this component shows the current kyc status and opens a drawer with more details on click
-export const KycStatusItem = ({ position = 'first' }: { position?: CardPosition }) => {
+export const KycStatusItem = ({
+    position = 'first',
+    className,
+}: {
+    position?: CardPosition
+    className?: HTMLAttributes<HTMLDivElement>['className']
+}) => {
     const { user } = useUserStore()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+    const [wsKycStatus, setWsKycStatus] = useState<KYCStatus | undefined>(undefined)
 
-    // liveKycStatus holds the real-time status, updated via websockets
-    // it falls back to the status from the user object if the websocket is not connected
-    const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(user?.user?.kycStatus as KYCStatus)
-
-    // update the live status if the user object changes
-    useEffect(() => {
-        setLiveKycStatus(user?.user?.kycStatus as KYCStatus)
-    }, [user?.user?.kycStatus])
+    const handleCloseDrawer = useCallback(() => {
+        setIsDrawerOpen(false)
+    }, [])
 
     // connect to websockets for real-time updates
     useWebSocket({
         username: user?.user.username ?? undefined,
         autoConnect: true,
         onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as KYCStatus)
+            setWsKycStatus(newStatus as KYCStatus)
         },
     })
+
+    const kycStatus = wsKycStatus || user?.user?.kycStatus
 
     const subtitle = useMemo(() => {
         const kycStartedAt = user?.user?.kycStartedAt
@@ -43,13 +49,19 @@ export const KycStatusItem = ({ position = 'first' }: { position?: CardPosition 
         }
     }, [user?.user?.kycStartedAt])
 
-    if (!liveKycStatus || liveKycStatus === 'not_started') {
+    if (!kycStatus || kycStatus === 'not_started') {
         return null
     }
 
     return (
         <>
-            <Card position={position} onClick={() => setIsDrawerOpen(true)} className="cursor-pointer">
+            <Card
+                position={position}
+                onClick={() => {
+                    setIsDrawerOpen(true)
+                }}
+                className={twMerge('cursor-pointer', className)}
+            >
                 <div className="flex items-center gap-4">
                     <KYCStatusIcon />
                     <div className="flex-1">
@@ -61,8 +73,8 @@ export const KycStatusItem = ({ position = 'first' }: { position?: CardPosition 
 
             <KycStatusDrawer
                 isOpen={isDrawerOpen}
-                onClose={() => setIsDrawerOpen(false)}
-                kycStatus={liveKycStatus}
+                onClose={handleCloseDrawer}
+                kycStatus={kycStatus}
                 kycStartedAt={user?.user?.kycStartedAt}
                 kycApprovedAt={user?.user?.kycApprovedAt}
                 kycRejectedAt={user?.user?.kycRejectedAt}

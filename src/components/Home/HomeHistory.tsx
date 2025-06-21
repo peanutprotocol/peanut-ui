@@ -152,8 +152,8 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                 </Link>
             )}
             {/* container for the transaction cards */}
-            <KycStatusItem position={combinedEntries.length > 0 ? 'first' : 'single'} />
             <div className="h-full w-full">
+                <KycStatusItem position={combinedEntries.length > 0 ? 'first' : 'single'} className="border-b-0" />
                 {/* map over the latest entries and render transactioncard */}
                 {combinedEntries
                     .filter((item) => !pendingRequests.some((r) => r.uuid === item.uuid))

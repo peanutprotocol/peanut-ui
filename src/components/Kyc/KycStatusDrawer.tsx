@@ -6,6 +6,8 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Drawer, DrawerContent } from '../Global/Drawer'
 import { KYCStatus } from '@/utils'
 import { initiateKyc } from '@/app/actions/users'
+import { useKycFlow } from '@/hooks/useKycFlow'
+import IFrameWrapper from '../Global/IframeWrapper'
 
 // a helper to categorize the kyc status from the user object
 const getKycStatusCategory = (kycStatus: KYCStatus): 'processing' | 'completed' | 'failed' => {
@@ -41,6 +43,12 @@ export const KycStatusDrawer = ({
 }: KycStatusDrawerProps) => {
     const [rejectionReason, setRejectionReason] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
+    const {
+        handleInitiateKyc,
+        iframeOptions,
+        handleIframeClose,
+        isLoading: isKycFlowLoading,
+    } = useKycFlow({ onKycSuccess: onClose })
 
     const statusCategory = getKycStatusCategory(kycStatus)
 
@@ -86,7 +94,7 @@ export const KycStatusDrawer = ({
             case 'completed':
                 return <KycCompleted kycApprovedAt={kycApprovedAt} />
             case 'failed':
-                return <KycFailed reason={rejectionReason} kycRejectedAt={kycRejectedAt} />
+                return <KycFailed reason={rejectionReason} kycRejectedAt={kycRejectedAt} onRetry={handleInitiateKyc} />
             default:
                 return null
         }
@@ -98,8 +106,16 @@ export const KycStatusDrawer = ({
     }
 
     return (
-        <Drawer open={isOpen} onOpenChange={onClose}>
-            <DrawerContent className="p-5">{renderContent()}</DrawerContent>
-        </Drawer>
+        <>
+            <Drawer open={isOpen} onOpenChange={onClose}>
+                <DrawerContent className="p-5">{renderContent()}</DrawerContent>
+            </Drawer>
+            <IFrameWrapper
+                visible={iframeOptions.visible || isKycFlowLoading}
+                src={iframeOptions.src}
+                onClose={handleIframeClose}
+                closeConfirmMessage={iframeOptions.closeConfirmMessage}
+            />
+        </>
     )
 }
