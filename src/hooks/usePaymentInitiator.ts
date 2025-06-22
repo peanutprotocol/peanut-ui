@@ -92,7 +92,7 @@ export const usePaymentInitiator = () => {
     const [transactionHash, setTransactionHash] = useState<string | null>(null)
     const [paymentDetails, setPaymentDetails] = useState<PaymentCreationResponse | null>(null)
     const [isEstimatingGas, setIsEstimatingGas] = useState(false)
-    const [xChainRoute, setXChainRoute] = useState<PeanutCrossChainRoute | null>(null)
+    const [xChainRoute, setXChainRoute] = useState<PeanutCrossChainRoute | undefined>(undefined)
 
     // use chargeDetails from the store primarily, fallback to createdChargeDetails
     const activeChargeDetails = useMemo(
@@ -134,7 +134,7 @@ export const usePaymentInitiator = () => {
 
         setUnsignedTx(null)
         setXChainUnsignedTxs(null)
-        setXChainRoute(null)
+        setXChainRoute(undefined)
         setEstimatedFromValue('0')
         setSlippagePercentage(undefined)
         setEstimatedGasCost(undefined)
@@ -180,7 +180,7 @@ export const usePaymentInitiator = () => {
             setIsFeeEstimationError(false)
             setUnsignedTx(null)
             setXChainUnsignedTxs(null)
-            setXChainRoute(null)
+            setXChainRoute(undefined)
 
             setEstimatedGasCost(undefined)
             setFeeOptions([])

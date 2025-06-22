@@ -287,7 +287,7 @@ async function findOptimalFromAmount(
     // for example 0.4% of 10 USD is different than 0.4% of 1000 USD
     let maxOverage: number
     let rangeMultiplier: { low: number; high: number }
-    if (targetUsd < 0.1) {
+    if (targetUsd < 0.3) {
         // Really small amounts, mainly used for testing
         maxOverage = 0.05 // 5%
         rangeMultiplier = { low: 0.945, high: 1.15 }
@@ -320,6 +320,7 @@ async function findOptimalFromAmount(
         try {
             const response = await getSquidRouteRaw(testParams)
             const receivedAmount = BigInt(response.route.estimate.toAmountMin)
+            console.log('fromAmount', midPoint)
             console.log('receivedAmount', receivedAmount)
             console.log('targetToAmount', targetToAmount)
             if (receivedAmount >= targetToAmount) {
@@ -345,6 +346,7 @@ async function findOptimalFromAmount(
                 lowBound = midPoint + 1n
             }
         } catch (error) {
+            console.warn('Error fetching route:', error)
             lowBound = midPoint + 1n
             iterations++
         }

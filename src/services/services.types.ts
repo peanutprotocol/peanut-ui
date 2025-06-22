@@ -181,6 +181,8 @@ export interface TRequestChargeResponse {
     updatedAt: string
     payments: Payment[]
     fulfillmentPayment: Payment | null
+    currencyCode: string
+    currencyAmount: string
     timeline: TimelineEntry[]
     requestee?: {
         userId: string

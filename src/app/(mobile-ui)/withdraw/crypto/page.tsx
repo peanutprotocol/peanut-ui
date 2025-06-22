@@ -287,6 +287,7 @@ export default function WithdrawCryptoPage() {
                     routeExpiry={xChainRoute?.expiry}
                     isRouteLoading={isCalculatingFees || isPreparingTx}
                     onRouteRefresh={handleRouteRefresh}
+                    xChainRoute={xChainRoute ?? undefined}
                 />
             )}
 

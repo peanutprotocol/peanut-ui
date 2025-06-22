@@ -13,7 +13,6 @@ import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import PeanutSponsored from '@/components/Global/PeanutSponsored'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
-import RouteExpiryTimer from '@/components/Global/RouteExpiryTimer'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context'
 import { usePaymentInitiator } from '@/hooks/usePaymentInitiator'
@@ -28,6 +27,7 @@ import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
+import { formatUnits } from 'viem'
 
 type ConfirmPaymentViewProps = {
     isPintaReq?: boolean
@@ -137,13 +137,13 @@ export default function ConfirmPaymentView({
 
     useEffect(() => {
         if (chargeDetails && selectedTokenData && selectedChainID) {
-            if (isDirectPay) {
-                prepareTransactionDetails(chargeDetails)
+            if (isDirectPay && chargeDetails.currencyCode.toLowerCase() === 'usd') {
+                prepareTransactionDetails(chargeDetails, false, chargeDetails.currencyAmount)
             } else {
-                prepareTransactionDetails(chargeDetails, false, chargeDetails.tokenAmount)
+                prepareTransactionDetails(chargeDetails)
             }
         }
-    }, [chargeDetails, walletAddress, selectedTokenData, selectedChainID, prepareTransactionDetails])
+    }, [chargeDetails, walletAddress, selectedTokenData, selectedChainID, prepareTransactionDetails, isDirectPay])
 
     const isConnected = useMemo(() => isPeanutWallet || isWagmiConnected, [isPeanutWallet, isWagmiConnected])
     const isInsufficientRewardsBalance = useMemo(() => {
@@ -306,6 +306,11 @@ export default function ConfirmPaymentView({
         return null
     }, [isCrossChainPayment, xChainRoute, isPeanutWallet])
 
+    const minReceived = useMemo<string | null>(() => {
+        if (!xChainRoute || !chargeDetails?.tokenDecimals) return null
+        return formatUnits(BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin), chargeDetails.tokenDecimals)
+    }, [xChainRoute, chargeDetails?.tokenDecimals])
+
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader
@@ -344,6 +349,13 @@ export default function ConfirmPaymentView({
                 )}
 
                 <Card className="rounded-sm">
+                    {minReceived && (
+                        <PaymentInfoRow
+                            label="Min Received"
+                            value={minReceived}
+                            moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
+                        />
+                    )}
                     {isCrossChainPayment && (
                         <PaymentInfoRow
                             label="Requested"
