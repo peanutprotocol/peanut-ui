@@ -212,7 +212,6 @@ export interface IBridgeIbanDetails {
     last_4: string
     bic: string
     country: string
-    routing_number: string
 }
 
 interface IBridgeUsAccountDetails {

@@ -133,7 +133,7 @@ export const validateAccountFormData = async (formData: any, setAccountFormError
 }
 
 export async function validateIban(iban: string): Promise<boolean> {
-    return isIBAN(iban)
+    return isIBAN(iban.replace(/\s+/g, ''))
 }
 
 export function getBridgeTokenName(chainId: string, tokenAddress: string): string | undefined {

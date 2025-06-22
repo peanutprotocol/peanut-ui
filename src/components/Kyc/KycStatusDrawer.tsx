@@ -5,13 +5,14 @@ import { KycProcessing } from './states/KycProcessing'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Drawer, DrawerContent } from '../Global/Drawer'
 import { KYCStatus } from '@/utils'
-import { initiateKyc } from '@/app/actions/users'
+import { getKycDetails } from '@/app/actions/users'
 import { useKycFlow } from '@/hooks/useKycFlow'
 import IFrameWrapper from '../Global/IframeWrapper'
 
 // a helper to categorize the kyc status from the user object
 const getKycStatusCategory = (kycStatus: KYCStatus): 'processing' | 'completed' | 'failed' => {
     switch (kycStatus) {
+        // note: not_started status is handled explicitly in KycStatusItem component
         case 'under_review':
         case 'incomplete':
             return 'processing'
@@ -59,8 +60,8 @@ export const KycStatusDrawer = ({
                 setIsLoading(true)
                 setRejectionReason(null)
                 try {
-                    // the initiateKyc endpoint returns rejection reasons if they exist
-                    const response = await initiateKyc()
+                    // the getKycDetails endpoint returns rejection reasons if they exist
+                    const response = await getKycDetails()
                     if (response.data?.reasons && response.data.reasons.length > 0) {
                         setRejectionReason(response.data.reasons[0].reason)
                     } else if (response.error) {
