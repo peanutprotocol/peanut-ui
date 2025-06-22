@@ -270,6 +270,18 @@ export const TransactionDetailsReceipt = ({
                             hideBottomBorder={!transaction.status && !transaction.memo && !transaction.attachmentUrl}
                         />
                     )}
+                    {transaction.id && transaction.direction === 'bank_withdraw' && (
+                        <PaymentInfoRow
+                            label="Transfer ID"
+                            value={
+                                <div className="flex items-center gap-2">
+                                    <span>{transaction.id.toUpperCase()}</span>
+                                    <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
+                                </div>
+                            }
+                            hideBottomBorder={!transaction.status && !transaction.memo && !transaction.attachmentUrl}
+                        />
+                    )}
 
                     {transaction.status !== 'pending' && (
                         <PaymentInfoRow
