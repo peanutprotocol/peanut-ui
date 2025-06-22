@@ -34,7 +34,7 @@ export const updateUserById = async (payload: Record<string, any>): Promise<{ da
 }
 
 // initiate the kyc process for the logged-in user
-export const initiateKyc = async (params?: {
+export const getKycDetails = async (params?: {
     endorsements: BridgeEndorsementType[]
 }): Promise<{ data?: InitiateKycResponse; error?: string }> => {
     const cookieStore = cookies()

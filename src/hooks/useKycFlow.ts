@@ -5,7 +5,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import { KYCStatus, convertPersonaUrl } from '@/utils'
 import { InitiateKycResponse } from '@/app/actions/types/users.types'
-import { initiateKyc } from '@/app/actions/users'
+import { getKycDetails } from '@/app/actions/users'
 
 // persona event detail types
 interface PersonaEventDetail {
@@ -97,7 +97,7 @@ export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
         setIsLoading(true)
         setError(null)
 
-        const response = await initiateKyc()
+        const response = await getKycDetails()
 
         if (response.error) {
             setError(response.error)
