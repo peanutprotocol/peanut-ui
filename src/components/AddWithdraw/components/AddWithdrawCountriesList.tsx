@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from 'react'
 import { InitiateKYCModal } from '@/components/Kyc'
 import { DynamicBankAccountForm, FormData } from './DynamicBankAccountForm'
 import { addBankAccount, updateUserById } from '@/app/actions/users'
-import { getFromLocalStorage, saveToLocalStorage } from '@/utils/general.utils'
+import { jsonParse, jsonStringify } from '@/utils/general.utils'
 import { KYCStatus } from '@/utils/cashout.utils'
 import { AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -62,7 +62,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     useEffect(() => {
         if (user?.user.userId) {
-            const data = getFromLocalStorage(`temp-bank-account-${user.user.userId}`)
+            const item = sessionStorage.getItem(`temp-bank-account-${user.user.userId}`)
+            const data = item ? jsonParse(item) : null
             const currentStatus = liveKycStatus || user.user.kycStatus
             if (data && currentStatus === 'approved' && !cachedBankDetails) {
                 setCachedBankDetails(data)
@@ -80,7 +81,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         // scenario (1): happy path: if the user has already completed kyc and we have their name and email,
         // we can add the bank account directly.
-        if (isUserKycVerified && (hasNameOnLoad || rawData.fullName) && (hasEmailOnLoad || rawData.email)) {
+        if (isUserKycVerified && (hasNameOnLoad || rawData.firstName) && (hasEmailOnLoad || rawData.email)) {
             const result = await addBankAccount(payload)
             if (result.error) {
                 return { error: result.error }
@@ -90,7 +91,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             // and remove any temporary data from local storage.
             await fetchUser() // refetch user to get the new bank account
             if (user?.user.userId) {
-                localStorage.removeItem(`temp-bank-account-${user.user.userId}`)
+                sessionStorage.removeItem(`temp-bank-account-${user.user.userId}`)
             }
             if (currentCountry) {
                 router.push(`/withdraw/${currentCountry.path}/bank`)
@@ -101,10 +102,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // if the user's profile is missing their full name or email,
         // we update it with the data they just provided in the form.
         if (!hasNameOnLoad || !hasEmailOnLoad) {
-            if (user?.user.userId && rawData.fullName && rawData.email) {
+            if (user?.user.userId && rawData.firstName && rawData.lastName && rawData.email) {
                 const result = await updateUserById({
                     userId: user.user.userId,
-                    fullName: rawData.fullName,
+                    fullName: `${rawData.firstName} ${rawData.lastName}`.trim(),
                     email: rawData.email,
                 })
                 if (result.error) {
@@ -116,21 +117,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         // scenario (2): if the user hasn't completed kyc yet
         if (!isUserKycVerified) {
-            const detailsToSave = { ...rawData }
-
-            // we're caching the bank details in local storage so we don't lose them
-            // during the kyc flow. we don't need to cache the user's name and email,
-            // so we remove them from the object we're about to save.
-            //
-            // we use @ts-ignore here because typescript would normally complain
-            // that we're deleting properties that are defined on the formdata type.
-            // in this case, it's safe because we're just preparing the data for caching.
-            // @ts-ignore
-            delete detailsToSave.fullName
-            // @ts-ignore
-            delete detailsToSave.email
+            const { firstName, lastName, email, ...detailsToSave } = rawData
             if (user?.user.userId) {
-                saveToLocalStorage(`temp-bank-account-${user.user.userId}`, detailsToSave)
+                sessionStorage.setItem(`temp-bank-account-${user.user.userId}`, jsonStringify(detailsToSave))
             }
             setIsKycModalOpen(true)
         }

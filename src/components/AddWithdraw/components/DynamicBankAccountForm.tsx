@@ -15,7 +15,8 @@ const isIBANCountry = (country: string) => {
 }
 
 export type FormData = {
-    fullName: string
+    firstName: string
+    lastName: string
     email: string
     accountNumber: string
     bic: string
@@ -40,13 +41,17 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const { country: countryName } = useParams()
 
+        const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
+        const lastName = lastNameParts.join(' ')
+
         const {
             control,
             handleSubmit,
             formState: { errors, isValid, isValidating, touchedFields },
         } = useForm<FormData>({
             defaultValues: {
-                fullName: user?.user.fullName ?? '',
+                firstName: firstName ?? '',
+                lastName: lastName ?? '',
                 email: user?.user.email ?? '',
                 accountNumber: '',
                 bic: '',
@@ -81,8 +86,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                 const accountNumber = isMx ? data.clabe : data.accountNumber
 
-                const [firstName, ...lastNameParts] = (data.fullName || '').split(' ')
-                const lastName = lastNameParts.join(' ')
+                const { firstName, lastName } = data
 
                 const payload: Partial<AddBankAccountPayload> = {
                     accountType,
@@ -91,8 +95,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     countryName: countryName as string,
                     accountOwnerType: BridgeAccountOwnerType.INDIVIDUAL,
                     accountOwnerName: {
-                        firstName,
-                        lastName,
+                        firstName: firstName.trim(),
+                        lastName: lastName.trim(),
                     },
                     address: {
                         street: data.street ?? '',
@@ -108,7 +112,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     payload.routingNumber = data.routingNumber
                 }
 
-                const result = await onSuccess(payload as AddBankAccountPayload, data)
+                const result = await onSuccess(payload as AddBankAccountPayload, {
+                    ...data,
+                    firstName: data.firstName.trim(),
+                    lastName: data.lastName.trim(),
+                })
                 if (result.error) {
                     setSubmissionError(result.error)
                 }
@@ -165,8 +173,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     }}
                     className="space-y-4"
                 >
-                    {!user?.user?.fullName &&
-                        renderInput('fullName', 'John Doe', { required: 'Full name is required' })}
+                    {!user?.user?.fullName && (
+                        <div className="w-full space-y-4">
+                            {renderInput('firstName', 'First name', { required: 'First name is required' })}
+                            {renderInput('lastName', 'Last name', { required: 'Last name is required' })}
+                        </div>
+                    )}
                     {!user?.user?.email &&
                         renderInput('email', 'you@example.com', {
                             required: 'Email is required',

@@ -67,9 +67,9 @@ export default function WithdrawBankPage() {
 
     const getBicAndRoutingNumber = () => {
         if (bankAccount && bankAccount.type === AccountType.IBAN) {
-            return bankAccount.bic ?? 'N/A'
+            return bankAccount.bic?.toUpperCase() ?? 'N/A'
         } else if (bankAccount && bankAccount.type === AccountType.US) {
-            return bankAccount.routingNumber ?? 'N/A'
+            return bankAccount.routingNumber?.toUpperCase() ?? 'N/A'
         }
 
         return 'N/A'
@@ -106,7 +106,7 @@ export default function WithdrawBankPage() {
                 onBehalfOf: user.user.bridgeCustomerId,
                 source: {
                     currency: PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase(),
-                    paymentRail: 'arbitrum', // source blockchain, bridge expects this to be arbitrum not arbitrum one
+                    paymentRail: PEANUT_WALLET_CHAIN.name.toLowerCase().replace(' one', ''), // source blockchain, bridge expects this to be arbitrum not arbitrum one
                     fromAddress: address,
                 },
                 destination: {
@@ -199,7 +199,7 @@ export default function WithdrawBankPage() {
                         <PaymentInfoRow label={'Full name'} value={user?.user.fullName} />
                         {bankAccount?.type === AccountType.IBAN ? (
                             <>
-                                <PaymentInfoRow label={'IBAN'} value={bankAccount?.identifier} />
+                                <PaymentInfoRow label={'IBAN'} value={bankAccount?.identifier.toUpperCase()} />
                                 <PaymentInfoRow label="BIC" value={getBicAndRoutingNumber()} />
                             </>
                         ) : (
@@ -230,7 +230,7 @@ export default function WithdrawBankPage() {
                 <DirectSuccessView
                     isWithdrawFlow
                     currencyAmount={`$${amountToWithdraw}`}
-                    message={bankAccount ? shortenAddressLong(bankAccount.identifier) : ''}
+                    message={bankAccount ? shortenAddressLong(bankAccount.identifier.toUpperCase()) : ''}
                 />
             )}
         </div>
