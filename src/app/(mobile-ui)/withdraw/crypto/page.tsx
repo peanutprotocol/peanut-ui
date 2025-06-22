@@ -50,7 +50,6 @@ export default function WithdrawCryptoPage() {
         initiatePayment,
         isProcessing,
         error: paymentErrorFromHook,
-        estimatedGasCost,
         prepareTransactionDetails,
         xChainRoute,
         isCalculatingFees,
@@ -245,8 +244,6 @@ export default function WithdrawCryptoPage() {
     }, [isCrossChainWithdrawal, xChainRoute, isPeanutWallet])
 
     const displayError = paymentError ?? routeTypeError
-    const confirmButtonDisabled = !activeChargeDetailsFromStore || isProcessing
-    const shouldShowRetry = !!displayError
 
     // Get network fee from route or fallback
     const networkFee = useCallback(() => {
