@@ -210,16 +210,27 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                             className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
                                             onBlur={async (e) => {
                                                 field.onBlur()
+
+                                                if (!field.value || field.value.trim().length === 0) return
+
                                                 try {
                                                     const response = await fetch('/api/iban-to-bic', {
                                                         method: 'POST',
                                                         headers: { 'Content-Type': 'application/json' },
                                                         body: JSON.stringify({ iban: field.value }),
                                                     })
+                                                    if (!response.ok) {
+                                                        const errorData = await response.json()
+                                                        console.warn('Failed to fetch BIC:', errorData.error)
+                                                        return
+                                                    }
+
                                                     const { bic } = await response.json()
-                                                    setValue('bic', bic, { shouldValidate: true })
+                                                    if (bic) {
+                                                        setValue('bic', bic, { shouldValidate: true })
+                                                    }
                                                 } catch (error) {
-                                                    console.error('Failed to fetch BIC:', error)
+                                                    console.warn('Network error while fetching BIC:', error)
                                                 }
                                             }}
                                         />
