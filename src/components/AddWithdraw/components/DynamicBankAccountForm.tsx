@@ -9,6 +9,7 @@ import { countryCodeMap } from '@/components/AddMoney/consts'
 import { useParams } from 'next/navigation'
 import { validateBankAccount, validateIban, validateBic } from '@/utils/cashout.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import { getBicFromIban } from '@/app/actions/ibanToBic'
 
 const isIBANCountry = (country: string) => {
     return countryCodeMap[country.toUpperCase()] !== undefined
@@ -214,23 +215,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                                 if (!field.value || field.value.trim().length === 0) return
 
                                                 try {
-                                                    const response = await fetch('/api/iban-to-bic', {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ iban: field.value }),
-                                                    })
-                                                    if (!response.ok) {
-                                                        const errorData = await response.json()
-                                                        console.warn('Failed to fetch BIC:', errorData.error)
-                                                        return
-                                                    }
-
-                                                    const { bic } = await response.json()
+                                                    const bic = await getBicFromIban(field.value)
                                                     if (bic) {
                                                         setValue('bic', bic, { shouldValidate: true })
                                                     }
                                                 } catch (error) {
-                                                    console.warn('Network error while fetching BIC:', error)
+                                                    console.warn('Failed to fetch BIC:', error)
                                                 }
                                             }}
                                         />
