@@ -207,7 +207,7 @@ export interface IBridgeAccount {
     account_details: IBridgeIbanDetails | IBridgeUsAccountDetails
 }
 
-interface IBridgeIbanDetails {
+export interface IBridgeIbanDetails {
     type: 'iban'
     last_4: string
     bic: string
@@ -315,10 +315,16 @@ interface User {
     profile_picture: string | null
     username: string | null
     kycStatus: KYCStatus
-    bridge_customer_id: string | null
-    full_name: string
+    kycStartedAt?: string
+    kycApprovedAt?: string
+    kycRejectedAt?: string
+    tosStatus?: string
+    tosAcceptedAt?: string
+    bridgeCustomerId: string | null
+    fullName: string
     telegram: string | null
     hasPwAccess: boolean
+    accounts: Account[]
 }
 
 // based on the API's AccountType
@@ -353,23 +359,32 @@ export type ChainIdType =
     | '1313161554'
 
 export interface Account {
-    account_id: string
-    user_id: string
-    bridge_account_id: string
-    account_type: AccountType
-    account_identifier: string
-    account_details: string
-    created_at: string
-    updated_at: string
+    id: string
+    userId: string
+    bridgeAccountId: string
+    type: AccountType
+    identifier: string
+    details: {
+        bankName: string | null
+        accountOwnerName: string
+        countryCode: string
+        countryName: string
+    }
+    createdAt: string
+    updatedAt: string
     points: number
-    referrer: string | null
-    referred_users_points: number
-    totalReferralPoints: number
-    chain_id: ChainIdType
+    referrerAddress: string | null
+    referredUsersPoints: number
+    chainId: string | null
+    connectorUuid: string | null
+    bic?: string
+    routingNumber?: string
     connector?: {
         iconUrl: string
         name: string
     }
+    transactions: Transaction[]
+    referrals: ReferralConnection[]
 }
 
 export interface IUserProfile {

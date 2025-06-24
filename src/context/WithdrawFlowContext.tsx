@@ -1,6 +1,6 @@
 'use client'
 
-import { ITokenPriceData } from '@/interfaces'
+import { ITokenPriceData, Account } from '@/interfaces'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import React, { createContext, ReactNode, useContext, useMemo, useState } from 'react'
 
@@ -44,6 +44,8 @@ interface WithdrawFlowContextType {
     setRecipient: (recipient: RecipientState) => void
     error: InitialViewErrorState
     setError: (error: InitialViewErrorState) => void
+    selectedBankAccount: Account | null
+    setSelectedBankAccount: (account: Account | null) => void
 }
 
 const WithdrawFlowContext = createContext<WithdrawFlowContextType | undefined>(undefined)
@@ -63,6 +65,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
         showError: false,
         errorMessage: '',
     })
+    const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
 
     const value = useMemo(
         () => ({
@@ -86,6 +89,8 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             setRecipient,
             error,
             setError,
+            selectedBankAccount,
+            setSelectedBankAccount,
         }),
         [
             amountToWithdraw,
@@ -98,6 +103,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             inputChanging,
             recipient,
             error,
+            selectedBankAccount,
         ]
     )
 

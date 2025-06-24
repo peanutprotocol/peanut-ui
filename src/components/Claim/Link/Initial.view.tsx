@@ -251,7 +251,7 @@ export const InitialClaimLinkView = ({
             } else {
                 setOfframpForm({
                     email: user?.user?.email ?? '',
-                    name: user?.user?.full_name ?? '',
+                    name: user?.user?.fullName ?? '',
                     recipient: recipient.name ?? recipient.address,
                     password: '',
                 })
@@ -268,7 +268,7 @@ export const InitialClaimLinkView = ({
                         setInitialKYCStep(3)
                     }
                 } else {
-                    if (!user?.user.email || !user?.user.full_name) {
+                    if (!user?.user.email || !user?.user.fullName) {
                         setInitialKYCStep(0)
                     } else {
                         setInitialKYCStep(1)
