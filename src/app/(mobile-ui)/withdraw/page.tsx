@@ -63,15 +63,15 @@ export default function WithdrawPage() {
 
             const amount = Number(amountStr)
 
-            if (Number.isFinite(amount) && amount > 0 && amount <= maxDecimalAmount) {
+            if (Number.isFinite(amount) && amount >= 1 && amount <= maxDecimalAmount) {
                 setError({ showError: false, errorMessage: '' })
                 return true
             } else {
                 let message = 'Please enter a valid amount.'
                 if (!Number.isFinite(amount)) {
                     message = 'Please enter a valid number.'
-                } else if (amount <= 0) {
-                    message = 'Amount must be greater than zero.'
+                } else if (amount < 1) {
+                    message = 'Minimum withdrawal is 1.'
                 } else if (amount > maxDecimalAmount) {
                     message = 'Amount exceeds your wallet balance.'
                 }
@@ -103,12 +103,8 @@ export default function WithdrawPage() {
     }, [rawTokenAmount, validateAmount, setError, amountFromContext])
 
     const handleAmountContinue = () => {
-        // the button is disabled if amount is not > 0.
-        // validateAmount will perform the final check against balance and format.
         if (validateAmount(rawTokenAmount)) {
-            if (parseFloat(rawTokenAmount) > 0) {
-                setAmountToWithdraw(rawTokenAmount)
-            }
+            setAmountToWithdraw(rawTokenAmount)
         }
     }
 
@@ -128,7 +124,7 @@ export default function WithdrawPage() {
                         variant="purple"
                         shadowSize="4"
                         onClick={handleAmountContinue}
-                        disabled={!parseFloat(rawTokenAmount) || parseFloat(rawTokenAmount) <= 0 || error.showError}
+                        disabled={!parseFloat(rawTokenAmount) || parseFloat(rawTokenAmount) < 1 || error.showError}
                         className="w-full"
                     >
                         Continue
