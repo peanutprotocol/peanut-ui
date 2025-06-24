@@ -7,7 +7,7 @@ import { AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType } from
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { countryCodeMap } from '@/components/AddMoney/consts'
 import { useParams } from 'next/navigation'
-import { validateBankAccount, validateIban, validateBic } from '@/utils/cashout.utils'
+import { validateBankAccount, validateIban, validateBic } from '@/utils/bridge-accounts.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 
 const isIBANCountry = (country: string) => {
@@ -137,31 +137,61 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             rules: any,
             type: string = 'text',
             rightAdornment?: React.ReactNode
-        ) => (
-            <div className="w-full">
-                <div className="relative">
-                    <Controller
-                        name={name}
-                        control={control}
-                        rules={rules}
-                        render={({ field }) => (
-                            <BaseInput
-                                {...field}
-                                type={type}
-                                placeholder={placeholder}
-                                className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
-                            />
+        ) => {
+            const inputRules = { ...rules }
+            switch (name) {
+                case 'firstName':
+                case 'lastName':
+                    inputRules.pattern = {
+                        value: /^[a-zA-Z\s'-]+$/,
+                        message: 'Name contains invalid characters',
+                    }
+                    break
+                case 'email':
+                    inputRules.pattern = {
+                        value: /^\S+@\S+$/i,
+                        message: 'Invalid email address',
+                    }
+                    break
+                case 'clabe':
+                case 'accountNumber':
+                case 'routingNumber':
+                case 'bic':
+                    inputRules.pattern = {
+                        value: /^\d+$/,
+                        message: 'Must contain only digits',
+                    }
+                    break
+            }
+
+            return (
+                <div className="w-full">
+                    <div className="relative">
+                        <Controller
+                            name={name}
+                            control={control}
+                            rules={inputRules}
+                            render={({ field }) => (
+                                <BaseInput
+                                    {...field}
+                                    type={type}
+                                    placeholder={placeholder}
+                                    className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
+                                />
+                            )}
+                        />
+                        {rightAdornment && (
+                            <div className="absolute inset-y-0 right-2 flex items-center">{rightAdornment}</div>
                         )}
-                    />
-                    {rightAdornment && (
-                        <div className="absolute inset-y-0 right-2 flex items-center">{rightAdornment}</div>
-                    )}
+                    </div>
+                    <div className="mt-2 w-fit text-start">
+                        {errors[name] && touchedFields[name] && (
+                            <ErrorAlert description={errors[name]?.message ?? ''} />
+                        )}
+                    </div>
                 </div>
-                <div className="mt-2 w-fit text-start">
-                    {errors[name] && touchedFields[name] && <ErrorAlert description={errors[name]?.message ?? ''} />}
-                </div>
-            </div>
-        )
+            )
+        }
 
         return (
             <div className="space-y-4">
@@ -182,7 +212,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     {!user?.user?.email &&
                         renderInput('email', 'you@example.com', {
                             required: 'Email is required',
-                            pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' },
                         })}
 
                     {isMx

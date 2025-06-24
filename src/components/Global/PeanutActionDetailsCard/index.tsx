@@ -99,15 +99,16 @@ export default function PeanutActionDetailsCard({
     }
 
     const getAvatarTextColor = (): string => {
-        if (viewType === 'SUCCESS') return AVATAR_TEXT_DARK
         if (
+            viewType === 'SUCCESS' ||
             transactionType === 'ADD_MONEY' ||
             (transactionType === 'WITHDRAW' && recipientType === 'USERNAME') ||
             recipientType === 'ADDRESS' ||
             recipientType === 'ENS' ||
             transactionType === 'WITHDRAW_BANK_ACCOUNT'
-        )
+        ) {
             return AVATAR_TEXT_DARK
+        }
         return getColorForUsername(recipientName).darkShade
     }
 

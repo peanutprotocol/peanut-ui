@@ -11,17 +11,22 @@ import IFrameWrapper from '../Global/IframeWrapper'
 
 // a helper to categorize the kyc status from the user object
 const getKycStatusCategory = (kycStatus: KYCStatus): 'processing' | 'completed' | 'failed' => {
+    let category: 'processing' | 'completed' | 'failed'
     switch (kycStatus) {
         // note: not_started status is handled explicitly in KycStatusItem component
+        case 'approved':
+            category = 'completed'
+            break
+        case 'rejected':
+            category = 'failed'
+            break
         case 'under_review':
         case 'incomplete':
-            return 'processing'
-        case 'approved':
-            return 'completed'
-        case 'rejected':
-            return 'failed'
+        default:
+            category = 'processing'
+            break
     }
-    return 'processing' // fallback
+    return category
 }
 
 interface KycStatusDrawerProps {

@@ -22,7 +22,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { encodeFunctionData, erc20Abi, parseUnits } from 'viem'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
-import { ErrorHandler } from '@/utils'
+import { ErrorHandler, getBridgeChainName } from '@/utils'
 import { createOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 
@@ -106,7 +106,7 @@ export default function WithdrawBankPage() {
                 onBehalfOf: user.user.bridgeCustomerId,
                 source: {
                     currency: PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase(),
-                    paymentRail: PEANUT_WALLET_CHAIN.name.toLowerCase().replace(' one', ''), // source blockchain, bridge expects this to be arbitrum not arbitrum one
+                    paymentRail: getBridgeChainName(PEANUT_WALLET_CHAIN.id.toString()) ?? 'arbitrum', // source blockchain, bridge expects this to be arbitrum not arbitrum one
                     fromAddress: address,
                 },
                 destination: {
@@ -159,9 +159,6 @@ export default function WithdrawBankPage() {
     }
 
     const countryCodeForFlag = () => {
-        if (bankAccount?.type === AccountType.US) {
-            return 'us'
-        }
         if (!bankAccount?.details.countryCode) return ''
         const code = countryCodeMap[bankAccount.details.countryCode ?? ''] ?? bankAccount.details.countryCode
         return code.toLowerCase()

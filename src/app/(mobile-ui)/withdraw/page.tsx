@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
-import { AddWithdrawRouterView } from '@/components/AddWithdraw/components/AddWithdrawRouterView'
+import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRouterView'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'

@@ -208,7 +208,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         )}
                     </div>
                 )}
-                {footer && footer}
+                {footer}
             </div>
         </BaseModal>
     )

@@ -1,6 +1,6 @@
 'use client'
 
-import { AddWithdrawRouterView } from '@/components/AddWithdraw/components/AddWithdrawRouterView'
+import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRouterView'
 import { useRouter } from 'next/navigation'
 
 export default function AddMoneyPage() {
