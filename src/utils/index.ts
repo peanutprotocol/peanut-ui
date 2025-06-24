@@ -1,5 +1,5 @@
 export * from './general.utils'
 export * from './sdkErrorHandler.utils'
-export * from './cashout.utils'
+export * from './bridge-accounts.utils'
 export * from './balance.utils'
 export * from './sentry.utils'
