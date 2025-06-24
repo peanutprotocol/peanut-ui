@@ -50,6 +50,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
             displayInitials = undefined
             break
         case 'bank_withdraw':
+        case 'bank_deposit':
             displayIconName = 'bank'
             displayInitials = undefined
             calculatedBgColor = AVATAR_TEXT_DARK

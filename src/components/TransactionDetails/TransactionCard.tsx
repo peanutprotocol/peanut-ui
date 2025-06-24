@@ -13,7 +13,7 @@ import AddressLink from '../Global/AddressLink'
 import { STABLE_COINS } from '@/constants'
 import Image from 'next/image'
 
-export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout' | 'receive' | 'bank_withdraw'
+export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout' | 'receive' | 'bank_withdraw' | 'bank_deposit'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -152,7 +152,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             <div className="flex items-center gap-1 text-gray-500">
                                 {getActionIcon(type, transaction.direction)}
                                 <span className="text-[14px] capitalize">
-                                    {type === 'bank_withdraw' ? 'Withdraw' : type}
+                                    {getActionText(type)}
                                 </span>
                             </div>
                         </div>
@@ -202,6 +202,7 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
             iconSize = 8
             break
         case 'add':
+        case 'bank_deposit':
             iconName = 'arrow-down'
             iconSize = 8
             break
@@ -209,6 +210,19 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
             return null
     }
     return <Icon name={iconName} size={iconSize} fill="currentColor" />
+}
+
+function getActionText(type: TransactionType): string {
+    let actionText: string = type
+    switch (type) {
+        case 'bank_withdraw':
+            actionText = 'Withdraw'
+            break
+        case 'bank_deposit':
+            actionText = 'Add'
+            break
+    }
+    return actionText
 }
 
 export default TransactionCard

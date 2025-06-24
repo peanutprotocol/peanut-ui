@@ -186,6 +186,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             nameForDetails = 'Bank Account'
             isPeerActuallyUser = false
             break
+        case EHistoryEntryType.BRIDGE_ONRAMP:
+            direction = 'bank_deposit'
+            transactionCardType = 'bank_deposit'
+            nameForDetails = 'Bank Account'
+            isPeerActuallyUser = false
+            break
         case EHistoryEntryType.DEPOSIT:
             direction = 'add'
             transactionCardType = 'add'
