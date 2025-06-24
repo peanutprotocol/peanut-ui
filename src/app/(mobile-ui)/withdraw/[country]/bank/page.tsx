@@ -25,6 +25,7 @@ import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { ErrorHandler, getBridgeChainName } from '@/utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
+import ExchangeRate from '@/components/ExchangeRate'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -220,8 +221,7 @@ export default function WithdrawBankPage() {
                                 <PaymentInfoRow label={'Routing Number'} value={getBicAndRoutingNumber()} />
                             </>
                         )}
-                        {/* TODO: add exchange rate */}
-                        {/* <PaymentInfoRow label="Exchange Rate" value={`$1.00`} /> */}
+                        <ExchangeRate accountType={bankAccount.type} />
                         <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                     </Card>
                     {error.showError ? (
