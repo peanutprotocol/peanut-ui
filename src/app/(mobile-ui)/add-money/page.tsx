@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle'
 import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRouterView'
+import ActionModal from '@/components/Global/ActionModal'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
@@ -20,6 +21,8 @@ export default function AddMoneyPage() {
     const searchParams = useSearchParams()
     const [step, setStep] = useState<AddStep>('selectMethod')
     const [rawTokenAmount, setRawTokenAmount] = useState<string>('')
+    const [showWarningModal, setShowWarningModal] = useState(false)
+    const [isRiskAccepted, setIsRiskAccepted] = useState(false)
     const {
         amountToAdd: amountFromContext,
         setAmountToAdd,
@@ -103,11 +106,22 @@ export default function AddMoneyPage() {
 
     const handleAmountContinue = () => {
         if (validateAmount(rawTokenAmount)) {
-            setAmountToAdd(rawTokenAmount)
-            // Navigate to a generic bank form page for add money
-            // Using US as default since bank transfers are typically handled there
-            router.push('/add-money/us/bank')
+            setShowWarningModal(true)
         }
+    }
+
+    const handleWarningConfirm = () => {
+        setAmountToAdd(rawTokenAmount)
+        setShowWarningModal(false)
+        setIsRiskAccepted(false)
+        // Navigate to a generic bank form page for add money
+        // Using US as default since bank transfers are typically handled there
+        router.push('/add-money/us/bank')
+    }
+
+    const handleWarningCancel = () => {
+        setShowWarningModal(false)
+        setIsRiskAccepted(false)
     }
 
     const handleBackFromAmount = () => {
@@ -142,6 +156,31 @@ export default function AddMoneyPage() {
                     </Button>
                     {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
                 </div>
+
+                <ActionModal
+                    visible={showWarningModal}
+                    onClose={handleWarningCancel}
+                    icon="alert"
+                    title="Important Notice"
+                    description="In the following step you'll see a 'Deposit Message' item, copy and paste it exactly as it is on the description field of your transfer. Without it, we won't be able to credit your money."
+                    checkbox={{
+                        text: 'I understand and accept the risk.',
+                        checked: isRiskAccepted,
+                        onChange: setIsRiskAccepted,
+                    }}
+                    ctas={[
+                        {
+                            text: 'Continue',
+                            variant: isRiskAccepted ? 'purple' : 'dark',
+                            shadowSize: '4',
+                            onClick: handleWarningConfirm,
+                            disabled: !isRiskAccepted,
+                            className: 'w-full',
+                        },
+                    ]}
+                    preventClose={false}
+                    modalPanelClassName="max-w-md"
+                />
             </div>
         )
     }
@@ -162,6 +201,4 @@ export default function AddMoneyPage() {
             />
         )
     }
-
-    return null
 }
