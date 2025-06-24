@@ -20,6 +20,7 @@ import { Icon } from '../Global/Icons/Icon'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
+import CopyToClipboard from '../Global/CopyToClipboard'
 
 interface TransactionDetailsDrawerProps {
     isOpen: boolean
@@ -75,6 +76,17 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
             />
         </BottomDrawer>
     )
+}
+
+const getBankAccountLabel = (type: string) => {
+    switch (type.toLowerCase()) {
+        case 'iban':
+            return 'IBAN'
+        case 'clabe':
+            return 'CLABE'
+        default:
+            return 'Account number'
+    }
 }
 
 export const TransactionDetailsReceipt = ({
@@ -173,6 +185,7 @@ export const TransactionDetailsReceipt = ({
                             label={transaction.status === 'cancelled' ? 'Created' : 'Date'}
                             value={formatDate(transaction.date as Date)}
                             hideBottomBorder={
+                                !transaction.bankAccountDetails &&
                                 !transaction.tokenDisplayDetails &&
                                 !transaction.cancelledDate &&
                                 !transaction.fee &&
@@ -239,6 +252,34 @@ export const TransactionDetailsReceipt = ({
                             label="Fee"
                             value={feeDisplay}
                             hideBottomBorder={!transaction.memo && !transaction.attachmentUrl}
+                        />
+                    )}
+
+                    {transaction.bankAccountDetails && (
+                        <PaymentInfoRow
+                            label={getBankAccountLabel(transaction.bankAccountDetails.type)}
+                            value={
+                                <div className="flex items-center gap-2">
+                                    <span>{transaction.bankAccountDetails.identifier.toUpperCase()}</span>
+                                    <CopyToClipboard
+                                        textToCopy={transaction.bankAccountDetails.identifier.toUpperCase()}
+                                        iconSize="4"
+                                    />
+                                </div>
+                            }
+                            hideBottomBorder={!transaction.status && !transaction.memo && !transaction.attachmentUrl}
+                        />
+                    )}
+                    {transaction.id && transaction.direction === 'bank_withdraw' && (
+                        <PaymentInfoRow
+                            label="Transfer ID"
+                            value={
+                                <div className="flex items-center gap-2">
+                                    <span>{transaction.id.toUpperCase()}</span>
+                                    <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
+                                </div>
+                            }
+                            hideBottomBorder={!transaction.status && !transaction.memo && !transaction.attachmentUrl}
                         />
                     )}
 

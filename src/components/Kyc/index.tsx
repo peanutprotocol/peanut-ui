@@ -21,9 +21,11 @@ export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess }: KycModalFlow
         closeVerificationModal,
     } = useKycFlow({ onKycSuccess })
 
-    const handleVerifyClick = () => {
-        onClose()
-        handleInitiateKyc()
+    const handleVerifyClick = async () => {
+        const result = await handleInitiateKyc()
+        if (result?.success) {
+            onClose()
+        }
     }
 
     return (

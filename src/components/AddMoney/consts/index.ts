@@ -2060,6 +2060,7 @@ export const countryCodeMap: { [key: string]: string } = {
     SWE: 'SE',
     CHE: 'CH',
     GBR: 'GB',
+    USA: 'US',
 }
 
 countryData.forEach((country) => {

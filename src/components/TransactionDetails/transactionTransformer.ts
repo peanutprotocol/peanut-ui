@@ -71,6 +71,10 @@ export interface TransactionDetails {
     peanutFeeDetails?: {
         amountDisplay: string
     }
+    bankAccountDetails?: {
+        identifier: string
+        type: string
+    }
 }
 
 /**
@@ -176,6 +180,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             nameForDetails = entry.recipientAccount?.identifier || 'Bank Account'
             isPeerActuallyUser = false
             break
+        case EHistoryEntryType.BRIDGE_OFFRAMP:
+            direction = 'bank_withdraw'
+            transactionCardType = 'bank_withdraw'
+            nameForDetails = 'Bank Account'
+            isPeerActuallyUser = false
+            break
         case EHistoryEntryType.DEPOSIT:
             direction = 'add'
             transactionCardType = 'add'
@@ -197,44 +207,68 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     }
 
     // map the raw status string to the defined ui status types
-    switch (entry.status?.toUpperCase()) {
-        case 'NEW':
-        case 'PENDING':
-            uiStatus = 'pending'
-            break
-        case 'COMPLETED':
-            uiStatus = EHistoryEntryType.SEND_LINK === entry.type ? 'pending' : 'completed'
-            break
-        case 'SUCCESSFUL':
-        case 'CLAIMED':
-        case 'PAID':
-            uiStatus = 'completed'
-            break
-        case 'FAILED':
-        case 'ERROR':
-            uiStatus = 'failed'
-            break
-        case 'CANCELLED':
-        case 'EXPIRED':
-            uiStatus = 'cancelled'
-            break
-        default:
-            {
-                const knownStatuses: StatusType[] = [
-                    'completed',
-                    'pending',
-                    'failed',
-                    'cancelled',
-                    'soon',
-                    'processing',
-                ]
-                if (entry.status && knownStatuses.includes(entry.status.toLowerCase() as StatusType)) {
-                    uiStatus = entry.status.toLowerCase() as StatusType
-                } else {
-                    uiStatus = 'pending'
+    if (entry.type === EHistoryEntryType.BRIDGE_OFFRAMP) {
+        switch (entry.status?.toUpperCase()) {
+            case 'AWAITING_FUNDS':
+            case 'IN_REVIEW':
+            case 'FUNDS_RECEIVED':
+            case 'PAYMENT_SUBMITTED':
+                uiStatus = 'processing'
+                break
+            case 'PAYMENT_PROCESSED':
+                uiStatus = 'completed'
+                break
+            case 'UNDELIVERABLE':
+            case 'RETURNED':
+            case 'REFUNDED':
+            case 'CANCELED':
+            case 'ERROR':
+                uiStatus = 'failed'
+                break
+            default:
+                uiStatus = 'processing'
+                break
+        }
+    } else {
+        switch (entry.status?.toUpperCase()) {
+            case 'NEW':
+            case 'PENDING':
+                uiStatus = 'pending'
+                break
+            case 'COMPLETED':
+                uiStatus = EHistoryEntryType.SEND_LINK === entry.type ? 'pending' : 'completed'
+                break
+            case 'SUCCESSFUL':
+            case 'CLAIMED':
+            case 'PAID':
+                uiStatus = 'completed'
+                break
+            case 'FAILED':
+            case 'ERROR':
+                uiStatus = 'failed'
+                break
+            case 'CANCELLED':
+            case 'EXPIRED':
+                uiStatus = 'cancelled'
+                break
+            default:
+                {
+                    const knownStatuses: StatusType[] = [
+                        'completed',
+                        'pending',
+                        'failed',
+                        'cancelled',
+                        'soon',
+                        'processing',
+                    ]
+                    if (entry.status && knownStatuses.includes(entry.status.toLowerCase() as StatusType)) {
+                        uiStatus = entry.status.toLowerCase() as StatusType
+                    } else {
+                        uiStatus = 'pending'
+                    }
                 }
-            }
-            break
+                break
+        }
     }
 
     // parse the amount from the usdamount string in extradata
@@ -281,6 +315,13 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             rewardData,
         },
         sourceView: 'history',
+        bankAccountDetails:
+            entry.type === EHistoryEntryType.BRIDGE_OFFRAMP
+                ? {
+                      identifier: entry.recipientAccount.identifier,
+                      type: entry.recipientAccount.type,
+                  }
+                : undefined,
     }
 
     return {

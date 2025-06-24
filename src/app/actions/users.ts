@@ -25,7 +25,7 @@ export const updateUserById = async (payload: Record<string, any>): Promise<{ da
 
         const responseJson = await response.json()
         if (!response.ok) {
-            return { error: responseJson.error || 'Failed to update user' }
+            return { error: responseJson.message || responseJson.error || 'Failed to update user' }
         }
         return { data: responseJson }
     } catch (e: any) {
@@ -54,7 +54,10 @@ export const getKycDetails = async (params?: {
         // the parsed json object will contain the `error` and `reasons` fields, which we handle in the calling component
         const responseJson = await response.json()
         if (!response.ok) {
-            return { error: responseJson.error || 'Failed to initiate KYC', data: responseJson }
+            return {
+                error: responseJson.message || responseJson.error || 'Failed to initiate KYC',
+                data: responseJson,
+            }
         }
         return { data: responseJson }
     } catch (e: any) {
@@ -79,7 +82,12 @@ export const addBankAccount = async (payload: AddBankAccountPayload): Promise<{ 
 
         const responseJson = await response.json()
         if (!response.ok) {
-            return { error: responseJson.error || `Failed to add bank account with status: ${response.status}` }
+            return {
+                error:
+                    responseJson.message ||
+                    responseJson.error ||
+                    `Failed to add bank account with status: ${response.status}`,
+            }
         }
         return { data: responseJson }
     } catch (e: any) {

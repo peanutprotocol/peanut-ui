@@ -97,30 +97,40 @@ export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
         setIsLoading(true)
         setError(null)
 
-        const response = await getKycDetails()
+        try {
+            const response = await getKycDetails()
 
-        if (response.error) {
-            setError(response.error)
-            setIsLoading(false)
-            return
-        }
-        if (response.data) {
-            setApiResponse(response.data)
-            // if there's a tos link and it's not yet approved, show it first.
-            if (response.data.tosLink && response.data.tosStatus !== 'approved') {
-                setIframeOptions({ src: response.data.tosLink, visible: true })
-            } else if (response.data.kycLink) {
-                const kycUrl = convertPersonaUrl(response.data.kycLink)
-                setIframeOptions({
-                    src: kycUrl,
-                    visible: true,
-                    closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
-                })
-            } else {
-                setError('Could not retrieve verification links. Please try again.')
+            if (response.error) {
+                setError(response.error)
+                setIsLoading(false)
+                return { success: false, error: response.error }
             }
+
+            if (response.data) {
+                setApiResponse(response.data)
+                // if there's a tos link and it's not yet approved, show it first.
+                if (response.data.tosLink && response.data.tosStatus !== 'approved') {
+                    setIframeOptions({ src: response.data.tosLink, visible: true })
+                } else if (response.data.kycLink) {
+                    const kycUrl = convertPersonaUrl(response.data.kycLink)
+                    setIframeOptions({
+                        src: kycUrl,
+                        visible: true,
+                        closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
+                    })
+                } else {
+                    const errorMsg = 'Could not retrieve verification links. Please try again.'
+                    setError(errorMsg)
+                    return { success: false, error: errorMsg }
+                }
+                return { success: true }
+            }
+        } catch (e: any) {
+            setError(e.message)
+            return { success: false, error: e.message }
+        } finally {
+            setIsLoading(false)
         }
-        setIsLoading(false)
     }
 
     const handleIframeClose = () => {
