@@ -20,6 +20,7 @@ import { KYCStatus } from '@/utils/bridge-accounts.utils'
 import { AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
+import { useAddFlow } from '@/context/AddFlowContext'
 import { Account } from '@/interfaces'
 
 interface AddWithdrawCountriesListProps {
@@ -31,6 +32,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const params = useParams()
     const { user, fetchUser } = useAuth()
     const { setSelectedBankAccount } = useWithdrawFlow()
+    const { setFromBankSelected, amountToAdd } = useAddFlow()
     const [view, setView] = useState<'list' | 'form'>('list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const [cachedBankDetails, setCachedBankDetails] = useState<Partial<FormData> | null>(null)
@@ -159,6 +161,16 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         setIsKycModalOpen(false)
     }
 
+    const handleAddMethodClick = (method: SpecificPaymentMethod) => {
+        if (method.id === 'bank-transfer-add') {
+            setFromBankSelected(true)
+            // Navigate with URL parameter to persist fromBank selection
+            router.push('/add-money?fromBank=true')
+        } else if (method.path) {
+            router.push(method.path)
+        }
+    }
+
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
         if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
             setView('form')
@@ -238,7 +250,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                 )
                             }
                             rightContent={method.isSoon ? <StatusBadge status="soon" size="small" /> : null}
-                            onClick={() => handleWithdrawMethodClick(method)}
+                            onClick={() =>
+                                flow === 'add' ? handleAddMethodClick(method) : handleWithdrawMethodClick(method)
+                            }
                             position={
                                 paymentMethods.length === 1
                                     ? 'single'

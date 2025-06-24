@@ -1,7 +1,11 @@
 'use client'
 import { Button } from '@/components/0_Bruddle'
 import { DepositMethod, DepositMethodList } from '@/components/AddMoney/components/DepositMethodList'
-import { countryData as ALL_METHODS_DATA, countryCodeMap } from '@/components/AddMoney/consts'
+import {
+    countryData as ALL_METHODS_DATA,
+    countryCodeMap,
+    UPDATED_DEFAULT_ADD_MONEY_METHODS,
+} from '@/components/AddMoney/consts'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchUsers/SearchInput'
@@ -14,6 +18,7 @@ import Image from 'next/image'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
+import { useAddFlow } from '@/context/AddFlowContext'
 import Divider from '@/components/0_Bruddle/Divider'
 import Card from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
@@ -36,6 +41,8 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const router = useRouter()
     const { user } = useUserStore()
     const { setSelectedBankAccount } = useWithdrawFlow()
+    const addFlowContext = useAddFlow()
+    const { setFromBankSelected } = addFlowContext
     const [recentMethodsState, setRecentMethodsState] = useState<RecentMethod[]>([])
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     const [showAllMethods, setShowAllMethods] = useState(false)
@@ -72,6 +79,12 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     }, [flow, user])
 
     const handleMethodSelected = (method: DepositMethod) => {
+        // Handle "From Bank" specially for add flow
+        if (flow === 'add' && method.id === 'bank-transfer-add') {
+            setFromBankSelected(true)
+            return
+        }
+
         const newRecentMethod: RecentMethod = {
             id: method.id,
             type: method.type as 'crypto' | 'country',
@@ -102,11 +115,13 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             // for withdraw, we don't save to recents from the 'all methods' list, we show saved accounts
         }
 
-        router.push(method.path)
+        if (method.path) {
+            router.push(method.path)
+        }
     }
 
     const allMethodsTransformed: DepositMethod[] = useMemo(() => {
-        return ALL_METHODS_DATA.map((method) => {
+        let methods = ALL_METHODS_DATA.map((method) => {
             let path = `${baseRoute}/${method.path}`
             return {
                 ...method,
@@ -114,7 +129,22 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 type: method.type as 'crypto' | 'country',
             }
         })
-    }, [baseRoute])
+
+        // Add special methods for add flow
+        if (flow === 'add') {
+            const addMethods = UPDATED_DEFAULT_ADD_MONEY_METHODS.map((method) => ({
+                id: method.id,
+                title: method.title,
+                description: method.description,
+                iconUrl: typeof method.icon === 'string' ? method.icon : undefined,
+                type: 'country' as 'crypto' | 'country',
+                path: '', // No path needed for From Bank, handled specially
+            }))
+            methods = [...addMethods, ...methods]
+        }
+
+        return methods
+    }, [baseRoute, flow])
 
     const filteredAllMethods = useMemo(() => {
         let methodsToShow
@@ -216,13 +246,20 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
     // Render recent methods for add flow
     if (flow === 'add' && !showAllMethods && recentMethodsState.length > 0) {
+        // Transform recent methods to ensure proper type compatibility
+        const recentMethodsWithType = recentMethodsState.map((method) => ({
+            ...method,
+            type: (method.type || 'country') as 'crypto' | 'country',
+            path: method.path || '',
+        }))
+
         return (
             <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <div className="flex h-full flex-col justify-center space-y-2">
                     <h2 className="text-base font-bold">Recent methods</h2>
                     <DepositMethodList
-                        methods={recentMethodsState as DepositMethod[]}
+                        methods={recentMethodsWithType as DepositMethod[]}
                         onItemClick={handleMethodSelected}
                         isAllMethodsView={false}
                     />
