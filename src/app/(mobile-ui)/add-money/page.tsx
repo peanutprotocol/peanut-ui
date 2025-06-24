@@ -6,7 +6,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_API_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { useAddFlow } from '@/context/AddFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils'
@@ -110,13 +110,48 @@ export default function AddMoneyPage() {
         }
     }
 
-    const handleWarningConfirm = () => {
+    const handleWarningConfirm = async () => {
         setAmountToAdd(rawTokenAmount)
         setShowWarningModal(false)
         setIsRiskAccepted(false)
-        // Navigate to a generic bank form page for add money
-        // Using US as default since bank transfers are typically handled there
-        router.push('/add-money/us/bank')
+
+        try {
+            // Call backend to create onramp
+            const response = await fetch(`${PEANUT_API_URL}/bridge/onramp/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'api-key': 'holacarola',
+                },
+                body: JSON.stringify({
+                    amount: rawTokenAmount,
+                    source: {
+                        currency: 'usd',
+                        paymentRail: 'ach_push',
+                    },
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+
+            const onrampData = await response.json()
+
+            // Store the response data in sessionStorage for the bank page
+            sessionStorage.setItem('onrampData', JSON.stringify(onrampData))
+
+            // Navigate to bank page
+            router.push('/add-money/us/bank')
+        } catch (error) {
+            console.error('Error creating onramp:', error)
+            // Show error to user
+            setError({
+                showError: true,
+                errorMessage: 'Failed to create bank transfer. Please try again.',
+            })
+            setShowWarningModal(false)
+        }
     }
 
     const handleWarningCancel = () => {

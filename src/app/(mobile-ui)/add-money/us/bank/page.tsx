@@ -10,27 +10,58 @@ import { useAddFlow } from '@/context/AddFlowContext'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
+interface IOnrampData {
+    transferId?: string
+    depositInstructions?: {
+        amount?: string
+        currency?: string
+        depositMessage?: string
+        bankName?: string
+        bankAddress?: string
+        bankRoutingNumber?: string
+        bankAccountNumber?: string
+        bankBeneficiaryName?: string
+        bankBeneficiaryAddress?: string
+    }
+}
+
 export default function AddMoneyBankPage() {
     const { amountToAdd, setFromBankSelected, setAmountToAdd } = useAddFlow()
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
+    const [onrampData, setOnrampData] = useState<IOnrampData | null>(null)
 
     useEffect(() => {
         // If no amount is set, redirect back to add money page
         if (!amountToAdd || parseFloat(amountToAdd) <= 0) {
             router.replace('/add-money')
+            return
+        }
+
+        // Load onramp data from sessionStorage
+        const storedData = sessionStorage.getItem('onrampData')
+        if (storedData) {
+            try {
+                const parsedData = JSON.parse(storedData)
+                setOnrampData(parsedData)
+            } catch (error) {
+                console.error('Error parsing onramp data:', error)
+            }
         }
     }, [amountToAdd, router])
 
     const handleContinue = async () => {
         setIsLoading(true)
 
+        // Clean up onramp data from storage
+        sessionStorage.removeItem('onrampData')
+
         // Simulate processing delay
         await new Promise((resolve) => setTimeout(resolve, 1000))
 
         // For now, show success message since actual bank integration isn't implemented
         alert(
-            `Bank transfer setup for $${amountToAdd} would be processed here. This feature will be fully implemented with KYC and bank account linking.`
+            `Bank transfer setup for $${amountToAdd} completed. Please use the bank details provided to make your transfer.`
         )
 
         // Reset flow and go back to home
@@ -64,14 +95,26 @@ export default function AddMoneyBankPage() {
 
                 <Card className="rounded-sm">
                     <PaymentInfoRow label={'Amount'} value={`$${amountToAdd}`} />
-                    <PaymentInfoRow label={'Bank Name'} value={'Peanut Protocol Bank'} />
-                    <PaymentInfoRow label={'Bank Address'} value={'123 Financial District, New York, NY 10004'} />
-                    <PaymentInfoRow label={'IBAN'} value={'US64PNUT0123456789012345'} />
-                    <PaymentInfoRow label={'BIC'} value={'PNUTUS33XXX'} />
+                    <PaymentInfoRow
+                        label={'Bank Name'}
+                        value={onrampData?.depositInstructions?.bankName || 'Loading...'}
+                    />
+                    <PaymentInfoRow
+                        label={'Bank Address'}
+                        value={onrampData?.depositInstructions?.bankAddress || 'Loading...'}
+                    />
+                    <PaymentInfoRow
+                        label={'Account Number'}
+                        value={onrampData?.depositInstructions?.bankAccountNumber || 'Loading...'}
+                    />
+                    <PaymentInfoRow
+                        label={'Routing Number'}
+                        value={onrampData?.depositInstructions?.bankRoutingNumber || 'Loading...'}
+                    />
                     <PaymentInfoRow
                         hideBottomBorder
                         label={'Deposit Message'}
-                        value={`REF-${Math.random().toString(36).substr(2, 9).toUpperCase()}`}
+                        value={onrampData?.depositInstructions?.depositMessage || 'Loading...'}
                     />
                 </Card>
 
