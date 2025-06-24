@@ -60,7 +60,7 @@ export const setupSteps: ISetupStep[] = [
         component: SignupStep,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-end pt-8 justify-between gap-5',
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
     },
     {
         screenId: 'passkey-permission',
@@ -71,6 +71,6 @@ export const setupSteps: ISetupStep[] = [
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-end pt-8 justify-between gap-5',
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
     },
 ]

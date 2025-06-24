@@ -9,6 +9,8 @@ import { getFromLocalStorage } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { WebAuthnError } from '@simplewebauthn/browser'
+import Link from 'next/link'
 
 const SetupPasskey = () => {
     const dispatch = useAppDispatch()
@@ -50,27 +52,55 @@ const SetupPasskey = () => {
 
     return (
         <div>
-            <div className="flex h-full flex-col justify-between gap-3 p-0 ">
-                <Button
-                    loading={isLoading}
-                    disabled={isLoading}
-                    onClick={async () => {
-                        dispatch(setupActions.setLoading(true))
-                        try {
-                            await handleRegister(username)
-                        } catch (e) {
-                            Sentry.captureException(e)
-                            console.error('Error registering passkey:', e)
-                            setError('Error registering passkey.')
-                            dispatch(setupActions.setLoading(false))
-                        }
-                    }}
-                    className="text-nowrap"
-                    shadowSize="4"
-                >
-                    Set it up
-                </Button>
-                {error && <p className="text-sm font-bold text-error">{error}</p>}
+            <div className="flex h-full flex-col justify-between gap-11 p-0 md:min-h-32">
+                <div className="flex h-full flex-col justify-end gap-2 text-center">
+                    <Button
+                        loading={isLoading}
+                        disabled={isLoading}
+                        onClick={async () => {
+                            dispatch(setupActions.setLoading(true))
+                            try {
+                                await handleRegister(username)
+                            } catch (e) {
+                                if (e instanceof WebAuthnError) {
+                                    // https://github.com/MasterKale/SimpleWebAuthn/blob/master/packages/browser/src/helpers/identifyRegistrationError.ts
+                                    if (
+                                        e.message.includes('timed out or was not allowed') ||
+                                        e.message.includes('denied permission')
+                                    ) {
+                                        setError('Passkey registration timed out or cancelled. Please try again.')
+                                        dispatch(setupActions.setLoading(false))
+                                        return
+                                    } else {
+                                        setError(e.message)
+                                    }
+                                } else {
+                                    setError('Error registering passkey.')
+                                }
+                                console.error('Error registering passkey:', e)
+                                Sentry.captureException(e)
+                                dispatch(setupActions.setLoading(false))
+                            }
+                        }}
+                        className="text-nowrap"
+                        shadowSize="4"
+                    >
+                        Set it up
+                    </Button>
+                    {error && <p className="text-sm font-bold text-error">{error}</p>}
+                </div>
+                <div>
+                    <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
+                        <Link
+                            rel="noopener noreferrer"
+                            target="_blank"
+                            className="underline underline-offset-2"
+                            href="https://docs.peanut.to/passkeys"
+                        >
+                            Learn more about what Passkeys are
+                        </Link>{' '}
+                    </p>
+                </div>
             </div>
         </div>
     )

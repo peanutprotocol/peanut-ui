@@ -92,7 +92,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                 {/* <TokenSelector viewType="withdraw" /> */}
 
                 <GeneralRecipientInput
-                    placeholder="Enter a username, an address or ENS"
+                    placeholder="Enter an address or ENS"
                     recipient={recipient}
                     onUpdate={(update: GeneralRecipientUpdate) => {
                         setRecipient(update.recipient)
@@ -104,6 +104,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                         setInputChanging(update.isChanging)
                     }}
                     showInfoText={false}
+                    isWithdrawal
                 />
 
                 <Button

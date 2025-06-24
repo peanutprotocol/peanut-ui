@@ -63,7 +63,7 @@ export default function manifest(): MetadataRoute.Manifest {
         related_applications: [
             {
                 platform: 'webapp',
-                url: 'https://peanut.me/manifest.webmanifest',
+                url: `${process.env.NEXT_PUBLIC_BASE_URL}/manifest.webmanifest`,
             },
             {
                 platform: 'ios',
@@ -71,5 +71,6 @@ export default function manifest(): MetadataRoute.Manifest {
             },
         ],
         scope: '/',
+        orientation: 'portrait',
     }
 }

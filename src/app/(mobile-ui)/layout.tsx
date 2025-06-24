@@ -96,8 +96,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 {/* Main content area */}
                 <div className="flex w-full flex-1 flex-col">
                     <GenericBanner
-                        message="Alpha version: Use with caution. Small amounts only."
-                        icon="⚠️"
+                        message="Alpha version: Report anything weird to support and enjoy our bug bounty!"
                         backgroundColor="bg-primary-1"
                     />
                     {/* Fixed top navbar */}

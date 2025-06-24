@@ -42,9 +42,21 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
             // Start with the fetched entries
             const entries = [...historyData.entries]
 
-            // Add any WebSocket entries that aren't already in the list
+            // process websocket entries: update existing or add new ones
             wsHistoryEntries.forEach((wsEntry) => {
-                if (!entries.some((entry) => entry.uuid === wsEntry.uuid)) {
+                const existingIndex = entries.findIndex((entry) => entry.uuid === wsEntry.uuid)
+
+                if (existingIndex !== -1) {
+                    // update existing entry with latest websocket data
+                    if (wsEntry.extraData) {
+                        wsEntry.extraData.usdAmount = wsEntry.amount.toString()
+                    } else {
+                        wsEntry.extraData = { usdAmount: wsEntry.amount.toString() }
+                    }
+                    wsEntry.extraData.link = `${BASE_URL}/${wsEntry.recipientAccount.username || wsEntry.recipientAccount.identifier}?chargeId=${wsEntry.uuid}`
+                    entries[existingIndex] = wsEntry
+                } else {
+                    // add new entry if it doesn't exist
                     if (wsEntry.extraData) {
                         wsEntry.extraData.usdAmount = wsEntry.amount.toString()
                     } else {

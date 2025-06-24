@@ -70,6 +70,9 @@ importers:
       '@serwist/next':
         specifier: ^9.0.10
         version: 9.0.11(next@15.3.1(@babel/core@7.26.0)(@opentelemetry/api@1.9.0)(babel-plugin-macros@3.1.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(typescript@5.7.3)(webpack@5.97.1)
+      '@simplewebauthn/browser':
+        specifier: ^8.3.7
+        version: 8.3.7
       '@squirrel-labs/peanut-sdk':
         specifier: ^0.6.2
         version: 0.6.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)

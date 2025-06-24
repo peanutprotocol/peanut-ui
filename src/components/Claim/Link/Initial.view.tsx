@@ -13,7 +13,7 @@ import {
 } from '@/components/Offramp/Offramp.consts'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import * as consts from '@/constants'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PINTA_WALLET_CHAIN, PINTA_WALLET_TOKEN } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
@@ -100,12 +100,20 @@ export const InitialClaimLinkView = ({
         return searchParams.get('t') === 'pnt'
     }, [searchParams])
 
+    const isPeanutChain = useMemo(() => {
+        return (
+            claimLinkData.chainId === PEANUT_WALLET_CHAIN.id.toString() ||
+            (areEvmAddressesEqual(claimLinkData.tokenAddress, PINTA_WALLET_TOKEN) &&
+                claimLinkData.chainId === PINTA_WALLET_CHAIN.id.toString())
+        )
+    }, [claimLinkData])
+
     // set token selector chain/token to peanut wallet chain/token if recipient type is username
     useEffect(() => {
         if (recipientType === 'username') {
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-            if (Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+            if (!isPeanutChain) {
                 setRefetchXchainRoute(true)
                 setIsXChain(true)
             }
@@ -113,7 +121,7 @@ export const InitialClaimLinkView = ({
             setSelectedChainID(claimLinkData.chainId)
             setSelectedTokenAddress(claimLinkData.tokenAddress)
         }
-    }, [recipientType, claimLinkData.chainId, claimLinkData.tokenAddress])
+    }, [recipientType, claimLinkData.chainId, isPeanutChain, claimLinkData.tokenAddress])
 
     const handleClaimLink = useCallback(async () => {
         setLoadingState('Loading')
@@ -439,7 +447,7 @@ export const InitialClaimLinkView = ({
         if (isPeanutWallet) {
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-            if (Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+            if (!isPeanutChain) {
                 setRefetchXchainRoute(true)
                 setIsXChain(true)
             }
@@ -448,7 +456,7 @@ export const InitialClaimLinkView = ({
         if (address && !recipient.address) {
             setRecipient({ name: undefined, address })
         }
-    }, [isPeanutWallet, address])
+    }, [isPeanutWallet, address, isPeanutChain])
 
     // handle xchain claim states
     useEffect(() => {
@@ -481,10 +489,10 @@ export const InitialClaimLinkView = ({
     ])
 
     const getButtonText = () => {
-        if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+        if (isPeanutWallet && !isPeanutChain) {
             return 'Review'
         }
-        if (selectedRoute || (isXChain && hasFetchedRoute)) {
+        if ((selectedRoute || (isXChain && hasFetchedRoute)) && !isPeanutChain) {
             return 'Review'
         }
 
@@ -616,12 +624,12 @@ export const InitialClaimLinkView = ({
                             icon={'arrow-down'}
                             shadowSize="4"
                             onClick={() => {
-                                if (isPeanutWallet && Number(claimLinkData.chainId) !== PEANUT_WALLET_CHAIN.id) {
+                                if (isPeanutWallet && !isPeanutChain) {
                                     setRefetchXchainRoute(true)
                                     onNext()
                                 } else if (recipientType === 'iban' || recipientType === 'us') {
                                     handleIbanRecipient()
-                                } else if (selectedRoute || (isXChain && hasFetchedRoute)) {
+                                } else if ((selectedRoute || (isXChain && hasFetchedRoute)) && !isPeanutChain) {
                                     onNext()
                                 } else {
                                     handleClaimLink()

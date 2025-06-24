@@ -360,6 +360,10 @@ export const PaymentForm = ({
             return
         }
 
+        if (inputUsdValue && parseFloat(inputUsdValue) > 0) {
+            dispatch(paymentActions.setUsdAmount(inputUsdValue))
+        }
+
         if (!isActivePeanutWallet && isWagmiConnected && selectedTokenData && selectedChainID && !!chargeDetails) {
             dispatch(paymentActions.setView('CONFIRM'))
             return
