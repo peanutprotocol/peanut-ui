@@ -159,7 +159,7 @@ export default function WithdrawBankPage() {
     }
 
     const countryCodeForFlag = () => {
-        if (!bankAccount?.details.countryCode) return ''
+        if (!bankAccount?.details?.countryCode) return ''
         const code = countryCodeMap[bankAccount.details.countryCode ?? ''] ?? bankAccount.details.countryCode
         return code.toLowerCase()
     }

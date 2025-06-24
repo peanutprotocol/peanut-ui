@@ -326,7 +326,7 @@ const SavedAccountsList: FC<{ accounts: Account[]; onItemClick: (account: Accoun
                 return (
                     <SearchResultCard
                         key={account.id}
-                        title={shortenAddressLong(account.identifier, 6)}
+                        title={shortenAddressLong(account.identifier.toUpperCase(), 6)}
                         position={position}
                         onClick={() => onItemClick(account, path)}
                         className="p-4 py-2.5"

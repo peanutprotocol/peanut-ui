@@ -19,6 +19,8 @@ import { jsonParse, jsonStringify } from '@/utils/general.utils'
 import { KYCStatus } from '@/utils/bridge-accounts.utils'
 import { AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
+import { Account } from '@/interfaces'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -28,6 +30,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const router = useRouter()
     const params = useParams()
     const { user, fetchUser } = useAuth()
+    const { setSelectedBankAccount } = useWithdrawFlow()
     const [view, setView] = useState<'list' | 'form'>('list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const [cachedBankDetails, setCachedBankDetails] = useState<Partial<FormData> | null>(null)
@@ -82,14 +85,39 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // scenario (1): happy path: if the user has already completed kyc and we have their name and email,
         // we can add the bank account directly.
         if (isUserKycVerified && (hasNameOnLoad || rawData.firstName) && (hasEmailOnLoad || rawData.email)) {
+            const currentAccountIds = new Set(user?.accounts.map((acc) => acc.id) ?? [])
+
             const result = await addBankAccount(payload)
             if (result.error) {
                 return { error: result.error }
             }
+            if (!result.data) {
+                return { error: 'Failed to process bank account. Please try again.' }
+            }
 
             // after successfully adding, we refetch user data to get the new account
             // and remove any temporary data from local storage.
-            await fetchUser() // refetch user to get the new bank account
+            const updatedUser = await fetchUser() // refetch user to get the new bank account
+
+            const newAccount = updatedUser?.accounts.find((acc) => !currentAccountIds.has(acc.id))
+
+            if (newAccount) {
+                setSelectedBankAccount(newAccount)
+            } else {
+                // fallback to the previous method if we can't find the new account
+                // this can happen if the user object is not updated immediately
+                const newAccountFromResponse = result.data as Account
+                if (!newAccountFromResponse.details) {
+                    newAccountFromResponse.details = {
+                        countryCode: payload.countryCode,
+                        countryName: payload.countryName,
+                        bankName: null,
+                        accountOwnerName: `${payload.accountOwnerName.firstName} ${payload.accountOwnerName.lastName}`,
+                    }
+                }
+                setSelectedBankAccount(newAccountFromResponse)
+            }
+
             if (user?.user.userId) {
                 sessionStorage.removeItem(`temp-bank-account-${user.user.userId}`)
             }

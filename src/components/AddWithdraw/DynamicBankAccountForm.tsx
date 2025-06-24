@@ -158,8 +158,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 case 'routingNumber':
                 case 'bic':
                     inputRules.pattern = {
-                        value: /^\d+$/,
-                        message: 'Must contain only digits',
+                        value: /^[a-zA-Z0-9]+$/,
+                        message: 'Only letters and numbers are allowed',
                     }
                     break
             }
