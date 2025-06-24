@@ -138,7 +138,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             placeholder: string,
             rules: any,
             type: string = 'text',
-            rightAdornment?: React.ReactNode
+            rightAdornment?: React.ReactNode,
+            onBlur?: (field: any) => Promise<void> | void
         ) => (
             <div className="w-full">
                 <div className="relative">
@@ -152,6 +153,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 type={type}
                                 placeholder={placeholder}
                                 className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
+                                onBlur={async (e) => {
+                                    field.onBlur()
+                                    if (onBlur) {
+                                        await onBlur(field)
+                                    }
+                                }}
                             />
                         )}
                     />
@@ -187,64 +194,45 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' },
                         })}
 
-                    {isMx ? (
-                        renderInput('clabe', 'CLABE', {
-                            required: 'CLABE is required',
-                            minLength: { value: 18, message: 'CLABE must be 18 digits' },
-                            maxLength: { value: 18, message: 'CLABE must be 18 digits' },
-                        })
-                    ) : isIban ? (
-                        <div className="w-full">
-                            <div className="relative">
-                                <Controller
-                                    name="accountNumber"
-                                    control={control}
-                                    rules={{
-                                        required: 'Account number is required',
-                                        validate: async (val: string) => (await validateIban(val)) || 'Invalid IBAN',
-                                    }}
-                                    render={({ field }) => (
-                                        <BaseInput
-                                            {...field}
-                                            type="text"
-                                            placeholder="IBAN"
-                                            className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
-                                            onBlur={async (e) => {
-                                                field.onBlur()
+                    {isMx
+                        ? renderInput('clabe', 'CLABE', {
+                              required: 'CLABE is required',
+                              minLength: { value: 18, message: 'CLABE must be 18 digits' },
+                              maxLength: { value: 18, message: 'CLABE must be 18 digits' },
+                          })
+                        : isIban
+                          ? renderInput(
+                                'accountNumber',
+                                'IBAN',
+                                {
+                                    required: 'Account number is required',
+                                    validate: async (val: string) => (await validateIban(val)) || 'Invalid IBAN',
+                                },
+                                'text',
+                                undefined,
+                                async (field) => {
+                                    if (!field.value || field.value.trim().length === 0) return
 
-                                                if (!field.value || field.value.trim().length === 0) return
-
-                                                try {
-                                                    const bic = await getBicFromIban(field.value)
-                                                    if (bic) {
-                                                        setValue('bic', bic, { shouldValidate: true })
-                                                    }
-                                                } catch (error) {
-                                                    console.warn('Failed to fetch BIC:', error)
-                                                }
-                                            }}
-                                        />
-                                    )}
-                                />
-                            </div>
-                            <div className="mt-2 w-fit text-start">
-                                {errors.accountNumber && touchedFields.accountNumber && (
-                                    <ErrorAlert description={errors.accountNumber?.message ?? ''} />
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        renderInput(
-                            'accountNumber',
-                            'Account Number',
-                            {
-                                required: 'Account number is required',
-                                validate: async (value: string) =>
-                                    (await validateBankAccount(value)) || 'Invalid account number',
-                            },
-                            'text'
-                        )
-                    )}
+                                    try {
+                                        const bic = await getBicFromIban(field.value.trim())
+                                        if (bic) {
+                                            setValue('bic', bic, { shouldValidate: true })
+                                        }
+                                    } catch (error) {
+                                        console.warn('Failed to fetch BIC:', error)
+                                    }
+                                }
+                            )
+                          : renderInput(
+                                'accountNumber',
+                                'Account Number',
+                                {
+                                    required: 'Account number is required',
+                                    validate: async (value: string) =>
+                                        (await validateBankAccount(value)) || 'Invalid account number',
+                                },
+                                'text'
+                            )}
 
                     {isIban &&
                         renderInput('bic', 'BIC/SWIFT', {
