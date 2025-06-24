@@ -64,10 +64,15 @@ export default function AddMoneyBankPage() {
 
                 <Card className="rounded-sm">
                     <PaymentInfoRow label={'Amount'} value={`$${amountToAdd}`} />
-                    <PaymentInfoRow label={'Method'} value={'Bank Transfer'} />
-                    <PaymentInfoRow label={'Processing Time'} value={'1-3 business days'} />
-                    <PaymentInfoRow label={'Fee'} value={'$0.00'} />
-                    <PaymentInfoRow hideBottomBorder label="Status" value="Ready to process" />
+                    <PaymentInfoRow label={'Bank Name'} value={'Peanut Protocol Bank'} />
+                    <PaymentInfoRow label={'Bank Address'} value={'123 Financial District, New York, NY 10004'} />
+                    <PaymentInfoRow label={'IBAN'} value={'US64PNUT0123456789012345'} />
+                    <PaymentInfoRow label={'BIC'} value={'PNUTUS33XXX'} />
+                    <PaymentInfoRow
+                        hideBottomBorder
+                        label={'Deposit Message'}
+                        value={`REF-${Math.random().toString(36).substr(2, 9).toUpperCase()}`}
+                    />
                 </Card>
 
                 <div className="space-y-2 rounded-sm bg-blue-50 p-4">

@@ -68,7 +68,7 @@ export default function PeanutActionDetailsCard({
             if (viewType === 'SUCCESS') title = `You just claimed`
             else title = `${renderRecipient()} sent you`
         }
-        if (transactionType === 'ADD_MONEY') title = `Add money to Peanut`
+        if (transactionType === 'ADD_MONEY') title = `You're adding`
         if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT') title = `You're withdrawing`
         return (
             <h1 className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap text-base font-normal text-grey-1">
