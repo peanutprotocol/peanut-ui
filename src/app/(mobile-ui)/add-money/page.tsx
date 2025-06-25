@@ -9,7 +9,8 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { PEANUT_API_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { useAddFlow } from '@/context/AddFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { formatAmount } from '@/utils'
+import { fetchWithSentry, formatAmount } from '@/utils'
+import Cookies from 'js-cookie'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
@@ -23,6 +24,7 @@ export default function AddMoneyPage() {
     const [rawTokenAmount, setRawTokenAmount] = useState<string>('')
     const [showWarningModal, setShowWarningModal] = useState(false)
     const [isRiskAccepted, setIsRiskAccepted] = useState(false)
+    const [isCreatingOnramp, setIsCreatingOnramp] = useState(false)
     const {
         amountToAdd: amountFromContext,
         setAmountToAdd,
@@ -114,14 +116,18 @@ export default function AddMoneyPage() {
         setAmountToAdd(rawTokenAmount)
         setShowWarningModal(false)
         setIsRiskAccepted(false)
+        setIsCreatingOnramp(true)
 
         try {
+            const jwtToken = Cookies.get('jwt-token')
+
             // Call backend to create onramp
-            const response = await fetch(`${PEANUT_API_URL}/bridge/onramp/create`, {
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/onramp/create`, {
                 method: 'POST',
                 headers: {
+                    'api-key': process.env.PEANUT_API_KEY!,
                     'Content-Type': 'application/json',
-                    'api-key': 'holacarola',
+                    Authorization: `Bearer ${jwtToken}`,
                 },
                 body: JSON.stringify({
                     amount: rawTokenAmount,
@@ -151,6 +157,8 @@ export default function AddMoneyPage() {
                 errorMessage: 'Failed to create bank transfer. Please try again.',
             })
             setShowWarningModal(false)
+        } finally {
+            setIsCreatingOnramp(false)
         }
     }
 
@@ -184,8 +192,14 @@ export default function AddMoneyPage() {
                         variant="purple"
                         shadowSize="4"
                         onClick={handleAmountContinue}
-                        disabled={!parseFloat(rawTokenAmount) || parseFloat(rawTokenAmount) < 1 || error.showError}
+                        disabled={
+                            !parseFloat(rawTokenAmount) ||
+                            parseFloat(rawTokenAmount) < 1 ||
+                            error.showError ||
+                            isCreatingOnramp
+                        }
                         className="w-full"
+                        loading={isCreatingOnramp}
                     >
                         Continue
                     </Button>

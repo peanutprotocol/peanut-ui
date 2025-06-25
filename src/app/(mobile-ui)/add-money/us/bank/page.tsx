@@ -115,6 +115,7 @@ export default function AddMoneyBankPage() {
                         hideBottomBorder
                         label={'Deposit Message'}
                         value={onrampData?.depositInstructions?.depositMessage || 'Loading...'}
+                        moreInfoText="Make sure you enter this exact message as the transfer concept or description. If it's not included, the deposit can't be processed."
                     />
                 </Card>
 
