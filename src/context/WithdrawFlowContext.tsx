@@ -2,7 +2,7 @@
 
 import { ITokenPriceData, Account } from '@/interfaces'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import React, { createContext, ReactNode, useContext, useMemo, useState } from 'react'
+import React, { createContext, ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 
 export type WithdrawView = 'INITIAL' | 'CONFIRM' | 'STATUS'
 
@@ -46,6 +46,7 @@ interface WithdrawFlowContextType {
     setError: (error: InitialViewErrorState) => void
     selectedBankAccount: Account | null
     setSelectedBankAccount: (account: Account | null) => void
+    resetWithdrawFlow: () => void
 }
 
 const WithdrawFlowContext = createContext<WithdrawFlowContextType | undefined>(undefined)
@@ -66,6 +67,16 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
         errorMessage: '',
     })
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
+
+    const resetWithdrawFlow = useCallback(() => {
+        setAmountToWithdraw('')
+        setCurrentView('INITIAL')
+        setWithdrawData(null)
+        setSelectedBankAccount(null)
+        setRecipient({ address: '', name: '' })
+        setError({ showError: false, errorMessage: '' })
+        setPaymentError(null)
+    }, [])
 
     const value = useMemo(
         () => ({
@@ -91,6 +102,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             setError,
             selectedBankAccount,
             setSelectedBankAccount,
+            resetWithdrawFlow,
         }),
         [
             amountToWithdraw,
@@ -104,6 +116,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             recipient,
             error,
             selectedBankAccount,
+            resetWithdrawFlow,
         ]
     )
 

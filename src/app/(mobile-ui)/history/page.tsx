@@ -5,13 +5,16 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import { KycStatusItem } from '@/components/Kyc/KycStatusItem'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { useUserStore } from '@/redux/hooks'
 import { getHeaderTitle } from '@/utils'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname } from 'next/navigation'
+import { isKycStatusItem } from '@/hooks/useKycFlow'
 import React, { useEffect, useMemo, useRef } from 'react'
 
 /**
@@ -20,6 +23,7 @@ import React, { useEffect, useMemo, useRef } from 'react'
 const HistoryPage = () => {
     const pathname = usePathname()
     const loaderRef = useRef<HTMLDivElement>(null)
+    const { user } = useUserStore()
 
     const {
         data: historyData,
@@ -59,7 +63,27 @@ const HistoryPage = () => {
 
     const allEntries = useMemo(() => historyData?.pages.flatMap((page) => page.entries) ?? [], [historyData])
 
-    if (isLoading && allEntries.length === 0) {
+    const combinedAndSortedEntries = useMemo(() => {
+        const entries: Array<any> = [...allEntries]
+
+        if (user?.user?.kycStatus && user.user.kycStatus !== 'not_started' && user.user.kycStartedAt) {
+            entries.push({
+                isKyc: true,
+                timestamp: user.user.kycStartedAt,
+                uuid: 'kyc-status-item',
+            })
+        }
+
+        entries.sort((a, b) => {
+            const dateA = new Date(a.timestamp || 0).getTime()
+            const dateB = new Date(b.timestamp || 0).getTime()
+            return dateB - dateA
+        })
+
+        return entries
+    }, [allEntries, user])
+
+    if (isLoading && combinedAndSortedEntries.length === 0) {
         return <PeanutLoading />
     }
 
@@ -74,7 +98,7 @@ const HistoryPage = () => {
         )
     }
 
-    if (allEntries.length === 0) {
+    if (combinedAndSortedEntries.length === 0) {
         return (
             <div className="flex h-[80dvh] flex-col items-center justify-center">
                 <NavHeader title={getHeaderTitle(pathname)} />
@@ -92,7 +116,7 @@ const HistoryPage = () => {
         <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
             <NavHeader title={getHeaderTitle(pathname)} />
             <div className="h-full w-full">
-                {allEntries.map((item, index) => {
+                {combinedAndSortedEntries.map((item, index) => {
                     const itemDate = new Date(item.timestamp)
                     const group = getDateGroup(itemDate, today)
                     const currentGroupHeaderKey = getDateGroupKey(itemDate, group)
@@ -101,14 +125,12 @@ const HistoryPage = () => {
                         lastGroupHeaderKey = currentGroupHeaderKey
                     }
 
-                    const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
-
                     let position: CardPosition = 'middle'
                     const isFirstOverall = index === 0
-                    const isLastOverall = index === allEntries.length - 1
+                    const isLastOverall = index === combinedAndSortedEntries.length - 1
                     const isFirstInGroup = showHeader
 
-                    if (allEntries.length === 1) {
+                    if (combinedAndSortedEntries.length === 1) {
                         position = 'single'
                     } else if (isFirstInGroup && isLastOverall) {
                         position = 'single'
@@ -125,15 +147,25 @@ const HistoryPage = () => {
                                     {formatGroupHeaderDate(itemDate, group, today)}
                                 </div>
                             )}
-                            <TransactionCard
-                                type={transactionCardType}
-                                name={transactionDetails.userName}
-                                amount={transactionDetails.amount ? Number(transactionDetails.amount) : 0}
-                                status={transactionDetails.status}
-                                initials={transactionDetails.initials}
-                                transaction={transactionDetails}
-                                position={position}
-                            />
+                            {isKycStatusItem(item) ? (
+                                <KycStatusItem position={position} />
+                            ) : (
+                                (() => {
+                                    const { transactionDetails, transactionCardType } =
+                                        mapTransactionDataForDrawer(item)
+                                    return (
+                                        <TransactionCard
+                                            type={transactionCardType}
+                                            name={transactionDetails.userName}
+                                            amount={transactionDetails.amount ? Number(transactionDetails.amount) : 0}
+                                            status={transactionDetails.status}
+                                            initials={transactionDetails.initials}
+                                            transaction={transactionDetails}
+                                            position={position}
+                                        />
+                                    )
+                                })()
+                            )}
                         </React.Fragment>
                     )
                 })}
