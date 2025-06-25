@@ -15,10 +15,10 @@ export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess }: KycModalFlow
         isLoading,
         error,
         iframeOptions,
-        isVerificationModalOpen,
+        isVerificationProgressModalOpen,
         handleInitiateKyc,
         handleIframeClose,
-        closeVerificationModal,
+        closeVerificationProgressModal,
     } = useKycFlow({ onKycSuccess })
 
     const handleVerifyClick = async () => {
@@ -56,7 +56,10 @@ export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess }: KycModalFlow
                 ]}
             />
             <IframeWrapper {...iframeOptions} onClose={handleIframeClose} />
-            <KycVerificationInProgressModal isOpen={isVerificationModalOpen} onClose={closeVerificationModal} />
+            <KycVerificationInProgressModal
+                isOpen={isVerificationProgressModalOpen}
+                onClose={closeVerificationProgressModal}
+            />
         </>
     )
 }
