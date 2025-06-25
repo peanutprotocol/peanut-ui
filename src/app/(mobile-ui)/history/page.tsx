@@ -10,7 +10,6 @@ import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useUserStore } from '@/redux/hooks'
-import { getHeaderTitle } from '@/utils'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname } from 'next/navigation'
@@ -101,7 +100,7 @@ const HistoryPage = () => {
     if (combinedAndSortedEntries.length === 0) {
         return (
             <div className="flex h-[80dvh] flex-col items-center justify-center">
-                <NavHeader title={getHeaderTitle(pathname)} />
+                <NavHeader title={'Activity'} />
                 <div className="flex flex-grow items-center justify-center">
                     <NoDataEmptyState animSize="lg" message="You haven't done any transactions" />
                 </div>
@@ -114,7 +113,7 @@ const HistoryPage = () => {
 
     return (
         <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
-            <NavHeader title={getHeaderTitle(pathname)} />
+            <NavHeader title={'Activity'} />
             <div className="h-full w-full">
                 {combinedAndSortedEntries.map((item, index) => {
                     const itemDate = new Date(item.timestamp)

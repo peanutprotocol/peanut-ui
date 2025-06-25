@@ -22,9 +22,15 @@ interface UseKycFlowOptions {
     onKycSuccess?: () => void
 }
 
+export type KycHistoryEntry = {
+    isKyc: true
+    uuid: string
+    timestamp: string
+}
+
 // type guard to check if an entry is a KYC status item in history section
-export const isKycStatusItem = (entry: any): entry is { isKyc: true; createdAt: string; uuid: string } => {
-    return entry.isKyc === true
+export const isKycStatusItem = (entry: object): entry is KycHistoryEntry => {
+    return 'isKyc' in entry && entry.isKyc === true
 }
 
 export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
