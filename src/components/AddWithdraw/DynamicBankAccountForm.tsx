@@ -223,12 +223,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     >
                         {!user?.user?.fullName && (
                             <div className="w-full space-y-4">
-                                {renderInput('firstName', 'First name', { required: 'First name is required' })}
-                                {renderInput('lastName', 'Last name', { required: 'Last name is required' })}
+                                {renderInput('firstName', 'First Name', { required: 'First name is required' })}
+                                {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
                             </div>
                         )}
                         {!user?.user?.email &&
-                            renderInput('email', 'you@example.com', {
+                            renderInput('email', 'E-mail', {
                                 required: 'Email is required',
                             })}
 
@@ -252,10 +252,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                               )}
 
                         {isIban &&
-                            renderInput('bic', 'BIC/SWIFT', {
-                                required: 'BIC/SWIFT is required',
-                                validate: async (value: string) =>
-                                    (await validateBic(value)) || 'Invalid BIC/SWIFT code',
+                            renderInput('bic', 'BIC', {
+                                required: 'BIC is required',
+                                validate: async (value: string) => (await validateBic(value)) || 'Invalid BIC code',
                             })}
                         {isUs &&
                             renderInput('routingNumber', 'Routing Number', {
@@ -264,13 +263,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                         {!isIban && (
                             <>
-                                {renderInput('street', 'Street address', { required: 'Street is required' })}
-                                <div className="flex gap-4">
-                                    {renderInput('city', 'City', { required: 'City is required' })}
-                                    {renderInput('state', 'State/Province', {
-                                        required: 'State/Province is required',
-                                    })}
-                                </div>
+                                {renderInput('street', 'Bank Address', { required: 'Bank address is required' })}
+
+                                {renderInput('city', 'City', { required: 'City is required' })}
+
+                                {renderInput('state', 'State', {
+                                    required: 'State is required',
+                                })}
+
                                 {renderInput('postalCode', 'Postal Code', {
                                     required: 'Postal code is required',
                                 })}

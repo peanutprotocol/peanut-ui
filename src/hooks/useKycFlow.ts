@@ -22,6 +22,11 @@ interface UseKycFlowOptions {
     onKycSuccess?: () => void
 }
 
+// type guard to check if an entry is a KYC status item in history section
+export const isKycStatusItem = (entry: any): entry is { isKyc: true; createdAt: string; uuid: string } => {
+    return entry.isKyc === true
+}
+
 export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
     const { user } = useUserStore()
     const router = useRouter()
