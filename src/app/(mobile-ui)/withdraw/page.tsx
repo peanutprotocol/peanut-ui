@@ -24,7 +24,7 @@ export default function WithdrawPage() {
         setAmountToWithdraw,
         setError,
         error,
-        setRecipient,
+        resetWithdrawFlow,
     } = useWithdrawFlow()
 
     const { balance } = useWallet()
@@ -39,7 +39,7 @@ export default function WithdrawPage() {
     }, [balance])
 
     useEffect(() => {
-        setRecipient({ address: '', name: '' })
+        resetWithdrawFlow()
     }, [])
 
     useEffect(() => {

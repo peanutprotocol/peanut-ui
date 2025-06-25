@@ -14,6 +14,7 @@ import { twMerge } from 'tailwind-merge'
 import Card, { CardPosition, getCardPosition } from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem } from '../Kyc/KycStatusItem'
+import { isKycStatusItem } from '@/hooks/useKycFlow'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -40,7 +41,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     useEffect(() => {
         if (historyData?.entries) {
             // Start with the fetched entries
-            const entries = [...historyData.entries]
+            const entries: Array<any> = [...historyData.entries]
 
             // process websocket entries: update existing or add new ones
             wsHistoryEntries.forEach((wsEntry) => {
@@ -63,14 +64,31 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                         wsEntry.extraData = { usdAmount: wsEntry.amount.toString() }
                     }
                     wsEntry.extraData.link = `${BASE_URL}/${wsEntry.recipientAccount.username || wsEntry.recipientAccount.identifier}?chargeId=${wsEntry.uuid}`
-                    entries.unshift(wsEntry)
+                    entries.push(wsEntry)
                 }
+            })
+
+            // Add KYC status item if applicable and not on a public page
+            if (user?.user?.kycStatus && user.user.kycStatus !== 'not_started' && user.user.kycStartedAt && !isPublic) {
+                entries.push({
+                    isKyc: true,
+                    createdAt: user.user.kycStartedAt,
+                    uuid: 'kyc-status-item',
+                })
+            }
+
+            // Sort entries by date in descending order
+            entries.sort((a, b) => {
+                // Use `timestamp` for transactions and `createdAt` for the KYC item.
+                const dateA = new Date(a.timestamp || a.createdAt || 0).getTime()
+                const dateB = new Date(b.timestamp || b.createdAt || 0).getTime()
+                return dateB - dateA
             })
 
             // Limit to the most recent entries
             setCombinedEntries(entries.slice(0, isPublic ? 20 : 5))
         }
-    }, [historyData, wsHistoryEntries, isPublic])
+    }, [historyData, wsHistoryEntries, isPublic, user])
 
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []
@@ -165,19 +183,25 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
             )}
             {/* container for the transaction cards */}
             <div className="h-full w-full">
-                <KycStatusItem position={combinedEntries.length > 0 ? 'first' : 'single'} className="border-b-0" />
                 {/* map over the latest entries and render transactioncard */}
                 {combinedEntries
                     .filter((item) => !pendingRequests.some((r) => r.uuid === item.uuid))
                     .map((item, index) => {
-                        // map the raw history entry to the format needed by the ui components
-                        const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
-
-                        // determine card position for styling (first, middle, last, single)
+                        // filter out pending requests to calculate correct card position
                         const filteredEntries = combinedEntries.filter(
                             (entry) => !pendingRequests.some((r) => r.uuid === entry.uuid)
                         )
                         const position = getCardPosition(index, filteredEntries.length)
+
+                        // Render KYC status item if it's its turn in the sorted list
+                        if (isKycStatusItem(item)) {
+                            return <KycStatusItem key={item.uuid} position={position} />
+                        }
+
+                        // map the raw history entry to the format needed by the ui components
+                        const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+
+                        // determine card position for styling (first, middle, last, single)
 
                         return (
                             <TransactionCard
