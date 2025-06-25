@@ -4,6 +4,7 @@ import { Button } from '@/components/0_Bruddle'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
+import ShareButton from '@/components/Global/ShareButton'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useAddFlow } from '@/context/AddFlowContext'
@@ -28,7 +29,6 @@ interface IOnrampData {
 export default function AddMoneyBankPage() {
     const { amountToAdd, setFromBankSelected, setAmountToAdd } = useAddFlow()
     const router = useRouter()
-    const [isLoading, setIsLoading] = useState(false)
     const [onrampData, setOnrampData] = useState<IOnrampData | null>(null)
 
     useEffect(() => {
@@ -50,25 +50,18 @@ export default function AddMoneyBankPage() {
         }
     }, [amountToAdd, router])
 
-    const handleContinue = async () => {
-        setIsLoading(true)
+    const generateBankDetails = async () => {
+        const bankDetails = `Bank Transfer Details:
+Amount: $${amountToAdd}
+Bank Name: ${onrampData?.depositInstructions?.bankName || 'Loading...'}
+Bank Address: ${onrampData?.depositInstructions?.bankAddress || 'Loading...'}
+Account Number: ${onrampData?.depositInstructions?.bankAccountNumber || 'Loading...'}
+Routing Number: ${onrampData?.depositInstructions?.bankRoutingNumber || 'Loading...'}
+Deposit Message: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'}
 
-        // Clean up onramp data from storage
-        sessionStorage.removeItem('onrampData')
+Please use these details to complete your bank transfer.`
 
-        // Simulate processing delay
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        // For now, show success message since actual bank integration isn't implemented
-        alert(
-            `Bank transfer setup for $${amountToAdd} completed. Please use the bank details provided to make your transfer.`
-        )
-
-        // Reset flow and go back to home
-        setFromBankSelected(false)
-        setAmountToAdd('')
-        setIsLoading(false)
-        router.push('/home')
+        return bankDetails
     }
 
     const handleBack = () => {
@@ -129,17 +122,14 @@ export default function AddMoneyBankPage() {
                     </ul>
                 </div>
 
-                <Button
-                    icon="arrow-up"
-                    loading={isLoading}
-                    iconSize={12}
-                    shadowSize="4"
-                    onClick={handleContinue}
-                    disabled={isLoading}
+                <ShareButton
+                    generateText={generateBankDetails}
+                    title="Bank Transfer Details"
+                    variant="purple"
                     className="w-full"
                 >
-                    {isLoading ? 'Processing...' : 'Continue Setup'}
-                </Button>
+                    Share Details
+                </ShareButton>
             </div>
         </div>
     )
