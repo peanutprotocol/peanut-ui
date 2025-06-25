@@ -23,8 +23,9 @@ import { useEffect, useState } from 'react'
 import { encodeFunctionData, erc20Abi, parseUnits } from 'viem'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { ErrorHandler, getBridgeChainName } from '@/utils'
-import { createOfframp } from '@/app/actions/offramp'
+import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
+import ExchangeRate from '@/components/ExchangeRate'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -121,7 +122,7 @@ export default function WithdrawBankPage() {
                 throw new Error(error)
             }
 
-            if (!data?.depositInstructions?.toAddress) {
+            if (!data?.depositInstructions?.toAddress || !data.transferId) {
                 setError({ showError: true, errorMessage: 'Failed to get deposit address from the backend.' })
                 throw new Error('Failed to get deposit address from the backend.')
             }
@@ -145,6 +146,21 @@ export default function WithdrawBankPage() {
             if (receipt.status === 'reverted') {
                 throw new Error('Transaction reverted by the network.')
             }
+
+            // Step 3: Confirm the transfer with the backend to make it visible in history
+            const confirmResult = await confirmOfframp(data.transferId, receipt.transactionHash)
+
+            if (confirmResult.error) {
+                // This is a tricky state. The on-chain tx succeeded, but the backend failed to record it.
+                // For now, we'll show a detailed error. A more robust solution could involve a retry mechanism
+                // or flagging this for support.
+                setError({
+                    showError: true,
+                    errorMessage: `Your funds were sent, but there was an issue confirming the transfer. Please contact support.`,
+                })
+                throw new Error(confirmResult.error)
+            }
+
             setView('SUCCESS')
         } catch (e: any) {
             const error = ErrorHandler(e)
@@ -205,20 +221,34 @@ export default function WithdrawBankPage() {
                                 <PaymentInfoRow label={'Routing Number'} value={getBicAndRoutingNumber()} />
                             </>
                         )}
-                        {/* TODO: add exchange rate */}
-                        {/* <PaymentInfoRow label="Exchange Rate" value={`$1.00`} /> */}
+                        <ExchangeRate accountType={bankAccount.type} />
                         <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                     </Card>
-                    <Button
-                        icon="arrow-up"
-                        loading={isLoading}
-                        iconSize={12}
-                        shadowSize="4"
-                        onClick={handleCreateAndInitiateOfframp}
-                        disabled={isLoading || !bankAccount}
-                    >
-                        Withdraw
-                    </Button>
+                    {error.showError ? (
+                        <Button
+                            disabled={isLoading}
+                            onClick={handleCreateAndInitiateOfframp}
+                            loading={isLoading}
+                            shadowSize="4"
+                            className="w-full"
+                            icon="retry"
+                            iconSize={14}
+                        >
+                            Retry
+                        </Button>
+                    ) : (
+                        <Button
+                            icon="arrow-up"
+                            loading={isLoading}
+                            iconSize={12}
+                            shadowSize="4"
+                            onClick={handleCreateAndInitiateOfframp}
+                            disabled={isLoading || !bankAccount}
+                            className="w-full"
+                        >
+                            Withdraw
+                        </Button>
+                    )}
                     {error.showError && <ErrorAlert description={error.errorMessage} />}
                 </div>
             )}

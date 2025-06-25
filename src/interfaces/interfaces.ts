@@ -332,6 +332,7 @@ interface User {
 export enum AccountType {
     IBAN = 'iban',
     US = 'us',
+    CLABE = 'clabe',
     EVM_ADDRESS = 'evm-address',
     PEANUT_WALLET = 'peanut-wallet',
     BRIDGE = 'bridgeBankAccount',
