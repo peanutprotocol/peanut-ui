@@ -4,7 +4,7 @@ import Icon from '@/components/Global/Icon'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { BASE_URL } from '@/constants'
-import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
@@ -14,7 +14,7 @@ import { twMerge } from 'tailwind-merge'
 import Card, { CardPosition, getCardPosition } from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem } from '../Kyc/KycStatusItem'
-import { isKycStatusItem } from '@/hooks/useKycFlow'
+import { isKycStatusItem, KycHistoryEntry } from '@/hooks/useKycFlow'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -41,7 +41,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     useEffect(() => {
         if (historyData?.entries) {
             // Start with the fetched entries
-            const entries: Array<any> = [...historyData.entries]
+            const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
 
             // process websocket entries: update existing or add new ones
             wsHistoryEntries.forEach((wsEntry) => {
@@ -72,16 +72,15 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
             if (user?.user?.kycStatus && user.user.kycStatus !== 'not_started' && user.user.kycStartedAt && !isPublic) {
                 entries.push({
                     isKyc: true,
-                    createdAt: user.user.kycStartedAt,
+                    timestamp: user.user.kycStartedAt,
                     uuid: 'kyc-status-item',
                 })
             }
 
             // Sort entries by date in descending order
             entries.sort((a, b) => {
-                // Use `timestamp` for transactions and `createdAt` for the KYC item.
-                const dateA = new Date(a.timestamp || a.createdAt || 0).getTime()
-                const dateB = new Date(b.timestamp || b.createdAt || 0).getTime()
+                const dateA = new Date(a.timestamp || 0).getTime()
+                const dateB = new Date(b.timestamp || 0).getTime()
                 return dateB - dateA
             })
 
@@ -93,7 +92,11 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []
         return combinedEntries.filter(
-            (entry) => entry.type === 'REQUEST' && entry.userRole === 'SENDER' && entry.status === 'NEW'
+            (entry) =>
+                !isKycStatusItem(entry) &&
+                entry.type === 'REQUEST' &&
+                entry.userRole === 'SENDER' &&
+                entry.status === 'NEW'
         )
     }, [combinedEntries])
 
