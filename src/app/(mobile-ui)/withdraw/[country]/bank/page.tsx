@@ -57,6 +57,12 @@ export default function WithdrawBankPage() {
                     paymentRail: 'sepa',
                     externalAccountId: account.bridgeAccountId,
                 }
+            case AccountType.CLABE:
+                return {
+                    currency: 'mxn',
+                    paymentRail: 'spei',
+                    externalAccountId: account.bridgeAccountId,
+                }
             default:
                 return {
                     currency: '',
@@ -71,6 +77,8 @@ export default function WithdrawBankPage() {
             return bankAccount.bic?.toUpperCase() ?? 'N/A'
         } else if (bankAccount && bankAccount.type === AccountType.US) {
             return bankAccount.routingNumber?.toUpperCase() ?? 'N/A'
+        } else if (bankAccount && bankAccount.type === AccountType.CLABE) {
+            return bankAccount.identifier?.toUpperCase() ?? 'N/A'
         }
 
         return 'N/A'
@@ -214,6 +222,10 @@ export default function WithdrawBankPage() {
                             <>
                                 <PaymentInfoRow label={'IBAN'} value={bankAccount?.identifier.toUpperCase()} />
                                 <PaymentInfoRow label="BIC" value={getBicAndRoutingNumber()} />
+                            </>
+                        ) : bankAccount?.type === AccountType.CLABE ? (
+                            <>
+                                <PaymentInfoRow label={'CLABE'} value={bankAccount?.identifier.toUpperCase()} />
                             </>
                         ) : (
                             <>
