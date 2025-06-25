@@ -11,6 +11,7 @@ import { CancelIcon } from './cancel'
 import { CheckIcon } from './check'
 import { CheckCircleIcon } from './check-circle'
 import { ChevronUpIcon } from './chevron-up'
+import { ChevronDownIcon } from './chevron-down'
 import { ClipIcon } from './clip'
 import { CopyIcon } from './copy'
 import { CurrencyIcon } from './currency'
@@ -61,6 +62,7 @@ export type IconName =
     | 'camera'
     | 'check'
     | 'chevron-up'
+    | 'chevron-down'
     | 'copy'
     | 'check-circle'
     | 'cancel'
@@ -119,6 +121,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     camera: CameraIcon,
     check: CheckIcon,
     'chevron-up': ChevronUpIcon,
+    'chevron-down': ChevronDownIcon,
     download: DownloadIcon,
     eye: EyeIcon,
     'eye-slash': EyeSlashIcon,
