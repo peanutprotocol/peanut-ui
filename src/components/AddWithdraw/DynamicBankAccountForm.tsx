@@ -9,6 +9,7 @@ import { countryCodeMap } from '@/components/AddMoney/consts'
 import { useParams } from 'next/navigation'
 import { validateBankAccount, validateIban, validateBic } from '@/utils/bridge-accounts.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard from '../Global/PeanutActionDetailsCard'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
@@ -50,6 +51,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const {
             control,
             handleSubmit,
+            setValue,
             formState: { errors, isValid, isValidating, touchedFields },
         } = useForm<FormData>({
             defaultValues: {
@@ -139,62 +141,36 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             placeholder: string,
             rules: any,
             type: string = 'text',
-            rightAdornment?: React.ReactNode
-        ) => {
-            const inputRules = { ...rules }
-            switch (name) {
-                case 'firstName':
-                case 'lastName':
-                    inputRules.pattern = {
-                        value: /^[a-zA-Z\s'-]+$/,
-                        message: 'Name contains invalid characters',
-                    }
-                    break
-                case 'email':
-                    inputRules.pattern = {
-                        value: /^\S+@\S+$/i,
-                        message: 'Invalid email address',
-                    }
-                    break
-                case 'clabe':
-                case 'accountNumber':
-                case 'routingNumber':
-                case 'bic':
-                    inputRules.pattern = {
-                        value: /^[a-zA-Z0-9]+$/,
-                        message: 'Only letters and numbers are allowed',
-                    }
-                    break
-            }
-
-            return (
-                <div className="w-full">
-                    <div className="relative">
-                        <Controller
-                            name={name}
-                            control={control}
-                            rules={inputRules}
-                            render={({ field }) => (
-                                <BaseInput
-                                    {...field}
-                                    type={type}
-                                    placeholder={placeholder}
-                                    className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
-                                />
-                            )}
-                        />
-                        {rightAdornment && (
-                            <div className="absolute inset-y-0 right-2 flex items-center">{rightAdornment}</div>
+            rightAdornment?: React.ReactNode,
+            onBlur?: (field: any) => Promise<void> | void
+        ) => (
+            <div className="w-full">
+                <div className="relative">
+                    <Controller
+                        name={name}
+                        control={control}
+                        rules={rules}
+                        render={({ field }) => (
+                            <BaseInput
+                                {...field}
+                                type={type}
+                                placeholder={placeholder}
+                                className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
+                                onBlur={async (e) => {
+                                    field.onBlur()
+                                    if (onBlur) {
+                                        await onBlur(field)
+                                    }
+                                }}
+                            />
                         )}
-                    </div>
-                    <div className="mt-2 w-fit text-start">
-                        {errors[name] && touchedFields[name] && (
-                            <ErrorAlert description={errors[name]?.message ?? ''} />
-                        )}
-                    </div>
+                    />
                 </div>
-            )
-        }
+                <div className="mt-2 w-fit text-start">
+                    {errors[name] && touchedFields[name] && <ErrorAlert description={errors[name]?.message ?? ''} />}
+                </div>
+            </div>
+        )
 
         const countryCodeForFlag = useMemo(() => {
             return countryCodeMap[country.toUpperCase()] ?? country.toUpperCase()
@@ -238,18 +214,39 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                   minLength: { value: 18, message: 'CLABE must be 18 digits' },
                                   maxLength: { value: 18, message: 'CLABE must be 18 digits' },
                               })
-                            : renderInput(
-                                  'accountNumber',
-                                  isIban ? 'IBAN' : 'Account Number',
-                                  {
-                                      required: 'Account number is required',
-                                      validate: async (value: string) =>
-                                          isIban
-                                              ? (await validateIban(value)) || 'Invalid IBAN'
-                                              : (await validateBankAccount(value)) || 'Invalid account number',
-                                  },
-                                  'text'
-                              )}
+                            : isIban
+                              ? renderInput(
+                                    'accountNumber',
+                                    'IBAN',
+                                    {
+                                        required: 'Account number is required',
+                                        validate: async (val: string) => (await validateIban(val)) || 'Invalid IBAN',
+                                    },
+                                    'text',
+                                    undefined,
+                                    async (field) => {
+                                        if (!field.value || field.value.trim().length === 0) return
+
+                                        try {
+                                            const bic = await getBicFromIban(field.value.trim())
+                                            if (bic) {
+                                                setValue('bic', bic, { shouldValidate: true })
+                                            }
+                                        } catch (error) {
+                                            console.warn('Failed to fetch BIC:', error)
+                                        }
+                                    }
+                                )
+                              : renderInput(
+                                    'accountNumber',
+                                    'Account Number',
+                                    {
+                                        required: 'Account number is required',
+                                        validate: async (value: string) =>
+                                            (await validateBankAccount(value)) || 'Invalid account number',
+                                    },
+                                    'text'
+                                )}
 
                         {isIban &&
                             renderInput('bic', 'BIC', {
