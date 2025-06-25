@@ -10,6 +10,7 @@ import { PEANUT_API_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { useAddFlow } from '@/context/AddFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { fetchWithSentry, formatAmount } from '@/utils'
+import { countryData } from '@/components/AddMoney/consts'
 import Cookies from 'js-cookie'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -35,6 +36,13 @@ export default function AddMoneyPage() {
     } = useAddFlow()
 
     const { balance } = useWallet()
+
+    // Get selected country from URL parameters
+    const selectedCountryPath = searchParams.get('country')
+    const selectedCountry = useMemo(() => {
+        if (!selectedCountryPath) return null
+        return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
+    }, [selectedCountryPath])
 
     const peanutWalletBalance = useMemo(() => {
         const formattedBalance = formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
@@ -121,6 +129,9 @@ export default function AddMoneyPage() {
         try {
             const jwtToken = Cookies.get('jwt-token')
 
+            // Get currency from selected country, default to USD
+            const currency = selectedCountry?.currency?.toLowerCase() || 'usd'
+
             // Call backend to create onramp
             const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/onramp/create`, {
                 method: 'POST',
@@ -132,7 +143,7 @@ export default function AddMoneyPage() {
                 body: JSON.stringify({
                     amount: rawTokenAmount,
                     source: {
-                        currency: 'usd',
+                        currency: currency,
                         paymentRail: 'ach_push',
                     },
                 }),
@@ -147,8 +158,9 @@ export default function AddMoneyPage() {
             // Store the response data in sessionStorage for the bank page
             sessionStorage.setItem('onrampData', JSON.stringify(onrampData))
 
-            // Navigate to bank page
-            router.push('/add-money/us/bank')
+            // Navigate to country-specific bank page or default to US
+            const bankPath = selectedCountry?.path || 'usa'
+            router.push(`/add-money/${bankPath}/bank`)
         } catch (error) {
             console.error('Error creating onramp:', error)
             // Show error to user
@@ -172,8 +184,13 @@ export default function AddMoneyPage() {
         setAmountToAdd('')
         setRawTokenAmount('')
         setStep('selectMethod')
-        // Clear URL parameter
-        router.replace('/add-money')
+        // Navigate back to country selection or main page
+        if (selectedCountry) {
+            router.replace(`/add-money/${selectedCountry.path}`)
+        } else {
+            // Clear country parameter and go back to main add-money page
+            router.replace('/add-money')
+        }
     }
 
     if (step === 'inputAmount') {

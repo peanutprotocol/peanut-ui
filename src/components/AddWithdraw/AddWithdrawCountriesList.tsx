@@ -164,8 +164,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const handleAddMethodClick = (method: SpecificPaymentMethod) => {
         if (method.id === 'bank-transfer-add') {
             setFromBankSelected(true)
-            // Navigate with URL parameter to persist fromBank selection
-            router.push('/add-money?fromBank=true')
+            // Navigate with URL parameter to persist fromBank selection and country
+            const countryParam = currentCountry ? `&country=${currentCountry.path}` : ''
+            router.push(`/add-money?fromBank=true${countryParam}`)
         } else if (method.path) {
             router.push(method.path)
         }
