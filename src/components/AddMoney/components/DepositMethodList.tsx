@@ -72,7 +72,7 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                                     icon="bank"
                                     size="extra-small"
                                     className="bg-yellow-1"
-                                    inlineStyle={{ backgroundColor: '#FFC900', color: 'black' }}
+                                    inlineStyle={{ color: 'black' }}
                                 />
                             ) : method.type === 'country' ? (
                                 <Image
