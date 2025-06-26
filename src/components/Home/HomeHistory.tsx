@@ -44,7 +44,11 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
             const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
 
             // process websocket entries: update existing or add new ones
-            wsHistoryEntries.forEach((wsEntry) => {
+            // Sort by timestamp ascending to process oldest entries first
+            const sortedWsEntries = [...wsHistoryEntries].sort(
+                (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            )
+            sortedWsEntries.forEach((wsEntry) => {
                 const existingIndex = entries.findIndex((entry) => entry.uuid === wsEntry.uuid)
 
                 if (existingIndex !== -1) {
