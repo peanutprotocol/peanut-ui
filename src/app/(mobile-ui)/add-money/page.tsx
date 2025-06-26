@@ -7,7 +7,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
-import { useAddFlow } from '@/context/AddFlowContext'
+import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils'
 import { countryData } from '@/components/AddMoney/consts'
@@ -35,13 +35,13 @@ export default function AddMoneyPage() {
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(undefined)
     const {
-        amountToAdd: amountFromContext,
-        setAmountToAdd,
+        amountToOnramp: amountFromContext,
+        setAmountToOnramp,
         setError,
         error,
         fromBankSelected,
         setFromBankSelected,
-    } = useAddFlow()
+    } = useOnrampFlow()
 
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
@@ -169,7 +169,7 @@ export default function AddMoneyPage() {
     }
 
     const handleWarningConfirm = async () => {
-        setAmountToAdd(rawTokenAmount)
+        setAmountToOnramp(rawTokenAmount)
         setShowWarningModal(false)
         setIsRiskAccepted(false)
         setIsCreatingOnramp(true)
@@ -243,7 +243,7 @@ export default function AddMoneyPage() {
 
     const handleBackFromAmount = () => {
         setFromBankSelected(false)
-        setAmountToAdd('')
+        setAmountToOnramp('')
         setRawTokenAmount('')
         setStep('selectMethod')
         // Navigate back to country selection or main page

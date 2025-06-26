@@ -1,5 +1,5 @@
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
-import { AddFlowContextProvider } from './AddFlowContext'
+import { OnrampFlowContextProvider } from './OnrampFlowContext'
 import { AuthProvider } from './authContext'
 import { KernelClientProvider } from './kernelClient.context'
 import { LoadingStateContextProvider } from './loadingStates.context'
@@ -16,7 +16,7 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
                         <TokenContextProvider>
                             <LoadingStateContextProvider>
                                 <WithdrawFlowContextProvider>
-                                    <AddFlowContextProvider>{children}</AddFlowContextProvider>
+                                    <OnrampFlowContextProvider>{children}</OnrampFlowContextProvider>
                                 </WithdrawFlowContextProvider>
                             </LoadingStateContextProvider>
                         </TokenContextProvider>

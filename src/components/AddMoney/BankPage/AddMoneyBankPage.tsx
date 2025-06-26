@@ -7,7 +7,7 @@ import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard
 import ShareButton from '@/components/Global/ShareButton'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
-import { useAddFlow } from '@/context/AddFlowContext'
+import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, useMemo } from 'react'
 import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
@@ -33,7 +33,7 @@ interface IOnrampData {
 }
 
 export default function AddMoneyBankPage() {
-    const { amountToAdd, setFromBankSelected, setAmountToAdd } = useAddFlow()
+    const { amountToOnramp, setFromBankSelected, setAmountToOnramp } = useOnrampFlow()
     const router = useRouter()
     const params = useParams()
     const [onrampData, setOnrampData] = useState<IOnrampData | null>(null)
@@ -68,7 +68,7 @@ export default function AddMoneyBankPage() {
 
     useEffect(() => {
         // If no amount is set, redirect back to add money page
-        if (!amountToAdd || parseFloat(amountToAdd) <= 0) {
+        if (!amountToOnramp || parseFloat(amountToOnramp) <= 0) {
             router.replace('/add-money')
             return
         }
@@ -83,10 +83,10 @@ export default function AddMoneyBankPage() {
                 console.error('Error parsing onramp data:', error)
             }
         }
-    }, [amountToAdd, router])
+    }, [amountToOnramp, router])
 
     const generateBankDetails = async () => {
-        const formattedAmount = formatCurrencyAmount(amountToAdd, currentCountry?.currency || 'USD')
+        const formattedAmount = formatCurrencyAmount(amountToOnramp, currentCountry?.currency || 'USD')
         const bankDetails = `Bank Transfer Details:
 Amount: ${formattedAmount}
 Bank Name: ${onrampData?.depositInstructions?.bankName || 'Loading...'}
@@ -104,7 +104,7 @@ Please use these details to complete your bank transfer.`
         router.back()
     }
 
-    if (!amountToAdd) {
+    if (!amountToOnramp) {
         return null
     }
 
@@ -118,7 +118,7 @@ Please use these details to complete your bank transfer.`
                     transactionType={'ADD_MONEY'}
                     recipientType={'BANK_ACCOUNT'}
                     recipientName={'Your Bank Account'}
-                    amount={amountToAdd}
+                    amount={amountToOnramp}
                     tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
                     countryCodeForFlag={countryCodeForFlag}
                 />
@@ -126,7 +126,7 @@ Please use these details to complete your bank transfer.`
                 <Card className="rounded-sm">
                     <PaymentInfoRow
                         label={'Amount'}
-                        value={formatCurrencyAmount(amountToAdd, currentCountry?.currency || 'USD')}
+                        value={formatCurrencyAmount(amountToOnramp, currentCountry?.currency || 'USD')}
                     />
                     <PaymentInfoRow
                         label={'Bank Name'}

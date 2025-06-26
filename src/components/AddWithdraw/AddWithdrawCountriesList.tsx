@@ -20,7 +20,7 @@ import { KYCStatus } from '@/utils/bridge-accounts.utils'
 import { AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
-import { useAddFlow } from '@/context/AddFlowContext'
+import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { Account } from '@/interfaces'
 
 interface AddWithdrawCountriesListProps {
@@ -32,7 +32,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const params = useParams()
     const { user, fetchUser } = useAuth()
     const { setSelectedBankAccount } = useWithdrawFlow()
-    const { setFromBankSelected, amountToAdd } = useAddFlow()
+    const { setFromBankSelected, amountToOnramp } = useOnrampFlow()
     const [view, setView] = useState<'list' | 'form'>('list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const [cachedBankDetails, setCachedBankDetails] = useState<Partial<FormData> | null>(null)

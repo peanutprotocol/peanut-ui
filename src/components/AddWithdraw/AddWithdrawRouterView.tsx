@@ -18,7 +18,7 @@ import Image from 'next/image'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
-import { useAddFlow } from '@/context/AddFlowContext'
+import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import Divider from '@/components/0_Bruddle/Divider'
 import Card from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
@@ -41,8 +41,8 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const router = useRouter()
     const { user } = useUserStore()
     const { setSelectedBankAccount } = useWithdrawFlow()
-    const addFlowContext = useAddFlow()
-    const { setFromBankSelected } = addFlowContext
+    const onrampFlowContext = useOnrampFlow()
+    const { setFromBankSelected } = onrampFlowContext
     const [recentMethodsState, setRecentMethodsState] = useState<RecentMethod[]>([])
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     const [showAllMethods, setShowAllMethods] = useState(false)
