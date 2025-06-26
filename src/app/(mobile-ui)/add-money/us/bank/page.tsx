@@ -1,5 +1,3 @@
-// // 'use client'
-
 import AddMoneyBankPage from '@/components/AddMoney/BankPage'
 
 export default function USBankPage() {
