@@ -56,6 +56,23 @@ export interface TransactionDetails {
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
         rewardData?: RewardData
+        depositInstructions?: {
+            amount: string
+            currency: string
+            bank_name: string
+            bank_address: string
+            payment_rail: string
+            deposit_message: string
+            // US format
+            bank_account_number?: string
+            bank_routing_number?: string
+            bank_beneficiary_name?: string
+            bank_beneficiary_address?: string
+            // European format
+            iban?: string
+            bic?: string
+            account_holder_name?: string
+        }
     }
     sourceView?: 'status' | 'history'
     tokenDisplayDetails?: {
@@ -213,9 +230,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     }
 
     // map the raw status string to the defined ui status types
-    if (entry.type === EHistoryEntryType.BRIDGE_OFFRAMP) {
+    if (entry.type === EHistoryEntryType.BRIDGE_OFFRAMP || entry.type === EHistoryEntryType.BRIDGE_ONRAMP) {
         switch (entry.status?.toUpperCase()) {
             case 'AWAITING_FUNDS':
+                uiStatus = 'pending'
+                break
             case 'IN_REVIEW':
             case 'FUNDS_RECEIVED':
             case 'PAYMENT_SUBMITTED':
@@ -227,9 +246,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             case 'UNDELIVERABLE':
             case 'RETURNED':
             case 'REFUNDED':
-            case 'CANCELED':
             case 'ERROR':
                 uiStatus = 'failed'
+                break
+            case 'CANCELED':
+                uiStatus = 'cancelled'
                 break
             default:
                 uiStatus = 'processing'
@@ -319,6 +340,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             isLinkTransaction: isLinkTx,
             transactionCardType,
             rewardData,
+            depositInstructions:
+                entry.type === EHistoryEntryType.BRIDGE_ONRAMP ? entry.extraData?.depositInstructions : undefined,
         },
         sourceView: 'history',
         bankAccountDetails:
