@@ -87,3 +87,32 @@ export async function validateBic(bic: string): Promise<boolean> {
         return true
     }
 }
+
+export function isValidRoutingNumber(routingNumber: string): boolean {
+    // a valid routing number must be a 9-digit number
+    if (!/^\d{9}$/.test(routingNumber)) {
+        return false
+    }
+
+    const digits = routingNumber.split('').map(Number)
+    let sum = 0
+
+    // the checksum is calculated as follows:
+    // (3 * (d1 + d4 + d7) + 7 * (d2 + d5 + d8) + 1 * (d3 + d6 + d9)) mod 10 = 0
+    for (let i = 0; i < digits.length; i++) {
+        const digit = digits[i]
+        switch (i % 3) {
+            case 0: // digits 1, 4, 7
+                sum += digit * 3
+                break
+            case 1: // digits 2, 5, 8
+                sum += digit * 7
+                break
+            case 2: // digits 3, 6, 9
+                sum += digit * 1
+                break
+        }
+    }
+
+    return sum % 10 === 0
+}

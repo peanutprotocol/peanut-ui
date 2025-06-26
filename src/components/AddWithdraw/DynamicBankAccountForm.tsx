@@ -7,7 +7,7 @@ import { AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType } from
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { countryCodeMap } from '@/components/AddMoney/consts'
 import { useParams } from 'next/navigation'
-import { validateBankAccount, validateIban, validateBic } from '@/utils/bridge-accounts.utils'
+import { validateBankAccount, validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-accounts.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard from '../Global/PeanutActionDetailsCard'
@@ -256,6 +256,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         {isUs &&
                             renderInput('routingNumber', 'Routing Number', {
                                 required: 'Routing number is required',
+                                validate: async (value: string) =>
+                                    (await isValidRoutingNumber(value)) || 'Invalid routing number',
                             })}
 
                         {!isIban && (
