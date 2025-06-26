@@ -11,7 +11,7 @@ import { useAddFlow } from '@/context/AddFlowContext'
 import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, useMemo } from 'react'
 import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
-import { getCurrencySymbol, formatCurrencyAmount } from '@/utils/currency.utils'
+import { getDisplayCurrencySymbol, formatCurrencyAmount } from '@/utils/currency'
 import Image from 'next/image'
 import Icon from '@/components/Global/Icon'
 
@@ -57,7 +57,7 @@ export default function AddMoneyBankPage() {
     }, [params.country])
 
     const currencySymbol = useMemo(() => {
-        return getCurrencySymbol(currentCountry?.currency || 'USD')
+        return getDisplayCurrencySymbol(currentCountry?.currency || 'USD')
     }, [currentCountry])
 
     const countryCodeForFlag = useMemo(() => {
