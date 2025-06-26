@@ -160,16 +160,6 @@ Please use these details to complete your bank transfer.`
                     />
                 </Card>
 
-                {/* <div className="space-y-2 rounded-sm bg-blue-50 p-4">
-                    <h3 className="font-semibold text-blue-900">Next Steps:</h3>
-                    <ul className="space-y-1 text-sm text-blue-800">
-                        <li>• Complete identity verification (KYC)</li>
-                        <li>• Link your bank account securely</li>
-                        <li>• Confirm transfer details</li>
-                        <li>• Funds will arrive in 1-3 business days</li>
-                    </ul>
-                </div> */}
-
                 <div className="flex items-center gap-2 text-xs text-grey-1">
                     <Icon name="info" width={16} height={16} />
                     <span>Include the Deposit Message exactly as shown. It's required to process your deposit.</span>
