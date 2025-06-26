@@ -15,7 +15,7 @@ import { InitiateKYCModal } from '@/components/Kyc'
 import { KYCStatus } from '@/utils/bridge-accounts.utils'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/context/authContext'
-import Cookies from 'js-cookie'
+import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
@@ -31,7 +31,7 @@ export default function AddMoneyPage() {
     const [rawTokenAmount, setRawTokenAmount] = useState<string>('')
     const [showWarningModal, setShowWarningModal] = useState<boolean>(false)
     const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
-    const [isCreatingOnramp, setIsCreatingOnramp] = useState<boolean>(false)
+
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(undefined)
     const {
@@ -45,6 +45,7 @@ export default function AddMoneyPage() {
 
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
+    const { createOnramp, isLoading: isCreatingOnramp, error: onrampError } = useCreateOnramp()
 
     // Get selected country from URL parameters
     const selectedCountryPath = searchParams.get('country')
@@ -169,40 +170,23 @@ export default function AddMoneyPage() {
     }
 
     const handleWarningConfirm = async () => {
+        if (!selectedCountry) {
+            setError({
+                showError: true,
+                errorMessage: 'Please select a country first.',
+            })
+            return
+        }
+
         setAmountToOnramp(rawTokenAmount)
         setShowWarningModal(false)
         setIsRiskAccepted(false)
-        setIsCreatingOnramp(true)
 
         try {
-            const jwtToken = Cookies.get('jwt-token')
-
-            // Get currency from selected country, default to USD
-            const currency = selectedCountry?.id === 'US' ? 'usd' : selectedCountry?.id === 'MX' ? 'mxn' : 'eur'
-            const paymentRail =
-                selectedCountry?.id === 'US' ? 'ach_push' : selectedCountry?.id === 'MX' ? 'spei' : 'sepa'
-
-            // Call backend to create onramp via proxy route
-            const response = await fetch(`/api/proxy/bridge/onramp/create`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${jwtToken}`,
-                },
-                body: JSON.stringify({
-                    amount: rawTokenAmount,
-                    source: {
-                        currency: currency,
-                        paymentRail: paymentRail,
-                    },
-                }),
+            const onrampData = await createOnramp({
+                amount: rawTokenAmount,
+                country: selectedCountry,
             })
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
-
-            const onrampData = await response.json()
 
             // Store the response data in sessionStorage for the bank page
             sessionStorage.setItem('onrampData', JSON.stringify(onrampData))
@@ -211,15 +195,15 @@ export default function AddMoneyPage() {
             const bankPath = selectedCountry?.path || 'usa'
             router.push(`/add-money/${bankPath}/bank`)
         } catch (error) {
-            console.error('Error creating onramp:', error)
-            // Show error to user
-            setError({
-                showError: true,
-                errorMessage: 'Failed to create bank transfer. Please try again.',
-            })
+            // Error is already handled by the hook, just close the modal
             setShowWarningModal(false)
-        } finally {
-            setIsCreatingOnramp(false)
+            // Set error from hook if available
+            if (onrampError) {
+                setError({
+                    showError: true,
+                    errorMessage: onrampError,
+                })
+            }
         }
     }
 
