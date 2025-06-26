@@ -326,8 +326,8 @@ export const TransactionDetailsReceipt = ({
                                     >
                                         <span>{showBankDetails ? 'Hide bank details' : 'See bank details'}</span>
                                         <Icon
-                                            name="chevron-down"
-                                            className={`h-4 w-4 transition-transform ${showBankDetails ? 'rotate-180' : ''}`}
+                                            name="chevron-up"
+                                            className={`h-4 w-4 transition-transform ${!showBankDetails ? 'rotate-180' : ''}`}
                                         />
                                     </button>
                                 </div>
