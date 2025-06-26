@@ -130,7 +130,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             }
         })
 
-        // Add special methods for add flow
+        // add default add money/onramp methods (like "from bank") that have special handling
         if (flow === 'add') {
             const addMethods = UPDATED_DEFAULT_ADD_MONEY_METHODS.map((method) => ({
                 id: method.id,
