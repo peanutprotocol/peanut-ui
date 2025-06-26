@@ -63,7 +63,7 @@ export default function AddMoneyBankPage() {
     const countryCodeForFlag = useMemo(() => {
         const countryId = currentCountry?.id || 'USA'
         const countryCode = countryCodeMap[countryId]
-        return countryCode?.toLowerCase() || 'usa'
+        return countryCode?.toLowerCase() || 'us'
     }, [currentCountry])
 
     useEffect(() => {
