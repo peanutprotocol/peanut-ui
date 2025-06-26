@@ -60,6 +60,8 @@ export default function AddMoneyPage() {
         },
     })
 
+    console.log('selectedCountry', selectedCountry)
+
     // Update live KYC status when user changes
     useEffect(() => {
         if (user?.user.kycStatus) {
@@ -176,7 +178,9 @@ export default function AddMoneyPage() {
             const jwtToken = Cookies.get('jwt-token')
 
             // Get currency from selected country, default to USD
-            const currency = selectedCountry?.currency?.toLowerCase() || 'usd'
+            const currency = selectedCountry?.id === 'US' ? 'usd' : selectedCountry?.id === 'MX' ? 'mxn' : 'eur'
+            const paymentRail =
+                selectedCountry?.id === 'US' ? 'ach_push' : selectedCountry?.id === 'MX' ? 'spei' : 'sepa'
 
             // Call backend to create onramp via proxy route
             const response = await fetch(`/api/proxy/bridge/onramp/create`, {
@@ -189,7 +193,7 @@ export default function AddMoneyPage() {
                     amount: rawTokenAmount,
                     source: {
                         currency: currency,
-                        paymentRail: 'ach_push',
+                        paymentRail: paymentRail,
                     },
                 }),
             })
@@ -326,9 +330,17 @@ export default function AddMoneyPage() {
                 <ActionModal
                     visible={showWarningModal}
                     onClose={handleWarningCancel}
-                    icon="alert"
-                    title="Important Notice"
-                    description="In the following step you'll see a 'Deposit Message' item, copy and paste it exactly as it is on the description field of your transfer. Without it, we won't be able to credit your money."
+                    icon="alert-yellow"
+                    title="IMPORTANT!"
+                    description={
+                        <>
+                            In the following step you'll see a <strong>"Deposit Message" item</strong>, copy and paste
+                            it exactly as it is on the description field of your transfer.
+                            <br />
+                            <br />
+                            <strong>Without it, we won't be able to credit your money.</strong>
+                        </>
+                    }
                     checkbox={{
                         text: 'I understand and accept the risk.',
                         checked: isRiskAccepted,
@@ -345,7 +357,7 @@ export default function AddMoneyPage() {
                         },
                     ]}
                     preventClose={false}
-                    modalPanelClassName="max-w-md"
+                    modalPanelClassName="max-w-md mx-8"
                 />
             </div>
         )

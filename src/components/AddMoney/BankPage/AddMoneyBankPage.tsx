@@ -25,6 +25,8 @@ interface IOnrampData {
         bankAccountNumber?: string
         bankBeneficiaryName?: string
         bankBeneficiaryAddress?: string
+        iban?: string
+        bic?: string
     }
 }
 
@@ -100,7 +102,7 @@ Please use these details to complete your bank transfer.`
 
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
-            <NavHeader title={`Add Money - ${currentCountry?.title || 'Unknown'}`} onPrev={handleBack} />
+            <NavHeader title="Add Money" onPrev={handleBack} />
 
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
                 <PeanutActionDetailsCard
@@ -126,12 +128,20 @@ Please use these details to complete your bank transfer.`
                         value={onrampData?.depositInstructions?.bankAddress || 'Loading...'}
                     />
                     <PaymentInfoRow
-                        label={'Account Number'}
-                        value={onrampData?.depositInstructions?.bankAccountNumber || 'Loading...'}
+                        label={onrampData?.depositInstructions?.bankAccountNumber ? 'Account Number' : 'IBAN'}
+                        value={
+                            onrampData?.depositInstructions?.bankAccountNumber ||
+                            onrampData?.depositInstructions?.iban ||
+                            'Loading...'
+                        }
                     />
                     <PaymentInfoRow
-                        label={'Routing Number'}
-                        value={onrampData?.depositInstructions?.bankRoutingNumber || 'Loading...'}
+                        label={onrampData?.depositInstructions?.bankRoutingNumber ? 'Routing Number' : 'BIC'}
+                        value={
+                            onrampData?.depositInstructions?.bankRoutingNumber ||
+                            onrampData?.depositInstructions?.bic ||
+                            'Loading...'
+                        }
                     />
                     <PaymentInfoRow
                         hideBottomBorder
@@ -141,7 +151,7 @@ Please use these details to complete your bank transfer.`
                     />
                 </Card>
 
-                <div className="space-y-2 rounded-sm bg-blue-50 p-4">
+                {/* <div className="space-y-2 rounded-sm bg-blue-50 p-4">
                     <h3 className="font-semibold text-blue-900">Next Steps:</h3>
                     <ul className="space-y-1 text-sm text-blue-800">
                         <li>• Complete identity verification (KYC)</li>
@@ -149,7 +159,7 @@ Please use these details to complete your bank transfer.`
                         <li>• Confirm transfer details</li>
                         <li>• Funds will arrive in 1-3 business days</li>
                     </ul>
-                </div>
+                </div> */}
 
                 <ShareButton
                     generateText={generateBankDetails}

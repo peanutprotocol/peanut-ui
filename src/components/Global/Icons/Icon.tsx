@@ -1,6 +1,7 @@
 import { ComponentType, FC, SVGProps } from 'react'
 import { AchievementsIcon } from './achievements'
 import { AlertIcon } from './alert'
+import { AlertYellowIcon } from './alert-yellow'
 import { ArrowDownIcon } from './arrow-down'
 import { ArrowDownLeftIcon } from './arrow-down-left'
 import { ArrowUpIcon } from './arrow-up'
@@ -53,6 +54,7 @@ import { ClockIcon } from './clock'
 // available icon names
 export type IconName =
     | 'alert'
+    | 'alert-yellow'
     | 'arrow-down'
     | 'arrow-down-left'
     | 'arrow-up'
@@ -154,6 +156,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     plus: PlusIcon,
     'exchange-arrows': ExchangeArrowsIcon,
     alert: AlertIcon,
+    'alert-yellow': AlertYellowIcon,
     switch: SwitchIcon,
     'check-circle': CheckCircleIcon,
     'mobile-install': MobileInstallIcon,
