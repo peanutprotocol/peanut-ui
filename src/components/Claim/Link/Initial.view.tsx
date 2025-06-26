@@ -82,7 +82,7 @@ export const InitialClaimLinkView = ({
         isXChain,
         setIsXChain,
     } = useContext(tokenSelectorContext)
-    const { claimLink } = useClaimLink()
+    const { claimLink, claimLinkXchain } = useClaimLink()
     const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
     const router = useRouter()
     const { user } = useAuth()
@@ -142,11 +142,28 @@ export const InitialClaimLinkView = ({
                 fetchBalance()
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             } else {
-                const claimTxHash = await claimLink({
-                    address: recipient.address,
-                    link: claimLinkData.link,
-                })
-                setClaimType('claim')
+                // Check if cross-chain claiming is needed
+                const needsXChain =
+                    selectedChainID !== claimLinkData.chainId ||
+                    !areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
+
+                let claimTxHash: string
+                if (needsXChain) {
+                    claimTxHash = await claimLinkXchain({
+                        address: recipient.address,
+                        link: claimLinkData.link,
+                        destinationChainId: selectedChainID,
+                        destinationToken: selectedTokenAddress,
+                    })
+                    setClaimType('claimxchain')
+                } else {
+                    claimTxHash = await claimLink({
+                        address: recipient.address,
+                        link: claimLinkData.link,
+                    })
+                    setClaimType('claim')
+                }
+
                 setTransactionHash(claimTxHash)
                 onCustom('SUCCESS')
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
@@ -163,11 +180,16 @@ export const InitialClaimLinkView = ({
         }
     }, [
         claimLinkData.link,
+        claimLinkData.chainId,
+        claimLinkData.tokenAddress,
         isPeanutWallet,
         fetchBalance,
         recipient.address,
         user,
         claimLink,
+        claimLinkXchain,
+        selectedChainID,
+        selectedTokenAddress,
         onCustom,
         setLoadingState,
         setClaimType,
