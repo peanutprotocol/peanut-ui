@@ -20,6 +20,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
 import Image from 'next/image'
+import Icon from '@/components/Global/Icon'
 
 type AddStep = 'inputAmount' | 'selectMethod' | 'kyc'
 
@@ -60,8 +61,6 @@ export default function AddMoneyPage() {
             setLiveKycStatus(newStatus as KYCStatus)
         },
     })
-
-    console.log('selectedCountry', selectedCountry)
 
     // Update live KYC status when user changes
     useEffect(() => {
@@ -311,7 +310,7 @@ export default function AddMoneyPage() {
                         hideCurrencyToggle
                     />
                     <div className="flex items-center gap-2 text-xs text-grey-1">
-                        <Image src="/icons/warnings/info.svg" alt="Info Icon" width={16} height={16} />
+                        <Icon name="info" width={16} height={16} />
                         <span>This must exactly match what you send from your bank</span>
                     </div>
                     <Button

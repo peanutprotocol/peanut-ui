@@ -13,6 +13,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
 import { getCurrencySymbol, formatCurrencyAmount } from '@/utils/currency.utils'
 import Image from 'next/image'
+import Icon from '@/components/Global/Icon'
 
 interface IOnrampData {
     transferId?: string
@@ -60,7 +61,9 @@ export default function AddMoneyBankPage() {
     }, [currentCountry])
 
     const countryCodeForFlag = useMemo(() => {
-        return countryCodeMap[currentCountry?.id || 'us'].toLocaleLowerCase()
+        const countryId = currentCountry?.id || 'USA'
+        const countryCode = countryCodeMap[countryId]
+        return countryCode?.toLowerCase() || 'usa'
     }, [currentCountry])
 
     useEffect(() => {
@@ -168,7 +171,7 @@ Please use these details to complete your bank transfer.`
                 </div> */}
 
                 <div className="flex items-center gap-2 text-xs text-grey-1">
-                    <Image src="/icons/warnings/info.svg" alt="Info Icon" width={16} height={16} />
+                    <Icon name="info" width={16} height={16} />
                     <span>Include the Deposit Message exactly as shown. It's required to process your deposit.</span>
                 </div>
 
