@@ -334,7 +334,9 @@ export default function AddMoneyPage() {
                 <ActionModal
                     visible={showWarningModal}
                     onClose={handleWarningCancel}
-                    icon="alert-yellow"
+                    icon="alert"
+                    iconContainerClassName="bg-yellow-400"
+                    iconProps={{ className: 'text-black' }}
                     title="IMPORTANT!"
                     description={
                         <>

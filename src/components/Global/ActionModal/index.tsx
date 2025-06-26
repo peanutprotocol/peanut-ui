@@ -79,11 +79,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                     name={icon as IconName}
                     fill="currentColor"
                     {...iconProps}
-                    className={twMerge(
-                        icon === 'alert-yellow' ? 'size-8' : 'size-4',
-                        defaultIconPropsClassName,
-                        iconProps?.className
-                    )}
+                    className={twMerge('size-4', defaultIconPropsClassName, iconProps?.className)}
                 />
             )
         }
