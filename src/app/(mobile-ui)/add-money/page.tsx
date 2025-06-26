@@ -6,10 +6,10 @@ import ActionModal from '@/components/Global/ActionModal'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import { PEANUT_API_URL, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { useAddFlow } from '@/context/AddFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { fetchWithSentry, formatAmount } from '@/utils'
+import { formatAmount } from '@/utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { InitiateKYCModal } from '@/components/Kyc'
 import { KYCStatus } from '@/utils/bridge-accounts.utils'
@@ -178,11 +178,10 @@ export default function AddMoneyPage() {
             // Get currency from selected country, default to USD
             const currency = selectedCountry?.currency?.toLowerCase() || 'usd'
 
-            // Call backend to create onramp
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/bridge/onramp/create`, {
+            // Call backend to create onramp via proxy route
+            const response = await fetch(`/api/proxy/bridge/onramp/create`, {
                 method: 'POST',
                 headers: {
-                    'api-key': process.env.PEANUT_API_KEY!,
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${jwtToken}`,
                 },
