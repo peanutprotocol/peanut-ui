@@ -10,8 +10,9 @@ import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useAddFlow } from '@/context/AddFlowContext'
 import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, useMemo } from 'react'
-import { countryData } from '@/components/AddMoney/consts'
+import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
 import { getCurrencySymbol, formatCurrencyAmount } from '@/utils/currency.utils'
+import Image from 'next/image'
 
 interface IOnrampData {
     transferId?: string
@@ -56,6 +57,10 @@ export default function AddMoneyBankPage() {
 
     const currencySymbol = useMemo(() => {
         return getCurrencySymbol(currentCountry?.currency || 'USD')
+    }, [currentCountry])
+
+    const countryCodeForFlag = useMemo(() => {
+        return countryCodeMap[currentCountry?.id || 'us'].toLocaleLowerCase()
     }, [currentCountry])
 
     useEffect(() => {
@@ -112,6 +117,7 @@ Please use these details to complete your bank transfer.`
                     recipientName={'Your Bank Account'}
                     amount={amountToAdd}
                     tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
+                    countryCodeForFlag={countryCodeForFlag}
                 />
 
                 <Card className="rounded-sm">
@@ -160,6 +166,11 @@ Please use these details to complete your bank transfer.`
                         <li>• Funds will arrive in 1-3 business days</li>
                     </ul>
                 </div> */}
+
+                <div className="flex items-center gap-2 text-xs text-grey-1">
+                    <Image src="/icons/warnings/info.svg" alt="Info Icon" width={16} height={16} />
+                    <span>Include the Deposit Message exactly as shown. It's required to process your deposit.</span>
+                </div>
 
                 <ShareButton
                     generateText={generateBankDetails}

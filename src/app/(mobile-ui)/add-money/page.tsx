@@ -19,6 +19,7 @@ import Cookies from 'js-cookie'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
+import Image from 'next/image'
 
 type AddStep = 'inputAmount' | 'selectMethod' | 'kyc'
 
@@ -302,13 +303,17 @@ export default function AddMoneyPage() {
             <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
                 <NavHeader title="Add Money" onPrev={handleBackFromAmount} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
-                    <div className="text-sm font-bold">Amount to add from bank</div>
+                    <div className="text-sm font-bold">How much do you want to add?</div>
                     <TokenAmountInput
                         tokenValue={rawTokenAmount}
                         setTokenValue={handleTokenAmountChange}
                         walletBalance={peanutWalletBalance}
                         hideCurrencyToggle
                     />
+                    <div className="flex items-center gap-2 text-xs text-grey-1">
+                        <Image src="/icons/warnings/info.svg" alt="Info Icon" width={16} height={16} />
+                        <span>This must exactly match what you send from your bank</span>
+                    </div>
                     <Button
                         variant="purple"
                         shadowSize="4"
