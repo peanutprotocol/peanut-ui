@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
             ? printableAddress(searchParams.get('username')!)
             : searchParams.get('username')! // username will always exist. If it doesn't, page will 404 + format the length if its too long/an ethereum address
     const amount = Number(searchParams.get('amount') ?? 0)
+    const token = searchParams.get('token') || null
     const isReceipt = searchParams.get('isReceipt') || 'false'
 
     if (type === 'generic') {
@@ -61,7 +62,13 @@ export async function GET(req: NextRequest) {
     }
 
     if (isReceipt === 'true') {
-        const link: PaymentLink = { type, username, amount, status: 'unclaimed' }
+        const link: PaymentLink & { token?: string } = {
+            type,
+            username,
+            amount,
+            status: 'unclaimed',
+            token: token || undefined,
+        }
         return new ImageResponse(
             (
                 <ReceiptCardOG
@@ -92,7 +99,13 @@ export async function GET(req: NextRequest) {
         bottomRight: `${origin}/arrows/bottom-right-arrow.svg`,
     }
 
-    const link: PaymentLink = { type, username, amount, status: 'unclaimed' }
+    const link: PaymentLink & { token?: string } = {
+        type,
+        username,
+        amount,
+        status: 'unclaimed',
+        token: token || undefined,
+    }
     return new ImageResponse(
         (
             <PaymentCardOG
