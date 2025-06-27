@@ -126,22 +126,19 @@ export default function AddMoneyPage() {
 
             const amount = Number(amountStr)
 
-            if (Number.isFinite(amount) && amount >= 1) {
-                setError({ showError: false, errorMessage: '' })
-                return true
-            } else {
-                let message = 'Please enter a valid amount.'
-                if (!Number.isFinite(amount)) {
-                    message = 'Please enter a valid number.'
-                } else if (amount < 1) {
-                    message = 'Minimum deposit is 1.'
-                }
-                setError({
-                    showError: true,
-                    errorMessage: message,
-                })
+            if (!Number.isFinite(amount)) {
+                setError({ showError: true, errorMessage: 'Please enter a valid number.' })
                 return false
             }
+
+            if (amount && amount < 1) {
+                setError({ showError: true, errorMessage: 'Minimum deposit is 1.' })
+                return false
+            }
+
+            // valid
+            setError({ showError: false, errorMessage: '' })
+            return true
         },
         [setError]
     )
