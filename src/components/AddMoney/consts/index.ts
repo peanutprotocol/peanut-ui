@@ -2124,7 +2124,13 @@ countryData.forEach((country) => {
                 return LATAM_COUNTRY_CODES.includes(countryCode)
             }
             return true
-        }).map((m) => ({ ...m }))
+        }).map((m) => {
+            const newMethod = { ...m }
+            if (newMethod.id === 'bank-transfer-add') {
+                newMethod.path = `/add-money/${country.path}/bank`
+            }
+            return newMethod
+        })
 
         COUNTRY_SPECIFIC_METHODS[countryCode] = {
             add: currentAddMethods,

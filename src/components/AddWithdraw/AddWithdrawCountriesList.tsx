@@ -7,7 +7,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import { getColorForUsername } from '@/utils/color.utils'
-import Image from 'next/image'
+import Image, { StaticImageData } from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
@@ -160,16 +160,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     const handleKycSuccess = () => {
         setIsKycModalOpen(false)
-    }
-
-    const handleAddMethodClick = (method: SpecificPaymentMethod) => {
-        if (method.id === 'bank-transfer-add') {
-            setFromBankSelected(true)
-            // Navigate with URL parameter to persist fromBank selection and country
-            const countryParam = currentCountry ? `&country=${currentCountry.path}` : ''
-            router.push(`/add-money?fromBank=true${countryParam}`)
-        } else if (method.path) {
-            router.push(method.path)
+        if (formRef.current) {
+            formRef.current.handleSubmit()
         }
     }
 
@@ -262,7 +254,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                     />
                                 ) : (
                                     <Image
-                                        src={method.icon}
+                                        src={method.icon as StaticImageData}
                                         alt={method.id}
                                         className="h-8 w-8 rounded-full"
                                         width={32}
@@ -271,9 +263,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                 )
                             }
                             rightContent={method.isSoon ? <StatusBadge status="soon" size="small" /> : null}
-                            onClick={() =>
-                                flow === 'add' ? handleAddMethodClick(method) : handleWithdrawMethodClick(method)
-                            }
+                            onClick={() => {
+                                if (flow === 'withdraw') {
+                                    handleWithdrawMethodClick(method)
+                                } else if (method.path) {
+                                    router.push(method.path)
+                                }
+                            }}
                             position={
                                 paymentMethods.length === 1
                                     ? 'single'
@@ -292,7 +288,16 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     return (
         <div className="w-full space-y-8 self-start">
-            <NavHeader title={currentCountry.title} onPrev={() => router.back()} />
+            <NavHeader
+                title={currentCountry.title}
+                onPrev={() => {
+                    if (flow === 'add') {
+                        router.push('/add-money')
+                    } else {
+                        router.back()
+                    }
+                }}
+            />
             <div className="flex-1 overflow-y-auto">
                 {flow === 'add' && methods?.add && renderPaymentMethods('Add money via', methods.add)}
                 {flow === 'withdraw' &&

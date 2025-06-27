@@ -1,6 +1,5 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -11,11 +10,10 @@ import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, useMemo } from 'react'
 import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
-import { getDisplayCurrencySymbol, formatCurrencyAmount } from '@/utils/currency'
-import Image from 'next/image'
+import { formatCurrencyAmount } from '@/utils/currency'
 import Icon from '@/components/Global/Icon'
 
-interface IOnrampData {
+export interface IOnrampData {
     transferId?: string
     depositInstructions?: {
         amount?: string
@@ -32,19 +30,21 @@ interface IOnrampData {
     }
 }
 
-export default function AddMoneyBankPage() {
-    const { amountToOnramp, setFromBankSelected, setAmountToOnramp } = useOnrampFlow()
+export default function AddMoneyBankDetails() {
+    const { amountToOnramp } = useOnrampFlow()
     const router = useRouter()
     const params = useParams()
+    const currentCountryName = params.country as string
     const [onrampData, setOnrampData] = useState<IOnrampData | null>(null)
 
     // Get country information from URL params
-    const currentCountry = useMemo(() => {
+    const currentCountryDetails = useMemo(() => {
         // Check if we have country params (from dynamic route)
-        if (params.country) {
-            const countryPathParts = Array.isArray(params.country) ? params.country : [params.country]
-            const countryPath = countryPathParts.slice(0, -1).join('-') // Remove 'bank' from the end
-            return countryData.find((country) => country.type === 'country' && country.path === countryPath)
+        if (currentCountryName) {
+            const countryDetails = countryData.find(
+                (country) => country.type === 'country' && country.path === currentCountryName.toLowerCase()
+            )
+            return countryDetails
         }
 
         // Check if we're on the static US route by examining the current pathname
@@ -54,17 +54,13 @@ export default function AddMoneyBankPage() {
 
         // Default to US if no country is detected
         return countryData.find((c) => c.id === 'US')
-    }, [params.country])
-
-    const currencySymbol = useMemo(() => {
-        return getDisplayCurrencySymbol(currentCountry?.currency || 'USD')
-    }, [currentCountry])
+    }, [currentCountryName])
 
     const countryCodeForFlag = useMemo(() => {
-        const countryId = currentCountry?.id || 'USA'
+        const countryId = currentCountryDetails?.id || 'USA'
         const countryCode = countryCodeMap[countryId]
         return countryCode?.toLowerCase() || 'us'
-    }, [currentCountry])
+    }, [currentCountryDetails])
 
     useEffect(() => {
         // If no amount is set, redirect back to add money page
@@ -86,7 +82,7 @@ export default function AddMoneyBankPage() {
     }, [amountToOnramp, router])
 
     const generateBankDetails = async () => {
-        const formattedAmount = formatCurrencyAmount(amountToOnramp, currentCountry?.currency || 'USD')
+        const formattedAmount = formatCurrencyAmount(amountToOnramp, currentCountryDetails?.currency || 'USD')
         const bankDetails = `Bank Transfer Details:
 Amount: ${formattedAmount}
 Bank Name: ${onrampData?.depositInstructions?.bankName || 'Loading...'}
@@ -126,7 +122,7 @@ Please use these details to complete your bank transfer.`
                 <Card className="rounded-sm">
                     <PaymentInfoRow
                         label={'Amount'}
-                        value={formatCurrencyAmount(amountToOnramp, currentCountry?.currency || 'USD')}
+                        value={formatCurrencyAmount(amountToOnramp, currentCountryDetails?.currency || 'USD')}
                     />
                     <PaymentInfoRow
                         label={'Bank Name'}
