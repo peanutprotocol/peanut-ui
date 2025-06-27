@@ -8,9 +8,11 @@ interface KycModalFlowProps {
     isOpen: boolean
     onClose: () => void
     onKycSuccess?: () => void
+    onManualClose?: () => void
+    flow?: 'add' | 'withdraw'
 }
 
-export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess }: KycModalFlowProps) => {
+export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess, onManualClose, flow }: KycModalFlowProps) => {
     const {
         isLoading,
         error,
@@ -19,7 +21,7 @@ export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess }: KycModalFlow
         handleInitiateKyc,
         handleIframeClose,
         closeVerificationProgressModal,
-    } = useKycFlow({ onKycSuccess })
+    } = useKycFlow({ onKycSuccess, flow })
 
     const handleVerifyClick = async () => {
         const result = await handleInitiateKyc()
@@ -32,7 +34,7 @@ export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess }: KycModalFlow
         <>
             <ActionModal
                 visible={isOpen}
-                onClose={onClose}
+                onClose={onManualClose ? onManualClose : onClose}
                 title="Verify your identity first"
                 description="To continue, you need to complete identity verification. This usually takes just a few minutes."
                 icon={'badge' as IconName}

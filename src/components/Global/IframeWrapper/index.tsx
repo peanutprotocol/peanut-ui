@@ -4,7 +4,7 @@ import Modal from '../Modal'
 export type IFrameWrapperProps = {
     src: string
     visible: boolean
-    onClose: (source?: 'manual' | 'completed') => void
+    onClose: (source?: 'manual' | 'completed' | 'tos_accepted') => void
     closeConfirmMessage?: string
 }
 
