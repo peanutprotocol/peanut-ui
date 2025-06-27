@@ -54,7 +54,7 @@ export const OnrampFlowContextProvider: React.FC<{ children: ReactNode }> = ({ c
             setFromBankSelected,
             resetOnrampFlow,
         }),
-        [amountToOnramp, currentView, error, fromBankSelected]
+        [amountToOnramp, currentView, error, fromBankSelected, resetFlow]
     )
 
     return <OnrampFlowContext.Provider value={value}>{children}</OnrampFlowContext.Provider>
