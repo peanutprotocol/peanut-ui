@@ -8,6 +8,7 @@ import { TransactionDetails } from '@/components/TransactionDetails/transactionT
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { formatNumberForDisplay } from '@/utils'
+import { getDisplayCurrencySymbol } from '@/utils/currency'
 import React from 'react'
 import AddressLink from '../Global/AddressLink'
 import { STABLE_COINS } from '@/constants'
@@ -32,13 +33,6 @@ interface TransactionCardProps {
     position?: CardPosition
     transaction: TransactionDetails
     isPending?: boolean
-}
-
-// Helper function to get currency symbol based on code - can be moved to utils if used elsewhere
-const getDisplayCurrencySymbol = (code?: string, fallbackSymbol: string = '$'): string => {
-    if (code === 'ARS') return 'AR$'
-    if (code === 'USD') return '$'
-    return fallbackSymbol
 }
 
 /**

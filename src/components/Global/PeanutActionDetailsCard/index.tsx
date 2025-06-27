@@ -68,7 +68,7 @@ export default function PeanutActionDetailsCard({
             if (viewType === 'SUCCESS') title = `You just claimed`
             else title = `${renderRecipient()} sent you`
         }
-        if (transactionType === 'ADD_MONEY') title = `Add money to Peanut`
+        if (transactionType === 'ADD_MONEY') title = `You're adding`
         if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT') title = `You're withdrawing`
         return (
             <h1 className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap text-base font-normal text-grey-1">
@@ -113,9 +113,10 @@ export default function PeanutActionDetailsCard({
     }
 
     const isWithdrawBankAccount = transactionType === 'WITHDRAW_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
+    const isAddBankAccount = transactionType === 'ADD_MONEY'
 
     const withdrawBankIcon = () => {
-        if (isWithdrawBankAccount)
+        if (isWithdrawBankAccount || isAddBankAccount)
             return (
                 <div className="relative mr-1 h-12 w-12">
                     {countryCodeForFlag && (
@@ -138,7 +139,7 @@ export default function PeanutActionDetailsCard({
     return (
         <Card className={twMerge('flex items-center gap-3 p-4', className)}>
             <div className="flex items-center gap-3">
-                {isWithdrawBankAccount ? (
+                {isWithdrawBankAccount || isAddBankAccount ? (
                     withdrawBankIcon()
                 ) : (
                     <AvatarWithBadge

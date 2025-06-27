@@ -155,7 +155,7 @@ export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
         icon: 'bank' as IconName,
         title: 'From Bank',
         description: '1 to 3 working days - KYC required',
-        isSoon: true,
+        isSoon: false,
     },
     {
         id: 'mercado-pago-add',

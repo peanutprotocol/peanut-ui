@@ -16,7 +16,11 @@ type ShareButtonProps = {
     variant?: ButtonVariant
     iconPosition?: 'left' | 'right'
     showIcon?: boolean
-} & ({ url: string; generateUrl?: undefined } | { generateUrl: () => Promise<string>; url?: undefined })
+} & (
+    | { url: string; generateUrl?: undefined; generateText?: undefined }
+    | { generateUrl: () => Promise<string>; url?: undefined; generateText?: undefined }
+    | { generateText: () => Promise<string>; url?: undefined; generateUrl?: undefined }
+)
 
 /**
  * A reusable share button component that uses the Web Share API with clipboard fallback
@@ -24,6 +28,7 @@ type ShareButtonProps = {
 const ShareButton = ({
     url,
     generateUrl,
+    generateText,
     title = 'Peanut Protocol',
     text,
     onSuccess,
@@ -62,14 +67,17 @@ const ShareButton = ({
     }
 
     const handleShare = useCallback(async () => {
-        const shareUrl = url ?? (await generateUrl())
+        const shareUrl = url ?? (generateUrl ? await generateUrl() : undefined)
+        const shareText = generateText ? await generateText() : text
+
         try {
             // Check if Web Share API is available
             if (!navigator.share) {
                 // Fallback to clipboard
-                const copied = await copyTextToClipboardWithFallback(shareUrl)
+                const contentToCopy = shareUrl || shareText || ''
+                const copied = await copyTextToClipboardWithFallback(contentToCopy)
                 if (copied) {
-                    toast.info('Link copied')
+                    toast.info(shareUrl ? 'Link copied' : 'Text copied')
                     onSuccess?.()
                 } else {
                     throw new Error('Failed to copy to clipboard')
@@ -78,11 +86,11 @@ const ShareButton = ({
             }
 
             // Use Web Share API
-            await navigator.share({
-                title,
-                text,
-                url: shareUrl,
-            })
+            const shareData: ShareData = { title }
+            if (shareText) shareData.text = shareText
+            if (shareUrl) shareData.url = shareUrl
+
+            await navigator.share(shareData)
 
             onSuccess?.()
         } catch (error: any) {
@@ -92,9 +100,10 @@ const ShareButton = ({
                 Sentry.captureException(error)
 
                 // Try clipboard fallback if sharing fails
-                const copied = await copyTextToClipboardWithFallback(shareUrl)
+                const contentToCopy = shareUrl || shareText || ''
+                const copied = await copyTextToClipboardWithFallback(contentToCopy)
                 if (copied) {
-                    toast.info('Link copied')
+                    toast.info(shareUrl ? 'Link copied' : 'Text copied')
                 } else {
                     toast.error('Sharing failed')
                 }
@@ -102,7 +111,7 @@ const ShareButton = ({
                 onError?.(error)
             }
         }
-    }, [url, generateUrl, title, text, onSuccess, onError])
+    }, [url, generateUrl, generateText, title, text, onSuccess, onError])
 
     return (
         <Button
