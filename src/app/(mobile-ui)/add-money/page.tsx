@@ -41,6 +41,7 @@ export default function AddMoneyPage() {
         error,
         fromBankSelected,
         setFromBankSelected,
+        resetFlow,
     } = useOnrampFlow()
 
     const { balance } = useWallet()
@@ -87,6 +88,19 @@ export default function AddMoneyPage() {
             setFromBankSelected(true)
         }
     }, [searchParams, fromBankSelected, setFromBankSelected])
+
+    // reset flow state when URL parameters change
+    useEffect(() => {
+        const fromBankParam = searchParams.get('fromBank')
+        const countryParam = searchParams.get('country')
+
+        // If there are no URL parameters indicating we should preserve flow state, reset the flow
+        if (!fromBankParam && !countryParam) {
+            resetFlow()
+            setStep('selectMethod')
+            setRawTokenAmount('')
+        }
+    }, [searchParams])
 
     useEffect(() => {
         if (fromBankSelected) {
@@ -223,8 +237,7 @@ export default function AddMoneyPage() {
     }
 
     const handleBackFromAmount = () => {
-        setFromBankSelected(false)
-        setAmountToOnramp('')
+        resetFlow()
         setRawTokenAmount('')
         setStep('selectMethod')
         // Navigate back to country selection or main page
@@ -237,7 +250,7 @@ export default function AddMoneyPage() {
     }
 
     const handleBackFromKyc = () => {
-        setFromBankSelected(false)
+        resetFlow()
         setStep('selectMethod')
         // Navigate back to country selection or main page
         if (selectedCountry) {
