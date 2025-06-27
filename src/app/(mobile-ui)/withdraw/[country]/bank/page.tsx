@@ -23,6 +23,7 @@ import { useEffect, useState } from 'react'
 import { encodeFunctionData, erc20Abi, parseUnits } from 'viem'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { ErrorHandler, getBridgeChainName } from '@/utils'
+import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
 import { createOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 
@@ -43,25 +44,30 @@ export default function WithdrawBankPage() {
     }, [bankAccount, router])
 
     const destinationDetails = (account: Account) => {
+        let countryId: string
+
         switch (account.type) {
             case AccountType.US:
-                return {
-                    currency: 'usd',
-                    paymentRail: 'ach',
-                    externalAccountId: account.bridgeAccountId,
-                }
+                countryId = 'US'
+                break
             case AccountType.IBAN:
-                return {
-                    currency: 'eur',
-                    paymentRail: 'sepa',
-                    externalAccountId: account.bridgeAccountId,
-                }
+                // Default to a European country that uses EUR/SEPA
+                countryId = 'DE' // Germany as default EU country
+                break
             default:
                 return {
                     currency: '',
                     paymentRail: '',
                     externalAccountId: null,
                 }
+        }
+
+        const { currency, paymentRail } = getOfframpCurrencyConfig(countryId)
+
+        return {
+            currency,
+            paymentRail,
+            externalAccountId: account.bridgeAccountId,
         }
     }
 

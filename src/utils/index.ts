@@ -4,3 +4,13 @@ export * from './bridge-accounts.utils'
 export * from './balance.utils'
 export * from './sentry.utils'
 export * from './onramp.utils'
+
+// Bridge utils - explicit exports to avoid naming conflicts
+export {
+    getCurrencyConfig as getBridgeCurrencyConfig,
+    getOnrampCurrencyConfig,
+    getOfframpCurrencyConfig,
+    getCurrencySymbol,
+    getPaymentRailDisplayName,
+} from './bridge.utils'
+export type { BridgeOperationType } from './bridge.utils'
