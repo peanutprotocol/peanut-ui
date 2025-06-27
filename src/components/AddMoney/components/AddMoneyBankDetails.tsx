@@ -56,9 +56,6 @@ export default function AddMoneyBankDetails() {
         return countryData.find((c) => c.id === 'US')
     }, [currentCountryName])
 
-    console.log('currentCountryName', currentCountryName)
-    console.log('currentCountryDetails', currentCountryDetails)
-
     const countryCodeForFlag = useMemo(() => {
         const countryId = currentCountryDetails?.id || 'USA'
         const countryCode = countryCodeMap[countryId]
