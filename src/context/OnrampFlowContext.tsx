@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, ReactNode, useContext, useMemo, useState } from 'react'
+import React, { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react'
 
 export type OnrampView = 'INITIAL' | 'SELECT_METHOD'
 
@@ -18,6 +18,7 @@ interface OnrampFlowContextType {
     setError: (error: InitialViewErrorState) => void
     fromBankSelected: boolean
     setFromBankSelected: (selected: boolean) => void
+    resetOnrampFlow: () => void
 }
 
 const OnrampFlowContext = createContext<OnrampFlowContextType | undefined>(undefined)
@@ -31,6 +32,16 @@ export const OnrampFlowContextProvider: React.FC<{ children: ReactNode }> = ({ c
     })
     const [fromBankSelected, setFromBankSelected] = useState<boolean>(false)
 
+    const resetOnrampFlow = useCallback(() => {
+        setAmountToOnramp('')
+        setCurrentView('INITIAL')
+        setError({
+            showError: false,
+            errorMessage: '',
+        })
+        setFromBankSelected(false)
+    }, [])
+
     const value = useMemo(
         () => ({
             amountToOnramp,
@@ -41,6 +52,7 @@ export const OnrampFlowContextProvider: React.FC<{ children: ReactNode }> = ({ c
             setError,
             fromBankSelected,
             setFromBankSelected,
+            resetOnrampFlow,
         }),
         [amountToOnramp, currentView, error, fromBankSelected]
     )
