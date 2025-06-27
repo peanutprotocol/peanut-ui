@@ -48,7 +48,7 @@ importers:
         version: 3.9.1(react-hook-form@7.54.2(react@19.1.0))
       '@justaname.id/react':
         specifier: 0.3.180
-        version: 0.3.180(tnzzgvcd3z7nnwfpcfioilr7oq)
+        version: 0.3.180(d790c45a68d3060d0100d06a1e4e62f0)
       '@justaname.id/sdk':
         specifier: 0.2.177
         version: 0.2.177(ethers@5.7.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)))(viem@2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.24.1))
@@ -60,7 +60,7 @@ importers:
         version: 1.6.9(@types/react@18.3.18)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.24.1)
       '@reown/appkit-adapter-wagmi':
         specifier: 1.6.9
-        version: 1.6.9(uxdc2wllwxtktvtuagxw5t4wfq)
+        version: 1.6.9(ed6f7e5c1edc97aa97371ec604b35664)
       '@safe-global/safe-apps-sdk':
         specifier: ^9.1.0
         version: 9.1.0(bufferutil@4.0.9)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.24.1)
@@ -115,6 +115,9 @@ importers:
       i18n-iso-countries:
         specifier: ^7.13.0
         version: 7.13.0
+      iban-to-bic:
+        specifier: ^1.4.0
+        version: 1.4.0
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
@@ -4923,6 +4926,12 @@ packages:
   i18next@22.5.1:
     resolution: {integrity: sha512-8TGPgM3pAD+VRsMtUMNknRz3kzqwp/gPALrWMsDnmC1mKqJwpWyooQRLMcbTwq8z8YwSmuj+ZYvc+xCuEpkssA==}
 
+  iban-to-bic@1.4.0:
+    resolution: {integrity: sha512-nVpHVxf1xyDGAThz3SAIP4i5WXWnPKDe7CIoPJLyNGnnckuoORTI+ZLsI707UbVN+kq18cey7zHqDOIJD7kKpA==}
+
+  ibantools@4.5.1:
+    resolution: {integrity: sha512-DfKQpLlFq9yEUIEnFuCJzss3XavD7iHZTU5PyqXiAJ+rmaMp+NFP3hboumHKuK8nZjuOJg93WemTzcQ5b9jOZA==}
+
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
     engines: {node: '>=0.10.0'}
@@ -9716,7 +9725,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@justaname.id/react@0.3.180(tnzzgvcd3z7nnwfpcfioilr7oq)':
+  '@justaname.id/react@0.3.180(d790c45a68d3060d0100d06a1e4e62f0)':
     dependencies:
       '@ensdomains/ensjs': 4.0.2(typescript@5.7.3)(viem@2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.24.1))(zod@3.24.1)
       '@justaname.id/sdk': 0.2.177(ethers@5.7.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)))(viem@2.22.11(bufferutil@4.0.9)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.24.1))
@@ -10758,7 +10767,7 @@ snapshots:
       react: 19.1.0
       react-redux: 9.2.0(@types/react@18.3.18)(react@19.1.0)(redux@5.0.1)
 
-  '@reown/appkit-adapter-wagmi@1.6.9(uxdc2wllwxtktvtuagxw5t4wfq)':
+  '@reown/appkit-adapter-wagmi@1.6.9(ed6f7e5c1edc97aa97371ec604b35664)':
     dependencies:
       '@reown/appkit': 1.6.9(@types/react@18.3.18)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.24.1)
       '@reown/appkit-common': 1.6.9(bufferutil@4.0.9)(typescript@5.7.3)(utf-8-validate@5.0.10)(zod@3.24.1)
@@ -14265,6 +14274,12 @@ snapshots:
   i18next@22.5.1:
     dependencies:
       '@babel/runtime': 7.26.0
+
+  iban-to-bic@1.4.0:
+    dependencies:
+      ibantools: 4.5.1
+
+  ibantools@4.5.1: {}
 
   iconv-lite@0.6.3:
     dependencies:

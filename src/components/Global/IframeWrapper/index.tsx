@@ -4,7 +4,7 @@ import Modal from '../Modal'
 export type IFrameWrapperProps = {
     src: string
     visible: boolean
-    onClose: () => void
+    onClose: (source?: 'manual' | 'completed') => void
     closeConfirmMessage?: string
 }
 
@@ -23,7 +23,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             if (event.data?.name === 'complete' && event.data?.metadata?.status === 'completed') {
-                onClose()
+                onClose('completed')
             }
         }
 
@@ -36,11 +36,11 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             visible={visible}
             onClose={() => {
                 if (!enableConfirmationPrompt) {
-                    onClose()
+                    onClose('manual')
                     return
                 }
                 if (src.includes('tos')) {
-                    onClose()
+                    onClose('manual')
                     return
                 }
                 setShowCloseConfirmMessage(true)
@@ -69,7 +69,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                                 <button
                                     className="btn-purple h-10"
                                     onClick={() => {
-                                        onClose()
+                                        onClose('manual')
                                         setShowCloseConfirmMessage(false)
                                     }}
                                 >
@@ -85,7 +85,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                                 if (enableConfirmationPrompt && !src.includes('tos')) {
                                     setShowCloseConfirmMessage(true)
                                 } else {
-                                    onClose()
+                                    onClose('manual')
                                 }
                             }}
                         >

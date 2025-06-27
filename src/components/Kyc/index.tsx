@@ -15,10 +15,10 @@ export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess }: KycModalFlow
         isLoading,
         error,
         iframeOptions,
-        isVerificationModalOpen,
+        isVerificationProgressModalOpen,
         handleInitiateKyc,
         handleIframeClose,
-        closeVerificationModal,
+        closeVerificationProgressModal,
     } = useKycFlow({ onKycSuccess })
 
     const handleVerifyClick = async () => {
@@ -36,6 +36,8 @@ export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess }: KycModalFlow
                 title="Verify your identity first"
                 description="To continue, you need to complete identity verification. This usually takes just a few minutes."
                 icon={'badge' as IconName}
+                modalPanelClassName="max-w-full m-2"
+                ctaClassName="grid grid-cols-1 gap-3"
                 ctas={[
                     {
                         text: isLoading ? 'Loading...' : 'Verify now',
@@ -51,12 +53,16 @@ export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess }: KycModalFlow
                         text: error ?? 'Retry',
                         onClick: onClose,
                         variant: 'transparent',
-                        className: 'underline text-sm !font-normal w-full !transform-none !pt-2 text-error-3',
+                        className:
+                            'underline text-xs md:text-sm !font-normal w-full !transform-none !pt-2 text-error-3 px-0',
                     },
                 ]}
             />
             <IframeWrapper {...iframeOptions} onClose={handleIframeClose} />
-            <KycVerificationInProgressModal isOpen={isVerificationModalOpen} onClose={closeVerificationModal} />
+            <KycVerificationInProgressModal
+                isOpen={isVerificationProgressModalOpen}
+                onClose={closeVerificationProgressModal}
+            />
         </>
     )
 }

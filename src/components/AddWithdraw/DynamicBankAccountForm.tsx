@@ -1,5 +1,5 @@
 'use client'
-import { forwardRef, useImperativeHandle, useState } from 'react'
+import { forwardRef, useImperativeHandle, useMemo, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -7,8 +7,12 @@ import { AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType } from
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { countryCodeMap } from '@/components/AddMoney/consts'
 import { useParams } from 'next/navigation'
-import { validateBankAccount, validateIban, validateBic } from '@/utils/bridge-accounts.utils'
+import { validateBankAccount, validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-accounts.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import { getBicFromIban } from '@/app/actions/ibanToBic'
+import PeanutActionDetailsCard from '../Global/PeanutActionDetailsCard'
+import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
+import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 
 const isIBANCountry = (country: string) => {
     return countryCodeMap[country.toUpperCase()] !== undefined
@@ -40,13 +44,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const { country: countryName } = useParams()
-
+        const { amountToWithdraw } = useWithdrawFlow()
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
         const lastName = lastNameParts.join(' ')
 
         const {
             control,
             handleSubmit,
+            setValue,
             formState: { errors, isValid, isValidating, touchedFields },
         } = useForm<FormData>({
             defaultValues: {
@@ -136,139 +141,153 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             placeholder: string,
             rules: any,
             type: string = 'text',
-            rightAdornment?: React.ReactNode
-        ) => {
-            const inputRules = { ...rules }
-            switch (name) {
-                case 'firstName':
-                case 'lastName':
-                    inputRules.pattern = {
-                        value: /^[a-zA-Z\s'-]+$/,
-                        message: 'Name contains invalid characters',
-                    }
-                    break
-                case 'email':
-                    inputRules.pattern = {
-                        value: /^\S+@\S+$/i,
-                        message: 'Invalid email address',
-                    }
-                    break
-                case 'clabe':
-                case 'accountNumber':
-                case 'routingNumber':
-                case 'bic':
-                    inputRules.pattern = {
-                        value: /^[a-zA-Z0-9]+$/,
-                        message: 'Only letters and numbers are allowed',
-                    }
-                    break
-            }
-
-            return (
-                <div className="w-full">
-                    <div className="relative">
-                        <Controller
-                            name={name}
-                            control={control}
-                            rules={inputRules}
-                            render={({ field }) => (
-                                <BaseInput
-                                    {...field}
-                                    type={type}
-                                    placeholder={placeholder}
-                                    className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
-                                />
-                            )}
-                        />
-                        {rightAdornment && (
-                            <div className="absolute inset-y-0 right-2 flex items-center">{rightAdornment}</div>
+            rightAdornment?: React.ReactNode,
+            onBlur?: (field: any) => Promise<void> | void
+        ) => (
+            <div className="w-full">
+                <div className="relative">
+                    <Controller
+                        name={name}
+                        control={control}
+                        rules={rules}
+                        render={({ field }) => (
+                            <BaseInput
+                                {...field}
+                                type={type}
+                                placeholder={placeholder}
+                                className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
+                                onBlur={async (e) => {
+                                    field.onBlur()
+                                    if (onBlur) {
+                                        await onBlur(field)
+                                    }
+                                }}
+                            />
                         )}
-                    </div>
-                    <div className="mt-2 w-fit text-start">
-                        {errors[name] && touchedFields[name] && (
-                            <ErrorAlert description={errors[name]?.message ?? ''} />
-                        )}
-                    </div>
+                    />
                 </div>
-            )
-        }
+                <div className="mt-2 w-fit text-start">
+                    {errors[name] && touchedFields[name] && <ErrorAlert description={errors[name]?.message ?? ''} />}
+                </div>
+            </div>
+        )
+
+        const countryCodeForFlag = useMemo(() => {
+            return countryCodeMap[country.toUpperCase()] ?? country.toUpperCase()
+        }, [country])
 
         return (
-            <div className="space-y-4">
-                <h3 className="text-base font-bold">Enter bank account details</h3>
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault()
-                        handleSubmit(onSubmit)()
-                    }}
-                    className="space-y-4"
-                >
-                    {!user?.user?.fullName && (
-                        <div className="w-full space-y-4">
-                            {renderInput('firstName', 'First name', { required: 'First name is required' })}
-                            {renderInput('lastName', 'Last name', { required: 'Last name is required' })}
-                        </div>
-                    )}
-                    {!user?.user?.email &&
-                        renderInput('email', 'you@example.com', {
-                            required: 'Email is required',
-                        })}
+            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
+                <PeanutActionDetailsCard
+                    countryCodeForFlag={countryCodeForFlag.toLowerCase()}
+                    avatarSize="small"
+                    transactionType={'WITHDRAW_BANK_ACCOUNT'}
+                    recipientType={'BANK_ACCOUNT'}
+                    recipientName={country}
+                    amount={amountToWithdraw}
+                    tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
+                />
 
-                    {isMx
-                        ? renderInput('clabe', 'CLABE', {
-                              required: 'CLABE is required',
-                              minLength: { value: 18, message: 'CLABE must be 18 digits' },
-                              maxLength: { value: 18, message: 'CLABE must be 18 digits' },
-                          })
-                        : renderInput(
-                              'accountNumber',
-                              isIban ? 'IBAN' : 'Account Number',
-                              {
-                                  required: 'Account number is required',
-                                  validate: async (value: string) =>
-                                      isIban
-                                          ? (await validateIban(value)) || 'Invalid IBAN'
-                                          : (await validateBankAccount(value)) || 'Invalid account number',
-                              },
-                              'text'
-                          )}
-
-                    {isIban &&
-                        renderInput('bic', 'BIC/SWIFT', {
-                            required: 'BIC/SWIFT is required',
-                            validate: async (value: string) => (await validateBic(value)) || 'Invalid BIC/SWIFT code',
-                        })}
-                    {isUs &&
-                        renderInput('routingNumber', 'Routing Number', {
-                            required: 'Routing number is required',
-                        })}
-
-                    {!isIban && (
-                        <>
-                            {renderInput('street', 'Street address', { required: 'Street is required' })}
-                            <div className="flex gap-4">
-                                {renderInput('city', 'City', { required: 'City is required' })}
-                                {renderInput('state', 'State/Province', {
-                                    required: 'State/Province is required',
-                                })}
-                            </div>
-                            {renderInput('postalCode', 'Postal Code', {
-                                required: 'Postal code is required',
-                            })}
-                        </>
-                    )}
-                    <Button
-                        type="submit"
-                        variant="purple"
-                        shadowSize="4"
-                        className="!mt-4 w-full"
-                        loading={isSubmitting || isValidating}
-                        disabled={isSubmitting || !isValid || isValidating}
+                <div className="space-y-4">
+                    <h3 className="text-base font-bold">Enter bank account details</h3>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault()
+                            handleSubmit(onSubmit)()
+                        }}
+                        className="space-y-4"
                     >
-                        Review
-                    </Button>
-                    {submissionError && <ErrorAlert description={submissionError} />}
-                </form>
+                        {!user?.user?.fullName && (
+                            <div className="w-full space-y-4">
+                                {renderInput('firstName', 'First Name', { required: 'First name is required' })}
+                                {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
+                            </div>
+                        )}
+                        {!user?.user?.email &&
+                            renderInput('email', 'E-mail', {
+                                required: 'Email is required',
+                            })}
+
+                        {isMx
+                            ? renderInput('clabe', 'CLABE', {
+                                  required: 'CLABE is required',
+                                  minLength: { value: 18, message: 'CLABE must be 18 digits' },
+                                  maxLength: { value: 18, message: 'CLABE must be 18 digits' },
+                              })
+                            : isIban
+                              ? renderInput(
+                                    'accountNumber',
+                                    'IBAN',
+                                    {
+                                        required: 'Account number is required',
+                                        validate: async (val: string) => (await validateIban(val)) || 'Invalid IBAN',
+                                    },
+                                    'text',
+                                    undefined,
+                                    async (field) => {
+                                        if (!field.value || field.value.trim().length === 0) return
+
+                                        try {
+                                            const bic = await getBicFromIban(field.value.trim())
+                                            if (bic) {
+                                                setValue('bic', bic, { shouldValidate: true })
+                                            }
+                                        } catch (error) {
+                                            console.warn('Failed to fetch BIC:', error)
+                                        }
+                                    }
+                                )
+                              : renderInput(
+                                    'accountNumber',
+                                    'Account Number',
+                                    {
+                                        required: 'Account number is required',
+                                        validate: async (value: string) =>
+                                            (await validateBankAccount(value)) || 'Invalid account number',
+                                    },
+                                    'text'
+                                )}
+
+                        {isIban &&
+                            renderInput('bic', 'BIC', {
+                                required: 'BIC is required',
+                                validate: async (value: string) => (await validateBic(value)) || 'Invalid BIC code',
+                            })}
+                        {isUs &&
+                            renderInput('routingNumber', 'Routing Number', {
+                                required: 'Routing number is required',
+                                validate: async (value: string) =>
+                                    (await isValidRoutingNumber(value)) || 'Invalid routing number',
+                            })}
+
+                        {!isIban && (
+                            <>
+                                {renderInput('street', 'Bank Address', { required: 'Bank address is required' })}
+
+                                {renderInput('city', 'City', { required: 'City is required' })}
+
+                                {renderInput('state', 'State', {
+                                    required: 'State is required',
+                                })}
+
+                                {renderInput('postalCode', 'Postal Code', {
+                                    required: 'Postal code is required',
+                                })}
+                            </>
+                        )}
+                        <Button
+                            type="submit"
+                            variant="purple"
+                            shadowSize="4"
+                            className="!mt-4 w-full"
+                            loading={isSubmitting || isValidating}
+                            disabled={isSubmitting || !isValid || isValidating}
+                        >
+                            Review
+                        </Button>
+                        {submissionError && <ErrorAlert description={submissionError} />}
+                    </form>
+                </div>
             </div>
         )
     }

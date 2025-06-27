@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { IFrameWrapperProps } from '@/components/Global/IframeWrapper'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -22,6 +22,17 @@ interface UseKycFlowOptions {
     onKycSuccess?: () => void
 }
 
+export type KycHistoryEntry = {
+    isKyc: true
+    uuid: string
+    timestamp: string
+}
+
+// type guard to check if an entry is a KYC status item in history section
+export const isKycStatusItem = (entry: object): entry is KycHistoryEntry => {
+    return 'isKyc' in entry && entry.isKyc === true
+}
+
 export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
     const { user } = useUserStore()
     const router = useRouter()
@@ -37,7 +48,7 @@ export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
         visible: false,
         closeConfirmMessage: undefined,
     })
-    const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false)
+    const [isVerificationProgressModalOpen, setIsVerificationProgressModalOpen] = useState(false)
 
     // listen for websocket updates
     useWebSocket({
@@ -53,29 +64,6 @@ export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
         },
     })
 
-    // listen for persona events
-    useEffect(() => {
-        const handlePersonaEvent = (event: Event) => {
-            const personaEvent = event as PersonaEvent
-            if (!personaEvent.detail) return
-
-            // the 'complete' event is fired for both TOS and KYC flows.
-            // when TOS is done, we need to show the KYC link.
-            // when KYC is done, we show the verification modal.
-            if (personaEvent.detail.status === 'completed') {
-                handleIframeClose()
-            }
-        }
-
-        window.addEventListener('persona:complete', handlePersonaEvent)
-        window.addEventListener('persona:next', handlePersonaEvent) // Fallback for some flows
-
-        return () => {
-            window.removeEventListener('persona:complete', handlePersonaEvent)
-            window.removeEventListener('persona:next', handlePersonaEvent)
-        }
-    }, [apiResponse]) // rerun when apiResponse changes to have the correct context in handleIframeClose
-
     // when the final status is received, close the verification modal
     useEffect(() => {
         // We only want to run this effect on updates, not on the initial mount
@@ -83,10 +71,10 @@ export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
         // with an already-approved status.
         if (isMounted.current) {
             if (liveKycStatus === 'approved') {
-                setIsVerificationModalOpen(false)
+                setIsVerificationProgressModalOpen(false)
                 onKycSuccess?.()
             } else if (liveKycStatus === 'rejected') {
-                setIsVerificationModalOpen(false)
+                setIsVerificationProgressModalOpen(false)
             }
         } else {
             isMounted.current = true
@@ -133,35 +121,38 @@ export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
         }
     }
 
-    const handleIframeClose = () => {
-        const wasShowingTos = iframeOptions.src === apiResponse?.tosLink
+    const handleIframeClose = useCallback(
+        (source: 'completed' | 'manual' = 'manual') => {
+            const wasShowingTos = iframeOptions.src === apiResponse?.tosLink
 
-        // hide the iframe
-        setIframeOptions({ src: '', visible: false, closeConfirmMessage: undefined })
+            // hide the iframe
+            setIframeOptions({ src: '', visible: false, closeConfirmMessage: undefined })
 
-        // if we just closed the tos link, open the kyc link next.
-        if (wasShowingTos && apiResponse?.kycLink) {
-            const kycUrl = convertPersonaUrl(apiResponse.kycLink)
-            // short delay to allow the iframe to properly close before re-opening
-            setTimeout(() => {
-                setIframeOptions({
-                    src: kycUrl,
-                    visible: true,
-                    closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
-                })
-            }, 100)
-        } else {
-            // if we just closed the kyc link, open the "in progress" modal.
-            setIsVerificationModalOpen(true)
-        }
-    }
+            // if we just closed the tos link, open the kyc link next.
+            if (wasShowingTos && apiResponse?.kycLink) {
+                const kycUrl = convertPersonaUrl(apiResponse.kycLink)
+                // short delay to allow the iframe to properly close before re-opening
+                setTimeout(() => {
+                    setIframeOptions({
+                        src: kycUrl,
+                        visible: true,
+                        closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
+                    })
+                }, 100)
+            } else if (source === 'completed') {
+                // if we just closed the kyc link after completion, open the "in progress" modal.
+                setIsVerificationProgressModalOpen(true)
+            }
+        },
+        [apiResponse, iframeOptions.src]
+    )
 
-    const closeVerificationModal = () => {
-        setIsVerificationModalOpen(false)
+    const closeVerificationProgressModal = () => {
+        setIsVerificationProgressModalOpen(false)
     }
 
     const closeVerificationModalAndGoHome = () => {
-        setIsVerificationModalOpen(false)
+        setIsVerificationProgressModalOpen(false)
         router.push('/home')
     }
 
@@ -169,10 +160,10 @@ export const useKycFlow = ({ onKycSuccess }: UseKycFlowOptions = {}) => {
         isLoading,
         error,
         iframeOptions,
-        isVerificationModalOpen,
+        isVerificationProgressModalOpen,
         handleInitiateKyc,
         handleIframeClose,
-        closeVerificationModal,
+        closeVerificationProgressModal,
         closeVerificationModalAndGoHome,
     }
 }

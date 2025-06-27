@@ -69,3 +69,57 @@ export async function createOfframp(
         return { error: 'An unexpected error occurred.' }
     }
 }
+
+/**
+ * Server Action to confirm an off-ramp transfer after the user has sent funds.
+ *
+ * this calls the `/bridge/transfers/:transferId/confirm` API endpoint, providing
+ * the on-chain transaction hash. This makes the transfer visible in the user's history.
+ *
+ * @param transferId - The ID of the transfer to confirm.
+ * @param txHash - The on-chain transaction hash from the user's deposit.
+ * @returns An object containing either the successful response data or an error.
+ */
+export async function confirmOfframp(
+    transferId: string,
+    txHash: string
+): Promise<{ data?: { success: boolean }; error?: string }> {
+    const apiUrl = process.env.PEANUT_API_URL
+
+    if (!apiUrl || !API_KEY) {
+        console.error('API URL or API Key is not configured.')
+        return { error: 'Server configuration error.' }
+    }
+
+    try {
+        const cookieStore = await cookies()
+        const jwtToken = cookieStore.get('jwt-token')?.value
+
+        if (!jwtToken) {
+            return { error: 'Authentication token not found.' }
+        }
+
+        const response = await fetchWithSentry(`${apiUrl}/bridge/transfers/${transferId}/confirm`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${jwtToken}`,
+                'api-key': API_KEY,
+            },
+            body: JSON.stringify({ txHash }),
+        })
+
+        if (!response.ok) {
+            const data = await response.json()
+            return { error: data.error || 'Failed to confirm off-ramp transfer.' }
+        }
+
+        return { data: { success: true } }
+    } catch (error) {
+        console.error('Error calling confirm off-ramp API:', error)
+        if (error instanceof Error) {
+            return { error: error.message }
+        }
+        return { error: 'An unexpected error occurred.' }
+    }
+}

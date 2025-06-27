@@ -22,6 +22,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { Account } from '@/interfaces'
+import PeanutLoading from '../Global/PeanutLoading'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -32,7 +33,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const params = useParams()
     const { user, fetchUser } = useAuth()
     const { setSelectedBankAccount } = useWithdrawFlow()
-    const { setFromBankSelected, amountToOnramp } = useOnrampFlow()
+    const { setFromBankSelected } = useOnrampFlow()
     const [view, setView] = useState<'list' | 'form'>('list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const [cachedBankDetails, setCachedBankDetails] = useState<Partial<FormData> | null>(null)
@@ -178,6 +179,22 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         } else if (method.path) {
             router.push(method.path)
         }
+    }
+
+    useEffect(() => {
+        if (!amountToWithdraw) {
+            console.error('Amount not available in WithdrawFlowContext for withdrawal, redirecting.')
+            router.push('/withdraw')
+            return
+        }
+    }, [amountToWithdraw, router])
+
+    if (!amountToWithdraw) {
+        return (
+            <div className="flex h-full min-h-[inherit] w-full items-center justify-center md:min-h-[80vh]">
+                <PeanutLoading />
+            </div>
+        )
     }
 
     if (!currentCountry) {

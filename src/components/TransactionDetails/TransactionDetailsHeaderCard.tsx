@@ -18,6 +18,7 @@ export type TransactionDirection =
     | 'withdraw'
     | 'add'
     | 'bank_withdraw'
+    | 'bank_deposit'
 
 interface TransactionDetailsHeaderCardProps {
     direction: TransactionDirection
@@ -85,12 +86,11 @@ const getTitle = (
                 titleText = `${status === 'completed' ? 'Requested' : 'Requesting'} from ${displayName}`
                 break
             case 'withdraw':
-                titleText = `${status === 'completed' ? 'Withdrew' : 'Withdrawing'} to ${displayName}`
-                break
             case 'bank_withdraw':
                 titleText = `${status === 'completed' ? 'Withdrew' : 'Withdrawing'} to ${displayName}`
                 break
             case 'add':
+            case 'bank_deposit':
                 titleText = `${status === 'completed' ? 'Added' : 'Adding'} from ${displayName}`
                 break
             default:
