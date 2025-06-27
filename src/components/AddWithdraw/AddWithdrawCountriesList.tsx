@@ -32,7 +32,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const router = useRouter()
     const params = useParams()
     const { user, fetchUser } = useAuth()
-    const { setSelectedBankAccount } = useWithdrawFlow()
+    const { setSelectedBankAccount, amountToWithdraw } = useWithdrawFlow()
     const { setFromBankSelected } = useOnrampFlow()
     const [view, setView] = useState<'list' | 'form'>('list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
