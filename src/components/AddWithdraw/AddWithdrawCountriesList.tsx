@@ -182,14 +182,17 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     }
 
     useEffect(() => {
+        if (flow !== 'withdraw') {
+            return
+        }
         if (!amountToWithdraw) {
             console.error('Amount not available in WithdrawFlowContext for withdrawal, redirecting.')
             router.push('/withdraw')
             return
         }
-    }, [amountToWithdraw, router])
+    }, [amountToWithdraw, router, flow])
 
-    if (!amountToWithdraw) {
+    if (!amountToWithdraw && flow === 'withdraw') {
         return (
             <div className="flex h-full min-h-[inherit] w-full items-center justify-center md:min-h-[80vh]">
                 <PeanutLoading />
