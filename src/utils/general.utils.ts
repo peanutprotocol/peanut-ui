@@ -1167,7 +1167,7 @@ export function isPeanutWalletToken(tokenAddress: string, chainId: string): bool
  */
 export function isIOS(): boolean {
     if (typeof window === 'undefined') return false
-    
+
     const userAgent = window.navigator.userAgent.toLowerCase()
     return /iphone|ipad|ipod/.test(userAgent)
 }
@@ -1178,7 +1178,7 @@ export function isIOS(): boolean {
  */
 export function isAndroid(): boolean {
     if (typeof window === 'undefined') return false
-    
+
     const userAgent = window.navigator.userAgent.toLowerCase()
     return /android/.test(userAgent)
 }
