@@ -154,7 +154,7 @@ export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
         id: 'bank-transfer-add',
         icon: 'bank' as IconName,
         title: 'From Bank',
-        description: '1 to 3 working days - KYC required',
+        description: 'Usually in minutes - KYC required',
         isSoon: false,
     },
     {
