@@ -178,7 +178,9 @@ export function PaymentCardOG({
                                     letterSpacing: '-0.08em',
                                 }}
                             >
-                                {link.token ? `${link.amount} ${link.token}` : `$${link.amount}`}
+                                {link.token && link.token.toLowerCase() !== 'usdc'
+                                    ? `${link.amount} ${link.token}`
+                                    : `$${link.amount}`}
                             </span>
 
                             {/* 2) black outline — absolutely positioned, painted *after* → on top */}
@@ -196,7 +198,9 @@ export function PaymentCardOG({
                                     letterSpacing: '-0.08em',
                                 }}
                             >
-                                {link.token ? `${link.amount} ${link.token}` : `$${link.amount}`}
+                                {link.token && link.token.toLowerCase() !== 'usdc'
+                                    ? `${link.amount} ${link.token}`
+                                    : `$${link.amount}`}
                             </span>
 
                             {/* Bottom-left arrow */}
