@@ -5,6 +5,7 @@ import {
     getCurrencySymbol,
     getPaymentRailDisplayName,
     type BridgeOperationType,
+    getMinimumAmount,
 } from '../bridge.utils'
 
 describe('bridge.utils', () => {
@@ -112,6 +113,28 @@ describe('bridge.utils', () => {
             expect(config).toEqual({
                 currency: 'eur',
                 paymentRail: 'sepa',
+            })
+        })
+
+        describe('getMinimumAmount', () => {
+            it('should return 50 for Mexico', () => {
+                const minimum = getMinimumAmount('MX')
+                expect(minimum).toBe(50)
+            })
+
+            it('should return 1 for US', () => {
+                const minimum = getMinimumAmount('US')
+                expect(minimum).toBe(1)
+            })
+
+            it('should return 1 for other countries', () => {
+                const minimum = getMinimumAmount('DE')
+                expect(minimum).toBe(1)
+            })
+
+            it('should return 1 for empty country code', () => {
+                const minimum = getMinimumAmount('')
+                expect(minimum).toBe(1)
             })
         })
     })

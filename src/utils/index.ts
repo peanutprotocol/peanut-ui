@@ -12,5 +12,6 @@ export {
     getOfframpCurrencyConfig,
     getCurrencySymbol,
     getPaymentRailDisplayName,
+    getMinimumAmount,
 } from './bridge.utils'
 export type { BridgeOperationType } from './bridge.utils'

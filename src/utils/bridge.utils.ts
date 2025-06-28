@@ -60,6 +60,18 @@ export const getCurrencySymbol = (currency: string): string => {
 }
 
 /**
+ * Get minimum amount for onramp operations by country
+ */
+export const getMinimumAmount = (countryId: string): number => {
+    if (countryId === 'MX') {
+        return 50
+    }
+
+    // Default minimum for all other countries (including US and EU)
+    return 1
+}
+
+/**
  * Get human-readable payment rail name
  */
 export const getPaymentRailDisplayName = (paymentRail: string): string => {
