@@ -29,6 +29,7 @@ interface PeanutActionDetailsCardProps {
     fileUrl?: string
     avatarSize?: AvatarSize
     countryCodeForFlag?: string
+    currencySymbol?: string
 }
 
 export default function PeanutActionDetailsCard({
@@ -43,6 +44,7 @@ export default function PeanutActionDetailsCard({
     fileUrl,
     avatarSize = 'medium',
     countryCodeForFlag,
+    currencySymbol,
 }: PeanutActionDetailsCardProps) {
     const renderRecipient = () => {
         if (recipientType === 'ADDRESS') return printableAddress(recipientName)
@@ -157,7 +159,8 @@ export default function PeanutActionDetailsCard({
             <div className="min-w-0 space-y-1">
                 {getTitle()}
                 <h2 className="text-2xl font-extrabold">
-                    {tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() ? '$ ' : ''}
+                    {currencySymbol ||
+                        (tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() ? '$ ' : '')}
                     {amount}
 
                     {tokenSymbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() &&

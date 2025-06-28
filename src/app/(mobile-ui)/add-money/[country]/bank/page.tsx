@@ -24,6 +24,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
+import { getOnrampCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -75,6 +76,16 @@ export default function OnrampBankPage() {
         const formattedBalance = formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
         return formattedBalance
     }, [balance])
+
+    const currencyConfig = useMemo(() => {
+        if (!selectedCountry?.id) return null
+        const { currency } = getOnrampCurrencyConfig(selectedCountry.id)
+        return {
+            code: currency.toUpperCase(),
+            symbol: getCurrencySymbol(currency),
+            price: 1, // For bridge currencies, we use 1:1 with the amount entered
+        }
+    }, [selectedCountry?.id])
 
     useEffect(() => {
         if (user === null) return // wait for user to be fetched
@@ -328,6 +339,8 @@ export default function OnrampBankPage() {
                         setTokenValue={handleTokenAmountChange}
                         walletBalance={peanutWalletBalance}
                         hideCurrencyToggle
+                        hideBalance={true}
+                        currency={currencyConfig || undefined}
                     />
                     <div className="flex items-center gap-2 text-xs text-grey-1">
                         <Icon name="info" width={16} height={16} />

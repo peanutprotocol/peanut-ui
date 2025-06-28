@@ -11,6 +11,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, useMemo } from 'react'
 import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
+import { getOnrampCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import Icon from '@/components/Global/Icon'
 
 export interface IOnrampData {
@@ -62,6 +63,12 @@ export default function AddMoneyBankDetails() {
         return countryCode?.toLowerCase() || 'us'
     }, [currentCountryDetails])
 
+    const bridgeCurrency = useMemo(() => {
+        if (!currentCountryDetails?.id) return 'USD'
+        const { currency } = getOnrampCurrencyConfig(currentCountryDetails.id)
+        return currency.toUpperCase()
+    }, [currentCountryDetails?.id])
+
     useEffect(() => {
         // If no amount is set, redirect back to add money page
         if (!amountToOnramp || parseFloat(amountToOnramp) <= 0) {
@@ -82,7 +89,7 @@ export default function AddMoneyBankDetails() {
     }, [amountToOnramp, router])
 
     const generateBankDetails = async () => {
-        const formattedAmount = formatCurrencyAmount(amountToOnramp, currentCountryDetails?.currency || 'USD')
+        const formattedAmount = formatCurrencyAmount(amountToOnramp, bridgeCurrency)
         const bankDetails = `Bank Transfer Details:
 Amount: ${formattedAmount}
 Bank Name: ${onrampData?.depositInstructions?.bankName || 'Loading...'}
@@ -117,13 +124,11 @@ Please use these details to complete your bank transfer.`
                     amount={amountToOnramp}
                     tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
                     countryCodeForFlag={countryCodeForFlag}
+                    currencySymbol={getCurrencySymbol(bridgeCurrency.toLowerCase())}
                 />
 
                 <Card className="rounded-sm">
-                    <PaymentInfoRow
-                        label={'Amount'}
-                        value={formatCurrencyAmount(amountToOnramp, currentCountryDetails?.currency || 'USD')}
-                    />
+                    <PaymentInfoRow label={'Amount'} value={formatCurrencyAmount(amountToOnramp, bridgeCurrency)} />
                     <PaymentInfoRow
                         label={'Bank Name'}
                         value={onrampData?.depositInstructions?.bankName || 'Loading...'}
