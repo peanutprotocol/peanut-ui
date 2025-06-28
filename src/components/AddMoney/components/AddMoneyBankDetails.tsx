@@ -83,12 +83,19 @@ export default function AddMoneyBankDetails() {
 
     const generateBankDetails = async () => {
         const formattedAmount = formatCurrencyAmount(amountToOnramp, currentCountryDetails?.currency || 'USD')
+        const accountLabel = onrampData?.depositInstructions?.bankAccountNumber ? 'Account Number' : 'IBAN'
+        const routingLabel = onrampData?.depositInstructions?.bankRoutingNumber ? 'Routing Number' : 'BIC'
+        const accountValue =
+            onrampData?.depositInstructions?.bankAccountNumber || onrampData?.depositInstructions?.iban || 'Loading...'
+        const routingValue =
+            onrampData?.depositInstructions?.bankRoutingNumber || onrampData?.depositInstructions?.bic || 'Loading...'
+
         const bankDetails = `Bank Transfer Details:
 Amount: ${formattedAmount}
 Bank Name: ${onrampData?.depositInstructions?.bankName || 'Loading...'}
 Bank Address: ${onrampData?.depositInstructions?.bankAddress || 'Loading...'}
-Account Number: ${onrampData?.depositInstructions?.bankAccountNumber || 'Loading...'}
-Routing Number: ${onrampData?.depositInstructions?.bankRoutingNumber || 'Loading...'}
+${accountLabel}: ${accountValue}
+${routingLabel}: ${routingValue}
 Deposit Message: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'}
 
 Please use these details to complete your bank transfer.`
