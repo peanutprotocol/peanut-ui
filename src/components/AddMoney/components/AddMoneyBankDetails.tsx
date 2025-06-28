@@ -11,6 +11,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, useMemo } from 'react'
 import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
+import { formatBankAccountDisplay } from '@/utils/format.utils'
 import Icon from '@/components/Global/Icon'
 
 export interface IOnrampData {
@@ -98,7 +99,9 @@ Bank Address: ${onrampData?.depositInstructions?.bankAddress || 'Loading...'}`
             const routingLabel = onrampData?.depositInstructions?.bankRoutingNumber ? 'Routing Number' : 'BIC'
             const accountValue =
                 onrampData?.depositInstructions?.bankAccountNumber ||
-                onrampData?.depositInstructions?.iban ||
+                (onrampData?.depositInstructions?.iban
+                    ? formatBankAccountDisplay(onrampData.depositInstructions.iban, 'iban')
+                    : null) ||
                 'Loading...'
             const routingValue =
                 onrampData?.depositInstructions?.bankRoutingNumber ||
@@ -161,7 +164,9 @@ Please use these details to complete your bank transfer.`
                             label={onrampData?.depositInstructions?.bankAccountNumber ? 'Account Number' : 'IBAN'}
                             value={
                                 onrampData?.depositInstructions?.bankAccountNumber ||
-                                onrampData?.depositInstructions?.iban ||
+                                (onrampData?.depositInstructions?.iban
+                                    ? formatBankAccountDisplay(onrampData.depositInstructions.iban, 'iban')
+                                    : null) ||
                                 'Loading...'
                             }
                         />
