@@ -10,6 +10,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
+import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
@@ -145,11 +146,31 @@ export const TransactionDetailsReceipt = ({
     if (!transaction) return null
 
     // format data for display
-    const amountDisplay = transaction.extraDataForDrawer?.rewardData
-        ? transaction.extraDataForDrawer.rewardData.formatAmount(transaction.amount)
-        : transaction.currency?.amount
-          ? `$ ${formatAmount(Number(transaction.currency.amount))}`
-          : `$ ${formatAmount(transaction.amount as number)}`
+    let amountDisplay = ''
+
+    if (transaction.extraDataForDrawer?.rewardData) {
+        amountDisplay = transaction.extraDataForDrawer.rewardData.formatAmount(transaction.amount)
+    } else if (
+        transaction.direction === 'bank_deposit' &&
+        transaction.currency?.code &&
+        transaction.currency.code.toUpperCase() !== 'USD'
+    ) {
+        const isCompleted = transaction.status === 'completed'
+
+        if (isCompleted) {
+            // For completed bank_deposit: show USD amount (amount is already in USD)
+            amountDisplay = `$ ${formatAmount(transaction.amount as number)}`
+        } else {
+            // For non-completed bank_deposit: show original currency
+            const currencyAmount = transaction.currency?.amount || transaction.amount.toString()
+            const currencySymbol = getDisplayCurrencySymbol(transaction.currency.code)
+            amountDisplay = `${currencySymbol} ${formatAmount(Number(currencyAmount))}`
+        }
+    } else {
+        amountDisplay = transaction.currency?.amount
+            ? `$ ${formatAmount(Number(transaction.currency.amount))}`
+            : `$ ${formatAmount(transaction.amount as number)}`
+    }
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
     // determine if the qr code and sharing section should be shown
@@ -257,9 +278,44 @@ export const TransactionDetailsReceipt = ({
                         <PaymentInfoRow
                             label="Fee"
                             value={feeDisplay}
-                            hideBottomBorder={!transaction.memo && !transaction.attachmentUrl}
+                            hideBottomBorder={
+                                !transaction.memo &&
+                                !transaction.attachmentUrl &&
+                                !(
+                                    transaction.direction === 'bank_deposit' &&
+                                    transaction.status === 'completed' &&
+                                    transaction.currency?.code &&
+                                    transaction.currency.code.toUpperCase() !== 'USD'
+                                )
+                            }
                         />
                     )}
+
+                    {/* Exchange rate and original currency for completed bank_deposit transactions */}
+                    {transaction.direction === 'bank_deposit' &&
+                        transaction.status === 'completed' &&
+                        transaction.currency?.code &&
+                        transaction.currency.code.toUpperCase() !== 'USD' && (
+                            <>
+                                <PaymentInfoRow
+                                    label="Original amount"
+                                    value={(() => {
+                                        const currencyAmount =
+                                            transaction.currency?.amount || transaction.amount.toString()
+                                        const currencySymbol = getDisplayCurrencySymbol(transaction.currency.code)
+                                        return `${currencySymbol} ${formatAmount(Number(currencyAmount))}`
+                                    })()}
+                                    hideBottomBorder={false}
+                                />
+                                {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
+                                    <PaymentInfoRow
+                                        label="Exchange rate"
+                                        value={`1 ${transaction.currency.code?.toUpperCase()} = $${formatAmount(Number(transaction.extraDataForDrawer.receipt.exchange_rate))}`}
+                                        hideBottomBorder={false}
+                                    />
+                                )}
+                            </>
+                        )}
 
                     {transaction.bankAccountDetails && (
                         <PaymentInfoRow

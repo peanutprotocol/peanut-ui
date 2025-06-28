@@ -66,7 +66,20 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const actualCurrencyCode = transaction.currency?.code
     const defaultDisplayDecimals = actualCurrencyCode === 'JPY' ? 0 : 2 // JPY has 0, others default to 2
 
-    if (actualCurrencyCode === 'ARS' && transaction.currency?.amount) {
+    // Special handling for bank_deposit transactions with non-USD currency
+    if (type === 'bank_deposit' && actualCurrencyCode && actualCurrencyCode.toUpperCase() !== 'USD') {
+        const isCompleted = transaction.status === 'completed'
+
+        if (isCompleted) {
+            // For completed transactions: show USD amount (amount is already in USD)
+            finalDisplayAmount = `$${formatNumberForDisplay(Math.abs(amount).toString(), { maxDecimals: defaultDisplayDecimals })}`
+        } else {
+            // For non-completed transactions: show original currency
+            const currencyAmount = transaction.currency?.amount || amount.toString()
+            const currencySymbol = getDisplayCurrencySymbol(actualCurrencyCode.toUpperCase())
+            finalDisplayAmount = `${currencySymbol}${formatNumberForDisplay(currencyAmount, { maxDecimals: defaultDisplayDecimals })}`
+        }
+    } else if (actualCurrencyCode === 'ARS' && transaction.currency?.amount) {
         let arsSign = ''
         const originalType = transaction.extraDataForDrawer?.originalType as EHistoryEntryType | undefined
         const originalUserRole = transaction.extraDataForDrawer?.originalUserRole as EHistoryUserRole | undefined
