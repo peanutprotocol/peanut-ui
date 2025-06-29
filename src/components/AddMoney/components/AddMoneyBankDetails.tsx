@@ -90,7 +90,7 @@ export default function AddMoneyBankDetails() {
 Amount: ${formattedAmount}
 Bank Name: ${onrampData?.depositInstructions?.bankName || 'Loading...'}`
 
-        // Only include Bank Address for non-Mexico countries
+        // Only include Bank Address for non-Mexico countries since Mexico doesn't return IBAN/BIC or equivalent
         if (!isMexico) {
             bankDetails += `
 Bank Address: ${onrampData?.depositInstructions?.bankAddress || 'Loading...'}`
