@@ -24,6 +24,8 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
+import { getDisplayCurrencySymbol } from '@/utils/currency'
+import { getOnrampCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -328,6 +330,15 @@ export default function OnrampBankPage() {
                         setTokenValue={handleTokenAmountChange}
                         walletBalance={peanutWalletBalance}
                         hideCurrencyToggle
+                        currency={
+                            selectedCountry
+                                ? {
+                                      code: getOnrampCurrencyConfig(selectedCountry.id).currency,
+                                      symbol: getCurrencySymbol(getOnrampCurrencyConfig(selectedCountry.id).currency),
+                                      price: 1,
+                                  }
+                                : undefined
+                        }
                     />
                     <div className="flex items-center gap-2 text-xs text-grey-1">
                         <Icon name="info" width={16} height={16} />
