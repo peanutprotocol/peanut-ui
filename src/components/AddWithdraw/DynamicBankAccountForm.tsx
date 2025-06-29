@@ -95,7 +95,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                 const payload: Partial<AddBankAccountPayload> = {
                     accountType,
-                    accountNumber,
+                    accountNumber: accountNumber.replace(/\s/g, ''),
                     countryCode: isUs ? 'USA' : country.toUpperCase(),
                     countryName: countryName as string,
                     accountOwnerType: BridgeAccountOwnerType.INDIVIDUAL,

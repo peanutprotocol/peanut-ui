@@ -48,7 +48,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // docs here: https://github.com/BoxFactura/pulltorefresh.js
     useEffect(() => {
         if (typeof window === 'undefined') return
-        
+
         // Only initialize pull-to-refresh on iOS devices
         if (!isIOS()) return
 
