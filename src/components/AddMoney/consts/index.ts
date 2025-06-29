@@ -2063,7 +2063,20 @@ export const countryCodeMap: { [key: string]: string } = {
     USA: 'US',
 }
 
-const enabledBankTransferCountries = new Set([...Object.keys(countryCodeMap), 'US'])
+const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US'])
+
+// Helper function to check if a country code is enabled for bank transfers
+// Handles both 2-letter and 3-letter country codes
+const isCountryEnabledForBankTransfer = (countryCode: string): boolean => {
+    // Direct check for 2-letter codes
+    if (enabledBankTransferCountries.has(countryCode)) {
+        return true
+    }
+    
+    // Check if it's a 3-letter code that maps to an enabled 2-letter code
+    const mappedCode = countryCodeMap[countryCode]
+    return mappedCode ? enabledBankTransferCountries.has(mappedCode) : false
+}
 
 countryData.forEach((country) => {
     if (country.type === 'country') {
@@ -2117,7 +2130,7 @@ countryData.forEach((country) => {
                 ...DEFAULT_BANK_WITHDRAW_METHOD,
                 id: `${countryCode.toLowerCase()}-default-bank-withdraw`,
                 path: `/withdraw/${countryCode.toLowerCase()}/bank`,
-                isSoon: !enabledBankTransferCountries.has(countryCode),
+                isSoon: !isCountryEnabledForBankTransfer(countryCode),
             })
         }
 
@@ -2131,7 +2144,7 @@ countryData.forEach((country) => {
             const newMethod = { ...m }
             if (newMethod.id === 'bank-transfer-add') {
                 newMethod.path = `/add-money/${country.path}/bank`
-                newMethod.isSoon = !enabledBankTransferCountries.has(countryCode)
+                newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode)
             } else {
                 newMethod.isSoon = true
             }
