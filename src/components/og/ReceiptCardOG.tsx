@@ -11,7 +11,7 @@ export function ReceiptCardOG({
     logoSrc,
     scribbleSrc,
 }: {
-    link: PaymentLink
+    link: PaymentLink & { token?: string }
     iconSrc: string
     logoSrc: string
     scribbleSrc: string
