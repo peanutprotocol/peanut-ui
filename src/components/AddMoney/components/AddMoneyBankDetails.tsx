@@ -12,7 +12,6 @@ import { useEffect, useState, useMemo } from 'react'
 import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
-import { getOnrampCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import Icon from '@/components/Global/Icon'
 import { getCurrencySymbol, getOnrampCurrencyConfig } from '@/utils/bridge.utils'
 
