@@ -6,6 +6,7 @@ import { BASE_URL } from '@/constants'
 import { isAddress } from 'viem'
 import { printableAddress } from '@/utils'
 import { chargesApi } from '@/services/charges'
+import { parseAmountAndToken } from '@/lib/url-parser/parser'
 
 type PageProps = {
     params: Promise<{ recipient?: string[] }>
@@ -27,6 +28,7 @@ export async function generateMetadata({ params, searchParams }: any) {
     const chargeId = resolvedSearchParams.chargeId
 
     // Parse amount/token from URL for request links
+    // @dev TODO: use parseAmountAndToken instead
     let amount, token
     if (resolvedParams.recipient[1]) {
         const amountToken = resolvedParams.recipient[1]

@@ -116,13 +116,14 @@ export function PaymentCardOG({
                         fontSize: 46,
                         margin: 0,
                         marginTop: link.type === 'request' && link.amount === 0 ? 100 : -12,
+                        marginBottom: link.amount > 0 ? 16 : 0, // Add padding when amount is shown
                         letterSpacing: '-0.03em',
                     }}
                 >
                     {link.type === 'send'
                         ? 'is sending you'
                         : link.amount === 0
-                          ? 'is requesting funds'
+                          ? 'is requesting funds!'
                           : 'is requesting'}
                 </p>
 
