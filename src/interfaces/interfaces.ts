@@ -247,6 +247,7 @@ interface IBridgeReceipt {
     subtotal_amount: string
     gas_fee: string
     final_amount: string
+    exchange_rate?: string
 }
 
 interface IBridgeTransaction {

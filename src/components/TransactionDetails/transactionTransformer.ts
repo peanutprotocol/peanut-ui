@@ -73,6 +73,15 @@ export interface TransactionDetails {
             bic?: string
             account_holder_name?: string
         }
+        receipt?: {
+            initial_amount?: string
+            developer_fee?: string
+            exchange_fee?: string
+            subtotal_amount?: string
+            gas_fee?: string
+            final_amount?: string
+            exchange_rate?: string
+        }
     }
     sourceView?: 'status' | 'history'
     tokenDisplayDetails?: {
@@ -342,6 +351,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             rewardData,
             depositInstructions:
                 entry.type === EHistoryEntryType.BRIDGE_ONRAMP ? entry.extraData?.depositInstructions : undefined,
+            receipt: entry.extraData?.receipt,
         },
         sourceView: 'history',
         bankAccountDetails:
