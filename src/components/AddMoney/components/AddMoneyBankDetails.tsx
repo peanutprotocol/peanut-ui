@@ -168,7 +168,7 @@ Please use these details to complete your bank transfer.`
                                 (onrampData?.depositInstructions?.iban
                                     ? formatBankAccountDisplay(onrampData.depositInstructions.iban, 'iban')
                                     : null) ||
-                                'Loading...'
+                                'N/A'
                             }
                         />
                     )}
@@ -178,7 +178,7 @@ Please use these details to complete your bank transfer.`
                             value={
                                 onrampData?.depositInstructions?.bankRoutingNumber ||
                                 onrampData?.depositInstructions?.bic ||
-                                'Loading...'
+                                'N/A'
                             }
                         />
                     )}
