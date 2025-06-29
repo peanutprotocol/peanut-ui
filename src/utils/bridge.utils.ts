@@ -54,9 +54,21 @@ export const getCurrencySymbol = (currency: string): string => {
     const symbols: Record<string, string> = {
         usd: '$',
         eur: '€',
-        mxn: '$',
+        mxn: 'MX$',
     }
     return symbols[currency.toLowerCase()] || currency.toUpperCase()
+}
+
+/**
+ * Get minimum amount for onramp operations by country
+ */
+export const getMinimumAmount = (countryId: string): number => {
+    if (countryId === 'MX') {
+        return 50
+    }
+
+    // Default minimum for all other countries (including US and EU)
+    return 1
 }
 
 /**

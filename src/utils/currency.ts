@@ -1,7 +1,8 @@
+import { getCurrencySymbol } from './bridge.utils'
+
 // Helper function to get currency symbol based on code
 export const getDisplayCurrencySymbol = (code?: string, fallbackSymbol: string = '$'): string => {
     if (!code) return fallbackSymbol
-
     const upperCode = code.toUpperCase()
 
     switch (upperCode) {
@@ -15,14 +16,20 @@ export const getDisplayCurrencySymbol = (code?: string, fallbackSymbol: string =
             return '£'
         case 'JPY':
             return '¥'
+        case 'MXN':
+            return 'MX$'
+        case 'BRL':
+            return 'R$'
+        case 'CAD':
+            return 'CA$'
         default:
-            return upperCode // Return the currency code itself as fallback (e.g., "CAD", "CHF")
+            return upperCode // Return the currency code itself as fallback (e.g., "CHF")
     }
 }
 
 // Simple currency amount formatter
 export const formatCurrencyAmount = (amount: string | number, currencyCode: string): string => {
-    const symbol = getDisplayCurrencySymbol(currencyCode)
+    const symbol = getCurrencySymbol(currencyCode)
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount
 
     if (isNaN(numAmount)) return `${symbol}0`

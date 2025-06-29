@@ -11,7 +11,9 @@ import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, useMemo } from 'react'
 import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
+import { formatBankAccountDisplay } from '@/utils/format.utils'
 import Icon from '@/components/Global/Icon'
+import { getCurrencySymbol, getOnrampCurrencyConfig } from '@/utils/bridge.utils'
 
 export interface IOnrampData {
     transferId?: string
@@ -62,6 +64,8 @@ export default function AddMoneyBankDetails() {
         return countryCode?.toLowerCase() || 'us'
     }, [currentCountryDetails])
 
+    const onrampCurrency = getOnrampCurrencyConfig(currentCountryDetails?.id || 'US').currency
+
     useEffect(() => {
         // If no amount is set, redirect back to add money page
         if (!amountToOnramp || parseFloat(amountToOnramp) <= 0) {
@@ -82,13 +86,37 @@ export default function AddMoneyBankDetails() {
     }, [amountToOnramp, router])
 
     const generateBankDetails = async () => {
-        const formattedAmount = formatCurrencyAmount(amountToOnramp, currentCountryDetails?.currency || 'USD')
-        const bankDetails = `Bank Transfer Details:
+        const formattedAmount = formatCurrencyAmount(amountToOnramp, onrampCurrency)
+        const isMexico = currentCountryDetails?.id === 'MX'
+
+        let bankDetails = `Bank Transfer Details:
 Amount: ${formattedAmount}
-Bank Name: ${onrampData?.depositInstructions?.bankName || 'Loading...'}
-Bank Address: ${onrampData?.depositInstructions?.bankAddress || 'Loading...'}
-Account Number: ${onrampData?.depositInstructions?.bankAccountNumber || 'Loading...'}
-Routing Number: ${onrampData?.depositInstructions?.bankRoutingNumber || 'Loading...'}
+Bank Name: ${onrampData?.depositInstructions?.bankName || 'Loading...'}`
+
+        // Only include Bank Address for non-Mexico countries since Mexico doesn't return IBAN/BIC or equivalent
+        if (!isMexico) {
+            bankDetails += `
+Bank Address: ${onrampData?.depositInstructions?.bankAddress || 'Loading...'}`
+
+            const accountLabel = onrampData?.depositInstructions?.bankAccountNumber ? 'Account Number' : 'IBAN'
+            const routingLabel = onrampData?.depositInstructions?.bankRoutingNumber ? 'Routing Number' : 'BIC'
+            const accountValue =
+                onrampData?.depositInstructions?.bankAccountNumber ||
+                (onrampData?.depositInstructions?.iban
+                    ? formatBankAccountDisplay(onrampData.depositInstructions.iban, 'iban')
+                    : null) ||
+                'Loading...'
+            const routingValue =
+                onrampData?.depositInstructions?.bankRoutingNumber ||
+                onrampData?.depositInstructions?.bic ||
+                'Loading...'
+
+            bankDetails += `
+${accountLabel}: ${accountValue}
+${routingLabel}: ${routingValue}`
+        }
+
+        bankDetails += `
 Deposit Message: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'}
 
 Please use these details to complete your bank transfer.`
@@ -117,37 +145,43 @@ Please use these details to complete your bank transfer.`
                     amount={amountToOnramp}
                     tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
                     countryCodeForFlag={countryCodeForFlag}
+                    currencySymbol={getCurrencySymbol(onrampCurrency)}
                 />
 
                 <Card className="rounded-sm">
-                    <PaymentInfoRow
-                        label={'Amount'}
-                        value={formatCurrencyAmount(amountToOnramp, currentCountryDetails?.currency || 'USD')}
-                    />
+                    <PaymentInfoRow label={'Amount'} value={formatCurrencyAmount(amountToOnramp, onrampCurrency)} />
                     <PaymentInfoRow
                         label={'Bank Name'}
                         value={onrampData?.depositInstructions?.bankName || 'Loading...'}
                     />
-                    <PaymentInfoRow
-                        label={'Bank Address'}
-                        value={onrampData?.depositInstructions?.bankAddress || 'Loading...'}
-                    />
-                    <PaymentInfoRow
-                        label={onrampData?.depositInstructions?.bankAccountNumber ? 'Account Number' : 'IBAN'}
-                        value={
-                            onrampData?.depositInstructions?.bankAccountNumber ||
-                            onrampData?.depositInstructions?.iban ||
-                            'Loading...'
-                        }
-                    />
-                    <PaymentInfoRow
-                        label={onrampData?.depositInstructions?.bankRoutingNumber ? 'Routing Number' : 'BIC'}
-                        value={
-                            onrampData?.depositInstructions?.bankRoutingNumber ||
-                            onrampData?.depositInstructions?.bic ||
-                            'Loading...'
-                        }
-                    />
+                    {currentCountryDetails?.id !== 'MX' && (
+                        <PaymentInfoRow
+                            label={'Bank Address'}
+                            value={onrampData?.depositInstructions?.bankAddress || 'Loading...'}
+                        />
+                    )}
+                    {currentCountryDetails?.id !== 'MX' && (
+                        <PaymentInfoRow
+                            label={onrampData?.depositInstructions?.bankAccountNumber ? 'Account Number' : 'IBAN'}
+                            value={
+                                onrampData?.depositInstructions?.bankAccountNumber ||
+                                (onrampData?.depositInstructions?.iban
+                                    ? formatBankAccountDisplay(onrampData.depositInstructions.iban, 'iban')
+                                    : null) ||
+                                'N/A'
+                            }
+                        />
+                    )}
+                    {currentCountryDetails?.id !== 'MX' && (
+                        <PaymentInfoRow
+                            label={onrampData?.depositInstructions?.bankRoutingNumber ? 'Routing Number' : 'BIC'}
+                            value={
+                                onrampData?.depositInstructions?.bankRoutingNumber ||
+                                onrampData?.depositInstructions?.bic ||
+                                'N/A'
+                            }
+                        />
+                    )}
                     <PaymentInfoRow
                         hideBottomBorder
                         label={'Deposit Message'}

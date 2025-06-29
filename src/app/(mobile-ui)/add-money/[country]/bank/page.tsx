@@ -24,6 +24,8 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
+import { getDisplayCurrencySymbol } from '@/utils/currency'
+import { getOnrampCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -76,6 +78,21 @@ export default function OnrampBankPage() {
         return formattedBalance
     }, [balance])
 
+    const currencyConfig = useMemo(() => {
+        if (!selectedCountry?.id) return null
+        const { currency } = getOnrampCurrencyConfig(selectedCountry.id)
+        return {
+            code: currency.toUpperCase(),
+            symbol: getCurrencySymbol(currency),
+            price: 1, // For bridge currencies, we use 1:1 with the amount entered
+        }
+    }, [selectedCountry?.id])
+
+    const minimumAmount = useMemo(() => {
+        if (!selectedCountry?.id) return 1
+        return getMinimumAmount(selectedCountry.id)
+    }, [selectedCountry?.id])
+
     useEffect(() => {
         if (user === null) return // wait for user to be fetched
         if (step === 'loading') {
@@ -119,14 +136,14 @@ export default function OnrampBankPage() {
                 setError({ showError: true, errorMessage: 'Please enter a valid number.' })
                 return false
             }
-            if (amount && amount < 1) {
-                setError({ showError: true, errorMessage: 'Minimum deposit is 1.' })
+            if (amount && amount < minimumAmount) {
+                setError({ showError: true, errorMessage: `Minimum deposit is ${minimumAmount}.` })
                 return false
             }
             setError({ showError: false, errorMessage: '' })
             return true
         },
-        [setError]
+        [setError, minimumAmount]
     )
 
     const handleTokenAmountChange = useCallback(
@@ -328,6 +345,16 @@ export default function OnrampBankPage() {
                         setTokenValue={handleTokenAmountChange}
                         walletBalance={peanutWalletBalance}
                         hideCurrencyToggle
+                        currency={
+                            selectedCountry
+                                ? {
+                                      code: getOnrampCurrencyConfig(selectedCountry.id).currency,
+                                      symbol: getCurrencySymbol(getOnrampCurrencyConfig(selectedCountry.id).currency),
+                                      price: 1,
+                                  }
+                                : undefined
+                        }
+                        hideBalance={true}
                     />
                     <div className="flex items-center gap-2 text-xs text-grey-1">
                         <Icon name="info" width={16} height={16} />
@@ -339,7 +366,7 @@ export default function OnrampBankPage() {
                         onClick={handleAmountContinue}
                         disabled={
                             !parseFloat(rawTokenAmount) ||
-                            parseFloat(rawTokenAmount) < 1 ||
+                            parseFloat(rawTokenAmount) < minimumAmount ||
                             error.showError ||
                             isCreatingOnramp
                         }
