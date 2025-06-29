@@ -28,15 +28,12 @@ export async function generateMetadata({ params, searchParams }: any) {
     const chargeId = resolvedSearchParams.chargeId
 
     // Parse amount/token from URL for request links
-    // @dev TODO: use parseAmountAndToken instead
     let amount, token
     if (resolvedParams.recipient[1]) {
         const amountToken = resolvedParams.recipient[1]
-        const match = amountToken.match(/^(\d*\.?\d*)(.*)$/)
-        if (match) {
-            amount = match[1]
-            token = match[2]
-        }
+        const parsed = parseAmountAndToken(amountToken)
+        amount = parsed.amount
+        token = parsed.token
     }
 
     // Check if recipient is ETH address or ENS name
