@@ -158,8 +158,8 @@ describe('bridge.utils', () => {
             expect(getCurrencySymbol('USD')).toBe('$')
             expect(getCurrencySymbol('eur')).toBe('€')
             expect(getCurrencySymbol('EUR')).toBe('€')
-            expect(getCurrencySymbol('mxn')).toBe('$')
-            expect(getCurrencySymbol('MXN')).toBe('$')
+            expect(getCurrencySymbol('mxn')).toBe('MX$')
+            expect(getCurrencySymbol('MXN')).toBe('MX$')
         })
 
         it('should return uppercase currency code for unsupported currencies', () => {

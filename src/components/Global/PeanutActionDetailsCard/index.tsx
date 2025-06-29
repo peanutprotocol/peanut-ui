@@ -159,11 +159,15 @@ export default function PeanutActionDetailsCard({
             <div className="min-w-0 space-y-1">
                 {getTitle()}
                 <h2 className="text-2xl font-extrabold">
-                    {currencySymbol ||
-                        (tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() ? '$ ' : '')}
+                    {transactionType === 'ADD_MONEY' && currencySymbol
+                        ? `${currencySymbol} `
+                        : tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
+                          ? '$ '
+                          : ''}
                     {amount}
 
                     {tokenSymbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() &&
+                        transactionType !== 'ADD_MONEY' &&
                         ` ${tokenSymbol.toLowerCase() === 'pnt' ? (Number(amount) === 1 ? 'Beer' : 'Beers') : tokenSymbol}`}
                 </h2>
 

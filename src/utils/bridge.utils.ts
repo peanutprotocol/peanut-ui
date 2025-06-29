@@ -54,7 +54,7 @@ export const getCurrencySymbol = (currency: string): string => {
     const symbols: Record<string, string> = {
         usd: '$',
         eur: '€',
-        mxn: '$',
+        mxn: 'MX$',
     }
     return symbols[currency.toLowerCase()] || currency.toUpperCase()
 }

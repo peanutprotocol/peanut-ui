@@ -1,16 +1,19 @@
+import { getCurrencySymbol } from './bridge.utils'
+
 // Helper function to get currency symbol based on code
 export const getDisplayCurrencySymbol = (code?: string, fallbackSymbol: string = '$'): string => {
-    if (code === 'ARS') return 'AR$'
-    if (code === 'USD') return '$'
-    if (code === 'MXN') return '$'
-    if (code === 'EUR') return '€'
+    const normalized = code?.toUpperCase()
+
+    if (normalized === 'ARS') return 'AR$'
+    if (normalized === 'USD') return '$'
+    if (normalized === 'MXN') return 'MX$'
 
     return fallbackSymbol
 }
 
 // Simple currency amount formatter
 export const formatCurrencyAmount = (amount: string | number, currencyCode: string): string => {
-    const symbol = getDisplayCurrencySymbol(currencyCode)
+    const symbol = getCurrencySymbol(currencyCode)
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount
 
     if (isNaN(numAmount)) return `${symbol}0`
