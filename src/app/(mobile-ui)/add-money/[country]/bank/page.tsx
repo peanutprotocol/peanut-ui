@@ -24,7 +24,6 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
-import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { getOnrampCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
@@ -131,7 +130,8 @@ export default function OnrampBankPage() {
                 setError({ showError: false, errorMessage: '' })
                 return true
             }
-            const amount = Number(amountStr)
+            const cleanedAmountStr = amountStr.replace(/,/g, '')
+            const amount = Number(cleanedAmountStr)
             if (!Number.isFinite(amount)) {
                 setError({ showError: true, errorMessage: 'Please enter a valid number.' })
                 return false
@@ -177,12 +177,13 @@ export default function OnrampBankPage() {
             })
             return
         }
-        setAmountToOnramp(rawTokenAmount)
+        const cleanedAmount = rawTokenAmount.replace(/,/g, '')
+        setAmountToOnramp(cleanedAmount)
         setShowWarningModal(false)
         setIsRiskAccepted(false)
         try {
             const onrampDataResponse = await createOnramp({
-                amount: rawTokenAmount,
+                amount: cleanedAmount,
                 country: selectedCountry,
             })
             sessionStorage.setItem('onrampData', JSON.stringify(onrampDataResponse))
@@ -365,8 +366,8 @@ export default function OnrampBankPage() {
                         shadowSize="4"
                         onClick={handleAmountContinue}
                         disabled={
-                            !parseFloat(rawTokenAmount) ||
-                            parseFloat(rawTokenAmount) < minimumAmount ||
+                            !parseFloat(rawTokenAmount.replace(/,/g, '')) ||
+                            parseFloat(rawTokenAmount.replace(/,/g, '')) < minimumAmount ||
                             error.showError ||
                             isCreatingOnramp
                         }

@@ -61,7 +61,8 @@ export default function WithdrawPage() {
                 return true
             }
 
-            const amount = Number(amountStr)
+            const cleanedAmountStr = amountStr.replace(/,/g, '')
+            const amount = Number(cleanedAmountStr)
 
             if (Number.isFinite(amount) && amount >= 1 && amount <= maxDecimalAmount) {
                 setError({ showError: false, errorMessage: '' })
@@ -104,7 +105,7 @@ export default function WithdrawPage() {
 
     const handleAmountContinue = () => {
         if (validateAmount(rawTokenAmount)) {
-            setAmountToWithdraw(rawTokenAmount)
+            setAmountToWithdraw(rawTokenAmount.replace(/,/g, ''))
         }
     }
 
@@ -124,7 +125,11 @@ export default function WithdrawPage() {
                         variant="purple"
                         shadowSize="4"
                         onClick={handleAmountContinue}
-                        disabled={!parseFloat(rawTokenAmount) || parseFloat(rawTokenAmount) < 1 || error.showError}
+                        disabled={
+                            !parseFloat(rawTokenAmount.replace(/,/g, '')) ||
+                            parseFloat(rawTokenAmount.replace(/,/g, '')) < 1 ||
+                            error.showError
+                        }
                         className="w-full"
                     >
                         Continue
