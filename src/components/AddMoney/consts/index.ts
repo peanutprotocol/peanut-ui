@@ -2063,6 +2063,8 @@ export const countryCodeMap: { [key: string]: string } = {
     USA: 'US',
 }
 
+const enabledBankTransferCountries = new Set([...Object.keys(countryCodeMap), 'US'])
+
 countryData.forEach((country) => {
     if (country.type === 'country') {
         const countryCode = country.id
@@ -2115,7 +2117,7 @@ countryData.forEach((country) => {
                 ...DEFAULT_BANK_WITHDRAW_METHOD,
                 id: `${countryCode.toLowerCase()}-default-bank-withdraw`,
                 path: `/withdraw/${countryCode.toLowerCase()}/bank`,
-                isSoon: countryCode === 'MX',
+                isSoon: !enabledBankTransferCountries.has(countryCode),
             })
         }
 
@@ -2129,7 +2131,7 @@ countryData.forEach((country) => {
             const newMethod = { ...m }
             if (newMethod.id === 'bank-transfer-add') {
                 newMethod.path = `/add-money/${country.path}/bank`
-                newMethod.isSoon = countryCode === 'MX'
+                newMethod.isSoon = !enabledBankTransferCountries.has(countryCode)
             } else {
                 newMethod.isSoon = true
             }
