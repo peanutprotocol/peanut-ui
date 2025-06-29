@@ -2115,6 +2115,7 @@ countryData.forEach((country) => {
                 ...DEFAULT_BANK_WITHDRAW_METHOD,
                 id: `${countryCode.toLowerCase()}-default-bank-withdraw`,
                 path: `/withdraw/${countryCode.toLowerCase()}/bank`,
+                isSoon: countryCode === 'MX',
             })
         }
 
