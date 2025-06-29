@@ -4,7 +4,7 @@ export const getDisplayCurrencySymbol = (code?: string, fallbackSymbol: string =
     if (code === 'USD') return '$'
     if (code === 'MXN') return '$'
     if (code === 'EUR') return '€'
-  
+
     return fallbackSymbol
 }
 
