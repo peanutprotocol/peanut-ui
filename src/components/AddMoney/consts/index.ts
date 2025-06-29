@@ -2072,7 +2072,7 @@ const isCountryEnabledForBankTransfer = (countryCode: string): boolean => {
     if (enabledBankTransferCountries.has(countryCode)) {
         return true
     }
-    
+
     // Check if it's a 3-letter code that maps to an enabled 2-letter code
     const mappedCode = countryCodeMap[countryCode]
     return mappedCode ? enabledBankTransferCountries.has(mappedCode) : false
