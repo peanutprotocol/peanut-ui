@@ -162,8 +162,8 @@ export default function PeanutActionDetailsCard({
                     {transactionType === 'ADD_MONEY' && currencySymbol
                         ? `${currencySymbol} `
                         : tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
-                        ? '$ '
-                        : ''}
+                          ? '$ '
+                          : ''}
                     {amount}
 
                     {tokenSymbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() &&

@@ -149,10 +149,7 @@ Please use these details to complete your bank transfer.`
                 />
 
                 <Card className="rounded-sm">
-                    <PaymentInfoRow
-                        label={'Amount'}
-                        value={formatCurrencyAmount(amountToOnramp, onrampCurrency)}
-                    />
+                    <PaymentInfoRow label={'Amount'} value={formatCurrencyAmount(amountToOnramp, onrampCurrency)} />
                     <PaymentInfoRow
                         label={'Bank Name'}
                         value={onrampData?.depositInstructions?.bankName || 'Loading...'}

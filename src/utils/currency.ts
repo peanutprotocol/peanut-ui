@@ -1,13 +1,13 @@
-import { getCurrencySymbol } from "./bridge.utils"
+import { getCurrencySymbol } from './bridge.utils'
 
 // Helper function to get currency symbol based on code
 export const getDisplayCurrencySymbol = (code?: string, fallbackSymbol: string = '$'): string => {
-    const normalized = code?.toUpperCase();
-  
+    const normalized = code?.toUpperCase()
+
     if (normalized === 'ARS') return 'AR$'
     if (normalized === 'USD') return '$'
     if (normalized === 'MXN') return 'MX$'
-    
+
     return fallbackSymbol
 }
 
