@@ -2148,6 +2148,19 @@ countryData.forEach((country) => {
             return newMethod
         })
 
+        // Add country-specific add methods (same as withdraw methods for consistency)
+        if (specificMethodDetails && specificMethodDetails.length > 0) {
+            specificMethodDetails.forEach((method) => {
+                currentAddMethods.push({
+                    id: `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-add`,
+                    icon: method.icon ?? undefined,
+                    title: method.title,
+                    description: method.description,
+                    isSoon: true,
+                })
+            })
+        }
+
         COUNTRY_SPECIFIC_METHODS[countryCode] = {
             add: currentAddMethods,
             withdraw: withdrawList,
