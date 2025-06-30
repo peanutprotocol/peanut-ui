@@ -4,7 +4,6 @@ import {
     getOfframpCurrencyConfig,
     getCurrencySymbol,
     getPaymentRailDisplayName,
-    type BridgeOperationType,
     getMinimumAmount,
 } from '../bridge.utils'
 
@@ -20,7 +19,7 @@ describe('bridge.utils', () => {
             const offrampConfig = getCurrencyConfig('US', 'offramp')
             expect(offrampConfig).toEqual({
                 currency: 'usd',
-                paymentRail: 'ach_pull',
+                paymentRail: 'ach',
             })
         })
 
@@ -96,7 +95,7 @@ describe('bridge.utils', () => {
             const config = getOfframpCurrencyConfig('US')
             expect(config).toEqual({
                 currency: 'usd',
-                paymentRail: 'ach_pull',
+                paymentRail: 'ach',
             })
         })
 
@@ -176,7 +175,7 @@ describe('bridge.utils', () => {
     describe('getPaymentRailDisplayName', () => {
         it('should return correct display names for supported payment rails', () => {
             expect(getPaymentRailDisplayName('ach_push')).toBe('ACH Transfer')
-            expect(getPaymentRailDisplayName('ach_pull')).toBe('ACH Transfer')
+            expect(getPaymentRailDisplayName('ach')).toBe('ACH Transfer')
             expect(getPaymentRailDisplayName('sepa')).toBe('SEPA Transfer')
             expect(getPaymentRailDisplayName('spei')).toBe('SPEI Transfer')
             expect(getPaymentRailDisplayName('wire')).toBe('Wire Transfer')
@@ -198,7 +197,7 @@ describe('bridge.utils', () => {
             const offrampConfig = getCurrencyConfig('US', 'offramp')
 
             expect(onrampConfig.paymentRail).toBe('ach_push')
-            expect(offrampConfig.paymentRail).toBe('ach_pull')
+            expect(offrampConfig.paymentRail).toBe('ach')
             expect(onrampConfig.currency).toBe(offrampConfig.currency)
         })
 
