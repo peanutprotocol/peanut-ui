@@ -169,9 +169,22 @@ export const usePaymentInitiator = () => {
 
     // prepare transaction details (called from Confirm view)
     const prepareTransactionDetails = useCallback(
-        async (chargeDetails: TRequestChargeResponse, isWithdrawFlow?: boolean, usdAmount?: string) => {
-            isWithdrawFlow = isWithdrawFlow ?? false
-            if (!selectedTokenData || (!peanutWalletAddress && !wagmiAddress)) {
+        async (
+            chargeDetails: TRequestChargeResponse,
+            fromTokenAddress?: string,
+            fromChainId?: string,
+            usdAmount?: string
+        ) => {
+            // Default to selected token/chain if not provided
+            const actualFromTokenAddress = fromTokenAddress ?? selectedTokenData?.address
+            const actualFromChainId = fromChainId ?? selectedChainID
+
+            if (
+                !selectedTokenData ||
+                (!peanutWalletAddress && !wagmiAddress) ||
+                !actualFromTokenAddress ||
+                !actualFromChainId
+            ) {
                 console.warn('Missing data for transaction preparation')
                 return
             }
@@ -187,10 +200,8 @@ export const usePaymentInitiator = () => {
             setIsPreparingTx(true)
 
             try {
-                const fromTokenAddress = isWithdrawFlow ? PEANUT_WALLET_TOKEN : selectedTokenData.address
-                const fromChainId = isWithdrawFlow ? PEANUT_WALLET_CHAIN.id.toString() : selectedChainID
-                const _isXChain = fromChainId !== chargeDetails.chainId
-                const _diffTokens = !areEvmAddressesEqual(fromTokenAddress, chargeDetails.tokenAddress)
+                const _isXChain = actualFromChainId !== chargeDetails.chainId
+                const _diffTokens = !areEvmAddressesEqual(actualFromTokenAddress, chargeDetails.tokenAddress)
                 setIsXChain(_isXChain)
 
                 if (_isXChain || _diffTokens) {
@@ -207,8 +218,8 @@ export const usePaymentInitiator = () => {
                     const xChainRoute = await getRoute({
                         from: {
                             address: senderAddress as Address,
-                            tokenAddress: fromTokenAddress as Address,
-                            chainId: fromChainId,
+                            tokenAddress: actualFromTokenAddress as Address,
+                            chainId: actualFromChainId,
                         },
                         to: {
                             address: chargeDetails.requestLink.recipientAddress as Address,

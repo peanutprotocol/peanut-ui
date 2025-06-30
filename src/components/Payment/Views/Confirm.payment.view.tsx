@@ -138,7 +138,7 @@ export default function ConfirmPaymentView({
     useEffect(() => {
         if (chargeDetails && selectedTokenData && selectedChainID) {
             if (isDirectPay && chargeDetails.currencyCode.toLowerCase() === 'usd') {
-                prepareTransactionDetails(chargeDetails, false, chargeDetails.currencyAmount)
+                prepareTransactionDetails(chargeDetails, undefined, undefined, chargeDetails.currencyAmount)
             } else {
                 prepareTransactionDetails(chargeDetails)
             }

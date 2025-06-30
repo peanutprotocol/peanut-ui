@@ -409,10 +409,8 @@ export async function getRoute({ from, to, ...amount }: RouteParams): Promise<Pe
         const fromTokenPrice = await fetchTokenPrice(from.tokenAddress, from.chainId)
         if (!fromTokenPrice) throw new Error('Could not fetch from token price')
 
-        fromAmount = parseUnits(
-            (Number(amount.fromUsd) / fromTokenPrice.price).toString(),
-            fromTokenPrice.decimals
-        ).toString()
+        const tokenAmount = Number(amount.fromUsd) / fromTokenPrice.price
+        fromAmount = parseUnits(tokenAmount.toFixed(fromTokenPrice.decimals), fromTokenPrice.decimals).toString()
 
         response = await getSquidRouteRaw({
             fromChain: from.chainId,

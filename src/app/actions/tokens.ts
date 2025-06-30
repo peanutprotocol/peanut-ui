@@ -146,6 +146,38 @@ export const fetchTokenDetails = unstable_cache(
 )
 
 /**
+ * Get cached gas price for a chain
+ */
+const getCachedGasPrice = unstable_cache(
+    async (chainId: string) => {
+        const client = await getPublicClient(Number(chainId) as ChainId)
+        return await client.getGasPrice()
+    },
+    ['getGasPrice'],
+    {
+        revalidate: 2 * 60, // 2 minutes
+    }
+)
+
+/**
+ * Get cached gas estimate for a transaction
+ */
+const getCachedGasEstimate = unstable_cache(
+    async (fromAddress: Address, contractAddress: Address, data: Hex, chainId: string) => {
+        const client = await getPublicClient(Number(chainId) as ChainId)
+        return await client.estimateGas({
+            account: fromAddress,
+            to: contractAddress,
+            data,
+        })
+    },
+    ['getGasEstimate'],
+    {
+        revalidate: 5 * 60, // 5 minutes - gas estimates are more stable
+    }
+)
+
+/**
  * Estimate gas cost for transaction in USD
  */
 export async function estimateTransactionCostUsd(
@@ -155,22 +187,16 @@ export async function estimateTransactionCostUsd(
     chainId: string
 ): Promise<number> {
     try {
-        const client = await getPublicClient(Number(chainId) as ChainId)
-
-        // Estimate gas for approve transaction
-        const gasEstimate = await client.estimateGas({
-            account: fromAddress,
-            to: contractAddress,
-            data,
-        })
-
-        // Get current gas price
-        const gasPrice = await client.getGasPrice()
+        // Run all API calls in parallel since they're independent
+        const [gasEstimate, gasPrice, nativeTokenPrice] = await Promise.all([
+            getCachedGasEstimate(fromAddress, contractAddress, data, chainId),
+            getCachedGasPrice(chainId),
+            fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId),
+        ])
 
         // Calculate gas cost in native token
         const gasCostWei = gasEstimate * gasPrice
 
-        const nativeTokenPrice = await fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId)
         const estimatedCostUsd = nativeTokenPrice
             ? Number(formatUnits(gasCostWei, nativeTokenPrice.decimals)) * nativeTokenPrice.price
             : 0.01

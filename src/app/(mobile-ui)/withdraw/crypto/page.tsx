@@ -22,7 +22,7 @@ import {
 } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { PEANUT_WALLET_CHAIN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 
@@ -56,6 +56,19 @@ export default function WithdrawCryptoPage() {
         isPreparingTx,
     } = usePaymentInitiator()
 
+    // Helper to manage errors consistently
+    const setError = useCallback(
+        (error: string | null) => {
+            setPaymentError(error)
+            dispatch(paymentActions.setError(error))
+        },
+        [setPaymentError, dispatch]
+    )
+
+    const clearErrors = useCallback(() => {
+        setError(null)
+    }, [setError])
+
     useEffect(() => {
         if (!amountToWithdraw) {
             console.error('Amount not available in WithdrawFlowContext for withdrawal, redirecting.')
@@ -63,7 +76,7 @@ export default function WithdrawCryptoPage() {
             return
         }
         dispatch(paymentActions.setChargeDetails(null))
-        setPaymentError(null)
+        clearErrors()
         setCurrentView('INITIAL')
     }, [amountToWithdraw, router, dispatch, setAmountToWithdraw, setCurrentView])
 
@@ -75,7 +88,12 @@ export default function WithdrawCryptoPage() {
         if (currentView === 'CONFIRM' && activeChargeDetailsFromStore && withdrawData) {
             console.log('Preparing withdraw transaction details...')
             console.dir(activeChargeDetailsFromStore)
-            prepareTransactionDetails(activeChargeDetailsFromStore, true, amountToWithdraw)
+            prepareTransactionDetails(
+                activeChargeDetailsFromStore,
+                PEANUT_WALLET_TOKEN,
+                PEANUT_WALLET_CHAIN.id.toString(),
+                amountToWithdraw
+            )
         }
     }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, amountToWithdraw])
 
@@ -83,18 +101,15 @@ export default function WithdrawCryptoPage() {
         async (data: Omit<WithdrawData, 'amount'>) => {
             if (!amountToWithdraw) {
                 console.error('Amount to withdraw is not set or not available from context')
-                setPaymentError('Withdrawal amount is missing.')
+                setError('Withdrawal amount is missing.')
                 return
             }
-            const completeWithdrawData = { ...data, amount: amountToWithdraw }
-            setWithdrawData(completeWithdrawData)
 
-            setIsPreparingReview(true)
-            setPaymentError(null)
-            dispatch(paymentActions.setError(null))
+            clearErrors()
             dispatch(paymentActions.setChargeDetails(null))
 
             try {
+                const completeWithdrawData = { ...withdrawData, ...data }
                 const apiRequestPayload: CreateRequestPayloadServices = {
                     recipientAddress: completeWithdrawData.address,
                     chainId: completeWithdrawData.chain.chainId.toString(),
@@ -104,9 +119,9 @@ export default function WithdrawCryptoPage() {
                             ? peanutInterfaces.EPeanutLinkType.native
                             : peanutInterfaces.EPeanutLinkType.erc20
                     ),
+                    tokenAmount: amountToWithdraw,
+                    tokenDecimals: completeWithdrawData.token.decimals.toString(),
                     tokenSymbol: completeWithdrawData.token.symbol,
-                    tokenDecimals: String(completeWithdrawData.token.decimals),
-                    tokenAmount: completeWithdrawData.amount,
                 }
                 const newRequest: TRequestResponse = await requestsApi.create(apiRequestPayload)
 
@@ -116,7 +131,7 @@ export default function WithdrawCryptoPage() {
 
                 const chargePayload: CreateChargeRequest = {
                     pricing_type: 'fixed_price',
-                    local_price: { amount: completeWithdrawData.amount, currency: 'USD' },
+                    local_price: { amount: completeWithdrawData.amount || amountToWithdraw, currency: 'USD' },
                     baseUrl: window.location.origin,
                     requestId: newRequest.uuid,
                     requestProps: {
@@ -146,8 +161,7 @@ export default function WithdrawCryptoPage() {
             } catch (err: any) {
                 console.error('Error during setup review (request/charge creation):', err)
                 const errorMessage = err.message || 'Could not prepare withdrawal. Please try again.'
-                setPaymentError(errorMessage)
-                dispatch(paymentActions.setError(errorMessage))
+                setError(errorMessage)
             } finally {
                 setIsPreparingReview(false)
             }
@@ -161,18 +175,18 @@ export default function WithdrawCryptoPage() {
             setCurrentView('CONFIRM')
         } else {
             console.error('Proceeding to confirm, but charge details or withdraw data are missing.')
-            setPaymentError('Failed to load withdrawal details for confirmation. Please go back and try again.')
+            setError('Failed to load withdrawal details for confirmation. Please go back and try again.')
         }
     }, [activeChargeDetailsFromStore, withdrawData, setCurrentView])
 
     const handleConfirmWithdrawal = useCallback(async () => {
         if (!activeChargeDetailsFromStore || !withdrawData || !amountToWithdraw) {
             console.error('Withdraw data, active charge details, or amount missing for final confirmation')
-            setPaymentError('Essential withdrawal information is missing.')
+            setError('Essential withdrawal information is missing.')
             return
         }
 
-        setPaymentError(null)
+        clearErrors()
         dispatch(paymentActions.setError(null))
 
         const paymentPayload: InitiatePaymentPayload = {
@@ -198,8 +212,7 @@ export default function WithdrawCryptoPage() {
                 setCurrentView('INITIAL')
 
                 // clear any errors
-                setPaymentError(null)
-                dispatch(paymentActions.setError(null))
+                clearErrors()
 
                 // clear charge details
                 dispatch(paymentActions.setChargeDetails(null))
@@ -207,8 +220,7 @@ export default function WithdrawCryptoPage() {
         } else {
             console.error('Withdrawal execution failed:', result.error)
             const errMsg = result.error || 'Withdrawal processing failed.'
-            setPaymentError(errMsg)
-            dispatch(paymentActions.setError(errMsg))
+            setError(errMsg)
         }
     }, [
         activeChargeDetailsFromStore,
@@ -226,12 +238,17 @@ export default function WithdrawCryptoPage() {
         if (!activeChargeDetailsFromStore) return
         console.log('Refreshing withdraw route due to expiry...')
         console.log('About to call prepareTransactionDetails with:', activeChargeDetailsFromStore)
-        await prepareTransactionDetails(activeChargeDetailsFromStore, true, amountToWithdraw)
+        await prepareTransactionDetails(
+            activeChargeDetailsFromStore,
+            PEANUT_WALLET_TOKEN,
+            PEANUT_WALLET_CHAIN.id.toString(),
+            amountToWithdraw
+        )
     }, [activeChargeDetailsFromStore, prepareTransactionDetails, amountToWithdraw])
 
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')
-        setPaymentError(null)
+        clearErrors()
         dispatch(paymentActions.setError(null))
         dispatch(paymentActions.setChargeDetails(null))
     }, [dispatch, setCurrentView])
@@ -267,6 +284,7 @@ export default function WithdrawCryptoPage() {
         return null
     }, [isCrossChainWithdrawal, xChainRoute, isPeanutWallet])
 
+    // Display payment errors first (user actions), then route errors (system limitations)
     const displayError = paymentError ?? routeTypeError
 
     // Get network fee from route or fallback
