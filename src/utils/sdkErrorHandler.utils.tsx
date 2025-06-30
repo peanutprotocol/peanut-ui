@@ -109,6 +109,8 @@ export const ErrorHandler = (error: any) => {
             return 'Failed to switch network. Try switching to the correct network manually.'
         } else if (error.toString().includes('Insufficient balance')) {
             return "You don't have enough balance."
+        } else if (error.toString().includes('The operation either timed out or was not allowed')) {
+            return 'Please confirm the transaction.'
         } else {
             return 'Something failed. Please try again.'
         }

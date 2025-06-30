@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
-import { AddWithdrawRouterView } from '@/components/AddWithdraw/components/AddWithdrawRouterView'
+import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRouterView'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
@@ -24,7 +24,7 @@ export default function WithdrawPage() {
         setAmountToWithdraw,
         setError,
         error,
-        setRecipient,
+        resetWithdrawFlow,
     } = useWithdrawFlow()
 
     const { balance } = useWallet()
@@ -39,7 +39,7 @@ export default function WithdrawPage() {
     }, [balance])
 
     useEffect(() => {
-        setRecipient({ address: '', name: '' })
+        resetWithdrawFlow()
     }, [])
 
     useEffect(() => {
@@ -61,17 +61,18 @@ export default function WithdrawPage() {
                 return true
             }
 
-            const amount = Number(amountStr)
+            const cleanedAmountStr = amountStr.replace(/,/g, '')
+            const amount = Number(cleanedAmountStr)
 
-            if (Number.isFinite(amount) && amount > 0 && amount <= maxDecimalAmount) {
+            if (Number.isFinite(amount) && amount >= 1 && amount <= maxDecimalAmount) {
                 setError({ showError: false, errorMessage: '' })
                 return true
             } else {
                 let message = 'Please enter a valid amount.'
                 if (!Number.isFinite(amount)) {
                     message = 'Please enter a valid number.'
-                } else if (amount <= 0) {
-                    message = 'Amount must be greater than zero.'
+                } else if (amount < 1) {
+                    message = 'Minimum withdrawal is 1.'
                 } else if (amount > maxDecimalAmount) {
                     message = 'Amount exceeds your wallet balance.'
                 }
@@ -103,12 +104,8 @@ export default function WithdrawPage() {
     }, [rawTokenAmount, validateAmount, setError, amountFromContext])
 
     const handleAmountContinue = () => {
-        // the button is disabled if amount is not > 0.
-        // validateAmount will perform the final check against balance and format.
         if (validateAmount(rawTokenAmount)) {
-            if (parseFloat(rawTokenAmount) > 0) {
-                setAmountToWithdraw(rawTokenAmount)
-            }
+            setAmountToWithdraw(rawTokenAmount.replace(/,/g, ''))
         }
     }
 
@@ -128,7 +125,11 @@ export default function WithdrawPage() {
                         variant="purple"
                         shadowSize="4"
                         onClick={handleAmountContinue}
-                        disabled={!parseFloat(rawTokenAmount) || parseFloat(rawTokenAmount) <= 0 || error.showError}
+                        disabled={
+                            !parseFloat(rawTokenAmount.replace(/,/g, '')) ||
+                            parseFloat(rawTokenAmount.replace(/,/g, '')) < 1 ||
+                            error.showError
+                        }
                         className="w-full"
                     >
                         Continue

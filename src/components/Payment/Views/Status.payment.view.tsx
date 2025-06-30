@@ -26,7 +26,7 @@ type DirectSuccessViewProps = {
     amount?: string
     message?: string | ReactNode
     recipientType?: RecipientType
-    type: 'SEND' | 'REQUEST'
+    type?: 'SEND' | 'REQUEST'
     headerTitle?: string
     currencyAmount?: string
     isAddMoneyFlow?: boolean

@@ -54,8 +54,7 @@ export const Claim = ({}) => {
     const [claimToExternalWallet, setClaimToExternalWallet] = useState<boolean>(false)
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
-    const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
-    const router = useRouter()
+    const { selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
 
     const [initialKYCStep, setInitialKYCStep] = useState<number>(0)
 
