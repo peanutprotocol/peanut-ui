@@ -183,13 +183,6 @@ const TokenAmountInput = ({
         }
     }, [setUsdValue, displayValue, alternativeDisplayValue, isInputUsd, displayMode])
 
-    const parentWidth = useMemo(() => {
-        if (inputRef.current && inputRef.current.parentElement) {
-            return inputRef.current.parentElement.offsetWidth
-        }
-        return 'auto'
-    }, [])
-
     const formRef = useRef<HTMLFormElement>(null)
 
     const handleContainerClick = () => {
@@ -208,7 +201,7 @@ const TokenAmountInput = ({
             <div className="flex h-14 w-full flex-row items-center justify-center gap-1">
                 <label className={`text-h1 ${displayValue ? 'text-black' : 'text-gray-2'}`}>{displaySymbol}</label>
                 <input
-                    className={`h-12 w-[4ch] max-w-80 bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                    className={`h-12 w-[4ch] max-w-80 bg-transparent text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                     placeholder={'0.00'}
                     onChange={(e) => {
                         const value = formatAmountWithoutComma(e.target.value)
@@ -227,7 +220,6 @@ const TokenAmountInput = ({
                             if (onSubmit) onSubmit()
                         }
                     }}
-                    style={{ maxWidth: `${parentWidth}px` }}
                     disabled={disabled}
                 />
             </div>
