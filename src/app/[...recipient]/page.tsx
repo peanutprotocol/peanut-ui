@@ -42,7 +42,7 @@ export async function generateMetadata({ params, searchParams }: any) {
     const isAddressOrEns = isEthAddress || isEnsName
 
     // Determine if we should generate custom OG image
-    const shouldGenerateCustomOG = amount || isAddressOrEns
+    const shouldGenerateCustomOG = amount || isAddressOrEns || chargeId
 
     let isPaid = false
     let ogImageUrl = '/metadata-img.png' // Default fallback
@@ -51,8 +51,13 @@ export async function generateMetadata({ params, searchParams }: any) {
     if (chargeId) {
         try {
             const chargeDetails = await chargesApi.get(chargeId)
-            console.log('chargeDetails', chargeDetails)
             isPaid = chargeDetails?.fulfillmentPayment?.status === 'SUCCESSFUL'
+            
+            // If we don't have amount/token from URL but have chargeId, get them from charge details
+            if (!amount && chargeDetails) {
+                amount = chargeDetails.tokenAmount
+                token = chargeDetails.tokenSymbol
+            }
         } catch (error) {
             console.error('Failed to fetch charge details:', error)
         }
@@ -93,6 +98,9 @@ export async function generateMetadata({ params, searchParams }: any) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount}`
     } else if (isAddressOrEns) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting funds`
+    } else if (chargeId) {
+        // For request links with chargeId but no amount/token info, use generic title
+        title = `${isEthAddress ? printableAddress(recipient) : recipient} | Peanut`
     } else {
         // For Peanut usernames without amounts, use generic title
         title = `${recipient} | Peanut`
