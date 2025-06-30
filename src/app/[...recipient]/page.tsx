@@ -52,7 +52,7 @@ export async function generateMetadata({ params, searchParams }: any) {
         try {
             const chargeDetails = await chargesApi.get(chargeId)
             isPaid = chargeDetails?.fulfillmentPayment?.status === 'SUCCESSFUL'
-            
+
             // If we don't have amount/token from URL but have chargeId, get them from charge details
             if (!amount && chargeDetails) {
                 amount = chargeDetails.tokenAmount
