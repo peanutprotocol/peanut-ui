@@ -190,13 +190,37 @@ export default function WithdrawCryptoPage() {
 
         if (result.success && result.txHash) {
             setCurrentView('STATUS')
+
+            // reset the entire withdraw flow after successful payment
+            setTimeout(() => {
+                setAmountToWithdraw('')
+                setWithdrawData(null)
+                setCurrentView('INITIAL')
+
+                // clear any errors
+                setPaymentError(null)
+                dispatch(paymentActions.setError(null))
+
+                // clear charge details
+                dispatch(paymentActions.setChargeDetails(null))
+            }, 3000) // wait 3 seconds to show success status before resetting
         } else {
             console.error('Withdrawal execution failed:', result.error)
             const errMsg = result.error || 'Withdrawal processing failed.'
             setPaymentError(errMsg)
             dispatch(paymentActions.setError(errMsg))
         }
-    }, [activeChargeDetailsFromStore, withdrawData, amountToWithdraw, dispatch, initiatePayment, setCurrentView])
+    }, [
+        activeChargeDetailsFromStore,
+        withdrawData,
+        amountToWithdraw,
+        dispatch,
+        initiatePayment,
+        setCurrentView,
+        setAmountToWithdraw,
+        setWithdrawData,
+        setPaymentError,
+    ])
 
     const handleRouteRefresh = useCallback(async () => {
         if (!activeChargeDetailsFromStore) return

@@ -3,6 +3,7 @@ import { Claim } from '@/components'
 import { BASE_URL } from '@/constants'
 import { formatAmount } from '@/utils'
 import { Metadata } from 'next'
+import getOrigin from '@/lib/hosting/get-origin'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +17,7 @@ export async function generateMetadata({
     const resolvedSearchParams = await searchParams
 
     let title = 'Claim Payment | Peanut'
-    const host = BASE_URL
+    const siteUrl: string = (await getOrigin()) || BASE_URL // getOrigin for getting the origin of the site regardless of its a vercel preview or not
 
     let linkDetails = undefined
     if (resolvedSearchParams.i && resolvedSearchParams.c) {
@@ -29,7 +30,7 @@ export async function generateMetadata({
                     queryParams.append(key, val)
                 }
             })
-            const url = `${host}/claim?${queryParams.toString()}`
+            const url = `${siteUrl}/claim?${queryParams.toString()}`
             linkDetails = await getLinkDetails(url)
 
             if (!linkDetails.claimed) {
@@ -48,34 +49,49 @@ export async function generateMetadata({
         }
     }
 
-    let previewUrl = '/metadata-img.png'
-    if (linkDetails && !linkDetails.claimed) {
-        const url = new URL('/api/preview-image', host)
-        url.searchParams.append('amount', linkDetails.tokenAmount.toString())
-        url.searchParams.append('tokenSymbol', linkDetails.tokenSymbol)
-        url.searchParams.append('address', linkDetails.senderAddress)
-        url.searchParams.append('previewType', 'CLAIM')
-        previewUrl = url.toString()
+    // Use the social preview logic from recipient page
+    let ogImageUrl = '/metadata-img.png'
+    if (linkDetails) {
+        const ogUrl = new URL(`${siteUrl}/api/og`)
+        ogUrl.searchParams.set('type', 'send')
+        ogUrl.searchParams.set('username', linkDetails.senderAddress)
+
+        if (!linkDetails.claimed) {
+            // for unclaimed links, show claim preview
+            ogUrl.searchParams.set('amount', linkDetails.tokenAmount.toString())
+            ogUrl.searchParams.set('token', linkDetails.tokenSymbol)
+        } else {
+            // for claimed links, show claimed status
+            ogUrl.searchParams.set('isReceipt', 'true')
+        }
+
+        if (!siteUrl) {
+            console.error('Error: Unable to determine site origin')
+        } else {
+            ogImageUrl = ogUrl.toString()
+        }
     }
+
+    const description = linkDetails?.claimed
+        ? 'This payment link has already been claimed.'
+        : 'Receive this payment to your Peanut account, or directly to your bank account.'
 
     return {
         title,
-        description: 'Receive this payment to your Peanut account, or directly to your bank account.',
-        icons: { icon: '/favicon.ico' },
+        description,
+        icons: {
+            icon: '/logo-favicon.png',
+        },
         openGraph: {
-            images: [
-                {
-                    url: previewUrl,
-                    width: 400,
-                    height: 200,
-                },
-            ],
+            title,
+            description: 'Seamless payment infrastructure for sending and receiving digital assets.',
+            images: [{ url: ogImageUrl, width: 1200, height: 630 }],
         },
         twitter: {
             card: 'summary_large_image',
             title,
             description: 'Claim your tokens using Peanut Protocol',
-            images: [previewUrl],
+            images: [ogImageUrl],
         },
     }
 }

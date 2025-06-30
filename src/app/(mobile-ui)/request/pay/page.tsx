@@ -1,4 +1,3 @@
-import { PreviewType } from '@/components/Global/ImageGeneration/LinkPreview'
 import { PayRequestLink } from '@/components/Request/Pay/Pay'
 import { chargesApi } from '@/services/charges'
 import { formatAmount, printableAddress } from '@/utils'
@@ -19,15 +18,13 @@ function getPreviewUrl(
         recipientAddress: string
     }
 ) {
-    const url = new URL('/api/preview-image', host)
+    const url = new URL('/api/og', host)
 
     const params = new URLSearchParams({
+        type: 'request',
+        username: data.recipientAddress ?? '',
         amount: data.tokenAmount,
-        chainId: data.chainId,
-        tokenAddress: data.tokenAddress,
-        tokenSymbol: data.tokenSymbol ?? '',
-        address: data.recipientAddress ?? '',
-        previewType: PreviewType.REQUEST,
+        token: data.tokenSymbol ?? '',
     })
 
     url.search = params.toString()

@@ -4,7 +4,7 @@ import Icon from '@/components/Global/Icon'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { BASE_URL } from '@/constants'
-import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
@@ -13,6 +13,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Card, { CardPosition, getCardPosition } from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'
+import { KycStatusItem } from '../Kyc/KycStatusItem'
+import { isKycStatusItem, KycHistoryEntry } from '@/hooks/useKycFlow'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -39,30 +41,66 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     useEffect(() => {
         if (historyData?.entries) {
             // Start with the fetched entries
-            const entries = [...historyData.entries]
+            const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
 
-            // Add any WebSocket entries that aren't already in the list
-            wsHistoryEntries.forEach((wsEntry) => {
-                if (!entries.some((entry) => entry.uuid === wsEntry.uuid)) {
+            // process websocket entries: update existing or add new ones
+            // Sort by timestamp ascending to process oldest entries first
+            const sortedWsEntries = [...wsHistoryEntries].sort(
+                (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            )
+            sortedWsEntries.forEach((wsEntry) => {
+                const existingIndex = entries.findIndex((entry) => entry.uuid === wsEntry.uuid)
+
+                if (existingIndex !== -1) {
+                    // update existing entry with latest websocket data
                     if (wsEntry.extraData) {
                         wsEntry.extraData.usdAmount = wsEntry.amount.toString()
                     } else {
                         wsEntry.extraData = { usdAmount: wsEntry.amount.toString() }
                     }
                     wsEntry.extraData.link = `${BASE_URL}/${wsEntry.recipientAccount.username || wsEntry.recipientAccount.identifier}?chargeId=${wsEntry.uuid}`
-                    entries.unshift(wsEntry)
+                    entries[existingIndex] = wsEntry
+                } else {
+                    // add new entry if it doesn't exist
+                    if (wsEntry.extraData) {
+                        wsEntry.extraData.usdAmount = wsEntry.amount.toString()
+                    } else {
+                        wsEntry.extraData = { usdAmount: wsEntry.amount.toString() }
+                    }
+                    wsEntry.extraData.link = `${BASE_URL}/${wsEntry.recipientAccount.username || wsEntry.recipientAccount.identifier}?chargeId=${wsEntry.uuid}`
+                    entries.push(wsEntry)
                 }
+            })
+
+            // Add KYC status item if applicable and not on a public page
+            if (user?.user?.kycStatus && user.user.kycStatus !== 'not_started' && user.user.kycStartedAt && !isPublic) {
+                entries.push({
+                    isKyc: true,
+                    timestamp: user.user.kycStartedAt,
+                    uuid: 'kyc-status-item',
+                })
+            }
+
+            // Sort entries by date in descending order
+            entries.sort((a, b) => {
+                const dateA = new Date(a.timestamp || 0).getTime()
+                const dateB = new Date(b.timestamp || 0).getTime()
+                return dateB - dateA
             })
 
             // Limit to the most recent entries
             setCombinedEntries(entries.slice(0, isPublic ? 20 : 5))
         }
-    }, [historyData, wsHistoryEntries, isPublic])
+    }, [historyData, wsHistoryEntries, isPublic, user])
 
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []
         return combinedEntries.filter(
-            (entry) => entry.type === 'REQUEST' && entry.userRole === 'SENDER' && entry.status === 'NEW'
+            (entry) =>
+                !isKycStatusItem(entry) &&
+                entry.type === 'REQUEST' &&
+                entry.userRole === 'SENDER' &&
+                entry.status === 'NEW'
         )
     }, [combinedEntries])
 
@@ -96,7 +134,11 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     if (!combinedEntries.length) {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <h2 className="text-base font-bold">Recent Transactions</h2>{' '}
+                <div className="space-y-3">
+                    <h2 className="text-base font-bold">Activity</h2>
+                    <KycStatusItem position="single" />
+                </div>
+                <h2 className="text-base font-bold">Recent Transactions</h2>
                 <EmptyState
                     icon="txn-off"
                     title="No transactions yet!"
@@ -142,7 +184,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                 <h2 className="text-base font-bold">Latest Transactions</h2>
             ) : (
                 <Link href="/history" className="flex items-center justify-between">
-                    <h2 className="text-base font-bold">Transactions</h2>
+                    <h2 className="text-base font-bold">Activity</h2>
                     <Icon width={30} height={30} name="arrow-next" />
                 </Link>
             )}
@@ -152,14 +194,21 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                 {combinedEntries
                     .filter((item) => !pendingRequests.some((r) => r.uuid === item.uuid))
                     .map((item, index) => {
-                        // map the raw history entry to the format needed by the ui components
-                        const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
-
-                        // determine card position for styling (first, middle, last, single)
+                        // filter out pending requests to calculate correct card position
                         const filteredEntries = combinedEntries.filter(
                             (entry) => !pendingRequests.some((r) => r.uuid === entry.uuid)
                         )
                         const position = getCardPosition(index, filteredEntries.length)
+
+                        // Render KYC status item if it's its turn in the sorted list
+                        if (isKycStatusItem(item)) {
+                            return <KycStatusItem key={item.uuid} position={position} />
+                        }
+
+                        // map the raw history entry to the format needed by the ui components
+                        const { transactionDetails, transactionCardType } = mapTransactionDataForDrawer(item)
+
+                        // determine card position for styling (first, middle, last, single)
 
                         return (
                             <TransactionCard

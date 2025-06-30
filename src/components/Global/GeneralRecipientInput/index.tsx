@@ -97,7 +97,7 @@ const GeneralRecipientInput = ({
                 _update = {
                     //the logic is here to avoid adding ens and username to the recent recipients IF THIS IS A WITHDRAWAL
                     recipient:
-                        'ens' === recipientType.current
+                        'ens' === recipientType.current || (!isWithdrawal && 'username' === recipientType.current)
                             ? { address: resolvedAddress.current, name: sanitizedValue }
                             : { address: sanitizedValue, name: undefined },
                     type: recipientType.current,

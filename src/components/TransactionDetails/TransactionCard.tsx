@@ -8,12 +8,21 @@ import { TransactionDetails } from '@/components/TransactionDetails/transactionT
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { formatNumberForDisplay } from '@/utils'
+import { getDisplayCurrencySymbol } from '@/utils/currency'
 import React from 'react'
 import AddressLink from '../Global/AddressLink'
 import { STABLE_COINS } from '@/constants'
 import Image from 'next/image'
 
-export type TransactionType = 'send' | 'withdraw' | 'add' | 'request' | 'cashout' | 'receive'
+export type TransactionType =
+    | 'send'
+    | 'withdraw'
+    | 'add'
+    | 'request'
+    | 'cashout'
+    | 'receive'
+    | 'bank_withdraw'
+    | 'bank_deposit'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -24,13 +33,6 @@ interface TransactionCardProps {
     position?: CardPosition
     transaction: TransactionDetails
     isPending?: boolean
-}
-
-// Helper function to get currency symbol based on code - can be moved to utils if used elsewhere
-const getDisplayCurrencySymbol = (code?: string, fallbackSymbol: string = '$'): string => {
-    if (code === 'ARS') return 'AR$'
-    if (code === 'USD') return '$'
-    return fallbackSymbol
 }
 
 /**
@@ -64,7 +66,20 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const actualCurrencyCode = transaction.currency?.code
     const defaultDisplayDecimals = actualCurrencyCode === 'JPY' ? 0 : 2 // JPY has 0, others default to 2
 
-    if (actualCurrencyCode === 'ARS' && transaction.currency?.amount) {
+    // Special handling for bank_deposit transactions with non-USD currency
+    if (type === 'bank_deposit' && actualCurrencyCode && actualCurrencyCode.toUpperCase() !== 'USD') {
+        const isCompleted = transaction.status === 'completed'
+
+        if (isCompleted) {
+            // For completed transactions: show USD amount (amount is already in USD)
+            finalDisplayAmount = `$${formatNumberForDisplay(Math.abs(amount).toString(), { maxDecimals: defaultDisplayDecimals })}`
+        } else {
+            // For non-completed transactions: show original currency
+            const currencyAmount = transaction.currency?.amount || amount.toString()
+            const currencySymbol = getDisplayCurrencySymbol(actualCurrencyCode.toUpperCase())
+            finalDisplayAmount = `${currencySymbol}${formatNumberForDisplay(currencyAmount, { maxDecimals: defaultDisplayDecimals })}`
+        }
+    } else if (actualCurrencyCode === 'ARS' && transaction.currency?.amount) {
         let arsSign = ''
         const originalType = transaction.extraDataForDrawer?.originalType as EHistoryEntryType | undefined
         const originalUserRole = transaction.extraDataForDrawer?.originalUserRole as EHistoryUserRole | undefined
@@ -112,7 +127,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     return (
         <>
             {/* the clickable card */}
-            <Card position={position} onClick={handleClick}>
+            <Card position={position} onClick={handleClick} className="cursor-pointer">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
@@ -151,7 +166,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-gray-500">
                                 {getActionIcon(type, transaction.direction)}
-                                <span className="text-[14px] capitalize">{type}</span>
+                                <span className="text-[14px] capitalize">{getActionText(type)}</span>
                             </div>
                         </div>
                     </div>
@@ -194,11 +209,13 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
             iconName = 'arrow-down-left'
             break
         case 'withdraw':
+        case 'bank_withdraw':
         case 'cashout':
             iconName = 'arrow-up'
             iconSize = 8
             break
         case 'add':
+        case 'bank_deposit':
             iconName = 'arrow-down'
             iconSize = 8
             break
@@ -206,6 +223,19 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
             return null
     }
     return <Icon name={iconName} size={iconSize} fill="currentColor" />
+}
+
+function getActionText(type: TransactionType): string {
+    let actionText: string = type
+    switch (type) {
+        case 'bank_withdraw':
+            actionText = 'Withdraw'
+            break
+        case 'bank_deposit':
+            actionText = 'Add'
+            break
+    }
+    return actionText
 }
 
 export default TransactionCard
