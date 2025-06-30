@@ -229,12 +229,6 @@ export const usePaymentInitiator = () => {
                         ...amount,
                     })
 
-                    /*
-                    if (!txData?.unsignedTxs) {
-                        throw new Error('Failed to prepare cross-chain transaction')
-                    }
-                    */
-
                     const slippagePercentage = Number(xChainRoute.fromAmount) / Number(chargeDetails.tokenAmount) - 1
                     setXChainRoute(xChainRoute)
                     setXChainUnsignedTxs(
