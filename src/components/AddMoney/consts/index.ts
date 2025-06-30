@@ -2094,7 +2094,7 @@ countryData.forEach((country) => {
                     icon: method.icon ?? undefined,
                     title: method.title,
                     description: method.description,
-                    isSoon: true,
+                    isSoon: !isCountryEnabledForBankTransfer(countryCode),
                 })
             })
         }
