@@ -1,5 +1,5 @@
 import { IconName } from '@/components/Global/Icons/Icon'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import AvatarWithBadge, { AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { TransactionType } from '@/components/TransactionDetails/TransactionCard'
 import {
     AVATAR_LINK_BG,
@@ -11,16 +11,14 @@ import {
 import React from 'react'
 import { isAddress } from 'viem'
 
-type PeerAvatarSize = 'extra-small' | 'small' | 'medium' | 'large'
-
 interface TransactionAvatarBadgeProps {
+    size?: AvatarSize
     initials?: string
     userName?: string
     isLinkTransaction?: boolean
     isVerified?: boolean
-    size?: PeerAvatarSize
     transactionType: TransactionType
-    context: 'card' | 'header'
+    context: 'card' | 'header' | 'drawer'
 }
 
 /**
@@ -50,6 +48,13 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
         case 'withdraw':
             displayIconName = 'wallet-outline'
             displayInitials = undefined
+            break
+        case 'bank_withdraw':
+        case 'bank_deposit':
+            displayIconName = 'bank'
+            displayInitials = undefined
+            calculatedBgColor = AVATAR_TEXT_DARK
+            textColor = AVATAR_TEXT_LIGHT
             break
         case 'cashout':
             displayIconName = 'bank'

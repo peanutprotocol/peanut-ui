@@ -39,6 +39,7 @@ export interface ActionModalProps {
     titleClassName?: string
     descriptionClassName?: string
     buttonProps?: ButtonProps
+    footer?: React.ReactNode
 }
 
 const ActionModal: React.FC<ActionModalProps> = ({
@@ -62,6 +63,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     titleClassName,
     descriptionClassName,
     buttonProps,
+    footer,
 }) => {
     const defaultModalPanelClasses = 'max-w-[85%]'
     const defaultIconContainerClassName = 'bg-primary-1' // default pink background
@@ -206,6 +208,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         )}
                     </div>
                 )}
+                {footer}
             </div>
         </BaseModal>
     )

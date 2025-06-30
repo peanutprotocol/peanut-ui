@@ -16,6 +16,8 @@ export enum EHistoryEntryType {
     SEND_LINK = 'SEND_LINK',
     DIRECT_SEND = 'DIRECT_SEND',
     WITHDRAW = 'WITHDRAW',
+    BRIDGE_OFFRAMP = 'BRIDGE_OFFRAMP',
+    BRIDGE_ONRAMP = 'BRIDGE_ONRAMP',
 }
 
 export enum EHistoryUserRole {
@@ -148,7 +150,7 @@ export function useTransactionHistory({
                 let tokenSymbol: string = ''
                 let usdAmount: string = ''
                 switch (entry.type) {
-                    case 'SEND_LINK':
+                    case EHistoryEntryType.SEND_LINK: {
                         const password = getFromLocalStorage(`sendLink::password::${entry.uuid}`)
                         const { contractVersion, depositIdx } = extraData
                         if (password) {
@@ -161,16 +163,19 @@ export function useTransactionHistory({
                         usdAmount = formatUnits(BigInt(entry.amount), tokenDetails?.decimals ?? 6)
                         tokenSymbol = tokenDetails?.symbol ?? ''
                         break
-                    case 'REQUEST':
+                    }
+                    case EHistoryEntryType.REQUEST: {
                         link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break
-                    case 'DIRECT_SEND':
+                    }
+                    case EHistoryEntryType.DIRECT_SEND: {
                         link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break
+                    }
                     case EHistoryEntryType.DEPOSIT: {
                         const details = getTokenDetails({
                             tokenAddress: entry.tokenAddress as Hash,
@@ -187,15 +192,18 @@ export function useTransactionHistory({
                         break
                     }
                     case EHistoryEntryType.WITHDRAW:
+                    case EHistoryEntryType.BRIDGE_OFFRAMP:
+                    case EHistoryEntryType.BRIDGE_ONRAMP: {
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break
-                    default:
+                    }
+                    default: {
                         if (entry.amount && !usdAmount) {
                             usdAmount = entry.amount.toString()
                         }
                         tokenSymbol = entry.tokenSymbol
-                        break
+                    }
                 }
                 return {
                     ...entry,

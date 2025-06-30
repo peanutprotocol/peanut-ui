@@ -154,8 +154,8 @@ export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
         id: 'bank-transfer-add',
         icon: 'bank' as IconName,
         title: 'From Bank',
-        description: '1 to 3 working days - KYC required',
-        isSoon: true,
+        description: 'Usually in minutes - KYC required',
+        isSoon: false,
     },
     {
         id: 'mercado-pago-add',
@@ -185,7 +185,7 @@ export const DEFAULT_BANK_WITHDRAW_METHOD: SpecificPaymentMethod = {
     icon: 'bank' as IconName,
     title: 'To Bank',
     description: 'Standard bank withdrawal',
-    isSoon: true,
+    isSoon: false,
 }
 
 const countrySpecificWithdrawMethods: Record<
@@ -223,7 +223,7 @@ const countrySpecificWithdrawMethods: Record<
     'Saudi Arabia': [{ title: 'SARIE', description: 'Real-time fund transfers, national scale.' }],
     Tanzania: [{ title: 'M-Pesa', description: 'Same infrastructure as Kenya.' }],
     Pakistan: [{ title: 'Raast', description: 'State-backed instant payments, scaling fast.' }],
-    Turkey: [{ title: 'FAST', description: "Central bank\'s instant payment system." }],
+    Turkey: [{ title: 'FAST', description: "Central bank's instant payment system." }],
     Canada: [{ title: 'Interac e-Transfer', description: 'Widely used for P2P and bill payments.' }],
     Germany: [{ title: 'SEPA Instant', description: 'EU-wide real-time bank transfers.', icon: 'bank' as IconName }],
     Italy: [{ title: 'SEPA Instant', description: 'EU-wide real-time bank transfers.', icon: 'bank' as IconName }],
@@ -239,7 +239,7 @@ export const countryData: CountryData[] = [
         path: 'crypto',
     },
     {
-        id: 'AD',
+        id: 'AND',
         type: 'country',
         title: 'Andorra',
         currency: 'EUR',
@@ -316,7 +316,7 @@ export const countryData: CountryData[] = [
         path: 'american-samoa',
     },
     {
-        id: 'AT',
+        id: 'AUT',
         type: 'country',
         title: 'Austria',
         currency: 'EUR',
@@ -337,7 +337,7 @@ export const countryData: CountryData[] = [
         path: 'aruba',
     },
     {
-        id: 'AX',
+        id: 'ALA',
         type: 'country',
         title: 'Åland',
         currency: 'EUR',
@@ -372,7 +372,7 @@ export const countryData: CountryData[] = [
         path: 'bangladesh',
     },
     {
-        id: 'BE',
+        id: 'BEL',
         type: 'country',
         title: 'Belgium',
         currency: 'EUR',
@@ -386,7 +386,7 @@ export const countryData: CountryData[] = [
         path: 'burkina-faso',
     },
     {
-        id: 'BG',
+        id: 'BGR',
         type: 'country',
         title: 'Bulgaria',
         currency: 'BGN',
@@ -533,7 +533,7 @@ export const countryData: CountryData[] = [
         path: 'republic-of-the-congo',
     },
     {
-        id: 'CH',
+        id: 'CHE',
         type: 'country',
         title: 'Switzerland',
         currency: 'CHF',
@@ -617,21 +617,21 @@ export const countryData: CountryData[] = [
         path: 'christmas-island',
     },
     {
-        id: 'CY',
+        id: 'CYP',
         type: 'country',
         title: 'Cyprus',
         currency: 'EUR',
         path: 'cyprus',
     },
     {
-        id: 'CZ',
+        id: 'CZE',
         type: 'country',
         title: 'Czechia',
         currency: 'CZK',
         path: 'czechia',
     },
     {
-        id: 'DE',
+        id: 'DEU',
         type: 'country',
         title: 'Germany',
         currency: 'EUR',
@@ -645,7 +645,7 @@ export const countryData: CountryData[] = [
         path: 'djibouti',
     },
     {
-        id: 'DK',
+        id: 'DNK',
         type: 'country',
         title: 'Denmark',
         currency: 'DKK',
@@ -680,7 +680,7 @@ export const countryData: CountryData[] = [
         path: 'ecuador',
     },
     {
-        id: 'EE',
+        id: 'EST',
         type: 'country',
         title: 'Estonia',
         currency: 'EUR',
@@ -708,7 +708,7 @@ export const countryData: CountryData[] = [
         path: 'eritrea',
     },
     {
-        id: 'ES',
+        id: 'ESP',
         type: 'country',
         title: 'Spain',
         currency: 'EUR',
@@ -722,7 +722,7 @@ export const countryData: CountryData[] = [
         path: 'ethiopia',
     },
     {
-        id: 'FI',
+        id: 'FIN',
         type: 'country',
         title: 'Finland',
         currency: 'EUR',
@@ -757,7 +757,7 @@ export const countryData: CountryData[] = [
         path: 'faroe-islands',
     },
     {
-        id: 'FR',
+        id: 'FRA',
         type: 'country',
         title: 'France',
         currency: 'EUR',
@@ -771,7 +771,7 @@ export const countryData: CountryData[] = [
         path: 'gabon',
     },
     {
-        id: 'GB',
+        id: 'GBR',
         type: 'country',
         title: 'United Kingdom',
         currency: 'GBP',
@@ -792,7 +792,7 @@ export const countryData: CountryData[] = [
         path: 'georgia',
     },
     {
-        id: 'GF',
+        id: 'GUF',
         type: 'country',
         title: 'French Guiana',
         currency: 'EUR',
@@ -918,7 +918,7 @@ export const countryData: CountryData[] = [
         path: 'honduras',
     },
     {
-        id: 'HR',
+        id: 'HRV',
         type: 'country',
         title: 'Croatia',
         currency: 'EUR',
@@ -932,7 +932,7 @@ export const countryData: CountryData[] = [
         path: 'haiti',
     },
     {
-        id: 'HU',
+        id: 'HUN',
         type: 'country',
         title: 'Hungary',
         currency: 'HUF',
@@ -946,7 +946,7 @@ export const countryData: CountryData[] = [
         path: 'indonesia',
     },
     {
-        id: 'IE',
+        id: 'IRL',
         type: 'country',
         title: 'Ireland',
         currency: 'EUR',
@@ -995,14 +995,14 @@ export const countryData: CountryData[] = [
         path: 'iran',
     },
     {
-        id: 'IS',
+        id: 'ISL',
         type: 'country',
         title: 'Iceland',
         currency: 'ISK',
         path: 'iceland',
     },
     {
-        id: 'IT',
+        id: 'ITA',
         type: 'country',
         title: 'Italy',
         currency: 'EUR',
@@ -1163,21 +1163,21 @@ export const countryData: CountryData[] = [
         path: 'lesotho',
     },
     {
-        id: 'LT',
+        id: 'LTU',
         type: 'country',
         title: 'Lithuania',
         currency: 'EUR',
         path: 'lithuania',
     },
     {
-        id: 'LU',
+        id: 'LUX',
         type: 'country',
         title: 'Luxembourg',
         currency: 'EUR',
         path: 'luxembourg',
     },
     {
-        id: 'LV',
+        id: 'LVA',
         type: 'country',
         title: 'Latvia',
         currency: 'EUR',
@@ -1219,7 +1219,7 @@ export const countryData: CountryData[] = [
         path: 'montenegro',
     },
     {
-        id: 'MF',
+        id: 'MAF',
         type: 'country',
         title: 'Saint Martin',
         currency: 'EUR',
@@ -1282,7 +1282,7 @@ export const countryData: CountryData[] = [
         path: 'northern-mariana-islands',
     },
     {
-        id: 'MQ',
+        id: 'MTQ',
         type: 'country',
         title: 'Martinique',
         currency: 'EUR',
@@ -1303,7 +1303,7 @@ export const countryData: CountryData[] = [
         path: 'montserrat',
     },
     {
-        id: 'MT',
+        id: 'MLT',
         type: 'country',
         title: 'Malta',
         currency: 'EUR',
@@ -1394,14 +1394,14 @@ export const countryData: CountryData[] = [
         path: 'nicaragua',
     },
     {
-        id: 'NL',
+        id: 'NLD',
         type: 'country',
         title: 'Netherlands',
         currency: 'EUR',
         path: 'netherlands',
     },
     {
-        id: 'NO',
+        id: 'NOR',
         type: 'country',
         title: 'Norway',
         currency: 'NOK',
@@ -1520,7 +1520,7 @@ export const countryData: CountryData[] = [
         path: 'palestine',
     },
     {
-        id: 'PT',
+        id: 'PRT',
         type: 'country',
         title: 'Portugal',
         currency: 'EUR',
@@ -1548,14 +1548,14 @@ export const countryData: CountryData[] = [
         path: 'qatar',
     },
     {
-        id: 'RE',
+        id: 'REU',
         type: 'country',
         title: 'Réunion',
         currency: 'EUR',
         path: 'reunion',
     },
     {
-        id: 'RO',
+        id: 'ROU',
         type: 'country',
         title: 'Romania',
         currency: 'RON',
@@ -1632,7 +1632,7 @@ export const countryData: CountryData[] = [
         path: 'saint-helena',
     },
     {
-        id: 'SI',
+        id: 'SVN',
         type: 'country',
         title: 'Slovenia',
         currency: 'EUR',
@@ -1646,7 +1646,7 @@ export const countryData: CountryData[] = [
         path: 'svalbard-and-jan-mayen',
     },
     {
-        id: 'SK',
+        id: 'SVK',
         type: 'country',
         title: 'Slovakia',
         currency: 'EUR',
@@ -1867,7 +1867,7 @@ export const countryData: CountryData[] = [
         type: 'country',
         title: 'United States',
         currency: 'USD',
-        path: 'united-states',
+        path: 'usa',
     },
     {
         id: 'UY',
@@ -2017,6 +2017,67 @@ const LATAM_COUNTRY_CODES = [
     'VE',
 ]
 
+// bridge EAA country codes, source: https://apidocs.bridge.xyz/docs/sepa-euro-transactions
+// note: this is a map of 3-letter country codes to 2-letter country codes, for flags to work, bridge expects 3 letter codes
+export const countryCodeMap: { [key: string]: string } = {
+    ALA: 'AX',
+    AND: 'AD',
+    AUT: 'AT',
+    BEL: 'BE',
+    BGR: 'BG',
+    HRV: 'HR',
+    CYP: 'CY',
+    CZE: 'CZ',
+    DNK: 'DK',
+    EST: 'EE',
+    FIN: 'FI',
+    FRA: 'FR',
+    GUF: 'GF',
+    DEU: 'DE',
+    GRC: 'GR',
+    GLP: 'GP',
+    HUN: 'HU',
+    ISL: 'IS',
+    IRL: 'IE',
+    ITA: 'IT',
+    LVA: 'LV',
+    LIE: 'LI',
+    LTU: 'LT',
+    LUX: 'LU',
+    MLT: 'MT',
+    MTQ: 'MQ',
+    MYT: 'YT',
+    NLD: 'NL',
+    NOR: 'NO',
+    POL: 'PL',
+    PRT: 'PT',
+    REU: 'RE',
+    ROU: 'RO',
+    MAF: 'MF',
+    SVK: 'SK',
+    SVN: 'SI',
+    ESP: 'ES',
+    SWE: 'SE',
+    CHE: 'CH',
+    GBR: 'GB',
+    USA: 'US',
+}
+
+const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US'])
+
+// Helper function to check if a country code is enabled for bank transfers
+// Handles both 2-letter and 3-letter country codes
+const isCountryEnabledForBankTransfer = (countryCode: string): boolean => {
+    // Direct check for 2-letter codes
+    if (enabledBankTransferCountries.has(countryCode)) {
+        return true
+    }
+
+    // Check if it's a 3-letter code that maps to an enabled 2-letter code
+    const mappedCode = countryCodeMap[countryCode]
+    return mappedCode ? enabledBankTransferCountries.has(mappedCode) : false
+}
+
 countryData.forEach((country) => {
     if (country.type === 'country') {
         const countryCode = country.id
@@ -2048,7 +2109,7 @@ countryData.forEach((country) => {
                     icon: 'bank' as IconName,
                     title: 'SEPA Instant',
                     description: 'EU-wide real-time bank transfers.',
-                    isSoon: true,
+                    isSoon: false,
                 })
             }
         }
@@ -2068,6 +2129,8 @@ countryData.forEach((country) => {
             withdrawList.push({
                 ...DEFAULT_BANK_WITHDRAW_METHOD,
                 id: `${countryCode.toLowerCase()}-default-bank-withdraw`,
+                path: `/withdraw/${countryCode.toLowerCase()}/bank`,
+                isSoon: !isCountryEnabledForBankTransfer(countryCode),
             })
         }
 
@@ -2077,7 +2140,16 @@ countryData.forEach((country) => {
                 return LATAM_COUNTRY_CODES.includes(countryCode)
             }
             return true
-        }).map((m) => ({ ...m }))
+        }).map((m) => {
+            const newMethod = { ...m }
+            if (newMethod.id === 'bank-transfer-add') {
+                newMethod.path = `/add-money/${country.path}/bank`
+                newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode)
+            } else {
+                newMethod.isSoon = true
+            }
+            return newMethod
+        })
 
         COUNTRY_SPECIFIC_METHODS[countryCode] = {
             add: currentAddMethods,

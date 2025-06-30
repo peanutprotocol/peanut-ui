@@ -10,6 +10,7 @@ import { ThemeProvider } from '@/config'
 import { peanutWalletIsInPreview } from '@/constants'
 import { useAuth } from '@/context/authContext'
 import { hasValidJwtToken } from '@/utils/auth'
+import { isIOS } from '@/utils/general.utils'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
 import PullToRefresh from 'pulltorefreshjs'
@@ -43,10 +44,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         setIsReady(true)
     }, [])
 
-    // todo: @dev to customize the design of this component,
+    // Pull-to-refresh is only enabled on iOS devices since Android has native pull-to-refresh
     // docs here: https://github.com/BoxFactura/pulltorefresh.js
     useEffect(() => {
         if (typeof window === 'undefined') return
+
+        // Only initialize pull-to-refresh on iOS devices
+        if (!isIOS()) return
 
         PullToRefresh.init({
             mainElement: 'body',

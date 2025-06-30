@@ -1,7 +1,9 @@
+import { useUserStore } from '@/redux/hooks'
 import { ApiUser, usersApi } from '@/services/users'
 import { useEffect, useRef, useState } from 'react'
 
 export const useUserSearch = () => {
+    const { user: authenticatedUser } = useUserStore()
     const [searchTerm, setSearchTerm] = useState('')
     const [debouncedValue, setDebouncedValue] = useState(searchTerm)
     const [searchResults, setSearchResults] = useState<ApiUser[]>([])
@@ -34,7 +36,10 @@ export const useUserSearch = () => {
                 setError('')
                 const response = await usersApi.search(debouncedValue)
                 if (currentValueRef.current === debouncedValue) {
-                    setSearchResults(response.users)
+                    const filteredUsers = response.users.filter(
+                        (user) => user.userId !== authenticatedUser?.user.userId
+                    )
+                    setSearchResults(filteredUsers)
                 }
             } catch (err) {
                 if (err instanceof Error && err.message.includes('3 characters')) {

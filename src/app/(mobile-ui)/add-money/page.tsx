@@ -1,10 +1,17 @@
 'use client'
 
-import { AddWithdrawRouterView } from '@/components/AddWithdraw/components/AddWithdrawRouterView'
+import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRouterView'
+import { useOnrampFlow } from '@/context'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 export default function AddMoneyPage() {
     const router = useRouter()
+    const { resetOnrampFlow } = useOnrampFlow()
+
+    useEffect(() => {
+        resetOnrampFlow()
+    }, [])
 
     return (
         <AddWithdrawRouterView
