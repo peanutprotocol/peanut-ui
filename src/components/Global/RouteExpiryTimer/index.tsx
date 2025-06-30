@@ -140,7 +140,9 @@ const RouteExpiryTimer: React.FC<RouteExpiryTimerProps> = ({
     const shouldPulse = (): boolean => {
         if (isLoading) return true
         if (!timeRemaining) return false
-        return timeRemaining.totalMs <= nearExpiryThresholdMs && timeRemaining.totalMs > 0
+        // Pulse when in red zone (85%+ progress) OR near expiry threshold
+        const progressPercentage = getProgressPercentage()
+        return (progressPercentage >= 85 || timeRemaining.totalMs <= nearExpiryThresholdMs) && timeRemaining.totalMs > 0
     }
 
     const getText = (): string => {
@@ -176,7 +178,7 @@ const RouteExpiryTimer: React.FC<RouteExpiryTimerProps> = ({
                     className={twMerge(
                         'h-full rounded-full transition-all duration-300',
                         error ? 'w-full bg-red' : isLoading ? 'w-full bg-grey-3' : getProgressColor(),
-                        shouldPulse() ? 'animate-pulse' : ''
+                        shouldPulse() ? 'animate-pulse-strong' : ''
                     )}
                     style={{
                         width: error ? '100%' : isLoading ? '100%' : `${getProgressPercentage()}%`,

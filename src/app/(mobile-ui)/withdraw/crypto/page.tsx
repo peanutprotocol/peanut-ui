@@ -109,7 +109,8 @@ export default function WithdrawCryptoPage() {
             dispatch(paymentActions.setChargeDetails(null))
 
             try {
-                const completeWithdrawData = { ...withdrawData, ...data }
+                const completeWithdrawData = { ...data, amount: amountToWithdraw }
+                setWithdrawData(completeWithdrawData)
                 const apiRequestPayload: CreateRequestPayloadServices = {
                     recipientAddress: completeWithdrawData.address,
                     chainId: completeWithdrawData.chain.chainId.toString(),

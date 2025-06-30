@@ -173,7 +173,7 @@ export default function PeanutActionDetailsCard({
                     )}
                 </div>
 
-                <div className="min-w-0 space-y-1">
+                <div className="w-full space-y-1">
                     {getTitle()}
                     <h2 className="text-2xl font-extrabold">
                         {transactionType === 'ADD_MONEY' && currencySymbol
