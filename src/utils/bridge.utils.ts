@@ -14,7 +14,7 @@ export const getCurrencyConfig = (countryId: string, operationType: BridgeOperat
     if (countryId === 'US') {
         return {
             currency: 'usd',
-            paymentRail: operationType === 'onramp' ? 'ach_push' : 'ach_pull',
+            paymentRail: operationType === 'onramp' ? 'ach_push' : 'ach',
         }
     }
 
