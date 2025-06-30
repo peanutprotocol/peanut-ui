@@ -225,9 +225,6 @@ const countrySpecificWithdrawMethods: Record<
     Pakistan: [{ title: 'Raast', description: 'State-backed instant payments, scaling fast.' }],
     Turkey: [{ title: 'FAST', description: "Central bank's instant payment system." }],
     Canada: [{ title: 'Interac e-Transfer', description: 'Widely used for P2P and bill payments.' }],
-    Germany: [{ title: 'SEPA Instant', description: 'EU-wide real-time bank transfers.', icon: 'bank' as IconName }],
-    Italy: [{ title: 'SEPA Instant', description: 'EU-wide real-time bank transfers.', icon: 'bank' as IconName }],
-    France: [{ title: 'SEPA Instant', description: 'EU-wide real-time bank transfers.', icon: 'bank' as IconName }],
 }
 
 export const countryData: CountryData[] = [
@@ -2094,7 +2091,7 @@ countryData.forEach((country) => {
                     icon: method.icon ?? undefined,
                     title: method.title,
                     description: method.description,
-                    isSoon: !isCountryEnabledForBankTransfer(countryCode),
+                    isSoon: true,
                 })
             })
         }
@@ -2150,6 +2147,19 @@ countryData.forEach((country) => {
             }
             return newMethod
         })
+
+        // Add country-specific add methods (same as withdraw methods for consistency)
+        if (specificMethodDetails && specificMethodDetails.length > 0) {
+            specificMethodDetails.forEach((method) => {
+                currentAddMethods.push({
+                    id: `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-add`,
+                    icon: method.icon ?? undefined,
+                    title: method.title,
+                    description: method.description,
+                    isSoon: true,
+                })
+            })
+        }
 
         COUNTRY_SPECIFIC_METHODS[countryCode] = {
             add: currentAddMethods,
