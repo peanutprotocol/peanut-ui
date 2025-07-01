@@ -15,6 +15,7 @@ import * as Sentry from '@sentry/nextjs'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
+import ActionModal from '../ActionModal'
 import { Icon, IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 
@@ -181,6 +182,7 @@ export default function DirectSendQr({
 }) {
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [showPermissionModal, setShowPermissionModal] = useState(false)
     const [qrType, setQrType] = useState<EQrType | undefined>(undefined)
     const [redirectTo, setRedirectTo] = useState<string | undefined>(undefined)
     const [modalContent, setModalContent] = useState<ModalType | undefined>(undefined)
@@ -194,6 +196,41 @@ export default function DirectSendQr({
         if (!user?.user.username) return ''
         return `${BASE_URL}/pay/${user.user.username}`
     }, [user?.user.username])
+
+    const startScanner = () => {
+        setIsQRScannerOpen(true)
+    }
+
+    const handleCameraPermission = async () => {
+        setShowPermissionModal(false)
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            stream.getTracks().forEach((track) => track.stop())
+            startScanner()
+        } catch (error) {
+            console.error('Camera permission denied', error)
+            toast.error('Camera permission denied. Please allow camera access in your browser settings.')
+        }
+    }
+
+    const handleOpenScannerClick = async () => {
+        if (navigator.permissions) {
+            try {
+                const permissionStatus = await navigator.permissions.query({ name: 'camera' as PermissionName })
+                if (permissionStatus.state === 'granted') {
+                    startScanner()
+                } else {
+                    setShowPermissionModal(true)
+                }
+            } catch (err) {
+                console.error('Could not query permissions, showing custom prompt.', err)
+                setShowPermissionModal(true)
+            }
+        } else {
+            // fallback for browsers that do not support the Permissions API
+            setShowPermissionModal(true)
+        }
+    }
 
     const processQRCode = async (data: string): Promise<{ success: boolean; error?: string }> => {
         // reset payment state before processing new QR
@@ -350,7 +387,7 @@ export default function DirectSendQr({
     return (
         <>
             <Button
-                onClick={() => setIsQRScannerOpen(true)}
+                onClick={handleOpenScannerClick}
                 variant="purple"
                 shadowSize="4"
                 shadowType="primary"
@@ -386,6 +423,33 @@ export default function DirectSendQr({
                         )
                     })()}
             </Modal>
+
+            <ActionModal
+                visible={showPermissionModal}
+                onClose={() => setShowPermissionModal(false)}
+                icon={'camera'}
+                title={'Allow camera access'}
+                description={'This lets you scan QR codes to send and receive money instantly.'}
+                ctaClassName="flex-row"
+                ctas={[
+                    {
+                        text: 'Allow',
+                        onClick: handleCameraPermission,
+                        variant: 'purple',
+                        shadowSize: '4',
+                        className: 'h-11',
+                    },
+                    {
+                        text: 'Not now',
+                        onClick: () => setShowPermissionModal(false),
+                        variant: 'primary-soft',
+                        shadowSize: '4',
+                        className: 'h-11',
+                    },
+                ]}
+                hideModalCloseButton={true}
+            />
+
             {isQRScannerOpen && (
                 <>
                     <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />

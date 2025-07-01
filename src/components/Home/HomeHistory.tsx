@@ -15,6 +15,7 @@ import Card, { CardPosition, getCardPosition } from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem } from '../Kyc/KycStatusItem'
 import { isKycStatusItem, KycHistoryEntry } from '@/hooks/useKycFlow'
+import { KYCStatus } from '@/utils'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -26,6 +27,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     const mode = isPublic ? 'public' : 'latest'
     const limit = isPublic ? 20 : 5
     const { data: historyData, isLoading, isError, error } = useTransactionHistory({ mode, limit, username })
+    const kycStatus: KYCStatus = user?.user?.kycStatus || 'not_started'
 
     // WebSocket for real-time updates
     const { historyEntries: wsHistoryEntries } = useWebSocket({
@@ -134,10 +136,13 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     if (!combinedEntries.length) {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <div className="space-y-3">
-                    <h2 className="text-base font-bold">Activity</h2>
-                    <KycStatusItem position="single" />
-                </div>
+                {kycStatus !== 'not_started' && (
+                    <div className="space-y-3">
+                        <h2 className="text-base font-bold">Activity</h2>
+                        <KycStatusItem position="single" />
+                    </div>
+                )}
+
                 <h2 className="text-base font-bold">Recent Transactions</h2>
                 <EmptyState
                     icon="txn-off"
