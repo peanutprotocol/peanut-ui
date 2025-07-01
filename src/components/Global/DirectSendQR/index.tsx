@@ -96,15 +96,15 @@ function DirectSendContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
     const router = useRouter()
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">Peanut only supports USDC on Arbitrum.</span>
-            <span className="text-sm">Please confirm with the recipient that they accept USDC on Arbitrum</span>
+            <span className="text-sm">Peanut supports cross-chain payments.</span>
+            <span className="text-sm">Please confirm the payment details before sending</span>
             <Checkbox
                 value={userAcknowledged}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => {
                     setUserAcknowledged(e.target.checked)
                 }}
                 className="mt-4"
-                label="Got it, USDC on Arbitrum only."
+                label="I understand and will confirm payment details."
             />
             <Button
                 onClick={() => {
@@ -224,15 +224,23 @@ export default function DirectSendQr({
                 break
             case EQrType.EVM_ADDRESS:
                 {
-                    toConfirmUrl = `/${data}@arbitrum/usdc`
+                    toConfirmUrl = `/${data}`
                 }
                 break
             case EQrType.EIP_681:
                 {
                     try {
-                        const { address } = parseEip681(data)
-                        if (address) {
-                            toConfirmUrl = `/${address}@arbitrum/usdc`
+                        const { address, chainId, amount, tokenSymbol } = parseEip681(data)
+                        toConfirmUrl = `/${address}`
+                        if (chainId) {
+                            toConfirmUrl += `@${chainId}`
+                            if (tokenSymbol) {
+                                toConfirmUrl += `/`
+                                if (amount) {
+                                    toConfirmUrl += `${amount}`
+                                }
+                                toConfirmUrl += `${tokenSymbol}`
+                            }
                         }
                     } catch (error) {
                         toast.error('Error parsing EIP-681 URL')
@@ -244,7 +252,7 @@ export default function DirectSendQr({
                 {
                     const resolvedAddress = await resolveEns(data)
                     if (!!resolvedAddress) {
-                        toConfirmUrl = `/${data}@arbitrum/usdc`
+                        toConfirmUrl = `/${data}`
                     }
                 }
                 break
@@ -332,7 +340,7 @@ export default function DirectSendQr({
                     break
                 case EModalType.DIRECT_SEND:
                     {
-                        title = 'ℹ️ Only USDC on Arbitrum'
+                        title = 'ℹ️ Payment Confirmation'
                     }
                     break
                 case EModalType.EXTERNAL_URL:
