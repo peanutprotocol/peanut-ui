@@ -2,10 +2,11 @@
 import { unstable_cache } from 'next/cache'
 import { fetchWithSentry, isAddressZero, estimateIfIsStableCoinFromPrice } from '@/utils'
 import { type ITokenPriceData } from '@/interfaces'
-import type { Address } from 'viem'
 import { parseAbi } from 'viem'
 import { type ChainId, getPublicClient } from '@/app/actions/clients'
-import { getTokenDetails } from '@/utils'
+import { getTokenDetails, NATIVE_TOKEN_ADDRESS, isStableCoin } from '@/utils'
+import { formatUnits } from 'viem'
+import type { Address, Hex } from 'viem'
 
 type IMobulaMarketData = {
     id: number
@@ -86,7 +87,7 @@ export const fetchTokenPrice = unstable_cache(
                     decimals,
                     logoURI: json.data.logo,
                 }
-                if (estimateIfIsStableCoinFromPrice(json.data.price)) {
+                if (isStableCoin(data.symbol) || estimateIfIsStableCoinFromPrice(json.data.price)) {
                     data.price = 1
                 }
                 return data
@@ -143,3 +144,73 @@ export const fetchTokenDetails = unstable_cache(
         tags: ['fetchTokenDetails'],
     }
 )
+
+/**
+ * Get cached gas price for a chain
+ */
+const getCachedGasPrice = unstable_cache(
+    async (chainId: string) => {
+        const client = await getPublicClient(Number(chainId) as ChainId)
+        const gasPrice = await client.getGasPrice()
+        return gasPrice.toString()
+    },
+    ['getGasPrice'],
+    {
+        revalidate: 2 * 60, // 2 minutes
+    }
+)
+
+/**
+ * Get cached gas estimate for a transaction
+ */
+const getCachedGasEstimate = unstable_cache(
+    async (fromAddress: Address, contractAddress: Address, data: Hex, chainId: string) => {
+        const client = await getPublicClient(Number(chainId) as ChainId)
+        const gasEstimate = await client.estimateGas({
+            account: fromAddress,
+            to: contractAddress,
+            data,
+        })
+        return gasEstimate.toString()
+    },
+    ['getGasEstimate'],
+    {
+        revalidate: 5 * 60, // 5 minutes - gas estimates are more stable
+    }
+)
+
+/**
+ * Estimate gas cost for transaction in USD
+ */
+export async function estimateTransactionCostUsd(
+    fromAddress: Address,
+    contractAddress: Address,
+    data: Hex,
+    chainId: string
+): Promise<number> {
+    try {
+        // Run all API calls in parallel since they're independent
+        const [gasEstimateStr, gasPriceStr, nativeTokenPrice] = await Promise.all([
+            getCachedGasEstimate(fromAddress, contractAddress, data, chainId),
+            getCachedGasPrice(chainId),
+            fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId),
+        ])
+
+        // Convert strings back to BigInt for calculation
+        const gasEstimate = BigInt(gasEstimateStr)
+        const gasPrice = BigInt(gasPriceStr)
+
+        // Calculate gas cost in native token
+        const gasCostWei = gasEstimate * gasPrice
+
+        const estimatedCostUsd = nativeTokenPrice
+            ? Number(formatUnits(gasCostWei, nativeTokenPrice.decimals)) * nativeTokenPrice.price
+            : 0.01
+
+        return estimatedCostUsd
+    } catch (error) {
+        console.error('Error estimating transaction cost:', error)
+        // Return a conservative estimate if we can't calculate exact cost
+        return 0.01
+    }
+}
