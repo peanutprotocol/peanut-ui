@@ -74,6 +74,9 @@ export const CreateRequestLinkView = () => {
     const [debouncedTokenValue, setDebouncedTokenValue] = useState<string>(_tokenValue)
     const tokenDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
+    // track if amount input should be disabled after attachment/comment updates
+    const [isAmountDisabled, setIsAmountDisabled] = useState(false)
+
     const hasAttachment = !!attachmentOptions?.rawFile || !!attachmentOptions?.message
 
     const qrCodeLink = useMemo(() => {
@@ -292,6 +295,8 @@ export const CreateRequestLinkView = () => {
             setGeneratedLink(null)
             setRequestId(null)
             setNeedsUpdate(false)
+            // re-enable amount input when value is cleared
+            setIsAmountDisabled(false)
         }
         setTokenValue(_tokenValue)
         if (selectedTokenPrice) {
@@ -332,6 +337,11 @@ export const CreateRequestLinkView = () => {
             setGeneratedLink(null)
             setRequestId(null)
             setNeedsUpdate(false)
+            // re-enable amount input when attachments are cleared
+            setIsAmountDisabled(false)
+        } else if (_tokenValue && parseFloat(_tokenValue) > 0) {
+            // disable amount input when user updates attachment/comment after specifying an amount
+            setIsAmountDisabled(true)
         }
 
         // for file attachments, update immediately
@@ -439,6 +449,10 @@ export const CreateRequestLinkView = () => {
                         setGeneratedLink(null)
                         setRequestId(null)
                         setNeedsUpdate(false)
+                        // re-enable amount input when user modifies the value
+                        if (isAmountDisabled) {
+                            setIsAmountDisabled(false)
+                        }
                     }}
                     tokenValue={_tokenValue}
                     onSubmit={() => {
@@ -454,6 +468,7 @@ export const CreateRequestLinkView = () => {
                         }
                     }}
                     walletBalance={peanutWalletBalance}
+                    disabled={isAmountDisabled}
                 />
                 <FileUploadInput
                     className="h-11"
