@@ -2,7 +2,6 @@ import type { FeeOptions } from '@/app/actions/clients'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
-    PEANUT_WALLET_TOKEN_DECIMALS,
     PINTA_WALLET_CHAIN,
     PINTA_WALLET_TOKEN,
     PINTA_WALLET_TOKEN_DECIMALS,
@@ -66,7 +65,7 @@ export const usePaymentInitiator = () => {
     const dispatch = useAppDispatch()
     const { requestDetails, chargeDetails: chargeDetailsFromStore } = usePaymentStore()
     const { selectedTokenData, selectedChainID, selectedTokenAddress, setIsXChain } = useContext(tokenSelectorContext)
-    const { isConnected: isPeanutWallet, address: peanutWalletAddress, sendTransactions } = useWallet()
+    const { isConnected: isPeanutWallet, address: peanutWalletAddress, sendTransactions, sendMoney } = useWallet()
     const { switchChainAsync } = useSwitchChain()
     const { address: wagmiAddress } = useAppKitAccount()
     const { sendTransactionAsync } = useSendTransaction()
@@ -114,14 +113,6 @@ export const usePaymentInitiator = () => {
         () => loadingStep !== 'Idle' && loadingStep !== 'Success' && loadingStep !== 'Error',
         [loadingStep]
     )
-
-    const calculatedSlippage = useMemo(() => {
-        if (!selectedTokenData?.price || !slippagePercentage || !estimatedFromValue) return null
-
-        const slippageAmount = (slippagePercentage / 100) * selectedTokenData.price * Number(estimatedFromValue)
-
-        return isNaN(slippageAmount) ? null : slippageAmount.toFixed(2)
-    }, [slippagePercentage, selectedTokenData?.price, estimatedFromValue])
 
     // reset state
     useEffect(() => {
@@ -197,6 +188,7 @@ export const usePaymentInitiator = () => {
 
             setEstimatedGasCost(undefined)
             setFeeOptions([])
+
             setIsPreparingTx(true)
 
             try {
@@ -464,19 +456,23 @@ export const usePaymentInitiator = () => {
                 throw new Error('Charge data is missing required properties for transaction preparation.')
             }
 
+            let receipt: TransactionReceipt
             const transactionsToSend = xChainUnsignedTxs ?? (unsignedTx ? [unsignedTx] : null)
-            if (!transactionsToSend || transactionsToSend.length === 0) {
+            if (transactionsToSend && transactionsToSend.length > 0) {
+                setLoadingStep('Sending Transaction')
+                receipt = await sendTransactions(transactionsToSend, PEANUT_WALLET_CHAIN.id.toString())
+            } else if (
+                areEvmAddressesEqual(chargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) &&
+                chargeDetails.chainId === PEANUT_WALLET_CHAIN.id.toString()
+            ) {
+                receipt = await sendMoney(
+                    chargeDetails.requestLink.recipientAddress as `0x${string}`,
+                    chargeDetails.tokenAmount
+                )
+            } else {
                 console.error('No transaction prepared to send for peanut wallet.')
                 throw new Error('No transaction prepared to send.')
             }
-            console.log('Transactions prepared for sending:', transactionsToSend)
-
-            setLoadingStep('Sending Transaction')
-
-            const receipt: TransactionReceipt = await sendTransactions(
-                transactionsToSend,
-                PEANUT_WALLET_CHAIN.id.toString()
-            )
 
             // validation of the received receipt.
             if (!receipt || !receipt.transactionHash) {
@@ -652,7 +648,15 @@ export const usePaymentInitiator = () => {
                 console.log('Proceeding with charge details:', determinedChargeDetails.uuid)
 
                 // 2. handle charge state
-                if (chargeCreated && (payload.isPintaReq || payload.isAddMoneyFlow || !isPeanutWallet)) {
+                if (
+                    chargeCreated &&
+                    (payload.isPintaReq ||
+                        payload.isAddMoneyFlow ||
+                        !isPeanutWallet ||
+                        (isPeanutWallet &&
+                            (!areEvmAddressesEqual(determinedChargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) ||
+                                determinedChargeDetails.chainId !== PEANUT_WALLET_CHAIN.id.toString())))
+                ) {
                     console.log(
                         `Charge created. Transitioning to Confirm view for: ${
                             payload.isPintaReq

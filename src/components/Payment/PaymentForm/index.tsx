@@ -374,6 +374,7 @@ export const PaymentForm = ({
 
         const requestedToken = chargeDetails?.tokenAddress ?? requestDetails?.tokenAddress
         const requestedChain = chargeDetails?.chainId ?? requestDetails?.chainId
+
         let tokenAmount = inputTokenAmount
         if (
             requestedToken &&
@@ -499,15 +500,6 @@ export const PaymentForm = ({
         }
     }, [isPintaReq, inputTokenAmount])
 
-    const isXChainPeanutWalletReq = useMemo(() => {
-        if (!isActivePeanutWallet || !selectedTokenData) return false
-
-        const isSupportedChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
-        const isSupportedToken = selectedTokenAddress.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
-
-        return !(isSupportedChain && isSupportedToken)
-    }, [isActivePeanutWallet, selectedChainID, selectedTokenAddress, selectedTokenData])
-
     const isButtonDisabled = useMemo(() => {
         if (isProcessing) return true
         if (!!error) return true
@@ -533,7 +525,7 @@ export const PaymentForm = ({
         // logic for non-AddMoneyFlow / non-Pinta (Pinta has its own button logic)
         if (!isPintaReq) {
             if (!isConnected) return true // if not connected at all, disable (covers guest non-Peanut scenarios)
-            if (isActivePeanutWallet && isXChainPeanutWalletReq) return true // peanut wallet x-chain restriction
+
             if (!selectedTokenAddress || !selectedChainID) return true // must have token/chain
         }
         // fallback for Pinta or other cases if not explicitly handled above
@@ -548,7 +540,6 @@ export const PaymentForm = ({
         selectedChainID,
         isConnected,
         isActivePeanutWallet,
-        isXChainPeanutWalletReq,
         isPintaReq,
     ])
 
@@ -644,7 +635,7 @@ export const PaymentForm = ({
                     currency={currency}
                 />
 
-                {!isActivePeanutWallet && isConnected && !isAddMoneyFlow && (
+                {!chain && isConnected && !isAddMoneyFlow && (
                     <div className="space-y-2">
                         {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
                             <div className="text-sm font-bold">Select token and chain to pay with</div>
@@ -703,13 +694,7 @@ export const PaymentForm = ({
                             Retry
                         </Button>
                     )}
-                    {isXChainPeanutWalletReq && !isAddMoneyFlow && (
-                        <ErrorAlert
-                            description={
-                                'Peanut Wallet currently only supports sending USDC on Arbitrum. Please select USDC and Arbitrum, or use an external wallet.'
-                            }
-                        />
-                    )}
+
                     {error && <ErrorAlert description={error} />}
                 </div>
             </div>
