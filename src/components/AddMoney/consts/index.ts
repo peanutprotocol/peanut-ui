@@ -2060,7 +2060,7 @@ export const countryCodeMap: { [key: string]: string } = {
     USA: 'US',
 }
 
-const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US'])
+const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes
@@ -2141,7 +2141,7 @@ countryData.forEach((country) => {
             const newMethod = { ...m }
             if (newMethod.id === 'bank-transfer-add') {
                 newMethod.path = `/add-money/${country.path}/bank`
-                newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode)
+                newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode) || countryCode === 'MX'
             } else {
                 newMethod.isSoon = true
             }
