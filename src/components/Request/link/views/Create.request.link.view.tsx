@@ -235,7 +235,23 @@ export const CreateRequestLinkView = () => {
         [createRequestLink]
     )
 
+    const updateExistingRequest = useCallback(async () => {
+        if (requestId && (attachmentOptions?.message || attachmentOptions?.rawFile)) {
+            setNeedsUpdate(true)
+        }
+    }, [requestId, attachmentOptions])
+
     const generateLink = useCallback(async () => {
+        // Update existing request with current attachment state before sharing
+        if (requestId && (attachmentOptions?.message || attachmentOptions?.rawFile)) {
+            await updateExistingRequest()
+            // Wait for the update to complete by waiting for needsUpdate to be processed
+            if (needsUpdate) {
+                // Give it a moment to process the update
+                await new Promise(resolve => setTimeout(resolve, 100))
+            }
+        }
+
         if (generatedLink) return generatedLink
         if (Number(tokenValue) === 0) return qrCodeLink
         setIsCreatingLink(true)
@@ -263,6 +279,10 @@ export const CreateRequestLinkView = () => {
         selectedChainID,
         selectedTokenData,
         createRequestLink,
+        requestId,
+        attachmentOptions,
+        updateExistingRequest,
+        needsUpdate,
     ])
 
     useEffect(() => {
@@ -312,9 +332,6 @@ export const CreateRequestLinkView = () => {
             setGeneratedLink(null)
             setRequestId(null)
             setNeedsUpdate(false)
-        } else if (requestId) {
-            // when attachments change and we have an existing request, mark for update
-            setNeedsUpdate(true)
         }
 
         // for file attachments, update immediately
@@ -361,6 +378,9 @@ export const CreateRequestLinkView = () => {
             }
         }
     }, [_tokenValue])
+
+    // handle updates to existing requests when debounced attachment options change
+    // REMOVED: automatic updates now happen only on blur or manual trigger
 
     // handle link creation based on input changes
     useEffect(() => {
@@ -440,6 +460,7 @@ export const CreateRequestLinkView = () => {
                     placeholder="Comment"
                     attachmentOptions={attachmentOptions}
                     setAttachmentOptions={setAttachmentOptions}
+                    onBlur={updateExistingRequest}
                 />
 
                 {(hasAttachment && isCreatingLink) || isDebouncing ? (
