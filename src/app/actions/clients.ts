@@ -17,22 +17,16 @@ export type FeeOptions = {
     error?: string | null
 }
 
-export const getPublicClient = unstable_cache(
-    async (chainId: ChainId): Promise<PublicClient> => {
-        let client: PublicClient | undefined = PUBLIC_CLIENTS_BY_CHAIN[chainId]?.client
-        if (client) return client
-        const chain: Chain = extractChain({ chains: allChains, id: chainId })
-        if (!chain) throw new Error(`No chain found for chainId ${chainId}`)
-        return createPublicClient({
-            transport: http(infuraRpcUrls[chainId]),
-            chain,
-        })
-    },
-    ['getPublicClient'],
-    {
-        tags: ['getPublicClient'],
-    }
-)
+export const getPublicClient = async (chainId: ChainId): Promise<PublicClient> => {
+    let client: PublicClient | undefined = PUBLIC_CLIENTS_BY_CHAIN[chainId]?.client
+    if (client) return client
+    const chain: Chain = extractChain({ chains: allChains, id: chainId })
+    if (!chain) throw new Error(`No chain found for chainId ${chainId}`)
+    return createPublicClient({
+        transport: http(infuraRpcUrls[chainId]),
+        chain,
+    })
+}
 
 export type PreparedTx = {
     account: Hash

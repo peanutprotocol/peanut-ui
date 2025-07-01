@@ -13,6 +13,7 @@ import { formatAmount } from '@/utils/general.utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
 import { useContext, useEffect } from 'react'
+import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 
 interface InitialWithdrawViewProps {
     amount: string
@@ -67,8 +68,6 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         router.push('/withdraw')
     }
 
-    // TODO: remove this once x-chain support is added
-    // set the default token and chain for withdrawals (USDC on arb)
     useEffect(() => {
         setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
@@ -85,11 +84,10 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     recipientType="USERNAME"
                     recipientName={''}
                     amount={formatAmount(amount)}
-                    tokenSymbol={selectedTokenData?.symbol ?? ''}
+                    tokenSymbol="USDC"
                 />
 
-                {/* token selector is not needed for withdrawals right now, the only token peanut wallet supports is USDC on arb, this will be re-added once x-chain support is added */}
-                {/* <TokenSelector viewType="withdraw" /> */}
+                <TokenSelector viewType="withdraw" />
 
                 <GeneralRecipientInput
                     placeholder="Enter an address or ENS"
