@@ -239,14 +239,14 @@ export const CreateRequestLinkView = () => {
     )
 
     const updateExistingRequest = useCallback(async () => {
-        if (requestId && (attachmentOptions?.message || attachmentOptions?.rawFile)) {
+        if (requestId && (debouncedAttachmentOptions?.message || debouncedAttachmentOptions?.rawFile)) {
             setNeedsUpdate(true)
         }
-    }, [requestId, attachmentOptions])
+    }, [requestId, debouncedAttachmentOptions])
 
     const generateLink = useCallback(async () => {
         // Update existing request with current attachment state before sharing
-        if (requestId && (attachmentOptions?.message || attachmentOptions?.rawFile)) {
+        if (requestId && (debouncedAttachmentOptions?.message || debouncedAttachmentOptions?.rawFile)) {
             await updateExistingRequest()
             // Wait for the update to complete by waiting for needsUpdate to be processed
             if (needsUpdate) {
@@ -283,7 +283,7 @@ export const CreateRequestLinkView = () => {
         selectedTokenData,
         createRequestLink,
         requestId,
-        attachmentOptions,
+        debouncedAttachmentOptions,
         updateExistingRequest,
         needsUpdate,
     ])
@@ -344,9 +344,24 @@ export const CreateRequestLinkView = () => {
             setIsAmountDisabled(true)
         }
 
-        // for file attachments, update immediately
-        if (attachmentOptions?.rawFile) {
+        // for file attachments (add/remove/change), update immediately
+        const previousFile = debouncedAttachmentOptions?.rawFile
+        const currentFile = attachmentOptions?.rawFile
+        const fileChanged = previousFile !== currentFile
+        
+        if (fileChanged) {
             setDebouncedAttachmentOptions(attachmentOptions)
+            // trigger request update immediately for any file changes
+            if (requestId && tokenValue && parseFloat(tokenValue) > 0) {
+                handleOnNext({
+                    recipientAddress,
+                    tokenAddress: selectedTokenAddress,
+                    chainId: selectedChainID,
+                    tokenValue,
+                    tokenData: selectedTokenData,
+                    attachmentOptions, // use current attachmentOptions directly, not debounced
+                })
+            }
             return
         }
 
@@ -367,7 +382,7 @@ export const CreateRequestLinkView = () => {
                 clearTimeout(debounceTimerRef.current)
             }
         }
-    }, [attachmentOptions])
+    }, [attachmentOptions, requestId])
 
     // debounce token value
     useEffect(() => {
