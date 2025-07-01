@@ -143,7 +143,7 @@ export const CreateRequestLinkView = () => {
                 const tokenType = isNativeCurrency(tokenData.address)
                     ? peanutInterfaces.EPeanutLinkType.native
                     : peanutInterfaces.EPeanutLinkType.erc20
-                
+
                 const requestData = {
                     chainId: tokenData.chainId,
                     tokenAmount: inputValue,
@@ -251,7 +251,7 @@ export const CreateRequestLinkView = () => {
             // Wait for the update to complete by waiting for needsUpdate to be processed
             if (needsUpdate) {
                 // Give it a moment to process the update
-                await new Promise(resolve => setTimeout(resolve, 100))
+                await new Promise((resolve) => setTimeout(resolve, 100))
             }
         }
 
@@ -348,7 +348,7 @@ export const CreateRequestLinkView = () => {
         const previousFile = debouncedAttachmentOptions?.rawFile
         const currentFile = attachmentOptions?.rawFile
         const fileChanged = previousFile !== currentFile
-        
+
         if (fileChanged) {
             setDebouncedAttachmentOptions(attachmentOptions)
             // trigger request update immediately for any file changes
