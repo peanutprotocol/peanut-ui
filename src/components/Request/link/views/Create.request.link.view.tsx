@@ -18,6 +18,7 @@ import { IToken } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
+import { TRequestResponse } from '@/services/services.types'
 import { fetchTokenSymbol, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
@@ -60,7 +61,9 @@ export const CreateRequestLinkView = () => {
     }>({ showError: false, errorMessage: '' })
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [generatedLink, setGeneratedLink] = useState<string | null>(null)
+    const [requestId, setRequestId] = useState<string | null>(null)
     const [isCreatingLink, setIsCreatingLink] = useState(false)
+    const [needsUpdate, setNeedsUpdate] = useState(false)
     const [debouncedAttachmentOptions, setDebouncedAttachmentOptions] =
         useState<IFileUploadInputProps['attachmentOptions']>(attachmentOptions)
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -137,7 +140,8 @@ export const CreateRequestLinkView = () => {
                 const tokenType = isNativeCurrency(tokenData.address)
                     ? peanutInterfaces.EPeanutLinkType.native
                     : peanutInterfaces.EPeanutLinkType.erc20
-                const requestDetails = await requestsApi.create({
+                
+                const requestData = {
                     chainId: tokenData.chainId,
                     tokenAmount: inputValue,
                     recipientAddress,
@@ -149,22 +153,39 @@ export const CreateRequestLinkView = () => {
                     attachment: attachmentOptions?.rawFile,
                     mimeType: attachmentOptions?.rawFile?.type,
                     filename: attachmentOptions?.rawFile?.name,
-                })
-                const charge = await chargesApi.create({
-                    pricing_type: 'fixed_price',
-                    local_price: {
-                        amount: requestDetails.tokenAmount,
-                        currency: 'USD',
-                    },
-                    baseUrl: BASE_URL,
-                    requestId: requestDetails.uuid,
-                })
-                const link = getRequestLink({
-                    ...requestDetails,
-                    uuid: undefined,
-                    chargeId: charge.data.id,
-                })
-                toast.success('Link created successfully!')
+                }
+
+                let requestDetails: TRequestResponse
+                let link: string
+
+                if (requestId) {
+                    // Use PATCH to update existing request
+                    requestDetails = await requestsApi.update(requestId, requestData)
+                    // For updates, return the existing generated link since the core parameters haven't changed
+                    link = generatedLink || ''
+                    toast.success('Request updated successfully!')
+                } else {
+                    // Use POST to create new request
+                    requestDetails = await requestsApi.create(requestData)
+                    setRequestId(requestDetails.uuid)
+
+                    const charge = await chargesApi.create({
+                        pricing_type: 'fixed_price',
+                        local_price: {
+                            amount: requestDetails.tokenAmount,
+                            currency: 'USD',
+                        },
+                        baseUrl: BASE_URL,
+                        requestId: requestDetails.uuid,
+                    })
+                    link = getRequestLink({
+                        ...requestDetails,
+                        uuid: undefined,
+                        chargeId: charge.data.id,
+                    })
+                    toast.success('Link created successfully!')
+                }
+
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
                 return link
             } catch (error) {
@@ -209,6 +230,7 @@ export const CreateRequestLinkView = () => {
                 attachmentOptions,
             })
             setGeneratedLink(link ?? null)
+            setNeedsUpdate(false)
         },
         [createRequestLink]
     )
@@ -248,6 +270,8 @@ export const CreateRequestLinkView = () => {
             setTokenValue('')
             setUsdValue('')
             setGeneratedLink(null)
+            setRequestId(null)
+            setNeedsUpdate(false)
         }
         setTokenValue(_tokenValue)
         if (selectedTokenPrice) {
@@ -284,11 +308,13 @@ export const CreateRequestLinkView = () => {
         const hasNoAttachments = !attachmentOptions?.rawFile && !attachmentOptions?.message
 
         if (hasNoAttachments) {
-            // reset generated link when attachments are completely cleared
+            // reset generated link and request ID when attachments are completely cleared
             setGeneratedLink(null)
-        } else {
-            // reset generated link when attachment options change (adding or modifying)
-            setGeneratedLink(null)
+            setRequestId(null)
+            setNeedsUpdate(false)
+        } else if (requestId) {
+            // when attachments change and we have an existing request, mark for update
+            setNeedsUpdate(true)
         }
 
         // for file attachments, update immediately
@@ -346,8 +372,8 @@ export const CreateRequestLinkView = () => {
             !isCreatingLink &&
             debouncedTokenValue === _tokenValue
         ) {
-            // check if we need to create a new link (either no link exists or token value changed)
-            if (!generatedLink) {
+            // create new link or update existing request
+            if (!generatedLink || needsUpdate) {
                 handleOnNext({
                     recipientAddress,
                     tokenAddress: selectedTokenAddress,
@@ -364,6 +390,7 @@ export const CreateRequestLinkView = () => {
         isValidRecipient,
         isCreatingLink,
         generatedLink,
+        needsUpdate,
         _tokenValue,
         recipientAddress,
     ])
@@ -388,8 +415,10 @@ export const CreateRequestLinkView = () => {
                     className="w-full"
                     setTokenValue={(value) => {
                         _setTokenValue(value ?? '')
-                        // reset generated link when token value changes
+                        // reset generated link and request ID when token value changes
                         setGeneratedLink(null)
+                        setRequestId(null)
+                        setNeedsUpdate(false)
                     }}
                     tokenValue={_tokenValue}
                     onSubmit={() => {

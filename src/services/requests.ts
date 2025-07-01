@@ -24,6 +24,27 @@ export const requestsApi = {
         return response.json()
     },
 
+    update: async (id: string, data: Partial<CreateRequestRequest>): Promise<TRequestResponse> => {
+        const formData = new FormData()
+
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== undefined) {
+                formData.append(key, value)
+            }
+        })
+
+        const response = await fetchWithSentry(`/api/proxy/withFormData/requests/${id}`, {
+            method: 'PATCH',
+            body: formData,
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to update request: ${response.statusText}`)
+        }
+
+        return response.json()
+    },
+
     get: async (uuid: string): Promise<TRequestResponse> => {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/requests/${uuid}`)
         if (!response.ok) {
