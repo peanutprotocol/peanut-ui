@@ -38,15 +38,27 @@ type ConfirmPaymentViewProps = {
     }
     currencyAmount?: string
     isAddMoneyFlow?: boolean
-    isDirectPay?: boolean
+    /** Whether this is a direct USD payment flow (bypasses token conversion) */
+    isDirectUsdPayment?: boolean
 }
 
+/**
+ * Confirmation view for payment transactions. Displays payment details, fees, and handles
+ * transaction execution for various payment flows including cross-chain payments, direct USD
+ * payments, and add money flows.
+ *
+ * @param isPintaReq - Whether this is a Pinta request payment (beer payment flow)
+ * @param currency - Currency details for display (code, symbol, price)
+ * @param currencyAmount - Amount in the specified currency
+ * @param isAddMoneyFlow - Whether this is an add money flow (deposit to wallet)
+ * @param isDirectUsdPayment - Whether this bypasses token conversion and pays directly in USD
+ */
 export default function ConfirmPaymentView({
     isPintaReq = false,
     currency,
     currencyAmount,
     isAddMoneyFlow,
-    isDirectPay = false,
+    isDirectUsdPayment = false,
 }: ConfirmPaymentViewProps) {
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
@@ -137,13 +149,20 @@ export default function ConfirmPaymentView({
 
     useEffect(() => {
         if (chargeDetails && selectedTokenData && selectedChainID) {
-            if (isDirectPay && chargeDetails.currencyCode.toLowerCase() === 'usd') {
+            if (isDirectUsdPayment && chargeDetails.currencyCode.toLowerCase() === 'usd') {
                 prepareTransactionDetails(chargeDetails, undefined, undefined, chargeDetails.currencyAmount)
             } else {
                 prepareTransactionDetails(chargeDetails)
             }
         }
-    }, [chargeDetails, walletAddress, selectedTokenData, selectedChainID, prepareTransactionDetails, isDirectPay])
+    }, [
+        chargeDetails,
+        walletAddress,
+        selectedTokenData,
+        selectedChainID,
+        prepareTransactionDetails,
+        isDirectUsdPayment,
+    ])
 
     const isConnected = useMemo(() => isPeanutWallet || isWagmiConnected, [isPeanutWallet, isWagmiConnected])
     const isInsufficientRewardsBalance = useMemo(() => {
@@ -471,6 +490,17 @@ interface TokenChainInfoDisplayProps {
     fallbackChainName: string
 }
 
+/**
+ * Displays token and chain information with icons and names.
+ * Shows token icon with chain icon as a badge overlay, along with formatted text.
+ *
+ * @param tokenIconUrl - URL for the token icon
+ * @param chainIconUrl - URL for the chain icon (displayed as overlay)
+ * @param resolvedTokenSymbol - Resolved token symbol from API
+ * @param fallbackTokenSymbol - Fallback token symbol if resolution fails
+ * @param resolvedChainName - Resolved chain name from API
+ * @param fallbackChainName - Fallback chain name if resolution fails
+ */
 function TokenChainInfoDisplay({
     tokenIconUrl,
     chainIconUrl,

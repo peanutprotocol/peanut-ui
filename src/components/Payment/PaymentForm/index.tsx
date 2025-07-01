@@ -41,7 +41,8 @@ import { useAccount } from 'wagmi'
 export type PaymentFlowProps = {
     isPintaReq?: boolean
     isAddMoneyFlow?: boolean
-    isDirectPay?: boolean
+    /** Whether this is a direct USD payment flow (bypasses token conversion) */
+    isDirectUsdPayment?: boolean
     currency?: {
         code: string
         symbol: string
@@ -63,7 +64,7 @@ export const PaymentForm = ({
     currencyAmount,
     setCurrencyAmount,
     isAddMoneyFlow,
-    isDirectPay,
+    isDirectUsdPayment,
 }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -391,7 +392,7 @@ export const PaymentForm = ({
             currency,
             currencyAmount,
             isAddMoneyFlow: !!isAddMoneyFlow,
-            transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectPay ? 'DIRECT_SEND' : 'REQUEST',
+            transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectUsdPayment ? 'DIRECT_SEND' : 'REQUEST',
             attachmentOptions: attachmentOptions,
         }
 
@@ -598,7 +599,7 @@ export const PaymentForm = ({
         <div className="flex h-full min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={router.back} title={isAddMoneyFlow ? 'Add Money' : 'Send'} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                {isWagmiConnected && (!isDirectPay || isAddMoneyFlow) && (
+                {isWagmiConnected && (!isDirectUsdPayment || isAddMoneyFlow) && (
                     <Button
                         icon="switch"
                         iconPosition="right"
@@ -661,7 +662,7 @@ export const PaymentForm = ({
                     <TokenSelector viewType="add" disabled={!isWagmiConnected && isAddMoneyFlow} />
                 )}
 
-                {isDirectPay && (
+                {isDirectUsdPayment && (
                     <FileUploadInput
                         placeholder="Comment"
                         attachmentOptions={attachmentOptions}

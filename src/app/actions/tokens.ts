@@ -151,7 +151,8 @@ export const fetchTokenDetails = unstable_cache(
 const getCachedGasPrice = unstable_cache(
     async (chainId: string) => {
         const client = await getPublicClient(Number(chainId) as ChainId)
-        return await client.getGasPrice()
+        const gasPrice = await client.getGasPrice()
+        return gasPrice.toString()
     },
     ['getGasPrice'],
     {
@@ -165,11 +166,12 @@ const getCachedGasPrice = unstable_cache(
 const getCachedGasEstimate = unstable_cache(
     async (fromAddress: Address, contractAddress: Address, data: Hex, chainId: string) => {
         const client = await getPublicClient(Number(chainId) as ChainId)
-        return await client.estimateGas({
+        const gasEstimate = await client.estimateGas({
             account: fromAddress,
             to: contractAddress,
             data,
         })
+        return gasEstimate.toString()
     },
     ['getGasEstimate'],
     {
@@ -188,11 +190,15 @@ export async function estimateTransactionCostUsd(
 ): Promise<number> {
     try {
         // Run all API calls in parallel since they're independent
-        const [gasEstimate, gasPrice, nativeTokenPrice] = await Promise.all([
+        const [gasEstimateStr, gasPriceStr, nativeTokenPrice] = await Promise.all([
             getCachedGasEstimate(fromAddress, contractAddress, data, chainId),
             getCachedGasPrice(chainId),
             fetchTokenPrice(NATIVE_TOKEN_ADDRESS, chainId),
         ])
+
+        // Convert strings back to BigInt for calculation
+        const gasEstimate = BigInt(gasEstimateStr)
+        const gasPrice = BigInt(gasPriceStr)
 
         // Calculate gas cost in native token
         const gasCostWei = gasEstimate * gasPrice

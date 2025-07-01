@@ -391,7 +391,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 <InitialPaymentView
                     {...(parsedPaymentData as ParsedURL)}
                     isAddMoneyFlow={isAddMoneyFlow}
-                    isDirectPay={isDirectPay}
+                    isDirectUsdPayment={isDirectPay}
                     currency={
                         currencyCode
                             ? {
@@ -410,7 +410,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
                     currencyAmount={currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined}
                     isAddMoneyFlow={isAddMoneyFlow}
-                    isDirectPay={isDirectPay}
+                    isDirectUsdPayment={isDirectPay}
                 />
             )}
             {currentView === 'STATUS' && (
