@@ -7,20 +7,13 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import {
-    PEANUT_WALLET_CHAIN,
-    PEANUT_WALLET_TOKEN,
-    PEANUT_WALLET_TOKEN_DECIMALS,
-    PEANUT_WALLET_TOKEN_SYMBOL,
-} from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, Account } from '@/interfaces'
 import { shortenAddressLong } from '@/utils/general.utils'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { encodeFunctionData, erc20Abi, parseUnits } from 'viem'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { ErrorHandler, getBridgeChainName } from '@/utils'
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
@@ -33,7 +26,7 @@ type View = 'INITIAL' | 'SUCCESS'
 export default function WithdrawBankPage() {
     const { amountToWithdraw, selectedBankAccount: bankAccount, error, setError } = useWithdrawFlow()
     const { user, fetchUser } = useAuth()
-    const { address, sendTransactions } = useWallet()
+    const { address, sendMoney } = useWallet()
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [view, setView] = useState<View>('INITIAL')
@@ -136,20 +129,7 @@ export default function WithdrawBankPage() {
             }
 
             // Step 2: prepare and send the transaction from peanut wallet to the deposit address
-            const amountToSend = parseUnits(createPayload.amount, PEANUT_WALLET_TOKEN_DECIMALS)
-
-            const txData = encodeFunctionData({
-                abi: erc20Abi,
-                functionName: 'transfer',
-                args: [data.depositInstructions.toAddress as `0x${string}`, amountToSend],
-            })
-
-            const transaction: peanutInterfaces.IPeanutUnsignedTransaction = {
-                to: PEANUT_WALLET_TOKEN,
-                data: txData,
-            }
-
-            const receipt = await sendTransactions([transaction], PEANUT_WALLET_CHAIN.id.toString())
+            const receipt = await sendMoney(data.depositInstructions.toAddress as `0x${string}`, createPayload.amount)
 
             if (receipt.status === 'reverted') {
                 throw new Error('Transaction reverted by the network.')

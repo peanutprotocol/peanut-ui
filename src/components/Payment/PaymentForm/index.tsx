@@ -41,7 +41,8 @@ import { useAccount } from 'wagmi'
 export type PaymentFlowProps = {
     isPintaReq?: boolean
     isAddMoneyFlow?: boolean
-    isDirectPay?: boolean
+    /** Whether this is a direct USD payment flow (bypasses token conversion) */
+    isDirectUsdPayment?: boolean
     currency?: {
         code: string
         symbol: string
@@ -63,7 +64,7 @@ export const PaymentForm = ({
     currencyAmount,
     setCurrencyAmount,
     isAddMoneyFlow,
-    isDirectPay,
+    isDirectUsdPayment,
 }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -373,6 +374,7 @@ export const PaymentForm = ({
 
         const requestedToken = chargeDetails?.tokenAddress ?? requestDetails?.tokenAddress
         const requestedChain = chargeDetails?.chainId ?? requestDetails?.chainId
+
         let tokenAmount = inputTokenAmount
         if (
             requestedToken &&
@@ -391,7 +393,7 @@ export const PaymentForm = ({
             currency,
             currencyAmount,
             isAddMoneyFlow: !!isAddMoneyFlow,
-            transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectPay ? 'DIRECT_SEND' : 'REQUEST',
+            transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectUsdPayment ? 'DIRECT_SEND' : 'REQUEST',
             attachmentOptions: attachmentOptions,
         }
 
@@ -498,15 +500,6 @@ export const PaymentForm = ({
         }
     }, [isPintaReq, inputTokenAmount])
 
-    const isXChainPeanutWalletReq = useMemo(() => {
-        if (!isActivePeanutWallet || !selectedTokenData) return false
-
-        const isSupportedChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
-        const isSupportedToken = selectedTokenAddress.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
-
-        return !(isSupportedChain && isSupportedToken)
-    }, [isActivePeanutWallet, selectedChainID, selectedTokenAddress, selectedTokenData])
-
     const isButtonDisabled = useMemo(() => {
         if (isProcessing) return true
         if (!!error) return true
@@ -532,7 +525,7 @@ export const PaymentForm = ({
         // logic for non-AddMoneyFlow / non-Pinta (Pinta has its own button logic)
         if (!isPintaReq) {
             if (!isConnected) return true // if not connected at all, disable (covers guest non-Peanut scenarios)
-            if (isActivePeanutWallet && isXChainPeanutWalletReq) return true // peanut wallet x-chain restriction
+
             if (!selectedTokenAddress || !selectedChainID) return true // must have token/chain
         }
         // fallback for Pinta or other cases if not explicitly handled above
@@ -547,7 +540,6 @@ export const PaymentForm = ({
         selectedChainID,
         isConnected,
         isActivePeanutWallet,
-        isXChainPeanutWalletReq,
         isPintaReq,
     ])
 
@@ -598,7 +590,7 @@ export const PaymentForm = ({
         <div className="flex h-full min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={router.back} title={isAddMoneyFlow ? 'Add Money' : 'Send'} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                {isWagmiConnected && (!isDirectPay || isAddMoneyFlow) && (
+                {isWagmiConnected && (!isDirectUsdPayment || isAddMoneyFlow) && (
                     <Button
                         icon="switch"
                         iconPosition="right"
@@ -643,7 +635,7 @@ export const PaymentForm = ({
                     currency={currency}
                 />
 
-                {!isActivePeanutWallet && isConnected && !isAddMoneyFlow && (
+                {!chain && isConnected && !isAddMoneyFlow && (
                     <div className="space-y-2">
                         {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
                             <div className="text-sm font-bold">Select token and chain to pay with</div>
@@ -661,7 +653,7 @@ export const PaymentForm = ({
                     <TokenSelector viewType="add" disabled={!isWagmiConnected && isAddMoneyFlow} />
                 )}
 
-                {isDirectPay && (
+                {isDirectUsdPayment && (
                     <FileUploadInput
                         placeholder="Comment"
                         attachmentOptions={attachmentOptions}
@@ -702,13 +694,7 @@ export const PaymentForm = ({
                             Retry
                         </Button>
                     )}
-                    {isXChainPeanutWalletReq && !isAddMoneyFlow && (
-                        <ErrorAlert
-                            description={
-                                'Peanut Wallet currently only supports sending USDC on Arbitrum. Please select USDC and Arbitrum, or use an external wallet.'
-                            }
-                        />
-                    )}
+
                     {error && <ErrorAlert description={error} />}
                 </div>
             </div>
