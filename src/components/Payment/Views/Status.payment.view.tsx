@@ -7,7 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { PEANUT_WALLET_TOKEN_SYMBOL, TRANSACTIONS } from '@/constants'
+import { PEANUT_WALLET_TOKEN_SYMBOL, TRANSACTIONS, BASE_URL } from '@/constants'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
@@ -90,8 +90,14 @@ const DirectSuccessView = ({
         const networkFeeDisplayValue = '$ 0.00' // fee is zero for peanut wallet txns
         const peanutFeeDisplayValue = '$ 0.00' // peanut doesn't charge fees yet
 
+        const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
+        const receiptLink = recipientIdentifier
+            ? `${BASE_URL}/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`
+            : undefined
+
         let details: Partial<TransactionDetails> = {
             id: paymentDetails?.payerTransactionHash,
+            txHash: paymentDetails?.payerTransactionHash,
             status: 'completed' as StatusType,
             amount: parseFloat(amountValue),
             date: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
@@ -102,6 +108,7 @@ const DirectSuccessView = ({
                 isLinkTransaction: false,
                 originalType: EHistoryEntryType.DIRECT_SEND,
                 originalUserRole: EHistoryUserRole.SENDER,
+                link: receiptLink,
             },
             userName: user?.username || parsedPaymentData?.recipient?.identifier,
             sourceView: 'status',
