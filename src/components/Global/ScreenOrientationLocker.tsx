@@ -20,7 +20,7 @@ export function ScreenOrientationLocker() {
 
         const handleOrientationChange = () => {
             // if the orientation is no longer portrait, try to lock it back.
-            if (!screen.orientation.type.startsWith('portrait')) {
+            if (screen.orientation && !screen.orientation.type.startsWith('portrait')) {
                 lockOrientation()
             }
         }
