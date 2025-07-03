@@ -1,4 +1,4 @@
-import { infuraRpcUrls } from '@/constants/general.consts'
+import { rpcUrls } from '@/constants/general.consts'
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import type { Chain, PublicClient } from 'viem'
 import { createPublicClient, http } from 'viem'
@@ -54,7 +54,7 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
 > = {
     [arbitrum.id]: {
         client: createPublicClient({
-            transport: http(infuraRpcUrls[arbitrum.id]),
+            transport: http(rpcUrls[arbitrum.id][0]),
             chain: arbitrum,
             pollingInterval: 500,
         }),
@@ -64,7 +64,7 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
     },
     [polygon.id]: {
         client: createPublicClient({
-            transport: http(infuraRpcUrls[polygon.id]),
+            transport: http(rpcUrls[polygon.id][0]),
             chain: polygon,
             pollingInterval: 2500,
         }),

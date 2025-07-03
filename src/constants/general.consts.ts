@@ -1,25 +1,64 @@
 import * as interfaces from '@/interfaces'
 import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
-import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
+import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll, baseSepolia } from 'viem/chains'
 
 export const peanutWalletIsInPreview = true
 
 export const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
+// export const INFURA_API_KEY = ''
+export const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
 
 export const SQUID_INTEGRATOR_ID = '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C'
 export const SQUID_API_URL = process.env.SQUID_API_URL
 
-export const infuraRpcUrls: Record<number, string> = {
-    [mainnet.id]: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    [arbitrum.id]: `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_KEY}`,
-    [polygon.id]: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    [optimism.id]: `https://optimism-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    [base.id]: `https://base-sepolia.infura.io/v3/${INFURA_API_KEY}`,
+export const rpcUrls: Record<number, string[]> = {
+    [mainnet.id]: [
+        `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
+        `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+    ].filter(
+        (url) => (INFURA_API_KEY && url.endsWith(INFURA_API_KEY)) || (ALCHEMY_API_KEY && url.endsWith(ALCHEMY_API_KEY))
+    ),
+    [arbitrum.id]: [
+        `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+        `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+    ].filter(
+        (url) => (INFURA_API_KEY && url.endsWith(INFURA_API_KEY)) || (ALCHEMY_API_KEY && url.endsWith(ALCHEMY_API_KEY))
+    ),
+    [arbitrumSepolia.id]: [
+        `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_KEY}`,
+        `https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+    ].filter(
+        (url) => (INFURA_API_KEY && url.endsWith(INFURA_API_KEY)) || (ALCHEMY_API_KEY && url.endsWith(ALCHEMY_API_KEY))
+    ),
+    [polygon.id]: [
+        `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+        `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+    ].filter(
+        (url) => (INFURA_API_KEY && url.endsWith(INFURA_API_KEY)) || (ALCHEMY_API_KEY && url.endsWith(ALCHEMY_API_KEY))
+    ),
+    [optimism.id]: [
+        `https://optimism-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+        `https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+    ].filter(
+        (url) => (INFURA_API_KEY && url.endsWith(INFURA_API_KEY)) || (ALCHEMY_API_KEY && url.endsWith(ALCHEMY_API_KEY))
+    ),
+    [baseSepolia.id]: [
+        `https://base-sepolia.infura.io/v3/${INFURA_API_KEY}`,
+        `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+    ].filter(
+        (url) => (INFURA_API_KEY && url.endsWith(INFURA_API_KEY)) || (ALCHEMY_API_KEY && url.endsWith(ALCHEMY_API_KEY))
+    ),
     // Infura is returning weird estimations for BSC @2025-05-14
     //[bsc.id]: `https://bsc-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    [bsc.id]: 'https://bsc-dataseed.bnbchain.org',
-    [scroll.id]: `https://scroll-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+    [bsc.id]: ['https://bsc-dataseed.bnbchain.org'],
+    [scroll.id]: [`https://scroll-mainnet.infura.io/v3/${INFURA_API_KEY}`].filter(
+        (url) => INFURA_API_KEY && url.endsWith(INFURA_API_KEY)
+    ),
+    [base.id]: [
+        `https://mainnet.base.org`,
+        `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+        `https://base-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+    ].filter((url) => !url.includes('undefined')),
 }
 
 export const ipfsProviderArray = [
