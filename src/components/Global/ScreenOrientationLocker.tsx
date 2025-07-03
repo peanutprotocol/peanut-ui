@@ -36,4 +36,4 @@ export function ScreenOrientationLocker() {
     }, [])
 
     return null
-} 
+}
