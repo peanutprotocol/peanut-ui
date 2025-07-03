@@ -613,7 +613,7 @@ export const TransactionDetailsReceipt = ({
                         <PaymentInfoRow
                             label="Comment"
                             value={transaction.memo}
-                            hideBottomBorder={!transaction.attachmentUrl}
+                            hideBottomBorder={!transaction.attachmentUrl && !transaction.networkFeeDetails}
                         />
                     )}
 
