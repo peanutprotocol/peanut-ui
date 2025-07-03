@@ -5,7 +5,6 @@ import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scrol
 export const peanutWalletIsInPreview = true
 
 export const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
-// export const INFURA_API_KEY = ''
 export const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
 
 export const SQUID_INTEGRATOR_ID = '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C'
