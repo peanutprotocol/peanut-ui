@@ -48,6 +48,9 @@ export default function WithdrawBankPage() {
                 // Default to a European country that uses EUR/SEPA
                 countryId = 'DE' // Germany as default EU country
                 break
+            case AccountType.CLABE:
+                countryId = 'MX'
+                break
             default:
                 return {
                     currency: '',
