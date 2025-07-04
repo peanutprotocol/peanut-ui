@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils'
 
-export async function POST(request: NextRequest) {
+async function handleFormDataRequest(request: NextRequest, method: string) {
     const separator = '/api/proxy/withFormData/'
     const indexOfSeparator = request.url.indexOf(separator)
     const endpointToCall = request.url.substring(indexOfSeparator + separator.length)
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
         apiFormData.append(key, value)
     })
     const response = await fetchWithSentry(fullAPIUrl, {
-        method: 'POST',
+        method,
         headers: {
             // Don't set Content-Type header, let it be automatically set as multipart/form-data
             'api-key': process.env.PEANUT_API_KEY!,
@@ -29,4 +29,12 @@ export async function POST(request: NextRequest) {
         status: response.status,
         statusText: response.statusText,
     })
+}
+
+export async function POST(request: NextRequest) {
+    return handleFormDataRequest(request, 'POST')
+}
+
+export async function PATCH(request: NextRequest) {
+    return handleFormDataRequest(request, 'PATCH')
 }
