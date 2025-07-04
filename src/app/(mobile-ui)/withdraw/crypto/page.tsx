@@ -25,6 +25,7 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
+import { captureMessage } from '@sentry/nextjs'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
@@ -265,7 +266,14 @@ export default function WithdrawCryptoPage() {
 
         // For peanut wallet flows, only RFQ routes are allowed
         if (xChainRoute.type === 'swap') {
-            return 'This token pair is not available for withdraw.'
+            captureMessage('No RFQ route found for this token pair', {
+                level: 'warning',
+                extra: {
+                    flow: 'withdraw',
+                    routeObject: xChainRoute,
+                },
+            })
+            return 'No route found for this token pair. You can try with a different token pair, or try again later'
         }
 
         return null

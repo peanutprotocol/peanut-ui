@@ -29,6 +29,7 @@ import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { captureMessage } from '@sentry/nextjs'
 
 type ConfirmPaymentViewProps = {
     isPintaReq?: boolean
@@ -344,7 +345,14 @@ export default function ConfirmPaymentView({
 
         // For peanut wallet flows, only RFQ routes are allowed
         if (xChainRoute.type === 'swap') {
-            return 'This token pair is not supported'
+            captureMessage('No RFQ route found for this token pair', {
+                level: 'warning',
+                extra: {
+                    flow: 'payment',
+                    routeObject: xChainRoute,
+                },
+            })
+            return 'No route found for this token pair. You can try with a different token pair, or try again later'
         }
 
         return null
