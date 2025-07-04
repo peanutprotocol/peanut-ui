@@ -205,7 +205,11 @@ export default function WithdrawBankPage() {
                             <>
                                 <PaymentInfoRow
                                     label={'IBAN'}
-                                    value={formatIban(bankAccount?.identifier.toUpperCase())}
+                                    value={
+                                       bankAccount?.identifier
+                                         ? formatIban(bankAccount.identifier)
+                                         : '' /* fallback to empty string to avoid runtime error */
+                                     }
                                 />
                                 <PaymentInfoRow label="BIC" value={getBicAndRoutingNumber()} />
                             </>
