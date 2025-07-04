@@ -25,6 +25,7 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
+import { captureMessage } from '@sentry/nextjs'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
@@ -75,10 +76,9 @@ export default function WithdrawCryptoPage() {
             router.push('/withdraw')
             return
         }
-        dispatch(paymentActions.setChargeDetails(null))
         clearErrors()
-        setCurrentView('INITIAL')
-    }, [amountToWithdraw, router, dispatch, setAmountToWithdraw, setCurrentView])
+        dispatch(paymentActions.setChargeDetails(null))
+    }, [amountToWithdraw])
 
     useEffect(() => {
         setPaymentError(paymentErrorFromHook)
@@ -205,19 +205,6 @@ export default function WithdrawCryptoPage() {
 
         if (result.success && result.txHash) {
             setCurrentView('STATUS')
-
-            // reset the entire withdraw flow after successful payment
-            setTimeout(() => {
-                setAmountToWithdraw('')
-                setWithdrawData(null)
-                setCurrentView('INITIAL')
-
-                // clear any errors
-                clearErrors()
-
-                // clear charge details
-                dispatch(paymentActions.setChargeDetails(null))
-            }, 3000) // wait 3 seconds to show success status before resetting
         } else {
             console.error('Withdrawal execution failed:', result.error)
             const errMsg = result.error || 'Withdrawal processing failed.'
@@ -279,7 +266,14 @@ export default function WithdrawCryptoPage() {
 
         // For peanut wallet flows, only RFQ routes are allowed
         if (xChainRoute.type === 'swap') {
-            return 'This token pair is not available for withdraw.'
+            captureMessage('No RFQ route found for this token pair', {
+                level: 'warning',
+                extra: {
+                    flow: 'withdraw',
+                    routeObject: xChainRoute,
+                },
+            })
+            return 'No route found for this token pair. You can try with a different token pair, or try again later'
         }
 
         return null
