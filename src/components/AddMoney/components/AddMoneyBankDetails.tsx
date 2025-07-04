@@ -8,36 +8,18 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import Icon from '@/components/Global/Icon'
 import { getCurrencySymbol, getOnrampCurrencyConfig } from '@/utils/bridge.utils'
 
-export interface IOnrampData {
-    transferId?: string
-    depositInstructions?: {
-        amount?: string
-        currency?: string
-        depositMessage?: string
-        bankName?: string
-        bankAddress?: string
-        bankRoutingNumber?: string
-        bankAccountNumber?: string
-        bankBeneficiaryName?: string
-        bankBeneficiaryAddress?: string
-        iban?: string
-        bic?: string
-    }
-}
-
 export default function AddMoneyBankDetails() {
-    const { amountToOnramp } = useOnrampFlow()
+    const { amountToOnramp, onrampData, setOnrampData } = useOnrampFlow()
     const router = useRouter()
     const params = useParams()
     const currentCountryName = params.country as string
-    const [onrampData, setOnrampData] = useState<IOnrampData | null>(null)
 
     // Get country information from URL params
     const currentCountryDetails = useMemo(() => {
@@ -71,17 +53,6 @@ export default function AddMoneyBankDetails() {
         if (!amountToOnramp || parseFloat(amountToOnramp) <= 0) {
             router.replace('/add-money')
             return
-        }
-
-        // Load onramp data from sessionStorage
-        const storedData = sessionStorage.getItem('onrampData')
-        if (storedData) {
-            try {
-                const parsedData = JSON.parse(storedData)
-                setOnrampData(parsedData)
-            } catch (error) {
-                console.error('Error parsing onramp data:', error)
-            }
         }
     }, [amountToOnramp, router])
 
