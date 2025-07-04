@@ -9,6 +9,23 @@ export interface InitialViewErrorState {
     errorMessage: string
 }
 
+export interface IOnrampData {
+    transferId?: string
+    depositInstructions?: {
+        amount?: string
+        currency?: string
+        depositMessage?: string
+        bankName?: string
+        bankAddress?: string
+        bankRoutingNumber?: string
+        bankAccountNumber?: string
+        bankBeneficiaryName?: string
+        bankBeneficiaryAddress?: string
+        iban?: string
+        bic?: string
+    }
+}
+
 interface OnrampFlowContextType {
     amountToOnramp: string
     setAmountToOnramp: (amount: string) => void
@@ -18,6 +35,8 @@ interface OnrampFlowContextType {
     setError: (error: InitialViewErrorState) => void
     fromBankSelected: boolean
     setFromBankSelected: (selected: boolean) => void
+    onrampData: IOnrampData | null
+    setOnrampData: (data: IOnrampData | null) => void
     resetOnrampFlow: () => void
 }
 
@@ -31,6 +50,7 @@ export const OnrampFlowContextProvider: React.FC<{ children: ReactNode }> = ({ c
         errorMessage: '',
     })
     const [fromBankSelected, setFromBankSelected] = useState<boolean>(false)
+    const [onrampData, setOnrampData] = useState<IOnrampData | null>(null)
 
     const resetOnrampFlow = useCallback(() => {
         setAmountToOnramp('')
@@ -40,6 +60,7 @@ export const OnrampFlowContextProvider: React.FC<{ children: ReactNode }> = ({ c
             errorMessage: '',
         })
         setFromBankSelected(false)
+        setOnrampData(null)
     }, [])
 
     const value = useMemo(
@@ -52,9 +73,11 @@ export const OnrampFlowContextProvider: React.FC<{ children: ReactNode }> = ({ c
             setError,
             fromBankSelected,
             setFromBankSelected,
+            onrampData,
+            setOnrampData,
             resetOnrampFlow,
         }),
-        [amountToOnramp, currentView, error, fromBankSelected, resetOnrampFlow]
+        [amountToOnramp, currentView, error, fromBankSelected, onrampData, resetOnrampFlow]
     )
 
     return <OnrampFlowContext.Provider value={value}>{children}</OnrampFlowContext.Provider>
