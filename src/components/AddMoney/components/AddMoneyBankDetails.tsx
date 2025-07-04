@@ -133,7 +133,7 @@ Please use these details to complete your bank transfer.`
     }
 
     return (
-        <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
+        <div className="flex h-full min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
             <NavHeader title="Add Money" onPrev={handleBack} />
 
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">

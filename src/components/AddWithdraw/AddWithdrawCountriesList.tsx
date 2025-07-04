@@ -203,7 +203,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     if (view === 'form') {
         return (
-            <div className="w-full space-y-8 self-start">
+            <div className="min-h-[inherit] w-full space-y-8 self-start">
                 <NavHeader title={'Withdraw'} onPrev={() => setView('list')} />
                 <DynamicBankAccountForm
                     ref={formRef}
