@@ -205,6 +205,7 @@ export const CreateRequestLinkView = () => {
                 setLoadingState('Idle')
                 setIsCreatingLink(false)
                 setIsUpdatingOnBlur(false)
+                setNeedsUpdate(false)
             }
         },
         [user?.user.username, toast]
@@ -242,7 +243,6 @@ export const CreateRequestLinkView = () => {
 
     const updateExistingRequest = useCallback(async () => {
         if (requestId && (attachmentOptions?.message || attachmentOptions?.rawFile)) {
-            setIsUpdatingOnBlur(true)
             // Clear any existing debounce timer and update immediately
             if (debounceTimerRef.current) {
                 clearTimeout(debounceTimerRef.current)
@@ -254,13 +254,25 @@ export const CreateRequestLinkView = () => {
 
     const generateLink = useCallback(async () => {
         // Update existing request with current attachment state before sharing
-        if (requestId && (debouncedAttachmentOptions?.message || debouncedAttachmentOptions?.rawFile)) {
-            await updateExistingRequest()
-            // Wait for the update to complete by waiting for needsUpdate to be processed
-            if (needsUpdate) {
-                // Give it a moment to process the update
-                await new Promise((resolve) => setTimeout(resolve, 100))
+        if (requestId && (attachmentOptions?.message || attachmentOptions?.rawFile)) {
+            // Clear any existing debounce timer and update immediately
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current)
             }
+            
+            // Trigger the update directly by calling createRequestLink with current attachments
+            setIsUpdatingOnBlur(true)
+            await createRequestLink({
+                recipientAddress,
+                tokenAddress: selectedTokenAddress,
+                chainId: selectedChainID,
+                tokenValue,
+                tokenData: selectedTokenData,
+                attachmentOptions: attachmentOptions,
+            })
+            
+            // Return the existing link after update
+            return generatedLink || ''
         }
 
         if (generatedLink) return generatedLink
@@ -427,6 +439,9 @@ export const CreateRequestLinkView = () => {
         ) {
             // create new link or update existing request
             if (!generatedLink || needsUpdate) {
+                if (needsUpdate) {
+                    setIsUpdatingOnBlur(true)
+                }
                 handleOnNext({
                     recipientAddress,
                     tokenAddress: selectedTokenAddress,
@@ -446,6 +461,11 @@ export const CreateRequestLinkView = () => {
         needsUpdate,
         _tokenValue,
         recipientAddress,
+        selectedTokenAddress,
+        selectedChainID,
+        tokenValue,
+        selectedTokenData,
+        handleOnNext,
     ])
 
     // check for token value debouncing
