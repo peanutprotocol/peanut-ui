@@ -11,7 +11,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, Account } from '@/interfaces'
-import { shortenAddressLong } from '@/utils/general.utils'
+import { formatIban, shortenAddressLong } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
@@ -203,7 +203,10 @@ export default function WithdrawBankPage() {
                         <PaymentInfoRow label={'Full name'} value={user?.user.fullName} />
                         {bankAccount?.type === AccountType.IBAN ? (
                             <>
-                                <PaymentInfoRow label={'IBAN'} value={bankAccount?.identifier.toUpperCase()} />
+                                <PaymentInfoRow
+                                    label={'IBAN'}
+                                    value={formatIban(bankAccount?.identifier.toUpperCase())}
+                                />
                                 <PaymentInfoRow label="BIC" value={getBicAndRoutingNumber()} />
                             </>
                         ) : bankAccount?.type === AccountType.CLABE ? (
