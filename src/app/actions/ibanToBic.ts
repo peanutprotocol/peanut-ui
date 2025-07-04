@@ -9,7 +9,7 @@ import { ibanToBic } from 'iban-to-bic'
  */
 export async function getBicFromIban(iban: string): Promise<string> {
     try {
-        return ibanToBic(iban)
+        return ibanToBic(iban.replace(/\s+/g, '').trim())
     } catch (err) {
         console.error('IBAN→BIC conversion failed', err)
         throw new Error('Unable to derive BIC from IBAN')
