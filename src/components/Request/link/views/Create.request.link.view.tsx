@@ -255,23 +255,24 @@ export const CreateRequestLinkView = () => {
     const generateLink = useCallback(async () => {
         // Update existing request with current attachment state before sharing
         if (requestId && (attachmentOptions?.message || attachmentOptions?.rawFile)) {
-            // Clear any existing debounce timer and update immediately
-            if (debounceTimerRef.current) {
-                clearTimeout(debounceTimerRef.current)
+            // Only update if there are unsaved changes
+            if (attachmentOptions?.message !== debouncedAttachmentOptions?.message ||
+                attachmentOptions?.rawFile !== debouncedAttachmentOptions?.rawFile) {
+                
+                // Clear any existing debounce timer and update immediately
+                if (debounceTimerRef.current) {
+                    clearTimeout(debounceTimerRef.current)
+                }
+                setDebouncedAttachmentOptions(attachmentOptions)
+                setNeedsUpdate(true)
+                
+                // Wait for the update to complete
+                while (needsUpdate || isUpdatingOnBlur) {
+                    await new Promise(resolve => setTimeout(resolve, 50))
+                }
             }
             
-            // Trigger the update directly by calling createRequestLink with current attachments
-            setIsUpdatingOnBlur(true)
-            await createRequestLink({
-                recipientAddress,
-                tokenAddress: selectedTokenAddress,
-                chainId: selectedChainID,
-                tokenValue,
-                tokenData: selectedTokenData,
-                attachmentOptions: attachmentOptions,
-            })
-            
-            // Return the existing link after update
+            // Return the existing link
             return generatedLink || ''
         }
 
