@@ -180,7 +180,7 @@ export default function WithdrawBankPage() {
     }
 
     return (
-        <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
+        <div className="flex h-full min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
             <NavHeader
                 title="Withdraw"
                 icon={view === 'SUCCESS' ? 'cancel' : undefined}

@@ -377,9 +377,9 @@ export const CreateRequestLinkView = () => {
         (hasAttachment && _tokenValue !== debouncedTokenValue)
 
     return (
-        <div className="w-full space-y-8">
+        <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8">
             <NavHeader onPrev={() => router.push('/request')} title="Request" />
-            <div className="w-full space-y-4">
+            <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 <PeanutActionCard type="request" />
 
                 <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
