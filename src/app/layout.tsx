@@ -1,3 +1,4 @@
+import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { PeanutProvider } from '@/config'
 import { ContextProvider } from '@/context'
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <body
                 className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} chakra-ui-light font-sans`}
             >
+                <ScreenOrientationLocker />
                 <PeanutProvider>
                     <ContextProvider>
                         <FooterVisibilityProvider>
