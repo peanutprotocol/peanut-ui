@@ -256,22 +256,23 @@ export const CreateRequestLinkView = () => {
         // Update existing request with current attachment state before sharing
         if (requestId && (attachmentOptions?.message || attachmentOptions?.rawFile)) {
             // Only update if there are unsaved changes
-            if (attachmentOptions?.message !== debouncedAttachmentOptions?.message ||
-                attachmentOptions?.rawFile !== debouncedAttachmentOptions?.rawFile) {
-                
+            if (
+                attachmentOptions?.message !== debouncedAttachmentOptions?.message ||
+                attachmentOptions?.rawFile !== debouncedAttachmentOptions?.rawFile
+            ) {
                 // Clear any existing debounce timer and update immediately
                 if (debounceTimerRef.current) {
                     clearTimeout(debounceTimerRef.current)
                 }
                 setDebouncedAttachmentOptions(attachmentOptions)
                 setNeedsUpdate(true)
-                
+
                 // Wait for the update to complete
                 while (needsUpdate || isUpdatingOnBlur) {
-                    await new Promise(resolve => setTimeout(resolve, 50))
+                    await new Promise((resolve) => setTimeout(resolve, 50))
                 }
             }
-            
+
             // Return the existing link
             return generatedLink || ''
         }
@@ -424,9 +425,6 @@ export const CreateRequestLinkView = () => {
             }
         }
     }, [_tokenValue])
-
-    // handle updates to existing requests when debounced attachment options change
-    // REMOVED: automatic updates now happen only on blur or manual trigger
 
     // handle link creation based on input changes
     useEffect(() => {

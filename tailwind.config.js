@@ -544,4 +544,4 @@ module.exports = {
             filter: ['hover'],
         },
     },
-};
+}
