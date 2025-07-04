@@ -68,6 +68,7 @@ export const CreateRequestLinkView = () => {
     const [debouncedAttachmentOptions, setDebouncedAttachmentOptions] =
         useState<IFileUploadInputProps['attachmentOptions']>(attachmentOptions)
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+    const updateCompletionRef = useRef<Promise<void> | null>(null)
 
     const [_tokenValue, _setTokenValue] = useState<string>(tokenValue ?? '')
 
@@ -252,6 +253,38 @@ export const CreateRequestLinkView = () => {
         }
     }, [requestId, attachmentOptions])
 
+    const updateExistingRequestAsync = useCallback(async () => {
+        if (!requestId || (!attachmentOptions?.message && !attachmentOptions?.rawFile)) {
+            return Promise.resolve()
+        }
+
+        // Clear debounce timer
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current)
+        }
+
+        // Update state immediately
+        setDebouncedAttachmentOptions(attachmentOptions)
+        setNeedsUpdate(true)
+
+        // Create and store the completion promise
+        const completionPromise = new Promise<void>((resolve) => {
+            const checkCompletion = () => {
+                // Check if the update has completed by monitoring the relevant state
+                if (!needsUpdate && !isUpdatingOnBlur) {
+                    resolve()
+                } else {
+                    // Continue checking until completion
+                    setTimeout(checkCompletion, 10)
+                }
+            }
+            checkCompletion()
+        })
+
+        updateCompletionRef.current = completionPromise
+        return completionPromise
+    }, [requestId, attachmentOptions, needsUpdate, isUpdatingOnBlur])
+
     const generateLink = useCallback(async () => {
         // Update existing request with current attachment state before sharing
         if (requestId && (attachmentOptions?.message || attachmentOptions?.rawFile)) {
@@ -260,17 +293,8 @@ export const CreateRequestLinkView = () => {
                 attachmentOptions?.message !== debouncedAttachmentOptions?.message ||
                 attachmentOptions?.rawFile !== debouncedAttachmentOptions?.rawFile
             ) {
-                // Clear any existing debounce timer and update immediately
-                if (debounceTimerRef.current) {
-                    clearTimeout(debounceTimerRef.current)
-                }
-                setDebouncedAttachmentOptions(attachmentOptions)
-                setNeedsUpdate(true)
-
-                // Wait for the update to complete
-                while (needsUpdate || isUpdatingOnBlur) {
-                    await new Promise((resolve) => setTimeout(resolve, 50))
-                }
+                // Use the promise-based update instead of busy-wait loop
+                await updateExistingRequestAsync()
             }
 
             // Return the existing link
@@ -305,9 +329,10 @@ export const CreateRequestLinkView = () => {
         selectedTokenData,
         createRequestLink,
         requestId,
+        attachmentOptions,
         debouncedAttachmentOptions,
-        updateExistingRequest,
-        needsUpdate,
+        updateExistingRequestAsync,
+        isUpdatingOnBlur,
     ])
 
     useEffect(() => {
