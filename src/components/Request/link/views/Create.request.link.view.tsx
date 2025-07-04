@@ -63,6 +63,7 @@ export const CreateRequestLinkView = () => {
     const [generatedLink, setGeneratedLink] = useState<string | null>(null)
     const [requestId, setRequestId] = useState<string | null>(null)
     const [isCreatingLink, setIsCreatingLink] = useState(false)
+    const [isUpdatingOnBlur, setIsUpdatingOnBlur] = useState(false)
     const [needsUpdate, setNeedsUpdate] = useState(false)
     const [debouncedAttachmentOptions, setDebouncedAttachmentOptions] =
         useState<IFileUploadInputProps['attachmentOptions']>(attachmentOptions)
@@ -203,6 +204,7 @@ export const CreateRequestLinkView = () => {
             } finally {
                 setLoadingState('Idle')
                 setIsCreatingLink(false)
+                setIsUpdatingOnBlur(false)
             }
         },
         [user?.user.username, toast]
@@ -239,10 +241,16 @@ export const CreateRequestLinkView = () => {
     )
 
     const updateExistingRequest = useCallback(async () => {
-        if (requestId && (debouncedAttachmentOptions?.message || debouncedAttachmentOptions?.rawFile)) {
+        if (requestId && (attachmentOptions?.message || attachmentOptions?.rawFile)) {
+            setIsUpdatingOnBlur(true)
+            // Clear any existing debounce timer and update immediately
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current)
+            }
+            setDebouncedAttachmentOptions(attachmentOptions)
             setNeedsUpdate(true)
         }
-    }, [requestId, debouncedAttachmentOptions])
+    }, [requestId, attachmentOptions])
 
     const generateLink = useCallback(async () => {
         // Update existing request with current attachment state before sharing
@@ -441,12 +449,6 @@ export const CreateRequestLinkView = () => {
     ])
 
     // check for token value debouncing
-    const isDebouncing =
-        (hasAttachment &&
-            attachmentOptions?.message &&
-            (!debouncedAttachmentOptions?.message ||
-                debouncedAttachmentOptions.message !== attachmentOptions.message)) ||
-        (hasAttachment && _tokenValue !== debouncedTokenValue)
 
     return (
         <div className="w-full space-y-8">
@@ -454,7 +456,7 @@ export const CreateRequestLinkView = () => {
             <div className="w-full space-y-4">
                 <PeanutActionCard type="request" />
 
-                <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
+                <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isUpdatingOnBlur)} />
 
                 <TokenAmountInput
                     className="w-full"
@@ -471,7 +473,7 @@ export const CreateRequestLinkView = () => {
                     }}
                     tokenValue={_tokenValue}
                     onSubmit={() => {
-                        if (hasAttachment && !generatedLink && !isDebouncing) {
+                        if (hasAttachment && !generatedLink && !isUpdatingOnBlur) {
                             handleOnNext({
                                 recipientAddress,
                                 tokenAddress: selectedTokenAddress,
@@ -493,7 +495,7 @@ export const CreateRequestLinkView = () => {
                     onBlur={updateExistingRequest}
                 />
 
-                {(hasAttachment && isCreatingLink) || isDebouncing ? (
+                {(hasAttachment && isCreatingLink) || isUpdatingOnBlur ? (
                     <Button disabled={true} shadowSize="4">
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {' Loading'}
