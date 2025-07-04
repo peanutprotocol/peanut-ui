@@ -250,12 +250,14 @@ export const usePaymentInitiator = () => {
 
                     setIsCalculatingFees(true)
                     setEstimatedGasCost(
-                        await estimateTransactionCostUsd(
-                            tx.unsignedTx.from! as Address,
-                            tx.unsignedTx.to! as Address,
-                            tx.unsignedTx.data! as Hex,
-                            selectedChainID
-                        )
+                        isPeanutWallet
+                            ? 0
+                            : await estimateTransactionCostUsd(
+                                  tx.unsignedTx.from! as Address,
+                                  tx.unsignedTx.to! as Address,
+                                  tx.unsignedTx.data! as Hex,
+                                  selectedChainID
+                              )
                     )
                     setIsCalculatingFees(false)
                     setUnsignedTx(tx.unsignedTx)

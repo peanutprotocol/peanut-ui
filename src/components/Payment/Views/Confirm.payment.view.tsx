@@ -344,7 +344,7 @@ export default function ConfirmPaymentView({
 
         // For peanut wallet flows, only RFQ routes are allowed
         if (xChainRoute.type === 'swap') {
-            return 'This route requires external wallet payment. Peanut Wallet only supports RFQ (Request for Quote) routes.'
+            return 'This token pair is not supported'
         }
 
         return null
