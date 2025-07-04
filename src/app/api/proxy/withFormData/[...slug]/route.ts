@@ -14,11 +14,18 @@ async function handleFormDataRequest(request: NextRequest, method: string) {
     formData.forEach((value, key) => {
         apiFormData.append(key, value)
     })
+
+    const apiKey = process.env.PEANUT_API_KEY
+    if (!apiKey) {
+        console.error('PEANUT_API_KEY environment variable is not set')
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+
     const response = await fetchWithSentry(fullAPIUrl, {
         method,
         headers: {
             // Don't set Content-Type header, let it be automatically set as multipart/form-data
-            'api-key': process.env.PEANUT_API_KEY!,
+            'api-key': apiKey,
         },
         body: apiFormData,
     })
