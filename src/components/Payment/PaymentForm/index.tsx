@@ -635,7 +635,7 @@ export const PaymentForm = ({
                     currency={currency}
                 />
 
-                {!chain && isConnected && !isAddMoneyFlow && (
+                {!(chain && isPeanutWallet) && isConnected && !isAddMoneyFlow && (
                     <div className="space-y-2">
                         {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
                             <div className="text-sm font-bold">Select token and chain to pay with</div>
