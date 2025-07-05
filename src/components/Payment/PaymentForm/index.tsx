@@ -635,7 +635,13 @@ export const PaymentForm = ({
                     currency={currency}
                 />
 
-                {!chain && isConnected && !isAddMoneyFlow && (
+                {/*
+                    Url request flow (peanut.me/<address>)
+                    If we are paying from peanut wallet we only need to
+                    select a token if it's not included in the url
+                    From other wallets we always need to select a token
+                */}
+                {!(chain && isPeanutWallet) && isConnected && !isAddMoneyFlow && (
                     <div className="space-y-2">
                         {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
                             <div className="text-sm font-bold">Select token and chain to pay with</div>
