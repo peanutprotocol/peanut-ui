@@ -150,8 +150,8 @@ export default function ConfirmPaymentView({
 
     const handleRouteRefresh = useCallback(async () => {
         if (chargeDetails && selectedTokenData && selectedChainID) {
-            const fromTokenAddress = isPeanutWallet ? PEANUT_WALLET_TOKEN : selectedTokenData.address
-            const fromChainId = isPeanutWallet ? PEANUT_WALLET_CHAIN.id.toString() : selectedChainID
+            const fromTokenAddress = !isAddMoneyFlow && isPeanutWallet ? PEANUT_WALLET_TOKEN : selectedTokenData.address
+            const fromChainId = !isAddMoneyFlow && isPeanutWallet ? PEANUT_WALLET_CHAIN.id.toString() : selectedChainID
             const usdAmount =
                 isDirectUsdPayment && chargeDetails.currencyCode.toLowerCase() === 'usd'
                     ? chargeDetails.currencyAmount
@@ -165,6 +165,7 @@ export default function ConfirmPaymentView({
         prepareTransactionDetails,
         isDirectUsdPayment,
         isPeanutWallet,
+        isAddMoneyFlow,
     ])
 
     useEffect(() => {
@@ -326,19 +327,19 @@ export default function ConfirmPaymentView({
 
     const isCrossChainPayment = useMemo((): boolean => {
         if (!chargeDetails) return false
-        if (isPeanutWallet) {
+        if (!isAddMoneyFlow && isPeanutWallet) {
             return (
                 !areEvmAddressesEqual(chargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) ||
                 chargeDetails.chainId !== PEANUT_WALLET_CHAIN.id.toString()
             )
         } else if (selectedTokenData && selectedChainID) {
             return (
-                areEvmAddressesEqual(chargeDetails.tokenAddress, selectedTokenData.address) &&
+                !areEvmAddressesEqual(chargeDetails.tokenAddress, selectedTokenData.address) ||
                 chargeDetails.chainId !== selectedChainID
             )
         }
         return false
-    }, [chargeDetails, selectedTokenData, selectedChainID])
+    }, [chargeDetails, selectedTokenData, selectedChainID, isPeanutWallet, isAddMoneyFlow])
 
     const routeTypeError = useMemo((): string | null => {
         if (!isCrossChainPayment || !xChainRoute || !isPeanutWallet) return null
@@ -423,7 +424,7 @@ export default function ConfirmPaymentView({
                             }
                         />
                     )}
-                    {isCrossChainPayment !== isPeanutWallet && (
+                    {isCrossChainPayment !== (isPeanutWallet && !isAddMoneyFlow) && (
                         <PaymentInfoRow
                             label={isCrossChainPayment ? `Sending` : 'Token and network'}
                             value={

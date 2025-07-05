@@ -139,7 +139,7 @@ Please use these details to complete your bank transfer.`
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
                 <PeanutActionDetailsCard
                     avatarSize="small"
-                    transactionType={'ADD_MONEY'}
+                    transactionType={'ADD_MONEY_BANK_ACCOUNT'}
                     recipientType={'BANK_ACCOUNT'}
                     recipientName={'Your Bank Account'}
                     amount={amountToOnramp}
