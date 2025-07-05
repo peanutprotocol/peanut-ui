@@ -18,6 +18,7 @@ import { IToken } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
+import { TRequestResponse } from '@/services/services.types'
 import { fetchTokenSymbol, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
@@ -60,16 +61,23 @@ export const CreateRequestLinkView = () => {
     }>({ showError: false, errorMessage: '' })
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [generatedLink, setGeneratedLink] = useState<string | null>(null)
+    const [requestId, setRequestId] = useState<string | null>(null)
     const [isCreatingLink, setIsCreatingLink] = useState(false)
+    const [isUpdatingOnBlur, setIsUpdatingOnBlur] = useState(false)
+    const [needsUpdate, setNeedsUpdate] = useState(false)
     const [debouncedAttachmentOptions, setDebouncedAttachmentOptions] =
         useState<IFileUploadInputProps['attachmentOptions']>(attachmentOptions)
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+    const updateCompletionRef = useRef<Promise<void> | null>(null)
 
     const [_tokenValue, _setTokenValue] = useState<string>(tokenValue ?? '')
 
     // debounced token value
     const [debouncedTokenValue, setDebouncedTokenValue] = useState<string>(_tokenValue)
     const tokenDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+    // track if amount input should be disabled after attachment/comment updates
+    const [isAmountDisabled, setIsAmountDisabled] = useState(false)
 
     const hasAttachment = !!attachmentOptions?.rawFile || !!attachmentOptions?.message
 
@@ -137,7 +145,8 @@ export const CreateRequestLinkView = () => {
                 const tokenType = isNativeCurrency(tokenData.address)
                     ? peanutInterfaces.EPeanutLinkType.native
                     : peanutInterfaces.EPeanutLinkType.erc20
-                const requestDetails = await requestsApi.create({
+
+                const requestData = {
                     chainId: tokenData.chainId,
                     tokenAmount: inputValue,
                     recipientAddress,
@@ -149,22 +158,39 @@ export const CreateRequestLinkView = () => {
                     attachment: attachmentOptions?.rawFile,
                     mimeType: attachmentOptions?.rawFile?.type,
                     filename: attachmentOptions?.rawFile?.name,
-                })
-                const charge = await chargesApi.create({
-                    pricing_type: 'fixed_price',
-                    local_price: {
-                        amount: requestDetails.tokenAmount,
-                        currency: 'USD',
-                    },
-                    baseUrl: BASE_URL,
-                    requestId: requestDetails.uuid,
-                })
-                const link = getRequestLink({
-                    ...requestDetails,
-                    uuid: undefined,
-                    chargeId: charge.data.id,
-                })
-                toast.success('Link created successfully!')
+                }
+
+                let requestDetails: TRequestResponse
+                let link: string
+
+                if (requestId) {
+                    // Use PATCH to update existing request
+                    requestDetails = await requestsApi.update(requestId, requestData)
+                    // For updates, return the existing generated link since the core parameters haven't changed
+                    link = generatedLink || ''
+                    toast.success('Request updated successfully!')
+                } else {
+                    // Use POST to create new request
+                    requestDetails = await requestsApi.create(requestData)
+                    setRequestId(requestDetails.uuid)
+
+                    const charge = await chargesApi.create({
+                        pricing_type: 'fixed_price',
+                        local_price: {
+                            amount: requestDetails.tokenAmount,
+                            currency: 'USD',
+                        },
+                        baseUrl: BASE_URL,
+                        requestId: requestDetails.uuid,
+                    })
+                    link = getRequestLink({
+                        ...requestDetails,
+                        uuid: undefined,
+                        chargeId: charge.data.id,
+                    })
+                    toast.success('Link created successfully!')
+                }
+
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
                 return link
             } catch (error) {
@@ -179,6 +205,8 @@ export const CreateRequestLinkView = () => {
             } finally {
                 setLoadingState('Idle')
                 setIsCreatingLink(false)
+                setIsUpdatingOnBlur(false)
+                setNeedsUpdate(false)
             }
         },
         [user?.user.username, toast]
@@ -209,11 +237,70 @@ export const CreateRequestLinkView = () => {
                 attachmentOptions,
             })
             setGeneratedLink(link ?? null)
+            setNeedsUpdate(false)
         },
         [createRequestLink]
     )
 
+    const updateExistingRequest = useCallback(async () => {
+        if (requestId && (attachmentOptions?.message || attachmentOptions?.rawFile)) {
+            // Clear any existing debounce timer and update immediately
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current)
+            }
+            setDebouncedAttachmentOptions(attachmentOptions)
+            setNeedsUpdate(true)
+        }
+    }, [requestId, attachmentOptions])
+
+    const updateExistingRequestAsync = useCallback(async () => {
+        if (!requestId || (!attachmentOptions?.message && !attachmentOptions?.rawFile)) {
+            return Promise.resolve()
+        }
+
+        // Clear debounce timer
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current)
+        }
+
+        // Update state immediately
+        setDebouncedAttachmentOptions(attachmentOptions)
+        setNeedsUpdate(true)
+
+        // Create and store the completion promise
+        const completionPromise = new Promise<void>((resolve) => {
+            const checkCompletion = () => {
+                // Check if the update has completed by monitoring the relevant state
+                if (!needsUpdate && !isUpdatingOnBlur) {
+                    resolve()
+                } else {
+                    // Continue checking until completion
+                    setTimeout(checkCompletion, 10)
+                }
+            }
+            checkCompletion()
+        })
+
+        updateCompletionRef.current = completionPromise
+        return completionPromise
+    }, [requestId, attachmentOptions, needsUpdate, isUpdatingOnBlur])
+
     const generateLink = useCallback(async () => {
+        // Update existing request with current attachment state before sharing
+        if (requestId && (attachmentOptions?.message || attachmentOptions?.rawFile)) {
+            // Only update if there are unsaved changes
+            if (
+                attachmentOptions?.message !== debouncedAttachmentOptions?.message ||
+                attachmentOptions?.rawFile !== debouncedAttachmentOptions?.rawFile
+            ) {
+                // Use the promise-based update instead of busy-wait loop
+                await updateExistingRequestAsync()
+            }
+
+            // Return the existing link
+            return generatedLink || ''
+        }
+
         if (generatedLink) return generatedLink
         if (Number(tokenValue) === 0) return qrCodeLink
         setIsCreatingLink(true)
@@ -241,6 +328,11 @@ export const CreateRequestLinkView = () => {
         selectedChainID,
         selectedTokenData,
         createRequestLink,
+        requestId,
+        attachmentOptions,
+        debouncedAttachmentOptions,
+        updateExistingRequestAsync,
+        isUpdatingOnBlur,
     ])
 
     useEffect(() => {
@@ -248,6 +340,10 @@ export const CreateRequestLinkView = () => {
             setTokenValue('')
             setUsdValue('')
             setGeneratedLink(null)
+            setRequestId(null)
+            setNeedsUpdate(false)
+            // re-enable amount input when value is cleared
+            setIsAmountDisabled(false)
         }
         setTokenValue(_tokenValue)
         if (selectedTokenPrice) {
@@ -284,16 +380,35 @@ export const CreateRequestLinkView = () => {
         const hasNoAttachments = !attachmentOptions?.rawFile && !attachmentOptions?.message
 
         if (hasNoAttachments) {
-            // reset generated link when attachments are completely cleared
+            // reset generated link and request ID when attachments are completely cleared
             setGeneratedLink(null)
-        } else {
-            // reset generated link when attachment options change (adding or modifying)
-            setGeneratedLink(null)
+            setRequestId(null)
+            setNeedsUpdate(false)
+            // re-enable amount input when attachments are cleared
+            setIsAmountDisabled(false)
+        } else if (_tokenValue && parseFloat(_tokenValue) > 0) {
+            // disable amount input when user updates attachment/comment after specifying an amount
+            setIsAmountDisabled(true)
         }
 
-        // for file attachments, update immediately
-        if (attachmentOptions?.rawFile) {
+        // for file attachments (add/remove/change), update immediately
+        const previousFile = debouncedAttachmentOptions?.rawFile
+        const currentFile = attachmentOptions?.rawFile
+        const fileChanged = previousFile !== currentFile
+
+        if (fileChanged) {
             setDebouncedAttachmentOptions(attachmentOptions)
+            // trigger request update immediately for any file changes
+            if (requestId && tokenValue && parseFloat(tokenValue) > 0) {
+                handleOnNext({
+                    recipientAddress,
+                    tokenAddress: selectedTokenAddress,
+                    chainId: selectedChainID,
+                    tokenValue,
+                    tokenData: selectedTokenData,
+                    attachmentOptions, // use current attachmentOptions directly, not debounced
+                })
+            }
             return
         }
 
@@ -314,7 +429,7 @@ export const CreateRequestLinkView = () => {
                 clearTimeout(debounceTimerRef.current)
             }
         }
-    }, [attachmentOptions])
+    }, [attachmentOptions, requestId])
 
     // debounce token value
     useEffect(() => {
@@ -346,8 +461,11 @@ export const CreateRequestLinkView = () => {
             !isCreatingLink &&
             debouncedTokenValue === _tokenValue
         ) {
-            // check if we need to create a new link (either no link exists or token value changed)
-            if (!generatedLink) {
+            // create new link or update existing request
+            if (!generatedLink || needsUpdate) {
+                if (needsUpdate) {
+                    setIsUpdatingOnBlur(true)
+                }
                 handleOnNext({
                     recipientAddress,
                     tokenAddress: selectedTokenAddress,
@@ -364,17 +482,17 @@ export const CreateRequestLinkView = () => {
         isValidRecipient,
         isCreatingLink,
         generatedLink,
+        needsUpdate,
         _tokenValue,
         recipientAddress,
+        selectedTokenAddress,
+        selectedChainID,
+        tokenValue,
+        selectedTokenData,
+        handleOnNext,
     ])
 
     // check for token value debouncing
-    const isDebouncing =
-        (hasAttachment &&
-            attachmentOptions?.message &&
-            (!debouncedAttachmentOptions?.message ||
-                debouncedAttachmentOptions.message !== attachmentOptions.message)) ||
-        (hasAttachment && _tokenValue !== debouncedTokenValue)
 
     return (
         <div className="w-full space-y-8">
@@ -382,18 +500,24 @@ export const CreateRequestLinkView = () => {
             <div className="w-full space-y-4">
                 <PeanutActionCard type="request" />
 
-                <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isDebouncing)} />
+                <QRCodeWrapper url={qrCodeLink} isLoading={!!((hasAttachment && isCreatingLink) || isUpdatingOnBlur)} />
 
                 <TokenAmountInput
                     className="w-full"
                     setTokenValue={(value) => {
                         _setTokenValue(value ?? '')
-                        // reset generated link when token value changes
+                        // reset generated link and request ID when token value changes
                         setGeneratedLink(null)
+                        setRequestId(null)
+                        setNeedsUpdate(false)
+                        // re-enable amount input when user modifies the value
+                        if (isAmountDisabled) {
+                            setIsAmountDisabled(false)
+                        }
                     }}
                     tokenValue={_tokenValue}
                     onSubmit={() => {
-                        if (hasAttachment && !generatedLink && !isDebouncing) {
+                        if (hasAttachment && !generatedLink && !isUpdatingOnBlur) {
                             handleOnNext({
                                 recipientAddress,
                                 tokenAddress: selectedTokenAddress,
@@ -405,15 +529,17 @@ export const CreateRequestLinkView = () => {
                         }
                     }}
                     walletBalance={peanutWalletBalance}
+                    disabled={isAmountDisabled}
                 />
                 <FileUploadInput
                     className="h-11"
                     placeholder="Comment"
                     attachmentOptions={attachmentOptions}
                     setAttachmentOptions={setAttachmentOptions}
+                    onBlur={updateExistingRequest}
                 />
 
-                {(hasAttachment && isCreatingLink) || isDebouncing ? (
+                {(hasAttachment && isCreatingLink) || isUpdatingOnBlur ? (
                     <Button disabled={true} shadowSize="4">
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {' Loading'}

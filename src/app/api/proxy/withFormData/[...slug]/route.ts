@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils'
 
-export async function POST(request: NextRequest) {
+async function handleFormDataRequest(request: NextRequest, method: string) {
     const separator = '/api/proxy/withFormData/'
     const indexOfSeparator = request.url.indexOf(separator)
     const endpointToCall = request.url.substring(indexOfSeparator + separator.length)
@@ -14,11 +14,18 @@ export async function POST(request: NextRequest) {
     formData.forEach((value, key) => {
         apiFormData.append(key, value)
     })
+
+    const apiKey = process.env.PEANUT_API_KEY
+    if (!apiKey) {
+        console.error('PEANUT_API_KEY environment variable is not set')
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+
     const response = await fetchWithSentry(fullAPIUrl, {
-        method: 'POST',
+        method,
         headers: {
             // Don't set Content-Type header, let it be automatically set as multipart/form-data
-            'api-key': process.env.PEANUT_API_KEY!,
+            'api-key': apiKey,
         },
         body: apiFormData,
     })
@@ -29,4 +36,12 @@ export async function POST(request: NextRequest) {
         status: response.status,
         statusText: response.statusText,
     })
+}
+
+export async function POST(request: NextRequest) {
+    return handleFormDataRequest(request, 'POST')
+}
+
+export async function PATCH(request: NextRequest) {
+    return handleFormDataRequest(request, 'PATCH')
 }
