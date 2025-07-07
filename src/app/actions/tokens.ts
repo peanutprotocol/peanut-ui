@@ -2,10 +2,10 @@
 import { unstable_cache } from 'next/cache'
 import { fetchWithSentry, isAddressZero, estimateIfIsStableCoinFromPrice } from '@/utils'
 import { type ITokenPriceData } from '@/interfaces'
-import { parseAbi } from 'viem'
+import { parseAbi, formatUnits } from 'viem'
 import { type ChainId, getPublicClient } from '@/app/actions/clients'
-import { getTokenDetails, NATIVE_TOKEN_ADDRESS, isStableCoin } from '@/utils'
-import { formatUnits } from 'viem'
+import { getTokenDetails, isStableCoin, NATIVE_TOKEN_ADDRESS, areEvmAddressesEqual } from '@/utils'
+import { IUserBalance } from '@/interfaces'
 import type { Address, Hex } from 'viem'
 
 type IMobulaMarketData = {
@@ -49,6 +49,49 @@ type IMobulaMarketData = {
         logo: string
         id: number
     }
+}
+
+type IMobulaContractBalanceData = {
+    address: string //of the contract
+    balance: number
+    balanceRaw: string
+    chainId: string // this chainId is og the type evm:<chainId>
+    decimals: number
+}
+
+type IMobulaCrossChainBalanceData = {
+    balance: number
+    balanceRaw: string
+    chainId: string
+    address: string //of the token
+}
+
+type IMobulaAsset = {
+    id: number
+    name: string
+    symbol: string
+    logo: string
+    decimals: string[]
+    contracts: string[]
+    blockchains: string[]
+}
+
+type IMobulaAssetData = {
+    contracts_balances: IMobulaContractBalanceData[]
+    cross_chain_balances: Record<string, IMobulaCrossChainBalanceData> // key is the same as in asset.blockchains    price_change_24h: number
+    estimated_balance: number
+    price: number
+    token_balance: number
+    allocation: number
+    asset: IMobulaAsset
+    wallets: string[]
+}
+
+type IMobulaPortfolioData = {
+    total_wallet_balance: number
+    wallets: string[]
+    assets: IMobulaAssetData[]
+    balances_length: number
 }
 
 const ERC20_DATA_ABI = parseAbi([
@@ -214,3 +257,61 @@ export async function estimateTransactionCostUsd(
         return 0.01
     }
 }
+
+export const fetchWalletBalances = unstable_cache(
+    async (address: string): Promise<{ balances: IUserBalance[]; totalBalance: number }> => {
+        const mobulaResponse = await fetchWithSentry(`https://api.mobula.io/api/1/wallet/portfolio?wallet=${address}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                authorization: process.env.MOBULA_API_KEY!,
+            },
+        })
+
+        if (!mobulaResponse.ok) throw new Error('Failed to fetch wallet balances')
+
+        const json: { data: IMobulaPortfolioData } = await mobulaResponse.json()
+        const assets = json.data.assets
+            .filter((a: IMobulaAssetData) => !!a.price)
+            .filter((a: IMobulaAssetData) => !!a.token_balance)
+        const balances = []
+        for (const asset of assets) {
+            const symbol = asset.asset.symbol
+            const price = isStableCoin(symbol) || estimateIfIsStableCoinFromPrice(asset.price) ? 1 : asset.price
+            /*
+           Mobula returns balances per asset, IE: USDC on arbitrum, mainnet
+           and optimism are all part of the same "asset", here we need to
+           divide it
+          */
+            for (const chain of asset.asset.blockchains) {
+                const address = asset.cross_chain_balances[chain].address
+                const contractInfo = asset.contracts_balances.find((c) => areEvmAddressesEqual(c.address, address))
+                const crossChainBalance = asset.cross_chain_balances[chain]
+                balances.push({
+                    chainId: crossChainBalance.chainId,
+                    address,
+                    name: asset.asset.name,
+                    symbol,
+                    decimals: contractInfo!.decimals,
+                    price,
+                    amount: crossChainBalance.balance,
+                    currency: 'usd',
+                    logoURI: asset.asset.logo,
+                    value: (crossChainBalance.balance * price).toString(),
+                })
+            }
+        }
+        const totalBalance = balances.reduce(
+            (acc: number, balance: IUserBalance) => acc + balance.amount * balance.price,
+            0
+        )
+        return {
+            balances,
+            totalBalance,
+        }
+    },
+    ['fetchWalletBalances'],
+    {
+        tags: ['fetchWalletBalances'],
+        revalidate: 5, // 5 seconds
+    }
+)
