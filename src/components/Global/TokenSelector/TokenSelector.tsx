@@ -11,7 +11,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { tokenSelectorContext } from '@/context'
 import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { IToken, IUserBalance } from '@/interfaces'
-import { areEvmAddressesEqual, fetchWalletBalances, formatTokenAmount, isNativeCurrency } from '@/utils'
+import { areEvmAddressesEqual, formatTokenAmount, isNativeCurrency } from '@/utils'
 import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import EmptyState from '../EmptyStates/EmptyState'
@@ -26,6 +26,7 @@ import {
     TOKEN_SELECTOR_POPULAR_NETWORK_IDS,
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
+import { fetchWalletBalances } from '@/app/actions/tokens'
 
 interface SectionProps {
     title: string
