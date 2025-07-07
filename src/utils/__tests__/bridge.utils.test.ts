@@ -20,7 +20,7 @@ describe('bridge.utils', () => {
             const offrampConfig = getCurrencyConfig('US', 'offramp')
             expect(offrampConfig).toEqual({
                 currency: 'usd',
-                paymentRail: 'ach_pull',
+                paymentRail: 'ach',
             })
         })
 
@@ -96,7 +96,7 @@ describe('bridge.utils', () => {
             const config = getOfframpCurrencyConfig('US')
             expect(config).toEqual({
                 currency: 'usd',
-                paymentRail: 'ach_pull',
+                paymentRail: 'ach',
             })
         })
 
@@ -198,7 +198,7 @@ describe('bridge.utils', () => {
             const offrampConfig = getCurrencyConfig('US', 'offramp')
 
             expect(onrampConfig.paymentRail).toBe('ach_push')
-            expect(offrampConfig.paymentRail).toBe('ach_pull')
+            expect(offrampConfig.paymentRail).toBe('ach')
             expect(onrampConfig.currency).toBe(offrampConfig.currency)
         })
 
