@@ -94,10 +94,12 @@ export default function ConfirmPaymentView({
     const networkFee = useMemo<string | React.ReactNode>(() => {
         if (isFeeEstimationError) return '-'
         if (!estimatedGasCost) {
-            return isUsingExternalWallet ? '-' : 'Sponsored by Peanut!'
+            return isUsingExternalWallet ? '$ 0.00' : 'Sponsored by Peanut!'
         }
 
-        if (isUsingExternalWallet) return `$ ${estimatedGasCost.toFixed(2)}`
+        if (isUsingExternalWallet) {
+            return estimatedGasCost < 0.01 ? '$ <0.01' : `$ ${estimatedGasCost.toFixed(2)}`
+        }
 
         if (estimatedGasCost < 0.01) return 'Sponsored by Peanut!'
 
