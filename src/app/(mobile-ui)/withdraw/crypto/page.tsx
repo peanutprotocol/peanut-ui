@@ -45,6 +45,7 @@ export default function WithdrawCryptoPage() {
         setIsPreparingReview,
         paymentError,
         setPaymentError,
+        setError: setWithdrawError,
     } = useWithdrawFlow()
 
     const {
@@ -62,8 +63,13 @@ export default function WithdrawCryptoPage() {
         (error: string | null) => {
             setPaymentError(error)
             dispatch(paymentActions.setError(error))
+            // Also set the withdraw flow error state for display in InitialWithdrawView
+            setWithdrawError({
+                showError: !!error,
+                errorMessage: error || '',
+            })
         },
-        [setPaymentError, dispatch]
+        [setPaymentError, dispatch, setWithdrawError]
     )
 
     const clearErrors = useCallback(() => {
