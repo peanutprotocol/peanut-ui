@@ -88,12 +88,14 @@ export default function WithdrawCryptoPage() {
         if (currentView === 'CONFIRM' && activeChargeDetailsFromStore && withdrawData) {
             console.log('Preparing withdraw transaction details...')
             console.dir(activeChargeDetailsFromStore)
-            prepareTransactionDetails(
-                activeChargeDetailsFromStore,
-                PEANUT_WALLET_TOKEN,
-                PEANUT_WALLET_CHAIN.id.toString(),
-                amountToWithdraw
-            )
+            prepareTransactionDetails({
+                chargeDetails: activeChargeDetailsFromStore,
+                from: {
+                    tokenAddress: PEANUT_WALLET_TOKEN,
+                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                },
+                usdAmount: amountToWithdraw,
+            })
         }
     }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, amountToWithdraw])
 
@@ -226,12 +228,14 @@ export default function WithdrawCryptoPage() {
         if (!activeChargeDetailsFromStore) return
         console.log('Refreshing withdraw route due to expiry...')
         console.log('About to call prepareTransactionDetails with:', activeChargeDetailsFromStore)
-        await prepareTransactionDetails(
-            activeChargeDetailsFromStore,
-            PEANUT_WALLET_TOKEN,
-            PEANUT_WALLET_CHAIN.id.toString(),
-            amountToWithdraw
-        )
+        await prepareTransactionDetails({
+            chargeDetails: activeChargeDetailsFromStore,
+            from: {
+                tokenAddress: PEANUT_WALLET_TOKEN,
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
+            },
+            usdAmount: amountToWithdraw,
+        })
     }, [activeChargeDetailsFromStore, prepareTransactionDetails, amountToWithdraw])
 
     const handleBackFromConfirm = useCallback(() => {
