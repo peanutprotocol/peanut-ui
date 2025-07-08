@@ -46,11 +46,6 @@ const LinkSendFlowManager = ({ onPrev }: LinkSendFlowManagerProps) => {
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
     }, [])
 
-    // reset send flow state when component mounts
-    useEffect(() => {
-        dispatch(sendFlowActions.resetSendFlow())
-    }, [dispatch])
-
     return (
         <div>
             {view === 'INITIAL' && (

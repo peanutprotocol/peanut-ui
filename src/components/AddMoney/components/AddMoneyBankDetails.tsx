@@ -13,7 +13,7 @@ import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import Icon from '@/components/Global/Icon'
-import { getCurrencySymbol, getOnrampCurrencyConfig } from '@/utils/bridge.utils'
+import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 
 export default function AddMoneyBankDetails() {
     const { amountToOnramp, onrampData, setOnrampData } = useOnrampFlow()
@@ -46,7 +46,7 @@ export default function AddMoneyBankDetails() {
         return countryCode?.toLowerCase() || 'us'
     }, [currentCountryDetails])
 
-    const onrampCurrency = getOnrampCurrencyConfig(currentCountryDetails?.id || 'US').currency
+    const onrampCurrency = getCurrencyConfig(currentCountryDetails?.id || 'US', 'onramp').currency
 
     useEffect(() => {
         // If no amount is set, redirect back to add money page
@@ -124,11 +124,13 @@ Please use these details to complete your bank transfer.`
                     <PaymentInfoRow
                         label={'Bank Name'}
                         value={onrampData?.depositInstructions?.bankName || 'Loading...'}
+                        allowCopy={!!onrampData?.depositInstructions?.bankName}
                     />
                     {currentCountryDetails?.id !== 'MX' && (
                         <PaymentInfoRow
                             label={'Bank Address'}
                             value={onrampData?.depositInstructions?.bankAddress || 'Loading...'}
+                            allowCopy={!!onrampData?.depositInstructions?.bankAddress}
                         />
                     )}
                     {currentCountryDetails?.id !== 'MX' && (
@@ -141,6 +143,16 @@ Please use these details to complete your bank transfer.`
                                     : null) ||
                                 'N/A'
                             }
+                            allowCopy={
+                                !!(
+                                    onrampData?.depositInstructions?.bankAccountNumber ||
+                                    onrampData?.depositInstructions?.iban
+                                )
+                            }
+                            copyValue={
+                                onrampData?.depositInstructions?.bankAccountNumber ||
+                                onrampData?.depositInstructions?.iban
+                            }
                         />
                     )}
                     {currentCountryDetails?.id !== 'MX' && (
@@ -151,6 +163,12 @@ Please use these details to complete your bank transfer.`
                                 onrampData?.depositInstructions?.bic ||
                                 'N/A'
                             }
+                            allowCopy={
+                                !!(
+                                    onrampData?.depositInstructions?.bankRoutingNumber ||
+                                    onrampData?.depositInstructions?.bic
+                                )
+                            }
                         />
                     )}
                     <PaymentInfoRow
@@ -158,6 +176,7 @@ Please use these details to complete your bank transfer.`
                         label={'Deposit Message'}
                         value={onrampData?.depositInstructions?.depositMessage || 'Loading...'}
                         moreInfoText="Make sure you enter this exact message as the transfer concept or description. If it's not included, the deposit can't be processed."
+                        allowCopy={!!onrampData?.depositInstructions?.depositMessage}
                     />
                 </Card>
 
