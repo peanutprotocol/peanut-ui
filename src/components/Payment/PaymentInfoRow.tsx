@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
+import CopyToClipboard from '../Global/CopyToClipboard'
 
 export const PaymentInfoRow = ({
     label,
@@ -9,12 +10,14 @@ export const PaymentInfoRow = ({
     moreInfoText,
     loading,
     hideBottomBorder,
+    allowCopy,
 }: {
     label: string | React.ReactNode
     value: number | string | React.ReactNode
     moreInfoText?: string
     loading?: boolean
     hideBottomBorder?: boolean
+    allowCopy?: boolean
 }) => {
     const [showMoreInfo, setShowMoreInfo] = useState(false)
     const tooltipId = useId()
@@ -62,10 +65,13 @@ export const PaymentInfoRow = ({
             {loading ? (
                 <Loading />
             ) : (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center justify-between">
                     <div className={twMerge('flex w-fit justify-end text-sm font-bold')}>
                         <span>{value}</span>
                     </div>
+                    {allowCopy && typeof value === 'string' && (
+                        <CopyToClipboard textToCopy={value} fill="black" iconSize="4" />
+                    )}
                 </div>
             )}
         </div>

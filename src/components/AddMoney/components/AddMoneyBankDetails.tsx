@@ -124,11 +124,13 @@ Please use these details to complete your bank transfer.`
                     <PaymentInfoRow
                         label={'Bank Name'}
                         value={onrampData?.depositInstructions?.bankName || 'Loading...'}
+                        allowCopy={!!onrampData?.depositInstructions?.bankName}
                     />
                     {currentCountryDetails?.id !== 'MX' && (
                         <PaymentInfoRow
                             label={'Bank Address'}
                             value={onrampData?.depositInstructions?.bankAddress || 'Loading...'}
+                            allowCopy={!!onrampData?.depositInstructions?.bankAddress}
                         />
                     )}
                     {currentCountryDetails?.id !== 'MX' && (
@@ -141,6 +143,7 @@ Please use these details to complete your bank transfer.`
                                     : null) ||
                                 'N/A'
                             }
+                            allowCopy={!!(onrampData?.depositInstructions?.bankAccountNumber || onrampData?.depositInstructions?.iban)}
                         />
                     )}
                     {currentCountryDetails?.id !== 'MX' && (
@@ -151,6 +154,7 @@ Please use these details to complete your bank transfer.`
                                 onrampData?.depositInstructions?.bic ||
                                 'N/A'
                             }
+                            allowCopy={!!(onrampData?.depositInstructions?.bankRoutingNumber || onrampData?.depositInstructions?.bic)}
                         />
                     )}
                     <PaymentInfoRow
@@ -158,6 +162,7 @@ Please use these details to complete your bank transfer.`
                         label={'Deposit Message'}
                         value={onrampData?.depositInstructions?.depositMessage || 'Loading...'}
                         moreInfoText="Make sure you enter this exact message as the transfer concept or description. If it's not included, the deposit can't be processed."
+                        allowCopy={!!onrampData?.depositInstructions?.depositMessage}
                     />
                 </Card>
 
