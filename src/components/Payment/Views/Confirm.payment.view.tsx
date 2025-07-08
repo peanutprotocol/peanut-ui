@@ -28,6 +28,7 @@ import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 import { formatUnits } from 'viem'
+import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { captureMessage } from '@sentry/nextjs'
 
@@ -156,7 +157,14 @@ export default function ConfirmPaymentView({
                 isDirectUsdPayment && chargeDetails.currencyCode.toLowerCase() === 'usd'
                     ? chargeDetails.currencyAmount
                     : undefined
-            await prepareTransactionDetails(chargeDetails, fromTokenAddress, fromChainId, usdAmount)
+            await prepareTransactionDetails({
+                chargeDetails,
+                from: {
+                    tokenAddress: fromTokenAddress as Address,
+                    chainId: fromChainId,
+                },
+                usdAmount,
+            })
         }
     }, [
         chargeDetails,
