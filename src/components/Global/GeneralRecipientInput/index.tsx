@@ -86,10 +86,12 @@ const GeneralRecipientInput = ({
 
     const onInputUpdate = useCallback(
         (update: InputUpdate) => {
-            const sanitizedValue =
-                recipientType.current === 'iban' || recipientType.current === 'us'
-                    ? sanitizeBankAccount(update.value)
-                    : update.value.trim().replace(`${BASE_URL}/`, '')
+            // Determine if current input looks like a bank account for sanitization
+            const trimmedValue = update.value.trim().replace(`${BASE_URL}/`, '')
+            const sanitizedForCheck = sanitizeBankAccount(trimmedValue)
+            const looksLikeBankAccount = isIBAN(sanitizedForCheck) || /^[0-9]{1,17}$/.test(sanitizedForCheck)
+
+            const sanitizedValue = looksLikeBankAccount ? sanitizedForCheck : trimmedValue
 
             let _update: GeneralRecipientUpdate
             if (update.isValid) {
@@ -118,7 +120,7 @@ const GeneralRecipientInput = ({
             }
             onUpdate(_update)
         },
-        [addRecipient]
+        [addRecipient, isWithdrawal]
     )
 
     const formatDisplayValue = (value: string) => {
