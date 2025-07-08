@@ -19,7 +19,7 @@ export const requestsApi = {
 
         if (!response.ok) {
             let errorMessage = `Failed to create request: ${response.statusText}`
-            
+
             try {
                 const errorData = await response.json()
                 if (errorData.error) {
@@ -29,7 +29,7 @@ export const requestsApi = {
                 // If we can't parse the response, use the default error message
                 console.warn('Could not parse error response:', parseError)
             }
-            
+
             throw new Error(errorMessage)
         }
 
