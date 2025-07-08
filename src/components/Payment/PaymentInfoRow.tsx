@@ -11,6 +11,7 @@ export const PaymentInfoRow = ({
     loading,
     hideBottomBorder,
     allowCopy,
+    copyValue,
 }: {
     label: string | React.ReactNode
     value: number | string | React.ReactNode
@@ -18,6 +19,7 @@ export const PaymentInfoRow = ({
     loading?: boolean
     hideBottomBorder?: boolean
     allowCopy?: boolean
+    copyValue?: string
 }) => {
     const [showMoreInfo, setShowMoreInfo] = useState(false)
     const tooltipId = useId()
@@ -70,7 +72,7 @@ export const PaymentInfoRow = ({
                         <span>{value}</span>
                     </div>
                     {allowCopy && typeof value === 'string' && (
-                        <CopyToClipboard textToCopy={value} fill="black" iconSize="4" />
+                        <CopyToClipboard textToCopy={copyValue ?? value} fill="black" iconSize="4" />
                     )}
                 </div>
             )}

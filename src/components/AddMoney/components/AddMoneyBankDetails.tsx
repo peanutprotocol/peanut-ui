@@ -13,7 +13,7 @@ import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import Icon from '@/components/Global/Icon'
-import { getCurrencySymbol, getOnrampCurrencyConfig } from '@/utils/bridge.utils'
+import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 
 export default function AddMoneyBankDetails() {
     const { amountToOnramp, onrampData, setOnrampData } = useOnrampFlow()
@@ -46,7 +46,7 @@ export default function AddMoneyBankDetails() {
         return countryCode?.toLowerCase() || 'us'
     }, [currentCountryDetails])
 
-    const onrampCurrency = getOnrampCurrencyConfig(currentCountryDetails?.id || 'US').currency
+    const onrampCurrency = getCurrencyConfig(currentCountryDetails?.id || 'US', 'onramp').currency
 
     useEffect(() => {
         // If no amount is set, redirect back to add money page
@@ -143,7 +143,16 @@ Please use these details to complete your bank transfer.`
                                     : null) ||
                                 'N/A'
                             }
-                            allowCopy={!!(onrampData?.depositInstructions?.bankAccountNumber || onrampData?.depositInstructions?.iban)}
+                            allowCopy={
+                                !!(
+                                    onrampData?.depositInstructions?.bankAccountNumber ||
+                                    onrampData?.depositInstructions?.iban
+                                )
+                            }
+                            copyValue={
+                                onrampData?.depositInstructions?.bankAccountNumber ||
+                                onrampData?.depositInstructions?.iban
+                            }
                         />
                     )}
                     {currentCountryDetails?.id !== 'MX' && (
@@ -154,7 +163,12 @@ Please use these details to complete your bank transfer.`
                                 onrampData?.depositInstructions?.bic ||
                                 'N/A'
                             }
-                            allowCopy={!!(onrampData?.depositInstructions?.bankRoutingNumber || onrampData?.depositInstructions?.bic)}
+                            allowCopy={
+                                !!(
+                                    onrampData?.depositInstructions?.bankRoutingNumber ||
+                                    onrampData?.depositInstructions?.bic
+                                )
+                            }
                         />
                     )}
                     <PaymentInfoRow
