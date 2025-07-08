@@ -74,7 +74,7 @@ export default function ConfirmPaymentView({
         isPreparingTx,
         loadingStep,
         error: paymentError,
-        estimatedGasCost,
+        estimatedGasCostUsd,
         isCalculatingFees,
         isEstimatingGas,
         isFeeEstimationError,
@@ -93,23 +93,23 @@ export default function ConfirmPaymentView({
 
     const networkFee = useMemo<string | React.ReactNode>(() => {
         if (isFeeEstimationError) return '-'
-        if (!estimatedGasCost) {
-            return isUsingExternalWallet ? '$ 0.00' : 'Sponsored by Peanut!'
+        if (!estimatedGasCostUsd) {
+            return isUsingExternalWallet ? '-' : 'Sponsored by Peanut!'
         }
 
         if (isUsingExternalWallet) {
-            return estimatedGasCost < 0.01 ? '$ <0.01' : `$ ${estimatedGasCost.toFixed(2)}`
+            return estimatedGasCostUsd < 0.01 ? '$ <0.01' : `$ ${estimatedGasCostUsd.toFixed(2)}`
         }
 
-        if (estimatedGasCost < 0.01) return 'Sponsored by Peanut!'
+        if (estimatedGasCostUsd < 0.01) return 'Sponsored by Peanut!'
 
         return (
             <>
-                <span className="line-through">$ {estimatedGasCost.toFixed(2)}</span>{' '}
+                <span className="line-through">$ {estimatedGasCostUsd.toFixed(2)}</span>{' '}
                 <span className="text-gray-400">Sponsored by Peanut!</span>
             </>
         )
-    }, [estimatedGasCost, isFeeEstimationError, isUsingExternalWallet])
+    }, [estimatedGasCostUsd, isFeeEstimationError, isUsingExternalWallet])
 
     const {
         tokenIconUrl: sendingTokenIconUrl,

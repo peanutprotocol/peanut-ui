@@ -83,7 +83,7 @@ export const usePaymentInitiator = () => {
     const [isCalculatingFees, setIsCalculatingFees] = useState(false)
     const [isPreparingTx, setIsPreparingTx] = useState(false)
 
-    const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
+    const [estimatedGasCostUsd, setEstimatedGasCostUsd] = useState<number | undefined>(undefined)
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const [loadingStep, setLoadingStep] = useState<string>('Idle')
     const [error, setError] = useState<string | null>(null)
@@ -128,7 +128,7 @@ export const usePaymentInitiator = () => {
         setXChainRoute(undefined)
         setEstimatedFromValue('0')
         setSlippagePercentage(undefined)
-        setEstimatedGasCost(undefined)
+        setEstimatedGasCostUsd(undefined)
         setFeeOptions([])
         setTransactionHash(null)
         setPaymentDetails(null)
@@ -186,7 +186,7 @@ export const usePaymentInitiator = () => {
             setXChainUnsignedTxs(null)
             setXChainRoute(undefined)
 
-            setEstimatedGasCost(undefined)
+            setEstimatedGasCostUsd(undefined)
             setFeeOptions([])
 
             setIsPreparingTx(true)
@@ -231,7 +231,7 @@ export const usePaymentInitiator = () => {
                         }))
                     )
                     setIsCalculatingFees(false)
-                    setEstimatedGasCost(xChainRoute.feeCostsUsd)
+                    setEstimatedGasCostUsd(xChainRoute.feeCostsUsd)
                     setEstimatedFromValue(xChainRoute.fromAmount)
                     setSlippagePercentage(slippagePercentage)
                 } else {
@@ -249,7 +249,7 @@ export const usePaymentInitiator = () => {
                     }
 
                     setIsCalculatingFees(true)
-                    setEstimatedGasCost(
+                    setEstimatedGasCostUsd(
                         isPeanutWallet
                             ? 0
                             : await estimateTransactionCostUsd(
@@ -746,7 +746,7 @@ export const usePaymentInitiator = () => {
         slippagePercentage,
         estimatedFromValue,
         xChainUnsignedTxs,
-        estimatedGasCost,
+        estimatedGasCostUsd,
         unsignedTx,
         isCalculatingFees,
         isFeeEstimationError,
