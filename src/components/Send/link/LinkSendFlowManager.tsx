@@ -46,7 +46,6 @@ const LinkSendFlowManager = ({ onPrev }: LinkSendFlowManagerProps) => {
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
     }, [])
 
-
     return (
         <div>
             {view === 'INITIAL' && (
