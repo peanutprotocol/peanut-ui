@@ -83,7 +83,7 @@ export default function ConfirmPaymentView({
         xChainRoute,
     } = usePaymentInitiator()
     const { selectedTokenData, selectedChainID } = useContext(tokenSelectorContext)
-    const { isConnected: isPeanutWallet, fetchBalance } = useWallet()
+    const { isConnected: isPeanutWallet, fetchBalance, address: peanutWalletAddress } = useWallet()
     const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
     const { rewardWalletBalance } = useWalletStore()
     const queryClient = useQueryClient()
@@ -171,9 +171,11 @@ export default function ConfirmPaymentView({
                 isDirectUsdPayment && chargeDetails.currencyCode.toLowerCase() === 'usd'
                     ? chargeDetails.currencyAmount
                     : undefined
+            const senderAddress = isUsingExternalWallet ? wagmiAddress : peanutWalletAddress
             await prepareTransactionDetails({
                 chargeDetails,
                 from: {
+                    address: senderAddress as Address,
                     tokenAddress: fromTokenAddress as Address,
                     chainId: fromChainId,
                 },
@@ -187,6 +189,8 @@ export default function ConfirmPaymentView({
         prepareTransactionDetails,
         isDirectUsdPayment,
         isUsingExternalWallet,
+        wagmiAddress,
+        peanutWalletAddress,
     ])
 
     useEffect(() => {
