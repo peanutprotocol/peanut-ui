@@ -165,16 +165,12 @@ export const usePaymentInitiator = () => {
         }: {
             chargeDetails: TRequestChargeResponse
             from: {
+                address: Address
                 tokenAddress: Address
                 chainId: string
             }
             usdAmount?: string
         }) => {
-            if (!peanutWalletAddress && !wagmiAddress) {
-                console.warn('Missing data for transaction preparation')
-                return
-            }
-
             setError(null)
             setIsFeeEstimationError(false)
             setUnsignedTx(null)
@@ -192,7 +188,6 @@ export const usePaymentInitiator = () => {
 
                 if (_isXChain || _diffTokens) {
                     setLoadingStep('Preparing Transaction')
-                    const senderAddress = isPeanutWallet ? peanutWalletAddress : wagmiAddress
                     setIsCalculatingFees(true)
                     const amount = usdAmount
                         ? {
@@ -202,10 +197,7 @@ export const usePaymentInitiator = () => {
                               toAmount: parseUnits(chargeDetails.tokenAmount, chargeDetails.tokenDecimals),
                           }
                     const xChainRoute = await getRoute({
-                        from: {
-                            address: senderAddress as Address,
-                            ...from,
-                        },
+                        from,
                         to: {
                             address: chargeDetails.requestLink.recipientAddress as Address,
                             tokenAddress: chargeDetails.tokenAddress as Address,
@@ -273,7 +265,7 @@ export const usePaymentInitiator = () => {
                 setIsPreparingTx(false)
             }
         },
-        [peanutWalletAddress, wagmiAddress, setIsXChain, isPeanutWallet]
+        [setIsXChain, isPeanutWallet]
     )
 
     // helper function: determine charge details (fetch or create)

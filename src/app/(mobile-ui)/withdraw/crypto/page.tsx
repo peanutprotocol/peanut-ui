@@ -26,12 +26,13 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { captureMessage } from '@sentry/nextjs'
+import type { Address } from 'viem'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
     const dispatch = useAppDispatch()
     const { chargeDetails: activeChargeDetailsFromStore } = usePaymentStore()
-    const { isConnected: isPeanutWallet } = useWallet()
+    const { isConnected: isPeanutWallet, address } = useWallet()
     const {
         amountToWithdraw,
         setAmountToWithdraw,
@@ -97,13 +98,14 @@ export default function WithdrawCryptoPage() {
             prepareTransactionDetails({
                 chargeDetails: activeChargeDetailsFromStore,
                 from: {
+                    address: address as Address,
                     tokenAddress: PEANUT_WALLET_TOKEN,
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 },
                 usdAmount: amountToWithdraw,
             })
         }
-    }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, amountToWithdraw])
+    }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, amountToWithdraw, address])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -237,12 +239,13 @@ export default function WithdrawCryptoPage() {
         await prepareTransactionDetails({
             chargeDetails: activeChargeDetailsFromStore,
             from: {
+                address: address as Address,
                 tokenAddress: PEANUT_WALLET_TOKEN,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
             },
             usdAmount: amountToWithdraw,
         })
-    }, [activeChargeDetailsFromStore, prepareTransactionDetails, amountToWithdraw])
+    }, [activeChargeDetailsFromStore, prepareTransactionDetails, amountToWithdraw, address])
 
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')

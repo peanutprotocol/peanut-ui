@@ -9,7 +9,13 @@ import {
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchUsers/SearchInput'
-import { RecentMethod, getUserPreferences, updateUserPreferences, shortenAddressLong, formatIban } from '@/utils/general.utils'
+import {
+    RecentMethod,
+    getUserPreferences,
+    updateUserPreferences,
+    shortenAddressLong,
+    formatIban,
+} from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { FC, useEffect, useMemo, useState } from 'react'
 import { useUserStore } from '@/redux/hooks'
