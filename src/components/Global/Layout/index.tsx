@@ -40,7 +40,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                         font-family: ${roboto.style.fontFamily};
                     }
                 `}</style>
-                <div className={twMerge('relative bg-background', isTryNow && 'bg-background-1')}>
+                <div className={twMerge('relative bg-background', isTryNow && 'bg-pink-1')}>
                     <div className="flex min-h-screen flex-col ">
                         <MigrationBanner className="h-[20vh] min-h-[120px]" />
                         <div className="flex grow justify-center">
