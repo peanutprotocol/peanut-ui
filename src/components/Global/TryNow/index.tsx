@@ -1,4 +1,12 @@
-import { ARROW_UP_CIRCLE, CASHOUT_ICON, Eyes, STAR_OUTLINE_ICON } from '@/assets'
+import {
+    ARROW_UP_CIRCLE,
+    CASHOUT_ICON,
+    Eyes,
+    STAR_OUTLINE_ICON,
+    SMILEY_ICON,
+    TRIANGLE_ICON,
+    GITBOOK_ICON,
+} from '@/assets'
 import { Card } from '@chakra-ui/react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -32,6 +40,31 @@ const cards: ITryNowCard[] = [
         icon: ARROW_UP_CIRCLE,
         href: '/send',
     },
+    {
+        title: 'Raffle (legacy)',
+        description: 'Create crypto raffles and distribute tokens to winners',
+        icon: STAR_OUTLINE_ICON,
+        href: '/raffle/create',
+    },
+    {
+        title: 'Batch Send (legacy)',
+        description: 'Send tokens to multiple recipients at once',
+        icon: SMILEY_ICON,
+        href: '/batch/create',
+    },
+    {
+        title: 'Refund (legacy)',
+        description: 'Refund unclaimed peanut links back to sender',
+        icon: TRIANGLE_ICON,
+        href: '/refund',
+    },
+    {
+        title: 'Docs (legacy)',
+        description: 'Learn about Peanut Protocol and its features',
+        icon: GITBOOK_ICON,
+        href: 'https://docs.peanut.to/',
+        isExternal: true,
+    },
 ]
 
 const TryNow = () => {
@@ -62,7 +95,11 @@ const TryNow = () => {
                                     index === 0 ? 'p-4' : 'p-2'
                                 )}
                             >
-                                <Image src={card.icon} alt={card.title} className="size-12" />
+                                <Image
+                                    src={card.icon}
+                                    alt={card.title}
+                                    className={twMerge('size-12', index === 5 && '-mt-2')}
+                                />
                             </div>
                             <div className="flex items-center justify-normal gap-3">
                                 <div
@@ -71,7 +108,11 @@ const TryNow = () => {
                                         index === 0 ? 'p-4' : 'p-2'
                                     )}
                                 >
-                                    <Image src={card.icon} alt={card.title} className="size-12" />
+                                    <Image
+                                        src={card.icon}
+                                        alt={card.title}
+                                        className={twMerge('size-12', index === 5 && '-mt-1')}
+                                    />
                                 </div>
                                 <div className="space-y-1.5">
                                     <h2 className="text-lg font-extrabold md:text-center">{card.title}</h2>
