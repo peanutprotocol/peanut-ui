@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 interface RouteExpiryTimerProps {
-    expiry?: string // ISO string from route
+    expiry?: string // Unix timestamp in seconds
     isLoading?: boolean
     onNearExpiry?: () => void // Called when timer gets close to expiry (e.g., 30 seconds)
     onExpired?: () => void // Called when timer expires
@@ -32,7 +32,12 @@ const RouteExpiryTimer: React.FC<RouteExpiryTimerProps> = ({
     const [hasTriggeredNearExpiry, setHasTriggeredNearExpiry] = useState(false)
     const [hasExpired, setHasExpired] = useState(false)
 
-    const totalDurationMs = useMemo(() => (expiry ? parseInt(expiry) * 1000 - new Date().getTime() : 0), [expiry])
+    const totalDurationMs = useMemo(() => {
+        if (!expiry) return 0
+        const expiryMs = parseInt(expiry, 10) * 1000
+        const diff = expiryMs - Date.now()
+        return Math.max(0, diff)
+    }, [expiry])
     const nearExpiryThresholdMs = useMemo(() => totalDurationMs * nearExpiryThresholdPercentage, [totalDurationMs])
 
     const calculateTimeRemaining = useCallback((): TimeRemaining | null => {
