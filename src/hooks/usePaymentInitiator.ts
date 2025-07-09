@@ -33,6 +33,22 @@ import { getRoute, type PeanutCrossChainRoute } from '@/services/swap'
 import { estimateTransactionCostUsd } from '@/app/actions/tokens'
 import { captureException } from '@sentry/nextjs'
 
+enum ELoadingStep {
+    IDLE = 'Idle',
+    PREPARING_TRANSACTION = 'Preparing Transaction',
+    SENDING_TRANSACTION = 'Sending Transaction',
+    CONFIRMING_TRANSACTION = 'Confirming Transaction',
+    UPDATING_PAYMENT_STATUS = 'Updating Payment Status',
+    CHARGE_CREATED = 'Charge Created',
+    ERROR = 'Error',
+    SUCCESS = 'Success',
+    FETCHING_CHARGE_DETAILS = 'Fetching Charge Details',
+    CREATING_CHARGE = 'Creating Charge',
+    SWITCHING_NETWORK = 'Switching Network',
+}
+
+type LoadingStep = `${ELoadingStep}`
+
 export interface InitiatePaymentPayload {
     recipient: ParsedURL['recipient']
     tokenAmount: string
@@ -84,7 +100,7 @@ export const usePaymentInitiator = () => {
 
     const [estimatedGasCostUsd, setEstimatedGasCostUsd] = useState<number | undefined>(undefined)
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
-    const [loadingStep, setLoadingStep] = useState<string>('Idle')
+    const [loadingStep, setLoadingStep] = useState<LoadingStep>('Idle')
     const [error, setError] = useState<string | null>(null)
     const [createdChargeDetails, setCreatedChargeDetails] = useState<TRequestChargeResponse | null>(null)
     const [transactionHash, setTransactionHash] = useState<string | null>(null)
@@ -109,7 +125,11 @@ export const usePaymentInitiator = () => {
     }, [selectedTokenData, activeChargeDetails])
 
     const isProcessing = useMemo<boolean>(
-        () => loadingStep !== 'Idle' && loadingStep !== 'Success' && loadingStep !== 'Error',
+        () =>
+            loadingStep !== 'Idle' &&
+            loadingStep !== 'Success' &&
+            loadingStep !== 'Error' &&
+            loadingStep !== 'Charge Created',
         [loadingStep]
     )
 

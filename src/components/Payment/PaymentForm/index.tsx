@@ -633,6 +633,7 @@ export const PaymentForm = ({
                     disabled={!isAddMoneyFlow && (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)}
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
                     currency={currency}
+                    hideBalance={isAddMoneyFlow}
                 />
 
                 {/*

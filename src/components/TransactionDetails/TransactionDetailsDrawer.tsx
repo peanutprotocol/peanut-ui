@@ -440,16 +440,16 @@ export const TransactionDetailsReceipt = ({
                                                     value={
                                                         <div className="flex items-center gap-2">
                                                             <span>
-                                                                {
-                                                                    formatIban(transaction.extraDataForDrawer.depositInstructions
-                                                                        .iban)
-                                                                }
+                                                                {formatIban(
+                                                                    transaction.extraDataForDrawer.depositInstructions
+                                                                        .iban
+                                                                )}
                                                             </span>
                                                             <CopyToClipboard
-                                                                textToCopy={
-                                                                    formatIban(transaction.extraDataForDrawer.depositInstructions
-                                                                        .iban)
-                                                                }
+                                                                textToCopy={formatIban(
+                                                                    transaction.extraDataForDrawer.depositInstructions
+                                                                        .iban
+                                                                )}
                                                                 iconSize="4"
                                                             />
                                                         </div>
