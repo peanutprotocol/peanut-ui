@@ -10,54 +10,26 @@ export const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
 export const SQUID_INTEGRATOR_ID = '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C'
 export const SQUID_API_URL = process.env.SQUID_API_URL
 
+const infuraUrl = (subdomain: string) => (INFURA_API_KEY ? `https://${subdomain}.infura.io/v3/${INFURA_API_KEY}` : null)
+const alchemyUrl = (subdomain: string) =>
+    ALCHEMY_API_KEY ? `https://${subdomain}.g.alchemy.com/v2/${ALCHEMY_API_KEY}` : null
+
 export const rpcUrls: Record<number, string[]> = {
-    [mainnet.id]: [
-        `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
-        `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-    ].filter(
-        (url) => (INFURA_API_KEY && url.endsWith(INFURA_API_KEY)) || (ALCHEMY_API_KEY && url.endsWith(ALCHEMY_API_KEY))
-    ),
-    [arbitrum.id]: [
-        `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-        `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-    ].filter(
-        (url) => (INFURA_API_KEY && url.endsWith(INFURA_API_KEY)) || (ALCHEMY_API_KEY && url.endsWith(ALCHEMY_API_KEY))
-    ),
-    [arbitrumSepolia.id]: [
-        `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_KEY}`,
-        `https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-    ].filter(
-        (url) => (INFURA_API_KEY && url.endsWith(INFURA_API_KEY)) || (ALCHEMY_API_KEY && url.endsWith(ALCHEMY_API_KEY))
-    ),
-    [polygon.id]: [
-        `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-        `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-    ].filter(
-        (url) => (INFURA_API_KEY && url.endsWith(INFURA_API_KEY)) || (ALCHEMY_API_KEY && url.endsWith(ALCHEMY_API_KEY))
-    ),
-    [optimism.id]: [
-        `https://optimism-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-        `https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-    ].filter(
-        (url) => (INFURA_API_KEY && url.endsWith(INFURA_API_KEY)) || (ALCHEMY_API_KEY && url.endsWith(ALCHEMY_API_KEY))
-    ),
-    [baseSepolia.id]: [
-        `https://base-sepolia.infura.io/v3/${INFURA_API_KEY}`,
-        `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-    ].filter(
-        (url) => (INFURA_API_KEY && url.endsWith(INFURA_API_KEY)) || (ALCHEMY_API_KEY && url.endsWith(ALCHEMY_API_KEY))
-    ),
+    [mainnet.id]: [infuraUrl('mainnet'), alchemyUrl('eth-mainnet')].filter(Boolean) as string[],
+    [arbitrum.id]: [infuraUrl('arbitrum-mainnet'), alchemyUrl('arb-mainnet')].filter(Boolean) as string[],
+    [arbitrumSepolia.id]: [infuraUrl('arbitrum-sepolia'), alchemyUrl('arb-sepolia')].filter(Boolean) as string[],
+    [polygon.id]: [infuraUrl('polygon-mainnet'), alchemyUrl('polygon-mainnet')].filter(Boolean) as string[],
+    [optimism.id]: [infuraUrl('optimism-mainnet'), alchemyUrl('opt-mainnet')].filter(Boolean) as string[],
+    [baseSepolia.id]: [infuraUrl('base-sepolia'), alchemyUrl('base-sepolia')].filter(Boolean) as string[],
     // Infura is returning weird estimations for BSC @2025-05-14
     //[bsc.id]: `https://bsc-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    [bsc.id]: ['https://bsc-dataseed.bnbchain.org'],
-    [scroll.id]: [`https://scroll-mainnet.infura.io/v3/${INFURA_API_KEY}`].filter(
-        (url) => INFURA_API_KEY && url.endsWith(INFURA_API_KEY)
-    ),
-    [base.id]: [
-        `https://mainnet.base.org`,
-        `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-        `https://base-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    ].filter((url) => !url.includes('undefined')),
+    [bsc.id]: ['https://bsc-dataseed.bnbchain.org', infuraUrl('bsc-mainnet'), alchemyUrl('bsc-mainnet')].filter(
+        Boolean
+    ) as string[],
+    [scroll.id]: [infuraUrl('scroll-mainnet')].filter(Boolean) as string[],
+    [base.id]: [`https://mainnet.base.org`, alchemyUrl('base-mainnet'), infuraUrl('base-mainnet')].filter(
+        Boolean
+    ) as string[],
 }
 
 export const ipfsProviderArray = [
