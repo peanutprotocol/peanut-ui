@@ -15,7 +15,7 @@ export const infuraRpcUrls: Record<number, string> = {
     [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_KEY}`,
     [polygon.id]: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [optimism.id]: `https://optimism-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    [base.id]: `https://base-sepolia.infura.io/v3/${INFURA_API_KEY}`,
+    [base.id]: `https://base-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     // Infura is returning weird estimations for BSC @2025-05-14
     //[bsc.id]: `https://bsc-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [bsc.id]: 'https://bsc-dataseed.bnbchain.org',
