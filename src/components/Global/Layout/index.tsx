@@ -42,7 +42,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                 `}</style>
                 <div className={twMerge('relative bg-background', isTryNow && 'bg-pink-1')}>
                     <div className="flex min-h-screen flex-col ">
-                        <MigrationBanner className="h-[20vh] min-h-[120px]" />
+                        <MigrationBanner className="h-[7vh] min-h-[90px]" />
                         <div className="flex grow justify-center">
                             <div
                                 className={`4xl:max-w-full flex grow flex-col justify-center pb-2 pt-6 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}
@@ -52,7 +52,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                             </div>
                         </div>
                         <FooterVisibilityObserver />
-                        <MigrationBanner className="h-[20vh] min-h-[120px]" />
+                        <MigrationBanner className="h-[7vh] min-h-[90px]" />
                         <Footer />
                         <Modal
                             visible={showModal}

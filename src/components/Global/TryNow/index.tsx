@@ -18,6 +18,7 @@ interface ITryNowCard {
     icon: string
     href: string
     isExternal?: boolean
+    needsIconAdjustment?: boolean
 }
 
 const cards: ITryNowCard[] = [
@@ -64,6 +65,7 @@ const cards: ITryNowCard[] = [
         icon: GITBOOK_ICON,
         href: 'https://docs.peanut.to/',
         isExternal: true,
+        needsIconAdjustment: true,
     },
 ]
 
@@ -98,7 +100,7 @@ const TryNow = () => {
                                 <Image
                                     src={card.icon}
                                     alt={card.title}
-                                    className={twMerge('size-12', index === 5 && '-mt-2')}
+                                    className={twMerge('size-12', card.needsIconAdjustment && '-mt-2')}
                                 />
                             </div>
                             <div className="flex items-center justify-normal gap-3">
@@ -111,7 +113,7 @@ const TryNow = () => {
                                     <Image
                                         src={card.icon}
                                         alt={card.title}
-                                        className={twMerge('size-12', index === 5 && '-mt-1')}
+                                        className={twMerge('size-12', card.needsIconAdjustment && '-mt-1')}
                                     />
                                 </div>
                                 <div className="space-y-1.5">
