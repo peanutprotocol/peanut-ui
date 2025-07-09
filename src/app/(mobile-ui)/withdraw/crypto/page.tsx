@@ -293,11 +293,11 @@ export default function WithdrawCryptoPage() {
     const displayError = paymentError ?? routeTypeError
 
     // Get network fee from route or fallback
-    const networkFee = useCallback(() => {
+    const networkFee = useMemo<number>(() => {
         if (xChainRoute?.feeCostsUsd) {
-            return xChainRoute.feeCostsUsd < 0.01 ? '$ <0.01' : `$ ${xChainRoute.feeCostsUsd.toFixed(2)}`
+            return xChainRoute.feeCostsUsd
         }
-        return '$ 0.00'
+        return 0
     }, [xChainRoute])
 
     if (!amountToWithdraw) {
@@ -325,7 +325,7 @@ export default function WithdrawCryptoPage() {
                     onBack={handleBackFromConfirm}
                     isProcessing={isProcessing}
                     error={displayError}
-                    networkFee={networkFee()}
+                    networkFee={networkFee}
                     // Timer props for cross-chain withdrawals
                     isCrossChain={isCrossChainWithdrawal}
                     routeExpiry={xChainRoute?.expiry}

@@ -21,7 +21,7 @@ interface WithdrawConfirmViewProps {
     token: ITokenPriceData
     chain: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
     toAddress: string
-    networkFee?: string
+    networkFee?: number
     peanutFee?: string
     onConfirm: () => void
     onBack: () => void
@@ -40,7 +40,7 @@ export default function ConfirmWithdrawView({
     token,
     chain,
     toAddress,
-    networkFee = '0.00',
+    networkFee = 0,
     peanutFee = '0.00',
     onConfirm,
     onBack,
@@ -62,6 +62,16 @@ export default function ConfirmWithdrawView({
         if (!xChainRoute) return null
         return formatUnits(BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin), token.decimals)
     }, [xChainRoute])
+
+    const networkFeeDisplay = useMemo<string | React.ReactNode>(() => {
+        if (networkFee < 0.01) return 'Sponsored by Peanut!'
+        return (
+            <>
+                <span className="line-through">$ {networkFee.toFixed(2)}</span>{' '}
+                <span className="text-gray-400">Sponsored by Peanut!</span>
+            </>
+        )
+    }, [networkFee])
 
     return (
         <div className="space-y-8">
@@ -132,8 +142,12 @@ export default function ConfirmWithdrawView({
                     />
                     <PaymentInfoRow
                         label="Max network fee"
-                        value={networkFee}
-                        moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
+                        value={networkFeeDisplay}
+                        moreInfoText={
+                            isCrossChain
+                                ? 'This transaction may face slippage due to token conversion or cross-chain bridging.'
+                                : undefined
+                        }
                     />
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ ${peanutFee}`} />
                 </Card>
