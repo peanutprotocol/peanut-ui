@@ -1,8 +1,7 @@
 'use client'
 
-import { Banner } from '@/components/Global/Banner'
 import Footer from '@/components/Global/Footer'
-import Header from '@/components/Global/Header'
+import { MigrationBanner } from '@/components/Global/MigrationBanner'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { Widget } from '@typeform/embed-react'
 import { Roboto_Flex } from 'next/font/google'
@@ -43,8 +42,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                 `}</style>
                 <div className={twMerge('relative bg-background', isTryNow && 'bg-background-1')}>
                     <div className="flex min-h-screen flex-col ">
-                        <Header />
-                        <Banner />
+                        <MigrationBanner className="h-[20vh] min-h-[120px]" />
                         <div className="flex grow justify-center">
                             <div
                                 className={`4xl:max-w-full flex grow flex-col justify-center pb-2 pt-6 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}
@@ -54,6 +52,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                             </div>
                         </div>
                         <FooterVisibilityObserver />
+                        <MigrationBanner className="h-[20vh] min-h-[120px]" />
                         <Footer />
                         <Modal
                             visible={showModal}
