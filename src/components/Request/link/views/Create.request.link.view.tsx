@@ -358,7 +358,7 @@ export const CreateRequestLinkView = () => {
                     onSubmit={handleTokenAmountSubmit}
                     onBlur={handleTokenAmountSubmit}
                     walletBalance={peanutWalletBalance}
-                    disabled={false}
+                    disabled={!!generatedLink}
                 />
 
                 <FileUploadInput
