@@ -451,21 +451,19 @@ export default function ConfirmPaymentView({
                             }
                         />
                     )}
-                    {isCrossChainPayment !== (isPeanutWallet && !isAddMoneyFlow) && (
-                        <PaymentInfoRow
-                            label={isCrossChainPayment ? `Sending` : 'Token and network'}
-                            value={
-                                <TokenChainInfoDisplay
-                                    tokenIconUrl={sendingTokenIconUrl}
-                                    chainIconUrl={sendingChainIconUrl}
-                                    resolvedTokenSymbol={sendingResolvedTokenSymbol}
-                                    fallbackTokenSymbol={selectedTokenData?.symbol || ''}
-                                    resolvedChainName={sendingResolvedChainName}
-                                    fallbackChainName={selectedChainID || ''}
-                                />
-                            }
-                        />
-                    )}
+                    <PaymentInfoRow
+                        label={isCrossChainPayment ? `Sending` : 'Token and network'}
+                        value={
+                            <TokenChainInfoDisplay
+                                tokenIconUrl={sendingTokenIconUrl}
+                                chainIconUrl={sendingChainIconUrl}
+                                resolvedTokenSymbol={sendingResolvedTokenSymbol}
+                                fallbackTokenSymbol={selectedTokenData?.symbol || ''}
+                                resolvedChainName={sendingResolvedChainName}
+                                fallbackChainName={selectedChainID || ''}
+                            />
+                        }
+                    />
 
                     {isAddMoneyFlow && (
                         <PaymentInfoRow
@@ -482,7 +480,7 @@ export default function ConfirmPaymentView({
 
                     <PaymentInfoRow
                         loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
-                        label={isCrossChainPayment ? 'Max network fee' : 'Network fee'}
+                        label={'Network fee'}
                         value={networkFee}
                     />
 
