@@ -72,7 +72,7 @@ export function Hero({ heading, marquee = { visible: false }, primaryCta, second
 
             <a
                 href={cta.href}
-                className={`${variant === 'primary' ? 'btn-yellow' : 'btn-yellow'} px-5 shadow-md`}
+                className={`${variant === 'primary' ? 'btn bg-white text-n-1 fill-n-1 hover:bg-white/90' : 'btn-yellow'} px-5 shadow-md`}
                 target={cta.isExternal ? '_blank' : undefined}
                 rel={cta.isExternal ? 'noopener noreferrer' : undefined}
             >
