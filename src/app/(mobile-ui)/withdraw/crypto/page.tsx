@@ -25,12 +25,14 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
+import { captureMessage } from '@sentry/nextjs'
+import type { Address } from 'viem'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
     const dispatch = useAppDispatch()
     const { chargeDetails: activeChargeDetailsFromStore } = usePaymentStore()
-    const { isConnected: isPeanutWallet } = useWallet()
+    const { isConnected: isPeanutWallet, address } = useWallet()
     const {
         amountToWithdraw,
         setAmountToWithdraw,
@@ -44,6 +46,7 @@ export default function WithdrawCryptoPage() {
         setIsPreparingReview,
         paymentError,
         setPaymentError,
+        setError: setWithdrawError,
     } = useWithdrawFlow()
 
     const {
@@ -61,8 +64,13 @@ export default function WithdrawCryptoPage() {
         (error: string | null) => {
             setPaymentError(error)
             dispatch(paymentActions.setError(error))
+            // Also set the withdraw flow error state for display in InitialWithdrawView
+            setWithdrawError({
+                showError: !!error,
+                errorMessage: error || '',
+            })
         },
-        [setPaymentError, dispatch]
+        [setPaymentError, dispatch, setWithdrawError]
     )
 
     const clearErrors = useCallback(() => {
@@ -75,10 +83,9 @@ export default function WithdrawCryptoPage() {
             router.push('/withdraw')
             return
         }
-        dispatch(paymentActions.setChargeDetails(null))
         clearErrors()
-        setCurrentView('INITIAL')
-    }, [amountToWithdraw, router, dispatch, setAmountToWithdraw, setCurrentView])
+        dispatch(paymentActions.setChargeDetails(null))
+    }, [amountToWithdraw])
 
     useEffect(() => {
         setPaymentError(paymentErrorFromHook)
@@ -88,14 +95,17 @@ export default function WithdrawCryptoPage() {
         if (currentView === 'CONFIRM' && activeChargeDetailsFromStore && withdrawData) {
             console.log('Preparing withdraw transaction details...')
             console.dir(activeChargeDetailsFromStore)
-            prepareTransactionDetails(
-                activeChargeDetailsFromStore,
-                PEANUT_WALLET_TOKEN,
-                PEANUT_WALLET_CHAIN.id.toString(),
-                amountToWithdraw
-            )
+            prepareTransactionDetails({
+                chargeDetails: activeChargeDetailsFromStore,
+                from: {
+                    address: address as Address,
+                    tokenAddress: PEANUT_WALLET_TOKEN,
+                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                },
+                usdAmount: amountToWithdraw,
+            })
         }
-    }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, amountToWithdraw])
+    }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, amountToWithdraw, address])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -205,19 +215,6 @@ export default function WithdrawCryptoPage() {
 
         if (result.success && result.txHash) {
             setCurrentView('STATUS')
-
-            // reset the entire withdraw flow after successful payment
-            setTimeout(() => {
-                setAmountToWithdraw('')
-                setWithdrawData(null)
-                setCurrentView('INITIAL')
-
-                // clear any errors
-                clearErrors()
-
-                // clear charge details
-                dispatch(paymentActions.setChargeDetails(null))
-            }, 3000) // wait 3 seconds to show success status before resetting
         } else {
             console.error('Withdrawal execution failed:', result.error)
             const errMsg = result.error || 'Withdrawal processing failed.'
@@ -239,13 +236,16 @@ export default function WithdrawCryptoPage() {
         if (!activeChargeDetailsFromStore) return
         console.log('Refreshing withdraw route due to expiry...')
         console.log('About to call prepareTransactionDetails with:', activeChargeDetailsFromStore)
-        await prepareTransactionDetails(
-            activeChargeDetailsFromStore,
-            PEANUT_WALLET_TOKEN,
-            PEANUT_WALLET_CHAIN.id.toString(),
-            amountToWithdraw
-        )
-    }, [activeChargeDetailsFromStore, prepareTransactionDetails, amountToWithdraw])
+        await prepareTransactionDetails({
+            chargeDetails: activeChargeDetailsFromStore,
+            from: {
+                address: address as Address,
+                tokenAddress: PEANUT_WALLET_TOKEN,
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
+            },
+            usdAmount: amountToWithdraw,
+        })
+    }, [activeChargeDetailsFromStore, prepareTransactionDetails, amountToWithdraw, address])
 
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')
@@ -279,7 +279,14 @@ export default function WithdrawCryptoPage() {
 
         // For peanut wallet flows, only RFQ routes are allowed
         if (xChainRoute.type === 'swap') {
-            return 'This token pair is not available for withdraw.'
+            captureMessage('No RFQ route found for this token pair', {
+                level: 'warning',
+                extra: {
+                    flow: 'withdraw',
+                    routeObject: xChainRoute,
+                },
+            })
+            return 'No route found for this token pair. You can try with a different token pair, or try again later'
         }
 
         return null
@@ -289,11 +296,11 @@ export default function WithdrawCryptoPage() {
     const displayError = paymentError ?? routeTypeError
 
     // Get network fee from route or fallback
-    const networkFee = useCallback(() => {
+    const networkFee = useMemo<number>(() => {
         if (xChainRoute?.feeCostsUsd) {
-            return xChainRoute.feeCostsUsd < 0.01 ? '$ <0.01' : `$ ${xChainRoute.feeCostsUsd.toFixed(2)}`
+            return xChainRoute.feeCostsUsd
         }
-        return '$ 0.00'
+        return 0
     }, [xChainRoute])
 
     if (!amountToWithdraw) {
@@ -321,7 +328,7 @@ export default function WithdrawCryptoPage() {
                     onBack={handleBackFromConfirm}
                     isProcessing={isProcessing}
                     error={displayError}
-                    networkFee={networkFee()}
+                    networkFee={networkFee}
                     // Timer props for cross-chain withdrawals
                     isCrossChain={isCrossChainWithdrawal}
                     routeExpiry={xChainRoute?.expiry}

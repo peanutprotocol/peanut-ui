@@ -8,36 +8,18 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import Icon from '@/components/Global/Icon'
-import { getCurrencySymbol, getOnrampCurrencyConfig } from '@/utils/bridge.utils'
-
-export interface IOnrampData {
-    transferId?: string
-    depositInstructions?: {
-        amount?: string
-        currency?: string
-        depositMessage?: string
-        bankName?: string
-        bankAddress?: string
-        bankRoutingNumber?: string
-        bankAccountNumber?: string
-        bankBeneficiaryName?: string
-        bankBeneficiaryAddress?: string
-        iban?: string
-        bic?: string
-    }
-}
+import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 
 export default function AddMoneyBankDetails() {
-    const { amountToOnramp } = useOnrampFlow()
+    const { amountToOnramp, onrampData, setOnrampData } = useOnrampFlow()
     const router = useRouter()
     const params = useParams()
     const currentCountryName = params.country as string
-    const [onrampData, setOnrampData] = useState<IOnrampData | null>(null)
 
     // Get country information from URL params
     const currentCountryDetails = useMemo(() => {
@@ -64,24 +46,13 @@ export default function AddMoneyBankDetails() {
         return countryCode?.toLowerCase() || 'us'
     }, [currentCountryDetails])
 
-    const onrampCurrency = getOnrampCurrencyConfig(currentCountryDetails?.id || 'US').currency
+    const onrampCurrency = getCurrencyConfig(currentCountryDetails?.id || 'US', 'onramp').currency
 
     useEffect(() => {
         // If no amount is set, redirect back to add money page
         if (!amountToOnramp || parseFloat(amountToOnramp) <= 0) {
             router.replace('/add-money')
             return
-        }
-
-        // Load onramp data from sessionStorage
-        const storedData = sessionStorage.getItem('onrampData')
-        if (storedData) {
-            try {
-                const parsedData = JSON.parse(storedData)
-                setOnrampData(parsedData)
-            } catch (error) {
-                console.error('Error parsing onramp data:', error)
-            }
         }
     }, [amountToOnramp, router])
 
@@ -133,13 +104,13 @@ Please use these details to complete your bank transfer.`
     }
 
     return (
-        <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
+        <div className="flex h-full min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
             <NavHeader title="Add Money" onPrev={handleBack} />
 
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
                 <PeanutActionDetailsCard
                     avatarSize="small"
-                    transactionType={'ADD_MONEY'}
+                    transactionType={'ADD_MONEY_BANK_ACCOUNT'}
                     recipientType={'BANK_ACCOUNT'}
                     recipientName={'Your Bank Account'}
                     amount={amountToOnramp}
@@ -153,11 +124,13 @@ Please use these details to complete your bank transfer.`
                     <PaymentInfoRow
                         label={'Bank Name'}
                         value={onrampData?.depositInstructions?.bankName || 'Loading...'}
+                        allowCopy={!!onrampData?.depositInstructions?.bankName}
                     />
                     {currentCountryDetails?.id !== 'MX' && (
                         <PaymentInfoRow
                             label={'Bank Address'}
                             value={onrampData?.depositInstructions?.bankAddress || 'Loading...'}
+                            allowCopy={!!onrampData?.depositInstructions?.bankAddress}
                         />
                     )}
                     {currentCountryDetails?.id !== 'MX' && (
@@ -170,6 +143,16 @@ Please use these details to complete your bank transfer.`
                                     : null) ||
                                 'N/A'
                             }
+                            allowCopy={
+                                !!(
+                                    onrampData?.depositInstructions?.bankAccountNumber ||
+                                    onrampData?.depositInstructions?.iban
+                                )
+                            }
+                            copyValue={
+                                onrampData?.depositInstructions?.bankAccountNumber ||
+                                onrampData?.depositInstructions?.iban
+                            }
                         />
                     )}
                     {currentCountryDetails?.id !== 'MX' && (
@@ -180,6 +163,12 @@ Please use these details to complete your bank transfer.`
                                 onrampData?.depositInstructions?.bic ||
                                 'N/A'
                             }
+                            allowCopy={
+                                !!(
+                                    onrampData?.depositInstructions?.bankRoutingNumber ||
+                                    onrampData?.depositInstructions?.bic
+                                )
+                            }
                         />
                     )}
                     <PaymentInfoRow
@@ -187,6 +176,7 @@ Please use these details to complete your bank transfer.`
                         label={'Deposit Message'}
                         value={onrampData?.depositInstructions?.depositMessage || 'Loading...'}
                         moreInfoText="Make sure you enter this exact message as the transfer concept or description. If it's not included, the deposit can't be processed."
+                        allowCopy={!!onrampData?.depositInstructions?.depositMessage}
                     />
                 </Card>
 

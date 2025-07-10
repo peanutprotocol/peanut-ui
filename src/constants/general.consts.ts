@@ -7,7 +7,7 @@ export const peanutWalletIsInPreview = true
 export const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
 export const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
 
-export const SQUID_INTEGRATOR_ID = '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C'
+export const SQUID_INTEGRATOR_ID = process.env.SQUID_INTEGRATOR_ID!
 export const SQUID_API_URL = process.env.SQUID_API_URL
 
 const infuraUrl = (subdomain: string) => (INFURA_API_KEY ? `https://${subdomain}.infura.io/v3/${INFURA_API_KEY}` : null)
@@ -20,16 +20,13 @@ export const rpcUrls: Record<number, string[]> = {
     [arbitrumSepolia.id]: [infuraUrl('arbitrum-sepolia'), alchemyUrl('arb-sepolia')].filter(Boolean) as string[],
     [polygon.id]: [infuraUrl('polygon-mainnet'), alchemyUrl('polygon-mainnet')].filter(Boolean) as string[],
     [optimism.id]: [infuraUrl('optimism-mainnet'), alchemyUrl('opt-mainnet')].filter(Boolean) as string[],
-    [baseSepolia.id]: [infuraUrl('base-sepolia'), alchemyUrl('base-sepolia')].filter(Boolean) as string[],
+    [base.id]: [infuraUrl('base-mainnet'), alchemyUrl('base-mainnet')].filter(Boolean) as string[],
     // Infura is returning weird estimations for BSC @2025-05-14
     //[bsc.id]: `https://bsc-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [bsc.id]: ['https://bsc-dataseed.bnbchain.org', infuraUrl('bsc-mainnet'), alchemyUrl('bsc-mainnet')].filter(
         Boolean
     ) as string[],
     [scroll.id]: [infuraUrl('scroll-mainnet')].filter(Boolean) as string[],
-    [base.id]: [`https://mainnet.base.org`, alchemyUrl('base-mainnet'), infuraUrl('base-mainnet')].filter(
-        Boolean
-    ) as string[],
 }
 
 export const ipfsProviderArray = [

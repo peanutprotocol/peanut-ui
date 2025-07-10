@@ -20,6 +20,7 @@ interface PeanutActionDetailsCardProps {
         | 'ADD_MONEY'
         | 'WITHDRAW'
         | 'WITHDRAW_BANK_ACCOUNT'
+        | 'ADD_MONEY_BANK_ACCOUNT'
     recipientType: RecipientType | 'BANK_ACCOUNT'
     recipientName: string
     message?: string
@@ -97,7 +98,7 @@ export default function PeanutActionDetailsCard({
 
     const getAvatarIcon = useCallback((): IconName | undefined => {
         if (viewType === 'SUCCESS') return 'check'
-        if (transactionType === 'WITHDRAW_BANK_ACCOUNT') return 'bank'
+        if (transactionType === 'WITHDRAW_BANK_ACCOUNT' || transactionType === 'ADD_MONEY_BANK_ACCOUNT') return 'bank'
         if (recipientType !== 'USERNAME' || transactionType === 'ADD_MONEY' || transactionType === 'WITHDRAW')
             return 'wallet-outline'
         return undefined
@@ -131,7 +132,7 @@ export default function PeanutActionDetailsCard({
     }
 
     const isWithdrawBankAccount = transactionType === 'WITHDRAW_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
-    const isAddBankAccount = transactionType === 'ADD_MONEY'
+    const isAddBankAccount = transactionType === 'ADD_MONEY_BANK_ACCOUNT'
 
     const withdrawBankIcon = () => {
         if (isWithdrawBankAccount || isAddBankAccount)

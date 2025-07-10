@@ -28,7 +28,9 @@ import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 import { formatUnits } from 'viem'
+import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { captureMessage } from '@sentry/nextjs'
 
 type ConfirmPaymentViewProps = {
     isPintaReq?: boolean
@@ -73,7 +75,7 @@ export default function ConfirmPaymentView({
         isPreparingTx,
         loadingStep,
         error: paymentError,
-        estimatedGasCost,
+        estimatedGasCostUsd,
         isCalculatingFees,
         isEstimatingGas,
         isFeeEstimationError,
@@ -81,20 +83,34 @@ export default function ConfirmPaymentView({
         xChainRoute,
     } = usePaymentInitiator()
     const { selectedTokenData, selectedChainID } = useContext(tokenSelectorContext)
-    const { isConnected: isPeanutWallet, fetchBalance } = useWallet()
+    const { isConnected: isPeanutWallet, fetchBalance, address: peanutWalletAddress } = useWallet()
     const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
     const { rewardWalletBalance } = useWalletStore()
     const queryClient = useQueryClient()
 
-    const networkFee = useMemo(() => {
-        if (!estimatedGasCost || isPeanutWallet) return '$ 0.00'
+    const isUsingExternalWallet = useMemo(() => {
+        return isAddMoneyFlow || !isPeanutWallet
+    }, [isPeanutWallet, isAddMoneyFlow])
+
+    const networkFee = useMemo<string | React.ReactNode>(() => {
         if (isFeeEstimationError) return '-'
-        if (estimatedGasCost < 0.01) {
-            return '$ <0.01'
-        } else {
-            return `$ ${estimatedGasCost.toFixed(2)}`
+        if (!estimatedGasCostUsd) {
+            return isUsingExternalWallet ? '-' : 'Sponsored by Peanut!'
         }
-    }, [estimatedGasCost, isPeanutWallet, isFeeEstimationError])
+
+        if (isUsingExternalWallet) {
+            return estimatedGasCostUsd < 0.01 ? '$ <0.01' : `$ ${estimatedGasCostUsd.toFixed(2)}`
+        }
+
+        if (estimatedGasCostUsd < 0.01) return 'Sponsored by Peanut!'
+
+        return (
+            <>
+                <span className="line-through">$ {estimatedGasCostUsd.toFixed(2)}</span>{' '}
+                <span className="text-gray-400">Sponsored by Peanut!</span>
+            </>
+        )
+    }, [estimatedGasCostUsd, isFeeEstimationError, isUsingExternalWallet])
 
     const {
         tokenIconUrl: sendingTokenIconUrl,
@@ -123,12 +139,12 @@ export default function ConfirmPaymentView({
 
         return (
             isProcessing &&
-            (!isPeanutWallet || !!isAddMoneyFlow) &&
+            isUsingExternalWallet &&
             ['Switching Network', 'Sending Transaction', 'Confirming Transaction', 'Preparing Transaction'].includes(
                 loadingStep
             )
         )
-    }, [isProcessing, isPeanutWallet, loadingStep, isAddMoneyFlow, isCalculatingFees, isEstimatingGas])
+    }, [isProcessing, loadingStep, isCalculatingFees, isEstimatingGas, isUsingExternalWallet])
 
     useEffect(() => {
         if (chargeIdFromUrl && !chargeDetails) {
@@ -149,13 +165,22 @@ export default function ConfirmPaymentView({
 
     const handleRouteRefresh = useCallback(async () => {
         if (chargeDetails && selectedTokenData && selectedChainID) {
-            const fromTokenAddress = isPeanutWallet ? PEANUT_WALLET_TOKEN : selectedTokenData.address
-            const fromChainId = isPeanutWallet ? PEANUT_WALLET_CHAIN.id.toString() : selectedChainID
+            const fromTokenAddress = !isUsingExternalWallet ? PEANUT_WALLET_TOKEN : selectedTokenData.address
+            const fromChainId = !isUsingExternalWallet ? PEANUT_WALLET_CHAIN.id.toString() : selectedChainID
             const usdAmount =
                 isDirectUsdPayment && chargeDetails.currencyCode.toLowerCase() === 'usd'
                     ? chargeDetails.currencyAmount
                     : undefined
-            await prepareTransactionDetails(chargeDetails, fromTokenAddress, fromChainId, usdAmount)
+            const senderAddress = isUsingExternalWallet ? wagmiAddress : peanutWalletAddress
+            await prepareTransactionDetails({
+                chargeDetails,
+                from: {
+                    address: senderAddress as Address,
+                    tokenAddress: fromTokenAddress as Address,
+                    chainId: fromChainId,
+                },
+                usdAmount,
+            })
         }
     }, [
         chargeDetails,
@@ -163,7 +188,9 @@ export default function ConfirmPaymentView({
         selectedChainID,
         prepareTransactionDetails,
         isDirectUsdPayment,
-        isPeanutWallet,
+        isUsingExternalWallet,
+        wagmiAddress,
+        peanutWalletAddress,
     ])
 
     useEffect(() => {
@@ -198,7 +225,7 @@ export default function ConfirmPaymentView({
             skipChargeCreation: true,
             currency,
             currencyAmount,
-            isAddMoneyFlow: !!isAddMoneyFlow,
+            isAddMoneyFlow,
             transactionType: isAddMoneyFlow ? 'DEPOSIT' : 'REQUEST',
         })
 
@@ -325,26 +352,33 @@ export default function ConfirmPaymentView({
 
     const isCrossChainPayment = useMemo((): boolean => {
         if (!chargeDetails) return false
-        if (isPeanutWallet) {
+        if (!isUsingExternalWallet) {
             return (
                 !areEvmAddressesEqual(chargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) ||
                 chargeDetails.chainId !== PEANUT_WALLET_CHAIN.id.toString()
             )
         } else if (selectedTokenData && selectedChainID) {
             return (
-                areEvmAddressesEqual(chargeDetails.tokenAddress, selectedTokenData.address) &&
+                !areEvmAddressesEqual(chargeDetails.tokenAddress, selectedTokenData.address) ||
                 chargeDetails.chainId !== selectedChainID
             )
         }
         return false
-    }, [chargeDetails, selectedTokenData, selectedChainID])
+    }, [chargeDetails, selectedTokenData, selectedChainID, isUsingExternalWallet])
 
     const routeTypeError = useMemo((): string | null => {
         if (!isCrossChainPayment || !xChainRoute || !isPeanutWallet) return null
 
         // For peanut wallet flows, only RFQ routes are allowed
         if (xChainRoute.type === 'swap') {
-            return 'This route requires external wallet payment. Peanut Wallet only supports RFQ (Request for Quote) routes.'
+            captureMessage('No RFQ route found for this token pair', {
+                level: 'warning',
+                extra: {
+                    flow: 'payment',
+                    routeObject: xChainRoute,
+                },
+            })
+            return 'No route found for this token pair. You can try with a different token pair, or try again later'
         }
 
         return null
@@ -415,7 +449,7 @@ export default function ConfirmPaymentView({
                             }
                         />
                     )}
-                    {isCrossChainPayment !== isPeanutWallet && (
+                    {isCrossChainPayment !== (isPeanutWallet && !isAddMoneyFlow) && (
                         <PaymentInfoRow
                             label={isCrossChainPayment ? `Sending` : 'Token and network'}
                             value={
@@ -438,9 +472,9 @@ export default function ConfirmPaymentView({
                         label={isCrossChainPayment ? 'Max network fee' : 'Network fee'}
                         value={networkFee}
                         moreInfoText={
-                            isPeanutWallet
-                                ? 'This transaction is sponsored by Peanut.'
-                                : 'This transaction may face slippage due to token conversion or cross-chain bridging.'
+                            isCrossChainPayment
+                                ? 'This transaction may face slippage due to token conversion or cross-chain bridging.'
+                                : undefined
                         }
                     />
 
