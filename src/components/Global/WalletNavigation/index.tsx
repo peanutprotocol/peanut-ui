@@ -18,7 +18,8 @@ type NavPathProps = {
 const desktopPaths: NavPathProps[] = [
     { name: 'Send', href: '/send', icon: 'arrow-up-right', size: 10 },
     { name: 'Request', href: '/request', icon: 'arrow-down-left', size: 10 },
-    { name: 'Cashout', href: '/cashout', icon: 'arrow-down', size: 12 },
+    { name: 'Add', href: '/add-money', icon: 'arrow-down', size: 14 },
+    { name: 'Withdraw', href: '/withdraw', icon: 'arrow-up', size: 14 },
     { name: 'History', href: '/history', icon: 'history', size: 16 },
     { name: 'Docs', href: 'https://docs.peanut.to/', icon: 'docs', size: 16 },
     { name: 'Support', href: '/support', icon: 'peanut-support', size: 16 },
@@ -50,7 +51,7 @@ const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => (
                     <Icon name={icon} className="block text-white" size={size} />
                     <span className="block w-fit pt-0.5 text-center text-base font-semibold">{name}</span>
                 </Link>
-                {index === 3 && <div className="w-full border-b border-grey-1" />}
+                {index === 4 && <div className="w-full border-b border-grey-1 pt-5" />}
             </div>
         ))}
     </>
