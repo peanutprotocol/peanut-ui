@@ -70,7 +70,7 @@ export const CreateRequestLinkView = () => {
 
     // Derived state
     const peanutWalletBalance = useMemo(() => printableUsdc(balance), [balance])
-    
+
     const usdValue = useMemo(() => {
         if (!selectedTokenPrice || !tokenValue) return ''
         return (parseFloat(tokenValue) * selectedTokenPrice).toString()
@@ -93,9 +93,7 @@ export const CreateRequestLinkView = () => {
         if (generatedLink) return generatedLink
 
         return `${window.location.origin}${
-            tokenValue 
-                ? `/${user?.user.username}/${tokenValue}USDC` 
-                : `/send/${user?.user.username}`
+            tokenValue ? `/${user?.user.username}/${tokenValue}USDC` : `/send/${user?.user.username}`
         }`
     }, [user?.user.username, tokenValue, generatedLink])
 
@@ -207,7 +205,16 @@ export const CreateRequestLinkView = () => {
                 setIsCreatingLink(false)
             }
         },
-        [recipientAddress, tokenValue, selectedTokenData, selectedTokenAddress, selectedChainID, toast, queryClient, setLoadingState]
+        [
+            recipientAddress,
+            tokenValue,
+            selectedTokenData,
+            selectedTokenAddress,
+            selectedChainID,
+            toast,
+            queryClient,
+            setLoadingState,
+        ]
     )
 
     const updateRequestLink = useCallback(
@@ -254,54 +261,57 @@ export const CreateRequestLinkView = () => {
 
     const hasUnsavedChanges = useMemo(() => {
         if (!requestId) return false
-        
+
         const lastSaved = lastSavedAttachmentRef.current
-        return (
-            lastSaved.message !== attachmentOptions.message ||
-            lastSaved.rawFile !== attachmentOptions.rawFile
-        )
+        return lastSaved.message !== attachmentOptions.message || lastSaved.rawFile !== attachmentOptions.rawFile
     }, [requestId, attachmentOptions.message, attachmentOptions.rawFile])
 
-    const handleTokenValueChange = useCallback((value: string | undefined) => {
-        const newValue = value || ''
-        setTokenValue(newValue)
-        
-        // Reset link and request when token value changes
-        if (newValue !== tokenValue) {
-            setGeneratedLink(null)
-            setRequestId(null)
-            lastSavedAttachmentRef.current = {
-                message: '',
-                fileUrl: '',
-                rawFile: undefined,
-            }
-        }
-    }, [tokenValue])
+    const handleTokenValueChange = useCallback(
+        (value: string | undefined) => {
+            const newValue = value || ''
+            setTokenValue(newValue)
 
-    const handleAttachmentOptionsChange = useCallback((options: IAttachmentOptions) => {
-        setAttachmentOptions(options)
-        setErrorState({ showError: false, errorMessage: '' })
-        
-        // Reset link and request when attachments are completely cleared
-        if (!options.rawFile && !options.message) {
-            setGeneratedLink(null)
-            setRequestId(null)
-            lastSavedAttachmentRef.current = {
-                message: '',
-                fileUrl: '',
-                rawFile: undefined,
+            // Reset link and request when token value changes
+            if (newValue !== tokenValue) {
+                setGeneratedLink(null)
+                setRequestId(null)
+                lastSavedAttachmentRef.current = {
+                    message: '',
+                    fileUrl: '',
+                    rawFile: undefined,
+                }
             }
-        }
-        
-        // If file was added/changed and we have a request, update it immediately
-        if (requestId && options.rawFile !== lastSavedAttachmentRef.current.rawFile) {
-            updateRequestLink(options)
-        }
-    }, [requestId, updateRequestLink])
+        },
+        [tokenValue]
+    )
+
+    const handleAttachmentOptionsChange = useCallback(
+        (options: IAttachmentOptions) => {
+            setAttachmentOptions(options)
+            setErrorState({ showError: false, errorMessage: '' })
+
+            // Reset link and request when attachments are completely cleared
+            if (!options.rawFile && !options.message) {
+                setGeneratedLink(null)
+                setRequestId(null)
+                lastSavedAttachmentRef.current = {
+                    message: '',
+                    fileUrl: '',
+                    rawFile: undefined,
+                }
+            }
+
+            // If file was added/changed and we have a request, update it immediately
+            if (requestId && options.rawFile !== lastSavedAttachmentRef.current.rawFile) {
+                updateRequestLink(options)
+            }
+        },
+        [requestId, updateRequestLink]
+    )
 
     const handleTokenAmountSubmit = useCallback(async () => {
         if (!tokenValue || parseFloat(tokenValue) <= 0) return
-        
+
         if (!generatedLink) {
             // POST: Create new request
             const link = await createRequestLink(attachmentOptions)
@@ -323,7 +333,7 @@ export const CreateRequestLinkView = () => {
     const generateLink = useCallback(async () => {
         if (generatedLink) return generatedLink
         if (Number(tokenValue) === 0) return qrCodeLink
-        
+
         // Create new request when share button is clicked
         const link = await createRequestLink(attachmentOptions)
         if (link) {
@@ -346,10 +356,7 @@ export const CreateRequestLinkView = () => {
             <div className="w-full space-y-4">
                 <PeanutActionCard type="request" />
 
-                <QRCodeWrapper 
-                    url={qrCodeLink} 
-                    isLoading={isCreatingLink || isUpdatingRequest} 
-                />
+                <QRCodeWrapper url={qrCodeLink} isLoading={isCreatingLink || isUpdatingRequest} />
 
                 <TokenAmountInput
                     className="w-full"
@@ -369,7 +376,7 @@ export const CreateRequestLinkView = () => {
                     onBlur={handleAttachmentBlur}
                 />
 
-                {(isCreatingLink || isUpdatingRequest) ? (
+                {isCreatingLink || isUpdatingRequest ? (
                     <Button disabled={true} shadowSize="4">
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> Loading
@@ -378,7 +385,7 @@ export const CreateRequestLinkView = () => {
                 ) : (
                     <ShareButton generateUrl={generateLink}>Share Link</ShareButton>
                 )}
-                
+
                 {errorState.showError && (
                     <div className="text-start">
                         <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
