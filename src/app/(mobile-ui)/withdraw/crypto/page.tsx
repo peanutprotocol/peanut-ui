@@ -117,6 +117,7 @@ export default function WithdrawCryptoPage() {
 
             clearErrors()
             dispatch(paymentActions.setChargeDetails(null))
+            setIsPreparingReview(true)
 
             try {
                 const completeWithdrawData = { ...data, amount: amountToWithdraw }

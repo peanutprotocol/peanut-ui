@@ -21,7 +21,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch, usePaymentStore, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
-import { ErrorHandler, formatAmount, printableAddress, areEvmAddressesEqual } from '@/utils'
+import { ErrorHandler, formatAmount, areEvmAddressesEqual } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
@@ -31,6 +31,7 @@ import { formatUnits } from 'viem'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { captureMessage } from '@sentry/nextjs'
+import AddressLink from '@/components/Global/AddressLink'
 
 type ConfirmPaymentViewProps = {
     isPintaReq?: boolean
@@ -106,8 +107,9 @@ export default function ConfirmPaymentView({
 
         return (
             <>
-                <span className="line-through">$ {estimatedGasCostUsd.toFixed(2)}</span>{' '}
-                <span className="text-gray-400">Sponsored by Peanut!</span>
+                <span className="line-through">$ {estimatedGasCostUsd.toFixed(2)}</span>
+                {' – '}
+                <span className="font-medium text-gray-500">Sponsored by Peanut!</span>
             </>
         )
     }, [estimatedGasCostUsd, isFeeEstimationError, isUsingExternalWallet])
@@ -465,17 +467,23 @@ export default function ConfirmPaymentView({
                         />
                     )}
 
-                    {isAddMoneyFlow && <PaymentInfoRow label="From" value={printableAddress(wagmiAddress ?? '')} />}
+                    {isAddMoneyFlow && (
+                        <PaymentInfoRow
+                            label="From"
+                            value={
+                                <AddressLink
+                                    isLink={false}
+                                    address={wagmiAddress!}
+                                    className="text-black no-underline"
+                                />
+                            }
+                        />
+                    )}
 
                     <PaymentInfoRow
                         loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
                         label={isCrossChainPayment ? 'Max network fee' : 'Network fee'}
                         value={networkFee}
-                        moreInfoText={
-                            isCrossChainPayment
-                                ? 'This transaction may face slippage due to token conversion or cross-chain bridging.'
-                                : undefined
-                        }
                     />
 
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ 0.00`} />

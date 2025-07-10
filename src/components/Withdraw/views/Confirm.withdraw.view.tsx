@@ -67,8 +67,9 @@ export default function ConfirmWithdrawView({
         if (networkFee < 0.01) return 'Sponsored by Peanut!'
         return (
             <>
-                <span className="line-through">$ {networkFee.toFixed(2)}</span>{' '}
-                <span className="text-gray-400">Sponsored by Peanut!</span>
+                <span className="line-through">$ {networkFee.toFixed(2)}</span>
+                {' – '}
+                <span className="font-medium text-gray-500">Sponsored by Peanut!</span>
             </>
         )
     }, [networkFee])
@@ -140,15 +141,7 @@ export default function ConfirmWithdrawView({
                         label="To"
                         value={<AddressLink isLink={false} address={toAddress} className="text-black no-underline" />}
                     />
-                    <PaymentInfoRow
-                        label="Max network fee"
-                        value={networkFeeDisplay}
-                        moreInfoText={
-                            isCrossChain
-                                ? 'This transaction may face slippage due to token conversion or cross-chain bridging.'
-                                : undefined
-                        }
-                    />
+                    <PaymentInfoRow label="Max network fee" value={networkFeeDisplay} />
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ ${peanutFee}`} />
                 </Card>
 

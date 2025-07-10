@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 interface RouteExpiryTimerProps {
-    expiry?: string // ISO string from route
+    expiry?: string // Unix timestamp in seconds
     isLoading?: boolean
     onNearExpiry?: () => void // Called when timer gets close to expiry (e.g., 30 seconds)
     onExpired?: () => void // Called when timer expires
     className?: string
-    nearExpiryThresholdMs?: number // Default 30 seconds
+    nearExpiryThresholdPercentage?: number
     disableRefetch?: boolean // Disable refetching when user is signing transaction
     error?: string | null // Error message to display instead of timer
 }
@@ -24,13 +24,21 @@ const RouteExpiryTimer: React.FC<RouteExpiryTimerProps> = ({
     onNearExpiry,
     onExpired,
     className,
-    nearExpiryThresholdMs = 5000, // 5 seconds
+    nearExpiryThresholdPercentage = 0.1, // 10% of total duration
     disableRefetch = false,
     error = null,
 }) => {
     const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(null)
     const [hasTriggeredNearExpiry, setHasTriggeredNearExpiry] = useState(false)
     const [hasExpired, setHasExpired] = useState(false)
+
+    const totalDurationMs = useMemo(() => {
+        if (!expiry) return 0
+        const expiryMs = parseInt(expiry, 10) * 1000
+        const diff = expiryMs - Date.now()
+        return Math.max(0, diff)
+    }, [expiry])
+    const nearExpiryThresholdMs = useMemo(() => totalDurationMs * nearExpiryThresholdPercentage, [totalDurationMs])
 
     const calculateTimeRemaining = useCallback((): TimeRemaining | null => {
         if (!expiry) return null
@@ -114,36 +122,29 @@ const RouteExpiryTimer: React.FC<RouteExpiryTimerProps> = ({
         return `${paddedMinutes}:${paddedSeconds}`
     }
 
-    const getProgressPercentage = (): number => {
-        if (!timeRemaining || !expiry) return 0
-
-        // Assuming routes typically have 1-minute expiry (300 seconds)
-        // This could be made configurable if needed
-        const totalDurationMs = 1 * 60 * 1000 // 1 minutes
+    const progressPercentage = useMemo((): number => {
+        if (!timeRemaining || !totalDurationMs) return 0
         const elapsedMs = totalDurationMs - timeRemaining.totalMs
         return Math.max(0, Math.min(100, (elapsedMs / totalDurationMs) * 100))
-    }
+    }, [timeRemaining, totalDurationMs])
 
-    const getProgressColor = (): string => {
+    const progressColor = useMemo((): string => {
         if (!timeRemaining) return 'bg-grey-3'
 
-        const percentage = getProgressPercentage()
-
         // Green for first 70%
-        if (percentage < 70) return 'bg-green-500'
+        if (progressPercentage < 70) return 'bg-green-500'
         // Yellow for 70-85%
-        if (percentage < 85) return 'bg-yellow-500'
+        if (progressPercentage < 85) return 'bg-yellow-500'
         // Red for final 15%
         return 'bg-red'
-    }
+    }, [progressPercentage, timeRemaining])
 
-    const shouldPulse = (): boolean => {
+    const shouldPulse = useMemo((): boolean => {
         if (isLoading) return true
         if (!timeRemaining) return false
         // Pulse when in red zone (85%+ progress) OR near expiry threshold
-        const progressPercentage = getProgressPercentage()
         return (progressPercentage >= 85 || timeRemaining.totalMs <= nearExpiryThresholdMs) && timeRemaining.totalMs > 0
-    }
+    }, [progressPercentage, timeRemaining, isLoading, nearExpiryThresholdMs])
 
     const getText = (): string => {
         if (error) return error
@@ -177,11 +178,11 @@ const RouteExpiryTimer: React.FC<RouteExpiryTimerProps> = ({
                 <div
                     className={twMerge(
                         'h-full rounded-full transition-all duration-300',
-                        error ? 'w-full bg-red' : isLoading ? 'w-full bg-grey-3' : getProgressColor(),
-                        shouldPulse() ? 'animate-pulse-strong' : ''
+                        error ? 'w-full bg-red' : isLoading ? 'w-full bg-grey-3' : progressColor,
+                        shouldPulse ? 'animate-pulse-strong' : ''
                     )}
                     style={{
-                        width: error ? '100%' : isLoading ? '100%' : `${getProgressPercentage()}%`,
+                        width: error ? '100%' : isLoading ? '100%' : `${progressPercentage}%`,
                     }}
                 />
             </div>
