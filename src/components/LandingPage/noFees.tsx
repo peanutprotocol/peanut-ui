@@ -70,7 +70,17 @@ export function NoFees() {
 
                 {/* Subheading */}
                 <h3 className="mb-4 font-roboto text-2xl font-black text-n-1 md:text-3xl" style={{ fontWeight: 900 }}>
-                    REALLY, WE MEAN ZERO
+                    REALLY, WE MEAN{' '}
+                    <span className="relative inline-block px-3 py-1">
+                        ZERO
+                        <Image
+                            src="/scribble.svg"
+                            alt="Scribble"
+                            width={140}
+                            height={50}
+                            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                        />
+                    </span>
                 </h3>
 
                 {/* No hidden fees line with icons */}
