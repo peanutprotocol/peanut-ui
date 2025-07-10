@@ -1,7 +1,8 @@
 import React from 'react'
 import gotItHand from '@/assets/illustrations/got-it-hand.svg'
 import gotItHandFlipped from '@/assets/illustrations/got-it-hand-flipped.svg'
-import { Cloud, Star } from '@/assets'
+import borderCloud from '@/assets/illustrations/border-cloud.svg'
+import { Star } from '@/assets'
 import Image from 'next/image'
 
 export function NoFees() {
@@ -9,33 +10,53 @@ export function NoFees() {
         <section className="relative overflow-hidden bg-secondary-3 px-4 py-32">
             <div className="relative mx-auto max-w-3xl text-center">
                 {/* Decorative clouds and stars */}
+                <Image src={borderCloud} alt="Border Cloud" width={200} height={100} className="absolute -left-48" />
                 <Image
-                    src={Cloud}
-                    alt="Cloud"
+                    src={borderCloud}
+                    alt="Border Cloud"
                     width={200}
                     height={100}
-                    className="absolute -left-48 -top-12"
-                />
-                <Image
-                    src={Cloud}
-                    alt="Cloud"
-                    width={200}
-                    height={100}
-                    className="absolute -bottom-12 -right-48"
+                    className="absolute -bottom-12 -right-64"
                 />
                 <Image
                     src={Star}
                     alt="Star"
                     width={50}
                     height={50}
-                    className="absolute -top-6 right-1/3"
+                    className="absolute -right-36 -top-12"
+                    style={{ transform: 'rotate(22deg)' }}
                 />
                 <Image
                     src={Star}
                     alt="Star"
                     width={50}
                     height={50}
-                    className="absolute -bottom-6 left-1/3"
+                    className="absolute -right-58 top-30"
+                    style={{ transform: 'rotate(-17deg)' }}
+                />
+                <Image
+                    src={Star}
+                    alt="Star"
+                    width={50}
+                    height={50}
+                    className="absolute -right-0 top-58"
+                    style={{ transform: 'rotate(22deg)' }}
+                />
+                <Image
+                    src={Star}
+                    alt="Star"
+                    width={50}
+                    height={50}
+                    className="absolute -left-36 -top-20"
+                    style={{ transform: 'rotate(-7deg)' }}
+                />
+                <Image
+                    src={Star}
+                    alt="Star"
+                    width={50}
+                    height={50}
+                    className="absolute -bottom-6 -left-10"
+                    style={{ transform: 'rotate(-5deg)' }}
                 />
                 {/* Main stylized headline */}
                 <div className="mb-8">
@@ -54,13 +75,13 @@ export function NoFees() {
 
                 {/* No hidden fees line with icons */}
                 <div className="flex items-center justify-center space-x-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full">
                         <Image src={gotItHand} alt="Got it hand" className="h-full w-full" />
                     </div>
                     <span className="font-roboto text-xl font-black text-n-1 md:text-2xl" style={{ fontWeight: 900 }}>
                         NO HIDDEN FEES
                     </span>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full">
                         <Image src={gotItHandFlipped} alt="Got it hand flipped" className="h-full w-full" />
                     </div>
                 </div>
