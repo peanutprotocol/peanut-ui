@@ -40,24 +40,24 @@ export function Hero({ heading, marquee = { visible: false }, primaryCta, second
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => (
         <motion.div
             className={`fixed bottom-4 z-20 sm:bottom-8 ${
-                variant === 'primary' ? 'right-[calc(50%)]' : 'right-[calc(50%-120px)]'
+                variant === 'primary' ? 'inset-x-0 mx-auto w-fit' : 'right-[calc(50%-120px)]'
             }`}
             initial={{
                 opacity: 0,
                 translateY: 4,
-                translateX: 4,
+                translateX: variant === 'primary' ? 0 : 4,
                 rotate: 0.75,
             }}
             animate={{
                 opacity: buttonVisible ? 1 : 0,
                 translateY: buttonVisible ? 0 : 20,
-                translateX: buttonVisible ? 0 : 20,
+                translateX: buttonVisible ? (variant === 'primary' ? 0 : 0) : 20,
                 rotate: buttonVisible ? 0 : 1,
                 pointerEvents: buttonVisible ? 'auto' : 'none',
             }}
             whileHover={{
                 translateY: 6,
-                translateX: 3,
+                translateX: variant === 'primary' ? 0 : 3,
                 rotate: 0.75,
             }}
             transition={{ type: 'spring', damping: 15 }}
@@ -72,7 +72,7 @@ export function Hero({ heading, marquee = { visible: false }, primaryCta, second
 
             <a
                 href={cta.href}
-                className={`${variant === 'primary' ? 'btn-purple' : 'btn-yellow'} px-5 shadow-md`}
+                className={`${variant === 'primary' ? 'btn-yellow' : 'btn-yellow'} px-5 shadow-md`}
                 target={cta.isExternal ? '_blank' : undefined}
                 rel={cta.isExternal ? 'noopener noreferrer' : undefined}
             >
