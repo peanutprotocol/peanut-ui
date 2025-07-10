@@ -1,7 +1,7 @@
 'use client'
 
 import Layout from '@/components/Global/Layout'
-import { FAQs, Hero } from '@/components/LandingPage'
+import { FAQs, Hero, YourMoney } from '@/components/LandingPage'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState } from 'react'
 
@@ -62,6 +62,7 @@ export default function LandingPage() {
                 primaryCta={hero.primaryCta}
                 buttonVisible={buttonVisible}
             />
+            <YourMoney />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
         </Layout>
     )
