@@ -1,25 +1,32 @@
 import * as interfaces from '@/interfaces'
 import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
-import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
+import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll, baseSepolia } from 'viem/chains'
 
 export const peanutWalletIsInPreview = true
 
 export const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
+export const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
 
 export const SQUID_INTEGRATOR_ID = process.env.SQUID_INTEGRATOR_ID!
 export const SQUID_API_URL = process.env.SQUID_API_URL
 
-export const infuraRpcUrls: Record<number, string> = {
-    [mainnet.id]: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    [arbitrum.id]: `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_KEY}`,
-    [polygon.id]: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    [optimism.id]: `https://optimism-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    [base.id]: `https://base-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+const infuraUrl = (subdomain: string) => (INFURA_API_KEY ? `https://${subdomain}.infura.io/v3/${INFURA_API_KEY}` : null)
+const alchemyUrl = (subdomain: string) =>
+    ALCHEMY_API_KEY ? `https://${subdomain}.g.alchemy.com/v2/${ALCHEMY_API_KEY}` : null
+
+export const rpcUrls: Record<number, string[]> = {
+    [mainnet.id]: [infuraUrl('mainnet'), alchemyUrl('eth-mainnet')].filter(Boolean) as string[],
+    [arbitrum.id]: [infuraUrl('arbitrum-mainnet'), alchemyUrl('arb-mainnet')].filter(Boolean) as string[],
+    [arbitrumSepolia.id]: [infuraUrl('arbitrum-sepolia'), alchemyUrl('arb-sepolia')].filter(Boolean) as string[],
+    [polygon.id]: [infuraUrl('polygon-mainnet'), alchemyUrl('polygon-mainnet')].filter(Boolean) as string[],
+    [optimism.id]: [infuraUrl('optimism-mainnet'), alchemyUrl('opt-mainnet')].filter(Boolean) as string[],
+    [base.id]: [infuraUrl('base-mainnet'), alchemyUrl('base-mainnet')].filter(Boolean) as string[],
     // Infura is returning weird estimations for BSC @2025-05-14
     //[bsc.id]: `https://bsc-mainnet.infura.io/v3/${INFURA_API_KEY}`,
-    [bsc.id]: 'https://bsc-dataseed.bnbchain.org',
-    [scroll.id]: `https://scroll-mainnet.infura.io/v3/${INFURA_API_KEY}`,
+    [bsc.id]: ['https://bsc-dataseed.bnbchain.org', infuraUrl('bsc-mainnet'), alchemyUrl('bsc-mainnet')].filter(
+        Boolean
+    ) as string[],
+    [scroll.id]: [infuraUrl('scroll-mainnet')].filter(Boolean) as string[],
 }
 
 export const ipfsProviderArray = [

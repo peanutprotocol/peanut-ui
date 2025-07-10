@@ -3,7 +3,7 @@ import type { PublicClient, Chain } from 'viem'
 import { createPublicClient, http, extractChain } from 'viem'
 import * as chains from 'viem/chains'
 
-import { PUBLIC_CLIENTS_BY_CHAIN, infuraRpcUrls } from '@/constants'
+import { PUBLIC_CLIENTS_BY_CHAIN, rpcUrls } from '@/constants'
 
 const allChains = Object.values(chains)
 export type ChainId = (typeof allChains)[number]['id']
@@ -14,7 +14,7 @@ export const getPublicClient = async (chainId: ChainId): Promise<PublicClient> =
     const chain: Chain = extractChain({ chains: allChains, id: chainId })
     if (!chain) throw new Error(`No chain found for chainId ${chainId}`)
     return createPublicClient({
-        transport: http(infuraRpcUrls[chainId]),
+        transport: http(rpcUrls[chainId][0]),
         chain,
     })
 }
