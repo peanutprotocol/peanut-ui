@@ -65,6 +65,26 @@ export function NoFees() {
                             0 FEES
                         </h1>
                         <h1 className="absolute left-0 top-0 font-knerd-outline text-6xl md:text-8xl">0 FEES</h1>
+
+                        {/* Bottom left arrow pointing to "0" */}
+                        <Image
+                            src="/arrows/bottom-left-arrow.svg"
+                            alt="Bottom left arrow"
+                            width={60}
+                            height={60}
+                            className="absolute -left-16 bottom-2 md:-left-10 md:bottom-4"
+                            style={{ transform: 'rotate(22deg)' }}
+                        />
+
+                        {/* Bottom right arrow pointing to "S" */}
+                        <Image
+                            src="/arrows/bottom-right-arrow.svg"
+                            alt="Bottom right arrow"
+                            width={60}
+                            height={60}
+                            className="absolute -right-16 bottom-2 md:-right-12 md:bottom-6"
+                            style={{ transform: 'rotate(62deg)' }}
+                        />
                     </div>
                 </div>
 
