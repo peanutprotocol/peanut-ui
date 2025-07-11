@@ -177,7 +177,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         }, [country])
 
         return (
-            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
+            <div className="my-auto flex h-full min-h-[inherit] w-full flex-col justify-center space-y-4 pb-5">
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}
                     avatarSize="small"

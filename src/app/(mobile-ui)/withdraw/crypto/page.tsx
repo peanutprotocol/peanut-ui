@@ -26,12 +26,13 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { captureMessage } from '@sentry/nextjs'
+import type { Address } from 'viem'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
     const dispatch = useAppDispatch()
     const { chargeDetails: activeChargeDetailsFromStore } = usePaymentStore()
-    const { isConnected: isPeanutWallet } = useWallet()
+    const { isConnected: isPeanutWallet, address } = useWallet()
     const {
         amountToWithdraw,
         setAmountToWithdraw,
@@ -94,14 +95,17 @@ export default function WithdrawCryptoPage() {
         if (currentView === 'CONFIRM' && activeChargeDetailsFromStore && withdrawData) {
             console.log('Preparing withdraw transaction details...')
             console.dir(activeChargeDetailsFromStore)
-            prepareTransactionDetails(
-                activeChargeDetailsFromStore,
-                PEANUT_WALLET_TOKEN,
-                PEANUT_WALLET_CHAIN.id.toString(),
-                amountToWithdraw
-            )
+            prepareTransactionDetails({
+                chargeDetails: activeChargeDetailsFromStore,
+                from: {
+                    address: address as Address,
+                    tokenAddress: PEANUT_WALLET_TOKEN,
+                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                },
+                usdAmount: amountToWithdraw,
+            })
         }
-    }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, amountToWithdraw])
+    }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, amountToWithdraw, address])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -113,6 +117,7 @@ export default function WithdrawCryptoPage() {
 
             clearErrors()
             dispatch(paymentActions.setChargeDetails(null))
+            setIsPreparingReview(true)
 
             try {
                 const completeWithdrawData = { ...data, amount: amountToWithdraw }
@@ -232,13 +237,16 @@ export default function WithdrawCryptoPage() {
         if (!activeChargeDetailsFromStore) return
         console.log('Refreshing withdraw route due to expiry...')
         console.log('About to call prepareTransactionDetails with:', activeChargeDetailsFromStore)
-        await prepareTransactionDetails(
-            activeChargeDetailsFromStore,
-            PEANUT_WALLET_TOKEN,
-            PEANUT_WALLET_CHAIN.id.toString(),
-            amountToWithdraw
-        )
-    }, [activeChargeDetailsFromStore, prepareTransactionDetails, amountToWithdraw])
+        await prepareTransactionDetails({
+            chargeDetails: activeChargeDetailsFromStore,
+            from: {
+                address: address as Address,
+                tokenAddress: PEANUT_WALLET_TOKEN,
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
+            },
+            usdAmount: amountToWithdraw,
+        })
+    }, [activeChargeDetailsFromStore, prepareTransactionDetails, amountToWithdraw, address])
 
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')
@@ -289,11 +297,11 @@ export default function WithdrawCryptoPage() {
     const displayError = paymentError ?? routeTypeError
 
     // Get network fee from route or fallback
-    const networkFee = useCallback(() => {
+    const networkFee = useMemo<number>(() => {
         if (xChainRoute?.feeCostsUsd) {
-            return xChainRoute.feeCostsUsd < 0.01 ? '$ <0.01' : `$ ${xChainRoute.feeCostsUsd.toFixed(2)}`
+            return xChainRoute.feeCostsUsd
         }
-        return '$ 0.00'
+        return 0
     }, [xChainRoute])
 
     if (!amountToWithdraw) {
@@ -321,7 +329,7 @@ export default function WithdrawCryptoPage() {
                     onBack={handleBackFromConfirm}
                     isProcessing={isProcessing}
                     error={displayError}
-                    networkFee={networkFee()}
+                    networkFee={networkFee}
                     // Timer props for cross-chain withdrawals
                     isCrossChain={isCrossChainWithdrawal}
                     routeExpiry={xChainRoute?.expiry}

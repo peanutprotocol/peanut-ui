@@ -46,21 +46,18 @@ const LinkSendFlowManager = ({ onPrev }: LinkSendFlowManagerProps) => {
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
     }, [])
 
-    // reset send flow state when component mounts
-    useEffect(() => {
-        dispatch(sendFlowActions.resetSendFlow())
-    }, [dispatch])
-
     return (
-        <div>
+        <>
             {view === 'INITIAL' && (
-                <div className="space-y-8">
+                <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8">
                     <NavHeader onPrev={onPrev} title="Send" />
-                    <LinkSendInitialView />
+                    <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
+                        <LinkSendInitialView />
+                    </div>
                 </div>
             )}
             {view === 'SUCCESS' && <LinkSendSuccessView />}
-        </div>
+        </>
     )
 }
 

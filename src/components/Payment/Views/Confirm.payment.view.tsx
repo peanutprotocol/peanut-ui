@@ -21,15 +21,17 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch, usePaymentStore, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
-import { ErrorHandler, formatAmount, printableAddress, areEvmAddressesEqual } from '@/utils'
+import { ErrorHandler, formatAmount, areEvmAddressesEqual } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 import { formatUnits } from 'viem'
+import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { captureMessage } from '@sentry/nextjs'
+import AddressLink from '@/components/Global/AddressLink'
 
 type ConfirmPaymentViewProps = {
     isPintaReq?: boolean
@@ -74,7 +76,7 @@ export default function ConfirmPaymentView({
         isPreparingTx,
         loadingStep,
         error: paymentError,
-        estimatedGasCost,
+        estimatedGasCostUsd,
         isCalculatingFees,
         isEstimatingGas,
         isFeeEstimationError,
@@ -82,20 +84,35 @@ export default function ConfirmPaymentView({
         xChainRoute,
     } = usePaymentInitiator()
     const { selectedTokenData, selectedChainID } = useContext(tokenSelectorContext)
-    const { isConnected: isPeanutWallet, fetchBalance } = useWallet()
+    const { isConnected: isPeanutWallet, fetchBalance, address: peanutWalletAddress } = useWallet()
     const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
     const { rewardWalletBalance } = useWalletStore()
     const queryClient = useQueryClient()
 
-    const networkFee = useMemo(() => {
-        if (!estimatedGasCost || isPeanutWallet) return '$ 0.00'
+    const isUsingExternalWallet = useMemo(() => {
+        return isAddMoneyFlow || !isPeanutWallet
+    }, [isPeanutWallet, isAddMoneyFlow])
+
+    const networkFee = useMemo<string | React.ReactNode>(() => {
         if (isFeeEstimationError) return '-'
-        if (estimatedGasCost < 0.01) {
-            return '$ <0.01'
-        } else {
-            return `$ ${estimatedGasCost.toFixed(2)}`
+        if (!estimatedGasCostUsd) {
+            return isUsingExternalWallet ? '-' : 'Sponsored by Peanut!'
         }
-    }, [estimatedGasCost, isPeanutWallet, isFeeEstimationError])
+
+        if (isUsingExternalWallet) {
+            return estimatedGasCostUsd < 0.01 ? '$ <0.01' : `$ ${estimatedGasCostUsd.toFixed(2)}`
+        }
+
+        if (estimatedGasCostUsd < 0.01) return 'Sponsored by Peanut!'
+
+        return (
+            <>
+                <span className="line-through">$ {estimatedGasCostUsd.toFixed(2)}</span>
+                {' – '}
+                <span className="font-medium text-gray-500">Sponsored by Peanut!</span>
+            </>
+        )
+    }, [estimatedGasCostUsd, isFeeEstimationError, isUsingExternalWallet])
 
     const {
         tokenIconUrl: sendingTokenIconUrl,
@@ -124,12 +141,12 @@ export default function ConfirmPaymentView({
 
         return (
             isProcessing &&
-            (!isPeanutWallet || !!isAddMoneyFlow) &&
+            isUsingExternalWallet &&
             ['Switching Network', 'Sending Transaction', 'Confirming Transaction', 'Preparing Transaction'].includes(
                 loadingStep
             )
         )
-    }, [isProcessing, isPeanutWallet, loadingStep, isAddMoneyFlow, isCalculatingFees, isEstimatingGas])
+    }, [isProcessing, loadingStep, isCalculatingFees, isEstimatingGas, isUsingExternalWallet])
 
     useEffect(() => {
         if (chargeIdFromUrl && !chargeDetails) {
@@ -150,13 +167,22 @@ export default function ConfirmPaymentView({
 
     const handleRouteRefresh = useCallback(async () => {
         if (chargeDetails && selectedTokenData && selectedChainID) {
-            const fromTokenAddress = !isAddMoneyFlow && isPeanutWallet ? PEANUT_WALLET_TOKEN : selectedTokenData.address
-            const fromChainId = !isAddMoneyFlow && isPeanutWallet ? PEANUT_WALLET_CHAIN.id.toString() : selectedChainID
+            const fromTokenAddress = !isUsingExternalWallet ? PEANUT_WALLET_TOKEN : selectedTokenData.address
+            const fromChainId = !isUsingExternalWallet ? PEANUT_WALLET_CHAIN.id.toString() : selectedChainID
             const usdAmount =
                 isDirectUsdPayment && chargeDetails.currencyCode.toLowerCase() === 'usd'
                     ? chargeDetails.currencyAmount
                     : undefined
-            await prepareTransactionDetails(chargeDetails, fromTokenAddress, fromChainId, usdAmount)
+            const senderAddress = isUsingExternalWallet ? wagmiAddress : peanutWalletAddress
+            await prepareTransactionDetails({
+                chargeDetails,
+                from: {
+                    address: senderAddress as Address,
+                    tokenAddress: fromTokenAddress as Address,
+                    chainId: fromChainId,
+                },
+                usdAmount,
+            })
         }
     }, [
         chargeDetails,
@@ -164,8 +190,9 @@ export default function ConfirmPaymentView({
         selectedChainID,
         prepareTransactionDetails,
         isDirectUsdPayment,
-        isPeanutWallet,
-        isAddMoneyFlow,
+        isUsingExternalWallet,
+        wagmiAddress,
+        peanutWalletAddress,
     ])
 
     useEffect(() => {
@@ -200,7 +227,7 @@ export default function ConfirmPaymentView({
             skipChargeCreation: true,
             currency,
             currencyAmount,
-            isAddMoneyFlow: !!isAddMoneyFlow,
+            isAddMoneyFlow,
             transactionType: isAddMoneyFlow ? 'DEPOSIT' : 'REQUEST',
         })
 
@@ -327,7 +354,7 @@ export default function ConfirmPaymentView({
 
     const isCrossChainPayment = useMemo((): boolean => {
         if (!chargeDetails) return false
-        if (!isAddMoneyFlow && isPeanutWallet) {
+        if (!isUsingExternalWallet) {
             return (
                 !areEvmAddressesEqual(chargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) ||
                 chargeDetails.chainId !== PEANUT_WALLET_CHAIN.id.toString()
@@ -339,7 +366,7 @@ export default function ConfirmPaymentView({
             )
         }
         return false
-    }, [chargeDetails, selectedTokenData, selectedChainID, isPeanutWallet, isAddMoneyFlow])
+    }, [chargeDetails, selectedTokenData, selectedChainID, isUsingExternalWallet])
 
     const routeTypeError = useMemo((): string | null => {
         if (!isCrossChainPayment || !xChainRoute || !isPeanutWallet) return null
@@ -424,33 +451,37 @@ export default function ConfirmPaymentView({
                             }
                         />
                     )}
-                    {isCrossChainPayment !== (isPeanutWallet && !isAddMoneyFlow) && (
+                    <PaymentInfoRow
+                        label={isCrossChainPayment ? `Sending` : 'Token and network'}
+                        value={
+                            <TokenChainInfoDisplay
+                                tokenIconUrl={sendingTokenIconUrl}
+                                chainIconUrl={sendingChainIconUrl}
+                                resolvedTokenSymbol={sendingResolvedTokenSymbol}
+                                fallbackTokenSymbol={selectedTokenData?.symbol || ''}
+                                resolvedChainName={sendingResolvedChainName}
+                                fallbackChainName={selectedChainID || ''}
+                            />
+                        }
+                    />
+
+                    {isAddMoneyFlow && (
                         <PaymentInfoRow
-                            label={isCrossChainPayment ? `Sending` : 'Token and network'}
+                            label="From"
                             value={
-                                <TokenChainInfoDisplay
-                                    tokenIconUrl={sendingTokenIconUrl}
-                                    chainIconUrl={sendingChainIconUrl}
-                                    resolvedTokenSymbol={sendingResolvedTokenSymbol}
-                                    fallbackTokenSymbol={selectedTokenData?.symbol || ''}
-                                    resolvedChainName={sendingResolvedChainName}
-                                    fallbackChainName={selectedChainID || ''}
+                                <AddressLink
+                                    isLink={false}
+                                    address={wagmiAddress!}
+                                    className="text-black no-underline"
                                 />
                             }
                         />
                     )}
 
-                    {isAddMoneyFlow && <PaymentInfoRow label="From" value={printableAddress(wagmiAddress ?? '')} />}
-
                     <PaymentInfoRow
                         loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
-                        label={isCrossChainPayment ? 'Max network fee' : 'Network fee'}
+                        label={'Network fee'}
                         value={networkFee}
-                        moreInfoText={
-                            isPeanutWallet
-                                ? 'This transaction is sponsored by Peanut.'
-                                : 'This transaction may face slippage due to token conversion or cross-chain bridging.'
-                        }
                     />
 
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ 0.00`} />
