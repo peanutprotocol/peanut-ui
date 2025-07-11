@@ -36,6 +36,16 @@ describe('Recipient Validation', () => {
         it('should identify usernames', () => {
             expect(getRecipientType('kusharc')).toBe('USERNAME')
         })
+
+        it('should treat non-addresses as ENS when isWithdrawal is true', () => {
+            expect(getRecipientType('kusharc', true)).toBe('ENS')
+            expect(getRecipientType('someuser', true)).toBe('ENS')
+        })
+
+        it('should still identify ENS and addresses correctly when isWithdrawal is true', () => {
+            expect(getRecipientType('vitalik.eth', true)).toBe('ENS')
+            expect(getRecipientType('0x1234567890123456789012345678901234567890', true)).toBe('ADDRESS')
+        })
     })
 
     describe('validateAndResolveRecipient', () => {
@@ -72,6 +82,11 @@ describe('Recipient Validation', () => {
             fetchWithSentry.mockResolvedValueOnce({ status: 404 })
 
             await expect(validateAndResolveRecipient('lmaoo')).rejects.toThrow('Invalid Peanut username')
+        })
+
+        it('should treat non-addresses as ENS in withdrawal context', async () => {
+            await expect(validateAndResolveRecipient('kusharc', true)).rejects.toThrow('ENS name not found')
+            await expect(validateAndResolveRecipient('someuser', true)).rejects.toThrow('ENS name not found')
         })
     })
 

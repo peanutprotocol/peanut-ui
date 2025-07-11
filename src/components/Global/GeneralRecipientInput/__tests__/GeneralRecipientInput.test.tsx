@@ -53,7 +53,7 @@ describe('GeneralRecipientInput Type Detection', () => {
         ;(utils.validateBankAccount as jest.Mock).mockResolvedValue(true)
     })
 
-    const setup = async (initialValue = '') => {
+    const setup = async (initialValue = '', isWithdrawal = false) => {
         let component: ReturnType<typeof render>
         await act(async () => {
             component = render(
@@ -61,6 +61,7 @@ describe('GeneralRecipientInput Type Detection', () => {
                     placeholder="Enter recipient"
                     recipient={{ address: initialValue, name: undefined }}
                     onUpdate={onUpdateMock}
+                    isWithdrawal={isWithdrawal}
                 />
             )
         })
@@ -202,6 +203,70 @@ describe('GeneralRecipientInput Type Detection', () => {
                     }
 
                     await setup(input)
+
+                    await act(async () => {
+                        await new Promise((resolve) => setTimeout(resolve, 0))
+                    })
+
+                    expect(onUpdateMock).toHaveBeenCalledWith(
+                        expect.objectContaining({
+                            type: expectedType,
+                            isValid: expectedValid,
+                            recipient: expectedValid
+                                ? {
+                                      address: expectedAddress ?? input,
+                                      name: expectedName,
+                                  }
+                                : expect.any(Object),
+                            ...(expectedError && { errorMessage: expectedError }),
+                        })
+                    )
+                })
+            }
+        )
+    })
+
+    describe('Withdrawal Context Behavior', () => {
+        const withdrawalTestCases: TestCase[] = [
+            {
+                input: 'kusharc',
+                expectedType: 'ens',
+                expectedValid: false,
+                description: 'username treated as ENS in withdrawal context',
+                expectedError: 'ENS name not found',
+            },
+            {
+                input: 'someuser123',
+                expectedType: 'ens',
+                expectedValid: false,
+                description: 'alphanumeric username treated as ENS in withdrawal context',
+                expectedError: 'ENS name not found',
+            },
+            {
+                input: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+                expectedType: 'address',
+                expectedValid: true,
+                description: 'valid ETH address works in withdrawal context',
+            },
+            {
+                input: 'vitalik.eth',
+                expectedType: 'ens',
+                expectedValid: true,
+                description: 'valid ENS name works in withdrawal context',
+                expectedAddress: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+                expectedName: 'vitalik.eth',
+            },
+        ]
+
+        withdrawalTestCases.forEach(
+            ({ input, expectedType, expectedValid, description, expectedAddress, expectedName, expectedError }) => {
+                it(`should handle ${description}`, async () => {
+                    // Setup ENS mock if needed
+                    if (validateEnsName(input) || expectedType === 'ens') {
+                        ;(ens.resolveEns as jest.Mock).mockResolvedValue(expectedValid ? expectedAddress : null)
+                    }
+
+                    await setup(input, true) // isWithdrawal = true
 
                     await act(async () => {
                         await new Promise((resolve) => setTimeout(resolve, 0))

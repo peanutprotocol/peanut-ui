@@ -59,24 +59,13 @@ const GeneralRecipientInput = ({
                 isValid = true
             } else {
                 try {
-                    const validation = await validateAndResolveRecipient(trimmedInput)
-
-                    // For withdrawals, reject usernames and show ENS error
-                    if (isWithdrawal && validation.recipientType.toLowerCase() === 'username') {
-                        errorMessage.current = 'ENS name not found'
-                        return false
-                    }
+                    const validation = await validateAndResolveRecipient(trimmedInput, isWithdrawal)
 
                     isValid = true
                     resolvedAddress.current = validation.resolvedAddress
                     type = validation.recipientType.toLowerCase() as interfaces.RecipientType
                 } catch (error: unknown) {
-                    // For withdrawals, if it's not an address, treat it as ENS error
-                    if (isWithdrawal && !(error as Error).message.includes('Invalid address')) {
-                        errorMessage.current = 'ENS name not found'
-                    } else {
-                        errorMessage.current = (error as Error).message
-                    }
+                    errorMessage.current = (error as Error).message
                     return false
                 }
             }
