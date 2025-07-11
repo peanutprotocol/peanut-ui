@@ -4,9 +4,9 @@ import { fetchWithSentry, isAddressZero, estimateIfIsStableCoinFromPrice } from 
 import { type ITokenPriceData } from '@/interfaces'
 import { parseAbi, formatUnits } from 'viem'
 import { type ChainId, getPublicClient } from '@/app/actions/clients'
+import type { Address, Hex } from 'viem'
 import { getTokenDetails, isStableCoin, NATIVE_TOKEN_ADDRESS, areEvmAddressesEqual } from '@/utils'
 import { IUserBalance } from '@/interfaces'
-import type { Address, Hex } from 'viem'
 
 type IMobulaMarketData = {
     id: number
