@@ -86,12 +86,13 @@ export function SendInSeconds() {
 
                 {/* Button with arrows */}
                 <div className="relative inline-block">
-                    <button
-                        className="mt-20 rounded-sm border-2 border-n-1 bg-white px-12 py-6 font-roboto text-2xl font-black text-n-1 hover:bg-grey-2 focus:outline-none"
+                    <a
+                        href="/setup"
+                        className="mt-20 inline-block rounded-sm border-2 border-n-1 bg-white px-12 py-6 text-center font-roboto text-2xl font-black text-n-1 hover:bg-grey-2 focus:outline-none"
                         style={{ fontWeight: 900 }}
                     >
                         TRY NOW
-                    </button>
+                    </a>
 
                     {/* Arrow placeholders */}
                     <Image
