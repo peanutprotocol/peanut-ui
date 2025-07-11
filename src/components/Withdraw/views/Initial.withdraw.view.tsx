@@ -93,7 +93,6 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     placeholder="Enter an address or ENS"
                     recipient={recipient}
                     onUpdate={(update: GeneralRecipientUpdate) => {
-                        console.log('isValid', update.isValid, update.errorMessage)
                         setRecipient(update.recipient)
                         setIsValidRecipient(update.isValid)
                         setError({
