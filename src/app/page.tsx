@@ -77,6 +77,8 @@ export default function LandingPage() {
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
+    const marqueeProps = { visible: hero.marquee.visible, message: hero.marquee.message }
+
     return (
         <Layout className="!m-0 w-full !p-0">
             <Hero
@@ -85,21 +87,21 @@ export default function LandingPage() {
                 buttonVisible={buttonVisible}
                 sendInSecondsInView={sendInSecondsInView}
             />
-            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
+            <Marquee {...marqueeProps} />
             <YourMoney />
-            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
+            <Marquee {...marqueeProps} />
             <NoFees />
-            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
+            <Marquee {...marqueeProps} />
             <SecurityBuiltIn />
-            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
+            <Marquee {...marqueeProps} />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
-            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
+            <Marquee {...marqueeProps} />
             <div ref={sendInSecondsRef}>
                 <SendInSeconds />
             </div>
-            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
+            <Marquee {...marqueeProps} />
             <BusinessIntegrate />
-            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
+            <Marquee {...marqueeProps} />
         </Layout>
     )
 }
