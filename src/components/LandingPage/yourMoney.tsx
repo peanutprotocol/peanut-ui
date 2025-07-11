@@ -43,7 +43,7 @@ export function YourMoney() {
     return (
         <section className="bg-secondary-1 px-4 py-12 text-n-1 md:py-16">
             <div className="mx-auto max-w-7xl">
-                <h2 className="mb-12 mt-4 text-left font-roboto text-3xl leading-tight md:mb-20 md:mt-6 md:text-[4.5rem]" style={{ fontWeight: 900 }}>
+                <h2 className="mb-12 mt-4 text-center font-roboto text-3xl leading-tight md:mb-20 md:mt-6 md:text-left md:text-[4.5rem]" style={{ fontWeight: 900 }}>
                     YOUR MONEY, ANYWHERE
                 </h2>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
@@ -60,12 +60,12 @@ export function YourMoney() {
                             </div>
                             <div>
                                 <h3
-                                    className="mb-2 w-full max-w-sm text-left font-roboto text-xl leading-tight md:text-3xl"
+                                    className="mb-2 w-full max-w-sm text-center font-roboto text-xl leading-tight md:text-left md:text-3xl"
                                     style={{ fontWeight: 900 }}
                                 >
                                     {feature.title}
                                 </h3>
-                                <p className="w-full max-w-[360px] text-left font-roboto text-base font-semibold leading-relaxed md:text-lg">
+                                <p className="w-full max-w-[360px] text-center font-roboto text-base font-semibold leading-relaxed md:text-left md:text-lg">
                                     {feature.description}
                                 </p>
                             </div>

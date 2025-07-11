@@ -41,7 +41,7 @@ export function SecurityBuiltIn() {
         <section className="bg-primary-1 px-4 py-16 text-n-1 md:py-40">
             <div className="mx-auto max-w-7xl">
                 <h2
-                    className="mb-12 text-left font-roboto text-2xl font-black leading-tight md:mb-16 md:text-[4rem]"
+                    className="mb-12 text-center font-roboto text-2xl font-black leading-tight md:mb-16 md:text-left md:text-[4rem]"
                     style={{ fontWeight: 900 }}
                 >
                     SECURITY & PRIVACY, BUILT-IN

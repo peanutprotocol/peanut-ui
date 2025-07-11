@@ -22,7 +22,7 @@ export function NoFees() {
     const createCloudAnimation = (side: 'left' | 'right', top: string, width: number, speed: number) => {
         const vpWidth = screenWidth || 1080
         const totalDistance = vpWidth + width
-        
+
         return {
             initial: { x: side === 'left' ? -width : vpWidth },
             animate: { x: side === 'left' ? vpWidth : -width },
@@ -30,7 +30,7 @@ export function NoFees() {
                 ease: 'linear',
                 duration: totalDistance / speed,
                 repeat: Infinity,
-            }
+            },
         }
     }
 
@@ -53,7 +53,7 @@ export function NoFees() {
                     {...createCloudAnimation('right', '60%', 220, 40)}
                 />
             </div>
-            
+
             <div className="relative mx-auto max-w-3xl text-center">
                 {/* Animated stars */}
                 <motion.img
@@ -120,7 +120,7 @@ export function NoFees() {
                             alt="Bottom left arrow"
                             width={40}
                             height={40}
-                            className="absolute -left-12 bottom-1 md:-left-10 md:bottom-4 md:h-[60px] md:w-[60px]"
+                            className="absolute -left-12 bottom-1 hidden md:-left-10 md:bottom-4 md:block md:h-[60px] md:w-[60px]"
                             style={{ transform: 'rotate(22deg)' }}
                         />
 
@@ -130,7 +130,7 @@ export function NoFees() {
                             alt="Bottom right arrow"
                             width={40}
                             height={40}
-                            className="absolute -right-12 bottom-1 md:-right-12 md:bottom-6 md:h-[60px] md:w-[60px]"
+                            className="absolute -right-12 bottom-1 hidden md:-right-12 md:bottom-6 md:block md:h-[60px] md:w-[60px]"
                             style={{ transform: 'rotate(62deg)' }}
                         />
                     </div>

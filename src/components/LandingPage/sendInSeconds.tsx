@@ -116,7 +116,7 @@ export function SendInSeconds() {
                 alt="Exclamations"
                 width={200}
                 height={300}
-                className="absolute right-72 top-1/3 -translate-y-1/2 transform"
+                className="absolute right-72 top-1/3 -translate-y-1/2 transform hidden md:block"
             />
 
             {/* Main content */}
