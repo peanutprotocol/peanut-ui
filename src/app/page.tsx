@@ -63,6 +63,7 @@ export default function LandingPage() {
     useEffect(() => {
         const observer = new IntersectionObserver(
             ([entry]) => {
+                console.log('SendInSeconds in view: ', entry.isIntersecting)
                 setSendInSecondsInView(entry.isIntersecting)
             },
             { threshold: 0.3 } // Trigger when 30% of the section is visible
@@ -77,9 +78,9 @@ export default function LandingPage() {
 
     return (
         <Layout className="!m-0 w-full !p-0">
-            <Hero 
-                heading={hero.heading} 
-                primaryCta={hero.primaryCta} 
+            <Hero
+                heading={hero.heading}
+                primaryCta={hero.primaryCta}
                 buttonVisible={buttonVisible}
                 sendInSecondsInView={sendInSecondsInView}
             />
