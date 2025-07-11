@@ -1,22 +1,36 @@
-import { MAINTAINABLE_ROUTES } from '@/config/routesUnderMaintenance'
-import { usePathname } from 'next/navigation'
-import { GenericBanner } from './GenericBanner'
+import { usePathname, useRouter } from 'next/navigation'
 import { MaintenanceBanner } from './MaintenanceBanner'
+import { MarqueeWrapper } from '../MarqueeWrapper'
+import config from '@/config/routesUnderMaintenance'
 
 export function Banner() {
     const pathname = usePathname()
     if (!pathname) return null
 
     // First check for maintenance
-    const maintenanceBanner = <MaintenanceBanner pathname={pathname} />
-    if (maintenanceBanner) return maintenanceBanner
-
-    // Show beta message for all request paths (create and pay) unless under maintenance
-    if (pathname.startsWith(MAINTAINABLE_ROUTES.REQUEST)) {
-        return <GenericBanner message="Beta feature - share your thoughts!" backgroundColor="bg-primary-1" />
+    const isUnderMaintenance = config.routes.some((route) => pathname.startsWith(route))
+    if (isUnderMaintenance) {
+        return <MaintenanceBanner pathname={pathname} />
     }
 
-    return null
+    // Show beta feedback banner for all paths unless under maintenance
+    return <FeedbackBanner />
+}
+
+function FeedbackBanner() {
+    const router = useRouter()
+
+    const handleClick = () => {
+        router.push('/support')
+    }
+
+    return (
+        <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
+            <button onClick={handleClick} className="z-10 mx-4 cursor-pointer text-sm font-semibold hover:underline">
+                Peanut is in beta! Thank you for being an early user, share your feedback here
+            </button>
+        </MarqueeWrapper>
+    )
 }
 
 export { GenericBanner } from './GenericBanner'
