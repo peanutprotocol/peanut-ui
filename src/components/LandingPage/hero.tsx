@@ -56,7 +56,7 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, sendInS
         translateY: buttonVisible ? 0 : 20,
         translateX: buttonVisible ? (variant === 'primary' ? 0 : 0) : 20,
         rotate: buttonVisible ? 0 : 1,
-        pointerEvents: buttonVisible ? 'auto' : 'none',
+        pointerEvents: buttonVisible ? ('auto' as const) : ('none' as const),
     })
 
     const getHoverAnimation = (variant: 'primary' | 'secondary') => ({
