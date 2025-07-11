@@ -1,7 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 import iphoneYourMoney1 from '@/assets/iphone-ss/iphone-your-money-1.png'
-import iphoneYourMoney2 from '@/assets/iphone-ss/iphone-your-money-2.svg'
+import iphoneYourMoney2 from '@/assets/iphone-ss/iphone-your-money-2.png'
 import iphoneYourMoney3 from '@/assets/iphone-ss/iphone-your-money-3.png'
 
 interface Feature {
@@ -43,7 +43,10 @@ export function YourMoney() {
     return (
         <section className="bg-secondary-1 px-4 py-12 text-n-1 md:py-16">
             <div className="mx-auto max-w-7xl">
-                <h2 className="mb-12 mt-4 text-center font-roboto text-3xl leading-tight md:mb-20 md:mt-6 md:text-left md:text-[4.5rem]" style={{ fontWeight: 900 }}>
+                <h2
+                    className="mb-12 mt-4 text-center font-roboto text-3xl leading-tight md:mb-20 md:mt-6 md:text-left md:text-[4.5rem]"
+                    style={{ fontWeight: 900 }}
+                >
                     YOUR MONEY, ANYWHERE
                 </h2>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
