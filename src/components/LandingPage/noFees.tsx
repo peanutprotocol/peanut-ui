@@ -117,10 +117,10 @@ export function NoFees() {
                                 alt="Zero"
                                 width={60}
                                 height={60}
-                                className="mr-2 h-[60px] w-[60px] md:mr-4 md:h-[120px] md:w-[120px]"
+                                className="mr-2 h-[27px] w-[27px] md:mr-4 md:h-[120px] md:w-[120px]"
                             />
                             <div className="relative">
-                                <h1 className="relative translate-x-[3px] font-knerd-filled text-4xl text-white md:text-8xl">
+                                <h1 className="relative translate-x-[1px] font-knerd-filled text-4xl text-white md:translate-x-[3px] md:text-8xl">
                                     FEES
                                 </h1>
                                 <h1 className="absolute left-0 top-0 font-knerd-outline text-4xl md:text-8xl">FEES</h1>
