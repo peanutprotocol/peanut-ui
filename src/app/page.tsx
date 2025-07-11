@@ -1,7 +1,7 @@
 'use client'
 
 import Layout from '@/components/Global/Layout'
-import { FAQs, Hero, NoFees, SecurityBuiltIn, YourMoney } from '@/components/LandingPage'
+import { FAQs, Hero, NoFees, SecurityBuiltIn, SendInSeconds, YourMoney } from '@/components/LandingPage'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState } from 'react'
 
@@ -65,6 +65,7 @@ export default function LandingPage() {
             <YourMoney />
             <NoFees />
             <SecurityBuiltIn />
+            <SendInSeconds />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
         </Layout>
     )
