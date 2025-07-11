@@ -61,19 +61,20 @@ export default function LandingPage() {
     }, [isFooterVisible])
 
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                console.log('SendInSeconds in view: ', entry.isIntersecting)
-                setSendInSecondsInView(entry.isIntersecting)
-            },
-            { threshold: 0.3 } // Trigger when 30% of the section is visible
-        )
-
-        if (sendInSecondsRef.current) {
-            observer.observe(sendInSecondsRef.current)
+        const handleScroll = () => {
+            if (sendInSecondsRef.current) {
+                const rect = sendInSecondsRef.current.getBoundingClientRect()
+                // Button fades when section enters viewport and reappears when section is mostly out of view
+                const isInView = rect.top < window.innerHeight * 0.7 && rect.bottom > window.innerHeight * 0.8
+                // console.log(`SendInSeconds - top: ${rect.top}, bottom: ${rect.bottom}, isInView: ${isInView}`)
+                setSendInSecondsInView(isInView)
+            }
         }
 
-        return () => observer.disconnect()
+        window.addEventListener('scroll', handleScroll)
+        handleScroll() // Check initial state
+
+        return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
     return (
