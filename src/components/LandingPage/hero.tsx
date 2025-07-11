@@ -1,4 +1,4 @@
-import { AboutPeanut, ButterySmoothGlobalMoney, PeanutGuyGIF, Sparkle } from '@/assets'
+import { ButterySmoothGlobalMoney, PeanutGuyGIF, Sparkle } from '@/assets'
 import { Stack } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
@@ -67,7 +67,7 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible }: HeroP
 
             <a
                 href={cta.href}
-                className={`${variant === 'primary' ? 'btn bg-white text-n-1 fill-n-1 hover:bg-white/90' : 'btn-yellow'} px-5 shadow-md`}
+                className={`${variant === 'primary' ? 'btn bg-white fill-n-1 text-n-1 hover:bg-white/90' : 'btn-yellow'} px-5 shadow-md`}
                 target={cta.isExternal ? '_blank' : undefined}
                 rel={cta.isExternal ? 'noopener noreferrer' : undefined}
             >
@@ -98,16 +98,15 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible }: HeroP
                 </Stack>
 
                 <Stack spacing={2} className="relative h-1/3 items-center justify-center px-4 text-center lg:h-full">
-                    <img
-                        src={AboutPeanut.src}
-                        className="z-0 mx-auto w-full max-w-[1000px] object-contain pt-6 lg:w-[40%]"
-                        alt="Buttery Smooth Global Money"
-                    />
+                    <h2 className="mt-20 font-roboto text-4xl text-n-1 md:text-[3.5rem]" style={{ fontWeight: 900 }}>
+                        INSTANTLY SEND AND RECEIVE
+                        <br />
+                        <span className="mt-4 block md:text-5xl">MONEY ACROSS THE GLOBE</span>
+                    </h2>
 
                     <HeroImages />
                 </Stack>
             </div>
-
 
             <div>
                 {primaryCta && renderCTAButton(primaryCta, 'primary')}
