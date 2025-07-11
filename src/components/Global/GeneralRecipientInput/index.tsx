@@ -60,10 +60,10 @@ const GeneralRecipientInput = ({
             } else {
                 try {
                     const validation = await validateAndResolveRecipient(trimmedInput)
-
-                    // Only accept ENS accounts, reject usernames
+                    
+                    // For withdrawals, reject usernames and show ENS error
                     if (isWithdrawal && validation.recipientType.toLowerCase() === 'username') {
-                        errorMessage.current = 'Peanut usernames are not supported for withdrawals.'
+                        errorMessage.current = 'ENS name not found'
                         return false
                     }
 
@@ -71,7 +71,12 @@ const GeneralRecipientInput = ({
                     resolvedAddress.current = validation.resolvedAddress
                     type = validation.recipientType.toLowerCase() as interfaces.RecipientType
                 } catch (error: unknown) {
-                    errorMessage.current = (error as Error).message
+                    // For withdrawals, if it's not an address, treat it as ENS error
+                    if (isWithdrawal && !(error as Error).message.includes('Invalid address')) {
+                        errorMessage.current = 'ENS name not found'
+                    } else {
+                        errorMessage.current = (error as Error).message
+                    }
                     return false
                 }
             }

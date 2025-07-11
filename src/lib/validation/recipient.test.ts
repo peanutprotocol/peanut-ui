@@ -62,8 +62,8 @@ describe('Recipient Validation', () => {
             })
         })
 
-        it('should throw for invalid Ethereum addresses', async () => {
-            await expect(validateAndResolveRecipient('0xinvalid')).rejects.toThrow('Invalid Ethereum address')
+        it('should throw for invalid addresses', async () => {
+            await expect(validateAndResolveRecipient('0xinvalid')).rejects.toThrow('Invalid address')
         })
 
         it('should throw for invalid Peanut usernames', async () => {

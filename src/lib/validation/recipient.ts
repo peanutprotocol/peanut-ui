@@ -29,7 +29,7 @@ export async function validateAndResolveRecipient(
 
         case 'ADDRESS':
             if (!isAddress(recipient)) {
-                throw new RecipientValidationError('Invalid Ethereum address')
+                throw new RecipientValidationError('Invalid address')
             }
             return {
                 identifier: recipient,
@@ -64,7 +64,7 @@ export const getRecipientType = (recipient: string): RecipientType => {
         if (isAddress(recipient)) {
             return 'ADDRESS'
         }
-        throw new RecipientValidationError('Invalid Ethereum address')
+        throw new RecipientValidationError('Invalid address')
     }
 
     return 'USERNAME'

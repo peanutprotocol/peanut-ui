@@ -157,14 +157,14 @@ describe('GeneralRecipientInput Type Detection', () => {
             expectedType: 'address',
             expectedValid: false,
             description: 'invalid ETH address (too short)',
-            expectedError: 'Invalid Ethereum address',
+            expectedError: 'Invalid address',
         },
         {
             input: '0x742d35Cc6634C0532925a3b844Bc454e4438f44ez',
             expectedType: 'address',
             expectedValid: false,
             description: 'invalid ETH address (invalid characters)',
-            expectedError: 'Invalid Ethereum address',
+            expectedError: 'Invalid address',
         },
         {
             input: '742d35Cc6634C0532925a3b844Bc454e4438f44e',
