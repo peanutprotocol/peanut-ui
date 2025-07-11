@@ -1,51 +1,113 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import Image from 'next/image'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import exclamations from '@/assets/illustrations/exclamations.svg'
 import { Star } from '@/assets'
 
 export function SendInSeconds() {
+    const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
+
+    useEffect(() => {
+        const handleResize = () => {
+            setScreenWidth(window.innerWidth)
+        }
+
+        handleResize()
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
+
+    const createCloudAnimation = (side: 'left' | 'right', width: number, speed: number) => {
+        const vpWidth = screenWidth || 1080
+        const totalDistance = vpWidth + width
+        
+        return {
+            initial: { x: side === 'left' ? -width : vpWidth },
+            animate: { x: side === 'left' ? vpWidth : -width },
+            transition: {
+                ease: 'linear',
+                duration: totalDistance / speed,
+                repeat: Infinity,
+            }
+        }
+    }
+
     return (
         <section className="relative overflow-hidden bg-secondary-1 px-4 py-32 text-n-1">
             {/* Decorative clouds, stars, and exclamations */}
-            {/* Clouds */}
-            <Image src={borderCloud} alt="Cloud" width={320} height={160} className="absolute -left-20 top-20" />
-            <Image src={borderCloud} alt="Cloud" width={180} height={90} className="absolute bottom-30 left-60" />
-            <Image src={borderCloud} alt="Cloud" width={200} height={100} className="absolute right-12 top-60" />
-            <Image src={borderCloud} alt="Cloud" width={320} height={160} className="absolute bottom-20 right-20" />
+            <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
+                {/* Animated clouds */}
+                <motion.img
+                    src={borderCloud.src}
+                    alt="Floating Border Cloud"
+                    className="absolute left-0"
+                    style={{ top: '15%', width: 320 }}
+                    {...createCloudAnimation('left', 320, 35)}
+                />
+                <motion.img
+                    src={borderCloud.src}
+                    alt="Floating Border Cloud"
+                    className="absolute right-0"
+                    style={{ top: '40%', width: 200 }}
+                    {...createCloudAnimation('right', 200, 40)}
+                />
+                <motion.img
+                    src={borderCloud.src}
+                    alt="Floating Border Cloud"
+                    className="absolute left-0"
+                    style={{ top: '70%', width: 180 }}
+                    {...createCloudAnimation('left', 180, 45)}
+                />
+                <motion.img
+                    src={borderCloud.src}
+                    alt="Floating Border Cloud"
+                    className="absolute right-0"
+                    style={{ top: '80%', width: 320 }}
+                    {...createCloudAnimation('right', 320, 30)}
+                />
+            </div>
 
-            {/* Stars and exclamations */}
-            <Image
-                src={Star}
-                alt="Star"
+            {/* Animated stars and exclamations */}
+            <motion.img
+                src={Star.src}
+                alt="Floating Star"
                 width={50}
                 height={50}
                 className="absolute right-1/4 top-20"
-                style={{ transform: 'rotate(45deg)' }}
+                initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 45 }}
+                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 45 }}
+                transition={{ type: 'spring', damping: 5, delay: 0.2 }}
             />
-            <Image
-                src={Star}
-                alt="Star"
+            <motion.img
+                src={Star.src}
+                alt="Floating Star"
                 width={40}
                 height={40}
                 className="absolute bottom-16 left-1/3"
-                style={{ transform: 'rotate(-10deg)' }}
+                initial={{ opacity: 0, translateY: 25, translateX: -5, rotate: -10 }}
+                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: -10 }}
+                transition={{ type: 'spring', damping: 5, delay: 0.4 }}
             />
-            <Image
-                src={Star}
-                alt="Star"
+            <motion.img
+                src={Star.src}
+                alt="Floating Star"
                 width={50}
                 height={50}
                 className="absolute bottom-72 right-[14rem]"
-                style={{ transform: 'rotate(-22deg)' }}
+                initial={{ opacity: 0, translateY: 18, translateX: 5, rotate: -22 }}
+                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: -22 }}
+                transition={{ type: 'spring', damping: 5, delay: 0.6 }}
             />
-            <Image
-                src={Star}
-                alt="Star"
+            <motion.img
+                src={Star.src}
+                alt="Floating Star"
                 width={60}
                 height={60}
                 className="absolute left-[20rem] top-72"
-                style={{ transform: 'rotate(12deg)' }}
+                initial={{ opacity: 0, translateY: 22, translateX: -5, rotate: 12 }}
+                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 12 }}
+                transition={{ type: 'spring', damping: 5, delay: 0.8 }}
             />
 
             {/* Exclamations */}
