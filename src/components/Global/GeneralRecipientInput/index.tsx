@@ -59,19 +59,18 @@ const GeneralRecipientInput = ({
                 isValid = true
             } else {
                 try {
-                    const validation = await validateAndResolveRecipient(trimmedInput)
-
-                    // Only accept ENS accounts, reject usernames
-                    if (isWithdrawal && validation.recipientType.toLowerCase() === 'username') {
-                        errorMessage.current = 'Peanut usernames are not supported for withdrawals.'
-                        return false
-                    }
+                    const validation = await validateAndResolveRecipient(trimmedInput, isWithdrawal)
 
                     isValid = true
                     resolvedAddress.current = validation.resolvedAddress
                     type = validation.recipientType.toLowerCase() as interfaces.RecipientType
                 } catch (error: unknown) {
                     errorMessage.current = (error as Error).message
+                    // For withdrawal context, failed non-address inputs should be treated as ENS
+                    if (isWithdrawal && !trimmedInput.startsWith('0x')) {
+                        type = 'ens'
+                    }
+                    recipientType.current = type
                     return false
                 }
             }

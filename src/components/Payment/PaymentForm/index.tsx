@@ -76,8 +76,8 @@ export const PaymentForm = ({
         error: paymentStoreError,
         attachmentOptions,
     } = usePaymentStore()
-    const { isConnected: isPeanutWallet, balance } = useWallet()
-    const { isConnected: isWagmiConnected, status } = useAccount()
+    const { isConnected: isPeanutWalletConnected, balance } = useWallet()
+    const { isConnected: isExternalWalletConnected, status } = useAccount()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
@@ -118,11 +118,15 @@ export const PaymentForm = ({
     const requestId = searchParams.get('id')
     const isDepositRequest = searchParams.get('action') === 'deposit'
 
-    const isConnected = useMemo<boolean>(() => {
-        return isPeanutWallet || isWagmiConnected
-    }, [isPeanutWallet, isWagmiConnected, status])
+    const isUsingExternalWallet = useMemo(() => {
+        return isAddMoneyFlow || !isPeanutWalletConnected
+    }, [isPeanutWalletConnected, isAddMoneyFlow])
 
-    const isActivePeanutWallet = useMemo(() => !!user && isPeanutWallet, [user, isPeanutWallet])
+    const isConnected = useMemo<boolean>(() => {
+        return isPeanutWalletConnected || isExternalWalletConnected
+    }, [isPeanutWalletConnected, isExternalWalletConnected, status])
+
+    const isActivePeanutWallet = useMemo(() => !!user && isPeanutWalletConnected, [user, isPeanutWalletConnected])
 
     useEffect(() => {
         if (initialSetupDone) return
@@ -171,7 +175,7 @@ export const PaymentForm = ({
         try {
             if (isAddMoneyFlow) {
                 // ADD MONEY FLOW: Strictly check external wallet if connected
-                if (isWagmiConnected && selectedTokenData && selectedTokenBalance !== undefined) {
+                if (isExternalWalletConnected && selectedTokenData && selectedTokenBalance !== undefined) {
                     if (selectedTokenData.decimals === undefined) {
                         console.error('Selected token has no decimals information for Add Money.')
                         dispatch(paymentActions.setError('Cannot verify balance: token data incomplete.'))
@@ -198,7 +202,7 @@ export const PaymentForm = ({
                         dispatch(paymentActions.setError(null))
                     }
                 } else if (
-                    isWagmiConnected &&
+                    isExternalWalletConnected &&
                     !isActivePeanutWallet &&
                     selectedTokenData &&
                     selectedTokenBalance !== undefined
@@ -239,7 +243,7 @@ export const PaymentForm = ({
         isActivePeanutWallet,
         dispatch,
         selectedTokenData,
-        isWagmiConnected,
+        isExternalWalletConnected,
         isAddMoneyFlow,
     ])
 
@@ -305,7 +309,7 @@ export const PaymentForm = ({
     ])
 
     const handleInitiatePayment = useCallback(async () => {
-        if (!isWagmiConnected && isAddMoneyFlow) {
+        if (!isExternalWalletConnected && isAddMoneyFlow) {
             openReownModal()
             return
         }
@@ -365,7 +369,13 @@ export const PaymentForm = ({
             dispatch(paymentActions.setUsdAmount(inputUsdValue))
         }
 
-        if (!isActivePeanutWallet && isWagmiConnected && selectedTokenData && selectedChainID && !!chargeDetails) {
+        if (
+            !isActivePeanutWallet &&
+            isExternalWalletConnected &&
+            selectedTokenData &&
+            selectedChainID &&
+            !!chargeDetails
+        ) {
             dispatch(paymentActions.setView('CONFIRM'))
             return
         }
@@ -431,7 +441,7 @@ export const PaymentForm = ({
     ])
 
     const getButtonText = () => {
-        if (!isWagmiConnected && isAddMoneyFlow) {
+        if (!isExternalWalletConnected && isAddMoneyFlow) {
             return 'Connect Wallet'
         }
 
@@ -451,7 +461,7 @@ export const PaymentForm = ({
     }
 
     const getButtonIcon = (): IconName | undefined => {
-        if (!isWagmiConnected && isAddMoneyFlow) return 'wallet-outline'
+        if (!isExternalWalletConnected && isAddMoneyFlow) return 'wallet-outline'
 
         if (!isProcessing && isActivePeanutWallet && !isAddMoneyFlow) return 'arrow-up-right'
 
@@ -511,7 +521,7 @@ export const PaymentForm = ({
         }
 
         if (isAddMoneyFlow) {
-            if (!isWagmiConnected) return false // "Connect Wallet" button should be active
+            if (!isExternalWalletConnected) return false // "Connect Wallet" button should be active
             return (
                 !inputTokenAmount ||
                 isNaN(parseFloat(inputTokenAmount)) ||
@@ -535,7 +545,7 @@ export const PaymentForm = ({
         error,
         inputTokenAmount,
         isAddMoneyFlow,
-        isWagmiConnected,
+        isExternalWalletConnected,
         selectedTokenAddress,
         selectedChainID,
         isConnected,
@@ -590,7 +600,7 @@ export const PaymentForm = ({
         <div className="flex h-full min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={router.back} title={isAddMoneyFlow ? 'Add Money' : 'Send'} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                {isWagmiConnected && (!isDirectUsdPayment || isAddMoneyFlow) && (
+                {isExternalWalletConnected && isUsingExternalWallet && (
                     <Button
                         icon="switch"
                         iconPosition="right"
@@ -642,7 +652,7 @@ export const PaymentForm = ({
                     select a token if it's not included in the url
                     From other wallets we always need to select a token
                 */}
-                {!(chain && isPeanutWallet) && isConnected && !isAddMoneyFlow && (
+                {!(chain && isPeanutWalletConnected) && isConnected && !isAddMoneyFlow && (
                     <div className="space-y-2">
                         {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
                             <div className="text-sm font-bold">Select token and chain to pay with</div>
@@ -656,8 +666,8 @@ export const PaymentForm = ({
                     </div>
                 )}
 
-                {isWagmiConnected && isAddMoneyFlow && (
-                    <TokenSelector viewType="add" disabled={!isWagmiConnected && isAddMoneyFlow} />
+                {isExternalWalletConnected && isAddMoneyFlow && (
+                    <TokenSelector viewType="add" disabled={!isExternalWalletConnected && isAddMoneyFlow} />
                 )}
 
                 {isDirectUsdPayment && (

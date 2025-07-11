@@ -1,6 +1,9 @@
 'use client'
 
-import { GenericBanner } from '@/components/Global/Banner'
+import { MarqueeWrapper } from '@/components/Global/MarqueeWrapper'
+import { useRouter } from 'next/navigation'
+import { HandThumbsUp } from '@/assets'
+import Image from 'next/image'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TopNavbar from '@/components/Global/TopNavbar'
@@ -22,6 +25,7 @@ const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
+    const router = useRouter()
     const { isFetchingUser, user } = useAuth()
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
@@ -99,10 +103,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                 {/* Main content area */}
                 <div className="flex w-full flex-1 flex-col">
-                    <GenericBanner
-                        message="Alpha version: Report anything weird to support and enjoy our bug bounty!"
-                        backgroundColor="bg-primary-1"
-                    />
+                    {/* Only show banner if not on landing page */}
+                    {pathName !== '/' && (
+                        <button onClick={() => router.push('/support')} className="w-full cursor-pointer">
+                            <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
+                                <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
+                                    Peanut is in beta! Thank you for being an early user, share your feedback here
+                                    <Image src={HandThumbsUp} alt="Thumbs up" className="h-4 w-4" />
+                                </span>
+                            </MarqueeWrapper>
+                        </button>
+                    )}
                     {/* Fixed top navbar */}
                     {showFullPeanutWallet && (
                         <div className="sticky top-0 z-10 w-full">

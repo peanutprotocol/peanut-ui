@@ -10,9 +10,10 @@ import { RecipientValidationError } from '../url-parser/errors'
 import { RecipientType } from '../url-parser/types/payment'
 
 export async function validateAndResolveRecipient(
-    recipient: string
+    recipient: string,
+    isWithdrawal: boolean = false
 ): Promise<{ identifier: string; recipientType: RecipientType; resolvedAddress: string }> {
-    const recipientType = getRecipientType(recipient)
+    const recipientType = getRecipientType(recipient, isWithdrawal)
 
     switch (recipientType) {
         case 'ENS':
@@ -29,7 +30,7 @@ export async function validateAndResolveRecipient(
 
         case 'ADDRESS':
             if (!isAddress(recipient)) {
-                throw new RecipientValidationError('Invalid Ethereum address')
+                throw new RecipientValidationError('Invalid address')
             }
             return {
                 identifier: recipient,
@@ -55,7 +56,7 @@ export async function validateAndResolveRecipient(
     }
 }
 
-export const getRecipientType = (recipient: string): RecipientType => {
+export const getRecipientType = (recipient: string, isWithdrawal: boolean = false): RecipientType => {
     if (recipient.includes('.')) {
         return 'ENS'
     }
@@ -64,7 +65,12 @@ export const getRecipientType = (recipient: string): RecipientType => {
         if (isAddress(recipient)) {
             return 'ADDRESS'
         }
-        throw new RecipientValidationError('Invalid Ethereum address')
+        throw new RecipientValidationError('Invalid address')
+    }
+
+    // For withdrawals, treat non-addresses as ENS names instead of usernames
+    if (isWithdrawal) {
+        return 'ENS'
     }
 
     return 'USERNAME'

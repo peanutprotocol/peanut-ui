@@ -131,14 +131,6 @@ export const HeroImages = () => {
                 src={Star.src}
                 className="absolute right-[1.5%] top-[-12%] w-8 sm:right-[6%] sm:top-[8%] md:right-[5%] md:top-[8%] md:w-12 lg:right-[10%]"
             />
-            {/* <motion.img
-                initial={{ rotate: 5, opacity: 0, translateY: 28, translateX: -5, transformOrigin: 'top left' }}
-                whileInView={{ rotate: 0, opacity: 1, translateY: 0, translateX: 0, transformOrigin: 'top left' }}
-                whileHover={{ rotate: 5, transformOrigin: 'top left' }}
-                transition={{ type: 'spring', damping: 10 }}
-                src={HandToken.src}
-                className="absolute left-[7%] top-[63%] hidden w-36 md:left-[1%] md:top-[70%] lg:left-[7%] lg:top-[63%] lg:block xl:left-[11%]"
-            /> */}
         </>
     )
 }
