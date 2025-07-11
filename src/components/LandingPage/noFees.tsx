@@ -4,6 +4,7 @@ import gotItHand from '@/assets/illustrations/got-it-hand.svg'
 import gotItHandFlipped from '@/assets/illustrations/got-it-hand-flipped.svg'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import { Star } from '@/assets'
+import scribble from '@/assets/scribble.svg'
 import Image from 'next/image'
 
 export function NoFees() {
@@ -142,7 +143,7 @@ export function NoFees() {
                     <span className="relative inline-block px-2 py-1 md:px-3">
                         ZERO
                         <Image
-                            src="/scribble.svg"
+                            src={scribble}
                             alt="Scribble"
                             width={100}
                             height={35}

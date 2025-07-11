@@ -1,6 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 import { Star } from '@/assets'
+import scribble from '@/assets/scribble.svg'
 
 // Define the background color as a constant
 const businessBgColor = '#90A8ED'
@@ -31,7 +32,7 @@ export function BusinessIntegrate() {
                         </h1>
                         <h1 className="absolute left-0 top-0 font-knerd-outline text-4xl md:text-8xl">BUSINESS</h1>
                         <Image
-                            src="/scribble.svg"
+                            src={scribble}
                             alt="Scribble around BUSINESS"
                             width={1200}
                             height={120}
