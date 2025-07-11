@@ -12,11 +12,13 @@ import {
     YourMoney,
 } from '@/components/LandingPage'
 import { useFooterVisibility } from '@/context/footerVisibility'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 export default function LandingPage() {
     const { isFooterVisible } = useFooterVisibility()
     const [buttonVisible, setButtonVisible] = useState(true)
+    const [sendInSecondsInView, setSendInSecondsInView] = useState(false)
+    const sendInSecondsRef = useRef<HTMLDivElement>(null)
 
     const hero = {
         heading: 'Peanut',
@@ -58,9 +60,29 @@ export default function LandingPage() {
         }
     }, [isFooterVisible])
 
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                setSendInSecondsInView(entry.isIntersecting)
+            },
+            { threshold: 0.3 } // Trigger when 30% of the section is visible
+        )
+
+        if (sendInSecondsRef.current) {
+            observer.observe(sendInSecondsRef.current)
+        }
+
+        return () => observer.disconnect()
+    }, [])
+
     return (
         <Layout className="!m-0 w-full !p-0">
-            <Hero heading={hero.heading} primaryCta={hero.primaryCta} buttonVisible={buttonVisible} />
+            <Hero 
+                heading={hero.heading} 
+                primaryCta={hero.primaryCta} 
+                buttonVisible={buttonVisible}
+                sendInSecondsInView={sendInSecondsInView}
+            />
             <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
             <YourMoney />
             <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
@@ -70,7 +92,9 @@ export default function LandingPage() {
             <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
             <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
-            <SendInSeconds />
+            <div ref={sendInSecondsRef}>
+                <SendInSeconds />
+            </div>
             <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
             <BusinessIntegrate />
             <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
