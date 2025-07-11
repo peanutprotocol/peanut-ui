@@ -74,7 +74,7 @@ export function SendInSeconds() {
                 alt="Floating Star"
                 width={50}
                 height={50}
-                className="absolute right-1/4 top-20"
+                className="absolute right-10 top-10 md:right-1/4 md:top-20"
                 initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 45 }}
                 whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 45 }}
                 transition={{ type: 'spring', damping: 5, delay: 0.2 }}
@@ -94,7 +94,7 @@ export function SendInSeconds() {
                 alt="Floating Star"
                 width={50}
                 height={50}
-                className="absolute bottom-72 right-[14rem]"
+                className="absolute bottom-20 left-[2rem] md:bottom-72 md:right-[14rem]"
                 initial={{ opacity: 0, translateY: 18, translateX: 5, rotate: -22 }}
                 whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: -22 }}
                 transition={{ type: 'spring', damping: 5, delay: 0.6 }}
@@ -116,7 +116,7 @@ export function SendInSeconds() {
                 alt="Exclamations"
                 width={200}
                 height={300}
-                className="absolute right-72 top-1/3 -translate-y-1/2 transform hidden md:block"
+                className="absolute right-72 top-1/3 hidden -translate-y-1/2 transform md:block"
             />
 
             {/* Main content */}
@@ -131,8 +131,16 @@ export function SendInSeconds() {
                         PAY{' '}
                         <span className="relative inline-block align-middle text-[4rem] md:text-[9rem]">
                             {' '}
-                            <span className="relative translate-x-[1px] font-knerd-filled text-white md:translate-x-[2px]">ZERO</span>
-                            <span className="absolute -left-[2px] top-1 font-knerd-outline md:-left-[4px] md:top-3" style={{ fontWeight: 300 }}>
+                            <span
+                                className="relative translate-x-[1px] font-knerd-filled text-white md:translate-x-[2px]"
+                                style={{ letterSpacing: '-0.1em' }}
+                            >
+                                ZERO
+                            </span>
+                            <span
+                                className="absolute -left-[2px] top-1 font-knerd-outline md:-left-[4px] md:top-3"
+                                style={{ fontWeight: 300, letterSpacing: '-0.1em' }}
+                            >
                                 ZERO
                             </span>
                         </span>{' '}
@@ -144,6 +152,8 @@ export function SendInSeconds() {
 
                 <p className="mb-6 font-roboto text-base font-black md:mb-8 md:text-4xl" style={{ fontWeight: 900 }}>
                     MOVE MONEY WORLDWIDE INSTANTLY.
+                    <br />
+                    ALWAYS UNDER YOUR CONTROL.
                 </p>
 
                 {/* Button with arrows */}
@@ -162,14 +172,14 @@ export function SendInSeconds() {
                         alt="Arrow pointing to button"
                         width={64}
                         height={32}
-                        className="absolute -left-20 top-1/4 -translate-y-1/2 transform hidden md:block"
+                        className="absolute -left-20 top-1/4 hidden -translate-y-1/2 transform md:block"
                     />
                     <Image
                         src="/arrows/small-arrow.svg"
                         alt="Arrow pointing to button"
                         width={64}
                         height={32}
-                        className="absolute -right-20 top-1/4 -translate-y-1/2 scale-x-[-1] transform hidden md:block"
+                        className="absolute -right-20 top-1/4 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
                     />
                 </div>
             </div>
