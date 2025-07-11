@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useRef } from 'react'
+import React, { forwardRef, useEffect, useRef, useState, useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon, IconName } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
@@ -30,6 +30,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     iconClassName?: string
     iconSize?: number
     iconContainerClassName?: HTMLDivElement['className']
+    longPress?: {
+        duration?: number // Duration in milliseconds (default: 2000)
+        onLongPress?: () => void
+        onLongPressStart?: () => void
+        onLongPressEnd?: () => void
+    }
 }
 
 const buttonVariants: Record<ButtonVariant, string> = {
@@ -82,6 +88,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             iconSize,
             iconClassName,
             iconContainerClassName,
+            longPress,
+            onClick,
             ...props
         },
         ref
@@ -89,11 +97,113 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         const localRef = useRef<HTMLButtonElement>(null)
         const buttonRef = (ref as React.RefObject<HTMLButtonElement>) || localRef
 
+        // Long press state
+        const [isLongPressed, setIsLongPressed] = useState(false)
+        const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null)
+        const [pressProgress, setPressProgress] = useState(0)
+        const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
+
         useEffect(() => {
             if (!buttonRef.current) return
             buttonRef.current.setAttribute('translate', 'no')
             buttonRef.current.classList.add('notranslate')
         }, [])
+
+        // Long press handlers
+        const handlePressStart = useCallback(() => {
+            if (!longPress) return
+
+            longPress.onLongPressStart?.()
+            setPressProgress(0)
+
+            const duration = longPress.duration || 2000
+            const updateInterval = 16 // ~60fps
+            const increment = (100 / duration) * updateInterval
+
+            // Progress animation
+            const progressTimer = setInterval(() => {
+                setPressProgress((prev) => {
+                    const newProgress = prev + increment
+                    if (newProgress >= 100) {
+                        clearInterval(progressTimer)
+                        return 100
+                    }
+                    return newProgress
+                })
+            }, updateInterval)
+
+            setProgressInterval(progressTimer)
+
+            // Long press completion timer
+            const timer = setTimeout(() => {
+                setIsLongPressed(true)
+                longPress.onLongPress?.()
+                clearInterval(progressTimer)
+            }, duration)
+
+            setPressTimer(timer)
+        }, [longPress])
+
+        const handlePressEnd = useCallback(() => {
+            if (!longPress) return
+
+            if (pressTimer) {
+                clearTimeout(pressTimer)
+                setPressTimer(null)
+            }
+
+            if (progressInterval) {
+                clearInterval(progressInterval)
+                setProgressInterval(null)
+            }
+
+            if (isLongPressed) {
+                longPress.onLongPressEnd?.()
+                setIsLongPressed(false)
+            }
+
+            setPressProgress(0)
+        }, [longPress, pressTimer, progressInterval, isLongPressed])
+
+        const handlePressCancel = useCallback(() => {
+            if (!longPress) return
+
+            if (pressTimer) {
+                clearTimeout(pressTimer)
+                setPressTimer(null)
+            }
+
+            if (progressInterval) {
+                clearInterval(progressInterval)
+                setProgressInterval(null)
+            }
+
+            setIsLongPressed(false)
+            setPressProgress(0)
+        }, [longPress, pressTimer, progressInterval])
+
+        const handleClick = useCallback(
+            (e: React.MouseEvent<HTMLButtonElement>) => {
+                if (longPress && !isLongPressed) {
+                    // If long press is enabled but not completed, don't trigger onClick
+                    return
+                }
+                onClick?.(e)
+            },
+            [longPress, isLongPressed, onClick]
+        )
+
+        // Cleanup timers on unmount
+        useEffect(() => {
+            return () => {
+                if (pressTimer) {
+                    clearTimeout(pressTimer)
+                }
+                if (progressInterval) {
+                    clearInterval(progressInterval)
+                }
+            }
+        }, [pressTimer, progressInterval])
 
         const buttonClasses = twMerge(
             `btn w-full flex items-center gap-2 transition-all duration-100 active:translate-x-[3px] active:translate-y-[${shadowSize}px] active:shadow-none notranslate`,
@@ -102,6 +212,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             size && buttonSizes[size],
             shape === 'square' && 'btn-square',
             shadowSize && buttonShadows[shadowType || 'primary'][shadowSize],
+
             className
         )
 
@@ -118,12 +229,39 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             )
         }
 
+        // Use children as display text (no text changes for long press)
+        const displayText = children
+
         return (
-            <button className={twMerge(buttonClasses, 'notranslate')} ref={buttonRef} translate="no" {...props}>
-                {loading && <Loading />}
-                {iconPosition === 'left' && renderIcon()}
-                {children}
-                {iconPosition === 'right' && renderIcon()}
+            <button
+                className={twMerge(buttonClasses, 'notranslate', longPress && 'relative overflow-hidden')}
+                ref={buttonRef}
+                translate="no"
+                onClick={handleClick}
+                onMouseDown={longPress ? handlePressStart : undefined}
+                onMouseUp={longPress ? handlePressEnd : undefined}
+                onMouseLeave={longPress ? handlePressCancel : undefined}
+                onTouchStart={longPress ? handlePressStart : undefined}
+                onTouchEnd={longPress ? handlePressEnd : undefined}
+                onTouchCancel={longPress ? handlePressCancel : undefined}
+                {...props}
+            >
+                {/* Progress bar for long press */}
+                {longPress && pressProgress > 0 && (
+                    <div
+                        className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 opacity-30 transition-all duration-75 ease-out"
+                        style={{
+                            width: `${pressProgress}%`,
+                        }}
+                    />
+                )}
+
+                <div className="relative z-10 flex items-center gap-2">
+                    {loading && <Loading />}
+                    {iconPosition === 'left' && renderIcon()}
+                    {displayText}
+                    {iconPosition === 'right' && renderIcon()}
+                </div>
             </button>
         )
     }

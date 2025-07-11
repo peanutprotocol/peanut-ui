@@ -7,12 +7,7 @@ export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButt
     const router = useRouter()
 
     const handleClick = () => {
-        if (window.$crisp) {
-            window.$crisp.push(['do', 'chat:open'])
-        } else {
-            // Fallback to support page if Crisp isn't loaded
-            router.push('/support')
-        }
+        router.push('/support')
     }
 
     return (
