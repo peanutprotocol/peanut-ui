@@ -22,7 +22,7 @@ export default function LandingPage() {
         heading: 'Peanut',
         marquee: {
             visible: true,
-            message: ['No fees', 'Instant', '24/7', 'Dollars', 'Fiat / Crypto'],
+            message: ['No fees', 'Instant', '24/7', 'USD', 'EUR', 'CRYPTO', 'GLOBAL', 'SELF-CUSTODIAL'],
         },
         primaryCta: {
             label: 'TRY NOW',
@@ -73,11 +73,11 @@ export default function LandingPage() {
             <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
             <SecurityBuiltIn />
             <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
+            <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
+            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
             <SendInSeconds />
             <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
             <BusinessIntegrate />
-            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
-            <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
             <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
         </Layout>
     )
