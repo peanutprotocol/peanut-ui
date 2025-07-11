@@ -1,4 +1,3 @@
-import type { FeeOptions } from '@/app/actions/clients'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
@@ -32,6 +31,23 @@ import { useConfig, useSendTransaction, useSwitchChain, useAccount as useWagmiAc
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { getRoute, type PeanutCrossChainRoute } from '@/services/swap'
 import { estimateTransactionCostUsd } from '@/app/actions/tokens'
+import { captureException } from '@sentry/nextjs'
+
+enum ELoadingStep {
+    IDLE = 'Idle',
+    PREPARING_TRANSACTION = 'Preparing Transaction',
+    SENDING_TRANSACTION = 'Sending Transaction',
+    CONFIRMING_TRANSACTION = 'Confirming Transaction',
+    UPDATING_PAYMENT_STATUS = 'Updating Payment Status',
+    CHARGE_CREATED = 'Charge Created',
+    ERROR = 'Error',
+    SUCCESS = 'Success',
+    FETCHING_CHARGE_DETAILS = 'Fetching Charge Details',
+    CREATING_CHARGE = 'Creating Charge',
+    SWITCHING_NETWORK = 'Switching Network',
+}
+
+type LoadingStep = `${ELoadingStep}`
 
 export interface InitiatePaymentPayload {
     recipient: ParsedURL['recipient']
@@ -77,15 +93,14 @@ export const usePaymentInitiator = () => {
     const [xChainUnsignedTxs, setXChainUnsignedTxs] = useState<peanutInterfaces.IPeanutUnsignedTransaction[] | null>(
         null
     )
-    const [feeOptions, setFeeOptions] = useState<Partial<FeeOptions>[]>([])
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
 
     const [isCalculatingFees, setIsCalculatingFees] = useState(false)
     const [isPreparingTx, setIsPreparingTx] = useState(false)
 
-    const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
+    const [estimatedGasCostUsd, setEstimatedGasCostUsd] = useState<number | undefined>(undefined)
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
-    const [loadingStep, setLoadingStep] = useState<string>('Idle')
+    const [loadingStep, setLoadingStep] = useState<LoadingStep>('Idle')
     const [error, setError] = useState<string | null>(null)
     const [createdChargeDetails, setCreatedChargeDetails] = useState<TRequestChargeResponse | null>(null)
     const [transactionHash, setTransactionHash] = useState<string | null>(null)
@@ -110,7 +125,11 @@ export const usePaymentInitiator = () => {
     }, [selectedTokenData, activeChargeDetails])
 
     const isProcessing = useMemo<boolean>(
-        () => loadingStep !== 'Idle' && loadingStep !== 'Success' && loadingStep !== 'Error',
+        () =>
+            loadingStep !== 'Idle' &&
+            loadingStep !== 'Success' &&
+            loadingStep !== 'Error' &&
+            loadingStep !== 'Charge Created',
         [loadingStep]
     )
 
@@ -128,8 +147,7 @@ export const usePaymentInitiator = () => {
         setXChainRoute(undefined)
         setEstimatedFromValue('0')
         setSlippagePercentage(undefined)
-        setEstimatedGasCost(undefined)
-        setFeeOptions([])
+        setEstimatedGasCostUsd(undefined)
         setTransactionHash(null)
         setPaymentDetails(null)
     }, [selectedChainID, selectedTokenAddress, requestDetails])
@@ -160,45 +178,36 @@ export const usePaymentInitiator = () => {
 
     // prepare transaction details (called from Confirm view)
     const prepareTransactionDetails = useCallback(
-        async (
-            chargeDetails: TRequestChargeResponse,
-            fromTokenAddress?: string,
-            fromChainId?: string,
-            usdAmount?: string
-        ) => {
-            // Default to selected token/chain if not provided
-            const actualFromTokenAddress = fromTokenAddress ?? selectedTokenData?.address
-            const actualFromChainId = fromChainId ?? selectedChainID
-
-            if (
-                !selectedTokenData ||
-                (!peanutWalletAddress && !wagmiAddress) ||
-                !actualFromTokenAddress ||
-                !actualFromChainId
-            ) {
-                console.warn('Missing data for transaction preparation')
-                return
+        async ({
+            chargeDetails,
+            from,
+            usdAmount,
+        }: {
+            chargeDetails: TRequestChargeResponse
+            from: {
+                address: Address
+                tokenAddress: Address
+                chainId: string
             }
-
+            usdAmount?: string
+        }) => {
             setError(null)
             setIsFeeEstimationError(false)
             setUnsignedTx(null)
             setXChainUnsignedTxs(null)
             setXChainRoute(undefined)
 
-            setEstimatedGasCost(undefined)
-            setFeeOptions([])
+            setEstimatedGasCostUsd(undefined)
 
             setIsPreparingTx(true)
 
             try {
-                const _isXChain = actualFromChainId !== chargeDetails.chainId
-                const _diffTokens = !areEvmAddressesEqual(actualFromTokenAddress, chargeDetails.tokenAddress)
+                const _isXChain = from.chainId !== chargeDetails.chainId
+                const _diffTokens = !areEvmAddressesEqual(from.tokenAddress, chargeDetails.tokenAddress)
                 setIsXChain(_isXChain)
 
                 if (_isXChain || _diffTokens) {
                     setLoadingStep('Preparing Transaction')
-                    const senderAddress = isPeanutWallet ? peanutWalletAddress : wagmiAddress
                     setIsCalculatingFees(true)
                     const amount = usdAmount
                         ? {
@@ -208,11 +217,7 @@ export const usePaymentInitiator = () => {
                               toAmount: parseUnits(chargeDetails.tokenAmount, chargeDetails.tokenDecimals),
                           }
                     const xChainRoute = await getRoute({
-                        from: {
-                            address: senderAddress as Address,
-                            tokenAddress: actualFromTokenAddress as Address,
-                            chainId: actualFromChainId,
-                        },
+                        from,
                         to: {
                             address: chargeDetails.requestLink.recipientAddress as Address,
                             tokenAddress: chargeDetails.tokenAddress as Address,
@@ -231,7 +236,7 @@ export const usePaymentInitiator = () => {
                         }))
                     )
                     setIsCalculatingFees(false)
-                    setEstimatedGasCost(xChainRoute.feeCostsUsd)
+                    setEstimatedGasCostUsd(xChainRoute.feeCostsUsd)
                     setEstimatedFromValue(xChainRoute.fromAmount)
                     setSlippagePercentage(slippagePercentage)
                 } else {
@@ -249,16 +254,21 @@ export const usePaymentInitiator = () => {
                     }
 
                     setIsCalculatingFees(true)
-                    setEstimatedGasCost(
-                        isPeanutWallet
-                            ? 0
-                            : await estimateTransactionCostUsd(
-                                  tx.unsignedTx.from! as Address,
-                                  tx.unsignedTx.to! as Address,
-                                  tx.unsignedTx.data! as Hex,
-                                  selectedChainID
-                              )
-                    )
+                    let gasCost = 0
+                    if (!isPeanutWallet) {
+                        try {
+                            gasCost = await estimateTransactionCostUsd(
+                                tx.unsignedTx.from! as Address,
+                                tx.unsignedTx.to! as Address,
+                                tx.unsignedTx.data! as Hex,
+                                chargeDetails.chainId
+                            )
+                        } catch (error) {
+                            captureException(error)
+                            setIsFeeEstimationError(true)
+                        }
+                    }
+                    setEstimatedGasCostUsd(gasCost)
                     setIsCalculatingFees(false)
                     setUnsignedTx(tx.unsignedTx)
                     setEstimatedFromValue(chargeDetails.tokenAmount)
@@ -275,15 +285,7 @@ export const usePaymentInitiator = () => {
                 setIsPreparingTx(false)
             }
         },
-        [
-            selectedTokenData,
-            selectedChainID,
-            peanutWalletAddress,
-            wagmiAddress,
-            setIsXChain,
-            isPeanutWallet,
-            selectedTokenAddress,
-        ]
+        [setIsXChain, isPeanutWallet]
     )
 
     // helper function: determine charge details (fetch or create)
@@ -548,14 +550,6 @@ export const usePaymentInitiator = () => {
                     currentStep = 'Sending Transaction'
 
                     const txGasOptions: any = {}
-                    const gasOptions = feeOptions[i]
-                    if (gasOptions) {
-                        if (gasOptions.gas) txGasOptions.gas = BigInt(gasOptions.gas.toString())
-                        if (gasOptions.maxFeePerGas)
-                            txGasOptions.maxFeePerGas = BigInt(gasOptions.maxFeePerGas.toString())
-                        if (gasOptions.maxPriorityFeePerGas)
-                            txGasOptions.maxPriorityFeePerGas = BigInt(gasOptions.maxPriorityFeePerGas.toString())
-                    }
                     console.log('Using gas options:', txGasOptions)
 
                     const hash = await sendTransactionAsync({
@@ -624,7 +618,6 @@ export const usePaymentInitiator = () => {
             switchChainAsync,
             xChainUnsignedTxs,
             unsignedTx,
-            feeOptions,
             sendTransactionAsync,
             config,
             selectedTokenData,
@@ -746,7 +739,7 @@ export const usePaymentInitiator = () => {
         slippagePercentage,
         estimatedFromValue,
         xChainUnsignedTxs,
-        estimatedGasCost,
+        estimatedGasCostUsd,
         unsignedTx,
         isCalculatingFees,
         isFeeEstimationError,

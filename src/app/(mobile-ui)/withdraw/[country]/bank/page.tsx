@@ -11,7 +11,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, Account } from '@/interfaces'
-import { shortenAddressLong } from '@/utils/general.utils'
+import { formatIban, shortenAddressLong } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
@@ -180,7 +180,7 @@ export default function WithdrawBankPage() {
     }
 
     return (
-        <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
+        <div className="flex h-full min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
             <NavHeader
                 title="Withdraw"
                 icon={view === 'SUCCESS' ? 'cancel' : undefined}
@@ -203,7 +203,14 @@ export default function WithdrawBankPage() {
                         <PaymentInfoRow label={'Full name'} value={user?.user.fullName} />
                         {bankAccount?.type === AccountType.IBAN ? (
                             <>
-                                <PaymentInfoRow label={'IBAN'} value={bankAccount?.identifier.toUpperCase()} />
+                                <PaymentInfoRow
+                                    label={'IBAN'}
+                                    value={
+                                        bankAccount?.identifier
+                                            ? formatIban(bankAccount.identifier)
+                                            : '' /* fallback to empty string to avoid runtime error */
+                                    }
+                                />
                                 <PaymentInfoRow label="BIC" value={getBicAndRoutingNumber()} />
                             </>
                         ) : bankAccount?.type === AccountType.CLABE ? (

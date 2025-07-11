@@ -95,7 +95,16 @@ const LinkSendInitialView = () => {
     }, [isLoading, tokenValue, createLink, fetchBalance, dispatch, queryClient, setLoadingState, attachmentOptions])
 
     useEffect(() => {
-        if (!peanutWalletBalance || !tokenValue) return
+        if (!peanutWalletBalance || !tokenValue) {
+            // Clear error state when no balance or token value
+            dispatch(
+                sendFlowActions.setErrorState({
+                    showError: false,
+                    errorMessage: '',
+                })
+            )
+            return
+        }
         if (
             parseUnits(peanutWalletBalance, PEANUT_WALLET_TOKEN_DECIMALS) <
             parseUnits(tokenValue, PEANUT_WALLET_TOKEN_DECIMALS)
@@ -114,7 +123,7 @@ const LinkSendInitialView = () => {
                 })
             )
         }
-    }, [peanutWalletBalance, tokenValue])
+    }, [peanutWalletBalance, tokenValue, dispatch])
 
     return (
         <div className="w-full space-y-4">

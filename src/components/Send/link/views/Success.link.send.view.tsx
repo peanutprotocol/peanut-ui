@@ -25,9 +25,12 @@ const LinkSendSuccessView = () => {
     const { user } = useUserStore()
     const [isLoading, setIsLoading] = useState<boolean>(false)
 
+    if (isLoading) {
+        return <PeanutLoading coverFullScreen />
+    }
+
     return (
-        <div className="relative space-y-8">
-            {isLoading && <PeanutLoading coverFullScreen />}
+        <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8">
             <NavHeader
                 icon="cancel"
                 title="Send"
@@ -36,7 +39,7 @@ const LinkSendSuccessView = () => {
                     dispatch(sendFlowActions.resetSendFlow())
                 }}
             />
-            <div className="flex flex-col gap-6">
+            <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 {link && (
                     <SuccessViewDetailsCard
                         title="Link created!"

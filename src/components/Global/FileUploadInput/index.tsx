@@ -18,6 +18,7 @@ export interface IFileUploadInputProps {
     }) => void
     placeholder?: string
     className?: HTMLInputElement['className']
+    onBlur?: () => void
 }
 
 const FileUploadInput = ({
@@ -25,6 +26,7 @@ const FileUploadInput = ({
     setAttachmentOptions,
     placeholder,
     className,
+    onBlur,
 }: IFileUploadInputProps) => {
     const [fileType, setFileType] = useState<string>('')
 
@@ -33,6 +35,8 @@ const FileUploadInput = ({
         if (file) {
             const url = URL.createObjectURL(file)
             setAttachmentOptions({ message: attachmentOptions.message, fileUrl: url, rawFile: file })
+            // Trigger update when file is attached
+            onBlur?.()
         }
     }
 
@@ -47,6 +51,9 @@ const FileUploadInput = ({
         if (fileInput) {
             fileInput.value = ''
         }
+
+        // Trigger update when file is deleted
+        onBlur?.()
     }
 
     useEffect(() => {
@@ -106,6 +113,7 @@ const FileUploadInput = ({
                         rawFile: attachmentOptions.rawFile,
                     })
                 }
+                onBlur={onBlur}
             />{' '}
         </div>
     )

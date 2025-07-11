@@ -11,6 +11,7 @@ interface TokenAmountInputProps {
     setUsdValue?: (usdvalue: string) => void
     setCurrencyAmount?: (currencyvalue: string | undefined) => void
     onSubmit?: () => void
+    onBlur?: () => void
     disabled?: boolean
     walletBalance?: string
     currency?: {
@@ -28,6 +29,7 @@ const TokenAmountInput = ({
     setTokenValue,
     setCurrencyAmount,
     onSubmit,
+    onBlur,
     disabled,
     walletBalance,
     currency,
@@ -219,6 +221,9 @@ const TokenAmountInput = ({
                             e.preventDefault()
                             if (onSubmit) onSubmit()
                         }
+                    }}
+                    onBlur={() => {
+                        if (onBlur) onBlur()
                     }}
                     disabled={disabled}
                 />

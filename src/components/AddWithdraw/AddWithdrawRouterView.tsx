@@ -9,7 +9,13 @@ import {
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchUsers/SearchInput'
-import { RecentMethod, getUserPreferences, updateUserPreferences, shortenAddressLong } from '@/utils/general.utils'
+import {
+    RecentMethod,
+    getUserPreferences,
+    updateUserPreferences,
+    shortenAddressLong,
+    formatIban,
+} from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { FC, useEffect, useMemo, useState } from 'react'
 import { useUserStore } from '@/redux/hooks'
@@ -363,7 +369,7 @@ const SavedAccountsList: FC<{ accounts: Account[]; onItemClick: (account: Accoun
                 return (
                     <SearchResultCard
                         key={account.id}
-                        title={shortenAddressLong(account.identifier.toUpperCase(), 6)}
+                        title={shortenAddressLong(formatIban(account.identifier), 6)}
                         position={position}
                         onClick={() => onItemClick(account, path)}
                         className="p-4 py-2.5"

@@ -10,6 +10,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
+import { formatIban } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -322,9 +323,9 @@ export const TransactionDetailsReceipt = ({
                             label={getBankAccountLabel(transaction.bankAccountDetails.type)}
                             value={
                                 <div className="flex items-center gap-2">
-                                    <span>{transaction.bankAccountDetails.identifier.toUpperCase()}</span>
+                                    <span>{formatIban(transaction.bankAccountDetails.identifier)}</span>
                                     <CopyToClipboard
-                                        textToCopy={transaction.bankAccountDetails.identifier.toUpperCase()}
+                                        textToCopy={formatIban(transaction.bankAccountDetails.identifier)}
                                         iconSize="4"
                                     />
                                 </div>
@@ -439,16 +440,16 @@ export const TransactionDetailsReceipt = ({
                                                     value={
                                                         <div className="flex items-center gap-2">
                                                             <span>
-                                                                {
+                                                                {formatIban(
                                                                     transaction.extraDataForDrawer.depositInstructions
                                                                         .iban
-                                                                }
+                                                                )}
                                                             </span>
                                                             <CopyToClipboard
-                                                                textToCopy={
+                                                                textToCopy={formatIban(
                                                                     transaction.extraDataForDrawer.depositInstructions
                                                                         .iban
-                                                                }
+                                                                )}
                                                                 iconSize="4"
                                                             />
                                                         </div>
