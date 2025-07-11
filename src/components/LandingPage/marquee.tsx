@@ -8,21 +8,17 @@ type MarqueeProps = {
     backgroundColor?: string
 }
 
-export function Marquee({ 
-    visible = true, 
+export function Marquee({
+    visible = true,
     message = ['No fees', 'Instant', '24/7', 'Dollars', 'Fiat / Crypto'],
     imageSrc = HandThumbsUp.src,
-    backgroundColor = 'bg-secondary-1'
+    backgroundColor = 'bg-secondary-1',
 }: MarqueeProps) {
     if (!visible) return null
-    
+
     return (
         <div className="relative z-1">
-            <MarqueeComp
-                message={message}
-                imageSrc={imageSrc}
-                backgroundColor={backgroundColor}
-            />
+            <MarqueeComp message={message} imageSrc={imageSrc} backgroundColor={backgroundColor} />
         </div>
     )
 }

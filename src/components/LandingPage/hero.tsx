@@ -68,17 +68,17 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, sendInS
     const transitionConfig = { type: 'spring', damping: 15 } as const
 
     // Helper function for button positioning classes
-    const getButtonContainerClasses = (variant: 'primary' | 'secondary') => 
+    const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
         `fixed bottom-4 z-20 sm:bottom-8 ${
             variant === 'primary' ? 'inset-x-0 mx-auto w-fit' : 'right-[calc(50%-120px)]'
         }`
 
     // Helper function for button classes
-    const getButtonClasses = (variant: 'primary' | 'secondary') => 
+    const getButtonClasses = (variant: 'primary' | 'secondary') =>
         `${variant === 'primary' ? 'btn bg-white fill-n-1 text-n-1 hover:bg-white/90' : 'btn-yellow'} px-5 shadow-md`
 
     // Helper function for rendering sparkle icon
-    const renderSparkle = (variant: 'primary' | 'secondary') => 
+    const renderSparkle = (variant: 'primary' | 'secondary') =>
         variant === 'primary' && (
             <img
                 src={Sparkle.src}
@@ -88,7 +88,7 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, sendInS
         )
 
     // Helper function for rendering arrows
-    const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number) => 
+    const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number) =>
         variant === 'primary' && (
             <>
                 <Image

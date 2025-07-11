@@ -63,7 +63,10 @@ export function SecurityBuiltIn() {
                                     />
                                 </div>
                             </div>
-                            <h3 className="mb-2 font-roboto text-lg font-black leading-tight md:text-2xl" style={{ fontWeight: 800 }}>
+                            <h3
+                                className="mb-2 font-roboto text-lg font-black leading-tight md:text-2xl"
+                                style={{ fontWeight: 800 }}
+                            >
                                 {feature.title}
                             </h3>
                             <p className="max-w-sm font-roboto text-sm font-semibold leading-relaxed md:text-base">
