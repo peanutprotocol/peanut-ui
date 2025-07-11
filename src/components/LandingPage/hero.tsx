@@ -98,10 +98,10 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible }: HeroP
                 </Stack>
 
                 <Stack spacing={2} className="relative h-1/3 items-center justify-center px-4 text-center lg:h-full">
-                    <h2 className="mt-20 font-roboto text-4xl text-n-1 md:text-[3.5rem]" style={{ fontWeight: 900 }}>
+                    <h2 className="mt-8 font-roboto text-2xl leading-tight text-n-1 md:mt-20 md:text-[3.5rem]" style={{ fontWeight: 900 }}>
                         INSTANTLY SEND AND RECEIVE
                         <br />
-                        <span className="mt-4 block md:text-5xl">MONEY ACROSS THE GLOBE</span>
+                        <span className="mt-2 block text-xl md:mt-4 md:text-5xl">MONEY ACROSS THE GLOBE</span>
                     </h2>
 
                     <HeroImages />

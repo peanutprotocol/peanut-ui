@@ -34,7 +34,7 @@ export function SendInSeconds() {
     }
 
     return (
-        <section className="relative overflow-hidden bg-secondary-1 px-4 py-32 text-n-1">
+        <section className="relative overflow-hidden bg-secondary-1 px-4 py-16 text-n-1 md:py-32">
             {/* Decorative clouds, stars, and exclamations */}
             <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
                 {/* Animated clouds */}
@@ -122,17 +122,17 @@ export function SendInSeconds() {
             {/* Main content */}
             <div className="relative mx-auto max-w-3xl text-center">
                 <h2
-                    className="mb-10 font-roboto text-3xl font-black leading-tight md:text-[4rem]"
+                    className="mb-6 font-roboto text-xl font-black leading-tight md:mb-10 md:text-[4rem]"
                     style={{ fontWeight: 900, lineHeight: '0.9' }}
                 >
                     SEND IN SECONDS.
                     <br />
-                    <span className="mt-6 inline-block">
+                    <span className="mt-3 inline-block md:mt-6">
                         PAY{' '}
                         <span className="relative inline-block align-middle text-[4rem] md:text-[9rem]">
                             {' '}
-                            <span className="relative translate-x-[2px] font-knerd-filled text-white">ZERO</span>
-                            <span className="absolute -left-[4px] top-3 font-knerd-outline" style={{ fontWeight: 300 }}>
+                            <span className="relative translate-x-[1px] font-knerd-filled text-white md:translate-x-[2px]">ZERO</span>
+                            <span className="absolute -left-[2px] top-1 font-knerd-outline md:-left-[4px] md:top-3" style={{ fontWeight: 300 }}>
                                 ZERO
                             </span>
                         </span>{' '}
@@ -142,7 +142,7 @@ export function SendInSeconds() {
                     START RIGHT NOW.
                 </h2>
 
-                <p className="mb-8 font-roboto text-lg font-black md:text-4xl" style={{ fontWeight: 900 }}>
+                <p className="mb-6 font-roboto text-base font-black md:mb-8 md:text-4xl" style={{ fontWeight: 900 }}>
                     MOVE MONEY WORLDWIDE INSTANTLY.
                 </p>
 
@@ -150,26 +150,26 @@ export function SendInSeconds() {
                 <div className="relative inline-block">
                     <a
                         href="/setup"
-                        className="mt-20 inline-block rounded-sm border-2 border-n-1 bg-white px-12 py-6 text-center font-roboto text-2xl font-black text-n-1 hover:bg-grey-2 focus:outline-none"
+                        className="mt-8 inline-block rounded-sm border-2 border-n-1 bg-white px-8 py-4 text-center font-roboto text-lg font-black text-n-1 hover:bg-grey-2 focus:outline-none md:mt-20 md:px-12 md:py-6 md:text-2xl"
                         style={{ fontWeight: 900 }}
                     >
                         TRY NOW
                     </a>
 
-                    {/* Arrow placeholders */}
+                    {/* Arrow placeholders - hidden on mobile */}
                     <Image
                         src="/arrows/small-arrow.svg"
                         alt="Arrow pointing to button"
                         width={64}
                         height={32}
-                        className="absolute -left-20 top-1/4 -translate-y-1/2 transform"
+                        className="absolute -left-20 top-1/4 -translate-y-1/2 transform hidden md:block"
                     />
                     <Image
                         src="/arrows/small-arrow.svg"
                         alt="Arrow pointing to button"
                         width={64}
                         height={32}
-                        className="absolute -right-20 top-1/4 -translate-y-1/2 scale-x-[-1] transform"
+                        className="absolute -right-20 top-1/4 -translate-y-1/2 scale-x-[-1] transform hidden md:block"
                     />
                 </div>
             </div>

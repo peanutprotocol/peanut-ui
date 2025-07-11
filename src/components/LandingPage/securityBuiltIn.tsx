@@ -38,10 +38,10 @@ const features: Feature[] = [
 
 export function SecurityBuiltIn() {
     return (
-        <section className="bg-primary-1 px-4 py-40 text-n-1">
+        <section className="bg-primary-1 px-4 py-16 text-n-1 md:py-40">
             <div className="mx-auto max-w-7xl">
                 <h2
-                    className="mb-16 text-left font-roboto text-3xl font-black md:text-[4rem]"
+                    className="mb-12 text-left font-roboto text-2xl font-black leading-tight md:mb-16 md:text-[4rem]"
                     style={{ fontWeight: 900 }}
                 >
                     SECURITY & PRIVACY, BUILT-IN
@@ -53,20 +53,20 @@ export function SecurityBuiltIn() {
                             className="flex flex-col items-center text-center md:items-start md:text-left"
                         >
                             <div className="mb-4">
-                                <div className="flex h-12 w-12 items-center justify-center">
+                                <div className="flex h-10 w-10 items-center justify-center md:h-12 md:w-12">
                                     <Image
                                         src={feature.iconSrc}
                                         alt={feature.iconAlt}
-                                        width={48}
-                                        height={48}
-                                        className="max-h-full max-w-full object-contain"
+                                        width={40}
+                                        height={40}
+                                        className="max-h-full max-w-full object-contain md:h-12 md:w-12"
                                     />
                                 </div>
                             </div>
-                            <h3 className="mb-2 font-roboto text-2xl font-black" style={{ fontWeight: 800 }}>
+                            <h3 className="mb-2 font-roboto text-lg font-black leading-tight md:text-2xl" style={{ fontWeight: 800 }}>
                                 {feature.title}
                             </h3>
-                            <p className="max-w-sm font-roboto text-base font-semibold leading-relaxed">
+                            <p className="max-w-sm font-roboto text-sm font-semibold leading-relaxed md:text-base">
                                 {feature.description}
                             </p>
                         </div>
