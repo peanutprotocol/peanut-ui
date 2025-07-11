@@ -24,7 +24,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
 import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
+import BalanceWarningModal from '@/components/Global/BalanceWarningModal'
 import { AccountType } from '@/interfaces'
+import { formatUnits } from 'viem'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+
+const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 
 export default function Home() {
     const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
@@ -43,6 +48,7 @@ export default function Home() {
 
     const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
     const [showAddMoneyPromptModal, setShowAddMoneyPromptModal] = useState(false)
+    const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
 
     const userFullName = useMemo(() => {
         if (!user) return
@@ -97,6 +103,28 @@ export default function Home() {
         }
     }, [user?.hasPwaInstalled])
 
+    // effect for showing balance warning modal
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !isFetchingBalance) {
+            const hasSeenBalanceWarningThisSession = sessionStorage.getItem('hasSeenBalanceWarningThisSession')
+            const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
+
+            // show if:
+            // 1. balance is above the threshold
+            // 2. user hasn't seen this warning in the current session
+            // 3. no other modals are currently active
+            if (
+                balanceInUsd > BALANCE_WARNING_THRESHOLD &&
+                !hasSeenBalanceWarningThisSession &&
+                !showIOSPWAInstallModal &&
+                !showAddMoneyPromptModal
+            ) {
+                setShowBalanceWarningModal(true)
+                sessionStorage.setItem('hasSeenBalanceWarningThisSession', 'true')
+            }
+        }
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal])
+
     // effect for showing add money prompt modal
     useEffect(() => {
         if (typeof window !== 'undefined' && !isFetchingBalance) {
@@ -106,14 +134,20 @@ export default function Home() {
             // 1. balance is zero.
             // 2. user hasn't seen this prompt in the current session.
             // 3. the iOS PWA install modal is not currently active.
+            // 4. the balance warning modal is not currently active.
             // this allows the modal on any device (iOS/Android) and in any display mode (PWA/browser),
             // as long as the PWA modal (which is iOS & browser-specific) isn't taking precedence.
-            if (balance === 0n && !hasSeenAddMoneyPromptThisSession && !showIOSPWAInstallModal) {
+            if (
+                balance === 0n &&
+                !hasSeenAddMoneyPromptThisSession &&
+                !showIOSPWAInstallModal &&
+                !showBalanceWarningModal
+            ) {
                 setShowAddMoneyPromptModal(true)
                 sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
             }
         }
-    }, [balance, isFetchingBalance, showIOSPWAInstallModal])
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showBalanceWarningModal])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -174,6 +208,12 @@ export default function Home() {
 
             {/* Add Money Prompt Modal */}
             <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} />
+
+            {/* Balance Warning Modal */}
+            <BalanceWarningModal
+                visible={showBalanceWarningModal}
+                onCloseAction={() => setShowBalanceWarningModal(false)}
+            />
         </PageContainer>
     )
 }
