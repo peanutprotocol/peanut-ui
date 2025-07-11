@@ -51,12 +51,15 @@ export function BusinessIntegrate() {
                 </p>
 
                 {/* CTA Button */}
-                <button
-                    className="rounded-sm border-2 border-n-1 bg-white px-8 py-3 font-roboto text-base font-black text-n-1 hover:bg-grey-2 focus:outline-none md:px-10 md:py-4 md:text-lg"
+                <a
+                    href="https://peanutprotocol.notion.site/12c83811757980afb3b6d3e5a4c68f4d"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block rounded-sm border-2 border-n-1 bg-white px-8 py-3 font-roboto text-base font-black text-n-1 hover:bg-grey-2 focus:outline-none md:px-10 md:py-4 md:text-lg"
                     style={{ fontWeight: 900 }}
                 >
                     INTEGRATE PEANUT
-                </button>
+                </a>
             </div>
         </section>
     )
