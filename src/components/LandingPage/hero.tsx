@@ -28,7 +28,11 @@ const getInitialAnimation = (variant: 'primary' | 'secondary') => ({
     rotate: 0.75,
 })
 
-const getAnimateAnimation = (variant: 'primary' | 'secondary', buttonVisible?: boolean, sendInSecondsInView?: boolean) => ({
+const getAnimateAnimation = (
+    variant: 'primary' | 'secondary',
+    buttonVisible?: boolean,
+    sendInSecondsInView?: boolean
+) => ({
     opacity: buttonVisible ? (sendInSecondsInView ? 0.2 : 1) : 0,
     translateY: buttonVisible ? 0 : 20,
     translateX: buttonVisible ? (variant === 'primary' ? 0 : 0) : 20,
@@ -45,9 +49,7 @@ const getHoverAnimation = (variant: 'primary' | 'secondary') => ({
 const transitionConfig = { type: 'spring', damping: 15 } as const
 
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
-    `fixed bottom-4 z-20 sm:bottom-8 ${
-        variant === 'primary' ? 'inset-x-0 mx-auto w-fit' : 'right-[calc(50%-120px)]'
-    }`
+    `fixed bottom-4 z-20 sm:bottom-8 ${variant === 'primary' ? 'inset-x-0 mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
 const getButtonClasses = (variant: 'primary' | 'secondary') =>
     `${variant === 'primary' ? 'btn bg-white fill-n-1 text-n-1 hover:bg-white/90' : 'btn-yellow'} px-5 shadow-md`
