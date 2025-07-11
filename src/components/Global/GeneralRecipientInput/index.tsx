@@ -60,7 +60,7 @@ const GeneralRecipientInput = ({
             } else {
                 try {
                     const validation = await validateAndResolveRecipient(trimmedInput)
-                    
+
                     // For withdrawals, reject usernames and show ENS error
                     if (isWithdrawal && validation.recipientType.toLowerCase() === 'username') {
                         errorMessage.current = 'ENS name not found'
