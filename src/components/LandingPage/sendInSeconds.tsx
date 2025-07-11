@@ -1,6 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
+import exclamations from '@/assets/illustrations/exclamations.svg'
 import { Star } from '@/assets'
 
 export function SendInSeconds() {
@@ -17,10 +18,10 @@ export function SendInSeconds() {
             <Image
                 src={Star}
                 alt="Star"
-                width={40}
-                height={40}
-                className="absolute right-1/3 top-20"
-                style={{ transform: 'rotate(15deg)' }}
+                width={50}
+                height={50}
+                className="absolute right-1/4 top-20"
+                style={{ transform: 'rotate(45deg)' }}
             />
             <Image
                 src={Star}
@@ -30,17 +31,31 @@ export function SendInSeconds() {
                 className="absolute bottom-16 left-1/3"
                 style={{ transform: 'rotate(-10deg)' }}
             />
+            <Image
+                src={Star}
+                alt="Star"
+                width={50}
+                height={50}
+                className="absolute bottom-72 right-[14rem]"
+                style={{ transform: 'rotate(-22deg)' }}
+            />
+            <Image
+                src={Star}
+                alt="Star"
+                width={60}
+                height={60}
+                className="absolute left-[20rem] top-72"
+                style={{ transform: 'rotate(12deg)' }}
+            />
 
-            {/* Exclamation placeholders */}
-            <div className="absolute right-16 top-24 flex h-20 w-5 items-center justify-center rounded-full bg-n-1">
-                <span className="text-lg font-bold text-secondary-1">!</span>
-            </div>
-            <div className="absolute right-24 top-32 flex h-20 w-5 items-center justify-center rounded-full bg-n-1">
-                <span className="text-lg font-bold text-secondary-1">!</span>
-            </div>
-            <div className="absolute right-32 top-40 flex h-20 w-5 items-center justify-center rounded-full bg-n-1">
-                <span className="text-lg font-bold text-secondary-1">!</span>
-            </div>
+            {/* Exclamations */}
+            <Image
+                src={exclamations}
+                alt="Exclamations"
+                width={200}
+                height={300}
+                className="absolute right-72 top-1/3 -translate-y-1/2 transform"
+            />
 
             {/* Main content */}
             <div className="relative mx-auto max-w-3xl text-center">
