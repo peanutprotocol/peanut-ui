@@ -1,7 +1,16 @@
 'use client'
 
 import Layout from '@/components/Global/Layout'
-import { BusinessIntegrate, FAQs, Hero, NoFees, SecurityBuiltIn, SendInSeconds, YourMoney } from '@/components/LandingPage'
+import {
+    BusinessIntegrate,
+    FAQs,
+    Hero,
+    Marquee,
+    NoFees,
+    SecurityBuiltIn,
+    SendInSeconds,
+    YourMoney,
+} from '@/components/LandingPage'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState } from 'react'
 
@@ -56,18 +65,20 @@ export default function LandingPage() {
 
     return (
         <Layout className="!m-0 w-full !p-0">
-            <Hero
-                heading={hero.heading}
-                marquee={hero.marquee}
-                primaryCta={hero.primaryCta}
-                buttonVisible={buttonVisible}
-            />
+            <Hero heading={hero.heading} primaryCta={hero.primaryCta} buttonVisible={buttonVisible} />
+            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
             <YourMoney />
+            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
             <NoFees />
+            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
             <SecurityBuiltIn />
+            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
             <SendInSeconds />
+            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
             <BusinessIntegrate />
+            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
+            <Marquee visible={hero.marquee.visible} message={hero.marquee.message} />
         </Layout>
     )
 }

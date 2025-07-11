@@ -1,6 +1,7 @@
 export * from './businessIntegrate'
 export * from './faq'
 export * from './hero'
+export * from './marquee'
 export * from './noFees'
 export * from './nutsDivider'
 export * from './securityBuiltIn'

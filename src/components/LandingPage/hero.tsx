@@ -1,9 +1,8 @@
-import { AboutPeanut, ButterySmoothGlobalMoney, HandThumbsUp, PeanutGuyGIF, Sparkle } from '@/assets'
+import { AboutPeanut, ButterySmoothGlobalMoney, PeanutGuyGIF, Sparkle } from '@/assets'
 import { Stack } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { MarqueeComp } from '../Global/MarqueeWrapper'
 import { CloudImages, HeroImages } from './imageAssets'
 
 type CTAButton = {
@@ -14,16 +13,12 @@ type CTAButton = {
 
 type HeroProps = {
     heading: string
-    marquee?: {
-        visible: boolean
-        message?: string[]
-    }
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
 }
 
-export function Hero({ heading, marquee = { visible: false }, primaryCta, secondaryCta, buttonVisible }: HeroProps) {
+export function Hero({ heading, primaryCta, secondaryCta, buttonVisible }: HeroProps) {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200) // Added typeof check for SSR
 
     useEffect(() => {
@@ -113,15 +108,6 @@ export function Hero({ heading, marquee = { visible: false }, primaryCta, second
                 </Stack>
             </div>
 
-            <div className="relative z-1">
-                {marquee?.visible && (
-                    <MarqueeComp
-                        message={marquee.message}
-                        imageSrc={HandThumbsUp.src}
-                        backgroundColor="bg-secondary-1"
-                    />
-                )}
-            </div>
 
             <div>
                 {primaryCta && renderCTAButton(primaryCta, 'primary')}
