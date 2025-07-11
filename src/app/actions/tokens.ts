@@ -304,6 +304,7 @@ export const fetchWalletBalances = unstable_cache(
             (acc: number, balance: IUserBalance) => acc + balance.amount * balance.price,
             0
         )
+        balances.sort((a, b) => Number(b.value) - Number(a.value))
         return {
             balances,
             totalBalance,

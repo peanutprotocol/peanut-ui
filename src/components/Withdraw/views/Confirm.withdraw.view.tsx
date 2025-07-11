@@ -13,7 +13,7 @@ import { ITokenPriceData } from '@/interfaces'
 import { formatAmount } from '@/utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { type PeanutCrossChainRoute } from '@/services/swap'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
 
 interface WithdrawConfirmViewProps {
@@ -52,6 +52,7 @@ export default function ConfirmWithdrawView({
     onRouteRefresh,
     xChainRoute,
 }: WithdrawConfirmViewProps) {
+    const [isRouteExpired, setIsRouteExpired] = useState(false)
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
         chainId: chain.chainId,
         tokenAddress: token.address,
@@ -89,9 +90,12 @@ export default function ConfirmWithdrawView({
                     showTimer={isCrossChain}
                     timerExpiry={routeExpiry}
                     isTimerLoading={isRouteLoading}
-                    onTimerNearExpiry={onRouteRefresh}
+                    onTimerNearExpiry={() => {
+                        setIsRouteExpired(false)
+                        onRouteRefresh?.()
+                    }}
                     onTimerExpired={() => {
-                        console.log('Withdraw route expired')
+                        setIsRouteExpired(true)
                     }}
                     disableTimerRefetch={isProcessing}
                     timerError={error?.includes('not available for withdraw') ? error : null}
@@ -150,9 +154,10 @@ export default function ConfirmWithdrawView({
                         variant="purple"
                         shadowSize="4"
                         onClick={() => {
-                            // If it's a route type error, refresh the route, otherwise retry confirm
-                            if (error.includes('not available for withdraw') && onRouteRefresh) {
-                                onRouteRefresh()
+                            if (error.includes('not available for withdraw')) {
+                                onBack()
+                            } else if (isRouteExpired) {
+                                onRouteRefresh?.()
                             } else {
                                 onConfirm()
                             }
@@ -177,7 +182,13 @@ export default function ConfirmWithdrawView({
                     </Button>
                 )}
 
-                {error && <ErrorAlert description={error} />}
+                {error && (
+                    <ErrorAlert
+                        description={
+                            isRouteExpired ? 'This quote has expired. Please retry to fetch latest quote.' : error
+                        }
+                    />
+                )}
             </div>
         </div>
     )
