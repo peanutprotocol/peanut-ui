@@ -66,6 +66,11 @@ const GeneralRecipientInput = ({
                     type = validation.recipientType.toLowerCase() as interfaces.RecipientType
                 } catch (error: unknown) {
                     errorMessage.current = (error as Error).message
+                    // For withdrawal context, failed non-address inputs should be treated as ENS
+                    if (isWithdrawal && !trimmedInput.startsWith('0x')) {
+                        type = 'ens'
+                    }
+                    recipientType.current = type
                     return false
                 }
             }

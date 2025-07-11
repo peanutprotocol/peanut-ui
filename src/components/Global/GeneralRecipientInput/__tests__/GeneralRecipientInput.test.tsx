@@ -23,6 +23,7 @@ jest.mock('@/utils', () => {
         validateBankAccount: jest.fn(),
         sanitizeBankAccount: (input: string) => input.toLowerCase().replace(/\s/g, ''),
         validateEnsName: actualUtils.validateEnsName, // Use the actual implementation
+        fetchWithSentry: jest.fn(),
     }
 })
 
@@ -51,6 +52,7 @@ describe('GeneralRecipientInput Type Detection', () => {
         onUpdateMock = jest.fn()
         jest.clearAllMocks()
         ;(utils.validateBankAccount as jest.Mock).mockResolvedValue(true)
+        ;(utils.fetchWithSentry as jest.Mock).mockResolvedValue({ status: 404 })
     })
 
     const setup = async (initialValue = '', isWithdrawal = false) => {
