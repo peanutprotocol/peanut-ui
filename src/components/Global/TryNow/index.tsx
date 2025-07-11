@@ -5,7 +5,7 @@ import {
     STAR_OUTLINE_ICON,
     SMILEY_ICON,
     TRIANGLE_ICON,
-    GITBOOK_ICON,
+    GITBOOK_BLACK_ICON,
 } from '@/assets'
 import { Card } from '@chakra-ui/react'
 import Image from 'next/image'
@@ -62,7 +62,7 @@ const cards: ITryNowCard[] = [
     {
         title: 'Docs (legacy)',
         description: 'Learn about Peanut Protocol and its features',
-        icon: GITBOOK_ICON,
+        icon: GITBOOK_BLACK_ICON,
         href: 'https://docs.peanut.to/',
         isExternal: true,
         needsIconAdjustment: true,
@@ -94,7 +94,8 @@ const TryNow = () => {
                             <div
                                 className={twMerge(
                                     'hidden size-16 items-center justify-center rounded-full bg-purple-1 md:flex',
-                                    index === 0 ? 'p-4' : 'p-2'
+                                    index === 0 ? 'p-4' : 'p-2',
+                                    index === 6 && 'pt-4'
                                 )}
                             >
                                 <Image
