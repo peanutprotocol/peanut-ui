@@ -43,11 +43,6 @@ export default function LandingPage() {
                 question: 'What is Peanut?',
                 answer: 'Peanut is the simplest way to send and receive crypto or fiat. Peanut lets you request, send and cashout digital dollars using links and QR codes.',
             },
-            {
-                id: '2',
-                question: `I'm waitlisted, now what?`,
-                answer: `Congrats! Now you wait while we make it worth it. (Keep your notifs on to get alerted about the launch and  - it's going to be worth it. Pinky promise.)`,
-            },
         ],
         marquee: {
             visible: false,

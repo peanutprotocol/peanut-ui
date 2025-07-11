@@ -21,7 +21,7 @@ export function SendInSeconds() {
     const createCloudAnimation = (side: 'left' | 'right', width: number, speed: number) => {
         const vpWidth = screenWidth || 1080
         const totalDistance = vpWidth + width
-        
+
         return {
             initial: { x: side === 'left' ? -width : vpWidth },
             animate: { x: side === 'left' ? vpWidth : -width },
@@ -29,7 +29,7 @@ export function SendInSeconds() {
                 ease: 'linear',
                 duration: totalDistance / speed,
                 repeat: Infinity,
-            }
+            },
         }
     }
 
@@ -143,7 +143,7 @@ export function SendInSeconds() {
                 </h2>
 
                 <p className="mb-8 font-roboto text-lg font-black md:text-4xl" style={{ fontWeight: 900 }}>
-                    MOVE MONEY WORLDWIDE INSTANTLY AND UNDER YOUR CONTROL.
+                    MOVE MONEY WORLDWIDE INSTANTLY.
                 </p>
 
                 {/* Button with arrows */}
