@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import gotItHand from '@/assets/illustrations/got-it-hand.svg'
 import gotItHandFlipped from '@/assets/illustrations/got-it-hand-flipped.svg'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
+import zero from '@/assets/illustrations/zero.svg'
 import { Star } from '@/assets'
 import scribble from '@/assets/scribble.svg'
 import Image from 'next/image'
@@ -110,35 +111,46 @@ export function NoFees() {
                 {/* Main stylized headline */}
                 <div className="mb-6 md:mb-8">
                     <div className="relative inline-block">
-                        <h1 className="relative translate-x-[3px] font-knerd-filled text-4xl text-white md:text-8xl">
-                            0 FEES
-                        </h1>
-                        <h1 className="absolute left-0 top-0 font-knerd-outline text-4xl md:text-8xl">0 FEES</h1>
+                        <div className="flex items-baseline justify-center">
+                            <Image
+                                src={zero}
+                                alt="Zero"
+                                width={60}
+                                height={60}
+                                className="mr-2 h-[60px] w-[60px] md:mr-4 md:h-[120px] md:w-[120px]"
+                            />
+                            <div className="relative">
+                                <h1 className="relative translate-x-[3px] font-knerd-filled text-4xl text-white md:text-8xl">
+                                    FEES
+                                </h1>
+                                <h1 className="absolute left-0 top-0 font-knerd-outline text-4xl md:text-8xl">FEES</h1>
+                            </div>
+                        </div>
 
-                        {/* Bottom left arrow pointing to "0" */}
+                        {/* Bottom left arrow pointing to zero */}
                         <Image
                             src="/arrows/bottom-left-arrow.svg"
                             alt="Bottom left arrow"
                             width={40}
-                            height={40}
-                            className="absolute -left-12 bottom-1 hidden md:-left-10 md:bottom-4 md:block md:h-[60px] md:w-[60px]"
-                            style={{ transform: 'rotate(22deg)' }}
+                            height={100}
+                            className="absolute -left-16 bottom-1 hidden md:-left-8 md:bottom-6 md:block md:h-[80px] md:w-[80px]"
+                            style={{ transform: 'rotate(25deg)' }}
                         />
 
-                        {/* Bottom right arrow pointing to "S" */}
+                        {/* Bottom right arrow pointing to "S" in FEES */}
                         <Image
                             src="/arrows/bottom-right-arrow.svg"
                             alt="Bottom right arrow"
                             width={40}
-                            height={40}
-                            className="absolute -right-12 bottom-1 hidden md:-right-12 md:bottom-6 md:block md:h-[60px] md:w-[60px]"
-                            style={{ transform: 'rotate(62deg)' }}
+                            height={100}
+                            className="absolute -right-12 bottom-1 hidden md:-right-13 md:bottom-10 md:block md:h-[80px] md:w-[80px]"
+                            style={{ transform: 'rotate(48deg)' }}
                         />
                     </div>
                 </div>
 
                 {/* Subheading */}
-                <h3 className="mb-4 font-roboto text-lg font-black text-n-1 md:text-3xl" style={{ fontWeight: 900 }}>
+                <h3 className="mb-2 font-roboto text-lg font-black text-n-1 md:text-3xl" style={{ fontWeight: 900 }}>
                     REALLY, WE MEAN{' '}
                     <span className="relative inline-block px-2 py-1 md:px-3">
                         ZERO
@@ -157,7 +169,7 @@ export function NoFees() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-full md:h-10 md:w-10">
                         <Image src={gotItHand} alt="Got it hand" className="h-full w-full" />
                     </div>
-                    <span className="font-roboto text-base font-black text-n-1 md:text-2xl" style={{ fontWeight: 900 }}>
+                    <span className="font-roboto text-base font-black text-n-1 md:text-3xl" style={{ fontWeight: 900 }}>
                         NO HIDDEN FEES
                     </span>
                     <div className="flex h-8 w-8 items-center justify-center rounded-full md:h-10 md:w-10">
