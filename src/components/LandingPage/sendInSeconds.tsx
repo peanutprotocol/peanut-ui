@@ -139,7 +139,11 @@ export function SendInSeconds() {
                             </span>
                             <span
                                 className="absolute -left-[2px] top-1 font-knerd-outline md:-left-[4px] md:top-3"
-                                style={{ fontWeight: 300, letterSpacing: '-0.1em' }}
+                                style={{
+                                    fontWeight: 300,
+                                    letterSpacing: '-0.1em',
+                                    textShadow: '0.5px 0 black, -0.5px 0 black, 0 0.5px black, 0 -0.5px black',
+                                }}
                             >
                                 ZERO
                             </span>

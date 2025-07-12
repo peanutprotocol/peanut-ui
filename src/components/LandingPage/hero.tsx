@@ -71,7 +71,7 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
                 alt="Arrow pointing to button"
                 width={64}
                 height={32}
-                className="absolute -left-20 -top-6 hidden -translate-y-1/2 transform md:block"
+                className="absolute -left-20 -top-6 -translate-y-1/2 transform md:block"
                 style={{ opacity: buttonVisible ? arrowOpacity : 0 }}
             />
             <Image
@@ -79,7 +79,7 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
                 alt="Arrow pointing to button"
                 width={64}
                 height={32}
-                className="absolute -right-20 -top-6 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
+                className="absolute -right-20 -top-6  -translate-y-1/2 scale-x-[-1] transform md:block"
                 style={{ opacity: buttonVisible ? arrowOpacity : 0 }}
             />
         </>
