@@ -58,6 +58,7 @@ const cards: ITryNowCard[] = [
         description: 'Refund unclaimed peanut links back to sender',
         icon: TRIANGLE_ICON,
         href: '/refund',
+        needsIconAdjustment: true,
     },
     {
         title: 'Docs (legacy)',
@@ -127,17 +128,6 @@ const TryNow = () => {
                         </Card>
                     </Link>
                 ))}
-            </div>
-            <div className="flex items-center gap-2">
-                <Image src={Eyes} alt="eyes" className="size-6" />
-                <Link
-                    href={'https://docs.peanut.to'}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="min-w-fit text-sm hover:underline"
-                >
-                    What is Peanut Protocol?
-                </Link>
             </div>
         </div>
     )
