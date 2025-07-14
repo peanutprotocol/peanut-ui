@@ -21,9 +21,11 @@ export default function LandingPage() {
     const [buttonScale, setButtonScale] = useState(1)
     const [animationComplete, setAnimationComplete] = useState(false)
     const [shrinkingPhase, setShrinkingPhase] = useState(false)
+    const [hasGrown, setHasGrown] = useState(false)
     const sendInSecondsRef = useRef<HTMLDivElement>(null)
     const frozenScrollY = useRef(0)
     const virtualScrollY = useRef(0)
+    const previousScrollY = useRef(0)
 
     const hero = {
         heading: 'Peanut',
@@ -79,8 +81,8 @@ export default function LandingPage() {
                 const stickyButtonTop = window.innerHeight - 16 - 52 // 16px bottom margin, ~52px button height
                 const stickyButtonBottom = window.innerHeight - 16
                 
-                // Freeze when the target element overlaps with the sticky button position (slightly lower)
-                const shouldFreeze = targetRect.top <= stickyButtonBottom + 20 && targetRect.bottom >= stickyButtonTop + 20 && !animationComplete && !shrinkingPhase
+                // Freeze when the target element overlaps with the sticky button position (even lower)
+                const shouldFreeze = targetRect.top <= stickyButtonBottom - 60 && targetRect.bottom >= stickyButtonTop - 60 && !animationComplete && !shrinkingPhase && !hasGrown
                 
                 if (shouldFreeze && !isScrollFrozen) {
                     // Start freeze - prevent normal scrolling
@@ -102,26 +104,41 @@ export default function LandingPage() {
                     const shrinkProgress = Math.min(1, shrinkDistance / maxShrinkDistance)
                     const newScale = 1.5 - (shrinkProgress * 0.5) // Scale from 1.5 back to 1
                     setButtonScale(Math.max(1, newScale))
+                } else if (animationComplete && currentScrollY < frozenScrollY.current - 100) {
+                    // Reset everything when scrolling back up past the SendInSeconds component
+                    setAnimationComplete(false)
+                    setShrinkingPhase(false)
+                    setButtonScale(1)
+                    setHasGrown(false)
                 }
+                
+                // Update previous scroll position for direction tracking
+                previousScrollY.current = currentScrollY
             }
         }
 
         const handleWheel = (event: WheelEvent) => {
             if (isScrollFrozen && !animationComplete) {
                 event.preventDefault()
-                virtualScrollY.current += event.deltaY
                 
-                // Scale button based on virtual scroll (max scale of 1.5) - requires more scrolling
-                const maxVirtualScroll = 500 // Increased from 200 to require more scrolling
-                const newScale = Math.min(1.5, 1 + (virtualScrollY.current / maxVirtualScroll) * 0.5)
-                setButtonScale(newScale)
-                
-                // Complete animation when we reach max scale
-                if (newScale >= 1.5) {
-                    setAnimationComplete(true)
-                    document.body.style.overflow = ''
-                    setIsScrollFrozen(false)
+                // Only increase scale when scrolling down (positive deltaY)
+                if (event.deltaY > 0) {
+                    virtualScrollY.current += event.deltaY
+                    
+                    // Scale button based on virtual scroll (max scale of 1.5) - requires more scrolling
+                    const maxVirtualScroll = 500 // Increased from 200 to require more scrolling
+                    const newScale = Math.min(1.5, 1 + (virtualScrollY.current / maxVirtualScroll) * 0.5)
+                    setButtonScale(newScale)
+                    
+                    // Complete animation when we reach max scale
+                    if (newScale >= 1.5) {
+                        setAnimationComplete(true)
+                        setHasGrown(true)
+                        document.body.style.overflow = ''
+                        setIsScrollFrozen(false)
+                    }
                 }
+                // When scrolling up (negative deltaY), don't change the scale
             }
         }
 
@@ -134,7 +151,7 @@ export default function LandingPage() {
             window.removeEventListener('wheel', handleWheel)
             document.body.style.overflow = '' // Cleanup
         }
-    }, [isScrollFrozen, animationComplete, shrinkingPhase])
+    }, [isScrollFrozen, animationComplete, shrinkingPhase, hasGrown])
 
     const marqueeProps = { visible: hero.marquee.visible, message: hero.marquee.message }
 

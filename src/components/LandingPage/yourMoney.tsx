@@ -17,7 +17,7 @@ const features: Feature[] = [
         id: 1,
         title: 'FREE GLOBAL TRANSFERS',
         description:
-            'Move money between your own accounts in 140+ countries and 45+ currencies, no fees, live FX rates.',
+            'Move money between your own accounts in 140+ countries and 50+ currencies, no fees, live FX rates.',
         imageSrc: iphoneYourMoney1,
         imageAlt: 'iPhone showing global transfer screen',
     },
