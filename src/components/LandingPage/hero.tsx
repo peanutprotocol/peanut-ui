@@ -52,7 +52,7 @@ const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `fixed bottom-4 z-20 sm:bottom-8 ${variant === 'primary' ? 'inset-x-0 mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
 const getButtonClasses = (variant: 'primary' | 'secondary') =>
-    `${variant === 'primary' ? 'btn bg-white fill-n-1 text-n-1 hover:bg-white/90' : 'btn-yellow'} px-5 shadow-md`
+    `${variant === 'primary' ? 'btn bg-white fill-n-1 text-n-1 hover:bg-white/90' : 'btn-yellow'} px-5 btn-shadow-primary-4`
 
 const renderSparkle = (variant: 'primary' | 'secondary') =>
     variant === 'primary' && (
