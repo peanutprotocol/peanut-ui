@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { CloudImages, HeroImages } from './imageAssets'
 import Image from 'next/image'
+import instantlySendReceive from '@/assets/illustrations/instantly-send-receive.svg'
 
 type CTAButton = {
     label: string
@@ -158,14 +159,16 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
                 </Stack>
 
                 <Stack spacing={2} className="relative h-1/3 items-center justify-center px-4 text-center lg:h-full">
-                    <h2
-                        className="mt-8 font-roboto text-2xl leading-tight text-n-1 md:mt-20 md:text-[3.5rem]"
-                        style={{ fontWeight: 900 }}
-                    >
-                        INSTANTLY SEND AND RECEIVE
-                        <br />
-                        <span className="mt-2 block text-xl md:mt-4 md:text-5xl">MONEY ACROSS THE GLOBE</span>
-                    </h2>
+                    <div className="mt-8 md:mt-20">
+                        <Image
+                            src={instantlySendReceive}
+                            alt="Instantly Send and Receive"
+                            width={800}
+                            height={150}
+                            className="mx-auto h-auto w-full max-w-lg md:max-w-4xl"
+                        />
+                        <span className="mt-2 block text-xl leading-tight text-n-1 md:mt-4 md:text-5xl" style={{ fontWeight: 500, letterSpacing: '-0.5px' }}>MONEY ACROSS THE GLOBE</span>
+                    </div>
 
                     <HeroImages />
                 </Stack>
