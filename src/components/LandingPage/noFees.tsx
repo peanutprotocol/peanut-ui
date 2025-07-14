@@ -150,9 +150,9 @@ export function NoFees() {
                 </div>
 
                 {/* Subheading */}
-                <h3 className="mb-2 font-roboto text-lg font-black text-n-1 md:text-3xl" style={{ fontWeight: 900 }}>
+                <h3 className="mb-1 font-roboto text-lg font-black text-n-1 md:text-3xl" style={{ fontWeight: 900, textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000' }}>
                     REALLY, WE MEAN{' '}
-                    <span className="relative inline-block px-2 py-1 md:px-3">
+                    <span className="relative inline-block px-2 py-1 md:px-3" style={{ textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000' }}>
                         ZERO
                         <Image
                             src={scribble}
@@ -169,7 +169,7 @@ export function NoFees() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-full md:h-10 md:w-10">
                         <Image src={gotItHand} alt="Got it hand" className="h-full w-full" />
                     </div>
-                    <span className="font-roboto text-base font-black text-n-1 md:text-3xl" style={{ fontWeight: 900 }}>
+                    <span className="font-roboto text-base font-black text-n-1 md:text-3xl" style={{ fontWeight: 900, textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000' }}>
                         NO HIDDEN FEES
                     </span>
                     <div className="flex h-8 w-8 items-center justify-center rounded-full md:h-10 md:w-10">
