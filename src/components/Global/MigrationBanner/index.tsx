@@ -10,7 +10,7 @@ interface MigrationBannerProps {
 
 export function MigrationBanner({ className = '' }: MigrationBannerProps) {
     return (
-        <a href="https://peanut.me" className="block cursor-pointer hover:opacity-90 transition-opacity">
+        <a href="https://peanut.me" className="block cursor-pointer transition-opacity hover:opacity-90">
             <MarqueeWrapper backgroundColor="bg-yellow-1" direction="left">
                 <div className={`mx-4 flex items-center py-4 ${className}`}>
                     <img src={handThumbsUp.src} alt="Migration Icon" className="animation-thumbsUp mr-3 h-8 w-8" />

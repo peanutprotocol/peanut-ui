@@ -98,10 +98,12 @@ export function Hero({ heading, marquee = { visible: false }, ctas, buttonVisibl
                                 />
                             )}
 
-                            <a 
-                                href={cta.href} 
+                            <a
+                                href={cta.href}
                                 className={`px-5 shadow-md ${
-                                    cta.primary ? 'btn-purple' : 'btn bg-yellow-1 text-n-1 fill-n-1 hover:bg-yellow-1/90'
+                                    cta.primary
+                                        ? 'btn-purple'
+                                        : 'btn bg-yellow-1 fill-n-1 text-n-1 hover:bg-yellow-1/90'
                                 }`}
                             >
                                 {cta.label}
