@@ -2,6 +2,7 @@ import React from 'react'
 import Image from 'next/image'
 import { Star } from '@/assets'
 import scribble from '@/assets/scribble.svg'
+import peanutMeans from '@/assets/illustrations/peanut-means.svg'
 
 // Define the background color as a constant
 const businessBgColor = '#90A8ED'
@@ -14,12 +15,15 @@ export function BusinessIntegrate() {
         >
             <div className="relative mx-auto max-w-3xl text-center">
                 {/* Main heading */}
-                <h2
-                    className="mb-12 mt-8 font-roboto text-2xl font-black leading-tight md:mb-24 md:mt-20 md:text-[4.5rem]"
-                    style={{ fontWeight: 900 }}
-                >
-                    PEANUT MEANS
-                </h2>
+                <div className="mb-12 mt-8 md:mb-24 md:mt-20">
+                    <Image
+                        src={peanutMeans}
+                        alt="Peanut Means"
+                        width={600}
+                        height={120}
+                        className="mx-auto h-auto w-full max-w-md md:max-w-2xl"
+                    />
+                </div>
 
                 {/* Stylized BUSINESS title using knerd fonts */}
                 <div className="mb-12 md:mb-20">
@@ -44,10 +48,10 @@ export function BusinessIntegrate() {
 
                 {/* Subtitle with scribble around a word */}
                 <p
-                    className="mb-12 font-roboto text-base font-black leading-tight md:mb-16 md:text-4xl"
-                    style={{ fontWeight: 900 }}
+                    className="mb-12 font-roboto text-base font-medium leading-tight md:mb-16 md:text-4xl"
+                    style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    PLUG-AND-PLAY MONEY RAILS FOR PRODUCTS THAT NEED TO MOVE FAST.
+                    PLUG-AND-PLAY MONEY RAILS <br/> FOR PRODUCTS THAT NEED TO MOVE FAST.
                 </p>
 
                 {/* CTA Button */}
@@ -56,7 +60,7 @@ export function BusinessIntegrate() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block rounded-sm border-2 border-n-1 bg-white px-8 py-3 font-roboto text-base font-black text-n-1 hover:bg-grey-2 focus:outline-none md:px-10 md:py-4 md:text-lg"
-                    style={{ fontWeight: 900 }}
+                    style={{ fontWeight: 900, boxShadow: '4px 4px 0 #000' }}
                 >
                     INTEGRATE PEANUT
                 </a>
