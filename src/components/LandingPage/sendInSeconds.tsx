@@ -160,15 +160,15 @@ export function SendInSeconds() {
                     ALWAYS UNDER YOUR CONTROL.
                 </p>
 
-                {/* Button with arrows */}
+                {/* Placeholder for sticky button positioning */}
                 <div className="relative inline-block">
-                    <a
-                        href="/setup"
-                        className="mt-8 inline-block rounded-sm border-2 border-n-1 bg-white px-8 py-4 text-center font-roboto text-lg font-black text-n-1 hover:bg-grey-2 focus:outline-none md:mt-20 md:px-12 md:py-6 md:text-2xl"
+                    <div 
+                        className="mt-8 inline-block h-13 px-5 rounded-sm border-2 border-transparent bg-transparent text-center font-roboto text-lg font-black opacity-0 md:mt-20 md:px-12 md:py-6 md:text-2xl" 
+                        id="sticky-button-target"
                         style={{ fontWeight: 900 }}
                     >
                         TRY NOW
-                    </a>
+                    </div>
 
                     {/* Arrow placeholders - hidden on mobile */}
                     <Image

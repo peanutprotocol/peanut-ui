@@ -17,8 +17,13 @@ import { useEffect, useState, useRef } from 'react'
 export default function LandingPage() {
     const { isFooterVisible } = useFooterVisibility()
     const [buttonVisible, setButtonVisible] = useState(true)
-    const [sendInSecondsInView, setSendInSecondsInView] = useState(false)
+    const [isScrollFrozen, setIsScrollFrozen] = useState(false)
+    const [buttonScale, setButtonScale] = useState(1)
+    const [animationComplete, setAnimationComplete] = useState(false)
+    const [shrinkingPhase, setShrinkingPhase] = useState(false)
     const sendInSecondsRef = useRef<HTMLDivElement>(null)
+    const frozenScrollY = useRef(0)
+    const virtualScrollY = useRef(0)
 
     const hero = {
         heading: 'Peanut',
@@ -63,19 +68,73 @@ export default function LandingPage() {
     useEffect(() => {
         const handleScroll = () => {
             if (sendInSecondsRef.current) {
-                const rect = sendInSecondsRef.current.getBoundingClientRect()
-                // Button fades when section enters viewport and reappears when section is mostly out of view
-                const isInView = rect.top < window.innerHeight * 0.7 && rect.bottom > window.innerHeight * 0.8
-                // console.log(`SendInSeconds - top: ${rect.top}, bottom: ${rect.bottom}, isInView: ${isInView}`)
-                setSendInSecondsInView(isInView)
+                const targetElement = document.getElementById('sticky-button-target')
+                if (!targetElement) return
+
+                const targetRect = targetElement.getBoundingClientRect()
+                const currentScrollY = window.scrollY
+                
+                // Check if the sticky button should "freeze" at the target position
+                // Calculate where the sticky button currently is (bottom-4 = 16px from bottom)
+                const stickyButtonTop = window.innerHeight - 16 - 52 // 16px bottom margin, ~52px button height
+                const stickyButtonBottom = window.innerHeight - 16
+                
+                // Freeze when the target element overlaps with the sticky button position (slightly lower)
+                const shouldFreeze = targetRect.top <= stickyButtonBottom + 20 && targetRect.bottom >= stickyButtonTop + 20 && !animationComplete && !shrinkingPhase
+                
+                if (shouldFreeze && !isScrollFrozen) {
+                    // Start freeze - prevent normal scrolling
+                    setIsScrollFrozen(true)
+                    frozenScrollY.current = currentScrollY
+                    virtualScrollY.current = 0
+                    document.body.style.overflow = 'hidden'
+                    window.scrollTo(0, frozenScrollY.current)
+                } else if (isScrollFrozen && !animationComplete) {
+                    // During freeze - maintain scroll position
+                    window.scrollTo(0, frozenScrollY.current)
+                } else if (animationComplete && !shrinkingPhase && currentScrollY > frozenScrollY.current + 50) {
+                    // Start shrinking phase when user scrolls further after animation complete
+                    setShrinkingPhase(true)
+                } else if (shrinkingPhase) {
+                    // Shrink button back to original size based on scroll distance
+                    const shrinkDistance = Math.max(0, currentScrollY - (frozenScrollY.current + 50))
+                    const maxShrinkDistance = 200
+                    const shrinkProgress = Math.min(1, shrinkDistance / maxShrinkDistance)
+                    const newScale = 1.5 - (shrinkProgress * 0.5) // Scale from 1.5 back to 1
+                    setButtonScale(Math.max(1, newScale))
+                }
+            }
+        }
+
+        const handleWheel = (event: WheelEvent) => {
+            if (isScrollFrozen && !animationComplete) {
+                event.preventDefault()
+                virtualScrollY.current += event.deltaY
+                
+                // Scale button based on virtual scroll (max scale of 1.5) - requires more scrolling
+                const maxVirtualScroll = 500 // Increased from 200 to require more scrolling
+                const newScale = Math.min(1.5, 1 + (virtualScrollY.current / maxVirtualScroll) * 0.5)
+                setButtonScale(newScale)
+                
+                // Complete animation when we reach max scale
+                if (newScale >= 1.5) {
+                    setAnimationComplete(true)
+                    document.body.style.overflow = ''
+                    setIsScrollFrozen(false)
+                }
             }
         }
 
         window.addEventListener('scroll', handleScroll)
+        window.addEventListener('wheel', handleWheel, { passive: false })
         handleScroll() // Check initial state
 
-        return () => window.removeEventListener('scroll', handleScroll)
-    }, [])
+        return () => {
+            window.removeEventListener('scroll', handleScroll)
+            window.removeEventListener('wheel', handleWheel)
+            document.body.style.overflow = '' // Cleanup
+        }
+    }, [isScrollFrozen, animationComplete, shrinkingPhase])
 
     const marqueeProps = { visible: hero.marquee.visible, message: hero.marquee.message }
 
@@ -85,7 +144,7 @@ export default function LandingPage() {
                 heading={hero.heading}
                 primaryCta={hero.primaryCta}
                 buttonVisible={buttonVisible}
-                sendInSecondsInView={sendInSecondsInView}
+                buttonScale={buttonScale}
             />
             <Marquee {...marqueeProps} />
             <YourMoney />

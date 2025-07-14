@@ -17,7 +17,7 @@ type HeroProps = {
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
-    sendInSecondsInView?: boolean
+    buttonScale?: number
 }
 
 // Helper functions moved outside component for better performance
@@ -31,12 +31,13 @@ const getInitialAnimation = (variant: 'primary' | 'secondary') => ({
 const getAnimateAnimation = (
     variant: 'primary' | 'secondary',
     buttonVisible?: boolean,
-    sendInSecondsInView?: boolean
+    buttonScale?: number
 ) => ({
-    opacity: buttonVisible ? (sendInSecondsInView ? 0.2 : 1) : 0,
+    opacity: buttonVisible ? 1 : 0,
     translateY: buttonVisible ? 0 : 20,
     translateX: buttonVisible ? (variant === 'primary' ? 0 : 0) : 20,
     rotate: buttonVisible ? 0 : 1,
+    scale: buttonScale || 1,
     pointerEvents: buttonVisible ? ('auto' as const) : ('none' as const),
 })
 
@@ -85,7 +86,7 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
         </>
     )
 
-export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, sendInSecondsInView = false }: HeroProps) {
+export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
     const [scrollY, setScrollY] = useState(0)
 
@@ -115,7 +116,7 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, sendInS
             <motion.div
                 className={getButtonContainerClasses(variant)}
                 initial={getInitialAnimation(variant)}
-                animate={getAnimateAnimation(variant, buttonVisible, sendInSecondsInView)}
+                animate={getAnimateAnimation(variant, buttonVisible, buttonScale)}
                 whileHover={getHoverAnimation(variant)}
                 transition={transitionConfig}
             >
