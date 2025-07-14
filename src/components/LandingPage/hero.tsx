@@ -10,14 +10,15 @@ type HeroProps = {
         visible: boolean
         message?: string
     }
-    cta?: {
+    ctas?: Array<{
         label: string
         href: string
-    }
+        primary: boolean
+    }>
     buttonVisible?: boolean
 }
 
-export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible }: HeroProps) {
+export function Hero({ heading, marquee = { visible: false }, ctas, buttonVisible }: HeroProps) {
     const [duration, setDuration] = useState(10)
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200) // Added typeof check for SSR
 
@@ -64,39 +65,50 @@ export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible
                 </Stack>
             </div>
 
-            {cta?.href && cta?.label && (
-                <motion.div
-                    className="fixed bottom-4 right-[calc(50%-60px)] z-20 sm:bottom-8"
-                    initial={{
-                        opacity: 0,
-                        translateY: 4,
-                        translateX: 4,
-                        rotate: 0.75,
-                    }}
-                    animate={{
-                        opacity: buttonVisible ? 1 : 0,
-                        translateY: buttonVisible ? 0 : 20,
-                        translateX: buttonVisible ? 0 : 20,
-                        rotate: buttonVisible ? 0 : 1,
-                        pointerEvents: buttonVisible ? 'auto' : 'none',
-                    }}
-                    whileHover={{
-                        translateY: 6,
-                        translateX: 3,
-                        rotate: 0.75,
-                    }}
-                    transition={{ type: 'spring', damping: 15 }}
-                >
-                    <img
-                        src={Sparkle.src}
-                        className="absolute -right-4 -top-4 h-auto w-5 sm:-right-5 sm:-top-5 sm:w-6"
-                        alt="Sparkle"
-                    />
+            {ctas && ctas.length > 0 && (
+                <div className="fixed bottom-4 right-[calc(50%-120px)] z-20 flex gap-4 sm:bottom-8">
+                    {ctas.map((cta, index) => (
+                        <motion.div
+                            key={index}
+                            initial={{
+                                opacity: 0,
+                                translateY: 4,
+                                translateX: 4,
+                                rotate: 0.75,
+                            }}
+                            animate={{
+                                opacity: buttonVisible ? 1 : 0,
+                                translateY: buttonVisible ? 0 : 20,
+                                translateX: buttonVisible ? 0 : 20,
+                                rotate: buttonVisible ? 0 : 1,
+                                pointerEvents: buttonVisible ? 'auto' : 'none',
+                            }}
+                            whileHover={{
+                                translateY: 6,
+                                translateX: 3,
+                                rotate: 0.75,
+                            }}
+                            transition={{ type: 'spring', damping: 15 }}
+                        >
+                            {cta.primary && (
+                                <img
+                                    src={Sparkle.src}
+                                    className="absolute -right-4 -top-4 h-auto w-5 sm:-right-5 sm:-top-5 sm:w-6"
+                                    alt="Sparkle"
+                                />
+                            )}
 
-                    <a href={cta.href} className="btn-purple px-5 shadow-md">
-                        {cta.label}
-                    </a>
-                </motion.div>
+                            <a 
+                                href={cta.href} 
+                                className={`px-5 shadow-md ${
+                                    cta.primary ? 'btn-purple' : 'btn bg-yellow-1 text-n-1 fill-n-1 hover:bg-yellow-1/90'
+                                }`}
+                            >
+                                {cta.label}
+                            </a>
+                        </motion.div>
+                    ))}
+                </div>
             )}
         </div>
     )

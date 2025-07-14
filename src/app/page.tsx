@@ -13,10 +13,18 @@ export default function LandingPage() {
             visible: true,
             message: 'Peanut',
         },
-        cta: {
-            label: 'TRY NOW',
-            href: '/pay',
-        },
+        ctas: [
+            {
+                label: 'TRY NOW',
+                href: 'https://peanut.me',
+                primary: true,
+            },
+            {
+                label: 'LEGACY',
+                href: '/pay',
+                primary: false,
+            },
+        ],
     }
     const story = {
         marquee: {
@@ -154,7 +162,7 @@ export default function LandingPage() {
 
     return (
         <Layout className="!m-0 w-full !p-0">
-            <Hero heading={hero.heading} marquee={hero.marquee} cta={hero.cta} buttonVisible={buttonVisible} />
+            <Hero heading={hero.heading} marquee={hero.marquee} ctas={hero.ctas} buttonVisible={buttonVisible} />
         </Layout>
     )
 }
