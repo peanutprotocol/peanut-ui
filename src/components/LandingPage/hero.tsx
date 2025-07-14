@@ -2,7 +2,6 @@ import { AboutPeanut, ButterySmoothGlobalMoney, HandThumbsUp, PeanutGuyGIF, Spar
 import { Stack } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { MarqueeComp } from '../Global/MarqueeWrapper'
 import { CloudImages, HeroImages } from './imageAssets'
 
 type HeroProps = {
@@ -63,12 +62,6 @@ export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible
 
                     <HeroImages />
                 </Stack>
-            </div>
-
-            <div className="relative z-1">
-                {marquee && (
-                    <MarqueeComp message={marquee.message} imageSrc={HandThumbsUp.src} backgroundColor="bg-yellow-1" />
-                )}
             </div>
 
             {cta?.href && cta?.label && (

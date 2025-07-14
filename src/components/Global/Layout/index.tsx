@@ -53,7 +53,6 @@ const Layout = ({ children, className }: LayoutProps) => {
                         </div>
                         <FooterVisibilityObserver />
                         <MigrationBanner className="h-[7vh] min-h-[90px]" />
-                        <Footer />
                         <Modal
                             visible={showModal}
                             onClose={() => {
