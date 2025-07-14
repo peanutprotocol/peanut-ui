@@ -48,10 +48,10 @@ export function BusinessIntegrate() {
 
                 {/* Subtitle with scribble around a word */}
                 <p
-                    className="mb-12 font-roboto text-base font-black leading-tight md:mb-16 md:text-4xl"
-                    style={{ fontWeight: 900 }}
+                    className="mb-12 font-roboto text-base font-medium leading-tight md:mb-16 md:text-4xl"
+                    style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    PLUG-AND-PLAY MONEY RAILS FOR PRODUCTS THAT NEED TO MOVE FAST.
+                    PLUG-AND-PLAY MONEY RAILS <br/> FOR PRODUCTS THAT NEED TO MOVE FAST.
                 </p>
 
                 {/* CTA Button */}
@@ -60,7 +60,7 @@ export function BusinessIntegrate() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block rounded-sm border-2 border-n-1 bg-white px-8 py-3 font-roboto text-base font-black text-n-1 hover:bg-grey-2 focus:outline-none md:px-10 md:py-4 md:text-lg"
-                    style={{ fontWeight: 900 }}
+                    style={{ fontWeight: 900, boxShadow: '4px 4px 0 #000' }}
                 >
                     INTEGRATE PEANUT
                 </a>
