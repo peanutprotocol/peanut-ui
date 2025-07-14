@@ -69,7 +69,7 @@ export function SecurityBuiltIn() {
                             >
                                 {feature.title}
                             </h3>
-                            <p className="max-w-sm font-roboto text-sm font-semibold leading-relaxed md:text-base">
+                            <p className="max-w-sm font-roboto text-sm font-normal leading-relaxed md:text-base">
                                 {feature.description}
                             </p>
                         </div>

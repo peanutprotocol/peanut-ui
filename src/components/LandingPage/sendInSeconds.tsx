@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import exclamations from '@/assets/illustrations/exclamations.svg'
+import payZeroFees from '@/assets/illustrations/pay-zero-fees.svg'
 import { Star } from '@/assets'
 
 export function SendInSeconds() {
@@ -121,40 +122,17 @@ export function SendInSeconds() {
 
             {/* Main content */}
             <div className="relative mx-auto max-w-3xl text-center">
-                <h2
-                    className="mb-6 font-roboto text-xl font-black leading-tight md:mb-10 md:text-[4rem]"
-                    style={{ fontWeight: 900, lineHeight: '0.9' }}
-                >
-                    SEND IN SECONDS.
-                    <br />
-                    <span className="mt-3 inline-block md:mt-6">
-                        PAY{' '}
-                        <span className="relative inline-block align-middle text-[4rem] md:text-[9rem]">
-                            {' '}
-                            <span
-                                className="relative translate-x-[1px] font-knerd-filled text-white md:translate-x-[2px]"
-                                style={{ letterSpacing: '-0.1em' }}
-                            >
-                                ZERO
-                            </span>
-                            <span
-                                className="absolute -left-[2px] top-1 font-knerd-outline md:-left-[4px] md:top-3"
-                                style={{
-                                    fontWeight: 300,
-                                    letterSpacing: '-0.1em',
-                                    textShadow: '0.5px 0 black, -0.5px 0 black, 0 0.5px black, 0 -0.5px black',
-                                }}
-                            >
-                                ZERO
-                            </span>
-                        </span>{' '}
-                        FEES.
-                    </span>
-                    <br />
-                    START RIGHT NOW.
-                </h2>
+                <div className="mb-6 md:mb-10">
+                    <Image
+                        src={payZeroFees}
+                        alt="Send in Seconds. Pay Zero Fees. Start Right Now"
+                        width={800}
+                        height={200}
+                        className="mx-auto h-auto w-full max-w-lg md:max-w-4xl"
+                    />
+                </div>
 
-                <p className="mb-6 font-roboto text-base font-black md:mb-8 md:text-4xl" style={{ fontWeight: 900 }}>
+                <p className="mb-6 font-roboto text-base font-medium leading-tight md:mb-8 md:text-4xl" style={{ fontWeight: 500, letterSpacing: '-0.5px' }}>
                     MOVE MONEY WORLDWIDE INSTANTLY.
                     <br />
                     ALWAYS UNDER YOUR CONTROL.
