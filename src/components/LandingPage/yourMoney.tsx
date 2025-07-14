@@ -4,10 +4,14 @@ import iphoneYourMoney1 from '@/assets/iphone-ss/iphone-your-money-1.png'
 import iphoneYourMoney2 from '@/assets/iphone-ss/iphone-your-money-2.png'
 import iphoneYourMoney3 from '@/assets/iphone-ss/iphone-your-money-3.png'
 import yourMoneyAnywhere from '@/assets/illustrations/your-money-anywhere.svg'
+import freeGlobalTransfers from '@/assets/illustrations/free-global-transfers.svg'
+import payAnyoneAnywhere from '@/assets/illustrations/pay-anyone-anywhere.svg'
+import getPaidWorldwide from '@/assets/illustrations/get-paid-worldwide.svg'
 
 interface Feature {
     id: number
     title: string
+    titleSvg: any
     description: string
     imageSrc: any
     imageAlt: string
@@ -17,6 +21,7 @@ const features: Feature[] = [
     {
         id: 1,
         title: 'FREE GLOBAL TRANSFERS',
+        titleSvg: freeGlobalTransfers,
         description:
             'Move money between your own accounts in 140+ countries and 50+ currencies, no fees, live FX rates.',
         imageSrc: iphoneYourMoney1,
@@ -25,6 +30,7 @@ const features: Feature[] = [
     {
         id: 2,
         title: 'PAY ANYONE, ANYWHERE',
+        titleSvg: payAnyoneAnywhere,
         description:
             'Send funds in seconds through WhatsApp, a phone number, or a QR code. No bank details, no friction.',
         imageSrc: iphoneYourMoney2,
@@ -33,6 +39,7 @@ const features: Feature[] = [
     {
         id: 3,
         title: 'GET PAID WORLDWIDE',
+        titleSvg: getPaidWorldwide,
         description:
             'Get paid by clients in 140+ countries, direct to your account, and settle in the currency you prefer.',
         imageSrc: iphoneYourMoney3,
@@ -54,7 +61,7 @@ export function YourMoney() {
                     />
                 </div>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-                    {features.map((feature) => (
+                    {features.map((feature, index) => (
                         <div key={feature.id} className="flex flex-col items-center">
                             <div className="mb-4 flex w-full max-w-xs justify-center md:mb-6">
                                 <Image
@@ -66,13 +73,16 @@ export function YourMoney() {
                                 />
                             </div>
                             <div>
-                                <h3
-                                    className="mb-2 w-full max-w-sm text-center font-roboto text-xl leading-tight md:text-left md:text-3xl"
-                                    style={{ fontWeight: 900 }}
-                                >
-                                    {feature.title}
-                                </h3>
-                                <p className="w-full max-w-[360px] text-center font-roboto text-base font-semibold leading-relaxed md:text-left md:text-lg">
+                                <div className={`${index === 1 ? 'mb-3' : 'mb-4'} w-full max-w-sm text-center md:text-left`}>
+                                    <Image
+                                        src={feature.titleSvg}
+                                        alt={feature.title}
+                                        width={300}
+                                        height={60}
+                                        className="mx-auto h-auto w-full max-w-xs md:mx-0 md:max-w-sm"
+                                    />
+                                </div>
+                                <p className="w-full max-w-[360px] text-center font-roboto text-base font-medium leading-relaxed md:text-left md:text-lg" style={{ letterSpacing: '-0.5px' }}>
                                     {feature.description}
                                 </p>
                             </div>
