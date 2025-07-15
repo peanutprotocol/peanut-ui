@@ -39,7 +39,7 @@ export function NoFees() {
     }
 
     return (
-        <section className="relative overflow-hidden bg-secondary-3 px-4 py-16 md:py-32">
+        <section className="relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-40">
             <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
                 {/* Animated clouds */}
                 <motion.img
@@ -85,7 +85,7 @@ export function NoFees() {
                     alt="Floating Star"
                     width={50}
                     height={50}
-                    className="absolute -right-0 top-58"
+                    className="absolute -right-0 -top-16 md:top-58"
                     initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
                     transition={{ type: 'spring', damping: 5, delay: 0.6 }}
@@ -111,7 +111,7 @@ export function NoFees() {
                     transition={{ type: 'spring', damping: 5, delay: 1.0 }}
                 />
                 {/* Main stylized headline */}
-                <div className="mb-4">
+                <div className="md:mb-4">
                     {/* Mobile version */}
                     <div className="block md:hidden">
                         <Image
