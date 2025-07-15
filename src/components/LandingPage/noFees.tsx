@@ -4,6 +4,8 @@ import gotItHand from '@/assets/illustrations/got-it-hand.svg'
 import gotItHandFlipped from '@/assets/illustrations/got-it-hand-flipped.svg'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import zero from '@/assets/illustrations/zero.svg'
+import mobileZeroFees from '@/assets/illustrations/mobile-zero-fees.svg'
+import noHiddenFees from '@/assets/illustrations/no-hidden-fees.svg'
 import { Star } from '@/assets'
 import scribble from '@/assets/scribble.svg'
 import Image from 'next/image'
@@ -37,7 +39,7 @@ export function NoFees() {
     }
 
     return (
-        <section className="relative overflow-hidden bg-secondary-3 px-4 py-16 md:py-32">
+        <section className="relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-40">
             <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
                 {/* Animated clouds */}
                 <motion.img
@@ -83,7 +85,7 @@ export function NoFees() {
                     alt="Floating Star"
                     width={50}
                     height={50}
-                    className="absolute -right-0 top-58"
+                    className="absolute -right-0 -top-16 md:top-58"
                     initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
                     transition={{ type: 'spring', damping: 5, delay: 0.6 }}
@@ -109,21 +111,33 @@ export function NoFees() {
                     transition={{ type: 'spring', damping: 5, delay: 1.0 }}
                 />
                 {/* Main stylized headline */}
-                <div className="mb-6 md:mb-8">
-                    <div className="relative inline-block">
+                <div className="md:mb-4">
+                    {/* Mobile version */}
+                    <div className="block md:hidden">
+                        <Image
+                            src={mobileZeroFees}
+                            alt="0 FEES"
+                            width={400}
+                            height={100}
+                            className="mx-auto h-auto w-[95%]"
+                        />
+                    </div>
+                    
+                    {/* Desktop version */}
+                    <div className="relative hidden md:inline-block md:mb-5">
                         <div className="flex items-baseline justify-center">
                             <Image
                                 src={zero}
                                 alt="Zero"
                                 width={60}
                                 height={60}
-                                className="mr-2 h-[27px] w-[27px] md:mr-4 md:h-[120px] md:w-[120px]"
+                                className="mr-2 h-[27px] w-[27px] md:mr-6 md:h-[160px] md:w-[160px]"
                             />
                             <div className="relative">
-                                <h1 className="relative translate-x-[1px] font-knerd-filled text-4xl text-white md:translate-x-[3px] md:text-8xl">
+                                <h1 className="relative translate-x-[1px] font-knerd-filled text-4xl text-white md:translate-x-[3px] md:text-[13rem]">
                                     FEES
                                 </h1>
-                                <h1 className="absolute left-0 top-0 font-knerd-outline text-4xl md:text-8xl">FEES</h1>
+                                <h1 className="absolute left-0 top-0 font-knerd-outline text-4xl md:text-[13rem]">FEES</h1>
                             </div>
                         </div>
 
@@ -133,7 +147,7 @@ export function NoFees() {
                             alt="Bottom left arrow"
                             width={40}
                             height={100}
-                            className="absolute -left-16 bottom-1 hidden md:-left-8 md:bottom-6 md:block md:h-[80px] md:w-[80px]"
+                            className="absolute -left-12 bottom-1 hidden md:-left-12 md:-bottom-5 md:block md:h-[120px] md:w-[120px]"
                             style={{ transform: 'rotate(25deg)' }}
                         />
 
@@ -143,38 +157,21 @@ export function NoFees() {
                             alt="Bottom right arrow"
                             width={40}
                             height={100}
-                            className="absolute -right-12 bottom-1 hidden md:-right-13 md:bottom-10 md:block md:h-[80px] md:w-[80px]"
+                            className="absolute -right-12 bottom-1 hidden md:-right-19 md:-bottom-3 md:block md:h-[120px] md:w-[120px]"
                             style={{ transform: 'rotate(48deg)' }}
                         />
                     </div>
                 </div>
 
-                {/* Subheading */}
-                <h3 className="mb-1 font-roboto text-lg font-black text-n-1 md:text-3xl" style={{ fontWeight: 900, textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000' }}>
-                    REALLY, WE MEAN{' '}
-                    <span className="relative inline-block px-2 py-1 md:px-3" style={{ textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000' }}>
-                        ZERO
-                        <Image
-                            src={scribble}
-                            alt="Scribble"
-                            width={100}
-                            height={35}
-                            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:h-[50px] md:w-[140px]"
-                        />
-                    </span>
-                </h3>
-
-                {/* No hidden fees line with icons */}
-                <div className="flex items-center justify-center space-x-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full md:h-10 md:w-10">
-                        <Image src={gotItHand} alt="Got it hand" className="h-full w-full" />
-                    </div>
-                    <span className="font-roboto text-base font-black text-n-1 md:text-3xl" style={{ fontWeight: 900, textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000' }}>
-                        NO HIDDEN FEES
-                    </span>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full md:h-10 md:w-10">
-                        <Image src={gotItHandFlipped} alt="Got it hand flipped" className="h-full w-full" />
-                    </div>
+                {/* No hidden fees SVG */}
+                <div className="mb-1">
+                    <Image
+                        src={noHiddenFees}
+                        alt="Really, we mean zero. No hidden fees"
+                        width={600}
+                        height={150}
+                        className="mx-auto h-auto w-full max-w-xs md:max-w-md"
+                    />
                 </div>
             </div>
         </section>
