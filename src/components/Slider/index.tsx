@@ -22,24 +22,29 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
         const currentValue = isControlled ? value : uncontrolledState
 
         const [slidingValue, setSlidingValue] = React.useState<number[] | null>(null)
+        const [isDragging, setIsDragging] = React.useState(false)
 
         const displayValue = slidingValue ?? (currentValue ? [100] : [0])
 
         const handleValueChange = (newValue: number[]) => {
-            setSlidingValue(newValue)
+            if (isDragging) {
+                setSlidingValue(newValue)
+            }
         }
 
         const handleValueCommit = (committedValue: number[]) => {
-            const committedNumericValue = committedValue[0]
-            const isChecked = committedNumericValue === 100
-
-            if (onValueChange) {
-                onValueChange(isChecked)
-            }
-            if (!isControlled) {
-                setUncontrolledState(isChecked)
+            if (isDragging) {
+                const committedNumericValue = committedValue[0]
+                const isChecked = committedNumericValue === 100
+                if (onValueChange) {
+                    onValueChange(isChecked)
+                }
+                if (!isControlled) {
+                    setUncontrolledState(isChecked)
+                }
             }
             setSlidingValue(null)
+            setIsDragging(false)
         }
 
         return (
@@ -56,13 +61,16 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
                 onValueCommit={handleValueCommit}
                 {...props}
             >
-                <SliderPrimitive.Track className="relative h-full w-full grow overflow-hidden rounded-none bg-white">
+                <SliderPrimitive.Track className="pointer-events-none relative h-full w-full grow overflow-hidden rounded-none bg-white">
                     <SliderPrimitive.Range className="absolute h-full bg-primary-1" />
                     <div className="absolute left-0 top-0 flex h-full w-full items-center justify-center text-sm font-bold text-black">
                         Slide to Proceed
                     </div>
                 </SliderPrimitive.Track>
-                <SliderPrimitive.Thumb className="flex h-full w-12 cursor-pointer items-center justify-center rounded-r-sm border-2 border-purple-1 bg-primary-1 py-3 ring-offset-black transition-colors focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-50 ">
+                <SliderPrimitive.Thumb
+                    onPointerDown={() => setIsDragging(true)}
+                    className="flex h-full w-12 cursor-pointer items-center justify-center rounded-r-sm border-2 border-purple-1 bg-primary-1 py-3 ring-offset-black transition-colors focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-50 "
+                >
                     <div className="flex h-full w-12 items-center justify-center p-0">
                         <Icon name="chevron-up" size={32} className="h-8 w-8 rotate-90 text-black" />
                     </div>
