@@ -24,6 +24,7 @@ import PeanutLoading from '../Global/PeanutLoading'
 import * as _consts from './Claim.consts'
 import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
+import { useGuestFlow } from '@/context/GuestFlowContext'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -51,7 +52,6 @@ export const Claim = ({}) => {
         password: '',
         recipient: '',
     })
-    const [claimToExternalWallet, setClaimToExternalWallet] = useState<boolean>(false)
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
     const { selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
@@ -272,8 +272,6 @@ export const Claim = ({}) => {
                             setUserId,
                             initialKYCStep,
                             setInitialKYCStep,
-                            claimToExternalWallet,
-                            setClaimToExternalWallet,
                         } as unknown as _consts.IClaimScreenProps
                     }
                 />
