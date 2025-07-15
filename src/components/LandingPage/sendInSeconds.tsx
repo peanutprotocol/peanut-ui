@@ -4,7 +4,7 @@ import Image from 'next/image'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import exclamations from '@/assets/illustrations/exclamations.svg'
 import payZeroFees from '@/assets/illustrations/pay-zero-fees.svg'
-import { Star } from '@/assets'
+import { Star, Sparkle } from '@/assets'
 
 export function SendInSeconds() {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
@@ -33,6 +33,61 @@ export function SendInSeconds() {
             },
         }
     }
+
+    // Button helper functions adapted from hero.tsx
+    const getInitialAnimation = () => ({
+        opacity: 0,
+        translateY: 4,
+        translateX: 0,
+        rotate: 0.75,
+    })
+
+    const getAnimateAnimation = (buttonVisible: boolean, buttonScale: number = 1) => ({
+        opacity: buttonVisible ? 1 : 0,
+        translateY: buttonVisible ? 0 : 20,
+        translateX: buttonVisible ? 0 : 20,
+        rotate: buttonVisible ? 0 : 1,
+        scale: buttonScale,
+        pointerEvents: buttonVisible ? ('auto' as const) : ('none' as const),
+    })
+
+    const getHoverAnimation = () => ({
+        translateY: 6,
+        translateX: 0,
+        rotate: 0.75,
+    })
+
+    const transitionConfig = { type: 'spring', damping: 15 } as const
+
+    const getButtonClasses = () =>
+        `btn bg-white fill-n-1 text-n-1 hover:bg-white/90 px-9 md:px-11 py-4 md:py-10 text-lg md:text-2xl btn-shadow-primary-4`
+
+    const renderSparkle = () => (
+        <img
+            src={Sparkle.src}
+            className="absolute -right-4 -top-4 h-auto w-5 sm:-right-5 sm:-top-5 sm:w-6"
+            alt="Sparkle"
+        />
+    )
+
+    const renderArrows = () => (
+        <>
+            <Image
+                src="/arrows/small-arrow.svg"
+                alt="Arrow pointing to button"
+                width={64}
+                height={32}
+                className="absolute -left-18 -top-7 hidden -translate-y-1/2 transform md:block"
+            />
+            <Image
+                src="/arrows/small-arrow.svg"
+                alt="Arrow pointing to button"
+                width={64}
+                height={32}
+                className="absolute -right-18 -top-7 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
+            />
+        </>
+    )
 
     return (
         <section className="relative overflow-hidden bg-secondary-1 px-4 py-16 text-n-1 md:py-32">
@@ -138,32 +193,28 @@ export function SendInSeconds() {
                     ALWAYS UNDER YOUR CONTROL.
                 </p>
 
-                {/* Placeholder for sticky button positioning */}
-                <div className="relative inline-block">
-                    <div 
-                        className="mt-8 inline-block h-13 px-5 rounded-sm border-2 border-transparent bg-transparent text-center font-roboto text-lg font-black opacity-0 md:mt-20 md:px-12 md:py-6 md:text-2xl" 
-                        id="sticky-button-target"
-                        style={{ fontWeight: 900 }}
+                {/* Fixed CTA Button */}
+                <div className="relative inline-block mt-12 md:mt-24">
+                    <motion.div
+                        className="relative"
+                        initial={getInitialAnimation()}
+                        animate={getAnimateAnimation(true, 1)}
+                        whileHover={getHoverAnimation()}
+                        transition={transitionConfig}
                     >
-                        TRY NOW
-                    </div>
+                        
+                        <a
+                            href="/send"
+                            className={getButtonClasses()}
+                            style={{ fontWeight: 900 }}
+                        >
+                            TRY NOW
+                        </a>
+                    </motion.div>
 
-                    {/* Arrow placeholders - hidden on mobile */}
-                    <Image
-                        src="/arrows/small-arrow.svg"
-                        alt="Arrow pointing to button"
-                        width={64}
-                        height={32}
-                        className="absolute -left-20 top-1/4 hidden -translate-y-1/2 transform md:block"
-                    />
-                    <Image
-                        src="/arrows/small-arrow.svg"
-                        alt="Arrow pointing to button"
-                        width={64}
-                        height={32}
-                        className="absolute -right-20 top-1/4 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
-                    />
+                    {renderArrows()}
                 </div>
+
             </div>
         </section>
     )
