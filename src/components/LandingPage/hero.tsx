@@ -54,7 +54,7 @@ const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `fixed bottom-4 z-20 sm:bottom-8 ${variant === 'primary' ? 'inset-x-0 mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
 const getButtonClasses = (variant: 'primary' | 'secondary') =>
-    `${variant === 'primary' ? 'btn bg-white fill-n-1 text-n-1 hover:bg-white/90' : 'btn-yellow'} px-5 btn-shadow-primary-4`
+    `${variant === 'primary' ? 'btn bg-white fill-n-1 text-n-1 hover:bg-white/90' : 'btn-yellow'} px-7 btn-shadow-primary-4`
 
 const renderSparkle = (variant: 'primary' | 'secondary') =>
     variant === 'primary' && (
@@ -71,18 +71,18 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
             <Image
                 src="/arrows/small-arrow.svg"
                 alt="Arrow pointing to button"
-                width={64}
-                height={32}
-                className="absolute -left-20 -top-6 -translate-y-1/2 transform md:block"
-                style={{ opacity: buttonVisible ? arrowOpacity : 0 }}
+                width={40}
+                height={20}
+                className="absolute -left-12 -top-6 -translate-y-1/2 transform md:block"
+                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '10deg' }}
             />
             <Image
                 src="/arrows/small-arrow.svg"
                 alt="Arrow pointing to button"
-                width={64}
-                height={32}
-                className="absolute -right-20 -top-6  -translate-y-1/2 scale-x-[-1] transform md:block"
-                style={{ opacity: buttonVisible ? arrowOpacity : 0 }}
+                width={40}
+                height={20}
+                className="absolute -right-12 -top-6  -translate-y-1/2 scale-x-[-1] transform md:block"
+                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '-10deg' }}
             />
         </>
     )
@@ -121,12 +121,13 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
                 whileHover={getHoverAnimation(variant)}
                 transition={transitionConfig}
             >
-                {renderSparkle(variant)}
+                {/* {renderSparkle(variant)} */}
 
                 <a
                     href={cta.href}
                     className={getButtonClasses(variant)}
                     target={cta.isExternal ? '_blank' : undefined}
+                    style={{ fontWeight: 900 }}
                     rel={cta.isExternal ? 'noopener noreferrer' : undefined}
                 >
                     {cta.label}
