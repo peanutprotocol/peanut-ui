@@ -71,18 +71,34 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
             <Image
                 src="/arrows/small-arrow.svg"
                 alt="Arrow pointing to button"
-                width={40}
-                height={20}
-                className="absolute -left-9 md:-left-10 -top-6 -translate-y-1/2 transform md:block"
-                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '10deg' }}
+                width={32}
+                height={16}
+                className="absolute -left-8 -top-5 -translate-y-1/2 transform block md:hidden"
+                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '8deg' }}
+            />
+            <Image
+                src="/arrows/small-arrow.svg"
+                alt="Arrow pointing to button"
+                width={32}
+                height={16}
+                className="absolute -right-8 -top-5 -translate-y-1/2 scale-x-[-1] transform block md:hidden"
+                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '-8deg' }}
             />
             <Image
                 src="/arrows/small-arrow.svg"
                 alt="Arrow pointing to button"
                 width={40}
                 height={20}
-                className="absolute -right-9 md:-right-10 -top-6  -translate-y-1/2 scale-x-[-1] transform md:block"
-                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '-10deg' }}
+                className="absolute -left-10 -top-6 -translate-y-1/2 transform hidden md:block"
+                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '8deg' }}
+            />
+            <Image
+                src="/arrows/small-arrow.svg"
+                alt="Arrow pointing to button"
+                width={40}
+                height={20}
+                className="absolute -right-10 -top-6 -translate-y-1/2 scale-x-[-1] transform hidden md:block"
+                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '-8deg' }}
             />
         </>
     )
