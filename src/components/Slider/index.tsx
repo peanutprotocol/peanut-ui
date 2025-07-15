@@ -30,7 +30,9 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
         }
 
         const handleValueCommit = (committedValue: number[]) => {
-            const isChecked = committedValue[0] > 50
+            const committedNumericValue = committedValue[0]
+            const isChecked = committedNumericValue === 100
+
             if (onValueChange) {
                 onValueChange(isChecked)
             }
