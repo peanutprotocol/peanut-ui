@@ -54,7 +54,7 @@ const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `fixed bottom-4 z-20 sm:bottom-8 ${variant === 'primary' ? 'inset-x-0 mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
 const getButtonClasses = (variant: 'primary' | 'secondary') =>
-    `${variant === 'primary' ? 'btn bg-white fill-n-1 text-n-1 hover:bg-white/90' : 'btn-yellow'} px-7 btn-shadow-primary-4`
+    `${variant === 'primary' ? 'btn bg-white fill-n-1 text-n-1 hover:bg-white/90' : 'btn-yellow'} px-7 md:px-9 py-3 md:py-8 text-base md:text-xl btn-shadow-primary-4`
 
 const renderSparkle = (variant: 'primary' | 'secondary') =>
     variant === 'primary' && (
@@ -73,7 +73,7 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
                 alt="Arrow pointing to button"
                 width={40}
                 height={20}
-                className="absolute -left-12 -top-6 -translate-y-1/2 transform md:block"
+                className="absolute -left-9 md:-left-10 -top-6 -translate-y-1/2 transform md:block"
                 style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '10deg' }}
             />
             <Image
@@ -81,7 +81,7 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
                 alt="Arrow pointing to button"
                 width={40}
                 height={20}
-                className="absolute -right-12 -top-6  -translate-y-1/2 scale-x-[-1] transform md:block"
+                className="absolute -right-9 md:-right-10 -top-6  -translate-y-1/2 scale-x-[-1] transform md:block"
                 style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '-10deg' }}
             />
         </>
