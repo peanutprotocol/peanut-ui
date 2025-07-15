@@ -4,6 +4,7 @@ import Image from 'next/image'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import exclamations from '@/assets/illustrations/exclamations.svg'
 import payZeroFees from '@/assets/illustrations/pay-zero-fees.svg'
+import mobileSendInSeconds from '@/assets/illustrations/mobile-send-in-seconds.svg'
 import { Star, Sparkle } from '@/assets'
 
 export function SendInSeconds() {
@@ -75,16 +76,30 @@ export function SendInSeconds() {
             <Image
                 src="/arrows/small-arrow.svg"
                 alt="Arrow pointing to button"
-                width={64}
-                height={32}
-                className="absolute -left-18 -top-7 hidden -translate-y-1/2 transform md:block"
+                width={48}
+                height={24}
+                className="absolute -left-13 -top-7 -translate-y-1/2 transform block md:hidden"
+            />
+            <Image
+                src="/arrows/small-arrow.svg"
+                alt="Arrow pointing to button"
+                width={48}
+                height={24}
+                className="absolute -right-13 -top-7 -translate-y-1/2 scale-x-[-1] transform block md:hidden"
             />
             <Image
                 src="/arrows/small-arrow.svg"
                 alt="Arrow pointing to button"
                 width={64}
                 height={32}
-                className="absolute -right-18 -top-7 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
+                className="absolute -left-18 -top-7 -translate-y-1/2 transform hidden md:block"
+            />
+            <Image
+                src="/arrows/small-arrow.svg"
+                alt="Arrow pointing to button"
+                width={64}
+                height={32}
+                className="absolute -right-18 -top-7 -translate-y-1/2 scale-x-[-1] transform hidden md:block"
             />
         </>
     )
@@ -178,16 +193,25 @@ export function SendInSeconds() {
             {/* Main content */}
             <div className="relative mx-auto max-w-3xl text-center">
                 <div className="mb-6 md:mb-10">
+                    {/* Mobile version */}
+                    <Image
+                        src={mobileSendInSeconds}
+                        alt="Send in Seconds. Pay Zero Fees. Start Right Now"
+                        width={800}
+                        height={200}
+                        className="mx-auto h-auto w-[90%] block md:hidden"
+                    />
+                    {/* Desktop version */}
                     <Image
                         src={payZeroFees}
                         alt="Send in Seconds. Pay Zero Fees. Start Right Now"
                         width={800}
                         height={200}
-                        className="mx-auto h-auto w-full max-w-lg md:max-w-4xl"
+                        className="mx-auto h-auto w-full max-w-lg md:max-w-4xl hidden md:block"
                     />
                 </div>
 
-                <p className="mb-6 font-roboto text-base font-medium leading-tight md:mb-8 md:text-4xl" style={{ fontWeight: 500, letterSpacing: '-0.5px' }}>
+                <p className="mb-6 font-roboto text-base font-medium leading-tight md:mb-8 md:text-4xl hidden md:block" style={{ fontWeight: 500, letterSpacing: '-0.5px' }}>
                     MOVE MONEY WORLDWIDE INSTANTLY.
                     <br />
                     ALWAYS UNDER YOUR CONTROL.
