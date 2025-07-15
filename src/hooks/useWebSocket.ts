@@ -93,7 +93,11 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         }
 
         const handleHistoryEntry = (entry: HistoryEntry) => {
-            if (entry.type === 'DIRECT_SEND' && entry.status === 'NEW' && !entry.senderAccount) {
+            if (
+                (entry.type === 'DIRECT_SEND' || entry.type === 'REQUEST') &&
+                entry.status === 'NEW' &&
+                !entry.senderAccount
+            ) {
                 // Ignore pending requests from the server
                 return
             }

@@ -10,11 +10,12 @@ import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { ITokenPriceData } from '@/interfaces'
-import { formatAmount } from '@/utils'
+import { formatAmount, isStableCoin } from '@/utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { type PeanutCrossChainRoute } from '@/services/swap'
 import { useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
+import { ROUTE_NOT_FOUND_ERROR } from '@/constants'
 
 interface WithdrawConfirmViewProps {
     amount: string
@@ -60,9 +61,10 @@ export default function ConfirmWithdrawView({
     })
 
     const minReceived = useMemo<string | null>(() => {
-        if (!xChainRoute) return null
-        return formatUnits(BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin), token.decimals)
-    }, [xChainRoute])
+        if (!xChainRoute || !resolvedTokenSymbol) return null
+        const amount = formatUnits(BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin), token.decimals)
+        return isStableCoin(resolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${resolvedTokenSymbol}`
+    }, [xChainRoute, resolvedTokenSymbol])
 
     const networkFeeDisplay = useMemo<string | React.ReactNode>(() => {
         if (networkFee < 0.01) return 'Sponsored by Peanut!'
@@ -98,7 +100,7 @@ export default function ConfirmWithdrawView({
                         setIsRouteExpired(true)
                     }}
                     disableTimerRefetch={isProcessing}
-                    timerError={error?.includes('not available for withdraw') ? error : null}
+                    timerError={error == ROUTE_NOT_FOUND_ERROR ? error : null}
                 />
 
                 <Card className="rounded-sm">
@@ -154,7 +156,7 @@ export default function ConfirmWithdrawView({
                         variant="purple"
                         shadowSize="4"
                         onClick={() => {
-                            if (error.includes('not available for withdraw')) {
+                            if (error === ROUTE_NOT_FOUND_ERROR) {
                                 onBack()
                             } else if (isRouteExpired) {
                                 onRouteRefresh?.()

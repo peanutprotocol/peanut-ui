@@ -200,3 +200,6 @@ export const pathTitles: { [key: string]: string } = {
 }
 
 export const STABLE_COINS = ['USDC', 'USDT', 'DAI', 'BUSD']
+
+export const ROUTE_NOT_FOUND_ERROR =
+    'No route found for this token pair. You can try with a different token pair, or try again later'

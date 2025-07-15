@@ -22,7 +22,7 @@ import {
 } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, ROUTE_NOT_FOUND_ERROR } from '@/constants'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { captureMessage } from '@sentry/nextjs'
@@ -287,7 +287,7 @@ export default function WithdrawCryptoPage() {
                     routeObject: xChainRoute,
                 },
             })
-            return 'No route found for this token pair. You can try with a different token pair, or try again later'
+            return ROUTE_NOT_FOUND_ERROR
         }
 
         return null
