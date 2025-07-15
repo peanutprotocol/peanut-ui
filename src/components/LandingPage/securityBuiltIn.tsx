@@ -56,7 +56,7 @@ export function SecurityBuiltIn() {
                         alt="Security & Privacy, Built-In"
                         width={800}
                         height={150}
-                        className="mx-auto h-auto w-[90%] block md:hidden"
+                        className="mx-auto block h-auto w-[90%] md:hidden"
                     />
                     {/* Desktop version */}
                     <Image
@@ -64,14 +64,14 @@ export function SecurityBuiltIn() {
                         alt="Security & Privacy, Built-In"
                         width={800}
                         height={150}
-                        className="mx-auto h-auto w-full max-w-md md:mx-0 md:max-w-4xl hidden md:block"
+                        className="mx-auto hidden h-auto w-full max-w-md md:mx-0 md:block md:max-w-4xl"
                     />
                 </div>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
                     {features.map((feature) => (
                         <div
                             key={feature.id}
-                            className="flex flex-col text-center items-start md:text-left my-2 md:my-0"
+                            className="my-2 flex flex-col items-start text-center md:my-0 md:text-left"
                         >
                             <div className="mb-4">
                                 <div className="flex h-10 w-10 items-center justify-center md:h-12 md:w-12">
@@ -94,7 +94,10 @@ export function SecurityBuiltIn() {
                                         className="h-auto w-full max-w-[260px] md:mx-0 md:max-w-sm"
                                     />
                                 </div>
-                                <p className="w-full max-w-[360px] text-left font-roboto text-lg font-normal leading-relaxed md:text-lg" style={{ letterSpacing: '-0.5px' }}>
+                                <p
+                                    className="w-full max-w-[360px] text-left font-roboto text-lg font-normal leading-relaxed md:text-lg"
+                                    style={{ letterSpacing: '-0.5px' }}
+                                >
                                     {feature.description}
                                 </p>
                             </div>

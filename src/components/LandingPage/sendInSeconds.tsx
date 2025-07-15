@@ -78,28 +78,28 @@ export function SendInSeconds() {
                 alt="Arrow pointing to button"
                 width={48}
                 height={24}
-                className="absolute -left-13 -top-7 -translate-y-1/2 transform block md:hidden"
+                className="absolute -left-13 -top-7 block -translate-y-1/2 transform md:hidden"
             />
             <Image
                 src="/arrows/small-arrow.svg"
                 alt="Arrow pointing to button"
                 width={48}
                 height={24}
-                className="absolute -right-13 -top-7 -translate-y-1/2 scale-x-[-1] transform block md:hidden"
+                className="absolute -right-13 -top-7 block -translate-y-1/2 scale-x-[-1] transform md:hidden"
             />
             <Image
                 src="/arrows/small-arrow.svg"
                 alt="Arrow pointing to button"
                 width={64}
                 height={32}
-                className="absolute -left-18 -top-7 -translate-y-1/2 transform hidden md:block"
+                className="absolute -left-18 -top-7 hidden -translate-y-1/2 transform md:block"
             />
             <Image
                 src="/arrows/small-arrow.svg"
                 alt="Arrow pointing to button"
                 width={64}
                 height={32}
-                className="absolute -right-18 -top-7 -translate-y-1/2 scale-x-[-1] transform hidden md:block"
+                className="absolute -right-18 -top-7 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
             />
         </>
     )
@@ -199,7 +199,7 @@ export function SendInSeconds() {
                         alt="Send in Seconds. Pay Zero Fees. Start Right Now"
                         width={800}
                         height={200}
-                        className="mx-auto h-auto w-[90%] block md:hidden"
+                        className="mx-auto block h-auto w-[90%] md:hidden"
                     />
                     {/* Desktop version */}
                     <Image
@@ -207,18 +207,21 @@ export function SendInSeconds() {
                         alt="Send in Seconds. Pay Zero Fees. Start Right Now"
                         width={800}
                         height={200}
-                        className="mx-auto h-auto w-full max-w-lg md:max-w-4xl hidden md:block"
+                        className="mx-auto hidden h-auto w-full max-w-lg md:block md:max-w-4xl"
                     />
                 </div>
 
-                <p className="mb-6 font-roboto text-base font-medium leading-tight md:mb-8 md:text-4xl hidden md:block" style={{ fontWeight: 500, letterSpacing: '-0.5px' }}>
+                <p
+                    className="mb-6 hidden font-roboto text-base font-medium leading-tight md:mb-8 md:block md:text-4xl"
+                    style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
+                >
                     MOVE MONEY WORLDWIDE INSTANTLY.
                     <br />
                     ALWAYS UNDER YOUR CONTROL.
                 </p>
 
                 {/* Fixed CTA Button */}
-                <div className="relative inline-block mt-12 md:mt-24">
+                <div className="relative mt-12 inline-block md:mt-24">
                     <motion.div
                         className="relative"
                         initial={getInitialAnimation()}
@@ -226,19 +229,13 @@ export function SendInSeconds() {
                         whileHover={getHoverAnimation()}
                         transition={transitionConfig}
                     >
-                        
-                        <a
-                            href="/send"
-                            className={getButtonClasses()}
-                            style={{ fontWeight: 900 }}
-                        >
+                        <a href="/send" className={getButtonClasses()} style={{ fontWeight: 900 }}>
                             TRY NOW
                         </a>
                     </motion.div>
 
                     {renderArrows()}
                 </div>
-
             </div>
         </section>
     )

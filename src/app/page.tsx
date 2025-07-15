@@ -75,15 +75,20 @@ export default function LandingPage() {
 
                 const targetRect = targetElement.getBoundingClientRect()
                 const currentScrollY = window.scrollY
-                
+
                 // Check if the sticky button should "freeze" at the target position
                 // Calculate where the sticky button currently is (bottom-4 = 16px from bottom)
                 const stickyButtonTop = window.innerHeight - 16 - 52 // 16px bottom margin, ~52px button height
                 const stickyButtonBottom = window.innerHeight - 16
-                
+
                 // Freeze when the target element overlaps with the sticky button position (even lower)
-                const shouldFreeze = targetRect.top <= stickyButtonBottom - 60 && targetRect.bottom >= stickyButtonTop - 60 && !animationComplete && !shrinkingPhase && !hasGrown
-                
+                const shouldFreeze =
+                    targetRect.top <= stickyButtonBottom - 60 &&
+                    targetRect.bottom >= stickyButtonTop - 60 &&
+                    !animationComplete &&
+                    !shrinkingPhase &&
+                    !hasGrown
+
                 if (shouldFreeze && !isScrollFrozen) {
                     // Start freeze - prevent normal scrolling
                     setIsScrollFrozen(true)
@@ -102,7 +107,7 @@ export default function LandingPage() {
                     const shrinkDistance = Math.max(0, currentScrollY - (frozenScrollY.current + 50))
                     const maxShrinkDistance = 200
                     const shrinkProgress = Math.min(1, shrinkDistance / maxShrinkDistance)
-                    const newScale = 1.5 - (shrinkProgress * 0.5) // Scale from 1.5 back to 1
+                    const newScale = 1.5 - shrinkProgress * 0.5 // Scale from 1.5 back to 1
                     setButtonScale(Math.max(1, newScale))
                 } else if (animationComplete && currentScrollY < frozenScrollY.current - 100) {
                     // Reset everything when scrolling back up past the SendInSeconds component
@@ -111,7 +116,7 @@ export default function LandingPage() {
                     setButtonScale(1)
                     setHasGrown(false)
                 }
-                
+
                 // Update previous scroll position for direction tracking
                 previousScrollY.current = currentScrollY
             }
@@ -120,16 +125,16 @@ export default function LandingPage() {
         const handleWheel = (event: WheelEvent) => {
             if (isScrollFrozen && !animationComplete) {
                 event.preventDefault()
-                
+
                 // Only increase scale when scrolling down (positive deltaY)
                 if (event.deltaY > 0) {
                     virtualScrollY.current += event.deltaY
-                    
+
                     // Scale button based on virtual scroll (max scale of 1.5) - requires more scrolling
                     const maxVirtualScroll = 500 // Increased from 200 to require more scrolling
                     const newScale = Math.min(1.5, 1 + (virtualScrollY.current / maxVirtualScroll) * 0.5)
                     setButtonScale(newScale)
-                    
+
                     // Complete animation when we reach max scale
                     if (newScale >= 1.5) {
                         setAnimationComplete(true)

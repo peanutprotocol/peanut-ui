@@ -122,9 +122,9 @@ export function NoFees() {
                             className="mx-auto h-auto w-[95%]"
                         />
                     </div>
-                    
+
                     {/* Desktop version */}
-                    <div className="relative hidden md:inline-block md:mb-5">
+                    <div className="relative hidden md:mb-5 md:inline-block">
                         <div className="flex items-baseline justify-center">
                             <Image
                                 src={zero}
@@ -137,7 +137,9 @@ export function NoFees() {
                                 <h1 className="relative translate-x-[1px] font-knerd-filled text-4xl text-white md:translate-x-[3px] md:text-[13rem]">
                                     FEES
                                 </h1>
-                                <h1 className="absolute left-0 top-0 font-knerd-outline text-4xl md:text-[13rem]">FEES</h1>
+                                <h1 className="absolute left-0 top-0 font-knerd-outline text-4xl md:text-[13rem]">
+                                    FEES
+                                </h1>
                             </div>
                         </div>
 
@@ -147,7 +149,7 @@ export function NoFees() {
                             alt="Bottom left arrow"
                             width={40}
                             height={100}
-                            className="absolute -left-12 bottom-1 hidden md:-left-12 md:-bottom-5 md:block md:h-[120px] md:w-[120px]"
+                            className="absolute -left-12 bottom-1 hidden md:-bottom-5 md:-left-12 md:block md:h-[120px] md:w-[120px]"
                             style={{ transform: 'rotate(25deg)' }}
                         />
 
@@ -157,7 +159,7 @@ export function NoFees() {
                             alt="Bottom right arrow"
                             width={40}
                             height={100}
-                            className="absolute -right-12 bottom-1 hidden md:-right-19 md:-bottom-3 md:block md:h-[120px] md:w-[120px]"
+                            className="absolute -right-12 bottom-1 hidden md:-bottom-3 md:-right-19 md:block md:h-[120px] md:w-[120px]"
                             style={{ transform: 'rotate(48deg)' }}
                         />
                     </div>

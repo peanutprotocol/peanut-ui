@@ -29,11 +29,7 @@ const getInitialAnimation = (variant: 'primary' | 'secondary') => ({
     rotate: 0.75,
 })
 
-const getAnimateAnimation = (
-    variant: 'primary' | 'secondary',
-    buttonVisible?: boolean,
-    buttonScale?: number
-) => ({
+const getAnimateAnimation = (variant: 'primary' | 'secondary', buttonVisible?: boolean, buttonScale?: number) => ({
     opacity: buttonVisible ? 1 : 0,
     translateY: buttonVisible ? 0 : 20,
     translateX: buttonVisible ? (variant === 'primary' ? 0 : 0) : 20,
@@ -73,7 +69,7 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
                 alt="Arrow pointing to button"
                 width={32}
                 height={16}
-                className="absolute -left-8 -top-5 -translate-y-1/2 transform block md:hidden"
+                className="absolute -left-8 -top-5 block -translate-y-1/2 transform md:hidden"
                 style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '8deg' }}
             />
             <Image
@@ -81,7 +77,7 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
                 alt="Arrow pointing to button"
                 width={32}
                 height={16}
-                className="absolute -right-8 -top-5 -translate-y-1/2 scale-x-[-1] transform block md:hidden"
+                className="absolute -right-8 -top-5 block -translate-y-1/2 scale-x-[-1] transform md:hidden"
                 style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '-8deg' }}
             />
             <Image
@@ -89,7 +85,7 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
                 alt="Arrow pointing to button"
                 width={40}
                 height={20}
-                className="absolute -left-10 -top-6 -translate-y-1/2 transform hidden md:block"
+                className="absolute -left-10 -top-6 hidden -translate-y-1/2 transform md:block"
                 style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '8deg' }}
             />
             <Image
@@ -97,7 +93,7 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
                 alt="Arrow pointing to button"
                 width={40}
                 height={20}
-                className="absolute -right-10 -top-6 -translate-y-1/2 scale-x-[-1] transform hidden md:block"
+                className="absolute -right-10 -top-6 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
                 style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '-8deg' }}
             />
         </>
@@ -184,7 +180,12 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
                             height={150}
                             className="mx-auto h-auto w-full max-w-lg md:max-w-4xl"
                         />
-                        <span className="mt-2 block text-xl leading-tight text-n-1 md:mt-4 md:text-5xl" style={{ fontWeight: 500, letterSpacing: '-0.5px' }}>MONEY ACROSS THE GLOBE</span>
+                        <span
+                            className="mt-2 block text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
+                            style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
+                        >
+                            MONEY ACROSS THE GLOBE
+                        </span>
                     </div>
 
                     <HeroImages />

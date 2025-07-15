@@ -59,7 +59,7 @@ export function YourMoney() {
                         alt="Your Money, Anywhere"
                         width={800}
                         height={150}
-                        className="mx-auto h-auto w-full block md:hidden"
+                        className="mx-auto block h-auto w-full md:hidden"
                     />
                     {/* Desktop version */}
                     <Image
@@ -67,12 +67,12 @@ export function YourMoney() {
                         alt="Your Money, Anywhere"
                         width={800}
                         height={150}
-                        className="mx-auto h-auto w-3/4 max-w-sm md:mx-0 md:max-w-4xl hidden md:block"
+                        className="mx-auto hidden h-auto w-3/4 max-w-sm md:mx-0 md:block md:max-w-4xl"
                     />
                 </div>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
                     {features.map((feature, index) => (
-                        <div key={feature.id} className="flex flex-col items-center my-2 md:my-0">
+                        <div key={feature.id} className="my-2 flex flex-col items-center md:my-0">
                             <div className="mb-4 flex w-full max-w-xs justify-center md:mb-6">
                                 <Image
                                     src={feature.imageSrc}
@@ -83,7 +83,9 @@ export function YourMoney() {
                                 />
                             </div>
                             <div>
-                                <div className={`${index === 1 ? 'mb-3' : 'mb-4'} w-full max-w-sm text-left md:text-left`}>
+                                <div
+                                    className={`${index === 1 ? 'mb-3' : 'mb-4'} w-full max-w-sm text-left md:text-left`}
+                                >
                                     <Image
                                         src={feature.titleSvg}
                                         alt={feature.title}
@@ -92,7 +94,10 @@ export function YourMoney() {
                                         className="h-auto w-full max-w-[240px] md:mx-0 md:max-w-sm"
                                     />
                                 </div>
-                                <p className="w-full max-w-[360px] text-left font-roboto text-lg font-normal leading-relaxed md:text-lg" style={{ letterSpacing: '-0.5px' }}>
+                                <p
+                                    className="w-full max-w-[360px] text-left font-roboto text-lg font-normal leading-relaxed md:text-lg"
+                                    style={{ letterSpacing: '-0.5px' }}
+                                >
                                     {feature.description}
                                 </p>
                             </div>

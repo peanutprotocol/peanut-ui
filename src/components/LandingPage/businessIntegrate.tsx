@@ -48,10 +48,10 @@ export function BusinessIntegrate() {
 
                 {/* Subtitle with scribble around a word */}
                 <p
-                    className="mb-8 font-roboto text-xl font-medium leading-tight max-w-xs md:mb-16 md:text-4xl md:max-w-none"
+                    className="mb-8 max-w-xs font-roboto text-xl font-medium leading-tight md:mb-16 md:max-w-none md:text-4xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    PLUG-AND-PLAY MONEY RAILS <br/> FOR PRODUCTS THAT NEED TO MOVE FAST.
+                    PLUG-AND-PLAY MONEY RAILS <br /> FOR PRODUCTS THAT NEED TO MOVE FAST.
                 </p>
 
                 {/* CTA Button */}
@@ -59,7 +59,7 @@ export function BusinessIntegrate() {
                     href="https://peanutprotocol.notion.site/12c83811757980afb3b6d3e5a4c68f4d"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-block rounded-sm border-[1px] border-n-1 bg-white px-8 py-4 font-roboto text-base font-black text-n-1 hover:bg-grey-2 focus:outline-none md:px-10 md:py-4 md:text-lg btn-shadow-primary-4"
+                    className="btn-shadow-primary-4 inline-block rounded-sm border-[1px] border-n-1 bg-white px-8 py-4 font-roboto text-base font-black text-n-1 hover:bg-grey-2 focus:outline-none md:px-10 md:py-4 md:text-lg"
                     style={{ fontWeight: 900 }}
                 >
                     INTEGRATE PEANUT
