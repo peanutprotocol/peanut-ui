@@ -8,14 +8,14 @@ import {
     GITBOOK_BLACK_ICON,
 } from '@/assets'
 import { Card } from '@chakra-ui/react'
-import Image from 'next/image'
+import Image, { StaticImageData } from 'next/image'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 
 interface ITryNowCard {
     title: string
     description: string
-    icon: string
+    icon: StaticImageData | string
     href: string
     isExternal?: boolean
     needsIconAdjustment?: boolean
