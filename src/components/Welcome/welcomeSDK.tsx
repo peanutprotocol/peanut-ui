@@ -24,7 +24,6 @@ import {
     SBF_PERSON,
     SmileStars,
     PEANUTMAN_HAPPY,
-    REDPACKET_LOTTIE,
     TEAL_MOCKUP_1,
     DROPDOWN_ICON,
 } from '@/assets'
@@ -178,7 +177,7 @@ const testimonials = [
 const defaultLottieOptions = {
     loop: true,
     autoplay: true,
-    animationData: REDPACKET_LOTTIE,
+    animationData: '/lottie/redpacket-lottie.json',
     rendererSettings: {
         preserveAspectRatio: 'xMidYMid slice',
     },
@@ -333,7 +332,7 @@ export function WelcomeSDK() {
                             target="_blank"
                         >
                             <div className="mx-2 flex h-full items-center justify-center object-cover">
-                                <Lottie animationData={REDPACKET_LOTTIE} loop={true} autoplay={true} />
+                                <Lottie animationData={'/lottie/redpacket-lottie.json'} loop={true} autoplay={true} />
                             </div>
                         </a>
                     </div>
