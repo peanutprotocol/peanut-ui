@@ -27,7 +27,6 @@ const initialState: ISendFlowState = {
     preparedDepositTxs: undefined,
     txHash: undefined,
     link: undefined,
-    feeOptions: undefined,
     transactionCostUSD: undefined,
     attachmentOptions: {
         fileUrl: undefined,
@@ -80,9 +79,6 @@ const sendFlowSlice = createSlice({
         },
         setLink(state, action: { payload: string | undefined }) {
             state.link = action.payload
-        },
-        setFeeOptions(state, action: { payload: any | undefined }) {
-            state.feeOptions = action.payload
         },
         setTransactionCostUSD(state, action: { payload: number | undefined }) {
             state.transactionCostUSD = action.payload
