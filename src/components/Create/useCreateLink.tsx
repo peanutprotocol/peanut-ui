@@ -238,48 +238,7 @@ export const useCreateLink = () => {
             throw error
         }
     }
-    const submitDirectTransfer = async ({
-        txHash,
-        chainId,
-        senderAddress,
-        amountUsd,
-        transaction,
-    }: {
-        txHash: string
-        chainId: string
-        senderAddress: string
-        amountUsd: number
-        transaction?: peanutInterfaces.IPeanutUnsignedTransaction
-    }) => {
-        try {
-            const response = await fetchWithSentry('/api/peanut/submit-direct-transfer', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    txHash,
-                    chainId,
-                    senderAddress: senderAddress,
-                    amountUsd,
-                    transaction: {
-                        ...transaction,
-                        value:
-                            transaction?.value && transaction.value !== BigInt(0)
-                                ? transaction.value.toString()
-                                : undefined,
-                    },
-                }),
-            })
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
-        } catch (error) {
-            console.error('Failed to publish file (complete):', error)
-            return ''
-        }
-    }
     const prepareDirectSendTx = ({
         recipient,
         tokenValue,
@@ -463,7 +422,6 @@ export const useCreateLink = () => {
         submitClaimLinkInit,
         submitClaimLinkConfirm,
         prepareDirectSendTx,
-        submitDirectTransfer,
         createLink,
     }
 }

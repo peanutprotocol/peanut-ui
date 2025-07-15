@@ -25,6 +25,7 @@ import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney
 import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { getOnrampCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
+import { Slider } from '@/components/Slider'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -388,28 +389,20 @@ export default function OnrampBankPage() {
                     title="IMPORTANT!"
                     description={
                         <>
-                            In the following step you'll see a <strong>"Deposit Message" item</strong>, copy and paste
-                            it exactly as it is on the description field of your transfer.
+                            In the following step you'll see a <br /> <strong>"Deposit Message" item</strong> <br />{' '}
+                            copy and paste it exactly as it is on <br /> the description field of your transfer.
                             <br />
                             <br />
-                            <strong>Without it, we won't be able to credit your money.</strong>
+                            <strong>
+                                Without it your deposit will be returned and might take 2-10 working days to process.
+                            </strong>
                         </>
                     }
-                    checkbox={{
-                        text: 'I understand and accept the risk.',
-                        checked: isRiskAccepted,
-                        onChange: setIsRiskAccepted,
-                    }}
-                    ctas={[
-                        {
-                            text: 'Continue',
-                            variant: isRiskAccepted ? 'purple' : 'dark',
-                            shadowSize: '4',
-                            onClick: handleWarningConfirm,
-                            disabled: !isRiskAccepted,
-                            className: 'w-full',
-                        },
-                    ]}
+                    footer={
+                        <div className="w-full">
+                            <Slider onValueChange={handleWarningConfirm} />
+                        </div>
+                    }
                     preventClose={false}
                     modalPanelClassName="max-w-md mx-8"
                 />
