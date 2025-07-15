@@ -4,6 +4,7 @@ import gotItHand from '@/assets/illustrations/got-it-hand.svg'
 import gotItHandFlipped from '@/assets/illustrations/got-it-hand-flipped.svg'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import zero from '@/assets/illustrations/zero.svg'
+import mobileZeroFees from '@/assets/illustrations/mobile-zero-fees.svg'
 import { Star } from '@/assets'
 import scribble from '@/assets/scribble.svg'
 import Image from 'next/image'
@@ -110,7 +111,19 @@ export function NoFees() {
                 />
                 {/* Main stylized headline */}
                 <div className="mb-6 md:mb-8">
-                    <div className="relative inline-block">
+                    {/* Mobile version */}
+                    <div className="block md:hidden">
+                        <Image
+                            src={mobileZeroFees}
+                            alt="0 FEES"
+                            width={400}
+                            height={100}
+                            className="mx-auto h-auto w-[95%]"
+                        />
+                    </div>
+                    
+                    {/* Desktop version */}
+                    <div className="relative hidden md:inline-block">
                         <div className="flex items-baseline justify-center">
                             <Image
                                 src={zero}
