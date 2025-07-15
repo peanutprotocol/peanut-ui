@@ -1,4 +1,3 @@
-import React, { useState } from 'react'
 import { SearchResultCard } from '../SearchUsers/SearchResultCard'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import IconStack from '../Global/IconStack'
@@ -6,7 +5,7 @@ import mercadoPagoIcon from '@/assets/payment-apps/mercado-pago.svg'
 import lemonIcon from '@/assets/exchanges/lemon.svg'
 import binanceIcon from '@/assets/exchanges/binance.svg'
 import ripioIcon from '@/assets/exchanges/ripio.svg'
-import { RAINBOW_LOGO, TRUST_WALLET_LOGO, METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
+import { RAINBOW_LOGO, METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import { Button } from '../0_Bruddle'
 import { useGuestFlow } from '@/context/GuestFlowContext'
 
@@ -59,11 +58,10 @@ export default function GuestActionList() {
     const handleMethodClick = (method: Method) => {
         switch (method.id) {
             case 'bank':
-                console.log('bank')
+                // todo: navigate to bank add-money flow, coming in next PR
                 break
             case 'mercadopago':
-                console.log('mercadopago')
-                break
+                break // soon tag, so no action needed
             case 'crypto':
             case 'exchange':
                 setClaimToExternalWallet(true)
