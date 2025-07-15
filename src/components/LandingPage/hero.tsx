@@ -111,7 +111,7 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
     }, [])
 
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
-        const arrowOpacity = Math.max(0, 1 - scrollY / 300) // Fade arrows after 300px of scroll
+        const arrowOpacity = 1 // Always visible
 
         return (
             <motion.div
