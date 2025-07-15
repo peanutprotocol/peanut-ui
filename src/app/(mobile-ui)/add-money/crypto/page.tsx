@@ -97,7 +97,7 @@ const AddMoneyCryptoPage = () => {
                         }
                         footer={
                             <div className="w-full">
-                                <Slider onValueChange={setIsRiskAccepted} />
+                                <Slider onValueChange={(v) => v && setIsRiskAccepted(true)} />
                             </div>
                         }
                         ctas={[]}

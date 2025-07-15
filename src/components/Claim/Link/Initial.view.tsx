@@ -700,7 +700,7 @@ export const InitialClaimLinkView = ({
                 iconContainerClassName="bg-yellow-400"
                 footer={
                     <div className="w-full">
-                        <Slider onValueChange={() => handleClaimLink(true)} />
+                        <Slider onValueChange={(v) => v && handleClaimLink(true)} />
                     </div>
                 }
                 preventClose={false}

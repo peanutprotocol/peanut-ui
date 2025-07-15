@@ -400,7 +400,7 @@ export default function OnrampBankPage() {
                     }
                     footer={
                         <div className="w-full">
-                            <Slider onValueChange={handleWarningConfirm} />
+                            <Slider onValueChange={(v) => v && handleWarningConfirm()} />
                         </div>
                     }
                     preventClose={false}
