@@ -248,7 +248,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                             backgroundColor:
                                                 method.icon === ('bank' as IconName)
                                                     ? '#FFC900'
-                                                    : getColorForUsername(method.title).lightShade,
+                                                    : method.id === 'crypto-add' || method.id === 'crypto-withdraw'
+                                                      ? '#FFC900'
+                                                      : getColorForUsername(method.title).lightShade,
                                             color: method.icon === ('bank' as IconName) ? 'black' : 'black',
                                         }}
                                     />
