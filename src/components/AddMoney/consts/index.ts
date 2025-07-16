@@ -2175,9 +2175,6 @@ countryData.forEach((country) => {
             if (newMethod.id === 'bank-transfer-add') {
                 newMethod.path = `/add-money/${country.path}/bank`
                 newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode) || countryCode === 'MX'
-            } else if (newMethod.id === 'crypto-add') {
-                newMethod.path = `/add-money/crypto`
-                newMethod.isSoon = false
             } else {
                 newMethod.isSoon = true
             }

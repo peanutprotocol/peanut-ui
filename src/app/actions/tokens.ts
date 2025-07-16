@@ -5,7 +5,7 @@ import { type ITokenPriceData } from '@/interfaces'
 import { parseAbi, formatUnits } from 'viem'
 import { type ChainId, getPublicClient } from '@/app/actions/clients'
 import type { Address, Hex } from 'viem'
-import { getTokenDetails, isStableCoin, NATIVE_TOKEN_ADDRESS, areEvmAddressesEqual } from '@/utils'
+import { getTokenDetails, isStableCoin, areEvmAddressesEqual, NATIVE_TOKEN_ADDRESS } from '@/utils'
 import { IUserBalance } from '@/interfaces'
 
 type IMobulaMarketData = {
