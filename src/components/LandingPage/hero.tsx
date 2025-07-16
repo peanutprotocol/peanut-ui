@@ -1,11 +1,11 @@
 import { ButterySmoothGlobalMoney, PeanutGuyGIF, Sparkle } from '@/assets'
 import { Stack } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { CloudImages, HeroImages } from './imageAssets'
 import Image from 'next/image'
 import instantlySendReceive from '@/assets/illustrations/instantly-send-receive.svg'
+import { useResizeHandler, useScrollHandler, createButtonAnimation } from '@/hooks/useAnimations'
 
 type CTAButton = {
     label: string
@@ -22,29 +22,6 @@ type HeroProps = {
 }
 
 // Helper functions moved outside component for better performance
-const getInitialAnimation = (variant: 'primary' | 'secondary') => ({
-    opacity: 0,
-    translateY: 4,
-    translateX: variant === 'primary' ? 0 : 4,
-    rotate: 0.75,
-})
-
-const getAnimateAnimation = (variant: 'primary' | 'secondary', buttonVisible?: boolean, buttonScale?: number) => ({
-    opacity: buttonVisible ? 1 : 0,
-    translateY: buttonVisible ? 0 : 20,
-    translateX: buttonVisible ? (variant === 'primary' ? 0 : 0) : 20,
-    rotate: buttonVisible ? 0 : 1,
-    scale: buttonScale || 1,
-    pointerEvents: buttonVisible ? ('auto' as const) : ('none' as const),
-})
-
-const getHoverAnimation = (variant: 'primary' | 'secondary') => ({
-    translateY: 6,
-    translateX: variant === 'primary' ? 0 : 3,
-    rotate: 0.75,
-})
-
-const transitionConfig = { type: 'spring', damping: 15 } as const
 
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `relative z-20 mt-8 md:mt-12 ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
@@ -100,38 +77,34 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
     )
 
 export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
-    const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
-    const [scrollY, setScrollY] = useState(0)
-
-    useEffect(() => {
-        const handleResize = () => {
-            setScreenWidth(window.innerWidth)
-        }
-
-        const handleScroll = () => {
-            setScrollY(window.scrollY)
-        }
-
-        handleResize()
-        window.addEventListener('resize', handleResize)
-        window.addEventListener('scroll', handleScroll)
-
-        return () => {
-            window.removeEventListener('resize', handleResize)
-            window.removeEventListener('scroll', handleScroll)
-        }
-    }, [])
+    const screenWidth = useResizeHandler()
+    const scrollY = useScrollHandler()
+    
+    const primaryButtonAnimation = createButtonAnimation(
+        buttonVisible || false,
+        buttonScale,
+        { translateX: 0 },
+        { translateX: 0 }
+    )
+    
+    const secondaryButtonAnimation = createButtonAnimation(
+        buttonVisible || false,
+        buttonScale,
+        { translateX: 4 },
+        { translateX: 3 }
+    )
 
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         const arrowOpacity = 1 // Always visible
+        const animation = variant === 'primary' ? primaryButtonAnimation : secondaryButtonAnimation
 
         return (
             <motion.div
                 className={getButtonContainerClasses(variant)}
-                initial={getInitialAnimation(variant)}
-                animate={getAnimateAnimation(variant, buttonVisible, buttonScale)}
-                whileHover={getHoverAnimation(variant)}
-                transition={transitionConfig}
+                initial={animation.initial}
+                animate={animation.animate}
+                whileHover={animation.hover}
+                transition={animation.transition}
             >
                 {/* {renderSparkle(variant)} */}
 
