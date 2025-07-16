@@ -2,7 +2,7 @@
 import { fetchTokenDetails } from '@/app/actions/tokens'
 import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
+import FileUploadInput from '@/components/Global/FileUploadInput'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
@@ -18,7 +18,6 @@ import { IToken } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
-import { TRequestResponse } from '@/services/services.types'
 import { fetchTokenSymbol, getRequestLink, isNativeCurrency, printableUsdc } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
@@ -174,6 +173,7 @@ export const CreateRequestLinkView = () => {
                     },
                     baseUrl: BASE_URL,
                     requestId: requestDetails.uuid,
+                    transactionType: 'REQUEST',
                 })
 
                 const link = getRequestLink({

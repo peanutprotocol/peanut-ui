@@ -108,7 +108,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 : transaction.currencySymbol || getDisplayCurrencySymbol(actualCurrencyCode) // Use provided sign+symbol or derive symbol
 
         let amountString = Math.abs(amount).toString()
-        if (transaction.currency?.code === 'USD') {
+        if (transaction.currency?.code === 'USD' && isStableCoin) {
             amountString = transaction.currency?.amount
         }
         // If it's a token and not USD/ARS, transaction.tokenSymbol should be displayed after amount.

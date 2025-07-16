@@ -16,7 +16,14 @@ import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore, useWalletStore } from '@/redux/hooks'
-import { formatExtendedNumber, getUserPreferences, printableUsdc, updateUserPreferences } from '@/utils'
+import {
+    formatExtendedNumber,
+    getUserPreferences,
+    printableUsdc,
+    updateUserPreferences,
+    getFromLocalStorage,
+    saveToLocalStorage,
+} from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -30,6 +37,7 @@ import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
+const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
 
 export default function Home() {
     const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
@@ -106,7 +114,7 @@ export default function Home() {
     // effect for showing balance warning modal
     useEffect(() => {
         if (typeof window !== 'undefined' && !isFetchingBalance) {
-            const hasSeenBalanceWarningThisSession = sessionStorage.getItem('hasSeenBalanceWarningThisSession')
+            const hasSeenBalanceWarning = getFromLocalStorage('hasSeenBalanceWarning')
             const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
 
             // show if:
@@ -115,12 +123,11 @@ export default function Home() {
             // 3. no other modals are currently active
             if (
                 balanceInUsd > BALANCE_WARNING_THRESHOLD &&
-                !hasSeenBalanceWarningThisSession &&
+                !hasSeenBalanceWarning &&
                 !showIOSPWAInstallModal &&
                 !showAddMoneyPromptModal
             ) {
                 setShowBalanceWarningModal(true)
-                sessionStorage.setItem('hasSeenBalanceWarningThisSession', 'true')
             }
         }
     }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal])
@@ -212,7 +219,10 @@ export default function Home() {
             {/* Balance Warning Modal */}
             <BalanceWarningModal
                 visible={showBalanceWarningModal}
-                onCloseAction={() => setShowBalanceWarningModal(false)}
+                onCloseAction={() => {
+                    setShowBalanceWarningModal(false)
+                    saveToLocalStorage('hasSeenBalanceWarning', 'true', BALANCE_WARNING_EXPIRY)
+                }}
             />
         </PageContainer>
     )

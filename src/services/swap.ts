@@ -4,8 +4,8 @@ import { parseUnits, formatUnits, encodeFunctionData, erc20Abi } from 'viem'
 
 import { fetchTokenPrice, estimateTransactionCostUsd } from '@/app/actions/tokens'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
-import { fetchWithSentry, isNativeCurrency } from '@/utils'
-import { SQUID_API_URL } from '@/constants'
+import { fetchWithSentry, isNativeCurrency, areEvmAddressesEqual } from '@/utils'
+import { SQUID_API_URL, USDT_IN_MAINNET } from '@/constants'
 
 type TokenInfo = {
     address: Address
@@ -369,12 +369,6 @@ export type PeanutCrossChainRoute = {
         to: Address
         data: Hex
         value: string
-        feeOptions: {
-            gasLimit: string
-            maxFeePerGas: string
-            maxPriorityFeePerGas: string
-            gasPrice: string
-        }
     }[]
     feeCostsUsd: number
     rawResponse: SquidRouteResponse
@@ -471,12 +465,6 @@ export async function getRoute({ from, to, ...amount }: RouteParams): Promise<Pe
         to: Address
         data: Hex
         value: string
-        feeOptions: {
-            gasLimit: string
-            maxFeePerGas: string
-            maxPriorityFeePerGas: string
-            gasPrice: string
-        }
     }[] = []
 
     // Check if approval is needed for non-native tokens
@@ -485,27 +473,25 @@ export async function getRoute({ from, to, ...amount }: RouteParams): Promise<Pe
         const spenderAddress = route.transactionRequest.target
 
         try {
-            const currentAllowance = await checkTokenAllowance(
+            let currentAllowance = await checkTokenAllowance(
                 from.tokenAddress,
                 from.address,
                 spenderAddress,
                 from.chainId
             )
 
+            const isUsdtInMainnet = from.chainId === '1' && areEvmAddressesEqual(from.tokenAddress, USDT_IN_MAINNET)
+            // USDT in mainnet is not an erc20 token and needs to have the
+            // allowance reseted to 0 before using it.
+            if (isUsdtInMainnet && currentAllowance > 0n) {
+                transactions.push(createApproveTransaction(from.tokenAddress, spenderAddress, 0n))
+                currentAllowance = 0n
+            }
+
             // If current allowance is insufficient, create approve transaction
             if (currentAllowance < fromAmount) {
-                const approveTransaction = createApproveTransaction(from.tokenAddress, spenderAddress, fromAmount)
-
-                // Add approval transaction to the beginning of transactions array
-                transactions.push({
-                    ...approveTransaction,
-                    feeOptions: {
-                        gasLimit: route.transactionRequest.gasLimit,
-                        maxFeePerGas: route.transactionRequest.maxFeePerGas,
-                        maxPriorityFeePerGas: route.transactionRequest.maxPriorityFeePerGas,
-                        gasPrice: route.transactionRequest.gasPrice,
-                    },
-                })
+                // Add approval transaction to the transactions array
+                transactions.push(createApproveTransaction(from.tokenAddress, spenderAddress, fromAmount))
 
                 // Add approval cost to fee costs
                 const approvalCostUsd = await estimateApprovalCostUsd(
@@ -528,12 +514,6 @@ export async function getRoute({ from, to, ...amount }: RouteParams): Promise<Pe
         to: route.transactionRequest.target,
         data: route.transactionRequest.data,
         value: route.transactionRequest.value,
-        feeOptions: {
-            gasLimit: route.transactionRequest.gasLimit,
-            maxFeePerGas: route.transactionRequest.maxFeePerGas,
-            maxPriorityFeePerGas: route.transactionRequest.maxPriorityFeePerGas,
-            gasPrice: route.transactionRequest.gasPrice,
-        },
     })
 
     const xChainRoute = {

@@ -21,7 +21,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch, usePaymentStore, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
-import { ErrorHandler, formatAmount, areEvmAddressesEqual } from '@/utils'
+import { ErrorHandler, formatAmount, areEvmAddressesEqual, isStableCoin } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -29,7 +29,12 @@ import { useAccount } from 'wagmi'
 import { PaymentInfoRow } from '../PaymentInfoRow'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    ROUTE_NOT_FOUND_ERROR,
+    PEANUT_WALLET_TOKEN_SYMBOL,
+} from '@/constants'
 import { captureMessage } from '@sentry/nextjs'
 import AddressLink from '@/components/Global/AddressLink'
 
@@ -90,9 +95,7 @@ export default function ConfirmPaymentView({
     const queryClient = useQueryClient()
     const [isRouteExpired, setIsRouteExpired] = useState(false)
 
-    const isUsingExternalWallet = useMemo(() => {
-        return isAddMoneyFlow || !isPeanutWallet
-    }, [isPeanutWallet, isAddMoneyFlow])
+    const isUsingExternalWallet = isAddMoneyFlow || !isPeanutWallet
 
     const networkFee = useMemo<string | React.ReactNode>(() => {
         if (isFeeEstimationError) return '-'
@@ -113,7 +116,7 @@ export default function ConfirmPaymentView({
                 <span className="font-medium text-gray-500">Sponsored by Peanut!</span>
             </>
         )
-    }, [estimatedGasCostUsd, isFeeEstimationError, isUsingExternalWallet])
+    }, [estimatedGasCostUsd, isFeeEstimationError])
 
     const {
         tokenIconUrl: sendingTokenIconUrl,
@@ -121,9 +124,9 @@ export default function ConfirmPaymentView({
         resolvedChainName: sendingResolvedChainName,
         resolvedTokenSymbol: sendingResolvedTokenSymbol,
     } = useTokenChainIcons({
-        chainId: selectedChainID,
-        tokenAddress: selectedTokenData?.address,
-        tokenSymbol: selectedTokenData?.symbol,
+        chainId: isUsingExternalWallet ? selectedChainID : PEANUT_WALLET_CHAIN.id.toString(),
+        tokenAddress: isUsingExternalWallet ? selectedTokenData?.address : PEANUT_WALLET_TOKEN,
+        tokenSymbol: isUsingExternalWallet ? selectedTokenData?.symbol : PEANUT_WALLET_TOKEN_SYMBOL,
     })
 
     const {
@@ -147,7 +150,7 @@ export default function ConfirmPaymentView({
                 loadingStep
             )
         )
-    }, [isProcessing, loadingStep, isCalculatingFees, isEstimatingGas, isUsingExternalWallet])
+    }, [isProcessing, loadingStep, isCalculatingFees, isEstimatingGas])
 
     useEffect(() => {
         if (chargeIdFromUrl && !chargeDetails) {
@@ -192,7 +195,6 @@ export default function ConfirmPaymentView({
         selectedChainID,
         prepareTransactionDetails,
         isDirectUsdPayment,
-        isUsingExternalWallet,
         wagmiAddress,
         peanutWalletAddress,
     ])
@@ -227,7 +229,7 @@ export default function ConfirmPaymentView({
             )
         }
         return false
-    }, [chargeDetails, selectedTokenData, selectedChainID, isUsingExternalWallet])
+    }, [chargeDetails, selectedTokenData, selectedChainID])
 
     const routeTypeError = useMemo((): string | null => {
         if (!isCrossChainPayment || !xChainRoute || !isPeanutWallet) return null
@@ -241,7 +243,7 @@ export default function ConfirmPaymentView({
                     routeObject: xChainRoute,
                 },
             })
-            return 'No route found for this token pair. You can try with a different token pair, or try again later'
+            return ROUTE_NOT_FOUND_ERROR
         }
 
         return null
@@ -398,14 +400,17 @@ export default function ConfirmPaymentView({
     }
 
     const minReceived = useMemo<string | null>(() => {
-        if (!xChainRoute || !chargeDetails?.tokenDecimals) return null
-        return formatUnits(BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin), chargeDetails.tokenDecimals)
-    }, [xChainRoute, chargeDetails?.tokenDecimals])
+        if (!xChainRoute || !chargeDetails?.tokenDecimals || !requestedResolvedTokenSymbol) return null
+        const amount = formatUnits(
+            BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin),
+            chargeDetails.tokenDecimals
+        )
+        return isStableCoin(requestedResolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${requestedResolvedTokenSymbol}`
+    }, [xChainRoute, chargeDetails?.tokenDecimals, requestedResolvedTokenSymbol])
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader title={isAddMoneyFlow ? 'Add Money' : 'Send'} onPrev={handleGoBack} />
-
             <div className="my-auto flex h-full flex-col justify-center space-y-4 pb-5">
                 {parsedPaymentData?.recipient && (
                     <PeanutActionDetailsCard
