@@ -15,6 +15,7 @@ import * as Sentry from '@sentry/nextjs'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type ChangeEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
+import ActionModal from '../ActionModal'
 import { Icon, IconName } from '../Icons/Icon'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from './utils'
 
@@ -96,15 +97,15 @@ function DirectSendContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
     const router = useRouter()
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">Peanut only supports USDC on Arbitrum.</span>
-            <span className="text-sm">Please confirm with the recipient that they accept USDC on Arbitrum</span>
+            <span className="text-sm">Peanut supports cross-chain payments.</span>
+            <span className="text-sm">Please confirm the payment details before sending</span>
             <Checkbox
                 value={userAcknowledged}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => {
                     setUserAcknowledged(e.target.checked)
                 }}
                 className="mt-4"
-                label="Got it, USDC on Arbitrum only."
+                label="I understand and will confirm payment details."
             />
             <Button
                 onClick={() => {
@@ -181,6 +182,7 @@ export default function DirectSendQr({
 }) {
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [showPermissionModal, setShowPermissionModal] = useState(false)
     const [qrType, setQrType] = useState<EQrType | undefined>(undefined)
     const [redirectTo, setRedirectTo] = useState<string | undefined>(undefined)
     const [modalContent, setModalContent] = useState<ModalType | undefined>(undefined)
@@ -194,6 +196,41 @@ export default function DirectSendQr({
         if (!user?.user.username) return ''
         return `${BASE_URL}/pay/${user.user.username}`
     }, [user?.user.username])
+
+    const startScanner = () => {
+        setIsQRScannerOpen(true)
+    }
+
+    const handleCameraPermission = async () => {
+        setShowPermissionModal(false)
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            stream.getTracks().forEach((track) => track.stop())
+            startScanner()
+        } catch (error) {
+            console.error('Camera permission denied', error)
+            toast.error('Camera permission denied. Please allow camera access in your browser settings.')
+        }
+    }
+
+    const handleOpenScannerClick = async () => {
+        if (navigator.permissions) {
+            try {
+                const permissionStatus = await navigator.permissions.query({ name: 'camera' as PermissionName })
+                if (permissionStatus.state === 'granted') {
+                    startScanner()
+                } else {
+                    setShowPermissionModal(true)
+                }
+            } catch (err) {
+                console.error('Could not query permissions, showing custom prompt.', err)
+                setShowPermissionModal(true)
+            }
+        } else {
+            // fallback for browsers that do not support the Permissions API
+            setShowPermissionModal(true)
+        }
+    }
 
     const processQRCode = async (data: string): Promise<{ success: boolean; error?: string }> => {
         // reset payment state before processing new QR
@@ -224,15 +261,23 @@ export default function DirectSendQr({
                 break
             case EQrType.EVM_ADDRESS:
                 {
-                    toConfirmUrl = `/${data}@arbitrum/usdc`
+                    toConfirmUrl = `/${data}`
                 }
                 break
             case EQrType.EIP_681:
                 {
                     try {
-                        const { address } = parseEip681(data)
-                        if (address) {
-                            toConfirmUrl = `/${address}@arbitrum/usdc`
+                        const { address, chainId, amount, tokenSymbol } = parseEip681(data)
+                        toConfirmUrl = `/${address}`
+                        if (chainId) {
+                            toConfirmUrl += `@${chainId}`
+                            if (tokenSymbol) {
+                                toConfirmUrl += `/`
+                                if (amount) {
+                                    toConfirmUrl += `${amount}`
+                                }
+                                toConfirmUrl += `${tokenSymbol}`
+                            }
                         }
                     } catch (error) {
                         toast.error('Error parsing EIP-681 URL')
@@ -244,7 +289,7 @@ export default function DirectSendQr({
                 {
                     const resolvedAddress = await resolveEns(data)
                     if (!!resolvedAddress) {
-                        toConfirmUrl = `/${data}@arbitrum/usdc`
+                        toConfirmUrl = `/${data}`
                     }
                 }
                 break
@@ -332,7 +377,7 @@ export default function DirectSendQr({
                     break
                 case EModalType.DIRECT_SEND:
                     {
-                        title = 'ℹ️ Only USDC on Arbitrum'
+                        title = 'ℹ️ Payment Confirmation'
                     }
                     break
                 case EModalType.EXTERNAL_URL:
@@ -350,7 +395,7 @@ export default function DirectSendQr({
     return (
         <>
             <Button
-                onClick={() => setIsQRScannerOpen(true)}
+                onClick={handleOpenScannerClick}
                 variant="purple"
                 shadowSize="4"
                 shadowType="primary"
@@ -386,6 +431,33 @@ export default function DirectSendQr({
                         )
                     })()}
             </Modal>
+
+            <ActionModal
+                visible={showPermissionModal}
+                onClose={() => setShowPermissionModal(false)}
+                icon={'camera'}
+                title={'Allow camera access'}
+                description={'This lets you scan QR codes to send and receive money instantly.'}
+                ctaClassName="flex-row"
+                ctas={[
+                    {
+                        text: 'Allow',
+                        onClick: handleCameraPermission,
+                        variant: 'purple',
+                        shadowSize: '4',
+                        className: 'h-11',
+                    },
+                    {
+                        text: 'Not now',
+                        onClick: () => setShowPermissionModal(false),
+                        variant: 'primary-soft',
+                        shadowSize: '4',
+                        className: 'h-11',
+                    },
+                ]}
+                hideModalCloseButton={true}
+            />
+
             {isQRScannerOpen && (
                 <>
                     <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />

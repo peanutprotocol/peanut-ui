@@ -256,12 +256,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                     />
                 )}
 
-                <div className="relative z-10 flex items-center gap-2">
-                    {loading && <Loading />}
-                    {iconPosition === 'left' && renderIcon()}
-                    {displayText}
-                    {iconPosition === 'right' && renderIcon()}
-                </div>
+                {loading && <Loading />}
+                {iconPosition === 'left' && renderIcon()}
+                {displayText}
+                {iconPosition === 'right' && renderIcon()}
             </button>
         )
     }

@@ -10,20 +10,30 @@ import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { ITokenPriceData } from '@/interfaces'
-import { formatAmount } from '@/utils'
+import { formatAmount, isStableCoin } from '@/utils'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
+import { type PeanutCrossChainRoute } from '@/services/swap'
+import { useMemo, useState } from 'react'
+import { formatUnits } from 'viem'
+import { ROUTE_NOT_FOUND_ERROR } from '@/constants'
 
 interface WithdrawConfirmViewProps {
     amount: string
     token: ITokenPriceData
     chain: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
     toAddress: string
-    networkFee?: string
+    networkFee?: number
     peanutFee?: string
     onConfirm: () => void
     onBack: () => void
     isProcessing?: boolean
     error?: string | null
+    // Timer props for cross-chain withdrawals
+    isCrossChain?: boolean
+    routeExpiry?: string
+    isRouteLoading?: boolean
+    onRouteRefresh?: () => void
+    xChainRoute?: PeanutCrossChainRoute
 }
 
 export default function ConfirmWithdrawView({
@@ -31,18 +41,41 @@ export default function ConfirmWithdrawView({
     token,
     chain,
     toAddress,
-    networkFee = '0.00',
+    networkFee = 0,
     peanutFee = '0.00',
     onConfirm,
     onBack,
     isProcessing,
     error,
+    isCrossChain = false,
+    routeExpiry,
+    isRouteLoading = false,
+    onRouteRefresh,
+    xChainRoute,
 }: WithdrawConfirmViewProps) {
+    const [isRouteExpired, setIsRouteExpired] = useState(false)
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
         chainId: chain.chainId,
         tokenAddress: token.address,
         tokenSymbol: token.symbol,
     })
+
+    const minReceived = useMemo<string | null>(() => {
+        if (!xChainRoute || !resolvedTokenSymbol) return null
+        const amount = formatUnits(BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin), token.decimals)
+        return isStableCoin(resolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${resolvedTokenSymbol}`
+    }, [xChainRoute, resolvedTokenSymbol])
+
+    const networkFeeDisplay = useMemo<string | React.ReactNode>(() => {
+        if (networkFee < 0.01) return 'Sponsored by Peanut!'
+        return (
+            <>
+                <span className="line-through">$ {networkFee.toFixed(2)}</span>
+                {' – '}
+                <span className="font-medium text-gray-500">Sponsored by Peanut!</span>
+            </>
+        )
+    }, [networkFee])
 
     return (
         <div className="space-y-8">
@@ -55,10 +88,29 @@ export default function ConfirmWithdrawView({
                     recipientType="USERNAME"
                     recipientName={''}
                     amount={formatAmount(amount)}
-                    tokenSymbol={token.symbol}
+                    tokenSymbol="USDC"
+                    showTimer={isCrossChain}
+                    timerExpiry={routeExpiry}
+                    isTimerLoading={isRouteLoading}
+                    onTimerNearExpiry={() => {
+                        setIsRouteExpired(false)
+                        onRouteRefresh?.()
+                    }}
+                    onTimerExpired={() => {
+                        setIsRouteExpired(true)
+                    }}
+                    disableTimerRefetch={isProcessing}
+                    timerError={error == ROUTE_NOT_FOUND_ERROR ? error : null}
                 />
 
                 <Card className="rounded-sm">
+                    {minReceived && (
+                        <PaymentInfoRow
+                            label="Min Received"
+                            value={minReceived}
+                            moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
+                        />
+                    )}
                     <PaymentInfoRow
                         label="Token and network"
                         value={
@@ -95,11 +147,7 @@ export default function ConfirmWithdrawView({
                         label="To"
                         value={<AddressLink isLink={false} address={toAddress} className="text-black no-underline" />}
                     />
-                    <PaymentInfoRow
-                        label="Max network fee"
-                        value={`$ ${networkFee}`}
-                        moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
-                    />
+                    <PaymentInfoRow label="Max network fee" value={networkFeeDisplay} />
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ ${peanutFee}`} />
                 </Card>
 
@@ -107,9 +155,17 @@ export default function ConfirmWithdrawView({
                     <Button
                         variant="purple"
                         shadowSize="4"
-                        onClick={onConfirm}
-                        disabled={isProcessing}
-                        loading={isProcessing}
+                        onClick={() => {
+                            if (error === ROUTE_NOT_FOUND_ERROR) {
+                                onBack()
+                            } else if (isRouteExpired) {
+                                onRouteRefresh?.()
+                            } else {
+                                onConfirm()
+                            }
+                        }}
+                        disabled={false}
+                        loading={false}
                         className="w-full"
                         icon="retry"
                     >
@@ -120,7 +176,7 @@ export default function ConfirmWithdrawView({
                         variant="purple"
                         shadowSize="4"
                         onClick={onConfirm}
-                        disabled={isProcessing}
+                        disabled={isProcessing || isRouteLoading}
                         loading={isProcessing}
                         className="w-full"
                     >
@@ -128,7 +184,13 @@ export default function ConfirmWithdrawView({
                     </Button>
                 )}
 
-                {error && <ErrorAlert description={error} />}
+                {error && (
+                    <ErrorAlert
+                        description={
+                            isRouteExpired ? 'This quote has expired. Please retry to fetch latest quote.' : error
+                        }
+                    />
+                )}
             </div>
         </div>
     )

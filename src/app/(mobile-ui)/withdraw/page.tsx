@@ -25,6 +25,7 @@ export default function WithdrawPage() {
         setError,
         error,
         resetWithdrawFlow,
+        setWithdrawData,
     } = useWithdrawFlow()
 
     const { balance } = useWallet()
@@ -92,6 +93,12 @@ export default function WithdrawPage() {
         },
         [setRawTokenAmount]
     )
+
+    // Clean state
+    useEffect(() => {
+        setAmountToWithdraw('')
+        setWithdrawData(null)
+    }, [])
 
     useEffect(() => {
         if (rawTokenAmount === '') {

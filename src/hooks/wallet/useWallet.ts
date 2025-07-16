@@ -3,6 +3,7 @@
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
+    PEANUT_WALLET_TOKEN_DECIMALS,
     peanutPublicClient,
     PINTA_WALLET_TOKEN,
     PINTA_WALLET_TOKEN_DECIMALS,
@@ -13,8 +14,8 @@ import { walletActions } from '@/redux/slices/wallet-slice'
 import { formatAmount } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useEffect, useState } from 'react'
-import type { Hex } from 'viem'
-import { erc20Abi, formatUnits, getAddress } from 'viem'
+import type { Hex, Address } from 'viem'
+import { erc20Abi, formatUnits, parseUnits, encodeFunctionData, getAddress } from 'viem'
 import { useZeroDev } from '../useZeroDev'
 
 export const useWallet = () => {
@@ -23,6 +24,26 @@ export const useWallet = () => {
     const [isFetchingBalance, setIsFetchingBalance] = useState(true)
     const [isFetchingRewardBalance, setIsFetchingRewardBalance] = useState(true)
     const { balance } = useWalletStore()
+
+    const sendMoney = useCallback(
+        async (toAddress: Address, amountInUsd: string) => {
+            const amountToSend = parseUnits(amountInUsd, PEANUT_WALLET_TOKEN_DECIMALS)
+
+            const txData = encodeFunctionData({
+                abi: erc20Abi,
+                functionName: 'transfer',
+                args: [toAddress, amountToSend],
+            })
+
+            const transaction: peanutInterfaces.IPeanutUnsignedTransaction = {
+                to: PEANUT_WALLET_TOKEN,
+                data: txData,
+            }
+
+            return await sendTransactions([transaction], PEANUT_WALLET_CHAIN.id.toString())
+        },
+        [handleSendUserOpEncoded]
+    )
 
     const sendTransactions = useCallback(
         async (unsignedTxs: peanutInterfaces.IPeanutUnsignedTransaction[], chainId?: string) => {
@@ -94,6 +115,7 @@ export const useWallet = () => {
         balance: BigInt(balance),
         isConnected: isKernelClientReady,
         sendTransactions,
+        sendMoney,
         getRewardWalletBalance,
         fetchBalance,
         isFetchingBalance,

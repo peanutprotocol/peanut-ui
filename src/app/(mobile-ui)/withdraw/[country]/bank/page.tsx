@@ -7,20 +7,13 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import {
-    PEANUT_WALLET_CHAIN,
-    PEANUT_WALLET_TOKEN,
-    PEANUT_WALLET_TOKEN_DECIMALS,
-    PEANUT_WALLET_TOKEN_SYMBOL,
-} from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, Account } from '@/interfaces'
-import { shortenAddressLong } from '@/utils/general.utils'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { formatIban, shortenAddressLong, isTxReverted } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { encodeFunctionData, erc20Abi, parseUnits } from 'viem'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { ErrorHandler, getBridgeChainName } from '@/utils'
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
@@ -33,7 +26,7 @@ type View = 'INITIAL' | 'SUCCESS'
 export default function WithdrawBankPage() {
     const { amountToWithdraw, selectedBankAccount: bankAccount, error, setError } = useWithdrawFlow()
     const { user, fetchUser } = useAuth()
-    const { address, sendTransactions } = useWallet()
+    const { address, sendMoney } = useWallet()
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [view, setView] = useState<View>('INITIAL')
@@ -54,6 +47,9 @@ export default function WithdrawBankPage() {
             case AccountType.IBAN:
                 // Default to a European country that uses EUR/SEPA
                 countryId = 'DE' // Germany as default EU country
+                break
+            case AccountType.CLABE:
+                countryId = 'MX'
                 break
             default:
                 return {
@@ -136,22 +132,9 @@ export default function WithdrawBankPage() {
             }
 
             // Step 2: prepare and send the transaction from peanut wallet to the deposit address
-            const amountToSend = parseUnits(createPayload.amount, PEANUT_WALLET_TOKEN_DECIMALS)
+            const receipt = await sendMoney(data.depositInstructions.toAddress as `0x${string}`, createPayload.amount)
 
-            const txData = encodeFunctionData({
-                abi: erc20Abi,
-                functionName: 'transfer',
-                args: [data.depositInstructions.toAddress as `0x${string}`, amountToSend],
-            })
-
-            const transaction: peanutInterfaces.IPeanutUnsignedTransaction = {
-                to: PEANUT_WALLET_TOKEN,
-                data: txData,
-            }
-
-            const receipt = await sendTransactions([transaction], PEANUT_WALLET_CHAIN.id.toString())
-
-            if (receipt.status === 'reverted') {
+            if (isTxReverted(receipt)) {
                 throw new Error('Transaction reverted by the network.')
             }
 
@@ -197,7 +180,7 @@ export default function WithdrawBankPage() {
     }
 
     return (
-        <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
+        <div className="flex h-full min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
             <NavHeader
                 title="Withdraw"
                 icon={view === 'SUCCESS' ? 'cancel' : undefined}
@@ -220,7 +203,14 @@ export default function WithdrawBankPage() {
                         <PaymentInfoRow label={'Full name'} value={user?.user.fullName} />
                         {bankAccount?.type === AccountType.IBAN ? (
                             <>
-                                <PaymentInfoRow label={'IBAN'} value={bankAccount?.identifier.toUpperCase()} />
+                                <PaymentInfoRow
+                                    label={'IBAN'}
+                                    value={
+                                        bankAccount?.identifier
+                                            ? formatIban(bankAccount.identifier)
+                                            : '' /* fallback to empty string to avoid runtime error */
+                                    }
+                                />
                                 <PaymentInfoRow label="BIC" value={getBicAndRoutingNumber()} />
                             </>
                         ) : bankAccount?.type === AccountType.CLABE ? (

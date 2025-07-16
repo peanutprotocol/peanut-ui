@@ -173,11 +173,17 @@ module.exports = {
                     '50%': { transform: 'scale(1.05)', opacity: '1' },
                     '100%': { transform: 'scale(0.95)', opacity: '0.8' },
                 },
+                'pulse-strong': {
+                    '0%': { opacity: '1' },
+                    '50%': { opacity: '0.3' },
+                    '100%': { opacity: '1' },
+                },
             },
             animation: {
                 colorPulse: 'colorPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                 fadeIn: 'fadeIn 0.3s ease-in-out',
                 pulsate: 'pulsate 1.5s ease-in-out infinite',
+                'pulse-strong': 'pulse-strong 1s ease-in-out infinite',
             },
             opacity: {
                 85: '.85',

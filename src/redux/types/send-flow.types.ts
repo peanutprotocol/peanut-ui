@@ -30,7 +30,6 @@ export interface ISendFlowState {
     preparedDepositTxs: peanutInterfaces.IPrepareDepositTxsResponse | undefined
     txHash: string | undefined
     link: string | undefined
-    feeOptions: any | undefined
     transactionCostUSD: number | undefined
     attachmentOptions: IAttachmentOptions
     errorState: ErrorState | undefined

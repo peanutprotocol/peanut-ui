@@ -1,4 +1,4 @@
-import { infuraRpcUrls } from '@/constants/general.consts'
+import { rpcUrls } from '@/constants/general.consts'
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import type { Chain, PublicClient } from 'viem'
 import { createPublicClient, http } from 'viem'
@@ -29,6 +29,8 @@ export const PINTA_WALLET_TOKEN = '0x9Ae69fDfF2FA97e34B680752D8E70dfD529Ea6ca'
 export const PINTA_WALLET_TOKEN_NAME = 'PINTA'
 export const PINTA_WALLET_TOKEN_SYMBOL = 'PNT'
 
+export const USDT_IN_MAINNET = '0xdac17f958d2ee523a2206206994597c13d831ec7'
+
 export const PEANUT_WALLET_SUPPORTED_TOKENS: Record<string, string[]> = {
     [PEANUT_WALLET_CHAIN.id.toString()]: [PEANUT_WALLET_TOKEN],
     [PINTA_WALLET_CHAIN.id.toString()]: [PINTA_WALLET_TOKEN],
@@ -42,6 +44,7 @@ export const PEANUT_WALLET_SUPPORTED_TOKENS: Record<string, string[]> = {
  */
 export const USER_OP_ENTRY_POINT = getEntryPoint('0.7')
 export const ZERODEV_KERNEL_VERSION = KERNEL_V3_1
+export const USER_OPERATION_REVERT_REASON_TOPIC = '0x1c4fada7374c0a9ee8841fc38afe82932dc0f8e69012e927f061a8bae611a201'
 
 export const PUBLIC_CLIENTS_BY_CHAIN: Record<
     string,
@@ -54,7 +57,7 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
 > = {
     [arbitrum.id]: {
         client: createPublicClient({
-            transport: http(infuraRpcUrls[arbitrum.id]),
+            transport: http(rpcUrls[arbitrum.id][0]),
             chain: arbitrum,
             pollingInterval: 500,
         }),
@@ -64,7 +67,7 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
     },
     [polygon.id]: {
         client: createPublicClient({
-            transport: http(infuraRpcUrls[polygon.id]),
+            transport: http(rpcUrls[polygon.id][0]),
             chain: polygon,
             pollingInterval: 2500,
         }),

@@ -77,7 +77,7 @@ export const getMinimumAmount = (countryId: string): number => {
 export const getPaymentRailDisplayName = (paymentRail: string): string => {
     const displayNames: Record<string, string> = {
         ach_push: 'ACH Transfer',
-        ach_pull: 'ACH Transfer',
+        ach: 'ACH Transfer',
         sepa: 'SEPA Transfer',
         spei: 'SPEI Transfer',
         wire: 'Wire Transfer',

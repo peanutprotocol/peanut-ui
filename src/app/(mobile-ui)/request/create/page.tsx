@@ -11,7 +11,7 @@ export const metadata = generateMetadata({
 
 export default function RequestCreate() {
     return (
-        <PageContainer className="self-start">
+        <PageContainer className="h-full min-h-[inherit] w-full md:self-start">
             <CreateRequestLinkView />
         </PageContainer>
     )

@@ -9,7 +9,8 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
-import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
+import { formatAmount, formatDate, getInitialsFromName, isStableCoin } from '@/utils'
+import { formatIban } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -167,9 +168,10 @@ export const TransactionDetailsReceipt = ({
             amountDisplay = `${currencySymbol} ${formatAmount(Number(currencyAmount))}`
         }
     } else {
-        amountDisplay = transaction.currency?.amount
-            ? `$ ${formatAmount(Number(transaction.currency.amount))}`
-            : `$ ${formatAmount(transaction.amount as number)}`
+        amountDisplay =
+            transaction.currency?.amount && isStableCoin(transaction.tokenSymbol ?? '')
+                ? `$ ${formatAmount(Number(transaction.currency.amount))}`
+                : `$ ${formatAmount(transaction.amount as number)}`
     }
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
@@ -322,9 +324,9 @@ export const TransactionDetailsReceipt = ({
                             label={getBankAccountLabel(transaction.bankAccountDetails.type)}
                             value={
                                 <div className="flex items-center gap-2">
-                                    <span>{transaction.bankAccountDetails.identifier.toUpperCase()}</span>
+                                    <span>{formatIban(transaction.bankAccountDetails.identifier)}</span>
                                     <CopyToClipboard
-                                        textToCopy={transaction.bankAccountDetails.identifier.toUpperCase()}
+                                        textToCopy={formatIban(transaction.bankAccountDetails.identifier)}
                                         iconSize="4"
                                     />
                                 </div>
@@ -439,16 +441,16 @@ export const TransactionDetailsReceipt = ({
                                                     value={
                                                         <div className="flex items-center gap-2">
                                                             <span>
-                                                                {
+                                                                {formatIban(
                                                                     transaction.extraDataForDrawer.depositInstructions
                                                                         .iban
-                                                                }
+                                                                )}
                                                             </span>
                                                             <CopyToClipboard
-                                                                textToCopy={
+                                                                textToCopy={formatIban(
                                                                     transaction.extraDataForDrawer.depositInstructions
                                                                         .iban
-                                                                }
+                                                                )}
                                                                 iconSize="4"
                                                             />
                                                         </div>
@@ -613,7 +615,7 @@ export const TransactionDetailsReceipt = ({
                         <PaymentInfoRow
                             label="Comment"
                             value={transaction.memo}
-                            hideBottomBorder={!transaction.attachmentUrl}
+                            hideBottomBorder={!transaction.attachmentUrl && !transaction.networkFeeDetails}
                         />
                     )}
 

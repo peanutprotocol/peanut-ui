@@ -3,6 +3,7 @@ export * from './sdkErrorHandler.utils'
 export * from './bridge-accounts.utils'
 export * from './balance.utils'
 export * from './sentry.utils'
+export * from './token.utils'
 export * from './onramp.utils'
 
 // Bridge utils - explicit exports to avoid naming conflicts

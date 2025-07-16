@@ -8,6 +8,7 @@ import { twMerge } from 'tailwind-merge'
 import Attachment from '../Attachment'
 import Card from '../Card'
 import { Icon, IconName } from '../Icons/Icon'
+import RouteExpiryTimer from '../RouteExpiryTimer'
 import Image from 'next/image'
 
 interface PeanutActionDetailsCardProps {
@@ -19,6 +20,7 @@ interface PeanutActionDetailsCardProps {
         | 'ADD_MONEY'
         | 'WITHDRAW'
         | 'WITHDRAW_BANK_ACCOUNT'
+        | 'ADD_MONEY_BANK_ACCOUNT'
     recipientType: RecipientType | 'BANK_ACCOUNT'
     recipientName: string
     message?: string
@@ -30,6 +32,14 @@ interface PeanutActionDetailsCardProps {
     avatarSize?: AvatarSize
     countryCodeForFlag?: string
     currencySymbol?: string
+    // Cross-chain timer props
+    showTimer?: boolean
+    timerExpiry?: string
+    isTimerLoading?: boolean
+    onTimerNearExpiry?: () => void
+    onTimerExpired?: () => void
+    disableTimerRefetch?: boolean
+    timerError?: string | null
 }
 
 export default function PeanutActionDetailsCard({
@@ -43,6 +53,13 @@ export default function PeanutActionDetailsCard({
     className,
     fileUrl,
     avatarSize = 'medium',
+    showTimer = false,
+    timerExpiry,
+    isTimerLoading = false,
+    onTimerNearExpiry,
+    onTimerExpired,
+    disableTimerRefetch = false,
+    timerError = null,
     countryCodeForFlag,
     currencySymbol,
 }: PeanutActionDetailsCardProps) {
@@ -81,7 +98,7 @@ export default function PeanutActionDetailsCard({
 
     const getAvatarIcon = useCallback((): IconName | undefined => {
         if (viewType === 'SUCCESS') return 'check'
-        if (transactionType === 'WITHDRAW_BANK_ACCOUNT') return 'bank'
+        if (transactionType === 'WITHDRAW_BANK_ACCOUNT' || transactionType === 'ADD_MONEY_BANK_ACCOUNT') return 'bank'
         if (recipientType !== 'USERNAME' || transactionType === 'ADD_MONEY' || transactionType === 'WITHDRAW')
             return 'wallet-outline'
         return undefined
@@ -115,7 +132,7 @@ export default function PeanutActionDetailsCard({
     }
 
     const isWithdrawBankAccount = transactionType === 'WITHDRAW_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
-    const isAddBankAccount = transactionType === 'ADD_MONEY'
+    const isAddBankAccount = transactionType === 'ADD_MONEY_BANK_ACCOUNT'
 
     const withdrawBankIcon = () => {
         if (isWithdrawBankAccount || isAddBankAccount)
@@ -139,39 +156,51 @@ export default function PeanutActionDetailsCard({
     }
 
     return (
-        <Card className={twMerge('flex items-center gap-3 p-4', className)}>
+        <Card className={twMerge('p-4', className)}>
             <div className="flex items-center gap-3">
-                {isWithdrawBankAccount || isAddBankAccount ? (
-                    withdrawBankIcon()
-                ) : (
-                    <AvatarWithBadge
-                        icon={getAvatarIcon()}
-                        size={avatarSize}
-                        name={viewType === 'NORMAL' ? recipientName : undefined}
-                        inlineStyle={{
-                            backgroundColor: getAvatarBackgroundColor(),
-                            color: getAvatarTextColor(),
-                        }}
-                    />
-                )}
-            </div>
+                <div className="flex items-center gap-3">
+                    {isWithdrawBankAccount || isAddBankAccount ? (
+                        withdrawBankIcon()
+                    ) : (
+                        <AvatarWithBadge
+                            icon={getAvatarIcon()}
+                            size={avatarSize}
+                            name={viewType === 'NORMAL' ? recipientName : undefined}
+                            inlineStyle={{
+                                backgroundColor: getAvatarBackgroundColor(),
+                                color: getAvatarTextColor(),
+                            }}
+                        />
+                    )}
+                </div>
 
-            <div className="min-w-0 space-y-1">
-                {getTitle()}
-                <h2 className="text-2xl font-extrabold">
-                    {transactionType === 'ADD_MONEY' && currencySymbol
-                        ? `${currencySymbol} `
-                        : tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
-                          ? '$ '
-                          : ''}
-                    {amount}
+                <div className="w-full space-y-1">
+                    {getTitle()}
+                    <h2 className="text-2xl font-extrabold">
+                        {transactionType === 'ADD_MONEY' && currencySymbol
+                            ? `${currencySymbol} `
+                            : tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
+                              ? '$ '
+                              : ''}
+                        {amount}
 
-                    {tokenSymbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() &&
-                        transactionType !== 'ADD_MONEY' &&
-                        ` ${tokenSymbol.toLowerCase() === 'pnt' ? (Number(amount) === 1 ? 'Beer' : 'Beers') : tokenSymbol}`}
-                </h2>
+                        {tokenSymbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() &&
+                            transactionType !== 'ADD_MONEY' &&
+                            ` ${tokenSymbol.toLowerCase() === 'pnt' ? (Number(amount) === 1 ? 'Beer' : 'Beers') : tokenSymbol}`}
+                    </h2>
 
-                <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
+                    <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
+                    {showTimer && (
+                        <RouteExpiryTimer
+                            expiry={timerExpiry}
+                            isLoading={isTimerLoading}
+                            onNearExpiry={onTimerNearExpiry}
+                            onExpired={onTimerExpired}
+                            disableRefetch={disableTimerRefetch}
+                            error={timerError}
+                        />
+                    )}
+                </div>
             </div>
         </Card>
     )

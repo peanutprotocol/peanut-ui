@@ -38,7 +38,7 @@ export default function OnrampBankPage() {
 
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(undefined)
-    const { amountToOnramp: amountFromContext, setAmountToOnramp, setError, error } = useOnrampFlow()
+    const { amountToOnramp: amountFromContext, setAmountToOnramp, setError, error, setOnrampData } = useOnrampFlow()
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isUpdatingUser, setIsUpdatingUser] = useState(false)
     const [userUpdateError, setUserUpdateError] = useState<string | null>(null)
@@ -186,7 +186,7 @@ export default function OnrampBankPage() {
                 amount: cleanedAmount,
                 country: selectedCountry,
             })
-            sessionStorage.setItem('onrampData', JSON.stringify(onrampDataResponse))
+            setOnrampData(onrampDataResponse)
 
             if (onrampDataResponse.transferId) {
                 setStep('showDetails')

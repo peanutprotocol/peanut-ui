@@ -7,6 +7,7 @@ import {
     PINTA_WALLET_TOKEN_NAME,
     PINTA_WALLET_TOKEN_SYMBOL,
     STABLE_COINS,
+    USER_OPERATION_REVERT_REASON_TOPIC,
 } from '@/constants'
 import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
@@ -16,6 +17,7 @@ import { SiweMessage } from 'siwe'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
+import { getSDKProvider } from './sdk.utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
 
 export function urlBase64ToUint8Array(base64String: string) {
@@ -92,12 +94,17 @@ export function jsonParse<T = any>(data: string): T {
     })
 }
 
-export const saveToLocalStorage = (key: string, data: any) => {
+export const saveToLocalStorage = (key: string, data: any, expirySeconds?: number) => {
     if (typeof localStorage === 'undefined') return
     try {
         // Convert the data to a string before storing it in localStorage
         const serializedData = jsonStringify(data)
         localStorage.setItem(key, serializedData)
+        if (expirySeconds) {
+            localStorage.setItem(`${key}-expiry`, (new Date().getTime() + expirySeconds * 1000).toString())
+        } else {
+            localStorage.removeItem(`${key}-expiry`)
+        }
         console.log(`Saved ${key} to localStorage:`, data)
     } catch (error) {
         Sentry.captureException(error)
@@ -108,6 +115,13 @@ export const saveToLocalStorage = (key: string, data: any) => {
 export const getFromLocalStorage = (key: string) => {
     if (typeof localStorage === 'undefined') return
     try {
+        const expiry = localStorage.getItem(`${key}-expiry`)
+        if (expiry) {
+            const expiryTimestamp = Number(expiry)
+            if (expiryTimestamp < new Date().getTime()) {
+                return null
+            }
+        }
         const data = localStorage.getItem(key)
         if (data === null) {
             console.log(`No data found in localStorage for ${key}`)
@@ -956,9 +970,14 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
     let tokenSymbol = getTokenSymbol(tokenAddress, chainId)
     if (!tokenSymbol) {
         try {
+            const provider = await getSDKProvider({ chainId })
+            if (!provider) {
+                console.error(`Failed to get provider for chain ID ${chainId}`)
+                return undefined
+            }
             const contract = await peanut.getTokenContractDetails({
                 address: tokenAddress,
-                provider: await peanut.getDefaultProvider(chainId),
+                provider: provider,
             })
             tokenSymbol = contract?.symbol?.toUpperCase()
         } catch (error) {
@@ -1181,4 +1200,9 @@ export function isAndroid(): boolean {
 
     const userAgent = window.navigator.userAgent.toLowerCase()
     return /android/.test(userAgent)
+}
+
+export function isTxReverted(receipt: TransactionReceipt): boolean {
+    if (receipt.status === 'reverted') return true
+    return receipt.logs.some((log) => log.topics[0] === USER_OPERATION_REVERT_REASON_TOPIC)
 }
