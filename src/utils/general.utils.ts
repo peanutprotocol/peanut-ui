@@ -94,12 +94,17 @@ export function jsonParse<T = any>(data: string): T {
     })
 }
 
-export const saveToLocalStorage = (key: string, data: any) => {
+export const saveToLocalStorage = (key: string, data: any, expirySeconds?: number) => {
     if (typeof localStorage === 'undefined') return
     try {
         // Convert the data to a string before storing it in localStorage
         const serializedData = jsonStringify(data)
         localStorage.setItem(key, serializedData)
+        if (expirySeconds) {
+            localStorage.setItem(`${key}-expiry`, (new Date().getTime() + expirySeconds * 1000).toString())
+        } else {
+            localStorage.removeItem(`${key}-expiry`)
+        }
         console.log(`Saved ${key} to localStorage:`, data)
     } catch (error) {
         Sentry.captureException(error)
@@ -110,6 +115,13 @@ export const saveToLocalStorage = (key: string, data: any) => {
 export const getFromLocalStorage = (key: string) => {
     if (typeof localStorage === 'undefined') return
     try {
+        const expiry = localStorage.getItem(`${key}-expiry`)
+        if (expiry) {
+            const expiryTimestamp = Number(expiry)
+            if (expiryTimestamp < new Date().getTime()) {
+                return null
+            }
+        }
         const data = localStorage.getItem(key)
         if (data === null) {
             console.log(`No data found in localStorage for ${key}`)
