@@ -13,10 +13,11 @@ export interface SliderProps
     value?: boolean
     onValueChange?: (value: boolean) => void
     defaultValue?: boolean
+    onAccepted?: () => void
 }
 
 const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, SliderProps>(
-    ({ className, value, onValueChange, defaultValue, ...props }, ref) => {
+    ({ className, value, onValueChange, defaultValue, onAccepted, ...props }, ref) => {
         const isControlled = value !== undefined
         const [uncontrolledState, setUncontrolledState] = React.useState(defaultValue ?? false)
         const currentValue = isControlled ? value : uncontrolledState
@@ -39,6 +40,7 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
                 if (onValueChange) {
                     onValueChange(isChecked)
                 }
+                if (isChecked) onAccepted?.()
                 if (!isControlled) {
                     setUncontrolledState(isChecked)
                 }
