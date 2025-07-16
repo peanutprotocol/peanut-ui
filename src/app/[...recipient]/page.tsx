@@ -18,7 +18,7 @@ export async function generateMetadata({ params, searchParams }: any) {
     const resolvedSearchParams = await searchParams
     const resolvedParams = await params
 
-    let recipient = resolvedParams.recipient[0]
+    let recipient = resolvedParams.recipient[0].toLowerCase()
 
     if (recipient.includes('%40') || recipient.includes('@')) {
         // split on @ or %40
