@@ -11,7 +11,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, Account } from '@/interfaces'
-import { formatIban, shortenAddressLong } from '@/utils/general.utils'
+import { formatIban, shortenAddressLong, isTxReverted } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
@@ -134,7 +134,7 @@ export default function WithdrawBankPage() {
             // Step 2: prepare and send the transaction from peanut wallet to the deposit address
             const receipt = await sendMoney(data.depositInstructions.toAddress as `0x${string}`, createPayload.amount)
 
-            if (receipt.status === 'reverted') {
+            if (isTxReverted(receipt)) {
                 throw new Error('Transaction reverted by the network.')
             }
 

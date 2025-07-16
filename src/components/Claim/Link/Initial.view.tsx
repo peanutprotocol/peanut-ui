@@ -13,7 +13,13 @@ import {
 } from '@/components/Offramp/Offramp.consts'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import * as consts from '@/constants'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PINTA_WALLET_CHAIN, PINTA_WALLET_TOKEN } from '@/constants'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    PINTA_WALLET_CHAIN,
+    PINTA_WALLET_TOKEN,
+    ROUTE_NOT_FOUND_ERROR,
+} from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
@@ -406,7 +412,7 @@ export const InitialClaimLinkView = ({
                 }
                 setErrorState({
                     showError: true,
-                    errorMessage: 'No route found for the given token pair.',
+                    errorMessage: ROUTE_NOT_FOUND_ERROR,
                 })
                 Sentry.captureException(error)
                 return undefined

@@ -7,6 +7,7 @@ import {
     PINTA_WALLET_TOKEN_NAME,
     PINTA_WALLET_TOKEN_SYMBOL,
     STABLE_COINS,
+    USER_OPERATION_REVERT_REASON_TOPIC,
 } from '@/constants'
 import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
@@ -1187,4 +1188,9 @@ export function isAndroid(): boolean {
 
     const userAgent = window.navigator.userAgent.toLowerCase()
     return /android/.test(userAgent)
+}
+
+export function isTxReverted(receipt: TransactionReceipt): boolean {
+    if (receipt.status === 'reverted') return true
+    return receipt.logs.some((log) => log.topics[0] === USER_OPERATION_REVERT_REASON_TOPIC)
 }

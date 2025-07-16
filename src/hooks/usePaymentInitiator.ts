@@ -21,7 +21,7 @@ import {
     TChargeTransactionType,
     TRequestChargeResponse,
 } from '@/services/services.types'
-import { areEvmAddressesEqual, ErrorHandler, isNativeCurrency } from '@/utils'
+import { areEvmAddressesEqual, ErrorHandler, isNativeCurrency, isTxReverted } from '@/utils'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -483,7 +483,7 @@ export const usePaymentInitiator = () => {
                 console.error('sendTransactions returned invalid receipt (missing hash?):', receipt)
                 throw new Error('Transaction likely failed or was not submitted correctly by the wallet.')
             }
-            if (receipt.status === 'reverted') {
+            if (isTxReverted(receipt)) {
                 console.error('Transaction reverted according to receipt:', receipt)
                 throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
             }
@@ -572,7 +572,7 @@ export const usePaymentInitiator = () => {
                     console.log(`Transaction ${i + 1} receipt:`, txReceipt)
                     receipts.push(txReceipt)
 
-                    if (txReceipt.status === 'reverted') {
+                    if (isTxReverted(txReceipt)) {
                         console.error(`Transaction ${i + 1} reverted:`, txReceipt)
                         throw new Error(`Transaction ${i + 1} failed (reverted).`)
                     }
