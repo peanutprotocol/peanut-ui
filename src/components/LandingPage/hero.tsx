@@ -134,7 +134,7 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
                     alt="Peanut Guy"
                 />
 
-                <Stack spacing={2} className="relative h-1/3 items-center justify-center px-4 text-center lg:h-full">
+                <Stack spacing={2} className="relative h-1/3 !mb-56 md:!mb-20 items-center justify-center px-4 text-center lg:h-full">
                     <img
                         src={ButterySmoothGlobalMoney.src}
                         className="z-0 mx-auto w-full max-w-[1000px] object-contain lg:w-3/4"
