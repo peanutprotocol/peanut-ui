@@ -47,7 +47,7 @@ const getHoverAnimation = (variant: 'primary' | 'secondary') => ({
 const transitionConfig = { type: 'spring', damping: 15 } as const
 
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
-    `fixed bottom-4 z-20 sm:bottom-8 ${variant === 'primary' ? 'inset-x-0 mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
+    `relative z-20 mt-8 md:mt-12 ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
 const getButtonClasses = (variant: 'primary' | 'secondary') =>
     `${variant === 'primary' ? 'btn bg-white fill-n-1 text-n-1 hover:bg-white/90' : 'btn-yellow'} px-7 md:px-9 py-3 md:py-8 text-base md:text-xl btn-shadow-primary-4`
@@ -188,13 +188,11 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
                         </span>
                     </div>
 
+                    {primaryCta && renderCTAButton(primaryCta, 'primary')}
+                    {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
+
                     <HeroImages />
                 </Stack>
-            </div>
-
-            <div>
-                {primaryCta && renderCTAButton(primaryCta, 'primary')}
-                {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
             </div>
         </div>
     )
