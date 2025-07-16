@@ -39,6 +39,7 @@ export async function validateAndResolveRecipient(
             }
 
         case 'USERNAME':
+            recipient = recipient.toLowerCase()
             const isValidPeanutUsername = await verifyPeanutUsername(recipient)
             if (!isValidPeanutUsername) {
                 throw new RecipientValidationError('Invalid Peanut username')
