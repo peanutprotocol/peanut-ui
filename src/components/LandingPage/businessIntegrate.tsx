@@ -4,15 +4,9 @@ import { Star } from '@/assets'
 import scribble from '@/assets/scribble.svg'
 import peanutMeans from '@/assets/illustrations/peanut-means.svg'
 
-// Define the background color as a constant
-const businessBgColor = '#90A8ED'
-
 export function BusinessIntegrate() {
     return (
-        <section
-            className="relative min-h-[500px] overflow-hidden px-4 py-16 text-n-1 md:min-h-[900px]"
-            style={{ backgroundColor: businessBgColor }}
-        >
+        <section className="relative min-h-[500px] overflow-hidden bg-secondary-3 px-4 py-16 text-n-1 md:min-h-[900px]">
             <div className="relative mx-auto max-w-3xl text-center">
                 {/* Main heading */}
                 <div className="mb-8 mt-8 md:mb-24 md:mt-20">
