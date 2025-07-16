@@ -6,18 +6,23 @@ import exclamations from '@/assets/illustrations/exclamations.svg'
 import payZeroFees from '@/assets/illustrations/pay-zero-fees.svg'
 import mobileSendInSeconds from '@/assets/illustrations/mobile-send-in-seconds.svg'
 import { Star, Sparkle } from '@/assets'
-import { useResizeHandler, createButtonAnimation, createStarAnimation, createCloudAnimation } from '@/hooks/useAnimations'
+import {
+    useResizeHandler,
+    createButtonAnimation,
+    createStarAnimation,
+    createCloudAnimation,
+} from '@/hooks/useAnimations'
 
 export function SendInSeconds() {
     const screenWidth = useResizeHandler()
-    
+
     const buttonAnimation = createButtonAnimation(true, 1)
-    
+
     const starAnimation1 = createStarAnimation(0.2)
     const starAnimation2 = createStarAnimation(0.4, 5, { translateY: 25, translateX: -5, rotate: -10 }, { rotate: -10 })
     const starAnimation3 = createStarAnimation(0.6, 5, { translateY: 18, translateX: 5, rotate: -22 }, { rotate: -22 })
     const starAnimation4 = createStarAnimation(0.8, 5, { translateY: 22, translateX: -5, rotate: 12 }, { rotate: 12 })
-    
+
     const cloud1Animation = createCloudAnimation('left', 320, 35, screenWidth)
     const cloud2Animation = createCloudAnimation('right', 200, 40, screenWidth)
     const cloud3Animation = createCloudAnimation('left', 180, 45, screenWidth)

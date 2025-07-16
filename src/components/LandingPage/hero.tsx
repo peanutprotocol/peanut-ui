@@ -79,14 +79,14 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
 export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
     const screenWidth = useResizeHandler()
     const scrollY = useScrollHandler()
-    
+
     const primaryButtonAnimation = createButtonAnimation(
         buttonVisible || false,
         buttonScale,
         { translateX: 0 },
         { translateX: 0 }
     )
-    
+
     const secondaryButtonAnimation = createButtonAnimation(
         buttonVisible || false,
         buttonScale,
@@ -134,7 +134,10 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
                     alt="Peanut Guy"
                 />
 
-                <Stack spacing={2} className="relative h-1/3 !mb-56 md:!mb-20 items-center justify-center px-4 text-center lg:h-full">
+                <Stack
+                    spacing={2}
+                    className="relative !mb-56 h-1/3 items-center justify-center px-4 text-center md:!mb-20 lg:h-full"
+                >
                     <img
                         src={ButterySmoothGlobalMoney.src}
                         className="z-0 mx-auto w-full max-w-[1000px] object-contain lg:w-3/4"

@@ -9,7 +9,7 @@ export function useScrollHandler(throttleMs = 16) {
 
         const handleScroll = () => {
             if (timeoutId) return
-            
+
             timeoutId = setTimeout(() => {
                 setScrollY(window.scrollY)
                 timeoutId = null
@@ -18,7 +18,7 @@ export function useScrollHandler(throttleMs = 16) {
 
         handleScroll()
         window.addEventListener('scroll', handleScroll)
-        
+
         return () => {
             window.removeEventListener('scroll', handleScroll)
             if (timeoutId) {
@@ -38,7 +38,7 @@ export function useResizeHandler(throttleMs = 16) {
 
         const handleResize = () => {
             if (timeoutId) return
-            
+
             timeoutId = setTimeout(() => {
                 setScreenWidth(window.innerWidth)
                 timeoutId = null
@@ -47,7 +47,7 @@ export function useResizeHandler(throttleMs = 16) {
 
         handleResize()
         window.addEventListener('resize', handleResize)
-        
+
         return () => {
             window.removeEventListener('resize', handleResize)
             if (timeoutId) {

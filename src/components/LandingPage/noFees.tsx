@@ -13,13 +13,13 @@ import { useResizeHandler, createStarAnimation, createCloudAnimation } from '@/h
 
 export function NoFees() {
     const screenWidth = useResizeHandler()
-    
+
     const starAnimation1 = createStarAnimation(0.2, 5, { rotate: 22 }, { rotate: 22 })
     const starAnimation2 = createStarAnimation(0.4, 5, { translateY: 28, translateX: -5, rotate: -17 }, { rotate: -17 })
     const starAnimation3 = createStarAnimation(0.6, 5, { rotate: 22 }, { rotate: 22 })
     const starAnimation4 = createStarAnimation(0.8, 5, { translateY: 15, translateX: -5, rotate: -7 }, { rotate: -7 })
     const starAnimation5 = createStarAnimation(1.0, 5, { translateY: 25, translateX: -5, rotate: -5 }, { rotate: -5 })
-    
+
     const cloud1Animation = createCloudAnimation('left', 200, 35, screenWidth)
     const cloud2Animation = createCloudAnimation('right', 220, 40, screenWidth)
 
