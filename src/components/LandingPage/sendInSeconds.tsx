@@ -106,33 +106,25 @@ export function SendInSeconds() {
             <motion.img
                 src={Star.src}
                 alt="Floating Star"
-                width={50}
-                height={50}
-                className="absolute right-10 top-10 md:right-1/4 md:top-20"
+                className="absolute right-10 top-10 w-8 md:right-1/4 md:top-20 md:w-12"
                 {...starAnimation1}
             />
             <motion.img
                 src={Star.src}
                 alt="Floating Star"
-                width={40}
-                height={40}
-                className="absolute bottom-16 left-1/3"
+                className="absolute bottom-16 left-1/3 w-8 md:w-12"
                 {...starAnimation2}
             />
             <motion.img
                 src={Star.src}
                 alt="Floating Star"
-                width={50}
-                height={50}
-                className="absolute bottom-20 left-[2rem] md:bottom-72 md:right-[14rem]"
+                className="absolute bottom-20 left-[2rem] w-8 md:bottom-72 md:right-[14rem] md:w-12"
                 {...starAnimation3}
             />
             <motion.img
                 src={Star.src}
                 alt="Floating Star"
-                width={60}
-                height={60}
-                className="absolute left-[20rem] top-72"
+                className="absolute left-[20rem] top-72 w-8 md:w-12"
                 {...starAnimation4}
             />
 

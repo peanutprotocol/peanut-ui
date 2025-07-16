@@ -48,41 +48,31 @@ export function NoFees() {
                 <motion.img
                     src={Star.src}
                     alt="Floating Star"
-                    width={50}
-                    height={50}
-                    className="absolute -right-36 -top-12"
+                    className="absolute -right-36 -top-12 w-8 md:w-12"
                     {...starAnimation1}
                 />
                 <motion.img
                     src={Star.src}
                     alt="Floating Star"
-                    width={50}
-                    height={50}
-                    className="absolute -right-58 top-30"
+                    className="absolute -right-58 top-30 w-8 md:w-12"
                     {...starAnimation2}
                 />
                 <motion.img
                     src={Star.src}
                     alt="Floating Star"
-                    width={50}
-                    height={50}
-                    className="absolute -right-0 -top-16 md:top-58"
+                    className="absolute -right-0 -top-16 w-8 md:top-58 md:w-12"
                     {...starAnimation3}
                 />
                 <motion.img
                     src={Star.src}
                     alt="Floating Star"
-                    width={50}
-                    height={50}
-                    className="absolute -left-36 -top-20"
+                    className="absolute -left-36 -top-20 w-8 md:w-12"
                     {...starAnimation4}
                 />
                 <motion.img
                     src={Star.src}
                     alt="Floating Star"
-                    width={50}
-                    height={50}
-                    className="absolute -bottom-6 -left-10"
+                    className="absolute -bottom-6 -left-10 w-8 md:w-12"
                     {...starAnimation5}
                 />
                 {/* Main stylized headline */}
