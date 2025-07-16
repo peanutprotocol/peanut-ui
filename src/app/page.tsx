@@ -5,12 +5,13 @@ import {
     BusinessIntegrate,
     FAQs,
     Hero,
-    Marquee,
     NoFees,
     SecurityBuiltIn,
     SendInSeconds,
     YourMoney,
 } from '@/components/LandingPage'
+import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
+import { HandThumbsUp } from '@/assets'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef } from 'react'
 
@@ -30,7 +31,6 @@ export default function LandingPage() {
     const hero = {
         heading: 'Peanut',
         marquee: {
-            visible: true,
             message: ['No fees', 'Instant', '24/7', 'USD', 'EUR', 'CRYPTO', 'GLOBAL', 'SELF-CUSTODIAL'],
         },
         primaryCta: {
@@ -158,7 +158,11 @@ export default function LandingPage() {
         }
     }, [isScrollFrozen, animationComplete, shrinkingPhase, hasGrown])
 
-    const marqueeProps = { visible: hero.marquee.visible, message: hero.marquee.message }
+    const marqueeProps = {
+        message: hero.marquee.message,
+        imageSrc: HandThumbsUp.src,
+        backgroundColor: 'bg-secondary-1',
+    }
 
     return (
         <Layout className="!m-0 w-full !p-0">
@@ -168,21 +172,35 @@ export default function LandingPage() {
                 buttonVisible={buttonVisible}
                 buttonScale={buttonScale}
             />
-            <Marquee {...marqueeProps} />
+            <div className="relative z-1">
+                <MarqueeComp {...marqueeProps} />
+            </div>
             <YourMoney />
-            <Marquee {...marqueeProps} />
+            <div className="relative z-1">
+                <MarqueeComp {...marqueeProps} />
+            </div>
             <NoFees />
-            <Marquee {...marqueeProps} />
+            <div className="relative z-1">
+                <MarqueeComp {...marqueeProps} />
+            </div>
             <SecurityBuiltIn />
-            <Marquee {...marqueeProps} />
+            <div className="relative z-1">
+                <MarqueeComp {...marqueeProps} />
+            </div>
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
-            <Marquee {...marqueeProps} />
+            <div className="relative z-1">
+                <MarqueeComp {...marqueeProps} />
+            </div>
             <div ref={sendInSecondsRef}>
                 <SendInSeconds />
             </div>
-            <Marquee {...marqueeProps} />
+            <div className="relative z-1">
+                <MarqueeComp {...marqueeProps} />
+            </div>
             <BusinessIntegrate />
-            <Marquee {...marqueeProps} />
+            <div className="relative z-1">
+                <MarqueeComp {...marqueeProps} />
+            </div>
         </Layout>
     )
 }
