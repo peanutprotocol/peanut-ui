@@ -49,7 +49,6 @@ const Layout = ({ children, className }: LayoutProps) => {
                                 </div>
                             </div>
                             <FooterVisibilityObserver />
-                            <Footer />
                             <Modal
                                 visible={showModal}
                                 onClose={() => {
