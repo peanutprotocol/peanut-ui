@@ -136,14 +136,16 @@ export function SendInSeconds() {
                 {...starAnimation4}
             />
 
-            {/* Exclamations */}
-            <Image
-                src={exclamations}
-                alt="Exclamations"
-                width={200}
-                height={300}
-                className="absolute right-72 top-1/3 hidden -translate-y-1/2 transform md:block"
-            />
+            {/* Exclamations - only show on screens larger than 1780px */}
+            {screenWidth > 1740 && (
+                <Image
+                    src={exclamations}
+                    alt="Exclamations"
+                    width={200}
+                    height={300}
+                    className="absolute right-72 top-1/3 -translate-y-1/2 transform"
+                />
+            )}
 
             {/* Main content */}
             <div className="relative mx-auto max-w-3xl text-center">
