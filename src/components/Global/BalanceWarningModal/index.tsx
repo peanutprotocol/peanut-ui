@@ -1,9 +1,9 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Modal from '@/components/Global/Modal'
 import { useMemo } from 'react'
+import { Slider } from '@/components/Slider'
 
 enum Platform {
     IOS = 'ios',
@@ -20,7 +20,7 @@ const PLATFORM_INFO = {
     },
     [Platform.ANDROID]: {
         name: 'Android',
-        url: 'https://support.google.com/android/answer/6197437',
+        url: 'https://support.google.com/accounts/answer/6197437',
     },
     [Platform.MACOS]: {
         name: 'Mac',
@@ -84,8 +84,8 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
             classWrap="!self-center !bottom-auto !mx-auto"
         >
             <div className="flex w-full flex-col items-center justify-center gap-6 p-6 text-center">
-                <div className="flex size-16 items-center justify-center rounded-full bg-yellow-100">
-                    <Icon name="alert" className="size-8" fill="#F59E0B" />
+                <div className="flex size-16 items-center justify-center rounded-full bg-yellow-400">
+                    <Icon name="alert" className="size-8" />
                 </div>
 
                 <div className="space-y-4">
@@ -115,17 +115,7 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
                     </div>
                 </div>
 
-                <Button
-                    variant="purple"
-                    size="large"
-                    className="w-full"
-                    longPress={{
-                        duration: 2000,
-                        onLongPress: onCloseAction,
-                    }}
-                >
-                    Hold to continue
-                </Button>
+                <Slider onAccepted={onCloseAction} />
             </div>
         </Modal>
     )

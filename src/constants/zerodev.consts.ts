@@ -44,6 +44,7 @@ export const PEANUT_WALLET_SUPPORTED_TOKENS: Record<string, string[]> = {
  */
 export const USER_OP_ENTRY_POINT = getEntryPoint('0.7')
 export const ZERODEV_KERNEL_VERSION = KERNEL_V3_1
+export const USER_OPERATION_REVERT_REASON_TOPIC = '0x1c4fada7374c0a9ee8841fc38afe82932dc0f8e69012e927f061a8bae611a201'
 
 export const PUBLIC_CLIENTS_BY_CHAIN: Record<
     string,

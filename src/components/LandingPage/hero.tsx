@@ -1,10 +1,11 @@
-import { AboutPeanut, ButterySmoothGlobalMoney, HandThumbsUp, PeanutGuyGIF, Sparkle } from '@/assets'
+import { ButterySmoothGlobalMoney, PeanutGuyGIF, Sparkle } from '@/assets'
 import { Stack } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { MarqueeComp } from '../Global/MarqueeWrapper'
 import { CloudImages, HeroImages } from './imageAssets'
+import Image from 'next/image'
+import instantlySendReceive from '@/assets/illustrations/instantly-send-receive.svg'
 
 type CTAButton = {
     label: string
@@ -14,72 +15,140 @@ type CTAButton = {
 
 type HeroProps = {
     heading: string
-    marquee?: {
-        visible: boolean
-        message?: string[]
-    }
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
+    buttonScale?: number
 }
 
-export function Hero({ heading, marquee = { visible: false }, primaryCta, secondaryCta, buttonVisible }: HeroProps) {
-    const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200) // Added typeof check for SSR
+// Helper functions moved outside component for better performance
+const getInitialAnimation = (variant: 'primary' | 'secondary') => ({
+    opacity: 0,
+    translateY: 4,
+    translateX: variant === 'primary' ? 0 : 4,
+    rotate: 0.75,
+})
+
+const getAnimateAnimation = (variant: 'primary' | 'secondary', buttonVisible?: boolean, buttonScale?: number) => ({
+    opacity: buttonVisible ? 1 : 0,
+    translateY: buttonVisible ? 0 : 20,
+    translateX: buttonVisible ? (variant === 'primary' ? 0 : 0) : 20,
+    rotate: buttonVisible ? 0 : 1,
+    scale: buttonScale || 1,
+    pointerEvents: buttonVisible ? ('auto' as const) : ('none' as const),
+})
+
+const getHoverAnimation = (variant: 'primary' | 'secondary') => ({
+    translateY: 6,
+    translateX: variant === 'primary' ? 0 : 3,
+    rotate: 0.75,
+})
+
+const transitionConfig = { type: 'spring', damping: 15 } as const
+
+const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
+    `relative z-20 mt-8 md:mt-12 ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
+
+const getButtonClasses = (variant: 'primary' | 'secondary') =>
+    `${variant === 'primary' ? 'btn bg-white fill-n-1 text-n-1 hover:bg-white/90' : 'btn-yellow'} px-7 md:px-9 py-3 md:py-8 text-base md:text-xl btn-shadow-primary-4`
+
+const renderSparkle = (variant: 'primary' | 'secondary') =>
+    variant === 'primary' && (
+        <img
+            src={Sparkle.src}
+            className={twMerge('absolute -right-4 -top-4 h-auto w-5 sm:-right-5 sm:-top-5 sm:w-6')}
+            alt="Sparkle"
+        />
+    )
+
+const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, buttonVisible?: boolean) =>
+    variant === 'primary' && (
+        <>
+            <Image
+                src="/arrows/small-arrow.svg"
+                alt="Arrow pointing to button"
+                width={32}
+                height={16}
+                className="absolute -left-8 -top-5 block -translate-y-1/2 transform md:hidden"
+                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '8deg' }}
+            />
+            <Image
+                src="/arrows/small-arrow.svg"
+                alt="Arrow pointing to button"
+                width={32}
+                height={16}
+                className="absolute -right-8 -top-5 block -translate-y-1/2 scale-x-[-1] transform md:hidden"
+                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '-8deg' }}
+            />
+            <Image
+                src="/arrows/small-arrow.svg"
+                alt="Arrow pointing to button"
+                width={40}
+                height={20}
+                className="absolute -left-10 -top-6 hidden -translate-y-1/2 transform md:block"
+                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '8deg' }}
+            />
+            <Image
+                src="/arrows/small-arrow.svg"
+                alt="Arrow pointing to button"
+                width={40}
+                height={20}
+                className="absolute -right-10 -top-6 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
+                style={{ opacity: buttonVisible ? arrowOpacity : 0, rotate: '-8deg' }}
+            />
+        </>
+    )
+
+export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
+    const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
+    const [scrollY, setScrollY] = useState(0)
 
     useEffect(() => {
         const handleResize = () => {
             setScreenWidth(window.innerWidth)
         }
 
-        handleResize() // Call once initially to set duration
-        window.addEventListener('resize', handleResize) // Recalculate on window resize
+        const handleScroll = () => {
+            setScrollY(window.scrollY)
+        }
 
-        return () => window.removeEventListener('resize', handleResize)
+        handleResize()
+        window.addEventListener('resize', handleResize)
+        window.addEventListener('scroll', handleScroll)
+
+        return () => {
+            window.removeEventListener('resize', handleResize)
+            window.removeEventListener('scroll', handleScroll)
+        }
     }, [])
 
-    const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => (
-        <motion.div
-            className={`fixed bottom-4 z-20 sm:bottom-8 ${
-                variant === 'primary' ? 'right-[calc(50%)]' : 'right-[calc(50%-120px)]'
-            }`}
-            initial={{
-                opacity: 0,
-                translateY: 4,
-                translateX: 4,
-                rotate: 0.75,
-            }}
-            animate={{
-                opacity: buttonVisible ? 1 : 0,
-                translateY: buttonVisible ? 0 : 20,
-                translateX: buttonVisible ? 0 : 20,
-                rotate: buttonVisible ? 0 : 1,
-                pointerEvents: buttonVisible ? 'auto' : 'none',
-            }}
-            whileHover={{
-                translateY: 6,
-                translateX: 3,
-                rotate: 0.75,
-            }}
-            transition={{ type: 'spring', damping: 15 }}
-        >
-            {variant === 'primary' && (
-                <img
-                    src={Sparkle.src}
-                    className={twMerge('absolute -right-4 -top-4 h-auto w-5 sm:-right-5 sm:-top-5 sm:w-6')}
-                    alt="Sparkle"
-                />
-            )}
+    const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
+        const arrowOpacity = 1 // Always visible
 
-            <a
-                href={cta.href}
-                className={`${variant === 'primary' ? 'btn-purple' : 'btn-yellow'} px-5 shadow-md`}
-                target={cta.isExternal ? '_blank' : undefined}
-                rel={cta.isExternal ? 'noopener noreferrer' : undefined}
+        return (
+            <motion.div
+                className={getButtonContainerClasses(variant)}
+                initial={getInitialAnimation(variant)}
+                animate={getAnimateAnimation(variant, buttonVisible, buttonScale)}
+                whileHover={getHoverAnimation(variant)}
+                transition={transitionConfig}
             >
-                {cta.label}
-            </a>
-        </motion.div>
-    )
+                {/* {renderSparkle(variant)} */}
+
+                <a
+                    href={cta.href}
+                    className={getButtonClasses(variant)}
+                    target={cta.isExternal ? '_blank' : undefined}
+                    style={{ fontWeight: 900 }}
+                    rel={cta.isExternal ? 'noopener noreferrer' : undefined}
+                >
+                    {cta.label}
+                </a>
+
+                {renderArrows(variant, arrowOpacity, buttonVisible)}
+            </motion.div>
+        )
+    }
 
     return (
         <div className="relative flex min-h-[100dvh] flex-col justify-between overflow-x-hidden bg-primary-1">
@@ -103,29 +172,27 @@ export function Hero({ heading, marquee = { visible: false }, primaryCta, second
                 </Stack>
 
                 <Stack spacing={2} className="relative h-1/3 items-center justify-center px-4 text-center lg:h-full">
-                    <img
-                        src={AboutPeanut.src}
-                        className="z-0 mx-auto w-full max-w-[1000px] object-contain pt-6 lg:w-[40%]"
-                        alt="Buttery Smooth Global Money"
-                    />
+                    <div className="mt-8 md:mt-20">
+                        <Image
+                            src={instantlySendReceive}
+                            alt="Instantly Send and Receive"
+                            width={800}
+                            height={150}
+                            className="mx-auto h-auto w-full max-w-lg md:max-w-4xl"
+                        />
+                        <span
+                            className="mt-2 block text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
+                            style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
+                        >
+                            MONEY ACROSS THE GLOBE
+                        </span>
+                    </div>
+
+                    {primaryCta && renderCTAButton(primaryCta, 'primary')}
+                    {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
 
                     <HeroImages />
                 </Stack>
-            </div>
-
-            <div className="relative z-1">
-                {marquee?.visible && (
-                    <MarqueeComp
-                        message={marquee.message}
-                        imageSrc={HandThumbsUp.src}
-                        backgroundColor="bg-secondary-1"
-                    />
-                )}
-            </div>
-
-            <div>
-                {primaryCta && renderCTAButton(primaryCta, 'primary')}
-                {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
             </div>
         </div>
     )
