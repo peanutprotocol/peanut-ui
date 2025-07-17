@@ -396,6 +396,10 @@ export const PaymentForm = ({
             tokenAmount = (parseFloat(inputUsdValue) / requestedTokenPrice).toString()
         }
 
+        const hasAmount = inputTokenAmount && parseFloat(inputTokenAmount) > 0
+        const hasSufficientBalance = !error || !error.includes('Insufficient balance')
+        const shouldSkipUrlUpdate = isActivePeanutWallet && hasAmount && hasSufficientBalance
+
         const payload: InitiatePaymentPayload = {
             recipient: recipient,
             tokenAmount,
@@ -407,6 +411,7 @@ export const PaymentForm = ({
             isAddMoneyFlow: !!isAddMoneyFlow,
             transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectUsdPayment ? 'DIRECT_SEND' : 'REQUEST',
             attachmentOptions: attachmentOptions,
+            skipUrlUpdate: shouldSkipUrlUpdate, // Skip URL update for Peanut users with direct success flow
         }
 
         console.log('Initiating payment with payload:', payload)
@@ -416,7 +421,15 @@ export const PaymentForm = ({
         if (result.status === 'Success') {
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
-            dispatch(paymentActions.setView('CONFIRM'))
+            // For Peanut users with sufficient balance, go directly to success page
+            const hasAmount = inputTokenAmount && parseFloat(inputTokenAmount) > 0
+            const hasSufficientBalance = !error || !error.includes('Insufficient balance')
+
+            if (isActivePeanutWallet && hasAmount && hasSufficientBalance) {
+                dispatch(paymentActions.setView('STATUS'))
+            } else {
+                dispatch(paymentActions.setView('CONFIRM'))
+            }
         } else if (result.status === 'Error') {
             console.error('Payment initiation failed:', result.error)
         } else {
@@ -440,6 +453,8 @@ export const PaymentForm = ({
         selectedChainID,
         inputUsdValue,
         requestedTokenPrice,
+        isActivePeanutWallet,
+        error,
     ])
 
     const getButtonText = () => {
@@ -459,6 +474,10 @@ export const PaymentForm = ({
             // check if this is a request link with amount and user has sufficient balance
             const hasAmount = inputTokenAmount && parseFloat(inputTokenAmount) > 0
             const hasSufficientBalance = !error || !error.includes('Insufficient balance')
+
+            if (isProcessing) {
+                return 'Sending'
+            }
 
             if (hasAmount && hasSufficientBalance) {
                 return (
@@ -531,7 +550,6 @@ export const PaymentForm = ({
     }, [isPintaReq, inputTokenAmount])
 
     const isButtonDisabled = useMemo(() => {
-        if (isProcessing) return true
         if (!!error) return true
 
         // ensure inputTokenAmount is a valid positive number before allowing payment
@@ -561,7 +579,6 @@ export const PaymentForm = ({
         // fallback for Pinta or other cases if not explicitly handled above
         return false
     }, [
-        isProcessing,
         error,
         inputTokenAmount,
         isAddMoneyFlow,
@@ -571,6 +588,7 @@ export const PaymentForm = ({
         isConnected,
         isActivePeanutWallet,
         isPintaReq,
+        isProcessing,
     ])
 
     if (isPintaReq) {

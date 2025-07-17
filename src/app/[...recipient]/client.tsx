@@ -324,11 +324,12 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
 
         dispatch(paymentActions.setView('STATUS'))
 
-        // only open transaction details drawer if not add money flow
-        if (!isAddMoneyFlow) {
+        // only open transaction details drawer if not add money flow and not a Peanut user
+        // for Peanut users, we want to show the success page with buttons instead
+        if (!isAddMoneyFlow && !user) {
             openTransactionDetails(transactionForDrawer)
         }
-    }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isAddMoneyFlow, chargeId])
+    }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isAddMoneyFlow, chargeId, user])
 
     if (error) {
         return (
