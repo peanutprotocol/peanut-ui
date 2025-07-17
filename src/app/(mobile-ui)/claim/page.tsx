@@ -38,9 +38,8 @@ export async function generateMetadata({
                     'You received ' +
                     (Number(linkDetails.tokenAmount) < 0.01
                         ? 'some '
-                        : formatAmount(Number(linkDetails.tokenAmount)) + ' in ') +
-                    linkDetails.tokenSymbol +
-                    '!'
+                        : '$' + formatAmount(Number(linkDetails.tokenAmount)) + ' ') +
+                    'via Peanut'
             } else {
                 title = 'This link has been claimed'
             }
