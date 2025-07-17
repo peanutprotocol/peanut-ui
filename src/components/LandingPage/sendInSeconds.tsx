@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
@@ -6,59 +6,27 @@ import exclamations from '@/assets/illustrations/exclamations.svg'
 import payZeroFees from '@/assets/illustrations/pay-zero-fees.svg'
 import mobileSendInSeconds from '@/assets/illustrations/mobile-send-in-seconds.svg'
 import { Star, Sparkle } from '@/assets'
+import {
+    useResizeHandler,
+    createButtonAnimation,
+    createStarAnimation,
+    createCloudAnimation,
+} from '@/hooks/useAnimations'
 
 export function SendInSeconds() {
-    const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
+    const screenWidth = useResizeHandler()
 
-    useEffect(() => {
-        const handleResize = () => {
-            setScreenWidth(window.innerWidth)
-        }
+    const buttonAnimation = createButtonAnimation(true, 1)
 
-        handleResize()
-        window.addEventListener('resize', handleResize)
-        return () => window.removeEventListener('resize', handleResize)
-    }, [])
+    const starAnimation1 = createStarAnimation(0.2)
+    const starAnimation2 = createStarAnimation(0.4, 5, { translateY: 25, translateX: -5, rotate: -10 }, { rotate: -10 })
+    const starAnimation3 = createStarAnimation(0.6, 5, { translateY: 18, translateX: 5, rotate: -22 }, { rotate: -22 })
+    const starAnimation4 = createStarAnimation(0.8, 5, { translateY: 22, translateX: -5, rotate: 12 }, { rotate: 12 })
 
-    const createCloudAnimation = (side: 'left' | 'right', width: number, speed: number) => {
-        const vpWidth = screenWidth || 1080
-        const totalDistance = vpWidth + width
-
-        return {
-            initial: { x: side === 'left' ? -width : vpWidth },
-            animate: { x: side === 'left' ? vpWidth : -width },
-            transition: {
-                ease: 'linear',
-                duration: totalDistance / speed,
-                repeat: Infinity,
-            },
-        }
-    }
-
-    // Button helper functions adapted from hero.tsx
-    const getInitialAnimation = () => ({
-        opacity: 0,
-        translateY: 4,
-        translateX: 0,
-        rotate: 0.75,
-    })
-
-    const getAnimateAnimation = (buttonVisible: boolean, buttonScale: number = 1) => ({
-        opacity: buttonVisible ? 1 : 0,
-        translateY: buttonVisible ? 0 : 20,
-        translateX: buttonVisible ? 0 : 20,
-        rotate: buttonVisible ? 0 : 1,
-        scale: buttonScale,
-        pointerEvents: buttonVisible ? ('auto' as const) : ('none' as const),
-    })
-
-    const getHoverAnimation = () => ({
-        translateY: 6,
-        translateX: 0,
-        rotate: 0.75,
-    })
-
-    const transitionConfig = { type: 'spring', damping: 15 } as const
+    const cloud1Animation = createCloudAnimation('left', 320, 35, screenWidth)
+    const cloud2Animation = createCloudAnimation('right', 200, 40, screenWidth)
+    const cloud3Animation = createCloudAnimation('left', 180, 45, screenWidth)
+    const cloud4Animation = createCloudAnimation('right', 320, 30, screenWidth)
 
     const getButtonClasses = () =>
         `btn bg-white fill-n-1 text-n-1 hover:bg-white/90 px-9 md:px-11 py-4 md:py-10 text-lg md:text-2xl btn-shadow-primary-4`
@@ -114,28 +82,28 @@ export function SendInSeconds() {
                     alt="Floating Border Cloud"
                     className="absolute left-0"
                     style={{ top: '15%', width: 320 }}
-                    {...createCloudAnimation('left', 320, 35)}
+                    {...cloud1Animation}
                 />
                 <motion.img
                     src={borderCloud.src}
                     alt="Floating Border Cloud"
                     className="absolute right-0"
                     style={{ top: '40%', width: 200 }}
-                    {...createCloudAnimation('right', 200, 40)}
+                    {...cloud2Animation}
                 />
                 <motion.img
                     src={borderCloud.src}
                     alt="Floating Border Cloud"
                     className="absolute left-0"
                     style={{ top: '70%', width: 180 }}
-                    {...createCloudAnimation('left', 180, 45)}
+                    {...cloud3Animation}
                 />
                 <motion.img
                     src={borderCloud.src}
                     alt="Floating Border Cloud"
                     className="absolute right-0"
                     style={{ top: '80%', width: 320 }}
-                    {...createCloudAnimation('right', 320, 30)}
+                    {...cloud4Animation}
                 />
             </div>
 
@@ -143,52 +111,38 @@ export function SendInSeconds() {
             <motion.img
                 src={Star.src}
                 alt="Floating Star"
-                width={50}
-                height={50}
-                className="absolute right-10 top-10 md:right-1/4 md:top-20"
-                initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 45 }}
-                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 45 }}
-                transition={{ type: 'spring', damping: 5, delay: 0.2 }}
+                className="absolute right-10 top-10 w-8 md:right-1/4 md:top-20 md:w-12"
+                {...starAnimation1}
             />
             <motion.img
                 src={Star.src}
                 alt="Floating Star"
-                width={40}
-                height={40}
-                className="absolute bottom-16 left-1/3"
-                initial={{ opacity: 0, translateY: 25, translateX: -5, rotate: -10 }}
-                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: -10 }}
-                transition={{ type: 'spring', damping: 5, delay: 0.4 }}
+                className="absolute bottom-16 left-1/3 w-8 md:w-12"
+                {...starAnimation2}
             />
             <motion.img
                 src={Star.src}
                 alt="Floating Star"
-                width={50}
-                height={50}
-                className="absolute bottom-20 left-[2rem] md:bottom-72 md:right-[14rem]"
-                initial={{ opacity: 0, translateY: 18, translateX: 5, rotate: -22 }}
-                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: -22 }}
-                transition={{ type: 'spring', damping: 5, delay: 0.6 }}
+                className="absolute bottom-20 left-[2rem] w-8 md:bottom-72 md:right-[14rem] md:w-12"
+                {...starAnimation3}
             />
             <motion.img
                 src={Star.src}
                 alt="Floating Star"
-                width={60}
-                height={60}
-                className="absolute left-[20rem] top-72"
-                initial={{ opacity: 0, translateY: 22, translateX: -5, rotate: 12 }}
-                whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 12 }}
-                transition={{ type: 'spring', damping: 5, delay: 0.8 }}
+                className="absolute left-[20rem] top-72 w-8 md:w-12"
+                {...starAnimation4}
             />
 
-            {/* Exclamations */}
-            <Image
-                src={exclamations}
-                alt="Exclamations"
-                width={200}
-                height={300}
-                className="absolute right-72 top-1/3 hidden -translate-y-1/2 transform md:block"
-            />
+            {/* Exclamations - only show on screens larger than 1780px */}
+            {screenWidth > 1740 && (
+                <Image
+                    src={exclamations}
+                    alt="Exclamations"
+                    width={200}
+                    height={300}
+                    className="absolute right-72 top-1/3 -translate-y-1/2 transform"
+                />
+            )}
 
             {/* Main content */}
             <div className="relative mx-auto max-w-3xl text-center">
@@ -224,10 +178,10 @@ export function SendInSeconds() {
                 <div className="relative mt-12 inline-block md:mt-24">
                     <motion.div
                         className="relative"
-                        initial={getInitialAnimation()}
-                        animate={getAnimateAnimation(true, 1)}
-                        whileHover={getHoverAnimation()}
-                        transition={transitionConfig}
+                        initial={buttonAnimation.initial}
+                        animate={buttonAnimation.animate}
+                        whileHover={buttonAnimation.hover}
+                        transition={buttonAnimation.transition}
                     >
                         <a href="/send" className={getButtonClasses()} style={{ fontWeight: 900 }}>
                             TRY NOW
