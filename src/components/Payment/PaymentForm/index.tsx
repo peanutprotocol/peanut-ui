@@ -417,6 +417,7 @@ export const PaymentForm = ({
         console.log('Initiating payment with payload:', payload)
 
         const result = await initiatePayment(payload)
+        console.log('Payment initiation result', result)
 
         if (result.status === 'Success') {
             dispatch(paymentActions.setView('STATUS'))

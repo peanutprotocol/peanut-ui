@@ -322,6 +322,12 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             return
         }
 
+        // Only show STATUS view if payment is actually successful
+        const isPaymentSuccessful = transactionForDrawer.status === 'completed'
+        if (!isPaymentSuccessful) {
+            return
+        }
+
         dispatch(paymentActions.setView('STATUS'))
 
         // only open transaction details drawer if not add money flow and not a Peanut user
