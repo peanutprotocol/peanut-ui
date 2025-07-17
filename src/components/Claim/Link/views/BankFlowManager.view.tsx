@@ -66,6 +66,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 },
             }
 
+            if (!senderDetails?.bridgeCustomerId) {
+                setError('Sender details not found')
+                return { error: 'Sender details not found' }
+            }
+
             const externalAccountResponse = await createBridgeExternalAccountForGuest(
                 senderDetails.bridgeCustomerId,
                 payloadWithCountry
@@ -86,6 +91,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             const chainId = params.chainId
             const contractVersion = params.contractVersion
             const peanutContractAddress = peanut.getContractAddress(chainId, contractVersion) as Address
+
+            if (!senderDetails?.bridgeCustomerId) {
+                setError('Sender details not found')
+                return { error: 'Sender details not found' }
+            }
 
             const offrampRequestParams: TCreateOfframpRequest = {
                 amount: formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals),

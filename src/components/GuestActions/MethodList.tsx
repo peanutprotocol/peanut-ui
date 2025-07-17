@@ -67,16 +67,18 @@ export default function GuestActionList({ claimLinkData }: { claimLinkData: Clai
     const handleMethodClick = async (method: Method) => {
         switch (method.id) {
             case 'bank':
-                if (!claimLinkData.sender?.userId) {
-                    setShowVerificationModal(true)
-                    return
-                }
-                const senderDetails = await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
-                if (senderDetails && senderDetails.kycStatus === 'approved') {
-                    setSenderDetails(senderDetails)
-                    setGuestFlowStep('bank-country-list')
-                } else {
-                    setShowVerificationModal(true)
+                {
+                    if (!claimLinkData.sender?.userId) {
+                        setShowVerificationModal(true)
+                        return
+                    }
+                    const senderDetails = await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
+                    if (senderDetails && senderDetails.kycStatus === 'approved') {
+                        setSenderDetails(senderDetails)
+                        setGuestFlowStep('bank-country-list')
+                    } else {
+                        setShowVerificationModal(true)
+                    }
                 }
                 break
             case 'mercadopago':
