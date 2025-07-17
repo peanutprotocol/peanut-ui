@@ -614,7 +614,7 @@ export const TransactionDetailsReceipt = ({
                     {transaction.memo?.trim() && (
                         <PaymentInfoRow
                             label="Comment"
-                            value={transaction.memo}
+                            value={<span className="break-words">{transaction.memo}</span>}
                             hideBottomBorder={!transaction.attachmentUrl && !transaction.networkFeeDetails}
                         />
                     )}

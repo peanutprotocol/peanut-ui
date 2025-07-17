@@ -221,7 +221,7 @@ const DirectSuccessView = ({
                 <div className="w-full space-y-3">
                     {!!authUser?.user.userId ? (
                         <Button onClick={handleDone} shadowSize="4" className="w-full">
-                            Back to Home
+                            Back to home
                         </Button>
                     ) : (
                         <Button
