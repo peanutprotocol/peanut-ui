@@ -3,9 +3,10 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
+import { useGuestFlow } from '@/context/GuestFlowContext'
 import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
-import { getTokenDetails, printableAddress } from '@/utils'
+import { formatTokenAmount, getTokenDetails, printableAddress } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
@@ -18,11 +19,13 @@ export const SuccessClaimLinkView = ({
     setTransactionHash,
     claimLinkData,
     type,
+    tokenPrice,
 }: _consts.IClaimScreenProps) => {
     const { user: authUser } = useUserStore()
     const { fetchUser } = useAuth()
     const router = useRouter()
     const queryClient = useQueryClient()
+    const { offrampDetails, claimType } = useGuestFlow()
 
     useEffect(() => {
         queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
@@ -72,43 +75,66 @@ export const SuccessClaimLinkView = ({
         return tokenDetails
     }, [claimLinkData])
 
+    const isBankClaim = claimType === 'claim-bank'
+
+    const navHeaderTitle = isBankClaim ? 'Receive' : 'Claim'
+
+    const cardProps = {
+        viewType: 'SUCCESS' as const,
+        transactionType: (isBankClaim ? 'CLAIM_LINK_BANK_ACCOUNT' : 'CLAIM_LINK') as
+            | 'CLAIM_LINK_BANK_ACCOUNT'
+            | 'CLAIM_LINK',
+        recipientType: isBankClaim ? ('BANK_ACCOUNT' as const) : ('USERNAME' as const),
+        recipientName: isBankClaim
+            ? 'your bank account' // todo: show bank account number, scoped for next pr
+            : (claimLinkData.sender?.username ?? printableAddress(claimLinkData.senderAddress)),
+        amount: isBankClaim
+            ? (formatTokenAmount(
+                  Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * (tokenPrice ?? 0)
+              ) ?? '')
+            : formatUnits(claimLinkData.amount, tokenDetails?.decimals ?? 6),
+        tokenSymbol: isBankClaim ? (offrampDetails?.quote.destination_currency ?? '') : claimLinkData.tokenSymbol,
+        message: isBankClaim
+            ? `to your bank account` // todo: show bank account number, scoped for next pr
+            : `from ${claimLinkData.sender?.username || printableAddress(claimLinkData.senderAddress)}`,
+    }
+
+    const renderButtons = () => {
+        if (isBankClaim || !!authUser?.user.userId) {
+            return (
+                <Button
+                    shadowSize="4"
+                    onClick={() => {
+                        if (!isBankClaim) fetchUser()
+                        router.push('/home')
+                    }}
+                    className="w-full"
+                >
+                    Back to home
+                </Button>
+            )
+        }
+        return (
+            <Button icon="user-plus" onClick={() => router.push('/setup')} shadowSize="4">
+                Create Account
+            </Button>
+        )
+    }
+
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <div className="md:hidden">
                 <NavHeader
                     icon="cancel"
-                    title="Claim"
+                    title={navHeaderTitle}
                     onPrev={() => {
                         router.push('/home')
                     }}
                 />
             </div>
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <PeanutActionDetailsCard
-                    viewType="SUCCESS"
-                    transactionType="CLAIM_LINK"
-                    recipientType="USERNAME"
-                    recipientName={claimLinkData.sender?.username ?? printableAddress(claimLinkData.senderAddress)}
-                    amount={formatUnits(claimLinkData.amount, tokenDetails?.decimals ?? 6)}
-                    tokenSymbol={claimLinkData.tokenSymbol}
-                    message={`from ${claimLinkData.sender?.username || printableAddress(claimLinkData.senderAddress)}`}
-                />
-                {!!authUser?.user.userId ? (
-                    <Button
-                        shadowSize="4"
-                        onClick={() => {
-                            fetchUser()
-                            router.push('/home')
-                        }}
-                        className="w-full"
-                    >
-                        Back to home
-                    </Button>
-                ) : (
-                    <Button icon="user-plus" onClick={() => router.push('/setup')} shadowSize="4">
-                        Create Account
-                    </Button>
-                )}
+                <PeanutActionDetailsCard {...cardProps} />
+                {renderButtons()}
             </div>
         </div>
     )

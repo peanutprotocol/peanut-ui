@@ -50,28 +50,30 @@ import ActionModal from '@/components/Global/ActionModal'
 import { Slider } from '@/components/Slider'
 import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import { BankFlowManager } from './views/BankFlowManager.view'
 
-export const InitialClaimLinkView = ({
-    onNext,
-    claimLinkData,
-    setRecipient,
-    recipient,
-    tokenPrice,
-    setClaimType,
-    setEstimatedPoints,
-    attachment,
-    setTransactionHash,
-    onCustom,
-    selectedRoute,
-    setSelectedRoute,
-    hasFetchedRoute,
-    setHasFetchedRoute,
-    recipientType,
-    setRecipientType,
-    setOfframpForm,
-    setUserType,
-    setInitialKYCStep,
-}: IClaimScreenProps) => {
+export const InitialClaimLinkView = (props: IClaimScreenProps) => {
+    const {
+        onNext,
+        claimLinkData,
+        setRecipient,
+        recipient,
+        tokenPrice,
+        setClaimType,
+        setEstimatedPoints,
+        attachment,
+        setTransactionHash,
+        onCustom,
+        selectedRoute,
+        setSelectedRoute,
+        hasFetchedRoute,
+        setHasFetchedRoute,
+        recipientType,
+        setRecipientType,
+        setOfframpForm,
+        setUserType,
+        setInitialKYCStep,
+    } = props
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -82,7 +84,7 @@ export const InitialClaimLinkView = ({
     const [inputChanging, setInputChanging] = useState<boolean>(false)
     const [showConfirmationModal, setShowConfirmationModal] = useState<boolean>(false)
 
-    const { claimToExternalWallet, resetGuestFlow, showGuestActionsList } = useGuestFlow()
+    const { claimToExternalWallet, resetGuestFlow, showGuestActionsList, guestFlowStep } = useGuestFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
         selectedChainID,
@@ -449,6 +451,12 @@ export const InitialClaimLinkView = ({
     )
 
     useEffect(() => {
+        if (guestFlowStep?.startsWith('bank-')) {
+            resetSelectedToken()
+        }
+    }, [guestFlowStep, resetSelectedToken])
+
+    useEffect(() => {
         let isMounted = true
         if (isReward || !claimLinkData.tokenAddress) {
             return () => {
@@ -584,6 +592,10 @@ export const InitialClaimLinkView = ({
         )
     }
 
+    if (guestFlowStep?.startsWith('bank-')) {
+        return <BankFlowManager {...props} />
+    }
+
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             {!!user?.user.userId || showGuestActionsList ? (
@@ -629,6 +641,7 @@ export const InitialClaimLinkView = ({
                     recipientType !== 'iban' &&
                     recipientType !== 'us' &&
                     !isPeanutClaimOnlyMode &&
+                    guestFlowStep !== 'bank-country-selection' &&
                     !!claimToExternalWallet && (
                         <TokenSelector viewType="claim" disabled={recipientType === 'username'} />
                     )}

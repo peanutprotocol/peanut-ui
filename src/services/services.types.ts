@@ -294,4 +294,23 @@ export interface TCreateOfframpResponse {
         toAddress: string
         blockchainMemo?: string
     }
+    quote: {
+        amount_in: string
+        amount_out: string
+        exchange_rate: string
+        total_fee: string
+        destination_currency: string
+        developer_fee: string
+        exchange_fee: string
+        subtotal_amount: string
+        remaining_prefunded_amount?: string
+        gas_fee?: string
+        final_amount?: string
+        source_tx_hash?: string
+        destination_tx_hash?: string
+        url?: string
+    }
+    depositAddress: string
+    deposit_chain_id: number
+    deposit_token_address: string
 }

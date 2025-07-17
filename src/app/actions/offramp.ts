@@ -70,6 +70,45 @@ export async function createOfframp(
     }
 }
 
+export async function createOfframpForGuest(
+    params: TCreateOfframpRequest
+): Promise<{ data?: CreateOfframpSuccessResponse; error?: string }> {
+    const apiUrl = process.env.PEANUT_API_URL
+
+    if (!apiUrl || !API_KEY) {
+        console.error('API URL or API Key is not configured.')
+        return { error: 'Server configuration error.' }
+    }
+
+    try {
+        const response = await fetchWithSentry(`${apiUrl}/bridge/offramp/create-for-guest`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': API_KEY,
+            },
+            body: JSON.stringify({
+                ...params,
+                provider: 'bridge',
+            }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+            return { error: data.error || 'Failed to create off-ramp transfer for guest.' }
+        }
+
+        return { data }
+    } catch (error) {
+        console.error('Error calling create off-ramp for guest API:', error)
+        if (error instanceof Error) {
+            return { error: error.message }
+        }
+        return { error: 'An unexpected error occurred.' }
+    }
+}
+
 /**
  * Server Action to confirm an off-ramp transfer after the user has sent funds.
  *

@@ -53,12 +53,12 @@ const GUEST_ACTION_METHODS: Method[] = [
 ]
 
 export default function GuestActionList() {
-    const { showGuestActionsList, setShowGuestActionsList, setClaimToExternalWallet } = useGuestFlow()
+    const { showGuestActionsList, setShowGuestActionsList, setClaimToExternalWallet, setGuestFlowStep } = useGuestFlow()
 
     const handleMethodClick = (method: Method) => {
         switch (method.id) {
             case 'bank':
-                // todo: navigate to bank add-money flow, coming in next PR
+                setGuestFlowStep('bank-country-list')
                 break
             case 'mercadopago':
                 break // soon tag, so no action needed
