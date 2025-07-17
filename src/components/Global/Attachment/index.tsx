@@ -16,7 +16,11 @@ const Attachment = ({ message, fileUrl, shortenMessage = false }: AttachmentProp
         <div className="text-sm text-grey-1">
             {fileUrl ? (
                 <Link href={fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2">
-                    {message ? (shortenMessage && message.length > 30 ? `${message.slice(0, 30)}...` : message) : 'View Attachment'}
+                    {message
+                        ? shortenMessage && message.length > 30
+                            ? `${message.slice(0, 30)}...`
+                            : message
+                        : 'View Attachment'}
                     <Icon name="external-link" className="h-4 w-4" />
                 </Link>
             ) : message ? (

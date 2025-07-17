@@ -409,7 +409,6 @@ export const PaymentForm = ({
             tokenAmount = (parseFloat(inputUsdValue) / requestedTokenPrice).toString()
         }
 
-
         const payload: InitiatePaymentPayload = {
             recipient: recipient,
             tokenAmount,
