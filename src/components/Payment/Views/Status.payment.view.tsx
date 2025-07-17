@@ -240,11 +240,10 @@ const DirectSuccessView = ({
                             className="w-full"
                             onClick={() => {
                                 if (chargeDetails?.uuid) {
-                                    // Navigate to the receipt URL with chargeId
-                                    const currentUrl = new URL(window.location.href)
+                                    // Navigate to the receipt URL with chargeId and force reload
                                     const newUrl = new URL(window.location.href)
                                     newUrl.searchParams.set('chargeId', chargeDetails.uuid)
-                                    router.push(newUrl.toString())
+                                    window.location.href = newUrl.toString()
                                 } else if (transactionForDrawer) {
                                     // Fallback to drawer if no chargeId
                                     openTransactionDetails(transactionForDrawer)
