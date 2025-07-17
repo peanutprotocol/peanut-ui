@@ -65,6 +65,7 @@ export interface InitiatePaymentPayload {
     isAddMoneyFlow?: boolean
     transactionType?: TChargeTransactionType
     attachmentOptions?: IAttachmentOptions
+    skipUrlUpdate?: boolean // Skip adding chargeId to URL for direct success flow
 }
 
 interface InitiationResult {
@@ -417,18 +418,22 @@ export const usePaymentInitiator = () => {
                 setCreatedChargeDetails(chargeDetailsToUse) // keep track of the newly created charge
                 chargeCreated = true
 
-                // update URL
-                const currentUrl = new URL(window.location.href)
-                if (currentUrl.searchParams.get('chargeId') !== chargeDetailsToUse.uuid) {
-                    const newUrl = new URL(window.location.href)
-                    if (payload.requestId) newUrl.searchParams.delete('id')
-                    newUrl.searchParams.set('chargeId', chargeDetailsToUse.uuid)
-                    window.history.replaceState(
-                        { ...window.history.state, as: newUrl.href, url: newUrl.href },
-                        '',
-                        newUrl.href
-                    )
-                    console.log('Updated URL with chargeId:', newUrl.href)
+                // update URL (skip for Peanut users with direct success flow)
+                if (!payload.skipUrlUpdate) {
+                    const currentUrl = new URL(window.location.href)
+                    if (currentUrl.searchParams.get('chargeId') !== chargeDetailsToUse.uuid) {
+                        const newUrl = new URL(window.location.href)
+                        if (payload.requestId) newUrl.searchParams.delete('id')
+                        newUrl.searchParams.set('chargeId', chargeDetailsToUse.uuid)
+                        window.history.replaceState(
+                            { ...window.history.state, as: newUrl.href, url: newUrl.href },
+                            '',
+                            newUrl.href
+                        )
+                        console.log('Updated URL with chargeId:', newUrl.href)
+                    }
+                } else {
+                    console.log('Skipping URL update for direct success flow')
                 }
             }
 
@@ -643,6 +648,9 @@ export const usePaymentInitiator = () => {
                 console.log('Proceeding with charge details:', determinedChargeDetails.uuid)
 
                 // 2. handle charge state
+                // const isTokenMatch = areEvmAddressesEqual(determinedChargeDetails.tokenAddress, PEANUT_WALLET_TOKEN)
+                // const isChainMatch = determinedChargeDetails.chainId === PEANUT_WALLET_CHAIN.id.toString()
+
                 if (
                     chargeCreated &&
                     (payload.isPintaReq ||
@@ -664,6 +672,8 @@ export const usePaymentInitiator = () => {
                     setLoadingStep('Charge Created')
                     return { status: 'Charge Created', charge: determinedChargeDetails, success: false }
                 }
+
+                console.log('Proceeding with Peanut wallet payment...')
 
                 // 3. execute payment based on wallet type
                 if (payload.isAddMoneyFlow) {

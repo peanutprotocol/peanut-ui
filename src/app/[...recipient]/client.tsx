@@ -322,13 +322,20 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             return
         }
 
+        // Only show STATUS view if payment is actually successful
+        const isPaymentSuccessful = transactionForDrawer.status === 'completed'
+        if (!isPaymentSuccessful) {
+            return
+        }
+
         dispatch(paymentActions.setView('STATUS'))
 
-        // only open transaction details drawer if not add money flow
-        if (!isAddMoneyFlow) {
+        // If chargeId is in URL and its not add money flow, show receipt (transaction details drawer)
+        // also, open transaction details drawer if not add money flow and not a Peanut user
+        if (!isAddMoneyFlow && (chargeId || !user)) {
             openTransactionDetails(transactionForDrawer)
         }
-    }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isAddMoneyFlow, chargeId])
+    }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isAddMoneyFlow, chargeId, user])
 
     if (error) {
         return (

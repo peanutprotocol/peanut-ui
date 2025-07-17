@@ -21,6 +21,7 @@ interface TokenAmountInputProps {
     }
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
+    balanceText?: string
 }
 
 const TokenAmountInput = ({
@@ -36,6 +37,7 @@ const TokenAmountInput = ({
     setUsdValue,
     hideCurrencyToggle = false,
     hideBalance = false,
+    balanceText = 'Your balance',
 }: TokenAmountInputProps) => {
     const { selectedTokenData } = useContext(tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -230,7 +232,7 @@ const TokenAmountInput = ({
             </div>
             {walletBalance && !hideBalance && (
                 <div className="mt-0.5 text-center text-xs text-grey-1">
-                    Your balance: {displayMode === 'FIAT' && currency ? 'US$' : '$'}
+                    {balanceText}: {displayMode === 'FIAT' && currency ? 'US$' : '$'}
                     {walletBalance}
                 </div>
             )}
