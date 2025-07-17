@@ -8,6 +8,8 @@ import ripioIcon from '@/assets/exchanges/ripio.svg'
 import { RAINBOW_LOGO, METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import { Button } from '../0_Bruddle'
 import { useGuestFlow } from '@/context/GuestFlowContext'
+import { getUserById } from '@/app/actions/users'
+import { ClaimLinkData } from '@/services/sendLinks'
 
 interface Method {
     id: string
@@ -52,13 +54,30 @@ const GUEST_ACTION_METHODS: Method[] = [
     },
 ]
 
-export default function GuestActionList() {
-    const { showGuestActionsList, setShowGuestActionsList, setClaimToExternalWallet, setGuestFlowStep } = useGuestFlow()
+export default function GuestActionList({ claimLinkData }: { claimLinkData: ClaimLinkData }) {
+    const {
+        showGuestActionsList,
+        setShowGuestActionsList,
+        setClaimToExternalWallet,
+        setGuestFlowStep,
+        setSenderDetails,
+        setShowVerificationModal,
+    } = useGuestFlow()
 
-    const handleMethodClick = (method: Method) => {
+    const handleMethodClick = async (method: Method) => {
         switch (method.id) {
             case 'bank':
-                setGuestFlowStep('bank-country-list')
+                if (!claimLinkData.sender?.userId) {
+                    setShowVerificationModal(true)
+                    return
+                }
+                const senderDetails = await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
+                if (senderDetails && senderDetails.bridgeCustomerId) {
+                    setSenderDetails(senderDetails)
+                    setGuestFlowStep('bank-country-list')
+                } else {
+                    setShowVerificationModal(true)
+                }
                 break
             case 'mercadopago':
                 break // soon tag, so no action needed
