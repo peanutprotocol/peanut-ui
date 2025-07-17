@@ -310,6 +310,19 @@ export const PaymentForm = ({
         isActivePeanutWallet,
     ])
 
+    // Memoized amount and balance validation to avoid duplication
+    const hasValidAmount = useMemo(() => {
+        return inputTokenAmount && parseFloat(inputTokenAmount) > 0
+    }, [inputTokenAmount])
+
+    const hasSufficientBalance = useMemo(() => {
+        return !error || !error.includes('Insufficient balance')
+    }, [error])
+
+    const shouldSkipUrlUpdate = useMemo(() => {
+        return isActivePeanutWallet && hasValidAmount && hasSufficientBalance
+    }, [isActivePeanutWallet, hasValidAmount, hasSufficientBalance])
+
     const handleInitiatePayment = useCallback(async () => {
         if (!isExternalWalletConnected && isAddMoneyFlow) {
             openReownModal()
@@ -396,9 +409,6 @@ export const PaymentForm = ({
             tokenAmount = (parseFloat(inputUsdValue) / requestedTokenPrice).toString()
         }
 
-        const hasAmount = inputTokenAmount && parseFloat(inputTokenAmount) > 0
-        const hasSufficientBalance = !error || !error.includes('Insufficient balance')
-        const shouldSkipUrlUpdate = isActivePeanutWallet && hasAmount && hasSufficientBalance
 
         const payload: InitiatePaymentPayload = {
             recipient: recipient,
@@ -423,10 +433,7 @@ export const PaymentForm = ({
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
             // For Peanut users with sufficient balance, go directly to success page
-            const hasAmount = inputTokenAmount && parseFloat(inputTokenAmount) > 0
-            const hasSufficientBalance = !error || !error.includes('Insufficient balance')
-
-            if (isActivePeanutWallet && hasAmount && hasSufficientBalance) {
+            if (shouldSkipUrlUpdate) {
                 dispatch(paymentActions.setView('STATUS'))
             } else {
                 dispatch(paymentActions.setView('CONFIRM'))
@@ -456,6 +463,7 @@ export const PaymentForm = ({
         requestedTokenPrice,
         isActivePeanutWallet,
         error,
+        shouldSkipUrlUpdate,
     ])
 
     const getButtonText = () => {
@@ -472,15 +480,7 @@ export const PaymentForm = ({
         }
 
         if (isActivePeanutWallet) {
-            // check if this is a request link with amount and user has sufficient balance
-            const hasAmount = inputTokenAmount && parseFloat(inputTokenAmount) > 0
-            const hasSufficientBalance = !error || !error.includes('Insufficient balance')
-
-            if (isProcessing) {
-                return 'Sending'
-            }
-
-            if (hasAmount && hasSufficientBalance) {
+            if (shouldSkipUrlUpdate) {
                 return (
                     <div className="flex items-center gap-2">
                         <span>Send With</span>
