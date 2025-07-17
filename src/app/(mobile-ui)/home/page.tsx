@@ -35,6 +35,7 @@ import BalanceWarningModal from '@/components/Global/BalanceWarningModal'
 import { AccountType } from '@/interfaces'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -57,6 +58,7 @@ export default function Home() {
     const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
     const [showAddMoneyPromptModal, setShowAddMoneyPromptModal] = useState(false)
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
+    const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
 
     const userFullName = useMemo(() => {
         if (!user) return
@@ -102,7 +104,13 @@ export default function Home() {
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
             const hasSeenModalThisSession = sessionStorage.getItem('hasSeenIOSPWAPromptThisSession')
 
-            if (isIOS && !isStandalone && !hasSeenModalThisSession && !user?.hasPwaInstalled) {
+            if (
+                isIOS &&
+                !isStandalone &&
+                !hasSeenModalThisSession &&
+                !user?.hasPwaInstalled &&
+                !isPostSignupActionModalVisible
+            ) {
                 setShowIOSPWAInstallModal(true)
                 sessionStorage.setItem('hasSeenIOSPWAPromptThisSession', 'true')
             } else {
@@ -125,7 +133,8 @@ export default function Home() {
                 balanceInUsd > BALANCE_WARNING_THRESHOLD &&
                 !hasSeenBalanceWarning &&
                 !showIOSPWAInstallModal &&
-                !showAddMoneyPromptModal
+                !showAddMoneyPromptModal &&
+                !isPostSignupActionModalVisible
             ) {
                 setShowBalanceWarningModal(true)
             }
@@ -148,7 +157,8 @@ export default function Home() {
                 balance === 0n &&
                 !hasSeenAddMoneyPromptThisSession &&
                 !showIOSPWAInstallModal &&
-                !showBalanceWarningModal
+                !showBalanceWarningModal &&
+                !isPostSignupActionModalVisible
             ) {
                 setShowAddMoneyPromptModal(true)
                 sessionStorage.setItem('hasSeenAddMoneyPromptThisSession', 'true')
@@ -224,6 +234,8 @@ export default function Home() {
                     saveToLocalStorage('hasSeenBalanceWarning', 'true', BALANCE_WARNING_EXPIRY)
                 }}
             />
+            {/* Post Signup Action Modal */}
+            <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
         </PageContainer>
     )
 }

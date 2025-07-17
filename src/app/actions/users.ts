@@ -5,6 +5,7 @@ import { ApiUser } from '@/services/users'
 import { fetchWithSentry } from '@/utils'
 import { cookies } from 'next/headers'
 import { AddBankAccountPayload, BridgeEndorsementType, InitiateKycResponse } from './types/users.types'
+import { User } from '@/interfaces'
 
 const API_KEY = process.env.PEANUT_API_KEY!
 
@@ -95,12 +96,7 @@ export const addBankAccount = async (payload: AddBankAccountPayload): Promise<{ 
     }
 }
 
-export async function getUserById(userId: string): Promise<{
-    userId: string
-    fullName: string
-    email: string
-    bridgeCustomerId: string
-} | null> {
+export async function getUserById(userId: string): Promise<User | null> {
     try {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/users/${userId}`, {
             method: 'GET',
@@ -115,8 +111,10 @@ export async function getUserById(userId: string): Promise<{
             console.error(`Failed to fetch user ${userId}:`, errorData)
             return null
         }
+        const responseJson = await response.json()
+        console.log('response kushhh', responseJson)
 
-        return await response.json()
+        return responseJson
     } catch (error) {
         console.error(`Error fetching user ${userId}:`, error)
         return null

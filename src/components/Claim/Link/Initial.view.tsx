@@ -84,7 +84,15 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const [inputChanging, setInputChanging] = useState<boolean>(false)
     const [showConfirmationModal, setShowConfirmationModal] = useState<boolean>(false)
 
-    const { claimToExternalWallet, resetGuestFlow, showGuestActionsList, guestFlowStep } = useGuestFlow()
+    const {
+        claimToExternalWallet,
+        resetGuestFlow,
+        showGuestActionsList,
+        guestFlowStep,
+        showVerificationModal,
+        setShowVerificationModal,
+        setClaimToExternalWallet,
+    } = useGuestFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
         selectedChainID,
@@ -587,7 +595,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         </div>
                     </Button>
                 )}
-                {!isPeanutClaimOnlyMode && <GuestActionList />}
+                {!isPeanutClaimOnlyMode && <GuestActionList claimLinkData={claimLinkData} />}
             </div>
         )
     }
@@ -722,6 +730,36 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         <Slider onValueChange={(v) => v && handleClaimLink(true)} />
                     </div>
                 }
+                preventClose={false}
+                modalPanelClassName="max-w-md mx-8"
+            />
+            <ActionModal
+                visible={showVerificationModal}
+                onClose={() => setShowVerificationModal(false)}
+                title="This method requires verification"
+                description="To receive funds on your bank account, you’ll create a free Peanut Wallet and complete a quick identity check (KYC)."
+                icon="alert"
+                iconContainerClassName="bg-yellow-400"
+                ctaClassName="md:flex-col gap-4"
+                ctas={[
+                    {
+                        text: 'Start verification',
+                        shadowSize: '4',
+                        className: 'md:py-2.5',
+                        onClick: () => {
+                            saveRedirectUrl()
+                            router.push('/setup')
+                        },
+                    },
+                    {
+                        text: 'Claim with other method',
+                        variant: 'transparent',
+                        className: 'w-full h-auto underline underline-offset-2',
+                        onClick: () => {
+                            setShowVerificationModal(false)
+                        },
+                    },
+                ]}
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />
