@@ -10,7 +10,7 @@ import { useParams } from 'next/navigation'
 import { validateBankAccount, validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-accounts.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
-import PeanutActionDetailsCard from '../Global/PeanutActionDetailsCard'
+import PeanutActionDetailsCard, { PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 
@@ -18,7 +18,7 @@ const isIBANCountry = (country: string) => {
     return countryCodeMap[country.toUpperCase()] !== undefined
 }
 
-export type FormData = {
+export type IBankAccountDetails = {
     firstName: string
     lastName: string
     email: string
@@ -30,16 +30,20 @@ export type FormData = {
     city: string
     state: string
     postalCode: string
+    iban?: string
+    country: string
 }
 
 interface DynamicBankAccountFormProps {
     country: string
-    onSuccess: (payload: AddBankAccountPayload, rawData: FormData) => Promise<{ error?: string }>
-    initialData?: Partial<FormData>
+    onSuccess: (payload: AddBankAccountPayload, rawData: IBankAccountDetails) => Promise<{ error?: string }>
+    initialData?: Partial<IBankAccountDetails>
+    flow?: 'claim' | 'withdraw'
+    actionDetailsProps?: Partial<PeanutActionDetailsCardProps>
 }
 
 export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, DynamicBankAccountFormProps>(
-    ({ country, onSuccess, initialData }, ref) => {
+    ({ country, onSuccess, initialData, flow = 'withdraw', actionDetailsProps }, ref) => {
         const { user } = useAuth()
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
@@ -53,7 +57,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             handleSubmit,
             setValue,
             formState: { errors, isValid, isValidating, touchedFields },
-        } = useForm<FormData>({
+        } = useForm<IBankAccountDetails>({
             defaultValues: {
                 firstName: firstName ?? '',
                 lastName: lastName ?? '',
@@ -75,7 +79,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             handleSubmit: handleSubmit(onSubmit),
         }))
 
-        const onSubmit = async (data: FormData) => {
+        const onSubmit = async (data: IBankAccountDetails) => {
             setIsSubmitting(true)
             setSubmissionError(null)
             try {
@@ -119,6 +123,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                 const result = await onSuccess(payload as AddBankAccountPayload, {
                     ...data,
+                    iban: isIban ? data.accountNumber : undefined,
+                    country,
                     firstName: data.firstName.trim(),
                     lastName: data.lastName.trim(),
                 })
@@ -137,7 +143,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const isMx = country.toUpperCase() === 'MX'
 
         const renderInput = (
-            name: keyof FormData,
+            name: keyof IBankAccountDetails,
             placeholder: string,
             rules: any,
             type: string = 'text',
@@ -186,6 +192,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     recipientName={country}
                     amount={amountToWithdraw}
                     tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
+                    {...actionDetailsProps}
                 />
 
                 <div className="space-y-4">
@@ -197,13 +204,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         }}
                         className="space-y-4"
                     >
-                        {!user?.user?.fullName && (
+                        {flow !== 'claim' && !user?.user?.fullName && (
                             <div className="w-full space-y-4">
                                 {renderInput('firstName', 'First Name', { required: 'First name is required' })}
                                 {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
                             </div>
                         )}
-                        {!user?.user?.email &&
+                        {flow !== 'claim' &&
+                            !user?.user?.email &&
                             renderInput('email', 'E-mail', {
                                 required: 'Email is required',
                             })}

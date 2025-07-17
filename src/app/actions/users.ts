@@ -94,3 +94,31 @@ export const addBankAccount = async (payload: AddBankAccountPayload): Promise<{ 
         return { error: e.message || 'An unexpected error occurred' }
     }
 }
+
+export async function getUserById(userId: string): Promise<{
+    userId: string
+    fullName: string
+    email: string
+    bridgeCustomerId: string
+} | null> {
+    try {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/${userId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': API_KEY,
+            },
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json()
+            console.error(`Failed to fetch user ${userId}:`, errorData)
+            return null
+        }
+
+        return await response.json()
+    } catch (error) {
+        console.error(`Error fetching user ${userId}:`, error)
+        return null
+    }
+}
