@@ -51,7 +51,7 @@ export function ConfirmBankClaimView({
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}
                     avatarSize="small"
-                    transactionType="WITHDRAW_BANK_ACCOUNT"
+                    transactionType="CLAIM_LINK_BANK_ACCOUNT"
                     recipientType="BANK_ACCOUNT"
                     recipientName={bankDetails.country}
                     amount={formatUnits(claimLinkData?.amount ?? 0, claimLinkData?.tokenDecimals) || '0.00'}

@@ -83,7 +83,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const [routes, setRoutes] = useState<any[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
     const [showConfirmationModal, setShowConfirmationModal] = useState<boolean>(false)
-    const [showConfirmationModal, setShowConfirmationModal] = useState<boolean>(false)
 
     const { claimToExternalWallet, resetGuestFlow, showGuestActionsList, guestFlowStep } = useGuestFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
@@ -592,8 +591,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             </div>
         )
     }
-
-    console.log('claim data', claimLinkData)
 
     if (guestFlowStep?.startsWith('bank-')) {
         return <BankFlowManager {...props} />
