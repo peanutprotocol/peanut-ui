@@ -72,7 +72,7 @@ export default function GuestActionList({ claimLinkData }: { claimLinkData: Clai
                     return
                 }
                 const senderDetails = await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
-                if (senderDetails && senderDetails.bridgeCustomerId) {
+                if (senderDetails && senderDetails.kycStatus === 'approved') {
                     setSenderDetails(senderDetails)
                     setGuestFlowStep('bank-country-list')
                 } else {

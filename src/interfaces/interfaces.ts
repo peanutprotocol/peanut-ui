@@ -310,7 +310,7 @@ interface PointsPerReferral {
     totalReferrals: number
 }
 
-interface User {
+export interface User {
     userId: string
     email: string
     profile_picture: string | null

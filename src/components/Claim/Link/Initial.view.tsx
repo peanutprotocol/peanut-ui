@@ -740,10 +740,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 description="To receive funds on your bank account, you’ll create a free Peanut Wallet and complete a quick identity check (KYC)."
                 icon="alert"
                 iconContainerClassName="bg-yellow-400"
+                ctaClassName="md:flex-col gap-4"
                 ctas={[
                     {
                         text: 'Start verification',
                         shadowSize: '4',
+                        className: 'md:py-2.5',
                         onClick: () => {
                             saveRedirectUrl()
                             router.push('/setup')
@@ -752,7 +754,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     {
                         text: 'Claim with other method',
                         variant: 'transparent',
-                        className: 'w-full mt-2 h-auto underline underline-offset-2',
+                        className: 'w-full h-auto underline underline-offset-2',
                         onClick: () => {
                             setShowVerificationModal(false)
                         },
