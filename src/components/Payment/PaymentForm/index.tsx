@@ -15,6 +15,8 @@ import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import BeerInput from '@/components/PintaReqPay/BeerInput'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import UserCard from '@/components/User/UserCard'
+import PeanutSendButton from '@/assets/illustrations/peanut-send-button.svg'
+import Image from 'next/image'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
@@ -454,6 +456,24 @@ export const PaymentForm = ({
         }
 
         if (isActivePeanutWallet) {
+            // check if this is a request link with amount and user has sufficient balance
+            const hasAmount = inputTokenAmount && parseFloat(inputTokenAmount) > 0
+            const hasSufficientBalance = !error || !error.includes('Insufficient balance')
+
+            if (hasAmount && hasSufficientBalance) {
+                return (
+                    <div className="flex items-center gap-2">
+                        <span>Send With</span>
+                        <Image
+                            src={PeanutSendButton}
+                            alt="Peanut"
+                            width={20}
+                            height={20}
+                            className="mt-[1px] h-5 w-auto"
+                        />
+                    </div>
+                )
+            }
             return 'Send'
         }
 
@@ -644,6 +664,7 @@ export const PaymentForm = ({
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
                     currency={currency}
                     hideBalance={isAddMoneyFlow}
+                    balanceText="Balance"
                 />
 
                 {/*
