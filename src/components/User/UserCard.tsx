@@ -68,7 +68,7 @@ const UserCard = ({
                 ) : (
                     <div className="text-base font-medium">{fullName || username}</div>
                 )}
-                <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
+                <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} shortenMessage />
             </div>
         </Card>
     )
