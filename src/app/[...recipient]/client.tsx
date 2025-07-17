@@ -330,9 +330,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
 
         dispatch(paymentActions.setView('STATUS'))
 
-        // only open transaction details drawer if not add money flow and not a Peanut user
-        // for Peanut users, we want to show the success page with buttons instead
-        if (!isAddMoneyFlow && !user) {
+        // If chargeId is in URL and its not add money flow, show receipt (transaction details drawer)
+        // also, open transaction details drawer if not add money flow and not a Peanut user
+        if (!isAddMoneyFlow && (chargeId || !user)) {
             openTransactionDetails(transactionForDrawer)
         }
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isAddMoneyFlow, chargeId, user])
