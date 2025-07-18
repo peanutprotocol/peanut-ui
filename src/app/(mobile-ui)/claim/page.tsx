@@ -4,6 +4,9 @@ import { BASE_URL } from '@/constants'
 import { formatAmount } from '@/utils'
 import { Metadata } from 'next'
 import getOrigin from '@/lib/hosting/get-origin'
+import { JustaName } from '@justaname.id/sdk'
+import { rpcUrls } from '@/constants/general.consts'
+import { mainnet } from 'viem/chains'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +23,7 @@ export async function generateMetadata({
     const siteUrl: string = (await getOrigin()) || BASE_URL // getOrigin for getting the origin of the site regardless of its a vercel preview or not
 
     let linkDetails = undefined
+    let username = undefined
     if (resolvedSearchParams.i && resolvedSearchParams.c) {
         try {
             const queryParams = new URLSearchParams()
@@ -33,14 +37,47 @@ export async function generateMetadata({
             const url = `${siteUrl}/claim?${queryParams.toString()}`
             linkDetails = await getLinkDetails(url)
 
+            // Get username from sender address
+            if (linkDetails?.senderAddress) {
+                try {
+                    const mainnetRpcUrl = rpcUrls[mainnet.id]?.[0]
+                    const justAName = JustaName.init({
+                        networks: [
+                            {
+                                chainId: 1, // Ethereum Mainnet
+                                providerUrl: mainnetRpcUrl || 'https://eth.llamarpc.com',
+                            },
+                        ],
+                        ensDomains: [
+                            {
+                                chainId: 1,
+                                ensDomain: process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || 'testvc.eth',
+                                apiKey: process.env.JUSTANAME_API_KEY || '',
+                            },
+                        ],
+                        config: {
+                            domain: 'peanut.me',
+                            origin: siteUrl,
+                        },
+                    })
+
+                    const ensName = await justAName.subnames.getPrimaryNameByAddress({
+                        address: linkDetails.senderAddress,
+                    })
+
+                    if (ensName) {
+                        // Strip peanut.me domain to get username
+                        const peanutEnsDomain = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || ''
+                        username = ensName.name.replace(peanutEnsDomain, '').replace(/\.$/, '')
+                        console.log('username', username)
+                    }
+                } catch (ensError) {
+                    console.log('ENS resolution error: ', ensError)
+                }
+            }
+
             if (!linkDetails.claimed) {
-                title =
-                    'You received ' +
-                    (Number(linkDetails.tokenAmount) < 0.01
-                        ? 'some '
-                        : formatAmount(Number(linkDetails.tokenAmount)) + ' in ') +
-                    linkDetails.tokenSymbol +
-                    '!'
+                title = username + ' is requesting ' + formatAmount(Number(linkDetails.tokenAmount)) + ' via Peanut'
             } else {
                 title = 'This link has been claimed'
             }
@@ -54,7 +91,7 @@ export async function generateMetadata({
     if (linkDetails) {
         const ogUrl = new URL(`${siteUrl}/api/og`)
         ogUrl.searchParams.set('type', 'send')
-        ogUrl.searchParams.set('username', linkDetails.senderAddress)
+        ogUrl.searchParams.set('username', username || linkDetails.senderAddress)
 
         if (!linkDetails.claimed) {
             // for unclaimed links, show claim preview
@@ -84,7 +121,7 @@ export async function generateMetadata({
         },
         openGraph: {
             title,
-            description: 'Seamless payment infrastructure for sending and receiving digital assets.',
+            description: 'Tap the link to pay instantly and without fees.',
             images: [{ url: ogImageUrl, width: 1200, height: 630 }],
         },
         twitter: {
