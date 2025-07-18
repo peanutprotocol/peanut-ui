@@ -19,12 +19,12 @@ async function getClaimLinkData(searchParams: { [key: string]: string | string[]
                 queryParams.append(key, val)
             }
         })
-        
+
         const url = `${siteUrl}/claim?${queryParams.toString()}`
         const linkDetails = await getLinkDetails(url)
-        
+
         // Get username from sender address
-        const username = linkDetails?.senderAddress 
+        const username = linkDetails?.senderAddress
             ? await resolveAddressToUsername(linkDetails.senderAddress, siteUrl)
             : null
 
@@ -48,16 +48,16 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const resolvedSearchParams = await searchParams
     const siteUrl: string = (await getOrigin()) || BASE_URL
-    
+
     let title = 'Claim Payment | Peanut'
     const claimData = await getClaimLinkData(resolvedSearchParams, siteUrl)
-    
+
     if (claimData?.linkDetails) {
         const { linkDetails, username } = claimData
-        
+
         if (!linkDetails.claimed) {
-            title = username 
-                ? `${username} is requesting ${formatAmount(Number(linkDetails.tokenAmount))} via Peanut`
+            title = username
+                ? `${username} sent you ${formatAmount(Number(linkDetails.tokenAmount))} via Peanut`
                 : `You received ${Number(linkDetails.tokenAmount) < 0.01 ? 'some ' : formatAmount(Number(linkDetails.tokenAmount)) + ' in '}${linkDetails.tokenSymbol}!`
         } else {
             title = 'This link has been claimed'
