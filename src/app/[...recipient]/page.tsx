@@ -93,9 +93,9 @@ export async function generateMetadata({ params, searchParams }: any) {
 
     // Generate appropriate title
     if (amount && token) {
-        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting ${amount} ${token.toUpperCase()}`
+        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting ${amount} ${token.toUpperCase()} via Peanut`
     } else if (amount) {
-        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount}`
+        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount} via Peanut`
     } else if (isAddressOrEns) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting funds`
     } else if (chargeId) {
@@ -108,20 +108,20 @@ export async function generateMetadata({ params, searchParams }: any) {
 
     return {
         title,
-        description: 'Send cryptocurrency to friends, family, or anyone else using Peanut on any chain.',
+        description: 'Tap the link to pay instantly and without fees.',
         ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
         icons: {
             icon: '/logo-favicon.png',
         },
         openGraph: {
             title,
-            description: 'Seamless payment infrastructure for sending and receiving digital assets.',
+            description: 'Tap the link to pay instantly and without fees.',
             images: [{ url: ogImageUrl, width: 1200, height: 630 }],
         },
         twitter: {
             card: 'summary_large_image',
             title,
-            description: 'Send cryptocurrency to friends, family, or anyone else using Peanut on any chain.',
+            description: 'Tap the link to pay instantly and without fees.',
             images: [ogImageUrl],
         },
     }
