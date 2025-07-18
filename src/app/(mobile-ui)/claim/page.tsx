@@ -51,10 +51,10 @@ export async function generateMetadata({
 
     let title = 'Claim Payment | Peanut'
     const claimData = await getClaimLinkData(resolvedSearchParams, siteUrl)
-
+    
     if (claimData?.linkDetails) {
         const { linkDetails, username } = claimData
-
+        
         if (!linkDetails.claimed) {
             title = username
                 ? `${username} sent you ${formatAmount(Number(linkDetails.tokenAmount))} via Peanut`
@@ -92,6 +92,7 @@ export async function generateMetadata({
         ? 'This payment link has already been claimed.'
         : 'Receive this payment to your Peanut account, or directly to your bank account.'
 
+
     return {
         title,
         description,
@@ -100,7 +101,7 @@ export async function generateMetadata({
         },
         openGraph: {
             title,
-            description: 'Tap the link to claim instantly and without fees.',
+            description: 'Seamless payment infrastructure for sending and receiving digital assets.',
             images: [{ url: ogImageUrl, width: 1200, height: 630 }],
         },
         twitter: {
