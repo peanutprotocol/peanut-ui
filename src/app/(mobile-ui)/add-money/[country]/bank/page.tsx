@@ -98,14 +98,9 @@ export default function OnrampBankPage() {
         if (step === 'loading') {
             const currentKycStatus = liveKycStatus || user?.user.kycStatus
             const isUserKycVerified = currentKycStatus === 'approved'
-            const hasUserDetails = user?.user.fullName && user?.user.email
 
             if (!isUserKycVerified) {
-                if (hasUserDetails) {
-                    setStep('kyc')
-                } else {
-                    setStep('collectUserDetails')
-                }
+                setStep('collectUserDetails')
             } else {
                 setStep('inputAmount')
                 if (amountFromContext && !rawTokenAmount) {

@@ -54,7 +54,6 @@ export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDeta
             rules: any,
             type: string = 'text'
         ) => {
-            const isDisabled = name === 'email' ? !!initialData?.email : !!initialData?.firstName // also check for lastname implicitly with firstname
             return (
                 <div className="w-full">
                     <div className="relative">
@@ -68,7 +67,6 @@ export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDeta
                                     type={type}
                                     placeholder={placeholder}
                                     className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
-                                    disabled={isDisabled}
                                 />
                             )}
                         />
