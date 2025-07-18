@@ -1,14 +1,43 @@
 import { getLinkDetails } from '@/app/actions/claimLinks'
 import { Claim } from '@/components'
 import { BASE_URL } from '@/constants'
-import { formatAmount } from '@/utils'
+import { formatAmount, resolveAddressToUsername } from '@/utils'
 import { Metadata } from 'next'
 import getOrigin from '@/lib/hosting/get-origin'
-import { JustaName } from '@justaname.id/sdk'
-import { rpcUrls } from '@/constants/general.consts'
-import { mainnet } from 'viem/chains'
 
 export const dynamic = 'force-dynamic'
+
+async function getClaimLinkData(searchParams: { [key: string]: string | string[] | undefined }, siteUrl: string) {
+    if (!searchParams.i || !searchParams.c) return null
+
+    try {
+        const queryParams = new URLSearchParams()
+        Object.entries(searchParams).forEach(([key, val]) => {
+            if (Array.isArray(val)) {
+                val.forEach((v) => queryParams.append(key, v))
+            } else if (val) {
+                queryParams.append(key, val)
+            }
+        })
+        
+        const url = `${siteUrl}/claim?${queryParams.toString()}`
+        const linkDetails = await getLinkDetails(url)
+        
+        // Get username from sender address
+        const username = linkDetails?.senderAddress 
+            ? await resolveAddressToUsername(linkDetails.senderAddress, siteUrl)
+            : null
+
+        if (username) {
+            console.log('username', username)
+        }
+
+        return { linkDetails, username }
+    } catch (e) {
+        console.log('error: ', e)
+        return null
+    }
+}
 
 export async function generateMetadata({
     params,
@@ -18,77 +47,27 @@ export async function generateMetadata({
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }): Promise<Metadata> {
     const resolvedSearchParams = await searchParams
-
+    const siteUrl: string = (await getOrigin()) || BASE_URL
+    
     let title = 'Claim Payment | Peanut'
-    const siteUrl: string = (await getOrigin()) || BASE_URL // getOrigin for getting the origin of the site regardless of its a vercel preview or not
-
-    let linkDetails = undefined
-    let username = undefined
-    if (resolvedSearchParams.i && resolvedSearchParams.c) {
-        try {
-            const queryParams = new URLSearchParams()
-            Object.entries(resolvedSearchParams).forEach(([key, val]) => {
-                if (Array.isArray(val)) {
-                    val.forEach((v) => queryParams.append(key, v))
-                } else if (val) {
-                    queryParams.append(key, val)
-                }
-            })
-            const url = `${siteUrl}/claim?${queryParams.toString()}`
-            linkDetails = await getLinkDetails(url)
-
-            // Get username from sender address
-            if (linkDetails?.senderAddress) {
-                try {
-                    const mainnetRpcUrl = rpcUrls[mainnet.id]?.[0]
-                    const justAName = JustaName.init({
-                        networks: [
-                            {
-                                chainId: 1, // Ethereum Mainnet
-                                providerUrl: mainnetRpcUrl || 'https://eth.llamarpc.com',
-                            },
-                        ],
-                        ensDomains: [
-                            {
-                                chainId: 1,
-                                ensDomain: process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || 'testvc.eth',
-                                apiKey: process.env.JUSTANAME_API_KEY || '',
-                            },
-                        ],
-                        config: {
-                            domain: 'peanut.me',
-                            origin: siteUrl,
-                        },
-                    })
-
-                    const ensName = await justAName.subnames.getPrimaryNameByAddress({
-                        address: linkDetails.senderAddress,
-                    })
-
-                    if (ensName) {
-                        // Strip peanut.me domain to get username
-                        const peanutEnsDomain = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || ''
-                        username = ensName.name.replace(peanutEnsDomain, '').replace(/\.$/, '')
-                        console.log('username', username)
-                    }
-                } catch (ensError) {
-                    console.log('ENS resolution error: ', ensError)
-                }
-            }
-
-            if (!linkDetails.claimed) {
-                title = username + ' is requesting ' + formatAmount(Number(linkDetails.tokenAmount)) + ' via Peanut'
-            } else {
-                title = 'This link has been claimed'
-            }
-        } catch (e) {
-            console.log('error: ', e)
+    const claimData = await getClaimLinkData(resolvedSearchParams, siteUrl)
+    
+    if (claimData?.linkDetails) {
+        const { linkDetails, username } = claimData
+        
+        if (!linkDetails.claimed) {
+            title = username 
+                ? `${username} is requesting ${formatAmount(Number(linkDetails.tokenAmount))} via Peanut`
+                : `You received ${Number(linkDetails.tokenAmount) < 0.01 ? 'some ' : formatAmount(Number(linkDetails.tokenAmount)) + ' in '}${linkDetails.tokenSymbol}!`
+        } else {
+            title = 'This link has been claimed'
         }
     }
 
-    // Use the social preview logic from recipient page
+    // Generate OG image URL
     let ogImageUrl = '/metadata-img.png'
-    if (linkDetails) {
+    if (claimData?.linkDetails) {
+        const { linkDetails, username } = claimData
         const ogUrl = new URL(`${siteUrl}/api/og`)
         ogUrl.searchParams.set('type', 'send')
         ogUrl.searchParams.set('username', username || linkDetails.senderAddress)
@@ -109,7 +88,7 @@ export async function generateMetadata({
         }
     }
 
-    const description = linkDetails?.claimed
+    const description = claimData?.linkDetails?.claimed
         ? 'This payment link has already been claimed.'
         : 'Receive this payment to your Peanut account, or directly to your bank account.'
 
