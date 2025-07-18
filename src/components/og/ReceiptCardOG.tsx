@@ -54,7 +54,6 @@ export function ReceiptCardOG({
                     color: '#000',
                 }}
             >
-
                 {/* Receipt for text */}
                 <p
                     style={{

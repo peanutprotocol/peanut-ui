@@ -8,13 +8,10 @@ import { mainnet } from 'viem/chains'
  * @param siteUrl - The site URL for origin configuration
  * @returns The username (without domain) or null if resolution fails
  */
-export async function resolveAddressToUsername(
-    address: string,
-    siteUrl: string
-): Promise<string | null> {
+export async function resolveAddressToUsername(address: string, siteUrl: string): Promise<string | null> {
     try {
         const mainnetRpcUrl = rpcUrls[mainnet.id]?.[0]
-        
+
         const justAName = JustaName.init({
             networks: [
                 {
