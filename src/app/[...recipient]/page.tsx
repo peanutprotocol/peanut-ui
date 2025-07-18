@@ -78,7 +78,7 @@ export async function generateMetadata({ params, searchParams }: any) {
         } else {
             const ogUrl = new URL(`${siteUrl}/api/og`)
             ogUrl.searchParams.set('type', 'request')
-            ogUrl.searchParams.set('username', username || recipient)
+            ogUrl.searchParams.set('username', recipient)
 
             if (amount) {
                 ogUrl.searchParams.set('amount', String(amount))
@@ -101,17 +101,17 @@ export async function generateMetadata({ params, searchParams }: any) {
 
     // Generate appropriate title and description
     let description = 'Tap the link to pay instantly and without fees.'
-    
+
     // Check if this is a receipt (chargeId exists and charge is paid)
     const isReceipt = chargeId && isPaid
-    
+
     if (isReceipt) {
         // Receipt case - show who shared the receipt
         const displayName = username || (isEthAddress ? printableAddress(recipient) : recipient)
-        title = `${displayName} shared a receipt for ${amount} ${token?.toUpperCase()} via Peanut`
+        title = `${displayName} shared a receipt for ${amount} via Peanut`
         description = 'Tap to view the payment details instantly and securely.'
     } else if (amount && token) {
-        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting ${amount} ${token.toUpperCase()} via Peanut`
+        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting ${amount} via Peanut`
     } else if (amount) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount} via Peanut`
     } else if (isAddressOrEns) {
@@ -126,20 +126,20 @@ export async function generateMetadata({ params, searchParams }: any) {
 
     return {
         title,
-        description,
+        description: 'Tap the link to pay instantly and without fees.',
         ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
         icons: {
             icon: '/logo-favicon.png',
         },
         openGraph: {
             title,
-            description,
+            description: 'Tap the link to pay instantly and without fees.',
             images: [{ url: ogImageUrl, width: 1200, height: 630 }],
         },
         twitter: {
             card: 'summary_large_image',
             title,
-            description,
+            description: 'Tap the link to pay instantly and without fees.',
             images: [ogImageUrl],
         },
     }
