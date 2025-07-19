@@ -1,6 +1,7 @@
 import { JustaName } from '@justaname.id/sdk'
 import { rpcUrls } from '@/constants/general.consts'
 import { mainnet } from 'viem/chains'
+import { ethers } from 'ethers'
 
 /**
  * Resolves an Ethereum address to its username using JustaName ENS resolution
@@ -10,7 +11,13 @@ import { mainnet } from 'viem/chains'
  */
 export async function resolveAddressToUsername(address: string, siteUrl: string): Promise<string | null> {
     try {
-        const mainnetRpcUrl = rpcUrls[mainnet.id]?.[0]
+        const mainnetRpcUrl = rpcUrls[mainnet.id]?.[0] ?? ethers.getDefaultProvider('mainnet')
+
+        const ensDomain = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN
+
+        if (!ensDomain || ensDomain.trim() === '') {
+            throw new Error('NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN environment variable is required and cannot be empty')
+        }
 
         const justAName = JustaName.init({
             networks: [
@@ -22,8 +29,8 @@ export async function resolveAddressToUsername(address: string, siteUrl: string)
             ensDomains: [
                 {
                     chainId: 1,
-                    ensDomain: process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || 'testvc.eth',
-                    apiKey: process.env.JUSTANAME_API_KEY || '',
+                    ensDomain,
+                    apiKey: process.env.JUSTANAME_API_KEY || '', // i dont even have an API key but it works haha @facu
                 },
             ],
             config: {
@@ -37,15 +44,16 @@ export async function resolveAddressToUsername(address: string, siteUrl: string)
         })
 
         if (ensName?.name) {
-            // Strip peanut.me domain to get username
-            const peanutEnsDomain = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || ''
-            const username = ensName.name.replace(peanutEnsDomain, '').replace(/\.$/, '')
+            // Strip domain to get username
+            const username = ensName.name.endsWith(ensDomain)
+                ? ensName.name.slice(0, -ensDomain.length).replace(/\.$/, '')
+                : ensName.name.replace(/\.$/, '')
             return username
         }
 
         return null
     } catch (error) {
-        console.log('ENS resolution error:', error)
+        console.error('ENS resolution error:', error)
         return null
     }
 }

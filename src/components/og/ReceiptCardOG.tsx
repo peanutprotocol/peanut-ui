@@ -5,6 +5,10 @@ function usernamePxWidth(name: string) {
     return Math.round(name.length * charPx) + 40 // +40 padding
 }
 
+function formatTokenAmount(amount: string, token?: string) {
+    return token && token.toLowerCase() !== 'usdc' ? `${amount} ${token}` : `$${amount}`
+}
+
 export function ReceiptCardOG({
     link,
     iconSrc,
@@ -132,9 +136,7 @@ export function ReceiptCardOG({
                                     letterSpacing: '-0.08em',
                                 }}
                             >
-                                {link.token && link.token.toLowerCase() !== 'usdc'
-                                    ? `${link.amount} ${link.token}`
-                                    : `$${link.amount}`}
+                                {formatTokenAmount(link.amount, link.token)}
                             </span>
 
                             {/* Black outline */}
@@ -152,9 +154,7 @@ export function ReceiptCardOG({
                                     letterSpacing: '-0.08em',
                                 }}
                             >
-                                {link.token && link.token.toLowerCase() !== 'usdc'
-                                    ? `${link.amount} ${link.token}`
-                                    : `$${link.amount}`}
+                                {formatTokenAmount(link.amount, link.token)}
                             </span>
 
                             {/* Bottom-left arrow */}
