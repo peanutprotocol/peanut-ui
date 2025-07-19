@@ -120,11 +120,7 @@ export function PaymentCardOG({
                         letterSpacing: '-0.03em',
                     }}
                 >
-                    {link.type === 'send'
-                        ? 'is sending you'
-                        : link.amount === 0
-                          ? 'is requesting funds!'
-                          : 'is requesting'}
+                    {link.type === 'send' ? 'is sending' : link.amount === 0 ? 'is requesting funds!' : 'is requesting'}
                 </p>
 
                 {/* Only show amount display when amount > 0 */}

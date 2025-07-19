@@ -124,6 +124,14 @@ export async function GET(req: NextRequest) {
     username = formatUsernameForDisplay(username)
 
     if (isReceipt === 'true') {
+        // create an object with all arrow SVG paths for receipts
+        const arrowSrcs = {
+            topLeft: `${origin}/arrows/top-left-arrows.svg`,
+            topRight: `${origin}/arrows/top-right-arrow.svg`,
+            bottomLeft: `${origin}/arrows/bottom-left-arrow.svg`,
+            bottomRight: `${origin}/arrows/bottom-right-arrow.svg`,
+        }
+
         const link: PaymentLink & { token?: string } = {
             type,
             username,
@@ -138,6 +146,7 @@ export async function GET(req: NextRequest) {
                     iconSrc={`${origin}/icons/peanut-icon.svg`}
                     logoSrc={`${origin}/logos/peanut-logo.svg`}
                     scribbleSrc={`${origin}/scribble.svg`}
+                    arrowSrcs={arrowSrcs}
                 />
             ),
             {
