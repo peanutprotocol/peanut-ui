@@ -1,8 +1,6 @@
 import React from 'react'
 import Image from 'next/image'
-import { Star } from '@/assets'
 import scribble from '@/assets/scribble.svg'
-import peanutMeans from '@/assets/illustrations/peanut-means.svg'
 
 // Define the background color as a constant
 const businessBgColor = '#90A8ED'
@@ -16,13 +14,9 @@ export function BusinessIntegrate() {
             <div className="relative mx-auto max-w-3xl text-center">
                 {/* Main heading */}
                 <div className="mb-8 mt-8 md:mb-24 md:mt-20">
-                    <Image
-                        src={peanutMeans}
-                        alt="Peanut Means"
-                        width={600}
-                        height={120}
-                        className="mx-auto h-auto w-[95%] max-w-md md:w-full md:max-w-2xl"
-                    />
+                    <h1 className="font-roboto-flex-extrabold font-extraBlack lg:text-headingMedium md:text-heading text-5xl">
+                        PEANUT MEANS
+                    </h1>
                 </div>
 
                 {/* Stylized BUSINESS title using knerd fonts */}

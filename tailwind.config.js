@@ -112,6 +112,9 @@ module.exports = {
                     3: '#FF4A4A',
                 },
             },
+            screens: {
+                xs: '375px',
+            },
             zIndex: {
                 1: '1',
                 2: '2',
@@ -204,6 +207,7 @@ module.exports = {
                 'knerd-outline': ['var(--font-knerd-outline)', ...fontFamily.sans],
                 'knerd-filled': ['var(--font-knerd-filled)', ...fontFamily.sans],
                 roboto: ['var(--font-roboto)', ...fontFamily.sans],
+                'roboto-flex-bold': ['var(--font-roboto-flex-bold)', ...fontFamily.sans],
             },
             fontSize: {
                 0: ['0px', '0px'],
@@ -282,6 +286,27 @@ module.exports = {
                         fontWeight: '800',
                     },
                 ],
+                headingLarge: [
+                    '7rem',
+                    {
+                        lineHeight: '6.5rem',
+                    },
+                ],
+                headingMedium: [
+                    '5rem',
+                    {
+                        lineHeight: '4rem',
+                    },
+                ],
+                heading: [
+                    '3.75rem',
+                    {
+                        lineHeight: '2.875rem',
+                    },
+                ],
+            },
+            fontWeight: {
+                extraBlack: 1000,
             },
         },
     },

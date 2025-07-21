@@ -348,3 +348,10 @@ input::placeholder {
 .enable-select {
     @apply select-text;
 }
+
+.font-roboto-flex-extrabold {
+    @apply font-roboto-flex-bold;
+    font-weight: 1000;
+    line-height: 100%;
+    letter-spacing: -1px;
+}
