@@ -176,7 +176,7 @@ export default function LandingPage() {
     const marqueeProps = { visible: hero.marquee.visible, message: hero.marquee.message }
 
     return (
-        <Layout className="!m-0 w-full !p-0">
+        <Layout className="enable-select !m-0 w-full !p-0">
             <Hero
                 heading={hero.heading}
                 primaryCta={hero.primaryCta}

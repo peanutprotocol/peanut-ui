@@ -344,3 +344,7 @@ Firefox input[type='number'] {
 input::placeholder {
     translate: no;
 }
+
+.enable-select {
+    @apply select-text;
+}
