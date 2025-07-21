@@ -12,7 +12,7 @@ export const MAINTAINABLE_ROUTES = {
 // Static configuration - edit this file to change maintenance state
 const config: MaintenanceConfig = {
     routes: [
-        '/', // put all routes under maintenance
+        MAINTAINABLE_ROUTES.CASHOUT, // Routes under maintenance
     ],
 }
 
