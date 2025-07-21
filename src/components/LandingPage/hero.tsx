@@ -6,6 +6,7 @@ import { twMerge } from 'tailwind-merge'
 import { CloudImages, HeroImages } from './imageAssets'
 import Image from 'next/image'
 import instantlySendReceive from '@/assets/illustrations/instantly-send-receive.svg'
+import { Button } from '../0_Bruddle'
 
 type CTAButton = {
     label: string
@@ -137,12 +138,15 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
 
                 <a
                     href={cta.href}
-                    className={getButtonClasses(variant)}
                     target={cta.isExternal ? '_blank' : undefined}
-                    style={{ fontWeight: 900 }}
                     rel={cta.isExternal ? 'noopener noreferrer' : undefined}
                 >
-                    {cta.label}
+                    <Button
+                        shadowSize="4"
+                        className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
+                    >
+                        {cta.label}
+                    </Button>
                 </a>
 
                 {renderArrows(variant, arrowOpacity, buttonVisible)}

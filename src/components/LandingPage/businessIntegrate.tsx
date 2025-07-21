@@ -1,6 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 import scribble from '@/assets/scribble.svg'
+import { Button } from '../0_Bruddle'
 
 // Define the background color as a constant
 const businessBgColor = '#90A8ED'
@@ -53,10 +54,13 @@ export function BusinessIntegrate() {
                     href="https://peanutprotocol.notion.site/12c83811757980afb3b6d3e5a4c68f4d"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-shadow-primary-4 inline-block rounded-sm border-[1px] border-n-1 bg-white px-8 py-4 font-roboto text-base font-black text-n-1 hover:bg-grey-2 focus:outline-none md:px-10 md:py-4 md:text-lg"
-                    style={{ fontWeight: 900 }}
                 >
-                    INTEGRATE PEANUT
+                    <Button
+                        shadowSize="4"
+                        className="inline-block w-58 bg-white px-7 pb-11 pt-4 text-base font-extrabold hover:bg-white/90 md:w-72 md:px-10 md:text-lg"
+                    >
+                        INTEGRATE PEANUT
+                    </Button>
                 </a>
             </div>
         </section>

@@ -6,6 +6,7 @@ import exclamations from '@/assets/illustrations/exclamations.svg'
 import payZeroFees from '@/assets/illustrations/pay-zero-fees.svg'
 import mobileSendInSeconds from '@/assets/illustrations/mobile-send-in-seconds.svg'
 import { Star, Sparkle } from '@/assets'
+import { Button } from '../0_Bruddle'
 
 export function SendInSeconds() {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
@@ -229,8 +230,13 @@ export function SendInSeconds() {
                         whileHover={getHoverAnimation()}
                         transition={transitionConfig}
                     >
-                        <a href="/send" className={getButtonClasses()} style={{ fontWeight: 900 }}>
-                            TRY NOW
+                        <a href="/send">
+                            <Button
+                                shadowSize="4"
+                                className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
+                            >
+                                TRY NOW!
+                            </Button>
                         </a>
                     </motion.div>
 
