@@ -89,7 +89,6 @@ export async function createOfframpForGuest(
             },
             body: JSON.stringify({
                 ...params,
-                provider: 'bridge',
             }),
         })
 

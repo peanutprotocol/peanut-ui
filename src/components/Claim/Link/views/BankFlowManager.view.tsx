@@ -97,7 +97,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
             const offrampRequestParams: TCreateOfframpRequest = {
                 amount: formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals),
-                onBehalfOf: userResponse.bridgeCustomerId,
+                userId: userResponse.userId,
                 source: {
                     paymentRail: paymentRail,
                     currency: currency,
@@ -107,7 +107,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     ...getOfframpCurrencyConfig(selectedCountry.id),
                     externalAccountId: externalAccountResponse.id,
                 },
-                developer_fee: '0',
             }
 
             const offrampResponse = await createOfframpForGuest(offrampRequestParams)

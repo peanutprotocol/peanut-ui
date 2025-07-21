@@ -273,18 +273,20 @@ export type RewardLink = {
 
 // offramp service types
 export interface TCreateOfframpRequest {
-    amount: string
-    developer_fee: string
-    onBehalfOf: string
+    userId: string
+    amount?: string
     source: {
-        paymentRail: string
         currency: string
+        paymentRail: string
         fromAddress?: string
     }
     destination: {
-        paymentRail: string
         currency: string
+        paymentRail: string
         externalAccountId: string
+        wireMessage?: string
+        sepaReference?: string
+        achReference?: string
     }
 }
 
