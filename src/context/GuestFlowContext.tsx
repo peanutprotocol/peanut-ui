@@ -3,6 +3,7 @@
 import React, { createContext, ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 import { CountryData } from '../components/AddMoney/consts'
 import { TCreateOfframpResponse } from '@/services/services.types'
+import { User } from '@/interfaces'
 
 interface GuestFlowContextType {
     showGuestActionsList: boolean
@@ -20,6 +21,10 @@ interface GuestFlowContextType {
     setClaimError: (error: string | null) => void
     claimType?: 'claim-bank' | 'claim' | 'claimxchain' | null
     setClaimType: (type: 'claim-bank' | 'claim' | 'claimxchain' | null) => void
+    senderDetails: User | null
+    setSenderDetails: (details: User | null) => void
+    showVerificationModal: boolean
+    setShowVerificationModal: (show: boolean) => void
 }
 
 const GuestFlowContext = createContext<GuestFlowContextType | undefined>(undefined)
@@ -32,6 +37,8 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
     const [offrampDetails, setOfframpDetails] = useState<TCreateOfframpResponse | null>(null)
     const [claimError, setClaimError] = useState<string | null>(null)
     const [claimType, setClaimType] = useState<'claim-bank' | 'claim' | 'claimxchain' | null>(null)
+    const [senderDetails, setSenderDetails] = useState<User | null>(null)
+    const [showVerificationModal, setShowVerificationModal] = useState(false)
 
     const resetGuestFlow = useCallback(() => {
         setClaimToExternalWallet(false)
@@ -41,6 +48,8 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
         setOfframpDetails(null)
         setClaimError(null)
         setClaimType(null)
+        setSenderDetails(null)
+        setShowVerificationModal(false)
     }, [])
 
     const value = useMemo(
@@ -60,6 +69,10 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
             setClaimError,
             claimType,
             setClaimType,
+            senderDetails,
+            setSenderDetails,
+            showVerificationModal,
+            setShowVerificationModal,
         }),
         [
             showGuestActionsList,
@@ -71,6 +84,8 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
             claimError,
             claimType,
             setClaimType,
+            senderDetails,
+            showVerificationModal,
         ]
     )
 

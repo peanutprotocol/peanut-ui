@@ -18,16 +18,14 @@ import { TCreateOfframpRequest, TCreateOfframpResponse } from '@/services/servic
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { getUserById } from '@/app/actions/users'
 
 export const BankFlowManager = (props: IClaimScreenProps) => {
     const { onCustom, claimLinkData, setTransactionHash } = props
-    const { guestFlowStep, setGuestFlowStep, selectedCountry, setClaimType } = useGuestFlow()
+    const { guestFlowStep, setGuestFlowStep, selectedCountry, setClaimType, senderDetails } = useGuestFlow()
     const { isLoading, setLoadingState } = useContext(loadingStateContext)
     const { claimLink } = useClaimLink()
     const [offrampDetails, setOfframpDetails] = useState<TCreateOfframpResponse | null>(null)
     const [bankDetails, setBankDetails] = useState<IBankAccountDetails | null>(null)
-    const [senderFullName, setSenderFullName] = useState<string>('')
     const [error, setError] = useState<string | null>(null)
 
     const handleSuccess = async (payload: AddBankAccountPayload, rawData: IBankAccountDetails) => {
@@ -37,23 +35,17 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             return { error: err }
         }
 
+        if (!senderDetails) {
+            const err = 'Sender details not found'
+            setError(err)
+            return { error: err }
+        }
+
         try {
-            if (!claimLinkData.sender?.userId) return { error: 'Sender details not found' }
             setLoadingState('Executing transaction')
             setError(null)
-            const userResponse = await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
 
-            if (!userResponse || ('error' in userResponse && userResponse.error)) {
-                const errorMessage =
-                    (userResponse && typeof userResponse.error === 'string' && userResponse.error) ||
-                    'Failed to get user info'
-                setError(errorMessage)
-                return { error: errorMessage }
-            }
-
-            setSenderFullName(userResponse.fullName)
-
-            const [firstName, ...lastNameParts] = userResponse.fullName.split(' ')
+            const [firstName, ...lastNameParts] = senderDetails.fullName.split(' ')
             const lastName = lastNameParts.join(' ')
 
             const paymentRail = getBridgeChainName(claimLinkData.chainId)
@@ -74,8 +66,13 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 },
             }
 
+            if (!senderDetails?.bridgeCustomerId) {
+                setError('Sender details not found')
+                return { error: 'Sender details not found' }
+            }
+
             const externalAccountResponse = await createBridgeExternalAccountForGuest(
-                userResponse.bridgeCustomerId,
+                senderDetails.bridgeCustomerId,
                 payloadWithCountry
             )
 
@@ -95,9 +92,14 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             const contractVersion = params.contractVersion
             const peanutContractAddress = peanut.getContractAddress(chainId, contractVersion) as Address
 
+            if (!senderDetails?.bridgeCustomerId) {
+                setError('Sender details not found')
+                return { error: 'Sender details not found' }
+            }
+
             const offrampRequestParams: TCreateOfframpRequest = {
                 amount: formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals),
-                onBehalfOf: userResponse.bridgeCustomerId,
+                onBehalfOf: senderDetails.bridgeCustomerId,
                 source: {
                     paymentRail: paymentRail,
                     currency: currency,
@@ -159,7 +161,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         }
     }
 
-    if (guestFlowStep === 'bank-confirm-claim' && offrampDetails && bankDetails) {
+    if (guestFlowStep === 'bank-confirm-claim' && offrampDetails && bankDetails && senderDetails) {
         return (
             <ConfirmBankClaimView
                 claimLinkData={claimLinkData}
@@ -172,7 +174,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 error={error}
                 offrampDetails={offrampDetails}
                 bankDetails={bankDetails}
-                fullName={senderFullName}
+                fullName={senderDetails.fullName}
             />
         )
     }
