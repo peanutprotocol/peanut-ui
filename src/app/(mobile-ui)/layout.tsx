@@ -17,6 +17,9 @@ import PullToRefresh from 'pulltorefreshjs'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
+import { MarqueeWrapper } from '@/components/Global/MarqueeWrapper'
+import Image from 'next/image'
+import { HandThumbsUp } from '@/assets'
 
 const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$)/
 
@@ -101,7 +104,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 {/* Main content area */}
                 <div className="flex w-full flex-1 flex-col">
                     {/* Only show banner if not on landing page */}
-                    {/* {pathName !== '/' && (
+                    {pathName !== '/' && (
                         <button onClick={() => router.push('/support')} className="w-full cursor-pointer">
                             <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
                                 <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
