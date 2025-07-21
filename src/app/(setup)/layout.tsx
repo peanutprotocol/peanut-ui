@@ -1,5 +1,6 @@
 'use client'
 
+import { Banner } from '@/components/Global/Banner'
 import { usePWAStatus } from '@/hooks/usePWAStatus'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
@@ -19,7 +20,12 @@ const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
         dispatch(setupActions.setSteps(filteredSteps))
     }, [isPWA])
 
-    return <>{children}</>
+    return (
+        <>
+            <Banner />
+            {children}
+        </>
+    )
 }
 
 export default SetupLayout
