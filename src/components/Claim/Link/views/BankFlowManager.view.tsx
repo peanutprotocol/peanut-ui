@@ -4,7 +4,7 @@ import { IClaimScreenProps } from '../../Claim.consts'
 import { DynamicBankAccountForm, IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { useGuestFlow } from '@/context/GuestFlowContext'
 import { ClaimCountryListView } from './ClaimCountryList.view'
-import { useContext, useState } from 'react'
+import { useCallback, useContext, useState } from 'react'
 import { loadingStateContext } from '@/context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframpForGuest } from '@/app/actions/offramp'
@@ -148,7 +148,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         }
     }
 
-    const handleConfirmClaim = async () => {
+    const handleConfirmClaim = useCallback(async () => {
         try {
             setLoadingState('Executing transaction')
             setError(null)
@@ -173,7 +173,17 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         } finally {
             setLoadingState('Idle')
         }
-    }
+    }, [
+        offrampDetails,
+        claimLink,
+        claimLinkData.link,
+        setTransactionHash,
+        confirmOfframp,
+        setClaimType,
+        onCustom,
+        setLoadingState,
+        setError,
+    ])
 
     if (guestFlowStep === 'bank-confirm-claim' && offrampDetails && bankDetails) {
         return (
