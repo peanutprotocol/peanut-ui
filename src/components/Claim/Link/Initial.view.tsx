@@ -300,8 +300,8 @@ export const InitialClaimLinkView = ({
                 })
                 if (user?.user.kycStatus === 'approved') {
                     const account = user.accounts.find(
-                        (account: any) =>
-                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                        (account) =>
+                            account.identifier.replaceAll(/\s/g, '').toLowerCase() ===
                             recipient.address.replaceAll(/\s/g, '').toLowerCase()
                     )
 
