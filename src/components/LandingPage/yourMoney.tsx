@@ -51,7 +51,7 @@ export function YourMoney() {
         <section className="bg-secondary-1 px-4 py-12 text-n-1 md:py-16">
             <div className="mx-auto max-w-7xl">
                 <div className="mb-12 mt-4 text-center md:mb-20 md:mt-6 md:text-left">
-                    <h1 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-6xl lg:text-headingMedium">
+                    <h1 className="font-roboto-flex-extrabold text-6xl font-extraBlack md:text-6xl lg:text-headingMedium">
                         YOUR MONEY, ANYWHERE
                     </h1>
                 </div>
