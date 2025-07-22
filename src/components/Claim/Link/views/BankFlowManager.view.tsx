@@ -19,6 +19,7 @@ import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { getUserById } from '@/app/actions/users'
+import NavHeader from '@/components/Global/NavHeader'
 
 export const BankFlowManager = (props: IClaimScreenProps) => {
     const { onCustom, claimLinkData, setTransactionHash } = props
@@ -27,7 +28,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const { claimLink } = useClaimLink()
     const [offrampDetails, setOfframpDetails] = useState<TCreateOfframpResponse | null>(null)
     const [bankDetails, setBankDetails] = useState<IBankAccountDetails | null>(null)
-    const [senderFullName, setSenderFullName] = useState<string>('')
+    const [receiverFullName, setReceiverFullName] = useState<string>('')
     const [error, setError] = useState<string | null>(null)
 
     const handleSuccess = async (payload: AddBankAccountPayload, rawData: IBankAccountDetails) => {
@@ -56,9 +57,10 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 return { error: 'User not KYC approved' }
             }
 
-            setSenderFullName(userResponse.fullName)
+            setReceiverFullName(rawData.name ?? '')
+            sessionStorage.setItem('receiverFullName', rawData.name ?? '')
 
-            const [firstName, ...lastNameParts] = userResponse.fullName.split(' ')
+            const [firstName, ...lastNameParts] = rawData.name?.split(' ') ?? ['', '']
             const lastName = lastNameParts.join(' ')
 
             const paymentRail = getBridgeChainName(claimLinkData.chainId)
@@ -101,13 +103,15 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
             // note: we pass peanut contract address to offramp as the funds go from, user -> peanut contract -> bridge
             const params = peanut.getParamsFromLink(claimLinkData.link)
+            const { address: pubKey } = peanut.generateKeysFromString(params.password)
             const chainId = params.chainId
             const contractVersion = params.contractVersion
             const peanutContractAddress = peanut.getContractAddress(chainId, contractVersion) as Address
 
             const offrampRequestParams: TCreateOfframpRequest = {
                 amount: formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals),
-                userId: userResponse.bridgeCustomerId,
+                userId: userResponse.userId,
+                sendLinkPubKey: pubKey,
                 source: {
                     paymentRail: paymentRail,
                     currency: currency,
@@ -116,6 +120,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 destination: {
                     ...getOfframpCurrencyConfig(selectedCountry.id),
                     externalAccountId: externalAccountResponse.id,
+                },
+                features: {
+                    allowAnyFromAddress: true,
                 },
             }
 
@@ -179,9 +186,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 }}
                 isProcessing={isLoading}
                 error={error}
-                offrampDetails={offrampDetails}
                 bankDetails={bankDetails}
-                fullName={senderFullName}
+                fullName={receiverFullName}
             />
         )
     }
@@ -191,17 +197,22 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     }
 
     return (
-        <DynamicBankAccountForm
-            key={selectedCountry.id}
-            country={selectedCountry.id}
-            onSuccess={handleSuccess}
-            flow={'claim'}
-            actionDetailsProps={{
-                transactionType: 'CLAIM_LINK_BANK_ACCOUNT',
-                recipientType: 'BANK_ACCOUNT',
-                amount: formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!,
-                tokenSymbol: claimLinkData.tokenSymbol,
-            }}
-        />
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="md:hidden">
+                <NavHeader title="Receive" onPrev={() => setGuestFlowStep('bank-country-list')} />
+            </div>
+            <DynamicBankAccountForm
+                key={selectedCountry.id}
+                country={selectedCountry.id}
+                onSuccess={handleSuccess}
+                flow={'claim'}
+                actionDetailsProps={{
+                    transactionType: 'CLAIM_LINK_BANK_ACCOUNT',
+                    recipientType: 'BANK_ACCOUNT',
+                    amount: formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!,
+                    tokenSymbol: claimLinkData.tokenSymbol,
+                }}
+            />
+        </div>
     )
 }

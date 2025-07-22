@@ -19,6 +19,7 @@ const isIBANCountry = (country: string) => {
 }
 
 export type IBankAccountDetails = {
+    name?: string
     firstName: string
     lastName: string
     email: string
@@ -47,6 +48,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const { user } = useAuth()
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
+        const [showBicField, setShowBicField] = useState(false)
         const { country: countryName } = useParams()
         const { amountToWithdraw } = useWithdrawFlow()
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
@@ -127,6 +129,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     country,
                     firstName: data.firstName.trim(),
                     lastName: data.lastName.trim(),
+                    name: data.name,
                 })
                 if (result.error) {
                     setSubmissionError(result.error)
@@ -204,6 +207,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         }}
                         className="space-y-4"
                     >
+                        {flow === 'claim' &&
+                            renderInput('name', 'Full Name', {
+                                required: 'Full name is required',
+                            })}
                         {flow !== 'claim' && !user?.user?.fullName && (
                             <div className="w-full space-y-4">
                                 {renderInput('firstName', 'First Name', { required: 'First name is required' })}
@@ -236,12 +243,17 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                         if (!field.value || field.value.trim().length === 0) return
 
                                         try {
+                                            setShowBicField(false)
+                                            setValue('bic', '', { shouldValidate: false })
                                             const bic = await getBicFromIban(field.value.trim())
                                             if (bic) {
                                                 setValue('bic', bic, { shouldValidate: true })
+                                            } else {
+                                                setShowBicField(true)
                                             }
                                         } catch (error) {
                                             console.warn('Failed to fetch BIC:', error)
+                                            setShowBicField(true)
                                         }
                                     }
                                 )
@@ -257,6 +269,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 )}
 
                         {isIban &&
+                            showBicField &&
                             renderInput('bic', 'BIC', {
                                 required: 'BIC is required',
                                 validate: async (value: string) => (await validateBic(value)) || 'Invalid BIC code',

@@ -11,14 +11,14 @@ import { IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccount
 import { useMemo } from 'react'
 import { ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
-import { TCreateOfframpResponse } from '@/services/services.types'
+import ExchangeRate from '@/components/ExchangeRate'
+import { AccountType } from '@/interfaces'
 
 interface ConfirmBankClaimViewProps {
     onConfirm: () => void
     onBack: () => void
     isProcessing?: boolean
     error?: string | null
-    offrampDetails: TCreateOfframpResponse
     bankDetails: IBankAccountDetails
     fullName: string
     claimLinkData: ClaimLinkData
@@ -29,14 +29,24 @@ export function ConfirmBankClaimView({
     onBack,
     isProcessing,
     error,
-    offrampDetails,
     bankDetails,
     fullName,
     claimLinkData,
 }: ConfirmBankClaimViewProps) {
-    const {
-        quote: { exchange_rate },
-    } = offrampDetails
+    const displayedFullName = useMemo(() => {
+        if (fullName) return fullName
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('receiverFullName') ?? ''
+        }
+        return ''
+    }, [fullName])
+
+    const accountType = useMemo(() => {
+        if (bankDetails.iban) return AccountType.IBAN
+        if (bankDetails.clabe) return AccountType.CLABE
+        if (bankDetails.accountNumber && bankDetails.routingNumber) return AccountType.US
+        return AccountType.IBAN // Default or handle error
+    }, [bankDetails])
 
     const countryCodeForFlag = useMemo(() => {
         return countryCodeMap[bankDetails.country.toUpperCase()] ?? bankDetails.country.toUpperCase()
@@ -60,13 +70,10 @@ export function ConfirmBankClaimView({
 
                 <Card className="rounded-sm">
                     {/* todo: take full name from user, this name rn is of senders */}
-                    <PaymentInfoRow label="Full name" value={fullName} />
+                    <PaymentInfoRow label="Full name" value={displayedFullName} />
                     {bankDetails.iban && <PaymentInfoRow label="IBAN" value={bankDetails.iban} />}
                     {bankDetails.bic && <PaymentInfoRow label="BIC" value={bankDetails.bic} />}
-                    <PaymentInfoRow
-                        label="Exchange Rate"
-                        value={exchange_rate ? `1 USD = ${exchange_rate} ${'EUR'}` : '-'}
-                    />
+                    <ExchangeRate accountType={accountType} />
                     <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                 </Card>
 
