@@ -43,10 +43,10 @@ export function BusinessIntegrate() {
 
                 {/* Subtitle with scribble around a word */}
                 <p
-                    className="mb-8 max-w-xs font-roboto text-xl font-medium leading-tight md:mb-16 md:max-w-none md:text-4xl"
+                    className="mb-8 px-4 font-roboto text-xl font-medium leading-tight md:mb-16 md:max-w-none md:px-0 md:text-4xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    PLUG-AND-PLAY MONEY RAILS <br /> FOR PRODUCTS THAT NEED TO MOVE FAST.
+                    ENTERPRISE PLUG-AND-PLAY MONEY RAILS <br /> FOR PRODUCTS THAT NEED TO MOVE FAST.
                 </p>
 
                 {/* CTA Button */}

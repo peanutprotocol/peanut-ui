@@ -19,7 +19,7 @@ interface Feature {
 const features: Feature[] = [
     {
         id: 1,
-        title: 'BIOMETRIC AUTHENTICATION',
+        title: 'BIOMETRIC AUTH',
         titleSvg: biometricProtection,
         description:
             "Peanut uses your phone's secure enclave, a cryptographic hardware designed to securely authenticate your actions and keep your account private and unhackable.",
