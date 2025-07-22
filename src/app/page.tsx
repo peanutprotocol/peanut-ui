@@ -34,7 +34,7 @@ export default function LandingPage() {
             message: ['No fees', 'Instant', '24/7', 'USD', 'EUR', 'CRYPTO', 'GLOBAL', 'SELF-CUSTODIAL'],
         },
         primaryCta: {
-            label: 'TRY NOW',
+            label: 'TRY NOW!',
             href: '/setup',
         },
     }
@@ -50,7 +50,22 @@ export default function LandingPage() {
             {
                 id: '1',
                 question: 'What is Peanut?',
-                answer: 'Peanut is the simplest way to send and receive crypto or fiat. Peanut lets you request, send and cashout digital dollars using links and QR codes.',
+                answer: 'Peanut is the easiest way to send digital dollars to anyone anywhere. Peanut’s tech is powered by cutting-edge cryptography and the security of biometric user authentication as well as a network of modern and fully licensed banking providers.',
+            },
+            {
+                id: '2',
+                question: 'Do I have to KYC?',
+                answer: 'No! You can use core functionalities (like sending and receiving money) without KYC. Bank connections, however, trigger a one‑time check handled by Persona, a SOC2 Type 2 certified and GDPR compliant ISO 27001–certified provider used by brands like Square and Robinhood. Your documents remain locked away with Persona, not Peanut, and Peanut only gets a yes/no response, keeping your privacy intact.',
+            },
+            {
+                id: '3',
+                question: 'Could a thief drain my wallet if they stole my phone?',
+                answer: 'Not without your face or fingerprint. The passkey is sealed in the Secure Enclave of your phone and never exported. It’s secured by NIST‑recommended P‑256 Elliptic Curve cryptography. Defeating that would be tougher than guessing all 10¹⁰¹⁰ combinations of a 30‑character password made of emoji.\nThis means that neither Peanut or even regulators could freeze, us or you to hand over your account, because we can’t hand over what we don’t have. Your key never touches our servers; compliance requests only see cryptographic and encrypted signatures. Cracking those signatures would demand more energy than the Sun outputs in a full century.',
+            },
+            {
+                id: '4',
+                question: 'What happens to my funds if Peanut’s servers were breached?',
+                answer: "Nothing. Your funds sit in your self‑custodied smart account (not on Peanut servers). Every transfer still needs a signature from your biometric passkey, so a server‑side attacker has no way to move a cent without the private key sealed in your device's Secure Enclave. Even if Peanut were offline, you could point any ERC‑4337‑compatible wallet at your smart account and recover access independently.",
             },
         ],
         marquee: {
@@ -161,7 +176,7 @@ export default function LandingPage() {
     const marqueeProps = { visible: hero.marquee.visible, message: hero.marquee.message }
 
     return (
-        <Layout className="!m-0 w-full !p-0">
+        <Layout className="enable-select !m-0 w-full !p-0">
             <Hero
                 heading={hero.heading}
                 primaryCta={hero.primaryCta}
