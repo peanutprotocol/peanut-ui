@@ -3,7 +3,6 @@ import RouterViewWrapper from '@/components/RouterViewWrapper'
 import { useAppDispatch } from '@/redux/hooks'
 import { sendFlowActions } from '@/redux/slices/send-flow-slice'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState, useEffect, useCallback } from 'react'
 
 import LinkSendFlowManager from '../link/LinkSendFlowManager'
 
@@ -11,26 +10,18 @@ export const SendRouterView = () => {
     const router = useRouter()
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
-    const [isSendingByLink, setIsSendingByLink] = useState(false)
+    const isSendingByLink = searchParams.get('createLink') === 'true'
 
-    const handleLinkCardClick = useCallback(() => {
+    const redirectToSendByLink = () => {
         // Reset send flow state when entering link creation flow
         dispatch(sendFlowActions.resetSendFlow())
-        setIsSendingByLink(true)
-    }, [dispatch])
-
-    // Check for createLink parameter on mount
-    useEffect(() => {
-        const createLink = searchParams.get('createLink')
-        if (createLink === 'true') {
-            handleLinkCardClick()
-        }
-    }, [searchParams, handleLinkCardClick])
+        router.push(`${window.location.pathname}?createLink=true`)
+    }
 
     const handlePrev = () => {
         // Reset send flow state when leaving link creation flow
         dispatch(sendFlowActions.resetSendFlow())
-        setIsSendingByLink(false)
+        router.back()
     }
 
     if (isSendingByLink) {
@@ -41,7 +32,10 @@ export const SendRouterView = () => {
         <RouterViewWrapper
             title="Send"
             linkCardTitle="Pay anyone with a link!"
-            onLinkCardClick={handleLinkCardClick}
+            onLinkCardClick={() => {
+                router.push(`${window.location.pathname}?createLink=false`) // preserve current URL
+                redirectToSendByLink()
+            }}
             onUserSelect={(username) => router.push(`/send/${username}`)}
         />
     )
