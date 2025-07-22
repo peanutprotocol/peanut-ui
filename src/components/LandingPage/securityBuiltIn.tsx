@@ -19,9 +19,10 @@ interface Feature {
 const features: Feature[] = [
     {
         id: 1,
-        title: 'BIOMETRIC PROTECTION',
+        title: 'BIOMETRIC AUTHENTICATION',
         titleSvg: biometricProtection,
-        description: 'Verify with Face ID, Touch ID or passcode, every single action is yours to approve.',
+        description:
+            "Peanut uses your phone's secure enclave, a cryptographic hardware designed to securely authenticate your actions and keep your account private and unhackable.",
         iconSrc: handThumbsUp,
         iconAlt: 'Thumbs up',
     },
@@ -29,7 +30,7 @@ const features: Feature[] = [
         id: 2,
         title: 'SELF-CUSTODIAL BY DESIGN',
         titleSvg: selfCustodialDesign,
-        description: "Peanut is fully self-custodial. Your assets can't be frozen or moved by anyone else.",
+        description: 'Your assets cannot be frozen by anyone or moved without your consent',
         iconSrc: handWaving,
         iconAlt: 'Hand waving',
     },
