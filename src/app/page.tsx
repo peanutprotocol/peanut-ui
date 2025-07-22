@@ -65,7 +65,7 @@ export default function LandingPage() {
             {
                 id: '4',
                 question: 'What happens to my funds if Peanut’s servers were breached?',
-                answer: 'Nothing. Your funds either (a) sit your self‑custodied smart account (not on Peanut servers). Every transfer still needs a signature from your biometric passkey, so a server‑side attacker has no way to move a cent without the private key sealed in your device’s Secure Enclave. Even if Peanut were offline, you could point any ERC‑4337‑compatible wallet at and recover access indepedently.',
+                answer: "Nothing. Your funds either (a) sit in your self‑custodied smart account (not on Peanut servers). Every transfer still needs a signature from your biometric passkey, so a server‑side attacker has no way to move a cent without the private key sealed in your device's Secure Enclave. Even if Peanut were offline, you could point any ERC‑4337‑compatible wallet at your smart account and recover access independently.",
             },
         ],
         marquee: {
