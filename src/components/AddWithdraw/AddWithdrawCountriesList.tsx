@@ -13,7 +13,7 @@ import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useRef, useState } from 'react'
 import { InitiateKYCModal } from '@/components/Kyc'
-import { DynamicBankAccountForm, FormData } from './DynamicBankAccountForm'
+import { DynamicBankAccountForm, IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount, updateUserById } from '@/app/actions/users'
 import { jsonParse, jsonStringify } from '@/utils/general.utils'
 import { KYCStatus } from '@/utils/bridge-accounts.utils'
@@ -36,7 +36,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const { setFromBankSelected } = useOnrampFlow()
     const [view, setView] = useState<'list' | 'form'>('list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
-    const [cachedBankDetails, setCachedBankDetails] = useState<Partial<FormData> | null>(null)
+    const [cachedBankDetails, setCachedBankDetails] = useState<Partial<IBankAccountDetails> | null>(null)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(user?.user?.kycStatus as KYCStatus)
 
@@ -78,7 +78,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         }
     }, [user, liveKycStatus, cachedBankDetails])
 
-    const handleFormSubmit = async (payload: AddBankAccountPayload, rawData: FormData): Promise<{ error?: string }> => {
+    const handleFormSubmit = async (
+        payload: AddBankAccountPayload,
+        rawData: IBankAccountDetails
+    ): Promise<{ error?: string }> => {
         const currentKycStatus = liveKycStatus || user?.user.kycStatus
         const isUserKycVerified = currentKycStatus === 'approved'
 

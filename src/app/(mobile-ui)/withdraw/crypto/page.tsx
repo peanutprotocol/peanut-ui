@@ -264,13 +264,6 @@ export default function WithdrawCryptoPage() {
         const fromChainId = isPeanutWallet ? PEANUT_WALLET_CHAIN.id.toString() : withdrawData.chain.chainId
         const toChainId = activeChargeDetailsFromStore.chainId
 
-        console.log('Cross-chain check:', {
-            fromChainId,
-            toChainId,
-            isPeanutWallet,
-            isCrossChain: fromChainId !== toChainId,
-        })
-
         return fromChainId !== toChainId
     }, [withdrawData, activeChargeDetailsFromStore, isPeanutWallet])
 
