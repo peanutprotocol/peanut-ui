@@ -10,6 +10,9 @@ import { Button } from '../0_Bruddle'
 import { useGuestFlow } from '@/context/GuestFlowContext'
 import { getUserById } from '@/app/actions/users'
 import { ClaimLinkData } from '@/services/sendLinks'
+import { formatUnits } from 'viem'
+import { useState } from 'react'
+import ActionModal from '@/components/Global/ActionModal'
 
 interface Method {
     id: string
@@ -63,8 +66,14 @@ export default function GuestActionList({ claimLinkData }: { claimLinkData: Clai
         setSenderDetails,
         setShowVerificationModal,
     } = useGuestFlow()
+    const [showMinAmountError, setShowMinAmountError] = useState(false)
 
     const handleMethodClick = async (method: Method) => {
+        const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
+        if (method.id === 'bank' && amountInUsd < 1) {
+            setShowMinAmountError(true)
+            return
+        }
         switch (method.id) {
             case 'bank':
                 {
@@ -99,6 +108,17 @@ export default function GuestActionList({ claimLinkData }: { claimLinkData: Clai
                         <MethodCard onClick={() => handleMethodClick(method)} key={method.id} method={method} />
                     ))}
                 </div>
+                <ActionModal
+                    visible={showMinAmountError}
+                    onClose={() => setShowMinAmountError(false)}
+                    title="Minimum Amount "
+                    description="The minimum amount to claim a link to a bank account is $1. Please try claiming with a different method."
+                    icon="alert"
+                    ctas={[{ text: 'Close', shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
+                    iconContainerClassName="bg-yellow-400"
+                    preventClose={false}
+                    modalPanelClassName="max-w-md mx-8"
+                />
             </div>
         )
     }
