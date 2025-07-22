@@ -19,6 +19,7 @@ import { isKycStatusItem, KycHistoryEntry } from '@/hooks/useKycFlow'
 import { KYCStatus } from '@/utils'
 import { Button } from '../0_Bruddle'
 import { useRouter } from 'next/navigation'
+import { PeanutGuyGIF } from '@/assets'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -110,22 +111,27 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
         )
     }, [combinedEntries])
 
-    // if the txn history is private and user is not logged in or the username is not the same as the username in the url, show the join peanut button
-    if (!isPublic && (!isLoggedIn || user?.user.username !== username)) {
+    // Show only if it is a guest user
+    if (!isPublic && !isLoggedIn) {
         return (
-            <div className="flex flex-col items-center justify-center space-y-4 rounded-sm border-2 border-black bg-white p-4">
-                <h2 className="text-lg font-extrabold">Join Peanut!</h2>
-                <p className="text-center">Send and receive payments in seconds with your own Peanut account.</p>
+            <div className="relative !mt-40 flex flex-col items-center justify-center">
+                <img src={PeanutGuyGIF.src} className="absolute -top-26 w-40" alt="Peanut Guy" />
+                <div className="!mst-40 relative flex flex-col items-center justify-center space-y-4 rounded-sm border-2 border-black bg-white p-4">
+                    <h2 className="font-roboto text-xl font-extrabold">Join Peanut!</h2>
+                    <p className="text-center font-normal">
+                        Send and receive payments in seconds with your own Peanut account.
+                    </p>
 
-                <Button
-                    variant="purple"
-                    shadowSize="4"
-                    className="mt-1 flex w-full items-center justify-center gap-2 rounded-sm"
-                    onClick={() => router.push('/setup')}
-                >
-                    <IconComponent size={16} name="user-plus" fill="black" />
-                    <span className="font-bold">Create Account</span>
-                </Button>
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        className="mt-1 flex w-full items-center justify-center gap-2 rounded-sm"
+                        onClick={() => router.push('/setup')}
+                    >
+                        <IconComponent size={16} name="user-plus" fill="black" />
+                        <span className="font-bold">Create Account</span>
+                    </Button>
+                </div>
             </div>
         )
     }

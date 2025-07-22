@@ -106,7 +106,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                     </Link>
                 </div>
 
-                {!!user && totalSent !== '0.00' && totalReceived !== '0.00' && (
+                {/* Only the owner of the account can see activity details  */}
+                {!!user && user.user.username === username && totalSent !== '0.00' && totalReceived !== '0.00' && (
                     <div className="space-y-6">
                         <div>
                             <Card position="first">
