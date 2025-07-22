@@ -49,7 +49,7 @@ export function SecurityBuiltIn() {
         <section className="bg-primary-1 px-4 py-16 text-n-1 md:py-40">
             <div className="mx-auto max-w-7xl">
                 <div className="mb-12 text-center md:mb-16 md:text-left">
-                    <h1 className="font-roboto-flex-extrabold lg:text-heading font-extraBlack text-heading md:text-6xl">
+                    <h1 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-6xl lg:text-heading">
                         SECURITY & PRIVACY, BUILT-IN
                     </h1>
                 </div>

@@ -15,7 +15,7 @@ export function BusinessIntegrate() {
             <div className="relative mx-auto max-w-3xl text-center">
                 {/* Main heading */}
                 <div className="mb-8 mt-8 md:mb-24 md:mt-20">
-                    <h1 className="font-roboto-flex-extrabold font-extraBlack lg:text-headingMedium md:text-heading text-5xl">
+                    <h1 className="font-roboto-flex-extrabold text-5xl font-extraBlack md:text-heading lg:text-headingMedium">
                         PEANUT MEANS
                     </h1>
                 </div>
