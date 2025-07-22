@@ -273,18 +273,26 @@ export type RewardLink = {
 
 // offramp service types
 export interface TCreateOfframpRequest {
-    amount: string
-    developer_fee: string
-    onBehalfOf: string
+    developer_fee?: string
+    onBehalfOf?: string
+    userId?: string
+    amount?: string
     source: {
-        paymentRail: string
         currency: string
+        paymentRail: string
         fromAddress?: string
     }
     destination: {
-        paymentRail: string
         currency: string
+        paymentRail: string
         externalAccountId: string
+        wireMessage?: string
+        sepaReference?: string
+        achReference?: string
+    }
+    sendLinkPubKey?: string
+    features?: {
+        allowAnyFromAddress?: boolean
     }
 }
 
@@ -294,4 +302,23 @@ export interface TCreateOfframpResponse {
         toAddress: string
         blockchainMemo?: string
     }
+    quote: {
+        amount_in: string
+        amount_out: string
+        exchange_rate: string
+        total_fee: string
+        destination_currency: string
+        developer_fee: string
+        exchange_fee: string
+        subtotal_amount: string
+        remaining_prefunded_amount?: string
+        gas_fee?: string
+        final_amount?: string
+        source_tx_hash?: string
+        destination_tx_hash?: string
+        url?: string
+    }
+    depositAddress: string
+    deposit_chain_id: number
+    deposit_token_address: string
 }
