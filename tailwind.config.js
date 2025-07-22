@@ -204,7 +204,6 @@ module.exports = {
                 'knerd-outline': ['var(--font-knerd-outline)', ...fontFamily.sans],
                 'knerd-filled': ['var(--font-knerd-filled)', ...fontFamily.sans],
                 roboto: ['var(--font-roboto)', ...fontFamily.sans],
-                'roboto-flex-bold': ['var(--font-roboto-flex-bold)', ...fontFamily.sans],
             },
             fontSize: {
                 0: ['0px', '0px'],
