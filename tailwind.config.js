@@ -112,9 +112,6 @@ module.exports = {
                     3: '#FF4A4A',
                 },
             },
-            screens: {
-                xs: '375px',
-            },
             zIndex: {
                 1: '1',
                 2: '2',
