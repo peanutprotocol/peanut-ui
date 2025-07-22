@@ -1,6 +1,7 @@
 'use client'
 
 import Icon from '@/components/Global/Icon'
+import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { BASE_URL } from '@/constants'
@@ -16,6 +17,8 @@ import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem } from '../Kyc/KycStatusItem'
 import { isKycStatusItem, KycHistoryEntry } from '@/hooks/useKycFlow'
 import { KYCStatus } from '@/utils'
+import { Button } from '../0_Bruddle'
+import { useRouter } from 'next/navigation'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -28,6 +31,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     const limit = isPublic ? 20 : 5
     const { data: historyData, isLoading, isError, error } = useTransactionHistory({ mode, limit, username })
     const kycStatus: KYCStatus = user?.user?.kycStatus || 'not_started'
+    const router = useRouter()
 
     // WebSocket for real-time updates
     const { historyEntries: wsHistoryEntries } = useWebSocket({
@@ -105,6 +109,26 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                 entry.status === 'NEW'
         )
     }, [combinedEntries])
+
+    // if the txn history is private and user is not logged in or the username is not the same as the username in the url, show the join peanut button
+    if (!isPublic && (!isLoggedIn || user?.user.username !== username)) {
+        return (
+            <div className="flex flex-col items-center justify-center space-y-4 rounded-sm border-2 border-black bg-white p-4">
+                <h2 className="text-lg font-extrabold">Join Peanut!</h2>
+                <p className="text-center">Send and receive payments in seconds with your own Peanut account.</p>
+
+                <Button
+                    variant="purple"
+                    shadowSize="4"
+                    className="mt-1 flex w-full items-center justify-center gap-2 rounded-sm"
+                    onClick={() => router.push('/setup')}
+                >
+                    <IconComponent size={16} name="user-plus" fill="black" />
+                    <span className="font-bold">Create Account</span>
+                </Button>
+            </div>
+        )
+    }
 
     // show loading state
     if (isLoading) {

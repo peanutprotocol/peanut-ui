@@ -171,7 +171,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                     </div>
                 )}
                 */}
-                <HomeHistory isPublic={true} username={username} />
+                <HomeHistory isPublic={false} username={username} />
             </div>
         </div>
     )
