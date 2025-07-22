@@ -175,7 +175,7 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
                 </Stack>
 
                 <Stack spacing={2} className="relative h-1/3 items-center justify-center px-4 text-center lg:h-full">
-                    <div className="mt-8 md:mt-20">
+                    <div className="mt-16 md:mt-30 lg:mt-44">
                         <h2 className="font-roboto-flex-bold text-2xl font-extraBlack text-black md:text-heading">
                             INSTANTLY SEND & RECEIVE
                         </h2>
