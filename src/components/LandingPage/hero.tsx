@@ -155,7 +155,7 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
     }
 
     return (
-        <div className="relative flex min-h-[100dvh] flex-col justify-between overflow-x-hidden bg-primary-1">
+        <div className="relative flex min-h-[100vh] flex-col justify-between overflow-x-hidden bg-primary-1">
             <CloudImages screenWidth={screenWidth} />
 
             <div className="relative mb-8 mt-12 flex grow flex-col justify-between space-y-6 md:mb-10 md:mt-12">
