@@ -83,13 +83,13 @@ export async function generateMetadata({
         },
         openGraph: {
             title,
-            description: 'Tap the link to claim instantly and without fees.',
+            description: 'Tap the link to receive instantly and without fees.',
             images: [{ url: ogImageUrl, width: 1200, height: 630 }],
         },
         twitter: {
             card: 'summary_large_image',
             title,
-            description: 'Tap the link to claim instantly and without fees.',
+            description: 'Tap the link to receive instantly and without fees.',
             images: [ogImageUrl],
         },
     }
