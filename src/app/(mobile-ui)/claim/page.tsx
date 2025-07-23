@@ -83,13 +83,13 @@ export async function generateMetadata({
         },
         openGraph: {
             title,
-            description: 'Seamless payment infrastructure for sending and receiving digital assets.',
+            description: 'Tap the link to claim instantly and without fees.',
             images: [{ url: ogImageUrl, width: 1200, height: 630 }],
         },
         twitter: {
             card: 'summary_large_image',
             title,
-            description: 'Claim your tokens using Peanut Protocol',
+            description: 'Tap the link to claim instantly and without fees.',
             images: [ogImageUrl],
         },
     }
