@@ -130,12 +130,20 @@ export async function generateMetadata({ params, searchParams }: any) {
             title,
             description,
             images: [{ url: ogImageUrl, width: 1200, height: 630 }],
+            type: 'website',
+            siteName: 'Peanut',
         },
         twitter: {
             card: 'summary_large_image',
+            site: '@PeanutProtocol',
+            creator: '@PeanutProtocol',
             title,
             description,
-            images: [ogImageUrl],
+            images: [
+                {
+                    url: ogImageUrl,
+                },
+            ],
         },
     }
 }
