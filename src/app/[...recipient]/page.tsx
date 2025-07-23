@@ -47,14 +47,13 @@ export async function generateMetadata({ params, searchParams }: any) {
     let isPaid = false
     let ogImageUrl = '/metadata-img.png' // Default fallback
     let username = null
-    let chargeCreatorAddress = null
 
     // Only check charge status if there's a chargeId
     if (chargeId) {
         try {
             const chargeDetails = await chargesApi.get(chargeId)
             isPaid = chargeDetails?.fulfillmentPayment?.status === 'SUCCESSFUL'
-            chargeCreatorAddress = chargeDetails?.creatorAddress
+            username = chargeDetails.requestee?.username
 
             // If we don't have amount/token from URL but have chargeId, get them from charge details
             if (!amount && chargeDetails) {
@@ -64,11 +63,6 @@ export async function generateMetadata({ params, searchParams }: any) {
         } catch (error) {
             console.error('Failed to fetch charge details:', error)
         }
-    }
-
-    // Get username from ENS if we have a creator address
-    if (chargeCreatorAddress) {
-        username = await resolveAddressToUsername(chargeCreatorAddress, siteUrl)
     }
 
     // Generate custom OG image only for addresses/ENS or when there's an amount
