@@ -136,7 +136,7 @@ export function ReceiptCardOG({
                                     letterSpacing: '-0.08em',
                                 }}
                             >
-                                {formatTokenAmount(link.amount, link.token)}
+                                {formatTokenAmount(link.amount.toString(), link.token)}
                             </span>
 
                             {/* Black outline */}
@@ -154,7 +154,7 @@ export function ReceiptCardOG({
                                     letterSpacing: '-0.08em',
                                 }}
                             >
-                                {formatTokenAmount(link.amount, link.token)}
+                                {formatTokenAmount(link.amount.toString(), link.token)}
                             </span>
 
                             {/* Bottom-left arrow */}
