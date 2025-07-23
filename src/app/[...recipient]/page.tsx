@@ -113,7 +113,7 @@ export async function generateMetadata({ params, searchParams }: any) {
     } else if (amount && token) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting ${amount} via Peanut`
     } else if (amount) {
-        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount} via Peanut`
+        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting ${amount} via Peanut`
     } else if (isAddressOrEns) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting funds`
     } else if (chargeId) {
@@ -121,25 +121,26 @@ export async function generateMetadata({ params, searchParams }: any) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} | Peanut`
     } else {
         // For Peanut usernames without amounts, use generic title
-        title = `${recipient} | Peanut`
+        title = `${recipient} on Peanut`
+        description = `Check ${recipient}’s profile, send or request money instant in one tap, fee-free and secure.`
     }
 
     return {
         title,
-        description: 'Tap the link to pay instantly and without fees.',
+        description,
         ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
         icons: {
             icon: '/logo-favicon.png',
         },
         openGraph: {
             title,
-            description: 'Tap the link to pay instantly and without fees.',
+            description,
             images: [{ url: ogImageUrl, width: 1200, height: 630 }],
         },
         twitter: {
             card: 'summary_large_image',
             title,
-            description: 'Tap the link to pay instantly and without fees.',
+            description,
             images: [ogImageUrl],
         },
     }
