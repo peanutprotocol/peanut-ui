@@ -112,7 +112,6 @@ export async function getUserById(userId: string): Promise<User | null> {
             return null
         }
         const responseJson = await response.json()
-        console.log('response kushhh', responseJson)
 
         return responseJson
     } catch (error) {

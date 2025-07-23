@@ -1,6 +1,5 @@
 'use client'
 import { Button } from '@/components/0_Bruddle'
-import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -51,11 +50,28 @@ export const ConfirmClaimLinkView = ({
         return areEvmAddressesEqual(claimLinkData.tokenAddress, PINTA_WALLET_TOKEN)
     }, [claimLinkData.tokenAddress])
 
+    // Determine which chain/token details to show – prefer the selectedRoute details if present,
+    // otherwise fall back to what the user picked in the token selector.
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
-        chainId: selectedRoute?.route.params.toChain,
-        tokenAddress: selectedRoute?.route.estimate.toToken.address,
-        tokenSymbol: selectedRoute?.route.estimate.toToken.symbol,
+        chainId: selectedRoute?.route.params.toChain ?? selectedChainID,
+        tokenAddress: selectedRoute?.route.estimate.toToken.address ?? selectedTokenAddress,
+        tokenSymbol: selectedRoute?.route.estimate.toToken.symbol ?? claimLinkData.tokenSymbol,
     })
+
+    // calculate minimum amount the user will receive after slippage
+    const minReceived = useMemo<string>(() => {
+        let amountNumber: number
+
+        // manual 1% slippage calculation based on the deposited token amount
+        amountNumber = Number(formatUnits(BigInt(claimLinkData.amount), claimLinkData.tokenDecimals)) * 0.99 // subtract 1%
+
+        const formattedAmount = formatTokenAmount(amountNumber)
+
+        return `$ ${formattedAmount}`
+    }, [selectedRoute, resolvedTokenSymbol, claimLinkData])
+
+    // Network fee display – always sponsored in this flow
+    const networkFeeDisplay: string = 'Sponsored by Peanut!'
 
     const handleOnClaim = async () => {
         if (!recipient) {
@@ -138,20 +154,21 @@ export const ConfirmClaimLinkView = ({
                 />
                 {!isReward && (
                     <Card>
-                        <PaymentInfoRow
-                            label="Claiming to"
-                            value={
-                                <AddressLink
-                                    address={recipient.name ?? recipient.address ?? ''}
-                                    className="text-sm text-black no-underline"
-                                />
-                            }
-                        />
-                        <PaymentInfoRow
-                            label="Token and network"
-                            value={
-                                <div className="flex items-center gap-2">
-                                    {selectedRoute && (
+                        {/* Min received row */}
+                        {minReceived && (
+                            <PaymentInfoRow
+                                label="Min Received"
+                                value={minReceived}
+                                moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
+                            />
+                        )}
+
+                        {/* Token & network row */}
+                        {
+                            <PaymentInfoRow
+                                label="Token and network"
+                                value={
+                                    <div className="flex items-center gap-2">
                                         <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
                                             <DisplayIcon
                                                 iconUrl={tokenIconUrl}
@@ -171,27 +188,20 @@ export const ConfirmClaimLinkView = ({
                                                 </div>
                                             )}
                                         </div>
-                                    )}
-                                    <span>
-                                        {resolvedTokenSymbol || selectedRoute?.route.estimate.toToken.symbol} on{' '}
-                                        <span className="capitalize">
-                                            {resolvedChainName || selectedRoute?.route.params.toChain}
+                                        <span>
+                                            {resolvedTokenSymbol || claimLinkData.tokenSymbol} on{' '}
+                                            <span className="capitalize">{resolvedChainName || selectedChainID}</span>
                                         </span>
-                                    </span>
-                                </div>
-                            }
-                            hideBottomBorder={!selectedRoute}
-                        />
-                        {selectedRoute && (
-                            <>
-                                <PaymentInfoRow
-                                    label="Network fee"
-                                    value={'$ 0.00'}
-                                    moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
-                                />
-                                <PaymentInfoRow label="Peanut fee" value={'$ 0.00'} hideBottomBorder />
-                            </>
-                        )}
+                                    </div>
+                                }
+                            />
+                        }
+
+                        {/* Max network fee row */}
+                        <PaymentInfoRow label="Max network fee" value={networkFeeDisplay} />
+
+                        {/* Peanut fee row */}
+                        <PaymentInfoRow label="Peanut fee" value={'$ 0.00'} hideBottomBorder />
                     </Card>
                 )}
 
@@ -202,7 +212,7 @@ export const ConfirmClaimLinkView = ({
                     disabled={isLoading}
                     loading={isLoading}
                 >
-                    {isLoading ? 'Claiming' : 'Claim'}
+                    Receive now
                 </Button>
 
                 {errorState.showError && <ErrorAlert description={errorState.errorMessage} />}

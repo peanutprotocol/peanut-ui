@@ -548,18 +548,18 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     ])
 
     const getButtonText = () => {
-        if (isPeanutWallet && !isPeanutChain) {
+        if (isPeanutWallet) {
             return 'Review'
         }
-        if ((selectedRoute || (isXChain && hasFetchedRoute)) && !isPeanutChain) {
+        if (selectedRoute || (isXChain && hasFetchedRoute)) {
             return 'Review'
         }
 
         if (isLoading) {
-            return 'Claiming'
+            return 'Receive now'
         }
 
-        return 'Receive'
+        return 'Receive now'
     }
 
     const handleClaimAction = () => {
@@ -611,7 +611,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     <NavHeader
                         title="Receive"
                         onPrev={() => {
-                            if (showGuestActionsList) {
+                            if (claimToExternalWallet) {
+                                setClaimToExternalWallet(false)
+                            } else if (showGuestActionsList) {
                                 resetGuestFlow()
                             } else {
                                 router.push('/home')
@@ -727,7 +729,19 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 iconContainerClassName="bg-yellow-400"
                 footer={
                     <div className="w-full">
-                        <Slider onValueChange={(v) => v && handleClaimLink(true)} />
+                        <Slider
+                            onValueChange={(v) => {
+                                if (!v) return
+                                // for cross-chain claims, advance to the confirm screen first
+                                if (isXChain) {
+                                    setShowConfirmationModal(false)
+                                    onNext()
+                                } else {
+                                    // direct on-chain claim – initiate immediately
+                                    handleClaimLink(true)
+                                }
+                            }}
+                        />
                     </div>
                 }
                 preventClose={false}

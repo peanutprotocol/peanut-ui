@@ -23,11 +23,11 @@ import NavHeader from '@/components/Global/NavHeader'
 
 export const BankFlowManager = (props: IClaimScreenProps) => {
     const { onCustom, claimLinkData, setTransactionHash } = props
-    const { guestFlowStep, setGuestFlowStep, selectedCountry, setClaimType } = useGuestFlow()
+    const { guestFlowStep, setGuestFlowStep, selectedCountry, setClaimType, setBankDetails } = useGuestFlow()
     const { isLoading, setLoadingState } = useContext(loadingStateContext)
     const { claimLink } = useClaimLink()
     const [offrampDetails, setOfframpDetails] = useState<TCreateOfframpResponse | null>(null)
-    const [bankDetails, setBankDetails] = useState<IBankAccountDetails | null>(null)
+    const [localBankDetails, setLocalBankDetails] = useState<IBankAccountDetails | null>(null)
     const [receiverFullName, setReceiverFullName] = useState<string>('')
     const [error, setError] = useState<string | null>(null)
 
@@ -135,6 +135,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
             setOfframpDetails(offrampResponse.data as TCreateOfframpResponse)
 
+            setLocalBankDetails(rawData)
             setBankDetails(rawData)
             setGuestFlowStep('bank-confirm-claim')
             return {}
@@ -185,7 +186,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         setError,
     ])
 
-    if (guestFlowStep === 'bank-confirm-claim' && offrampDetails && bankDetails) {
+    if (guestFlowStep === 'bank-confirm-claim' && offrampDetails && localBankDetails) {
         return (
             <ConfirmBankClaimView
                 claimLinkData={claimLinkData}
@@ -196,7 +197,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 }}
                 isProcessing={isLoading}
                 error={error}
-                bankDetails={bankDetails}
+                bankDetails={localBankDetails}
                 fullName={receiverFullName}
             />
         )

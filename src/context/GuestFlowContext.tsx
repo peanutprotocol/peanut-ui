@@ -4,6 +4,7 @@ import React, { createContext, ReactNode, useContext, useMemo, useState, useCall
 import { CountryData } from '../components/AddMoney/consts'
 import { TCreateOfframpResponse } from '@/services/services.types'
 import { User } from '@/interfaces'
+import { IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 
 interface GuestFlowContextType {
     showGuestActionsList: boolean
@@ -25,6 +26,8 @@ interface GuestFlowContextType {
     setSenderDetails: (details: User | null) => void
     showVerificationModal: boolean
     setShowVerificationModal: (show: boolean) => void
+    bankDetails: IBankAccountDetails | null
+    setBankDetails: (details: IBankAccountDetails | null) => void
 }
 
 const GuestFlowContext = createContext<GuestFlowContextType | undefined>(undefined)
@@ -39,6 +42,7 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
     const [claimType, setClaimType] = useState<'claim-bank' | 'claim' | 'claimxchain' | null>(null)
     const [senderDetails, setSenderDetails] = useState<User | null>(null)
     const [showVerificationModal, setShowVerificationModal] = useState(false)
+    const [bankDetails, setBankDetails] = useState<IBankAccountDetails | null>(null)
 
     const resetGuestFlow = useCallback(() => {
         setClaimToExternalWallet(false)
@@ -50,6 +54,7 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
         setClaimType(null)
         setSenderDetails(null)
         setShowVerificationModal(false)
+        setBankDetails(null)
     }, [])
 
     const value = useMemo(
@@ -73,6 +78,8 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
             setSenderDetails,
             showVerificationModal,
             setShowVerificationModal,
+            bankDetails,
+            setBankDetails,
         }),
         [
             showGuestActionsList,
@@ -86,6 +93,7 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
             setClaimType,
             senderDetails,
             showVerificationModal,
+            bankDetails,
         ]
     )
 

@@ -39,7 +39,7 @@ export const PostSignupActionManager = ({
                 setShowModal(true)
             }
         }
-    }, [])
+    }, [router])
 
     useEffect(() => {
         onActionModalVisibilityChange(showModal)
