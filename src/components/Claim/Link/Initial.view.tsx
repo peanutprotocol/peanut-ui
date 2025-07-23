@@ -556,10 +556,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
 
         if (isLoading) {
-            return 'Claiming'
+            return 'Receive now'
         }
 
-        return 'Receive'
+        return 'Receive now'
     }
 
     const handleClaimAction = () => {
@@ -611,7 +611,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     <NavHeader
                         title="Receive"
                         onPrev={() => {
-                            if (showGuestActionsList) {
+                            if (claimToExternalWallet) {
+                                setClaimToExternalWallet(false)
+                            } else if (showGuestActionsList) {
                                 resetGuestFlow()
                             } else {
                                 router.push('/home')
