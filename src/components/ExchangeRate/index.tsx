@@ -40,18 +40,16 @@ const ExchangeRate = ({ accountType }: ExchangeRateProps) => {
         return <PaymentInfoRow loading={isFetchingRate} label="Exchange Rate" value={`1 USD`} />
     }
 
-    if (exchangeRate) {
-        return (
-            <PaymentInfoRow
-                loading={isFetchingRate}
-                label="Exchange Rate"
-                moreInfoText={`Exchange rates apply when converting to ${toCurrency}`}
-                value={`1 USD = ${parseFloat(exchangeRate).toFixed(4)} ${toCurrency}`}
-            />
-        )
-    }
+    const displayValue = exchangeRate ? `1 USD = ${parseFloat(exchangeRate).toFixed(4)} ${toCurrency}` : '-'
 
-    return null
+    return (
+        <PaymentInfoRow
+            loading={isFetchingRate}
+            label="Exchange Rate"
+            moreInfoText={`Exchange rates apply when converting to ${toCurrency}`}
+            value={displayValue}
+        />
+    )
 }
 
 export default ExchangeRate

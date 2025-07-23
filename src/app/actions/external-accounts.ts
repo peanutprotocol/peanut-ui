@@ -17,7 +17,7 @@ export async function createBridgeExternalAccountForGuest(
                 'Content-Type': 'application/json',
                 'api-key': API_KEY,
             },
-            body: JSON.stringify(accountDetails),
+            body: JSON.stringify({ ...accountDetails, reuseOnError: true }), // note: reuseOnError is used to avoid showing errors for duplicate accounts on guest flow
         })
 
         const data = await response.json()
