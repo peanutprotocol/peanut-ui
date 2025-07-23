@@ -36,6 +36,7 @@ import { AccountType } from '@/interfaces'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
+import { useGuestFlow } from '@/context/GuestFlowContext'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -44,6 +45,7 @@ export default function Home() {
     const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
     const { rewardWalletBalance } = useWalletStore()
     const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
+    const { resetGuestFlow } = useGuestFlow()
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
         return prefs?.balanceHidden ?? false
@@ -75,6 +77,10 @@ export default function Home() {
     }
 
     const isLoading = isFetchingUser && !username
+
+    useEffect(() => {
+        resetGuestFlow()
+    }, [resetGuestFlow])
 
     useEffect(() => {
         // We have some users that didn't have the peanut wallet created

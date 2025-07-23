@@ -35,7 +35,7 @@ export const ClaimCountryListView = ({ claimLinkData }: Pick<IClaimScreenProps, 
 
     const handleCountrySelect = (country: (typeof countryData)[0]) => {
         setSelectedCountry(country)
-        setGuestFlowStep('bank-form')
+        setGuestFlowStep('bank-details-form')
     }
 
     return (
