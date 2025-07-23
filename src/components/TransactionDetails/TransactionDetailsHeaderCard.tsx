@@ -18,6 +18,7 @@ export type TransactionDirection =
     | 'withdraw'
     | 'add'
     | 'bank_withdraw'
+    | 'guest_bank_claim'
     | 'bank_deposit'
 
 interface TransactionDetailsHeaderCardProps {
@@ -88,6 +89,9 @@ const getTitle = (
             case 'withdraw':
             case 'bank_withdraw':
                 titleText = `${status === 'completed' ? 'Withdrew' : 'Withdrawing'} to ${displayName}`
+                break
+            case 'guest_bank_claim':
+                titleText = displayName
                 break
             case 'add':
             case 'bank_deposit':

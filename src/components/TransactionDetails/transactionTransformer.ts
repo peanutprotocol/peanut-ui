@@ -212,6 +212,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             nameForDetails = 'Bank Account'
             isPeerActuallyUser = false
             break
+        case EHistoryEntryType.GUEST_BANK_CLAIM:
+            direction = 'guest_bank_claim'
+            transactionCardType = 'bank_withdraw'
+            nameForDetails = 'Claimed to Bank'
+            isPeerActuallyUser = false
+            break
         case EHistoryEntryType.BRIDGE_ONRAMP:
             direction = 'bank_deposit'
             transactionCardType = 'bank_deposit'
@@ -239,7 +245,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     }
 
     // map the raw status string to the defined ui status types
-    if (entry.type === EHistoryEntryType.BRIDGE_OFFRAMP || entry.type === EHistoryEntryType.BRIDGE_ONRAMP) {
+    if (
+        entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
+        entry.type === EHistoryEntryType.BRIDGE_ONRAMP ||
+        entry.type === EHistoryEntryType.GUEST_BANK_CLAIM
+    ) {
         switch (entry.status?.toUpperCase()) {
             case 'AWAITING_FUNDS':
                 uiStatus = 'pending'
@@ -355,7 +365,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         },
         sourceView: 'history',
         bankAccountDetails:
-            entry.type === EHistoryEntryType.BRIDGE_OFFRAMP
+            entry.type === EHistoryEntryType.BRIDGE_OFFRAMP || entry.type === EHistoryEntryType.GUEST_BANK_CLAIM
                 ? {
                       identifier: entry.recipientAccount.identifier,
                       type: entry.recipientAccount.type,
