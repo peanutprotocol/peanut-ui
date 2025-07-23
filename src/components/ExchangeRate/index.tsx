@@ -16,7 +16,6 @@ const ExchangeRate = ({ accountType }: ExchangeRateProps) => {
             setIsFetchingRate(true)
             try {
                 const { data, error: rateError } = await getExchangeRate(accountType)
-                console.log('data', data)
 
                 if (rateError) {
                     console.error('Failed to fetch exchange rate:', rateError)

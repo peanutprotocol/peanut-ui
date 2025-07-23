@@ -81,7 +81,7 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
                                             animate={{ height: 'auto', opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
                                             transition={{ duration: 0.2 }}
-                                            className="mt-1 overflow-hidden leading-6 text-n-1"
+                                            className="mt-1 overflow-hidden whitespace-pre-line leading-6 text-n-1"
                                         >
                                             {faq.answer}
                                             {faq.calModal && (

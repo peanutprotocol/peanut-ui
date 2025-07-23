@@ -8,6 +8,11 @@ import ripioIcon from '@/assets/exchanges/ripio.svg'
 import { RAINBOW_LOGO, METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import { Button } from '../0_Bruddle'
 import { useGuestFlow } from '@/context/GuestFlowContext'
+import { getUserById } from '@/app/actions/users'
+import { ClaimLinkData } from '@/services/sendLinks'
+import { formatUnits } from 'viem'
+import { useState } from 'react'
+import ActionModal from '@/components/Global/ActionModal'
 
 interface Method {
     id: string
@@ -52,13 +57,38 @@ const GUEST_ACTION_METHODS: Method[] = [
     },
 ]
 
-export default function GuestActionList() {
-    const { showGuestActionsList, setShowGuestActionsList, setClaimToExternalWallet } = useGuestFlow()
+export default function GuestActionList({ claimLinkData }: { claimLinkData: ClaimLinkData }) {
+    const {
+        showGuestActionsList,
+        setShowGuestActionsList,
+        setClaimToExternalWallet,
+        setGuestFlowStep,
+        setSenderDetails,
+        setShowVerificationModal,
+    } = useGuestFlow()
+    const [showMinAmountError, setShowMinAmountError] = useState(false)
 
-    const handleMethodClick = (method: Method) => {
+    const handleMethodClick = async (method: Method) => {
+        const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
+        if (method.id === 'bank' && amountInUsd < 1) {
+            setShowMinAmountError(true)
+            return
+        }
         switch (method.id) {
             case 'bank':
-                // todo: navigate to bank add-money flow, coming in next PR
+                {
+                    if (!claimLinkData.sender?.userId) {
+                        setShowVerificationModal(true)
+                        return
+                    }
+                    const senderDetails = await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
+                    if (senderDetails && senderDetails.kycStatus === 'approved') {
+                        setSenderDetails(senderDetails)
+                        setGuestFlowStep('bank-country-list')
+                    } else {
+                        setShowVerificationModal(true)
+                    }
+                }
                 break
             case 'mercadopago':
                 break // soon tag, so no action needed
@@ -78,6 +108,17 @@ export default function GuestActionList() {
                         <MethodCard onClick={() => handleMethodClick(method)} key={method.id} method={method} />
                     ))}
                 </div>
+                <ActionModal
+                    visible={showMinAmountError}
+                    onClose={() => setShowMinAmountError(false)}
+                    title="Minimum Amount "
+                    description="The minimum amount to claim a link to a bank account is $1. Please try claiming with a different method."
+                    icon="alert"
+                    ctas={[{ text: 'Close', shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
+                    iconContainerClassName="bg-yellow-400"
+                    preventClose={false}
+                    modalPanelClassName="max-w-md mx-8"
+                />
             </div>
         )
     }

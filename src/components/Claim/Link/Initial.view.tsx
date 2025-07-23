@@ -50,28 +50,30 @@ import ActionModal from '@/components/Global/ActionModal'
 import { Slider } from '@/components/Slider'
 import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import { BankFlowManager } from './views/BankFlowManager.view'
 
-export const InitialClaimLinkView = ({
-    onNext,
-    claimLinkData,
-    setRecipient,
-    recipient,
-    tokenPrice,
-    setClaimType,
-    setEstimatedPoints,
-    attachment,
-    setTransactionHash,
-    onCustom,
-    selectedRoute,
-    setSelectedRoute,
-    hasFetchedRoute,
-    setHasFetchedRoute,
-    recipientType,
-    setRecipientType,
-    setOfframpForm,
-    setUserType,
-    setInitialKYCStep,
-}: IClaimScreenProps) => {
+export const InitialClaimLinkView = (props: IClaimScreenProps) => {
+    const {
+        onNext,
+        claimLinkData,
+        setRecipient,
+        recipient,
+        tokenPrice,
+        setClaimType,
+        setEstimatedPoints,
+        attachment,
+        setTransactionHash,
+        onCustom,
+        selectedRoute,
+        setSelectedRoute,
+        hasFetchedRoute,
+        setHasFetchedRoute,
+        recipientType,
+        setRecipientType,
+        setOfframpForm,
+        setUserType,
+        setInitialKYCStep,
+    } = props
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -82,7 +84,15 @@ export const InitialClaimLinkView = ({
     const [inputChanging, setInputChanging] = useState<boolean>(false)
     const [showConfirmationModal, setShowConfirmationModal] = useState<boolean>(false)
 
-    const { claimToExternalWallet, resetGuestFlow, showGuestActionsList } = useGuestFlow()
+    const {
+        claimToExternalWallet,
+        resetGuestFlow,
+        showGuestActionsList,
+        guestFlowStep,
+        showVerificationModal,
+        setShowVerificationModal,
+        setClaimToExternalWallet,
+    } = useGuestFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
         selectedChainID,
@@ -300,8 +310,8 @@ export const InitialClaimLinkView = ({
                 })
                 if (user?.user.kycStatus === 'approved') {
                     const account = user.accounts.find(
-                        (account: any) =>
-                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                        (account) =>
+                            account.identifier.replaceAll(/\s/g, '').toLowerCase() ===
                             recipient.address.replaceAll(/\s/g, '').toLowerCase()
                     )
 
@@ -449,6 +459,12 @@ export const InitialClaimLinkView = ({
     )
 
     useEffect(() => {
+        if (guestFlowStep?.startsWith('bank-')) {
+            resetSelectedToken()
+        }
+    }, [guestFlowStep, resetSelectedToken])
+
+    useEffect(() => {
         let isMounted = true
         if (isReward || !claimLinkData.tokenAddress) {
             return () => {
@@ -579,9 +595,13 @@ export const InitialClaimLinkView = ({
                         </div>
                     </Button>
                 )}
-                {!isPeanutClaimOnlyMode && <GuestActionList />}
+                {!isPeanutClaimOnlyMode && <GuestActionList claimLinkData={claimLinkData} />}
             </div>
         )
+    }
+
+    if (guestFlowStep?.startsWith('bank-')) {
+        return <BankFlowManager {...props} />
     }
 
     return (
@@ -629,6 +649,7 @@ export const InitialClaimLinkView = ({
                     recipientType !== 'iban' &&
                     recipientType !== 'us' &&
                     !isPeanutClaimOnlyMode &&
+                    guestFlowStep !== 'bank-country-selection' &&
                     !!claimToExternalWallet && (
                         <TokenSelector viewType="claim" disabled={recipientType === 'username'} />
                     )}
@@ -709,6 +730,36 @@ export const InitialClaimLinkView = ({
                         <Slider onValueChange={(v) => v && handleClaimLink(true)} />
                     </div>
                 }
+                preventClose={false}
+                modalPanelClassName="max-w-md mx-8"
+            />
+            <ActionModal
+                visible={showVerificationModal}
+                onClose={() => setShowVerificationModal(false)}
+                title="This method requires verification"
+                description="To receive funds on your bank account, you’ll create a free Peanut Wallet and complete a quick identity check (KYC)."
+                icon="alert"
+                iconContainerClassName="bg-yellow-400"
+                ctaClassName="md:flex-col gap-4"
+                ctas={[
+                    {
+                        text: 'Start verification',
+                        shadowSize: '4',
+                        className: 'md:py-2.5',
+                        onClick: () => {
+                            saveRedirectUrl()
+                            router.push('/setup')
+                        },
+                    },
+                    {
+                        text: 'Claim with other method',
+                        variant: 'transparent',
+                        className: 'w-full h-auto underline underline-offset-2',
+                        onClick: () => {
+                            setShowVerificationModal(false)
+                        },
+                    },
+                ]}
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />

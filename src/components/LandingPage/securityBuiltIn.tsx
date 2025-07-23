@@ -3,8 +3,6 @@ import Image from 'next/image'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'
 import handPeace from '@/assets/illustrations/hand-peace.svg'
-import securityPrivacyBuiltIn from '@/assets/illustrations/security-privacy-built-in.svg'
-import mobileSecurityPrivacyBuiltIn from '@/assets/illustrations/mobile-security-privacy-built-in.svg'
 import biometricProtection from '@/assets/illustrations/biometric-protection.svg'
 import selfCustodialDesign from '@/assets/illustrations/self-custodial-design.svg'
 import kycOnlyWhenRequired from '@/assets/illustrations/kyc-only-when-required.svg'
@@ -21,9 +19,10 @@ interface Feature {
 const features: Feature[] = [
     {
         id: 1,
-        title: 'BIOMETRIC PROTECTION',
+        title: 'BIOMETRIC AUTH',
         titleSvg: biometricProtection,
-        description: 'Verify with Face ID, Touch ID or passcode, every single action is yours to approve.',
+        description:
+            "Peanut uses your phone's secure enclave, a cryptographic hardware designed to securely authenticate your actions and keep your account private and unhackable.",
         iconSrc: handThumbsUp,
         iconAlt: 'Thumbs up',
     },
@@ -31,7 +30,7 @@ const features: Feature[] = [
         id: 2,
         title: 'SELF-CUSTODIAL BY DESIGN',
         titleSvg: selfCustodialDesign,
-        description: "Peanut is fully self-custodial. Your assets can't be frozen or moved by anyone else.",
+        description: 'Your assets cannot be frozen by anyone or moved without your consent',
         iconSrc: handWaving,
         iconAlt: 'Hand waving',
     },
@@ -50,22 +49,9 @@ export function SecurityBuiltIn() {
         <section className="bg-primary-1 px-4 py-16 text-n-1 md:py-40">
             <div className="mx-auto max-w-7xl">
                 <div className="mb-12 text-center md:mb-16 md:text-left">
-                    {/* Mobile version */}
-                    <Image
-                        src={mobileSecurityPrivacyBuiltIn}
-                        alt="Security & Privacy, Built-In"
-                        width={800}
-                        height={150}
-                        className="mx-auto block h-auto w-[90%] md:hidden"
-                    />
-                    {/* Desktop version */}
-                    <Image
-                        src={securityPrivacyBuiltIn}
-                        alt="Security & Privacy, Built-In"
-                        width={800}
-                        height={150}
-                        className="mx-auto hidden h-auto w-full max-w-md md:mx-0 md:block md:max-w-4xl"
-                    />
+                    <h1 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-6xl lg:text-heading">
+                        SECURITY & PRIVACY, BUILT-IN
+                    </h1>
                 </div>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
                     {features.map((feature) => (
@@ -85,14 +71,8 @@ export function SecurityBuiltIn() {
                                 </div>
                             </div>
                             <div>
-                                <div className="mb-4 w-full max-w-sm text-left md:text-left">
-                                    <Image
-                                        src={feature.titleSvg}
-                                        alt={feature.title}
-                                        width={300}
-                                        height={60}
-                                        className="h-auto w-full max-w-[260px] md:mx-0 md:max-w-sm"
-                                    />
+                                <div className="mb-4 w-full text-left md:text-left">
+                                    <h3 className="font-roboto-flex-extrabold text-2xl lg:text-3xl">{feature.title}</h3>
                                 </div>
                                 <p
                                     className="w-full max-w-[360px] text-left font-roboto text-lg font-normal leading-relaxed md:text-lg"

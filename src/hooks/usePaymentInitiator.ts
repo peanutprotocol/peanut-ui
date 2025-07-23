@@ -83,7 +83,7 @@ export const usePaymentInitiator = () => {
     const { selectedTokenData, selectedChainID, selectedTokenAddress, setIsXChain } = useContext(tokenSelectorContext)
     const { isConnected: isPeanutWallet, address: peanutWalletAddress, sendTransactions, sendMoney } = useWallet()
     const { switchChainAsync } = useSwitchChain()
-    const { address: wagmiAddress } = useAppKitAccount()
+    const { address: externalAccountAddress } = useAppKitAccount()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
     const { chain: connectedWalletChain } = useWagmiAccount()
@@ -495,6 +495,7 @@ export const usePaymentInitiator = () => {
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 hash: receipt.transactionHash,
                 tokenAddress: PEANUT_WALLET_TOKEN,
+                payerAddress: peanutWalletAddress,
             })
             console.log('Backend payment creation response:', payment)
 
@@ -601,6 +602,7 @@ export const usePaymentInitiator = () => {
                 chainId: sourceChainId.toString(),
                 hash: txHash,
                 tokenAddress: selectedTokenData?.address || chargeDetails.tokenAddress,
+                payerAddress: externalAccountAddress!,
             })
             console.log('Backend payment creation response:', payment)
 
@@ -667,7 +669,7 @@ export const usePaymentInitiator = () => {
 
                 // 3. execute payment based on wallet type
                 if (payload.isAddMoneyFlow) {
-                    if (!wagmiAddress) {
+                    if (!externalAccountAddress) {
                         console.error('Add Money flow requires an external wallet (WAGMI) to be connected.')
                         throw new Error('External wallet not connected for Add Money flow.')
                     }
@@ -711,7 +713,7 @@ export const usePaymentInitiator = () => {
             handleExternalWalletPayment,
             isPeanutWallet,
             peanutWalletAddress,
-            wagmiAddress,
+            externalAccountAddress,
             handleError,
             setLoadingStep,
             setError,

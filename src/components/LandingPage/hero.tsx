@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { CloudImages, HeroImages } from './imageAssets'
 import Image from 'next/image'
-import instantlySendReceive from '@/assets/illustrations/instantly-send-receive.svg'
+import { Button } from '../0_Bruddle'
 
 type CTAButton = {
     label: string
@@ -137,12 +137,15 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
 
                 <a
                     href={cta.href}
-                    className={getButtonClasses(variant)}
                     target={cta.isExternal ? '_blank' : undefined}
-                    style={{ fontWeight: 900 }}
                     rel={cta.isExternal ? 'noopener noreferrer' : undefined}
                 >
-                    {cta.label}
+                    <Button
+                        shadowSize="4"
+                        className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
+                    >
+                        {cta.label}
+                    </Button>
                 </a>
 
                 {renderArrows(variant, arrowOpacity, buttonVisible)}
@@ -151,7 +154,7 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
     }
 
     return (
-        <div className="relative flex min-h-[100dvh] flex-col justify-between overflow-x-hidden bg-primary-1">
+        <div className="relative flex min-h-[100vh] flex-col justify-between overflow-x-hidden bg-primary-1">
             <CloudImages screenWidth={screenWidth} />
 
             <div className="relative mb-8 mt-12 flex grow flex-col justify-between space-y-6 md:mb-10 md:mt-12">
@@ -172,14 +175,10 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
                 </Stack>
 
                 <Stack spacing={2} className="relative h-1/3 items-center justify-center px-4 text-center lg:h-full">
-                    <div className="mt-8 md:mt-20">
-                        <Image
-                            src={instantlySendReceive}
-                            alt="Instantly Send and Receive"
-                            width={800}
-                            height={150}
-                            className="mx-auto h-auto w-full max-w-lg md:max-w-4xl"
-                        />
+                    <div className="mt-16 md:mt-30 lg:mt-44">
+                        <h2 className="font-roboto-flex-bold text-2xl font-extraBlack text-black md:text-heading">
+                            INSTANTLY SEND & RECEIVE
+                        </h2>
                         <span
                             className="mt-2 block text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                             style={{ fontWeight: 500, letterSpacing: '-0.5px' }}

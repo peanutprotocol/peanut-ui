@@ -40,6 +40,11 @@ const knerdFilled = localFont({
     variable: '--font-knerd-filled',
 })
 
+const robotoFlexBold = localFont({
+    src: '../assets/fonts/roboto-flex-bold.ttf',
+    variable: '--font-roboto-flex-bold',
+})
+
 export const metadata = generateMetadata({
     title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
     description:
@@ -60,7 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="en">
             <body
-                className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} chakra-ui-light font-sans`}
+                className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}
             >
                 <ScreenOrientationLocker />
                 <PeanutProvider>
