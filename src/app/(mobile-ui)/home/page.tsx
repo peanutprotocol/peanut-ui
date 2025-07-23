@@ -235,7 +235,9 @@ export default function Home() {
             />
 
             {/* Floating Referral Button */}
+            {/*
             <FloatingReferralButton onClick={() => setShowReferralCampaignModal(true)} />
+            */}
         </PageContainer>
     )
 }
