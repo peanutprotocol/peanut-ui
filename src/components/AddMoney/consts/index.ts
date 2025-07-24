@@ -250,13 +250,6 @@ export const countryData: CountryData[] = [
         path: 'united-arab-emirates',
     },
     {
-        id: 'AF',
-        type: 'country',
-        title: 'Afghanistan',
-        currency: 'AFN',
-        path: 'afghanistan',
-    },
-    {
         id: 'AG',
         type: 'country',
         title: 'Antigua and Barbuda',
@@ -481,13 +474,6 @@ export const countryData: CountryData[] = [
         path: 'botswana',
     },
     {
-        id: 'BY',
-        type: 'country',
-        title: 'Belarus',
-        currency: 'BYN',
-        path: 'belarus',
-    },
-    {
         id: 'BZ',
         type: 'country',
         title: 'Belize',
@@ -584,13 +570,6 @@ export const countryData: CountryData[] = [
         title: 'Costa Rica',
         currency: 'CRC',
         path: 'costa-rica',
-    },
-    {
-        id: 'CU',
-        type: 'country',
-        title: 'Cuba',
-        currency: 'CUP',
-        path: 'cuba',
     },
     {
         id: 'CV',
@@ -978,20 +957,6 @@ export const countryData: CountryData[] = [
         path: 'british-indian-ocean-territory',
     },
     {
-        id: 'IQ',
-        type: 'country',
-        title: 'Iraq',
-        currency: 'IQD',
-        path: 'iraq',
-    },
-    {
-        id: 'IR',
-        type: 'country',
-        title: 'Iran',
-        currency: 'IRR',
-        path: 'iran',
-    },
-    {
         id: 'ISL',
         type: 'country',
         title: 'Iceland',
@@ -1074,13 +1039,6 @@ export const countryData: CountryData[] = [
         title: 'Saint Kitts and Nevis',
         currency: 'XCD',
         path: 'saint-kitts-and-nevis',
-    },
-    {
-        id: 'KP',
-        type: 'country',
-        title: 'North Korea',
-        currency: 'KPW',
-        path: 'north-korea',
     },
     {
         id: 'KR',
@@ -1249,13 +1207,6 @@ export const countryData: CountryData[] = [
         title: 'Mali',
         currency: 'XOF',
         path: 'mali',
-    },
-    {
-        id: 'MM',
-        type: 'country',
-        title: 'Myanmar [Burma]',
-        currency: 'MMK',
-        path: 'myanmar-burma',
     },
     {
         id: 'MN',
@@ -1566,13 +1517,6 @@ export const countryData: CountryData[] = [
         path: 'serbia',
     },
     {
-        id: 'RU',
-        type: 'country',
-        title: 'Russia',
-        currency: 'RUB',
-        path: 'russia',
-    },
-    {
         id: 'RW',
         type: 'country',
         title: 'Rwanda',
@@ -1711,13 +1655,6 @@ export const countryData: CountryData[] = [
         title: 'Sint Maarten',
         currency: 'ANG',
         path: 'sint-maarten',
-    },
-    {
-        id: 'SY',
-        type: 'country',
-        title: 'Syria',
-        currency: 'SYP',
-        path: 'syria',
     },
     {
         id: 'SZ',
@@ -1893,13 +1830,6 @@ export const countryData: CountryData[] = [
         title: 'Saint Vincent and the Grenadines',
         currency: 'XCD',
         path: 'saint-vincent-and-the-grenadines',
-    },
-    {
-        id: 'VE',
-        type: 'country',
-        title: 'Venezuela',
-        currency: 'VEF',
-        path: 'venezuela',
     },
     {
         id: 'VG',
