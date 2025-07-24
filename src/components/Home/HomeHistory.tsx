@@ -1,7 +1,6 @@
 'use client'
 
 import Icon from '@/components/Global/Icon'
-import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { BASE_URL } from '@/constants'
@@ -17,9 +16,7 @@ import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem } from '../Kyc/KycStatusItem'
 import { isKycStatusItem, KycHistoryEntry } from '@/hooks/useKycFlow'
 import { KYCStatus } from '@/utils'
-import { Button } from '../0_Bruddle'
 import { useRouter } from 'next/navigation'
-import { PeanutGuyGIF } from '@/assets'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -117,31 +114,6 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                 entry.status === 'NEW'
         )
     }, [combinedEntries])
-
-    // Show only if it is a guest user
-    if (!isPublic && !isLoggedIn) {
-        return (
-            <div className="relative !mt-40 flex flex-col items-center justify-center">
-                <img src={PeanutGuyGIF.src} className="absolute -top-26 w-40" alt="Peanut Guy" />
-                <div className="!mst-40 relative flex flex-col items-center justify-center space-y-4 rounded-sm border-2 border-black bg-white p-4">
-                    <h2 className="font-roboto text-xl font-extrabold">Join Peanut!</h2>
-                    <p className="text-center font-normal">
-                        Send and receive payments in seconds with your own Peanut account.
-                    </p>
-
-                    <Button
-                        variant="purple"
-                        shadowSize="4"
-                        className="mt-1 flex w-full items-center justify-center gap-2 rounded-sm"
-                        onClick={() => router.push('/setup')}
-                    >
-                        <IconComponent size={16} name="user-plus" fill="black" />
-                        <span className="font-bold">Create Account</span>
-                    </Button>
-                </div>
-            </div>
-        )
-    }
 
     // show loading state
     if (isLoading) {

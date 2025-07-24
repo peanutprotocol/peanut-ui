@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation'
 import { formatExtendedNumber } from '@/utils'
 import Card from '@/components/Global/Card'
 import { useAuth } from '@/context/authContext'
+import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 
 interface PublicProfileProps {
     username: string
@@ -126,8 +127,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                     </div>
                 )}
 
-                {/*
-                {!hasTransactions && (
+                {/* Show create account box to guest users  */}
+                {!isLoggedIn && (
                     <div className="relative flex flex-col items-center">
                         <Card position="single" className="z-10 mt-28 space-y-2 p-4 text-center">
                             {isLoggedIn ? (
@@ -171,8 +172,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                         </div>
                     </div>
                 )}
-                */}
-                <HomeHistory isPublic={false} username={username} />
+
+                {/* Show history to logged in users  */}
+                {isLoggedIn && <HomeHistory isPublic={false} username={username} />}
             </div>
         </div>
     )
