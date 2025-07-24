@@ -12,13 +12,13 @@ import {
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
-import * as consts from '@/constants'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
     PINTA_WALLET_CHAIN,
     PINTA_WALLET_TOKEN,
     ROUTE_NOT_FOUND_ERROR,
+    SQUID_API_URL,
 } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
@@ -380,7 +380,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     const isReward = useMemo(() => {
         if (!claimLinkData.tokenAddress) return false
-        return areEvmAddressesEqual(claimLinkData.tokenAddress, consts.PINTA_WALLET_TOKEN)
+        return areEvmAddressesEqual(claimLinkData.tokenAddress, PINTA_WALLET_TOKEN)
     }, [claimLinkData.tokenAddress])
 
     const fetchRoute = useCallback(
@@ -410,7 +410,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         : claimLinkData.tokenAddress.toLowerCase()
 
                 const route = await getSquidRouteRaw({
-                    squidRouterUrl: `${consts.SQUID_API_URL}/route`,
+                    squidRouterUrl: `${SQUID_API_URL}/v2/route`,
                     fromChain: claimLinkData.chainId.toString(),
                     fromToken: fromToken,
                     fromAmount: tokenAmount.toString(),
