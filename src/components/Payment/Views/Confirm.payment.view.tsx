@@ -187,6 +187,7 @@ export default function ConfirmPaymentView({
                     chainId: fromChainId,
                 },
                 usdAmount,
+                disableCoral: isAddMoneyFlow && isUsingExternalWallet,
             })
         }
     }, [
@@ -197,6 +198,8 @@ export default function ConfirmPaymentView({
         isDirectUsdPayment,
         wagmiAddress,
         peanutWalletAddress,
+        isAddMoneyFlow,
+        isUsingExternalWallet,
     ])
 
     useEffect(() => {
@@ -232,7 +235,8 @@ export default function ConfirmPaymentView({
     }, [chargeDetails, selectedTokenData, selectedChainID])
 
     const routeTypeError = useMemo((): string | null => {
-        if (!isCrossChainPayment || !xChainRoute || !isPeanutWallet) return null
+        // error only applies to peanut wallet flows (not external wallet) where cross-chain swap route is RFQ-required.
+        if (!isCrossChainPayment || !xChainRoute || isUsingExternalWallet || !isPeanutWallet) return null
 
         // For peanut wallet flows, only RFQ routes are allowed
         if (xChainRoute.type === 'swap') {
@@ -247,7 +251,7 @@ export default function ConfirmPaymentView({
         }
 
         return null
-    }, [isCrossChainPayment, xChainRoute, isPeanutWallet])
+    }, [isCrossChainPayment, xChainRoute, isUsingExternalWallet, isPeanutWallet])
 
     const errorMessage = useMemo((): string | undefined => {
         if (isRouteExpired) return 'This quoute has expired. Please retry to fetch latest quote.'
@@ -424,7 +428,7 @@ export default function ConfirmPaymentView({
                         tokenSymbol={symbolForDisplay}
                         message={chargeDetails?.requestLink?.reference ?? ''}
                         fileUrl={chargeDetails?.requestLink?.attachmentUrl ?? ''}
-                        showTimer={isCrossChainPayment}
+                        showTimer={isCrossChainPayment && xChainRoute?.type === 'rfq'}
                         timerExpiry={xChainRoute?.expiry}
                         isTimerLoading={isCalculatingFees || isPreparingTx}
                         onTimerNearExpiry={handleRouteRefresh}
@@ -485,12 +489,13 @@ export default function ConfirmPaymentView({
                             }
                         />
                     )}
-
+                    {/* note: @dev temp hide gas fee, estimation is way off */}
+                    {/* 
                     <PaymentInfoRow
                         loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
                         label={'Network fee'}
                         value={networkFee}
-                    />
+                    /> */}
 
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ 0.00`} />
                 </Card>
