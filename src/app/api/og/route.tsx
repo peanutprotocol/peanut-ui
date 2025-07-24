@@ -9,6 +9,7 @@ import getOrigin from '@/lib/hosting/get-origin'
 import { ReceiptCardOG } from '@/components/og/ReceiptCardOG'
 import { printableAddress } from '@/utils'
 import { isAddress } from 'viem'
+import { ProfileCardOG } from '@/components/og/ProfileCardOG'
 
 export const runtime = 'nodejs' //node.js instead of edge!
 
@@ -103,6 +104,7 @@ export async function GET(req: NextRequest) {
     const amount = Number(searchParams.get('amount') ?? 0)
     const token = searchParams.get('token') || null
     const isReceipt = searchParams.get('isReceipt') || 'false'
+    const isPeanutUsername = searchParams.get('isPeanutUsername') || 'false'
 
     if (type === 'generic') {
         return new ImageResponse(<div style={{}}>Peanut Protocol</div>, {
@@ -123,6 +125,22 @@ export async function GET(req: NextRequest) {
     // format username for display (handles .peanut.me cleanup and address formatting)
     username = formatUsernameForDisplay(username)
 
+    if (isPeanutUsername === 'true') {
+        return new ImageResponse(
+            (
+                <ProfileCardOG
+                    username={username}
+                    scribbleSrc={`${origin}/scribble.svg`}
+                    logoSrc={`${origin}/logos/peanut-logo.svg`}
+                    iconSrc={`${origin}/icons/peanut-icon.svg`}
+                />
+            ),
+            {
+                width: 1200,
+                height: 630,
+            }
+        )
+    }
     if (isReceipt === 'true') {
         // create an object with all arrow SVG paths for receipts
         const arrowSrcs = {

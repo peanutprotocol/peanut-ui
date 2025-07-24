@@ -41,8 +41,10 @@ export async function generateMetadata({ params, searchParams }: any) {
     const isEnsName = recipient.endsWith('.eth')
     const isAddressOrEns = isEthAddress || isEnsName
 
+    const isPeanutUsername = resolvedParams.recipient.length === 1 && !isEthAddress && !isEnsName
+
     // Determine if we should generate custom OG image
-    const shouldGenerateCustomOG = amount || isAddressOrEns || chargeId
+    const shouldGenerateCustomOG = amount || isAddressOrEns || chargeId || isPeanutUsername
 
     let isPaid = false
     let ogImageUrl = '/metadata-img.png' // Default fallback
@@ -87,6 +89,10 @@ export async function generateMetadata({ params, searchParams }: any) {
             // Only show as receipt if there's both a chargeId AND it's paid
             if (chargeId && isPaid) {
                 ogUrl.searchParams.set('isReceipt', 'true')
+            }
+
+            if (isPeanutUsername) {
+                ogUrl.searchParams.set('isPeanutUsername', 'true')
             }
 
             ogImageUrl = ogUrl.toString()
