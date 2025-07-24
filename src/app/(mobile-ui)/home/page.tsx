@@ -109,13 +109,15 @@ export default function Home() {
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
             const hasSeenModalThisSession = sessionStorage.getItem('hasSeenIOSPWAPromptThisSession')
+            const redirectUrl = getFromLocalStorage('redirect')
 
             if (
                 isIOS &&
                 !isStandalone &&
                 !hasSeenModalThisSession &&
                 !user?.hasPwaInstalled &&
-                !isPostSignupActionModalVisible
+                !isPostSignupActionModalVisible &&
+                !redirectUrl
             ) {
                 setShowIOSPWAInstallModal(true)
                 sessionStorage.setItem('hasSeenIOSPWAPromptThisSession', 'true')
@@ -123,7 +125,7 @@ export default function Home() {
                 setShowIOSPWAInstallModal(false)
             }
         }
-    }, [user?.hasPwaInstalled])
+    }, [user?.hasPwaInstalled, isPostSignupActionModalVisible])
 
     // effect for showing balance warning modal
     useEffect(() => {
