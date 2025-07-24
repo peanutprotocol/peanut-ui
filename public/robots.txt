@@ -1,0 +1,10 @@
+# Allow Twitter's crawler
+User-agent: Twitterbot
+Disallow:
+
+# Allow all crawlers for now
+User-agent: *
+Disallow:
+
+# Sitemap (adjust URL as needed)
+Sitemap: https://peanut.me/sitemap.xml
