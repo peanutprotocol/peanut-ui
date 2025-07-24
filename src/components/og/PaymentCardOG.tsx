@@ -31,207 +31,196 @@ export function PaymentCardOG({
     return (
         <div
             style={{
+                position: 'relative',
                 display: 'flex',
-                justifyContent: 'center',
-                backgroundColor: '#ffffff',
-                padding: 16,
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 16,
                 width: 1200,
                 height: 630,
+                border: '3px solid #000',
+                backgroundColor: pink,
+                padding: 48,
+                color: '#000',
             }}
         >
-            {/* inner coloured card ---------------------------------------- */}
+            {/*  logo top-left  */}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 24,
+                    left: 34,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                }}
+            >
+                <img src={iconSrc} width={36} height={46} alt="Peanut icon" />
+                <img src={logoSrc} width={132} height={26} alt="Peanut logo" />
+            </div>
+
+            {/*  username  */}
             <div
                 style={{
                     position: 'relative',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 16,
+                    display: 'flex', // ← now it’s explicit flex
+                    flexDirection: 'column', // stack H2 then IMG
+                    alignItems: 'center', // center them horizontally
+                    marginBottom: 8,
                     width: '100%',
-                    border: '3px solid #000',
-                    backgroundColor: pink,
-                    padding: 48,
-                    color: '#000',
                 }}
             >
-                {/*  logo top-left  */}
-                <div
+                {/* 1) the username in flow */}
+                <h2
+                    style={{
+                        fontFamily: 'Montserrat SemiBold',
+                        fontWeight: 700,
+                        fontSize: 80,
+                        margin: 0,
+                        letterSpacing: '-0.05em',
+                    }}
+                >
+                    {link.username}
+                </h2>
+
+                {/* 2) the scribble on top, absolutely positioned */}
+                <img
+                    src={scribbleSrc}
+                    width={scribbleWidth}
+                    height={130}
+                    alt=""
                     style={{
                         position: 'absolute',
-                        top: 24,
-                        left: 34,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
+                        top: -20,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        pointerEvents: 'none',
                     }}
-                >
-                    <img src={iconSrc} width={36} height={46} alt="Peanut icon" />
-                    <img src={logoSrc} width={132} height={26} alt="Peanut logo" />
-                </div>
+                />
+            </div>
+            {/*  action text  */}
+            <p
+                style={{
+                    fontFamily: 'Montserrat Medium',
+                    fontWeight: 500,
+                    fontSize: 46,
+                    margin: 0,
+                    marginTop: link.type === 'request' && link.amount === 0 ? 100 : -12,
+                    marginBottom: link.amount > 0 ? 16 : 0, // Add padding when amount is shown
+                    letterSpacing: '-0.03em',
+                }}
+            >
+                {link.type === 'send' ? 'is sending' : link.amount === 0 ? 'is requesting funds!' : 'is requesting'}
+            </p>
 
-                {/*  username  */}
-                <div
-                    style={{
-                        position: 'relative',
-                        display: 'flex', // ← now it’s explicit flex
-                        flexDirection: 'column', // stack H2 then IMG
-                        alignItems: 'center', // center them horizontally
-                        marginBottom: 8,
-                        width: '100%',
-                    }}
-                >
-                    {/* 1) the username in flow */}
-                    <h2
+            {/* Only show amount display when amount > 0 */}
+            {link.amount > 0 && (
+                <>
+                    {/*  big outlined amount  */}
+                    {/* $ amount — white fill first, outline absolute & on top */}
+                    <p
                         style={{
-                            fontFamily: 'Montserrat SemiBold',
-                            fontWeight: 700,
-                            fontSize: 80,
+                            position: 'relative',
+                            display: 'block', // only flex | block | none | -webkit-box are allowed
+                            fontSize: 250, // px
+                            lineHeight: 1,
                             margin: 0,
-                            letterSpacing: '-0.05em',
+                            marginTop: 30,
                         }}
                     >
-                        {link.username}
-                    </h2>
-
-                    {/* 2) the scribble on top, absolutely positioned */}
-                    <img
-                        src={scribbleSrc}
-                        width={scribbleWidth}
-                        height={130}
-                        alt=""
-                        style={{
-                            position: 'absolute',
-                            top: -20,
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            pointerEvents: 'none',
-                        }}
-                    />
-                </div>
-                {/*  action text  */}
-                <p
-                    style={{
-                        fontFamily: 'Montserrat Medium',
-                        fontWeight: 500,
-                        fontSize: 46,
-                        margin: 0,
-                        marginTop: link.type === 'request' && link.amount === 0 ? 100 : -12,
-                        marginBottom: link.amount > 0 ? 16 : 0, // Add padding when amount is shown
-                        letterSpacing: '-0.03em',
-                    }}
-                >
-                    {link.type === 'send' ? 'is sending' : link.amount === 0 ? 'is requesting funds!' : 'is requesting'}
-                </p>
-
-                {/* Only show amount display when amount > 0 */}
-                {link.amount > 0 && (
-                    <>
-                        {/*  big outlined amount  */}
-                        {/* $ amount — white fill first, outline absolute & on top */}
-                        <p
+                        {/* Top-left arrow */}
+                        <img
+                            src={arrowSrcs.topLeft}
+                            width={100}
+                            height={100}
+                            alt=""
                             style={{
-                                position: 'relative',
-                                display: 'block', // only flex | block | none | -webkit-box are allowed
-                                fontSize: 250, // px
-                                lineHeight: 1,
-                                margin: 0,
-                                marginTop: 30,
+                                position: 'absolute',
+                                top: -110,
+                                left: -60,
+                                pointerEvents: 'none',
+                            }}
+                        />
+
+                        {/* Top-right arrow */}
+                        <img
+                            src={arrowSrcs.topRight}
+                            width={130}
+                            height={80}
+                            alt=""
+                            style={{
+                                position: 'absolute',
+                                top: -90,
+                                right: -100,
+                                pointerEvents: 'none',
+                                transform: 'rotate(5deg)',
+                            }}
+                        />
+
+                        {/* 1) white fill — stays in normal flow */}
+                        <span
+                            style={{
+                                fontFamily: 'Knerd Filled',
+                                color: '#fff',
+                                letterSpacing: '-0.08em',
                             }}
                         >
-                            {/* Top-left arrow */}
-                            <img
-                                src={arrowSrcs.topLeft}
-                                width={100}
-                                height={100}
-                                alt=""
-                                style={{
-                                    position: 'absolute',
-                                    top: -110,
-                                    left: -60,
-                                    pointerEvents: 'none',
-                                }}
-                            />
+                            {link.token && link.token.toLowerCase() !== 'usdc'
+                                ? `${link.amount} ${link.token}`
+                                : `$${link.amount}`}
+                        </span>
 
-                            {/* Top-right arrow */}
-                            <img
-                                src={arrowSrcs.topRight}
-                                width={130}
-                                height={80}
-                                alt=""
-                                style={{
-                                    position: 'absolute',
-                                    top: -90,
-                                    right: -100,
-                                    pointerEvents: 'none',
-                                    transform: 'rotate(5deg)',
-                                }}
-                            />
+                        {/* 2) black outline — absolutely positioned, painted *after* → on top */}
+                        <span
+                            aria-hidden="true"
+                            style={{
+                                position: 'absolute',
+                                top: 3, // positive offset → outline shows down-right
+                                left: 3,
+                                fontFamily: 'Knerd Outline',
+                                color: '#000',
+                                pointerEvents: 'none', // just in case
+                                transformOrigin: 'top left',
+                                transform: 'scaleX(1.01) scaleY(1.01)',
+                                letterSpacing: '-0.08em',
+                            }}
+                        >
+                            {link.token && link.token.toLowerCase() !== 'usdc'
+                                ? `${link.amount} ${link.token}`
+                                : `$${link.amount}`}
+                        </span>
 
-                            {/* 1) white fill — stays in normal flow */}
-                            <span
-                                style={{
-                                    fontFamily: 'Knerd Filled',
-                                    color: '#fff',
-                                    letterSpacing: '-0.08em',
-                                }}
-                            >
-                                {link.token && link.token.toLowerCase() !== 'usdc'
-                                    ? `${link.amount} ${link.token}`
-                                    : `$${link.amount}`}
-                            </span>
+                        {/* Bottom-left arrow */}
+                        <img
+                            src={arrowSrcs.bottomLeft}
+                            width={64}
+                            height={96}
+                            alt=""
+                            style={{
+                                position: 'absolute',
+                                bottom: 10,
+                                left: -20,
+                                pointerEvents: 'none',
+                            }}
+                        />
 
-                            {/* 2) black outline — absolutely positioned, painted *after* → on top */}
-                            <span
-                                aria-hidden="true"
-                                style={{
-                                    position: 'absolute',
-                                    top: 3, // positive offset → outline shows down-right
-                                    left: 3,
-                                    fontFamily: 'Knerd Outline',
-                                    color: '#000',
-                                    pointerEvents: 'none', // just in case
-                                    transformOrigin: 'top left',
-                                    transform: 'scaleX(1.01) scaleY(1.01)',
-                                    letterSpacing: '-0.08em',
-                                }}
-                            >
-                                {link.token && link.token.toLowerCase() !== 'usdc'
-                                    ? `${link.amount} ${link.token}`
-                                    : `$${link.amount}`}
-                            </span>
-
-                            {/* Bottom-left arrow */}
-                            <img
-                                src={arrowSrcs.bottomLeft}
-                                width={64}
-                                height={96}
-                                alt=""
-                                style={{
-                                    position: 'absolute',
-                                    bottom: 10,
-                                    left: -20,
-                                    pointerEvents: 'none',
-                                }}
-                            />
-
-                            {/* Bottom-right arrow */}
-                            <img
-                                src={arrowSrcs.bottomRight}
-                                width={40}
-                                height={60}
-                                alt=""
-                                style={{
-                                    position: 'absolute',
-                                    bottom: 10,
-                                    right: -20,
-                                    pointerEvents: 'none',
-                                    transform: 'rotate(-15deg)',
-                                }}
-                            />
-                        </p>
-                    </>
-                )}
-            </div>
+                        {/* Bottom-right arrow */}
+                        <img
+                            src={arrowSrcs.bottomRight}
+                            width={40}
+                            height={60}
+                            alt=""
+                            style={{
+                                position: 'absolute',
+                                bottom: 10,
+                                right: -20,
+                                pointerEvents: 'none',
+                                transform: 'rotate(-15deg)',
+                            }}
+                        />
+                    </p>
+                </>
+            )}
         </div>
     )
 }
