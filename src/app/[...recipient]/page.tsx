@@ -41,6 +41,7 @@ export async function generateMetadata({ params, searchParams }: any) {
     const isEnsName = recipient.endsWith('.eth')
     const isAddressOrEns = isEthAddress || isEnsName
 
+    // If params length is 1 that means its a profile link
     const isPeanutUsername = resolvedParams.recipient.length === 1 && !isEthAddress && !isEnsName
 
     // Determine if we should generate custom OG image

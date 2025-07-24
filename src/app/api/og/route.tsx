@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
     // format username for display (handles .peanut.me cleanup and address formatting)
     username = formatUsernameForDisplay(username)
 
-    if (isPeanutUsername === 'true') {
+    if (isPeanutUsername === 'true' && isReceipt === 'false') {
         return new ImageResponse(
             (
                 <ProfileCardOG
