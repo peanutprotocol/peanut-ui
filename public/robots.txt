@@ -1,8 +1,0 @@
-# Allow Twitter's crawler
-User-agent: Twitterbot
-Allow: /api/og*
-Disallow:
-
-# Allow all crawlers for now
-User-agent: *
-Disallow: /api/ # Blocks other API routes but allows the root and pages

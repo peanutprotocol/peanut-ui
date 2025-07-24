@@ -5,6 +5,11 @@ export default function robots(): MetadataRoute.Robots {
     return {
         rules: [
             {
+                userAgent: 'Twitterbot',
+                allow: ['/api/og'],
+                disallow: [],
+            },
+            {
                 userAgent: '*',
                 allow: ['/', '/about', '/send', '/request/create', '/cashout', '/jobs'],
                 disallow: ['/api/', '/sdk/', '/*dashboard', '/*profile'],
