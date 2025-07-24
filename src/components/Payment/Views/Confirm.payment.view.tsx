@@ -489,12 +489,13 @@ export default function ConfirmPaymentView({
                             }
                         />
                     )}
-
+                    {/* note: @dev temp hide gas fee, estimation is way off */}
+                    {/* 
                     <PaymentInfoRow
                         loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
                         label={'Network fee'}
                         value={networkFee}
-                    />
+                    /> */}
 
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ 0.00`} />
                 </Card>
