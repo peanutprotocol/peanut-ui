@@ -47,18 +47,28 @@ export const shortenAddress = (address?: string) => {
     return firstBit + '..'
 }
 
-export const shortenAddressLong = (address?: string, chars?: number): string => {
+export const shortenAddressLong = (
+    address?: string,
+    chars?: number,
+    firstChars?: number,
+    lastChars?: number
+): string => {
     if (!address) return ''
-    if (!chars) chars = 6
-    const firstBit = address.substring(0, chars)
-    const endingBit = address.substring(address.length - chars, address.length)
+
+    // Default values
+    const defaultChars = chars || 6
+    const firstBitLength = firstChars || defaultChars
+    const lastBitLength = lastChars || defaultChars
+
+    const firstBit = address.substring(0, firstBitLength)
+    const endingBit = address.substring(address.length - lastBitLength, address.length)
 
     return firstBit + '...' + endingBit
 }
 
-export const printableAddress = (address: string): string => {
+export const printableAddress = (address: string, firstCharsLen?: number, lastCharsLen?: number): string => {
     if (!isAddress(address)) return address
-    return shortenAddressLong(address)
+    return shortenAddressLong(address, undefined, firstCharsLen, lastCharsLen)
 }
 
 /**

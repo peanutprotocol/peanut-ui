@@ -57,9 +57,9 @@ function formatUsernameForDisplay(username: string): string {
         return username.replace('.peanut.me', '')
     }
 
-    // if it's too long and looks like an address, make it printable
+    // if it's too long and looks like an address, make it printable (6 first, 4 last chars)
     if (username.length > 12) {
-        return printableAddress(username)
+        return printableAddress(username, 6, 4)
     }
 
     return username
