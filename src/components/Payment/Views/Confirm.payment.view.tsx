@@ -187,6 +187,7 @@ export default function ConfirmPaymentView({
                     chainId: fromChainId,
                 },
                 usdAmount,
+                disableCoral: isAddMoneyFlow && isUsingExternalWallet,
             })
         }
     }, [
@@ -197,6 +198,8 @@ export default function ConfirmPaymentView({
         isDirectUsdPayment,
         wagmiAddress,
         peanutWalletAddress,
+        isAddMoneyFlow,
+        isUsingExternalWallet,
     ])
 
     useEffect(() => {
@@ -232,7 +235,8 @@ export default function ConfirmPaymentView({
     }, [chargeDetails, selectedTokenData, selectedChainID])
 
     const routeTypeError = useMemo((): string | null => {
-        if (!isCrossChainPayment || !xChainRoute || !isPeanutWallet) return null
+        // error only applies to peanut wallet flows (not external wallet) where cross-chain swap route is RFQ-required.
+        if (!isCrossChainPayment || !xChainRoute || isUsingExternalWallet || !isPeanutWallet) return null
 
         // For peanut wallet flows, only RFQ routes are allowed
         if (xChainRoute.type === 'swap') {
@@ -247,7 +251,7 @@ export default function ConfirmPaymentView({
         }
 
         return null
-    }, [isCrossChainPayment, xChainRoute, isPeanutWallet])
+    }, [isCrossChainPayment, xChainRoute, isUsingExternalWallet, isPeanutWallet])
 
     const errorMessage = useMemo((): string | undefined => {
         if (isRouteExpired) return 'This quoute has expired. Please retry to fetch latest quote.'
@@ -314,7 +318,7 @@ export default function ConfirmPaymentView({
 
     const getButtonText = useCallback(() => {
         if (isProcessing) {
-            if (isAddMoneyFlow) return 'Adding money'
+            if (isAddMoneyFlow) return 'Add Money'
             return loadingStep === 'Idle' ? 'Send' : 'Sending'
         }
         if (isAddMoneyFlow) return 'Add Money'
@@ -401,9 +405,8 @@ export default function ConfirmPaymentView({
 
     const minReceived = useMemo<string | null>(() => {
         if (!xChainRoute || !chargeDetails?.tokenDecimals || !requestedResolvedTokenSymbol) return null
-        const amount = formatUnits(
-            BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin),
-            chargeDetails.tokenDecimals
+        const amount = formatAmount(
+            formatUnits(BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin), chargeDetails.tokenDecimals)
         )
         return isStableCoin(requestedResolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${requestedResolvedTokenSymbol}`
     }, [xChainRoute, chargeDetails?.tokenDecimals, requestedResolvedTokenSymbol])
@@ -424,7 +427,7 @@ export default function ConfirmPaymentView({
                         tokenSymbol={symbolForDisplay}
                         message={chargeDetails?.requestLink?.reference ?? ''}
                         fileUrl={chargeDetails?.requestLink?.attachmentUrl ?? ''}
-                        showTimer={isCrossChainPayment}
+                        showTimer={isCrossChainPayment && xChainRoute?.type === 'rfq'}
                         timerExpiry={xChainRoute?.expiry}
                         isTimerLoading={isCalculatingFees || isPreparingTx}
                         onTimerNearExpiry={handleRouteRefresh}
@@ -437,13 +440,12 @@ export default function ConfirmPaymentView({
                 )}
 
                 <Card className="rounded-sm">
-                    {minReceived && (
-                        <PaymentInfoRow
-                            label="Min Received"
-                            value={minReceived}
-                            moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
-                        />
-                    )}
+                    <PaymentInfoRow
+                        label="Min Received"
+                        loading={!minReceived || isCalculatingFees || isPreparingTx || isEstimatingGas}
+                        value={minReceived ?? '-'}
+                        moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
+                    />
                     {isCrossChainPayment && !isAddMoneyFlow && (
                         <PaymentInfoRow
                             label="Requested"

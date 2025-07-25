@@ -549,14 +549,22 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     const getButtonText = () => {
         if (isPeanutWallet) {
-            return 'Review'
+            return (
+                <div className="flex items-center gap-1">
+                    <div>Receive on </div>
+                    <div className="flex items-center gap-1">
+                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                    </div>
+                </div>
+            )
         }
         if (selectedRoute || (isXChain && hasFetchedRoute)) {
             return 'Review'
         }
 
-        if (isLoading) {
-            return 'Receive now'
+        if (isLoading && !inputChanging) {
+            return 'Receiving'
         }
 
         return 'Receive now'

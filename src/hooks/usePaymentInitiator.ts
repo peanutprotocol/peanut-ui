@@ -83,7 +83,7 @@ export const usePaymentInitiator = () => {
     const { selectedTokenData, selectedChainID, selectedTokenAddress, setIsXChain } = useContext(tokenSelectorContext)
     const { isConnected: isPeanutWallet, address: peanutWalletAddress, sendTransactions, sendMoney } = useWallet()
     const { switchChainAsync } = useSwitchChain()
-    const { address: externalAccountAddress } = useAppKitAccount()
+    const { address: wagmiAddress } = useAppKitAccount()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
     const { chain: connectedWalletChain } = useWagmiAccount()
@@ -182,6 +182,7 @@ export const usePaymentInitiator = () => {
             chargeDetails,
             from,
             usdAmount,
+            disableCoral = false,
         }: {
             chargeDetails: TRequestChargeResponse
             from: {
@@ -190,6 +191,7 @@ export const usePaymentInitiator = () => {
                 chainId: string
             }
             usdAmount?: string
+            disableCoral?: boolean
         }) => {
             setError(null)
             setIsFeeEstimationError(false)
@@ -216,15 +218,18 @@ export const usePaymentInitiator = () => {
                         : {
                               toAmount: parseUnits(chargeDetails.tokenAmount, chargeDetails.tokenDecimals),
                           }
-                    const xChainRoute = await getRoute({
-                        from,
-                        to: {
-                            address: chargeDetails.requestLink.recipientAddress as Address,
-                            tokenAddress: chargeDetails.tokenAddress as Address,
-                            chainId: chargeDetails.chainId,
+                    const xChainRoute = await getRoute(
+                        {
+                            from,
+                            to: {
+                                address: chargeDetails.requestLink.recipientAddress as Address,
+                                tokenAddress: chargeDetails.tokenAddress as Address,
+                                chainId: chargeDetails.chainId,
+                            },
+                            ...amount,
                         },
-                        ...amount,
-                    })
+                        { disableCoral }
+                    )
 
                     const slippagePercentage = Number(xChainRoute.fromAmount) / Number(chargeDetails.tokenAmount) - 1
                     setXChainRoute(xChainRoute)
@@ -490,12 +495,13 @@ export const usePaymentInitiator = () => {
 
             // update payment status in the backend api.
             setLoadingStep('Updating Payment Status')
+            // peanut wallet flow: payer is the peanut wallet itself
             const payment: PaymentCreationResponse = await chargesApi.createPayment({
                 chargeId: chargeDetails.uuid,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 hash: receipt.transactionHash,
                 tokenAddress: PEANUT_WALLET_TOKEN,
-                payerAddress: peanutWalletAddress,
+                payerAddress: peanutWalletAddress ?? '',
             })
             console.log('Backend payment creation response:', payment)
 
@@ -507,7 +513,7 @@ export const usePaymentInitiator = () => {
             console.log('Peanut Wallet payment successful.')
             return { status: 'Success', charge: chargeDetails, payment, txHash: receipt.transactionHash, success: true }
         },
-        [sendTransactions, xChainUnsignedTxs, unsignedTx]
+        [sendTransactions, xChainUnsignedTxs, unsignedTx, peanutWalletAddress]
     )
 
     // helper function: Handle External Wallet payment
@@ -597,12 +603,13 @@ export const usePaymentInitiator = () => {
 
             setLoadingStep('Updating Payment Status')
             console.log('Updating payment status in backend for external wallet. Hash:', txHash)
+            // external wallet / add-money flow: payer is the connected wallet address
             const payment = await chargesApi.createPayment({
                 chargeId: chargeDetails.uuid,
                 chainId: sourceChainId.toString(),
                 hash: txHash,
                 tokenAddress: selectedTokenData?.address || chargeDetails.tokenAddress,
-                payerAddress: externalAccountAddress!,
+                payerAddress: wagmiAddress ?? '',
             })
             console.log('Backend payment creation response:', payment)
 
@@ -623,6 +630,7 @@ export const usePaymentInitiator = () => {
             sendTransactionAsync,
             config,
             selectedTokenData,
+            wagmiAddress,
         ]
     )
 
@@ -669,7 +677,7 @@ export const usePaymentInitiator = () => {
 
                 // 3. execute payment based on wallet type
                 if (payload.isAddMoneyFlow) {
-                    if (!externalAccountAddress) {
+                    if (!wagmiAddress) {
                         console.error('Add Money flow requires an external wallet (WAGMI) to be connected.')
                         throw new Error('External wallet not connected for Add Money flow.')
                     }
@@ -713,7 +721,7 @@ export const usePaymentInitiator = () => {
             handleExternalWalletPayment,
             isPeanutWallet,
             peanutWalletAddress,
-            externalAccountAddress,
+            wagmiAddress,
             handleError,
             setLoadingStep,
             setError,
