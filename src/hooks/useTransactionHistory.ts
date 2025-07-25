@@ -81,6 +81,7 @@ type UseTransactionHistoryOptions = {
     limit?: number
     enabled?: boolean
     username?: string
+    filterMutualTxs?: boolean
 }
 
 export function useTransactionHistory(options: {
@@ -88,6 +89,7 @@ export function useTransactionHistory(options: {
     limit?: number
     enabled?: boolean
     username?: string
+    filterMutualTxs?: boolean
 }): LatestHistoryResult
 
 export function useTransactionHistory(options: {
@@ -106,6 +108,7 @@ export function useTransactionHistory({
     limit = 50,
     enabled = true,
     username,
+    filterMutualTxs,
 }: UseTransactionHistoryOptions): LatestHistoryResult | InfiniteHistoryResult {
     const fetchHistory = async ({
         cursor,
@@ -119,6 +122,8 @@ export function useTransactionHistory({
         const queryParams = new URLSearchParams()
         if (cursor) queryParams.append('cursor', cursor)
         if (limit) queryParams.append('limit', limit.toString())
+        // append targetUsername to the query params if filterMutualTxs is true and username is provided
+        if (filterMutualTxs && username) queryParams.append('targetUsername', username)
 
         let url: string
         if (isPublic) {
@@ -222,8 +227,10 @@ export function useTransactionHistory({
 
     // Latest transactions mode (for home page)
     if (mode === 'latest') {
+        // if filterMutualTxs is true, we need to add the username to the query key to invalidate the query when the username changes
+        const queryKeyTxn = TRANSACTIONS + (filterMutualTxs ? username : '')
         return useQuery({
-            queryKey: [TRANSACTIONS, 'latest', { limit }],
+            queryKey: [queryKeyTxn, 'latest', { limit }],
             queryFn: () => fetchHistory({ limit }),
             enabled,
             staleTime: 5 * 60 * 1000, // 5 minutes
