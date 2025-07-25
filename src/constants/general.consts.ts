@@ -8,7 +8,9 @@ export const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
 export const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
 
 export const SQUID_INTEGRATOR_ID = process.env.SQUID_INTEGRATOR_ID!
-export const SQUID_API_URL = process.env.NEXT_PUBLIC_SQUID_API_URL
+export const DEFAULT_SQUID_INTEGRATOR_ID =
+    process.env.DEFAULT_SQUID_INTEGRATOR_ID || process.env.NEXT_PUBLIC_DEFAULT_SQUID_INTEGRATOR_ID
+export const SQUID_API_URL = process.env.NEXT_PUBLIC_SQUID_API_URL || process.env.SQUID_API_URL
 
 const infuraUrl = (subdomain: string) => (INFURA_API_KEY ? `https://${subdomain}.infura.io/v3/${INFURA_API_KEY}` : null)
 const alchemyUrl = (subdomain: string) =>
