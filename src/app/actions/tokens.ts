@@ -100,20 +100,21 @@ const ERC20_DATA_ABI = parseAbi([
     'function decimals() view returns (uint8)',
 ])
 
+const MOBULA_API_URL = process.env.MOBULA_API_URL!
+const MOBULA_API_KEY = process.env.MOBULA_API_KEY!
+
 export const fetchTokenPrice = unstable_cache(
     async (tokenAddress: string, chainId: string): Promise<ITokenPriceData | undefined> => {
         try {
-            const API_KEY = process.env.MOBULA_API_KEY ?? ''
 
-            if (!API_KEY) throw new Error('MOBULA_API_KEY not found in env')
             tokenAddress = isAddressZero(tokenAddress) ? '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' : tokenAddress
 
             const mobulaResponse = await fetchWithSentry(
-                `https://api.mobula.io/api/1/market/data?asset=${tokenAddress}&blockchain=${chainId}`,
+                `${MOBULA_API_URL}/api/1/market/data?asset=${tokenAddress}&blockchain=${chainId}`,
                 {
                     headers: {
                         'Content-Type': 'application/json',
-                        authorization: API_KEY,
+                        authorization: MOBULA_API_KEY,
                     },
                 }
             )
@@ -260,10 +261,10 @@ export async function estimateTransactionCostUsd(
 
 export const fetchWalletBalances = unstable_cache(
     async (address: string): Promise<{ balances: IUserBalance[]; totalBalance: number }> => {
-        const mobulaResponse = await fetchWithSentry(`https://api.mobula.io/api/1/wallet/portfolio?wallet=${address}`, {
+        const mobulaResponse = await fetchWithSentry(`${MOBULA_API_URL}/api/1/wallet/portfolio?wallet=${address}`, {
             headers: {
                 'Content-Type': 'application/json',
-                authorization: process.env.MOBULA_API_KEY!,
+                authorization: MOBULA_API_KEY,
             },
         })
 
