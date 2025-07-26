@@ -6,6 +6,66 @@ import { fetchWithSentry } from '@/utils'
  * Aggregates health status from all individual service health checks
  * This is the main endpoint that should be monitored by UptimeRobot
  */
+
+/**
+ * Send Discord notification when system is unhealthy
+ */
+async function sendDiscordNotification(healthData: any) {
+    try {
+        const webhookUrl = process.env.DISCORD_WEBHOOK_URL
+        if (!webhookUrl) {
+            console.log('Discord webhook not configured, skipping notification')
+            return
+        }
+
+        // Create a detailed message about what's failing
+        const failedServices = Object.entries(healthData.services)
+            .filter(([_, service]: [string, any]) => service.status === 'unhealthy')
+            .map(([name, service]: [string, any]) => `• ${name}: ${service.error || 'unhealthy'}`)
+
+        // Only mention role in production or peanut.me
+        const isProduction = process.env.NODE_ENV === 'production'
+        const isPeanutDomain =
+            (process.env.NEXT_PUBLIC_BASE_URL?.includes('peanut.me') &&
+                !process.env.NEXT_PUBLIC_BASE_URL?.includes('staging.peanut.me')) ||
+            (process.env.VERCEL_URL?.includes('peanut.me') && !process.env.VERCEL_URL?.includes('staging.peanut.me'))
+        const shouldMentionRole = isProduction || isPeanutDomain
+
+        const roleMention = shouldMentionRole ? '<@&1187109195389083739> ' : ''
+
+        const message = `${roleMention}🚨 **Peanut Protocol Health Alert** 🚨
+
+System Status: **${healthData.status.toUpperCase()}**
+Health Score: ${healthData.healthScore}%
+Environment: ${healthData.systemInfo?.environment || 'unknown'}
+
+**Failed Services:**
+${failedServices.length > 0 ? failedServices.join('\n') : 'No specific failures detected'}
+
+**Summary:**
+• Healthy: ${healthData.summary.healthy}
+• Degraded: ${healthData.summary.degraded}
+• Unhealthy: ${healthData.summary.unhealthy}
+
+Timestamp: ${healthData.timestamp}`
+
+        await fetchWithSentry(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                content: message,
+            }),
+        })
+
+        console.log('Discord notification sent for unhealthy system status')
+    } catch (error) {
+        console.error('Failed to send Discord notification:', error)
+        // Don't throw - we don't want notification failures to break the health check
+    }
+}
+
 export async function GET() {
     const startTime = Date.now()
 
@@ -111,23 +171,25 @@ export async function GET() {
 
         // If overall status is unhealthy, return HTTP 500
         if (overallStatus === 'unhealthy') {
-            return NextResponse.json(
-                {
-                    status: overallStatus,
-                    service: 'peanut-protocol',
-                    timestamp: new Date().toISOString(),
-                    responseTime: totalResponseTime,
-                    healthScore,
-                    summary: results.summary,
-                    services: results.services,
-                    systemInfo: {
-                        environment: process.env.NODE_ENV,
-                        version: process.env.npm_package_version || 'unknown',
-                        region: process.env.VERCEL_REGION || 'unknown',
-                    },
+            const responseData = {
+                status: overallStatus,
+                service: 'peanut-protocol',
+                timestamp: new Date().toISOString(),
+                responseTime: totalResponseTime,
+                healthScore,
+                summary: results.summary,
+                services: results.services,
+                systemInfo: {
+                    environment: process.env.NODE_ENV,
+                    version: process.env.npm_package_version || 'unknown',
+                    region: process.env.VERCEL_REGION || 'unknown',
                 },
-                { status: 500 }
-            )
+            }
+
+            // Send Discord notification asynchronously (don't await to avoid delaying the response)
+            sendDiscordNotification(responseData).catch(console.error)
+
+            return NextResponse.json(responseData, { status: 500 })
         }
 
         return NextResponse.json({
