@@ -132,6 +132,11 @@ export async function GET() {
             overallStatus = 'degraded'
         }
 
+        // If any critical chain is unhealthy, return HTTP 500
+        if (overallStatus === 'unhealthy') {
+            throw new Error(`Critical RPC providers unavailable. Chains status: ${chainStatuses.join(', ')}`)
+        }
+
         const totalResponseTime = Date.now() - startTime
 
         return NextResponse.json({

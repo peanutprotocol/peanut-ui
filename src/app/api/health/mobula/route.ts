@@ -62,6 +62,11 @@ export async function GET() {
 
         const portfolioHealthy = portfolioResponse.ok
 
+        // If portfolio API is down, throw error to return HTTP 500
+        if (!portfolioHealthy) {
+            throw new Error(`Portfolio API returned ${portfolioResponse.status}`)
+        }
+
         const totalResponseTime = Date.now() - startTime
 
         return NextResponse.json({
@@ -77,7 +82,7 @@ export async function GET() {
                     price: priceData.data.price,
                 },
                 portfolioApi: {
-                    status: portfolioHealthy ? 'healthy' : 'degraded',
+                    status: 'healthy',
                     responseTime: portfolioResponseTime,
                     httpStatus: portfolioResponse.status,
                 },

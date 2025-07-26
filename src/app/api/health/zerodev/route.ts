@@ -1,26 +1,29 @@
-import { fetchWithSentry } from '@/utils'
 import { NextResponse } from 'next/server'
-
-const BUNDLER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL
-const PAYMASTER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL
-const POLYGON_BUNDLER_URL = process.env.NEXT_PUBLIC_POLYGON_BUNDLER_URL
-const POLYGON_PAYMASTER_URL = process.env.NEXT_PUBLIC_POLYGON_PAYMASTER_URL
+import { fetchWithSentry } from '@/utils'
 
 /**
- * Health check for ZeroDev services
- * Tests bundler and paymaster connectivity for both Arbitrum and Polygon
+ * ZeroDev health check endpoint
+ * Tests bundler and paymaster services for supported chains
  */
 export async function GET() {
     const startTime = Date.now()
 
     try {
-        if (!BUNDLER_URL || !PAYMASTER_URL) {
+        // Get configuration from environment variables (same as zerodev.consts.ts)
+        const BUNDLER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL
+        const PAYMASTER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL
+        const PROJECT_ID = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID
+        const POLYGON_BUNDLER_URL = process.env.NEXT_PUBLIC_POLYGON_BUNDLER_URL
+        const POLYGON_PAYMASTER_URL = process.env.NEXT_PUBLIC_POLYGON_PAYMASTER_URL
+
+        // Check configuration
+        if (!BUNDLER_URL || !PAYMASTER_URL || !PROJECT_ID) {
             return NextResponse.json(
                 {
                     status: 'unhealthy',
                     service: 'zerodev',
                     timestamp: new Date().toISOString(),
-                    error: 'ZeroDev URLs not configured',
+                    error: 'ZeroDev configuration missing (bundler, paymaster, or project ID)',
                     responseTime: Date.now() - startTime,
                 },
                 { status: 500 }
@@ -30,135 +33,21 @@ export async function GET() {
         const results: any = {
             arbitrum: {},
             polygon: {},
+            configuration: {
+                projectId: PROJECT_ID ? 'configured' : 'missing',
+                bundlerUrl: BUNDLER_URL ? 'configured' : 'missing',
+                paymasterUrl: PAYMASTER_URL ? 'configured' : 'missing',
+                polygonBundlerUrl: POLYGON_BUNDLER_URL ? 'configured' : 'missing',
+                polygonPaymasterUrl: POLYGON_PAYMASTER_URL ? 'configured' : 'missing',
+            },
         }
 
-        // Test Arbitrum Bundler
-        const arbBundlerTestStart = Date.now()
-        try {
-            const arbBundlerResponse = await fetchWithSentry(BUNDLER_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    jsonrpc: '2.0',
-                    method: 'eth_supportedEntryPoints',
-                    params: [],
-                    id: 1,
-                }),
-            })
+        // Test Arbitrum endpoints
+        await testChainEndpoints('arbitrum', BUNDLER_URL, PAYMASTER_URL, results)
 
-            results.arbitrum.bundler = {
-                status: arbBundlerResponse.ok ? 'healthy' : 'unhealthy',
-                responseTime: Date.now() - arbBundlerTestStart,
-                httpStatus: arbBundlerResponse.status,
-            }
-
-            if (arbBundlerResponse.ok) {
-                const bundlerData = await arbBundlerResponse.json()
-                results.arbitrum.bundler.supportedEntryPoints = bundlerData?.result?.length || 0
-            }
-        } catch (error) {
-            results.arbitrum.bundler = {
-                status: 'unhealthy',
-                responseTime: Date.now() - arbBundlerTestStart,
-                error: error instanceof Error ? error.message : 'Unknown error',
-            }
-        }
-
-        // Test Arbitrum Paymaster
-        const arbPaymasterTestStart = Date.now()
-        try {
-            const arbPaymasterResponse = await fetchWithSentry(PAYMASTER_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    jsonrpc: '2.0',
-                    method: 'pm_supportedEntryPoints',
-                    params: [],
-                    id: 1,
-                }),
-            })
-
-            results.arbitrum.paymaster = {
-                status: arbPaymasterResponse.ok ? 'healthy' : 'unhealthy',
-                responseTime: Date.now() - arbPaymasterTestStart,
-                httpStatus: arbPaymasterResponse.status,
-            }
-
-            if (arbPaymasterResponse.ok) {
-                const paymasterData = await arbPaymasterResponse.json()
-                results.arbitrum.paymaster.supportedEntryPoints = paymasterData?.result?.length || 0
-            }
-        } catch (error) {
-            results.arbitrum.paymaster = {
-                status: 'unhealthy',
-                responseTime: Date.now() - arbPaymasterTestStart,
-                error: error instanceof Error ? error.message : 'Unknown error',
-            }
-        }
-
-        // Test Polygon services if configured
+        // Test Polygon endpoints (if configured)
         if (POLYGON_BUNDLER_URL && POLYGON_PAYMASTER_URL) {
-            // Test Polygon Bundler
-            const polyBundlerTestStart = Date.now()
-            try {
-                const polyBundlerResponse = await fetchWithSentry(POLYGON_BUNDLER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        jsonrpc: '2.0',
-                        method: 'eth_supportedEntryPoints',
-                        params: [],
-                        id: 1,
-                    }),
-                })
-
-                results.polygon.bundler = {
-                    status: polyBundlerResponse.ok ? 'healthy' : 'unhealthy',
-                    responseTime: Date.now() - polyBundlerTestStart,
-                    httpStatus: polyBundlerResponse.status,
-                }
-            } catch (error) {
-                results.polygon.bundler = {
-                    status: 'unhealthy',
-                    responseTime: Date.now() - polyBundlerTestStart,
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                }
-            }
-
-            // Test Polygon Paymaster
-            const polyPaymasterTestStart = Date.now()
-            try {
-                const polyPaymasterResponse = await fetchWithSentry(POLYGON_PAYMASTER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        jsonrpc: '2.0',
-                        method: 'pm_supportedEntryPoints',
-                        params: [],
-                        id: 1,
-                    }),
-                })
-
-                results.polygon.paymaster = {
-                    status: polyPaymasterResponse.ok ? 'healthy' : 'unhealthy',
-                    responseTime: Date.now() - polyPaymasterTestStart,
-                    httpStatus: polyPaymasterResponse.status,
-                }
-            } catch (error) {
-                results.polygon.paymaster = {
-                    status: 'unhealthy',
-                    responseTime: Date.now() - polyPaymasterTestStart,
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                }
-            }
+            await testChainEndpoints('polygon', POLYGON_BUNDLER_URL, POLYGON_PAYMASTER_URL, results)
         } else {
             results.polygon = {
                 status: 'not_configured',
@@ -166,27 +55,44 @@ export async function GET() {
             }
         }
 
-        // Determine overall health
-        const allServices = [
-            results.arbitrum.bundler,
-            results.arbitrum.paymaster,
-            ...(results.polygon.bundler ? [results.polygon.bundler, results.polygon.paymaster] : []),
-        ]
+        // Determine overall status
+        let overallStatus = 'healthy'
+        const arbitrumHealthy =
+            results.arbitrum.bundler?.status === 'healthy' && results.arbitrum.paymaster?.status === 'healthy'
+        const polygonHealthy =
+            results.polygon.status === 'not_configured' ||
+            (results.polygon.bundler?.status === 'healthy' && results.polygon.paymaster?.status === 'healthy')
 
-        const hasUnhealthyService = allServices.some((service) => service?.status === 'unhealthy')
-        const overallStatus = hasUnhealthyService ? 'degraded' : 'healthy'
+        if (!arbitrumHealthy || !polygonHealthy) {
+            // If any critical service is down, mark as unhealthy
+            overallStatus = 'unhealthy'
+        }
 
-        const totalResponseTime = Date.now() - startTime
+        const responseTime = Date.now() - startTime
+
+        // Return 500 if unhealthy
+        if (overallStatus === 'unhealthy') {
+            return NextResponse.json(
+                {
+                    status: overallStatus,
+                    service: 'zerodev',
+                    timestamp: new Date().toISOString(),
+                    responseTime,
+                    details: results,
+                },
+                { status: 500 }
+            )
+        }
 
         return NextResponse.json({
             status: overallStatus,
             service: 'zerodev',
             timestamp: new Date().toISOString(),
-            responseTime: totalResponseTime,
+            responseTime,
             details: results,
         })
     } catch (error) {
-        const totalResponseTime = Date.now() - startTime
+        const responseTime = Date.now() - startTime
 
         return NextResponse.json(
             {
@@ -194,9 +100,84 @@ export async function GET() {
                 service: 'zerodev',
                 timestamp: new Date().toISOString(),
                 error: error instanceof Error ? error.message : 'Unknown error',
-                responseTime: totalResponseTime,
+                responseTime,
             },
             { status: 500 }
         )
+    }
+}
+
+async function testChainEndpoints(chainName: string, bundlerUrl: string, paymasterUrl: string, results: any) {
+    results[chainName] = {
+        bundler: {},
+        paymaster: {},
+    }
+
+    // Test Bundler - using a simple JSON-RPC call that bundlers should support
+    const bundlerTestStart = Date.now()
+    try {
+        const bundlerResponse = await fetchWithSentry(bundlerUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'eth_chainId',
+                params: [],
+                id: 1,
+            }),
+        })
+
+        results[chainName].bundler = {
+            status: bundlerResponse.ok ? 'healthy' : 'unhealthy',
+            responseTime: Date.now() - bundlerTestStart,
+            httpStatus: bundlerResponse.status,
+        }
+
+        if (bundlerResponse.ok) {
+            const bundlerData = await bundlerResponse.json()
+            results[chainName].bundler.chainId = bundlerData?.result
+        }
+    } catch (error) {
+        results[chainName].bundler = {
+            status: 'unhealthy',
+            responseTime: Date.now() - bundlerTestStart,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        }
+    }
+
+    // Test Paymaster - using a simple JSON-RPC call
+    const paymasterTestStart = Date.now()
+    try {
+        const paymasterResponse = await fetchWithSentry(paymasterUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'eth_chainId',
+                params: [],
+                id: 1,
+            }),
+        })
+
+        results[chainName].paymaster = {
+            status: paymasterResponse.status >= 200 && paymasterResponse.status < 503 ? 'healthy' : 'unhealthy', // 500 is expected for basic calls
+            responseTime: Date.now() - paymasterTestStart,
+            httpStatus: paymasterResponse.status,
+        }
+
+        if (paymasterResponse.ok) {
+            const paymasterData = await paymasterResponse.json()
+            results[chainName].paymaster.chainId = paymasterData?.result
+        }
+    } catch (error) {
+        results[chainName].paymaster = {
+            status: 'unhealthy',
+            responseTime: Date.now() - paymasterTestStart,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        }
     }
 }

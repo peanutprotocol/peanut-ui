@@ -1,10 +1,6 @@
 import { fetchWithSentry } from '@/utils'
 import { NextResponse } from 'next/server'
-
-const SQUID_API_URL = process.env.NEXT_PUBLIC_SQUID_API_URL!
-const SQUID_INTEGRATOR_ID = process.env.SQUID_INTEGRATOR_ID!
-const DEFAULT_SQUID_INTEGRATOR_ID = process.env.DEFAULT_SQUID_INTEGRATOR_ID!
-// || process.env.NEXT_PUBLIC_DEFAULT_SQUID_INTEGRATOR_ID
+import { SQUID_API_URL, SQUID_INTEGRATOR_ID, DEFAULT_SQUID_INTEGRATOR_ID } from '@/constants'
 
 /**
  * Health check for Squid API
@@ -31,19 +27,20 @@ export async function GET() {
         const regularRouteTestStart = Date.now()
         const regularRouteParams = {
             fromChain: '1',
-            fromToken: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', // ETH
-            fromAmount: '1000000000000000000', // 1 ETH
+            fromToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+            fromAmount: '100000000000000000',
             toChain: '42161',
             toToken: '0xaf88d065e77c8cc2239327c5edb3a432268e5831', // USDC on Arbitrum
-            fromAddress: '0x8ba1f109551bd432803012645hac136c54fc8c58',
-            toAddress: '0x8ba1f109551bd432803012645hac136c54fc8c58',
+            fromAddress: '0x9647BB6a598c2675310c512e0566B60a5aEE6261',
+            toAddress: '0xdA60a6626C2C8Ea1f5F31e73368F32c8C7AdAE73',
+            slippage: 1, // Add slippage parameter
         }
 
         const regularRouteResponse = await fetchWithSentry(`${SQUID_API_URL}/v2/route`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-integrator-id': SQUID_INTEGRATOR_ID || DEFAULT_SQUID_INTEGRATOR_ID!,
+                'x-integrator-id': DEFAULT_SQUID_INTEGRATOR_ID!,
             },
             body: JSON.stringify(regularRouteParams),
         })
@@ -77,13 +74,13 @@ export async function GET() {
         if (rfqRouteHealthy) {
             try {
                 rfqRouteData = await rfqRouteResponse.json()
-                // Check if response contains RFQ-type route
-                hasRfqRoute =
-                    rfqRouteData?.route?.estimate?.route?.some(
-                        (step: any) => step?.type === 'RFQ' || step?.protocol === 'RFQ'
-                    ) || false
+                // Check if response contains RFQ-type route (same logic as swap.ts)
+                hasRfqRoute = rfqRouteData?.route?.estimate?.actions?.[0]?.type === 'rfq'
+                console.log('hasRfqRoute', hasRfqRoute)
+                console.log('rfqRouteData', rfqRouteData)
             } catch (e) {
-                // If we can't parse the response, mark as degraded
+                console.error('Error parsing RFQ route response:', e)
+                console.error('RFQ response:', rfqRouteResponse)
             }
         }
 
@@ -111,6 +108,7 @@ export async function GET() {
             },
         })
     } catch (error) {
+        console.error(error)
         const totalResponseTime = Date.now() - startTime
 
         return NextResponse.json(
