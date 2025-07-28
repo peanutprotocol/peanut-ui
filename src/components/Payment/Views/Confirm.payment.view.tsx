@@ -99,24 +99,26 @@ export default function ConfirmPaymentView({
 
     const networkFee = useMemo<string | React.ReactNode>(() => {
         if (isFeeEstimationError) return '-'
-        if (!estimatedGasCostUsd) {
+        if (estimatedGasCostUsd === undefined) {
             return isUsingExternalWallet ? '-' : 'Sponsored by Peanut!'
         }
 
+        // external wallet flows
         if (isUsingExternalWallet) {
             return estimatedGasCostUsd < 0.01 ? '$ <0.01' : `$ ${estimatedGasCostUsd.toFixed(2)}`
         }
 
+        // peanut-sponsored transactions
         if (estimatedGasCostUsd < 0.01) return 'Sponsored by Peanut!'
 
         return (
             <>
                 <span className="line-through">$ {estimatedGasCostUsd.toFixed(2)}</span>
-                {' – '}
+                {' - '}
                 <span className="font-medium text-gray-500">Sponsored by Peanut!</span>
             </>
         )
-    }, [estimatedGasCostUsd, isFeeEstimationError])
+    }, [estimatedGasCostUsd, isFeeEstimationError, isUsingExternalWallet])
 
     const {
         tokenIconUrl: sendingTokenIconUrl,
@@ -404,7 +406,10 @@ export default function ConfirmPaymentView({
     }
 
     const minReceived = useMemo<string | null>(() => {
-        if (!xChainRoute || !chargeDetails?.tokenDecimals || !requestedResolvedTokenSymbol) return null
+        if (!chargeDetails?.tokenDecimals || !requestedResolvedTokenSymbol) return null
+        if (!xChainRoute) {
+            return `$ ${chargeDetails?.tokenAmount}`
+        }
         const amount = formatAmount(
             formatUnits(BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin), chargeDetails.tokenDecimals)
         )

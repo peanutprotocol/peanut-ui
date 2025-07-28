@@ -339,7 +339,7 @@ export default function WithdrawCryptoPage() {
                         headerTitle="Withdraw"
                         recipientType="ADDRESS"
                         type="SEND"
-                        currencyAmount={`$ ${amountToWithdraw}`}
+                        amount={amountToWithdraw}
                         isWithdrawFlow={true}
                         redirectTo="/withdraw"
                         message={
