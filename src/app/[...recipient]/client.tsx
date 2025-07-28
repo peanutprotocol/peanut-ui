@@ -389,6 +389,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-center')}>
             {currentView === 'INITIAL' && (
                 <InitialPaymentView
+                    key={`initial-${flow}`}
                     {...(parsedPaymentData as ParsedURL)}
                     isAddMoneyFlow={isAddMoneyFlow}
                     isDirectUsdPayment={isDirectPay}
@@ -407,6 +408,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             )}
             {currentView === 'CONFIRM' && (
                 <ConfirmPaymentView
+                    key={`confirm-${flow}`}
                     isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
                     currencyAmount={currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined}
                     isAddMoneyFlow={isAddMoneyFlow}
@@ -421,6 +423,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                         <TransactionDetailsReceipt transaction={selectedTransaction} />
                     ) : (
                         <DirectSuccessView
+                            key={`success-${flow}`}
                             headerTitle={isAddMoneyFlow ? 'Add Money' : 'Send'}
                             recipientType={parsedPaymentData?.recipient?.recipientType}
                             type="SEND"
