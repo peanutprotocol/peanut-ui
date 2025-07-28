@@ -79,6 +79,10 @@ export default function WithdrawCryptoPage() {
     }, [setError])
 
     useEffect(() => {
+        dispatch(paymentActions.resetPaymentState())
+    }, [dispatch])
+
+    useEffect(() => {
         if (!amountToWithdraw) {
             console.error('Amount not available in WithdrawFlowContext for withdrawal, redirecting.')
             router.push('/withdraw')
