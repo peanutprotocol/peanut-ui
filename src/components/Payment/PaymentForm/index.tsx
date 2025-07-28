@@ -15,6 +15,8 @@ import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import BeerInput from '@/components/PintaReqPay/BeerInput'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import UserCard from '@/components/User/UserCard'
+import PeanutSendButton from '@/assets/illustrations/peanut-send-button.svg'
+import Image from 'next/image'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
@@ -308,6 +310,19 @@ export const PaymentForm = ({
         isActivePeanutWallet,
     ])
 
+    // Memoized amount and balance validation to avoid duplication
+    const hasValidAmount = useMemo(() => {
+        return inputTokenAmount && parseFloat(inputTokenAmount) > 0
+    }, [inputTokenAmount])
+
+    const hasSufficientBalance = useMemo(() => {
+        return !error || !error.includes('Insufficient balance')
+    }, [error])
+
+    const shouldSkipUrlUpdate = useMemo(() => {
+        return isActivePeanutWallet && hasValidAmount && hasSufficientBalance
+    }, [isActivePeanutWallet, hasValidAmount, hasSufficientBalance])
+
     const handleInitiatePayment = useCallback(async () => {
         if (!isExternalWalletConnected && isAddMoneyFlow) {
             openReownModal()
@@ -405,16 +420,23 @@ export const PaymentForm = ({
             isAddMoneyFlow: !!isAddMoneyFlow,
             transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectUsdPayment ? 'DIRECT_SEND' : 'REQUEST',
             attachmentOptions: attachmentOptions,
+            skipUrlUpdate: shouldSkipUrlUpdate, // Skip URL update for Peanut users with direct success flow
         }
 
         console.log('Initiating payment with payload:', payload)
 
         const result = await initiatePayment(payload)
+        console.log('Payment initiation result', result)
 
         if (result.status === 'Success') {
             dispatch(paymentActions.setView('STATUS'))
         } else if (result.status === 'Charge Created') {
-            dispatch(paymentActions.setView('CONFIRM'))
+            // For Peanut users with sufficient balance, go directly to success page
+            if (shouldSkipUrlUpdate) {
+                dispatch(paymentActions.setView('STATUS'))
+            } else {
+                dispatch(paymentActions.setView('CONFIRM'))
+            }
         } else if (result.status === 'Error') {
             console.error('Payment initiation failed:', result.error)
         } else {
@@ -438,6 +460,9 @@ export const PaymentForm = ({
         selectedChainID,
         inputUsdValue,
         requestedTokenPrice,
+        isActivePeanutWallet,
+        error,
+        shouldSkipUrlUpdate,
     ])
 
     const getButtonText = () => {
@@ -454,6 +479,20 @@ export const PaymentForm = ({
         }
 
         if (isActivePeanutWallet) {
+            if (shouldSkipUrlUpdate) {
+                return (
+                    <div className="flex items-center gap-2">
+                        <span>Send With</span>
+                        <Image
+                            src={PeanutSendButton}
+                            alt="Peanut"
+                            width={20}
+                            height={20}
+                            className="mt-[1px] h-5 w-auto"
+                        />
+                    </div>
+                )
+            }
             return 'Send'
         }
 
@@ -511,7 +550,6 @@ export const PaymentForm = ({
     }, [isPintaReq, inputTokenAmount])
 
     const isButtonDisabled = useMemo(() => {
-        if (isProcessing) return true
         if (!!error) return true
 
         // ensure inputTokenAmount is a valid positive number before allowing payment
@@ -541,7 +579,6 @@ export const PaymentForm = ({
         // fallback for Pinta or other cases if not explicitly handled above
         return false
     }, [
-        isProcessing,
         error,
         inputTokenAmount,
         isAddMoneyFlow,
@@ -551,6 +588,7 @@ export const PaymentForm = ({
         isConnected,
         isActivePeanutWallet,
         isPintaReq,
+        isProcessing,
     ])
 
     if (isPintaReq) {
@@ -644,6 +682,7 @@ export const PaymentForm = ({
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
                     currency={currency}
                     hideBalance={isAddMoneyFlow}
+                    balanceText="Balance"
                 />
 
                 {/*

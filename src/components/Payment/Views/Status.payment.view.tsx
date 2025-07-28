@@ -218,13 +218,18 @@ const DirectSuccessView = ({
                     </div>
                 </Card>
 
-                <div className="w-full space-y-5">
+                <div className="w-full space-y-3">
                     {!!authUser?.user.userId ? (
-                        <Button onClick={handleDone} shadowSize="4">
+                        <Button onClick={handleDone} shadowSize="4" className="w-full">
                             Back to home
                         </Button>
                     ) : (
-                        <Button icon="user-plus" onClick={() => router.push('/setup')} shadowSize="4">
+                        <Button
+                            icon="user-plus"
+                            onClick={() => router.push('/setup')}
+                            shadowSize="4"
+                            className="w-full"
+                        >
                             Create Account
                         </Button>
                     )}
@@ -232,12 +237,19 @@ const DirectSuccessView = ({
                         <Button
                             variant="primary-soft"
                             shadowSize="4"
+                            className="w-full"
                             onClick={() => {
-                                if (transactionForDrawer) {
+                                if (chargeDetails?.uuid) {
+                                    // Navigate to the receipt URL with chargeId and force reload
+                                    const newUrl = new URL(window.location.href)
+                                    newUrl.searchParams.set('chargeId', chargeDetails.uuid)
+                                    window.location.href = newUrl.toString()
+                                } else if (transactionForDrawer) {
+                                    // Fallback to drawer if no chargeId
                                     openTransactionDetails(transactionForDrawer)
                                 }
                             }}
-                            disabled={!transactionForDrawer}
+                            disabled={!chargeDetails?.uuid && !transactionForDrawer}
                         >
                             See receipt
                         </Button>
