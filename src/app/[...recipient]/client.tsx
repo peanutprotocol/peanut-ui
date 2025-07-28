@@ -322,7 +322,10 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             return
         }
 
-        dispatch(paymentActions.setView('STATUS'))
+        // show status view only if fulfillment payment is successful
+        if (chargeDetails?.fulfillmentPayment?.status === 'SUCCESSFUL') {
+            dispatch(paymentActions.setView('STATUS'))
+        }
 
         // only open transaction details drawer if not add money flow
         if (!isAddMoneyFlow) {
