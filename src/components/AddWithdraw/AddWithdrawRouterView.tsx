@@ -42,12 +42,17 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 }) => {
     const router = useRouter()
     const { user } = useUserStore()
-    const { setSelectedBankAccount } = useWithdrawFlow()
+    const { setSelectedBankAccount, showAllWithdrawMethods, setShowAllWithdrawMethods } = useWithdrawFlow()
     const onrampFlowContext = useOnrampFlow()
     const { setFromBankSelected } = onrampFlowContext
     const [recentMethodsState, setRecentMethodsState] = useState<RecentMethod[]>([])
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
-    const [showAllMethods, setShowAllMethods] = useState(false)
+    // local flag only for add flow; for withdraw we derive from context
+    const [localShowAllMethods, setLocalShowAllMethods] = useState<boolean>(false)
+
+    // determine if we should show the full list of methods (countries/crypto) instead of the default view
+    const shouldShowAllMethods = flow === 'withdraw' ? showAllWithdrawMethods : localShowAllMethods
+    const setShouldShowAllMethods = flow === 'withdraw' ? setShowAllWithdrawMethods : setLocalShowAllMethods
     const [searchTerm, setSearchTerm] = useState('')
     const [isLoadingPreferences, setIsLoadingPreferences] = useState(true)
 
@@ -61,10 +66,9 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
             if (bankAccounts.length > 0) {
                 setSavedAccounts(bankAccounts as unknown as Account[])
-                setShowAllMethods(false)
+                setShouldShowAllMethods(false)
             } else {
                 setSavedAccounts([])
-                setShowAllMethods(false)
             }
         } else {
             // 'add' flow logic
@@ -72,13 +76,13 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             const currentRecentMethods = prefs?.recentAddMethods ?? []
             if (currentRecentMethods.length > 0) {
                 setRecentMethodsState(currentRecentMethods)
-                setShowAllMethods(false)
+                setShouldShowAllMethods(false)
             } else {
-                setShowAllMethods(true)
+                setShouldShowAllMethods(true)
             }
         }
         setIsLoadingPreferences(false)
-    }, [flow, user])
+    }, [flow, user, setShouldShowAllMethods])
 
     const handleMethodSelected = (method: DepositMethod) => {
         // Handle "From Bank" specially for add flow
@@ -184,7 +188,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         return null
     }
 
-    if (flow === 'withdraw' && savedAccounts.length === 0 && !showAllMethods) {
+    if (flow === 'withdraw' && savedAccounts.length === 0 && !shouldShowAllMethods) {
         return (
             <div className="flex min-h-[inherit] flex-col justify-start gap-8">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
@@ -200,7 +204,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                             </p>
                         </div>
                     </div>
-                    <Button icon="plus" onClick={() => setShowAllMethods(true)} shadowSize="4" className="w-full">
+                    <Button icon="plus" onClick={() => setShouldShowAllMethods(true)} shadowSize="4" className="w-full">
                         Add account
                     </Button>
                 </Card>
@@ -209,7 +213,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     }
 
     // Render saved accounts for withdraw flow if they exist and we're not in 'showAll' mode
-    if (flow === 'withdraw' && !showAllMethods && savedAccounts.length > 0) {
+    if (flow === 'withdraw' && !shouldShowAllMethods && savedAccounts.length > 0) {
         return (
             <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
@@ -225,7 +229,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                         />
                     </div>
                     <Divider textClassname="font-bold text-grey-1" dividerClassname="bg-grey-1" text="or" />
-                    <Button icon="plus" onClick={() => setShowAllMethods(true)} shadowSize="4">
+                    <Button icon="plus" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
                         Select new method
                     </Button>
                 </div>
@@ -234,7 +238,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     }
 
     // Render recent methods for add flow
-    if (flow === 'add' && !showAllMethods && recentMethodsState.length > 0) {
+    if (flow === 'add' && !shouldShowAllMethods && recentMethodsState.length > 0) {
         // Transform recent methods to ensure proper type compatibility
         const recentMethodsWithType = recentMethodsState.map((method) => ({
             ...method,
@@ -253,7 +257,12 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                         isAllMethodsView={false}
                     />
                 </div>
-                <Button icon="plus" className="mb-5 mt-auto" onClick={() => setShowAllMethods(true)} shadowSize="4">
+                <Button
+                    icon="plus"
+                    className="mb-5 mt-auto"
+                    onClick={() => setShouldShowAllMethods(true)}
+                    shadowSize="4"
+                >
                     Select new method
                 </Button>
             </div>
@@ -266,9 +275,8 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             <NavHeader
                 title={pageTitle}
                 onPrev={() => {
-                    const hasRecentOrSaved = flow === 'add' ? recentMethodsState.length > 0 : savedAccounts.length > 0
-                    if (hasRecentOrSaved && showAllMethods) {
-                        setShowAllMethods(false)
+                    if (shouldShowAllMethods) {
+                        setShouldShowAllMethods(false)
                     } else if (onBackClick) {
                         onBackClick()
                     } else {

@@ -17,16 +17,23 @@ type WithdrawStep = 'inputAmount' | 'selectMethod'
 
 export default function WithdrawPage() {
     const router = useRouter()
-    const [step, setStep] = useState<WithdrawStep>('inputAmount')
-    const [rawTokenAmount, setRawTokenAmount] = useState<string>('')
+
     const {
         amountToWithdraw: amountFromContext,
         setAmountToWithdraw,
         setError,
         error,
         resetWithdrawFlow,
-        setWithdrawData,
     } = useWithdrawFlow()
+
+    // choose the first screen: if an amount already exists we jump straight to the method list
+    const initialStep: WithdrawStep =
+        amountFromContext && parseFloat(amountFromContext) > 0 ? 'selectMethod' : 'inputAmount'
+
+    const [step, setStep] = useState<WithdrawStep>(initialStep)
+
+    // initialise the amount input with the value from context (if any)
+    const [rawTokenAmount, setRawTokenAmount] = useState<string>(amountFromContext || '')
 
     const { balance } = useWallet()
 
@@ -40,8 +47,10 @@ export default function WithdrawPage() {
     }, [balance])
 
     useEffect(() => {
-        resetWithdrawFlow()
-    }, [])
+        if (!amountFromContext) {
+            resetWithdrawFlow()
+        }
+    }, [amountFromContext, resetWithdrawFlow])
 
     useEffect(() => {
         if (amountFromContext && parseFloat(amountFromContext) > 0) {
@@ -93,12 +102,6 @@ export default function WithdrawPage() {
         },
         [setRawTokenAmount]
     )
-
-    // Clean state
-    useEffect(() => {
-        setAmountToWithdraw('')
-        setWithdrawData(null)
-    }, [])
 
     useEffect(() => {
         if (rawTokenAmount === '') {
