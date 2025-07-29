@@ -32,6 +32,8 @@ import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
 import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
 import BalanceWarningModal from '@/components/Global/BalanceWarningModal'
+import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
+import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
 import { AccountType } from '@/interfaces'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
@@ -60,6 +62,7 @@ export default function Home() {
     const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
     const [showAddMoneyPromptModal, setShowAddMoneyPromptModal] = useState(false)
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
+    const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
 
     const userFullName = useMemo(() => {
@@ -242,6 +245,16 @@ export default function Home() {
                     saveToLocalStorage('hasSeenBalanceWarning', 'true', BALANCE_WARNING_EXPIRY)
                 }}
             />
+
+            {/* Referral Campaign Modal */}
+            <ReferralCampaignModal
+                visible={showReferralCampaignModal}
+                onClose={() => setShowReferralCampaignModal(false)}
+            />
+
+            {/* Floating Referral Button */}
+            <FloatingReferralButton onClick={() => setShowReferralCampaignModal(true)} />
+
             {/* Post Signup Action Modal */}
             <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
         </PageContainer>
