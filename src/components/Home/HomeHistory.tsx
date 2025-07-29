@@ -150,6 +150,13 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     </div>
                 )}
 
+                {kycStatus !== 'not_started' && (
+                    <div className="space-y-3">
+                        <h2 className="text-base font-bold">Activity</h2>
+                        <KycStatusItem position="single" />
+                    </div>
+                )}
+
                 <h2 className="text-base font-bold">Recent Transactions</h2>
                 <EmptyState
                     icon="txn-off"
