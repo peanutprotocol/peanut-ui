@@ -9,7 +9,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
-import { formatAmount, formatDate, getInitialsFromName, isStableCoin } from '@/utils'
+import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
 import { formatIban } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
@@ -168,10 +168,12 @@ export const TransactionDetailsReceipt = ({
             amountDisplay = `${currencySymbol} ${formatAmount(Number(currencyAmount))}`
         }
     } else {
-        amountDisplay =
-            transaction.currency?.amount && isStableCoin(transaction.tokenSymbol ?? '')
-                ? `$ ${formatAmount(Number(transaction.currency.amount))}`
-                : `$ ${formatAmount(transaction.amount as number)}`
+        // default: use currency amount if provided, otherwise fallback to raw amount - never show token value, only USD
+        if (transaction.currency?.amount) {
+            amountDisplay = `$ ${formatAmount(Number(transaction.currency.amount))}`
+        } else {
+            amountDisplay = `$ ${formatAmount(transaction.amount as number)}`
+        }
     }
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
