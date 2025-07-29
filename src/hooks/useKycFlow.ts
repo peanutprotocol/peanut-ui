@@ -126,20 +126,16 @@ export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
         (source: 'completed' | 'manual' | 'tos_accepted' = 'manual') => {
             const wasShowingTos = iframeOptions.src === apiResponse?.tosLink
 
-            // hide the iframe
-            setIframeOptions({ src: '', visible: false, closeConfirmMessage: undefined })
-
             // if we just closed the tos link after it was accepted, open the kyc link next.
             if (wasShowingTos && source === 'tos_accepted' && apiResponse?.kycLink) {
+                console.log('TOS accepted!!!')
                 const kycUrl = convertPersonaUrl(apiResponse.kycLink)
-                // short delay to allow the iframe to properly close before re-opening
-                setTimeout(() => {
-                    setIframeOptions({
-                        src: kycUrl,
-                        visible: true,
-                        closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
-                    })
-                }, 100)
+
+                setIframeOptions({
+                    src: kycUrl,
+                    visible: true,
+                    closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
+                })
             } else if (source === 'completed') {
                 // if we just closed the kyc link after completion, open the "in progress" modal.
                 setIsVerificationProgressModalOpen(true)
