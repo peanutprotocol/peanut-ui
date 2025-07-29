@@ -1,11 +1,7 @@
 'use client'
 import { Button } from '@/components/0_Bruddle'
 import { DepositMethod, DepositMethodList } from '@/components/AddMoney/components/DepositMethodList'
-import {
-    countryData as ALL_METHODS_DATA,
-    countryCodeMap,
-    UPDATED_DEFAULT_ADD_MONEY_METHODS,
-} from '@/components/AddMoney/consts'
+import { countryData as ALL_METHODS_DATA, countryCodeMap } from '@/components/AddMoney/consts'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchUsers/SearchInput'
@@ -135,19 +131,6 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 type: method.type as 'crypto' | 'country',
             }
         })
-
-        // add default add money/onramp methods (like "from bank") that have special handling
-        if (flow === 'add') {
-            const addMethods = UPDATED_DEFAULT_ADD_MONEY_METHODS.map((method) => ({
-                id: method.id,
-                title: method.title,
-                description: method.description,
-                iconUrl: typeof method.icon === 'string' ? method.icon : undefined,
-                type: 'country' as 'crypto' | 'country',
-                path: '', // No path needed for From Bank, handled specially
-            }))
-            methods = [...addMethods, ...methods]
-        }
 
         return methods
     }, [baseRoute, flow])
