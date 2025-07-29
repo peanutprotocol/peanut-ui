@@ -152,6 +152,27 @@ export default function Home() {
         }
     }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal])
 
+    // effect for showing balance warning modal
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !isFetchingBalance) {
+            const hasSeenBalanceWarning = getFromLocalStorage('hasSeenBalanceWarning')
+            const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
+
+            // show if:
+            // 1. balance is above the threshold
+            // 2. user hasn't seen this warning in the current session
+            // 3. no other modals are currently active
+            if (
+                balanceInUsd > BALANCE_WARNING_THRESHOLD &&
+                !hasSeenBalanceWarning &&
+                !showIOSPWAInstallModal &&
+                !showAddMoneyPromptModal
+            ) {
+                setShowBalanceWarningModal(true)
+            }
+        }
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal])
+
     // effect for showing add money prompt modal
     useEffect(() => {
         if (typeof window !== 'undefined' && !isFetchingBalance) {
