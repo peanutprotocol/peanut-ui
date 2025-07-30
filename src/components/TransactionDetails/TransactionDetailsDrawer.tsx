@@ -89,7 +89,7 @@ const getBankAccountLabel = (type: string) => {
         case 'clabe':
             return 'CLABE'
         default:
-            return 'Account number'
+            return 'Account Number'
     }
 }
 
@@ -112,7 +112,7 @@ export const TransactionDetailsReceipt = ({
 
     const isGuestBankClaim = useMemo(() => {
         if (!transaction) return false
-        return transaction.extraDataForDrawer?.originalType === EHistoryEntryType.GUEST_BANK_CLAIM
+        return transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_GUEST_OFFRAMP
     }, [transaction])
 
     const isPendingRequestee = useMemo(() => {
@@ -324,14 +324,14 @@ export const TransactionDetailsReceipt = ({
                             </>
                         )}
 
-                    {transaction.bankAccountDetails && (
+                    {transaction.bankAccountDetails && transaction.bankAccountDetails.identifier && (
                         <PaymentInfoRow
                             label={getBankAccountLabel(transaction.bankAccountDetails.type)}
                             value={
                                 <div className="flex items-center gap-2">
                                     <span>
                                         {isGuestBankClaim
-                                            ? `****${transaction.bankAccountDetails.identifier.slice(-4)}`
+                                            ? transaction.bankAccountDetails.identifier
                                             : formatIban(transaction.bankAccountDetails.identifier)}
                                     </span>
                                     {!isGuestBankClaim && (
@@ -342,11 +342,22 @@ export const TransactionDetailsReceipt = ({
                                     )}
                                 </div>
                             }
-                            hideBottomBorder={!transaction.status && !transaction.memo && !transaction.attachmentUrl}
+                            hideBottomBorder={
+                                !(
+                                    transaction.id &&
+                                    (transaction.direction === 'bank_withdraw' ||
+                                        transaction.direction === 'bank_claim')
+                                ) &&
+                                !(transaction.direction === 'bank_deposit' && transaction.status === 'pending') &&
+                                !transaction.memo &&
+                                !transaction.attachmentUrl &&
+                                !transaction.networkFeeDetails &&
+                                transaction.status === 'pending'
+                            }
                         />
                     )}
                     {transaction.id &&
-                        (transaction.direction === 'bank_withdraw' || transaction.direction === 'guest_bank_claim') && (
+                        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') && (
                             <PaymentInfoRow
                                 label="Transfer ID"
                                 value={
@@ -356,7 +367,11 @@ export const TransactionDetailsReceipt = ({
                                     </div>
                                 }
                                 hideBottomBorder={
-                                    !transaction.status && !transaction.memo && !transaction.attachmentUrl
+                                    !transaction.status ||
+                                    (!transaction.memo &&
+                                        !transaction.attachmentUrl &&
+                                        !transaction.networkFeeDetails &&
+                                        transaction.status === 'pending')
                                 }
                             />
                         )}
