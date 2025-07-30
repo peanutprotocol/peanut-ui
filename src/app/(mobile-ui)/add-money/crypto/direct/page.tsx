@@ -2,7 +2,8 @@
 
 import PaymentPage from '@/app/[...recipient]/client'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { useUserStore } from '@/redux/hooks'
+import { useAppDispatch, useUserStore } from '@/redux/hooks'
+import { paymentActions } from '@/redux/slices/payment-slice'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -12,6 +13,11 @@ export default function AddMoneyCryptoDirectPage() {
     const { user } = useUserStore()
     const [recipientUsername, setRecipientUsername] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const dispatch = useAppDispatch()
+
+    useEffect(() => {
+        dispatch(paymentActions.resetPaymentState())
+    }, [dispatch])
 
     useEffect(() => {
         if (user?.user.username) {
@@ -21,7 +27,7 @@ export default function AddMoneyCryptoDirectPage() {
             return
         }
         setIsLoading(false)
-    }, [searchParams, router])
+    }, [searchParams, router, user])
 
     if (isLoading) {
         return <PeanutLoading />

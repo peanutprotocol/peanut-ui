@@ -1,6 +1,5 @@
 'use server'
 
-import { cookies } from 'next/headers'
 import { fetchWithSentry } from '@/utils'
 import { AccountType } from '@/interfaces'
 
@@ -34,13 +33,6 @@ export async function getExchangeRate(
     }
 
     try {
-        const cookieStore = await cookies()
-        const jwtToken = cookieStore.get('jwt-token')?.value
-
-        if (!jwtToken) {
-            return { error: 'Authentication token not found.' }
-        }
-
         const url = new URL(`${apiUrl}/bridge/exchange-rate`)
         url.searchParams.append('accountType', accountType)
 
@@ -48,7 +40,6 @@ export async function getExchangeRate(
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
                 'api-key': API_KEY,
             },
         })

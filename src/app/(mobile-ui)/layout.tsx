@@ -1,6 +1,9 @@
 'use client'
 
+import { MarqueeWrapper } from '@/components/Global/MarqueeWrapper'
 import { useRouter } from 'next/navigation'
+import { HandThumbsUp } from '@/assets'
+import Image from 'next/image'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TopNavbar from '@/components/Global/TopNavbar'
@@ -17,9 +20,6 @@ import PullToRefresh from 'pulltorefreshjs'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
-import { MarqueeWrapper } from '@/components/Global/MarqueeWrapper'
-import Image from 'next/image'
-import { HandThumbsUp } from '@/assets'
 
 const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$)/
 
@@ -114,7 +114,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             </MarqueeWrapper>
                         </button>
                     )}
-
                     {/* Fixed top navbar */}
                     {showFullPeanutWallet && (
                         <div className="sticky top-0 z-10 w-full">

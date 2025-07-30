@@ -11,11 +11,12 @@ import { Icon, IconName } from '../Icons/Icon'
 import RouteExpiryTimer from '../RouteExpiryTimer'
 import Image from 'next/image'
 
-interface PeanutActionDetailsCardProps {
+export interface PeanutActionDetailsCardProps {
     transactionType:
         | 'REQUEST'
         | 'RECEIVED_LINK'
         | 'CLAIM_LINK'
+        | 'CLAIM_LINK_BANK_ACCOUNT'
         | 'REQUEST_PAYMENT'
         | 'ADD_MONEY'
         | 'WITHDRAW'
@@ -71,7 +72,7 @@ export default function PeanutActionDetailsCard({
 
     const getIcon = (): IconName | undefined => {
         if (transactionType === 'REQUEST_PAYMENT') return 'arrow-up-right'
-        if (transactionType === 'ADD_MONEY') return 'arrow-down'
+        if (transactionType === 'ADD_MONEY' || transactionType === 'CLAIM_LINK_BANK_ACCOUNT') return 'arrow-down'
         if (transactionType === 'REQUEST' || transactionType === 'RECEIVED_LINK') return 'arrow-down-left'
         if (transactionType === 'CLAIM_LINK') return viewType !== 'SUCCESS' ? 'arrow-down' : undefined
         if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT') return 'arrow-up'
@@ -89,6 +90,13 @@ export default function PeanutActionDetailsCard({
         }
         if (transactionType === 'ADD_MONEY') title = `You're adding`
         if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT') title = `You're withdrawing`
+        if (transactionType === 'CLAIM_LINK_BANK_ACCOUNT') {
+            if (viewType === 'SUCCESS') {
+                title = 'You will receive'
+            } else {
+                title = `You're about to receive`
+            }
+        }
         return (
             <h1 className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap text-base font-normal text-grey-1">
                 {icon && <Icon name={icon} size={10} className="min-w-fit" />} {title}
@@ -98,11 +106,16 @@ export default function PeanutActionDetailsCard({
 
     const getAvatarIcon = useCallback((): IconName | undefined => {
         if (viewType === 'SUCCESS') return 'check'
-        if (transactionType === 'WITHDRAW_BANK_ACCOUNT' || transactionType === 'ADD_MONEY_BANK_ACCOUNT') return 'bank'
+        if (
+            transactionType === 'WITHDRAW_BANK_ACCOUNT' ||
+            transactionType === 'ADD_MONEY_BANK_ACCOUNT' ||
+            transactionType === 'CLAIM_LINK_BANK_ACCOUNT'
+        )
+            return 'bank'
         if (recipientType !== 'USERNAME' || transactionType === 'ADD_MONEY' || transactionType === 'WITHDRAW')
             return 'wallet-outline'
         return undefined
-    }, [])
+    }, [viewType, transactionType, recipientType])
 
     const getAvatarBackgroundColor = (): string => {
         if (viewType === 'SUCCESS') return '#29CC6A'
@@ -111,7 +124,8 @@ export default function PeanutActionDetailsCard({
             (transactionType === 'WITHDRAW' && recipientType === 'USERNAME') ||
             recipientType === 'ADDRESS' ||
             recipientType === 'ENS' ||
-            transactionType === 'WITHDRAW_BANK_ACCOUNT'
+            transactionType === 'WITHDRAW_BANK_ACCOUNT' ||
+            transactionType === 'CLAIM_LINK_BANK_ACCOUNT'
         )
             return '#FFC900'
         return getColorForUsername(recipientName).lightShade
@@ -124,7 +138,8 @@ export default function PeanutActionDetailsCard({
             (transactionType === 'WITHDRAW' && recipientType === 'USERNAME') ||
             recipientType === 'ADDRESS' ||
             recipientType === 'ENS' ||
-            transactionType === 'WITHDRAW_BANK_ACCOUNT'
+            transactionType === 'WITHDRAW_BANK_ACCOUNT' ||
+            transactionType === 'CLAIM_LINK_BANK_ACCOUNT'
         ) {
             return AVATAR_TEXT_DARK
         }
@@ -133,9 +148,10 @@ export default function PeanutActionDetailsCard({
 
     const isWithdrawBankAccount = transactionType === 'WITHDRAW_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
     const isAddBankAccount = transactionType === 'ADD_MONEY_BANK_ACCOUNT'
+    const isClaimLinkBankAccount = transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
 
     const withdrawBankIcon = () => {
-        if (isWithdrawBankAccount || isAddBankAccount)
+        if (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount)
             return (
                 <div className="relative mr-1 h-12 w-12">
                     {countryCodeForFlag && (
@@ -159,7 +175,7 @@ export default function PeanutActionDetailsCard({
         <Card className={twMerge('p-4', className)}>
             <div className="flex items-center gap-3">
                 <div className="flex items-center gap-3">
-                    {isWithdrawBankAccount || isAddBankAccount ? (
+                    {viewType !== 'SUCCESS' && (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount) ? (
                         withdrawBankIcon()
                     ) : (
                         <AvatarWithBadge
@@ -179,14 +195,22 @@ export default function PeanutActionDetailsCard({
                     <h2 className="text-2xl font-extrabold">
                         {transactionType === 'ADD_MONEY' && currencySymbol
                             ? `${currencySymbol} `
-                            : tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
+                            : tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() ||
+                                (transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && viewType === 'SUCCESS')
                               ? '$ '
                               : ''}
                         {amount}
 
                         {tokenSymbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() &&
                             transactionType !== 'ADD_MONEY' &&
-                            ` ${tokenSymbol.toLowerCase() === 'pnt' ? (Number(amount) === 1 ? 'Beer' : 'Beers') : tokenSymbol}`}
+                            !(transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && viewType === 'SUCCESS') &&
+                            ` ${
+                                tokenSymbol.toLowerCase() === 'pnt'
+                                    ? Number(amount) === 1
+                                        ? 'Beer'
+                                        : 'Beers'
+                                    : tokenSymbol
+                            }`}
                     </h2>
 
                     <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />

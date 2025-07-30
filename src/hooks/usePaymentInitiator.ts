@@ -501,6 +501,7 @@ export const usePaymentInitiator = () => {
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 hash: receipt.transactionHash,
                 tokenAddress: PEANUT_WALLET_TOKEN,
+                payerAddress: peanutWalletAddress ?? '',
             })
             console.log('Backend payment creation response:', payment)
 
@@ -608,6 +609,7 @@ export const usePaymentInitiator = () => {
                 chainId: sourceChainId.toString(),
                 hash: txHash,
                 tokenAddress: selectedTokenData?.address || chargeDetails.tokenAddress,
+                payerAddress: wagmiAddress ?? '',
             })
             console.log('Backend payment creation response:', payment)
 

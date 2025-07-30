@@ -158,6 +158,13 @@ export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
         isSoon: false,
     },
     {
+        id: 'crypto-add',
+        icon: 'wallet-outline' as IconName,
+        title: 'From Crypto',
+        description: 'Usually arrives instantly',
+        isSoon: false,
+    },
+    {
         id: 'mercado-pago-add',
         icon: MERCADO_PAGO,
         title: 'Mercado Pago',
@@ -187,6 +194,24 @@ export const DEFAULT_BANK_WITHDRAW_METHOD: SpecificPaymentMethod = {
     description: 'Standard bank withdrawal',
     isSoon: false,
 }
+
+export const DEFAULT_WITHDRAW_METHODS: SpecificPaymentMethod[] = [
+    {
+        id: 'crypto-withdraw',
+        icon: 'wallet-outline' as IconName,
+        title: 'Crypto',
+        description: 'Withdraw to a wallet address',
+        isSoon: false,
+        path: '/withdraw/crypto',
+    },
+    {
+        id: 'default-bank-withdraw',
+        icon: 'bank' as IconName,
+        title: 'To Bank',
+        description: 'Standard bank withdrawal',
+        isSoon: false,
+    },
+]
 
 const countrySpecificWithdrawMethods: Record<
     string,
@@ -2061,6 +2086,14 @@ countryData.forEach((country) => {
             })
         }
 
+        const cryptoWithdrawMethod = DEFAULT_WITHDRAW_METHODS.find((m) => m.id === 'crypto-withdraw')
+        if (cryptoWithdrawMethod) {
+            const cryptoExists = withdrawList.some((m) => m.id === 'crypto-withdraw')
+            if (!cryptoExists) {
+                withdrawList.unshift(cryptoWithdrawMethod)
+            }
+        }
+
         // filter add methods: include Mercado Pago only for LATAM countries
         const currentAddMethods = UPDATED_DEFAULT_ADD_MONEY_METHODS.filter((method) => {
             if (method.id === 'mercado-pago-add') {
@@ -2072,6 +2105,9 @@ countryData.forEach((country) => {
             if (newMethod.id === 'bank-transfer-add') {
                 newMethod.path = `/add-money/${country.path}/bank`
                 newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode) || countryCode === 'MX'
+            } else if (newMethod.id === 'crypto-add') {
+                newMethod.path = `/add-money/crypto`
+                newMethod.isSoon = false
             } else {
                 newMethod.isSoon = true
             }

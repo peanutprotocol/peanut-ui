@@ -6,6 +6,7 @@ import { LoadingStateContextProvider } from './loadingStates.context'
 import { PushProvider } from './pushProvider'
 import { TokenContextProvider } from './tokenSelector.context'
 import { WithdrawFlowContextProvider } from './WithdrawFlowContext'
+import { GuestFlowContextProvider } from './GuestFlowContext'
 
 export const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return (
@@ -15,9 +16,11 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
                     <KernelClientProvider>
                         <TokenContextProvider>
                             <LoadingStateContextProvider>
-                                <WithdrawFlowContextProvider>
-                                    <OnrampFlowContextProvider>{children}</OnrampFlowContextProvider>
-                                </WithdrawFlowContextProvider>
+                                <GuestFlowContextProvider>
+                                    <WithdrawFlowContextProvider>
+                                        <OnrampFlowContextProvider>{children}</OnrampFlowContextProvider>
+                                    </WithdrawFlowContextProvider>
+                                </GuestFlowContextProvider>
                             </LoadingStateContextProvider>
                         </TokenContextProvider>
                     </KernelClientProvider>

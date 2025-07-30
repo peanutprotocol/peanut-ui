@@ -99,24 +99,26 @@ export default function ConfirmPaymentView({
 
     const networkFee = useMemo<string | React.ReactNode>(() => {
         if (isFeeEstimationError) return '-'
-        if (!estimatedGasCostUsd) {
+        if (estimatedGasCostUsd === undefined) {
             return isUsingExternalWallet ? '-' : 'Sponsored by Peanut!'
         }
 
+        // external wallet flows
         if (isUsingExternalWallet) {
             return estimatedGasCostUsd < 0.01 ? '$ <0.01' : `$ ${estimatedGasCostUsd.toFixed(2)}`
         }
 
+        // peanut-sponsored transactions
         if (estimatedGasCostUsd < 0.01) return 'Sponsored by Peanut!'
 
         return (
             <>
                 <span className="line-through">$ {estimatedGasCostUsd.toFixed(2)}</span>
-                {' – '}
+                {' - '}
                 <span className="font-medium text-gray-500">Sponsored by Peanut!</span>
             </>
         )
-    }, [estimatedGasCostUsd, isFeeEstimationError])
+    }, [estimatedGasCostUsd, isFeeEstimationError, isUsingExternalWallet])
 
     const {
         tokenIconUrl: sendingTokenIconUrl,
@@ -318,7 +320,7 @@ export default function ConfirmPaymentView({
 
     const getButtonText = useCallback(() => {
         if (isProcessing) {
-            if (isAddMoneyFlow) return 'Adding money'
+            if (isAddMoneyFlow) return 'Add Money'
             return loadingStep === 'Idle' ? 'Send' : 'Sending'
         }
         if (isAddMoneyFlow) return 'Add Money'
@@ -404,10 +406,12 @@ export default function ConfirmPaymentView({
     }
 
     const minReceived = useMemo<string | null>(() => {
-        if (!xChainRoute || !chargeDetails?.tokenDecimals || !requestedResolvedTokenSymbol) return null
-        const amount = formatUnits(
-            BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin),
-            chargeDetails.tokenDecimals
+        if (!chargeDetails?.tokenDecimals || !requestedResolvedTokenSymbol) return null
+        if (!xChainRoute) {
+            return `$ ${chargeDetails?.tokenAmount}`
+        }
+        const amount = formatAmount(
+            formatUnits(BigInt(xChainRoute.rawResponse.route.estimate.toAmountMin), chargeDetails.tokenDecimals)
         )
         return isStableCoin(requestedResolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${requestedResolvedTokenSymbol}`
     }, [xChainRoute, chargeDetails?.tokenDecimals, requestedResolvedTokenSymbol])
@@ -441,13 +445,12 @@ export default function ConfirmPaymentView({
                 )}
 
                 <Card className="rounded-sm">
-                    {minReceived && (
-                        <PaymentInfoRow
-                            label="Min Received"
-                            value={minReceived}
-                            moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
-                        />
-                    )}
+                    <PaymentInfoRow
+                        label="Min Received"
+                        loading={!minReceived || isCalculatingFees || isPreparingTx || isEstimatingGas}
+                        value={minReceived ?? '-'}
+                        moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
+                    />
                     {isCrossChainPayment && !isAddMoneyFlow && (
                         <PaymentInfoRow
                             label="Requested"
@@ -489,13 +492,12 @@ export default function ConfirmPaymentView({
                             }
                         />
                     )}
-                    {/* note: @dev temp hide gas fee, estimation is way off */}
-                    {/* 
+
                     <PaymentInfoRow
                         loading={isCalculatingFees || isEstimatingGas || isPreparingTx}
                         label={'Network fee'}
                         value={networkFee}
-                    /> */}
+                    />
 
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ 0.00`} />
                 </Card>

@@ -106,7 +106,6 @@ const MOBULA_API_KEY = process.env.MOBULA_API_KEY!
 export const fetchTokenPrice = unstable_cache(
     async (tokenAddress: string, chainId: string): Promise<ITokenPriceData | undefined> => {
         try {
-
             tokenAddress = isAddressZero(tokenAddress) ? '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' : tokenAddress
 
             const mobulaResponse = await fetchWithSentry(
