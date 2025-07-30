@@ -10,7 +10,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName, isStableCoin } from '@/utils'
-import { formatIban } from '@/utils/general.utils'
+import { formatIban, shortenAddress } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -362,7 +362,7 @@ export const TransactionDetailsReceipt = ({
                                 label="Transfer ID"
                                 value={
                                     <div className="flex items-center gap-2">
-                                        <span>{transaction.id.toUpperCase()}</span>
+                                        <span>{shortenAddress(transaction.id.toUpperCase(), 20)}</span>
                                         <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
                                     </div>
                                 }

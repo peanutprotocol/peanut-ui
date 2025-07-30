@@ -40,11 +40,12 @@ export const colorMap = {
     yellow: '#FFC900',
 }
 
-export const shortenAddress = (address?: string) => {
+export const shortenAddress = (address?: string, chars?: number) => {
     if (!address) return ''
-    const firstBit = address.substring(0, 6)
+    if (!chars) chars = 6
+    const firstBit = address.substring(0, chars)
 
-    return firstBit + '..'
+    return firstBit + '...'
 }
 
 export const shortenAddressLong = (address?: string, chars?: number): string => {
