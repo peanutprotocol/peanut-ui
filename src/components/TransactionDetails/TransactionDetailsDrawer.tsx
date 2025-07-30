@@ -31,7 +31,7 @@ interface TransactionDetailsDrawerProps {
     onClose: () => void
     /** the transaction data to display, or null if none selected. */
     transaction: TransactionDetails | null
-    transactionAmount: string // dollarized amount of the transaction
+    transactionAmount?: string // dollarized amount of the transaction
 }
 
 /**
