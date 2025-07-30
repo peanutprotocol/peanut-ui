@@ -282,6 +282,27 @@ module.exports = {
                         fontWeight: '800',
                     },
                 ],
+                headingLarge: [
+                    '7rem',
+                    {
+                        lineHeight: '6.5rem',
+                    },
+                ],
+                headingMedium: [
+                    '5rem',
+                    {
+                        lineHeight: '4rem',
+                    },
+                ],
+                heading: [
+                    '3.75rem',
+                    {
+                        lineHeight: '2.875rem',
+                    },
+                ],
+            },
+            fontWeight: {
+                extraBlack: 1000,
             },
         },
     },

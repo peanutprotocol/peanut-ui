@@ -12,13 +12,13 @@ import {
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
-import * as consts from '@/constants'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
     PINTA_WALLET_CHAIN,
     PINTA_WALLET_TOKEN,
     ROUTE_NOT_FOUND_ERROR,
+    SQUID_API_URL,
 } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
@@ -380,7 +380,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     const isReward = useMemo(() => {
         if (!claimLinkData.tokenAddress) return false
-        return areEvmAddressesEqual(claimLinkData.tokenAddress, consts.PINTA_WALLET_TOKEN)
+        return areEvmAddressesEqual(claimLinkData.tokenAddress, PINTA_WALLET_TOKEN)
     }, [claimLinkData.tokenAddress])
 
     const fetchRoute = useCallback(
@@ -410,7 +410,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         : claimLinkData.tokenAddress.toLowerCase()
 
                 const route = await getSquidRouteRaw({
-                    squidRouterUrl: `${consts.SQUID_API_URL}/route`,
+                    squidRouterUrl: `${SQUID_API_URL}/v2/route`,
                     fromChain: claimLinkData.chainId.toString(),
                     fromToken: fromToken,
                     fromAmount: tokenAmount.toString(),
@@ -548,18 +548,26 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     ])
 
     const getButtonText = () => {
-        if (isPeanutWallet && !isPeanutChain) {
-            return 'Review'
+        if (isPeanutWallet) {
+            return (
+                <div className="flex items-center gap-1">
+                    <div>Receive on </div>
+                    <div className="flex items-center gap-1">
+                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                    </div>
+                </div>
+            )
         }
-        if ((selectedRoute || (isXChain && hasFetchedRoute)) && !isPeanutChain) {
+        if (selectedRoute || (isXChain && hasFetchedRoute)) {
             return 'Review'
         }
 
-        if (isLoading) {
-            return 'Claiming'
+        if (isLoading && !inputChanging) {
+            return 'Receiving'
         }
 
-        return 'Receive'
+        return 'Receive now'
     }
 
     const handleClaimAction = () => {
@@ -611,7 +619,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     <NavHeader
                         title="Receive"
                         onPrev={() => {
-                            if (showGuestActionsList) {
+                            if (claimToExternalWallet) {
+                                setClaimToExternalWallet(false)
+                            } else if (showGuestActionsList) {
                                 resetGuestFlow()
                             } else {
                                 router.push('/home')
@@ -727,7 +737,19 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 iconContainerClassName="bg-yellow-400"
                 footer={
                     <div className="w-full">
-                        <Slider onValueChange={(v) => v && handleClaimLink(true)} />
+                        <Slider
+                            onValueChange={(v) => {
+                                if (!v) return
+                                // for cross-chain claims, advance to the confirm screen first
+                                if (isXChain) {
+                                    setShowConfirmationModal(false)
+                                    onNext()
+                                } else {
+                                    // direct on-chain claim – initiate immediately
+                                    handleClaimLink(true)
+                                }
+                            }}
+                        />
                     </div>
                 }
                 preventClose={false}

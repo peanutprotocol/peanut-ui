@@ -1,16 +1,17 @@
 import { Button } from '@/components/0_Bruddle'
-import { useAuth } from '@/context/authContext'
-import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useZeroDev } from '@/hooks/useZeroDev'
-import { WalletProviderType } from '@/interfaces'
-import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { getFromLocalStorage } from '@/utils'
-import * as Sentry from '@sentry/nextjs'
-import { useRouter } from 'next/navigation'
+import { useAppDispatch, useSetupStore } from '@/redux/hooks'
+import { useZeroDev } from '@/hooks/useZeroDev'
+import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useAuth } from '@/context/authContext'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import * as Sentry from '@sentry/nextjs'
+import { WalletProviderType } from '@/interfaces'
 import { WebAuthnError } from '@simplewebauthn/browser'
 import Link from 'next/link'
+import { getFromLocalStorage } from '@/utils'
+import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
 
 const SetupPasskey = () => {
     const dispatch = useAppDispatch()
@@ -30,11 +31,18 @@ const SetupPasskey = () => {
                 userId: user?.user.userId as string,
             })
                 .then(() => {
-                    // if redirect is set, redirect to the redirect url and clear
                     const localStorageRedirect = getFromLocalStorage('redirect')
+                    // redirect based on post signup action config
                     if (localStorageRedirect) {
-                        localStorage.removeItem('redirect')
-                        router.push(localStorageRedirect)
+                        const matchedAction = POST_SIGNUP_ACTIONS.find((action) =>
+                            action.pathPattern.test(localStorageRedirect)
+                        )
+                        if (matchedAction) {
+                            router.push('/home')
+                        } else {
+                            localStorage.removeItem('redirect')
+                            router.push(localStorageRedirect)
+                        }
                     } else {
                         router.push('/home')
                     }
