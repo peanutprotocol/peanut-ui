@@ -247,7 +247,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         }))
 
         return (
-            <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+            <div className="flex min-h-[inherit] flex-col justify-normal gap-6">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <div className="flex h-full flex-col justify-center space-y-2">
                     <h2 className="text-base font-bold">Recent methods</h2>
@@ -256,6 +256,12 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                         onItemClick={handleMethodSelected}
                         isAllMethodsView={false}
                     />
+                </div>
+
+                <div className="flex items-center gap-1">
+                    <div className="h-[1px] w-full bg-grey-1"></div>
+                    <span className="text-xs font-bold text-grey-1 lg:text-sm">or</span>
+                    <div className="h-[1px] w-full bg-grey-1"></div>
                 </div>
                 <Button
                     icon="plus"

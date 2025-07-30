@@ -1,4 +1,3 @@
-import React from 'react'
 import Image from 'next/image'
 import scribble from '@/assets/scribble.svg'
 import { Button } from '../0_Bruddle'

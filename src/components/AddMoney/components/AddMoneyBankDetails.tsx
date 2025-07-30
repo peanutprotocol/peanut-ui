@@ -42,7 +42,7 @@ export default function AddMoneyBankDetails() {
 
     const countryCodeForFlag = useMemo(() => {
         const countryId = currentCountryDetails?.id || 'USA'
-        const countryCode = countryCodeMap[countryId]
+        const countryCode = countryCodeMap[countryId] || countryId // if countryId is not in countryCodeMap, use countryId because for some countries countryId is of 2 digit and countryCodeMap is a mapping of 3 digit to 2 digit country codes
         return countryCode?.toLowerCase() || 'us'
     }, [currentCountryDetails])
 
