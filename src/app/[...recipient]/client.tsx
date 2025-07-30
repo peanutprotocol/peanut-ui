@@ -326,10 +326,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         if (chargeDetails?.fulfillmentPayment?.status === 'SUCCESSFUL') {
             dispatch(paymentActions.setView('STATUS'))
         }
-        // if charge is created but no payment, show confirm view
-        else if (chargeDetails?.payments.length === 0 && isAddMoneyFlow) {
-            dispatch(paymentActions.setView('CONFIRM'))
-        }
 
         // only open transaction details drawer if not add money flow
         if (!isAddMoneyFlow) {
@@ -390,7 +386,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             </div>
         )
     }
-
     // default payment flow
     return (
         <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-center')}>
