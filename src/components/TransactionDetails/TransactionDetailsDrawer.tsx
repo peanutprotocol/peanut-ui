@@ -31,13 +31,19 @@ interface TransactionDetailsDrawerProps {
     onClose: () => void
     /** the transaction data to display, or null if none selected. */
     transaction: TransactionDetails | null
+    transactionAmount: string // dollarized amount of the transaction
 }
 
 /**
  * a bottom drawer component that displays detailed information about a specific transaction.
  * includes header, details card, and conditional qr/sharing options for pending transactions.
  */
-export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> = ({ isOpen, onClose, transaction }) => {
+export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> = ({
+    isOpen,
+    onClose,
+    transaction,
+    transactionAmount,
+}) => {
     // ref for the main content area to calculate dynamic height
     const contentRef = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -77,6 +83,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                 onClose={handleClose}
                 setIsLoading={setIsLoading}
                 contentRef={contentRef}
+                transactionAmount={transactionAmount}
             />
         </BottomDrawer>
     )
@@ -98,11 +105,13 @@ export const TransactionDetailsReceipt = ({
     onClose,
     setIsLoading,
     contentRef,
+    transactionAmount,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
     setIsLoading?: (isLoading: boolean) => void
     contentRef?: React.RefObject<HTMLDivElement>
+    transactionAmount?: string // dollarized amount of the transaction
 }) => {
     // ref for the main content area to calculate dynamic height
     const { user } = useUserStore()
@@ -149,7 +158,9 @@ export const TransactionDetailsReceipt = ({
     // format data for display
     let amountDisplay = ''
 
-    if (transaction.extraDataForDrawer?.rewardData) {
+    if (transactionAmount) {
+        amountDisplay = transactionAmount.replace(/[+-]/g, '').replace(/\$/, '$ ')
+    } else if (transaction.extraDataForDrawer?.rewardData) {
         amountDisplay = transaction.extraDataForDrawer.rewardData.formatAmount(transaction.amount)
     } else if (
         transaction.direction === 'bank_deposit' &&
