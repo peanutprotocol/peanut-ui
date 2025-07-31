@@ -141,6 +141,10 @@ export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
             } else if (source === 'manual' && flow === 'add') {
                 router.push('/add-money')
             }
+            // if user is in withdraw flow, and they close on the ToS acceptance page
+            else {
+                router.push('/withdraw')
+            }
         },
         [iframeOptions.src, apiResponse, flow, router]
     )
