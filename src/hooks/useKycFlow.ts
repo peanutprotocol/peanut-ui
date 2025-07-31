@@ -143,7 +143,7 @@ export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
             }
             // if user is in withdraw flow, and they close on the ToS acceptance page
             else {
-                router.push('/withdraw')
+                setIframeOptions((prev) => ({ ...prev, visible: false }))
             }
         },
         [iframeOptions.src, apiResponse, flow, router]
