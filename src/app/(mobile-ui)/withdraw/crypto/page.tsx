@@ -345,7 +345,7 @@ export default function WithdrawCryptoPage() {
                         type="SEND"
                         amount={amountToWithdraw}
                         isWithdrawFlow={true}
-                        redirectTo="/withdraw"
+                        redirectTo="/home"
                         message={
                             <AddressLink
                                 className="text-sm font-normal text-grey-1 no-underline"
