@@ -10,7 +10,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
-import { formatIban } from '@/utils/general.utils'
+import { formatIban, shortenAddress } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -96,7 +96,7 @@ const getBankAccountLabel = (type: string) => {
         case 'clabe':
             return 'CLABE'
         default:
-            return 'Account number'
+            return 'Account Number'
     }
 }
 
@@ -118,6 +118,11 @@ export const TransactionDetailsReceipt = ({
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const [showBankDetails, setShowBankDetails] = useState(false)
+
+    const isGuestBankClaim = useMemo(() => {
+        if (!transaction) return false
+        return transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_GUEST_OFFRAMP
+    }, [transaction])
 
     const isPendingRequestee = useMemo(() => {
         if (!transaction) return false
@@ -332,33 +337,57 @@ export const TransactionDetailsReceipt = ({
                             </>
                         )}
 
-                    {transaction.bankAccountDetails && (
+                    {transaction.bankAccountDetails && transaction.bankAccountDetails.identifier && (
                         <PaymentInfoRow
                             label={getBankAccountLabel(transaction.bankAccountDetails.type)}
                             value={
                                 <div className="flex items-center gap-2">
-                                    <span>{formatIban(transaction.bankAccountDetails.identifier)}</span>
-                                    <CopyToClipboard
-                                        textToCopy={formatIban(transaction.bankAccountDetails.identifier)}
-                                        iconSize="4"
-                                    />
+                                    <span>
+                                        {isGuestBankClaim
+                                            ? transaction.bankAccountDetails.identifier
+                                            : formatIban(transaction.bankAccountDetails.identifier)}
+                                    </span>
+                                    {!isGuestBankClaim && (
+                                        <CopyToClipboard
+                                            textToCopy={formatIban(transaction.bankAccountDetails.identifier)}
+                                            iconSize="4"
+                                        />
+                                    )}
                                 </div>
                             }
-                            hideBottomBorder={!transaction.status && !transaction.memo && !transaction.attachmentUrl}
-                        />
-                    )}
-                    {transaction.id && transaction.direction === 'bank_withdraw' && (
-                        <PaymentInfoRow
-                            label="Transfer ID"
-                            value={
-                                <div className="flex items-center gap-2">
-                                    <span>{transaction.id.toUpperCase()}</span>
-                                    <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
-                                </div>
+                            hideBottomBorder={
+                                !(
+                                    transaction.id &&
+                                    (transaction.direction === 'bank_withdraw' ||
+                                        transaction.direction === 'bank_claim')
+                                ) &&
+                                !(transaction.direction === 'bank_deposit' && transaction.status === 'pending') &&
+                                !transaction.memo &&
+                                !transaction.attachmentUrl &&
+                                !transaction.networkFeeDetails &&
+                                transaction.status === 'pending'
                             }
-                            hideBottomBorder={!transaction.status && !transaction.memo && !transaction.attachmentUrl}
                         />
                     )}
+                    {transaction.id &&
+                        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') && (
+                            <PaymentInfoRow
+                                label="Transfer ID"
+                                value={
+                                    <div className="flex items-center gap-2">
+                                        <span>{shortenAddress(transaction.id.toUpperCase(), 20)}</span>
+                                        <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
+                                    </div>
+                                }
+                                hideBottomBorder={
+                                    !transaction.status ||
+                                    (!transaction.memo &&
+                                        !transaction.attachmentUrl &&
+                                        !transaction.networkFeeDetails &&
+                                        transaction.status === 'pending')
+                                }
+                            />
+                        )}
 
                     {/* Onramp deposit instructions for bridge_onramp transactions */}
                     {transaction.direction === 'bank_deposit' &&
