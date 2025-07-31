@@ -403,7 +403,7 @@ export const PaymentForm = ({
             currency,
             currencyAmount,
             isAddMoneyFlow: !!isAddMoneyFlow,
-            transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectUsdPayment ? 'DIRECT_SEND' : 'REQUEST',
+            transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectUsdPayment || !requestId ? 'DIRECT_SEND' : 'REQUEST',
             attachmentOptions: attachmentOptions,
         }
 
