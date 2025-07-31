@@ -61,7 +61,7 @@ export const Claim = ({}) => {
     const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
     const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useWallet()
-    const { user } = useAuth()
+    const { user, isFetchingUser } = useAuth()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
 
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
@@ -197,10 +197,13 @@ export const Claim = ({}) => {
                 }
                 if (0 < price) setTokenPrice(price)
 
-                if (user && user.user.userId === sendLink.sender?.userId) {
-                    setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
-                } else {
-                    setLinkState(_consts.claimLinkStateType.CLAIM)
+                // perform user related checks only after user is fetched
+                if (!isFetchingUser) {
+                    if (user && user.user.userId === sendLink.sender?.userId) {
+                        setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
+                    } else {
+                        setLinkState(_consts.claimLinkStateType.CLAIM)
+                    }
                 }
             } catch (error) {
                 console.error(error)
@@ -208,7 +211,7 @@ export const Claim = ({}) => {
                 Sentry.captureException(error)
             }
         },
-        [user]
+        [user, isFetchingUser]
     )
 
     useEffect(() => {
