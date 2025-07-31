@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import ActionModal from '@/components/Global/ActionModal'
 import CancelSendLinkModal from '@/components/Global/CancelSendLinkModal'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
