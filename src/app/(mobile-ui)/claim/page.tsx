@@ -38,9 +38,8 @@ export async function generateMetadata({
                     'You received ' +
                     (Number(linkDetails.tokenAmount) < 0.01
                         ? 'some '
-                        : formatAmount(Number(linkDetails.tokenAmount)) + ' in ') +
-                    linkDetails.tokenSymbol +
-                    '!'
+                        : '$' + formatAmount(Number(linkDetails.tokenAmount)) + ' ') +
+                    'via Peanut'
             } else {
                 title = 'This link has been claimed'
             }
@@ -84,13 +83,13 @@ export async function generateMetadata({
         },
         openGraph: {
             title,
-            description: 'Seamless payment infrastructure for sending and receiving digital assets.',
+            description: 'Tap the link to receive instantly and without fees.',
             images: [{ url: ogImageUrl, width: 1200, height: 630 }],
         },
         twitter: {
             card: 'summary_large_image',
             title,
-            description: 'Claim your tokens using Peanut Protocol',
+            description: 'Tap the link to receive instantly and without fees.',
             images: [ogImageUrl],
         },
     }

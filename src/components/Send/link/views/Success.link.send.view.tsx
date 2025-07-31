@@ -26,7 +26,11 @@ const LinkSendSuccessView = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false)
 
     if (isLoading) {
-        return <PeanutLoading coverFullScreen />
+        return (
+            <div className="flex w-full items-center justify-center">
+                <PeanutLoading coverFullScreen />
+            </div>
+        )
     }
 
     return (

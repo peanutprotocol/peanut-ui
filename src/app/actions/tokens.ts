@@ -263,7 +263,7 @@ export const fetchWalletBalances = unstable_cache(
         const mobulaResponse = await fetchWithSentry(`${MOBULA_API_URL}/api/1/wallet/portfolio?wallet=${address}`, {
             headers: {
                 'Content-Type': 'application/json',
-                authorization: process.env.MOBULA_API_KEY!,
+                authorization: MOBULA_API_KEY,
             },
         })
 

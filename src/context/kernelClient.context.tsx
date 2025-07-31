@@ -18,6 +18,7 @@ import {
 } from '@zerodev/sdk'
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react'
 import { Chain, http, PublicClient, Transport } from 'viem'
+import { captureException } from '@sentry/nextjs'
 
 interface KernelClientContextType {
     setWebAuthnKey: (webAuthnKey: WebAuthnKey) => void
@@ -148,12 +149,18 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             const newClientsByChain: Record<string, GenericSmartAccountClient> = {}
             for (const chainId in PUBLIC_CLIENTS_BY_CHAIN) {
                 const { client, chain, bundlerUrl, paymasterUrl } = PUBLIC_CLIENTS_BY_CHAIN[chainId]
-                const validator = await createPasskeyValidator(client, webAuthnKey)
-                const kernelClient = await createKernelClientForChain(client, chain, validator, {
-                    bundlerUrl,
-                    paymasterUrl,
-                })
-                newClientsByChain[chainId] = kernelClient
+                try {
+                    const validator = await createPasskeyValidator(client, webAuthnKey)
+                    const kernelClient = await createKernelClientForChain(client, chain, validator, {
+                        bundlerUrl,
+                        paymasterUrl,
+                    })
+                    newClientsByChain[chainId] = kernelClient
+                } catch (error) {
+                    console.error(`Error creating kernel client for chain ${chainId}:`, error)
+                    captureException(error)
+                    continue
+                }
             }
             if (isMounted) {
                 fetchUser()
