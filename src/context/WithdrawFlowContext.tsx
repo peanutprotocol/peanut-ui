@@ -26,6 +26,8 @@ export interface RecipientState {
 interface WithdrawFlowContextType {
     amountToWithdraw: string
     setAmountToWithdraw: (amount: string) => void
+    usdAmount: string
+    setUsdAmount: (amount: string) => void
     currentView: WithdrawView
     setCurrentView: (view: WithdrawView) => void
     withdrawData: WithdrawData | null
@@ -55,6 +57,7 @@ const WithdrawFlowContext = createContext<WithdrawFlowContextType | undefined>(u
 
 export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [amountToWithdraw, setAmountToWithdraw] = useState<string>('')
+    const [usdAmount, setUsdAmount] = useState<string>('')
     const [currentView, setCurrentView] = useState<WithdrawView>('INITIAL')
     const [withdrawData, setWithdrawData] = useState<WithdrawData | null>(null)
     const [showCompatibilityModal, setShowCompatibilityModal] = useState<boolean>(false)
@@ -80,12 +83,15 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
         setError({ showError: false, errorMessage: '' })
         setPaymentError(null)
         setShowAllWithdrawMethods(false)
+        setUsdAmount('')
     }, [])
 
     const value = useMemo(
         () => ({
             amountToWithdraw,
             setAmountToWithdraw,
+            usdAmount,
+            setUsdAmount,
             currentView,
             setCurrentView,
             withdrawData,
@@ -117,6 +123,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             showCompatibilityModal,
             isPreparingReview,
             paymentError,
+            usdAmount,
             isValidRecipient,
             inputChanging,
             recipient,
