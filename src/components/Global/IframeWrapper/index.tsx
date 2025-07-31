@@ -95,6 +95,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 </div>
                 <div className="h-full w-full flex-grow overflow-scroll">
                     <iframe
+                        key={src}
                         src={src}
                         allow="camera;"
                         style={{ width: '100%', height: '100%', border: 'none' }}

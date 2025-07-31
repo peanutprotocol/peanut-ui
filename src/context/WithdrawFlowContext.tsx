@@ -46,6 +46,8 @@ interface WithdrawFlowContextType {
     setError: (error: InitialViewErrorState) => void
     selectedBankAccount: Account | null
     setSelectedBankAccount: (account: Account | null) => void
+    showAllWithdrawMethods: boolean
+    setShowAllWithdrawMethods: (show: boolean) => void
     resetWithdrawFlow: () => void
 }
 
@@ -67,6 +69,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
         errorMessage: '',
     })
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
+    const [showAllWithdrawMethods, setShowAllWithdrawMethods] = useState<boolean>(false)
 
     const resetWithdrawFlow = useCallback(() => {
         setAmountToWithdraw('')
@@ -76,6 +79,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
         setRecipient({ address: '', name: '' })
         setError({ showError: false, errorMessage: '' })
         setPaymentError(null)
+        setShowAllWithdrawMethods(false)
     }, [])
 
     const value = useMemo(
@@ -102,6 +106,8 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             setError,
             selectedBankAccount,
             setSelectedBankAccount,
+            showAllWithdrawMethods,
+            setShowAllWithdrawMethods,
             resetWithdrawFlow,
         }),
         [
@@ -116,6 +122,8 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             recipient,
             error,
             selectedBankAccount,
+            showAllWithdrawMethods,
+            setShowAllWithdrawMethods,
             resetWithdrawFlow,
         ]
     )

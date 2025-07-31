@@ -9,8 +9,8 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
-import { formatAmount, formatDate, getInitialsFromName, isStableCoin } from '@/utils'
-import { formatIban } from '@/utils/general.utils'
+import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
+import { formatIban, shortenAddress } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -31,13 +31,19 @@ interface TransactionDetailsDrawerProps {
     onClose: () => void
     /** the transaction data to display, or null if none selected. */
     transaction: TransactionDetails | null
+    transactionAmount?: string // dollarized amount of the transaction
 }
 
 /**
  * a bottom drawer component that displays detailed information about a specific transaction.
  * includes header, details card, and conditional qr/sharing options for pending transactions.
  */
-export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> = ({ isOpen, onClose, transaction }) => {
+export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> = ({
+    isOpen,
+    onClose,
+    transaction,
+    transactionAmount,
+}) => {
     // ref for the main content area to calculate dynamic height
     const contentRef = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -77,6 +83,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                 onClose={handleClose}
                 setIsLoading={setIsLoading}
                 contentRef={contentRef}
+                transactionAmount={transactionAmount}
             />
         </BottomDrawer>
     )
@@ -89,7 +96,7 @@ const getBankAccountLabel = (type: string) => {
         case 'clabe':
             return 'CLABE'
         default:
-            return 'Account number'
+            return 'Account Number'
     }
 }
 
@@ -98,17 +105,24 @@ export const TransactionDetailsReceipt = ({
     onClose,
     setIsLoading,
     contentRef,
+    transactionAmount,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
     setIsLoading?: (isLoading: boolean) => void
     contentRef?: React.RefObject<HTMLDivElement>
+    transactionAmount?: string // dollarized amount of the transaction
 }) => {
     // ref for the main content area to calculate dynamic height
     const { user } = useUserStore()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const [showBankDetails, setShowBankDetails] = useState(false)
+
+    const isGuestBankClaim = useMemo(() => {
+        if (!transaction) return false
+        return transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_GUEST_OFFRAMP
+    }, [transaction])
 
     const isPendingRequestee = useMemo(() => {
         if (!transaction) return false
@@ -149,7 +163,9 @@ export const TransactionDetailsReceipt = ({
     // format data for display
     let amountDisplay = ''
 
-    if (transaction.extraDataForDrawer?.rewardData) {
+    if (transactionAmount) {
+        amountDisplay = transactionAmount.replace(/[+-]/g, '').replace(/\$/, '$ ')
+    } else if (transaction.extraDataForDrawer?.rewardData) {
         amountDisplay = transaction.extraDataForDrawer.rewardData.formatAmount(transaction.amount)
     } else if (
         transaction.direction === 'bank_deposit' &&
@@ -168,10 +184,12 @@ export const TransactionDetailsReceipt = ({
             amountDisplay = `${currencySymbol} ${formatAmount(Number(currencyAmount))}`
         }
     } else {
-        amountDisplay =
-            transaction.currency?.amount && isStableCoin(transaction.tokenSymbol ?? '')
-                ? `$ ${formatAmount(Number(transaction.currency.amount))}`
-                : `$ ${formatAmount(transaction.amount as number)}`
+        // default: use currency amount if provided, otherwise fallback to raw amount - never show token value, only USD
+        if (transaction.currency?.amount) {
+            amountDisplay = `$ ${formatAmount(Number(transaction.currency.amount))}`
+        } else {
+            amountDisplay = `$ ${formatAmount(transaction.amount as number)}`
+        }
     }
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
@@ -319,33 +337,57 @@ export const TransactionDetailsReceipt = ({
                             </>
                         )}
 
-                    {transaction.bankAccountDetails && (
+                    {transaction.bankAccountDetails && transaction.bankAccountDetails.identifier && (
                         <PaymentInfoRow
                             label={getBankAccountLabel(transaction.bankAccountDetails.type)}
                             value={
                                 <div className="flex items-center gap-2">
-                                    <span>{formatIban(transaction.bankAccountDetails.identifier)}</span>
-                                    <CopyToClipboard
-                                        textToCopy={formatIban(transaction.bankAccountDetails.identifier)}
-                                        iconSize="4"
-                                    />
+                                    <span>
+                                        {isGuestBankClaim
+                                            ? transaction.bankAccountDetails.identifier
+                                            : formatIban(transaction.bankAccountDetails.identifier)}
+                                    </span>
+                                    {!isGuestBankClaim && (
+                                        <CopyToClipboard
+                                            textToCopy={formatIban(transaction.bankAccountDetails.identifier)}
+                                            iconSize="4"
+                                        />
+                                    )}
                                 </div>
                             }
-                            hideBottomBorder={!transaction.status && !transaction.memo && !transaction.attachmentUrl}
-                        />
-                    )}
-                    {transaction.id && transaction.direction === 'bank_withdraw' && (
-                        <PaymentInfoRow
-                            label="Transfer ID"
-                            value={
-                                <div className="flex items-center gap-2">
-                                    <span>{transaction.id.toUpperCase()}</span>
-                                    <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
-                                </div>
+                            hideBottomBorder={
+                                !(
+                                    transaction.id &&
+                                    (transaction.direction === 'bank_withdraw' ||
+                                        transaction.direction === 'bank_claim')
+                                ) &&
+                                !(transaction.direction === 'bank_deposit' && transaction.status === 'pending') &&
+                                !transaction.memo &&
+                                !transaction.attachmentUrl &&
+                                !transaction.networkFeeDetails &&
+                                transaction.status === 'pending'
                             }
-                            hideBottomBorder={!transaction.status && !transaction.memo && !transaction.attachmentUrl}
                         />
                     )}
+                    {transaction.id &&
+                        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') && (
+                            <PaymentInfoRow
+                                label="Transfer ID"
+                                value={
+                                    <div className="flex items-center gap-2">
+                                        <span>{shortenAddress(transaction.id.toUpperCase(), 20)}</span>
+                                        <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
+                                    </div>
+                                }
+                                hideBottomBorder={
+                                    !transaction.status ||
+                                    (!transaction.memo &&
+                                        !transaction.attachmentUrl &&
+                                        !transaction.networkFeeDetails &&
+                                        transaction.status === 'pending')
+                                }
+                            />
+                        )}
 
                     {/* Onramp deposit instructions for bridge_onramp transactions */}
                     {transaction.direction === 'bank_deposit' &&

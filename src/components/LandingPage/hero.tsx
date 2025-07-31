@@ -148,6 +148,8 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
                     </Button>
                 </a>
 
+                <p className="font-roboto-flex-bold mt-2 text-xs italic text-n-1 md:text-sm">Takes 10 seconds</p>
+
                 {renderArrows(variant, arrowOpacity, buttonVisible)}
             </motion.div>
         )

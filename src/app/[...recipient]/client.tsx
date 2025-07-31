@@ -322,7 +322,10 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             return
         }
 
-        dispatch(paymentActions.setView('STATUS'))
+        // show status view only if fulfillment payment is successful
+        if (chargeDetails?.fulfillmentPayment?.status === 'SUCCESSFUL') {
+            dispatch(paymentActions.setView('STATUS'))
+        }
 
         // only open transaction details drawer if not add money flow
         if (!isAddMoneyFlow) {
@@ -383,7 +386,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             </div>
         )
     }
-
     // default payment flow
     return (
         <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-center')}>

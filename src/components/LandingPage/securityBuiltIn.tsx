@@ -1,4 +1,3 @@
-import React from 'react'
 import Image from 'next/image'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'

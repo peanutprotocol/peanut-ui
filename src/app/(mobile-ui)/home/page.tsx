@@ -32,6 +32,8 @@ import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
 import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
 import BalanceWarningModal from '@/components/Global/BalanceWarningModal'
+import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
+import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
 import { AccountType } from '@/interfaces'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
@@ -60,6 +62,7 @@ export default function Home() {
     const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
     const [showAddMoneyPromptModal, setShowAddMoneyPromptModal] = useState(false)
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
+    const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
 
     const userFullName = useMemo(() => {
@@ -143,6 +146,27 @@ export default function Home() {
                 !showIOSPWAInstallModal &&
                 !showAddMoneyPromptModal &&
                 !isPostSignupActionModalVisible
+            ) {
+                setShowBalanceWarningModal(true)
+            }
+        }
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal])
+
+    // effect for showing balance warning modal
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !isFetchingBalance) {
+            const hasSeenBalanceWarning = getFromLocalStorage('hasSeenBalanceWarning')
+            const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
+
+            // show if:
+            // 1. balance is above the threshold
+            // 2. user hasn't seen this warning in the current session
+            // 3. no other modals are currently active
+            if (
+                balanceInUsd > BALANCE_WARNING_THRESHOLD &&
+                !hasSeenBalanceWarning &&
+                !showIOSPWAInstallModal &&
+                !showAddMoneyPromptModal
             ) {
                 setShowBalanceWarningModal(true)
             }
@@ -242,6 +266,16 @@ export default function Home() {
                     saveToLocalStorage('hasSeenBalanceWarning', 'true', BALANCE_WARNING_EXPIRY)
                 }}
             />
+
+            {/* Referral Campaign Modal */}
+            <ReferralCampaignModal
+                visible={showReferralCampaignModal}
+                onClose={() => setShowReferralCampaignModal(false)}
+            />
+
+            {/* Floating Referral Button */}
+            <FloatingReferralButton onClick={() => setShowReferralCampaignModal(true)} />
+
             {/* Post Signup Action Modal */}
             <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
         </PageContainer>
