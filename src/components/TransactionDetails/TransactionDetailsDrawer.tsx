@@ -25,6 +25,8 @@ import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import CopyToClipboard from '../Global/CopyToClipboard'
 import MoreInfo from '../Global/MoreInfo'
+import ActionModal from '../Global/ActionModal'
+import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 
 interface TransactionDetailsDrawerProps {
     isOpen: boolean
@@ -79,6 +81,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
             isLoading={isLoading}
         >
             <TransactionDetailsReceipt
+                isLoading={isLoading}
                 transaction={transaction}
                 onClose={handleClose}
                 setIsLoading={setIsLoading}
@@ -103,12 +106,14 @@ const getBankAccountLabel = (type: string) => {
 export const TransactionDetailsReceipt = ({
     transaction,
     onClose,
+    isLoading,
     setIsLoading,
     contentRef,
     transactionAmount,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
+    isLoading?: boolean
     setIsLoading?: (isLoading: boolean) => void
     contentRef?: React.RefObject<HTMLDivElement>
     transactionAmount?: string // dollarized amount of the transaction
@@ -118,6 +123,7 @@ export const TransactionDetailsReceipt = ({
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const [showBankDetails, setShowBankDetails] = useState(false)
+    const [showCancelLinkModal, setshowCancelLinkModal] = useState(false)
 
     const isGuestBankClaim = useMemo(() => {
         if (!transaction) return false
@@ -705,39 +711,20 @@ export const TransactionDetailsReceipt = ({
                         setIsLoading &&
                         onClose && (
                             <Button
-                                onClick={() => {
-                                    setIsLoading(true)
-                                    sendLinksApi
-                                        .claim(user!.user.username!, transaction.extraDataForDrawer!.link!)
-                                        .then(() => {
-                                            // Claiming takes time, so we need to invalidate both transaction query types
-                                            setTimeout(() => {
-                                                fetchBalance()
-                                                queryClient
-                                                    .invalidateQueries({
-                                                        queryKey: [TRANSACTIONS],
-                                                    })
-                                                    .then(() => {
-                                                        setIsLoading(false)
-                                                        onClose()
-                                                    })
-                                            }, 3000)
-                                        })
-                                        .catch((error) => {
-                                            captureException(error)
-                                            console.error('Error claiming link:', error)
-                                            setIsLoading(false)
-                                        })
-                                }}
+                                disabled={isLoading}
+                                onClick={() => setshowCancelLinkModal(true)}
+                                loading={isLoading}
                                 variant={'primary-soft'}
                                 className="flex w-full items-center gap-1"
                                 shadowSize="4"
                             >
                                 <div className="flex items-center">
-                                    <Icon
-                                        name="cancel"
-                                        className="mr-0.5 min-w-3 rounded-full border border-black p-0.5"
-                                    />
+                                    {!isLoading && (
+                                        <Icon
+                                            name="cancel"
+                                            className="mr-0.5 min-w-3 rounded-full border border-black p-0.5"
+                                        />
+                                    )}
                                 </div>
                                 <span>Cancel link</span>
                             </Button>
@@ -757,6 +744,8 @@ export const TransactionDetailsReceipt = ({
                     icon="cancel"
                     iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
                     iconClassName="p-1"
+                    loading={isLoading}
+                    disabled={isLoading}
                     onClick={() => {
                         setIsLoading(true)
                         chargesApi
@@ -801,6 +790,7 @@ export const TransactionDetailsReceipt = ({
                         icon="cancel"
                         iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
                         iconClassName="p-1"
+                        disabled={isLoading}
                         onClick={() => {
                             setIsLoading(true)
                             chargesApi
@@ -841,6 +831,7 @@ export const TransactionDetailsReceipt = ({
                 setIsLoading &&
                 onClose && (
                     <Button
+                        disabled={isLoading}
                         onClick={async () => {
                             setIsLoading(true)
                             try {
@@ -884,6 +875,41 @@ export const TransactionDetailsReceipt = ({
                 <Icon name="peanut-support" size={16} className="text-grey-1" />
                 Issues with this transaction?
             </Link>
+
+            {/* Cancel Link Modal  */}
+
+            {setIsLoading && onClose && (
+                <CancelSendLinkModal
+                    showCancelLinkModal={showCancelLinkModal}
+                    setshowCancelLinkModal={setshowCancelLinkModal}
+                    amount={amountDisplay}
+                    onClick={() => {
+                        setIsLoading(true)
+                        setshowCancelLinkModal(false)
+                        sendLinksApi
+                            .claim(user!.user.username!, transaction.extraDataForDrawer!.link!)
+                            .then(() => {
+                                // Claiming takes time, so we need to invalidate both transaction query types
+                                setTimeout(() => {
+                                    fetchBalance()
+                                    queryClient
+                                        .invalidateQueries({
+                                            queryKey: [TRANSACTIONS],
+                                        })
+                                        .then(() => {
+                                            setIsLoading(false)
+                                            onClose()
+                                        })
+                                }, 3000)
+                            })
+                            .catch((error) => {
+                                captureException(error)
+                                console.error('Error claiming link:', error)
+                                setIsLoading(false)
+                            })
+                    }}
+                />
+            )}
         </div>
     )
 }

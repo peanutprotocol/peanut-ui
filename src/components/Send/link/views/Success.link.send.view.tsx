@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import CancelSendLinkModal from '@/components/Global/CancelSendLinkModal'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -24,6 +25,7 @@ const LinkSendSuccessView = () => {
     const { fetchBalance } = useWallet()
     const { user } = useUserStore()
     const [isLoading, setIsLoading] = useState<boolean>(false)
+    const [showCancelLinkModal, setshowCancelLinkModal] = useState(false)
 
     if (isLoading) {
         return (
@@ -61,44 +63,60 @@ const LinkSendSuccessView = () => {
                             Share link
                         </ShareButton>
                         <Button
-                            onClick={() => {
-                                setIsLoading(true)
-                                sendLinksApi
-                                    .claim(user!.user.username!, link)
-                                    .then(() => {
-                                        // Claiming takes time, so we need to invalidate both transaction query types
-                                        setTimeout(() => {
-                                            fetchBalance()
-                                            queryClient
-                                                .invalidateQueries({
-                                                    queryKey: ['transactions'],
-                                                })
-                                                .then(() => {
-                                                    setIsLoading(false)
-                                                    router.push('/home')
-                                                    dispatch(sendFlowActions.resetSendFlow())
-                                                })
-                                        }, 3000)
-                                    })
-                                    .catch((error) => {
-                                        captureException(error)
-                                        console.error('Error claiming link:', error)
-                                        setIsLoading(false)
-                                    })
-                            }}
+                            onClick={() => setshowCancelLinkModal(true)}
                             variant={'primary-soft'}
                             className="flex w-full items-center gap-1"
                             shadowSize="4"
                             disabled={isLoading}
                         >
-                            <div className="flex items-center">
-                                <Icon name="cancel" className="mr-0.5 min-w-3 rounded-full border border-black p-0.5" />
-                            </div>
+                            {!isLoading && (
+                                <div className="flex items-center">
+                                    <Icon
+                                        name="cancel"
+                                        className="mr-0.5 min-w-3 rounded-full border border-black p-0.5"
+                                    />
+                                </div>
+                            )}
                             <span>Cancel link</span>
                         </Button>
                     </div>
                 )}
             </div>
+
+            {/* Cancel Link Modal  */}
+            {link && (
+                <CancelSendLinkModal
+                    showCancelLinkModal={showCancelLinkModal}
+                    setshowCancelLinkModal={setshowCancelLinkModal}
+                    amount={`$ ${tokenValue}`}
+                    onClick={() => {
+                        setIsLoading(true)
+                        setshowCancelLinkModal(false)
+                        sendLinksApi
+                            .claim(user!.user.username!, link)
+                            .then(() => {
+                                // Claiming takes time, so we need to invalidate both transaction query types
+                                setTimeout(() => {
+                                    fetchBalance()
+                                    queryClient
+                                        .invalidateQueries({
+                                            queryKey: ['transactions'],
+                                        })
+                                        .then(() => {
+                                            setIsLoading(false)
+                                            router.push('/home')
+                                            dispatch(sendFlowActions.resetSendFlow())
+                                        })
+                                }, 3000)
+                            })
+                            .catch((error) => {
+                                captureException(error)
+                                console.error('Error claiming link:', error)
+                                setIsLoading(false)
+                            })
+                    }}
+                />
+            )}
         </div>
     )
 }
