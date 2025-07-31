@@ -32,10 +32,13 @@ import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
 import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
 import BalanceWarningModal from '@/components/Global/BalanceWarningModal'
+import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
+import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
 import { AccountType } from '@/interfaces'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
+import { useGuestFlow } from '@/context/GuestFlowContext'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -44,6 +47,7 @@ export default function Home() {
     const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
     const { rewardWalletBalance } = useWalletStore()
     const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
+    const { resetGuestFlow } = useGuestFlow()
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
         return prefs?.balanceHidden ?? false
@@ -58,6 +62,7 @@ export default function Home() {
     const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
     const [showAddMoneyPromptModal, setShowAddMoneyPromptModal] = useState(false)
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
+    const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
 
     const userFullName = useMemo(() => {
@@ -75,6 +80,10 @@ export default function Home() {
     }
 
     const isLoading = isFetchingUser && !username
+
+    useEffect(() => {
+        resetGuestFlow()
+    }, [resetGuestFlow])
 
     useEffect(() => {
         // We have some users that didn't have the peanut wallet created
@@ -103,13 +112,15 @@ export default function Home() {
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
             const hasSeenModalThisSession = sessionStorage.getItem('hasSeenIOSPWAPromptThisSession')
+            const redirectUrl = getFromLocalStorage('redirect')
 
             if (
                 isIOS &&
                 !isStandalone &&
                 !hasSeenModalThisSession &&
                 !user?.hasPwaInstalled &&
-                !isPostSignupActionModalVisible
+                !isPostSignupActionModalVisible &&
+                !redirectUrl
             ) {
                 setShowIOSPWAInstallModal(true)
                 sessionStorage.setItem('hasSeenIOSPWAPromptThisSession', 'true')
@@ -117,7 +128,7 @@ export default function Home() {
                 setShowIOSPWAInstallModal(false)
             }
         }
-    }, [user?.hasPwaInstalled])
+    }, [user?.hasPwaInstalled, isPostSignupActionModalVisible])
 
     // effect for showing balance warning modal
     useEffect(() => {
@@ -135,6 +146,27 @@ export default function Home() {
                 !showIOSPWAInstallModal &&
                 !showAddMoneyPromptModal &&
                 !isPostSignupActionModalVisible
+            ) {
+                setShowBalanceWarningModal(true)
+            }
+        }
+    }, [balance, isFetchingBalance, showIOSPWAInstallModal, showAddMoneyPromptModal])
+
+    // effect for showing balance warning modal
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !isFetchingBalance) {
+            const hasSeenBalanceWarning = getFromLocalStorage('hasSeenBalanceWarning')
+            const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
+
+            // show if:
+            // 1. balance is above the threshold
+            // 2. user hasn't seen this warning in the current session
+            // 3. no other modals are currently active
+            if (
+                balanceInUsd > BALANCE_WARNING_THRESHOLD &&
+                !hasSeenBalanceWarning &&
+                !showIOSPWAInstallModal &&
+                !showAddMoneyPromptModal
             ) {
                 setShowBalanceWarningModal(true)
             }
@@ -234,6 +266,16 @@ export default function Home() {
                     saveToLocalStorage('hasSeenBalanceWarning', 'true', BALANCE_WARNING_EXPIRY)
                 }}
             />
+
+            {/* Referral Campaign Modal */}
+            <ReferralCampaignModal
+                visible={showReferralCampaignModal}
+                onClose={() => setShowReferralCampaignModal(false)}
+            />
+
+            {/* Floating Referral Button */}
+            <FloatingReferralButton onClick={() => setShowReferralCampaignModal(true)} />
+
             {/* Post Signup Action Modal */}
             <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
         </PageContainer>

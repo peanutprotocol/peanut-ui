@@ -6,7 +6,7 @@ import { useAuth } from '@/context/authContext'
 import { useGuestFlow } from '@/context/GuestFlowContext'
 import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
-import { formatTokenAmount, getTokenDetails, printableAddress } from '@/utils'
+import { formatTokenAmount, getTokenDetails, printableAddress, shortenAddressLong } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
@@ -25,7 +25,7 @@ export const SuccessClaimLinkView = ({
     const { fetchUser } = useAuth()
     const router = useRouter()
     const queryClient = useQueryClient()
-    const { offrampDetails, claimType } = useGuestFlow()
+    const { offrampDetails, claimType, bankDetails } = useGuestFlow()
 
     useEffect(() => {
         queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
@@ -75,9 +75,22 @@ export const SuccessClaimLinkView = ({
         return tokenDetails
     }, [claimLinkData])
 
+    const maskedAccountNumber = useMemo(() => {
+        if (bankDetails?.iban) {
+            return `to ${shortenAddressLong(bankDetails.iban)}`
+        }
+        if (bankDetails?.clabe) {
+            return `to ${shortenAddressLong(bankDetails.clabe)}`
+        }
+        if (bankDetails?.accountNumber) {
+            return `to ${shortenAddressLong(bankDetails.accountNumber)}`
+        }
+        return 'to your bank account'
+    }, [bankDetails])
+
     const isBankClaim = claimType === 'claim-bank'
 
-    const navHeaderTitle = isBankClaim ? 'Receive' : 'Claim'
+    const navHeaderTitle = 'Receive'
 
     const cardProps = {
         viewType: 'SUCCESS' as const,
@@ -86,7 +99,7 @@ export const SuccessClaimLinkView = ({
             | 'CLAIM_LINK',
         recipientType: isBankClaim ? ('BANK_ACCOUNT' as const) : ('USERNAME' as const),
         recipientName: isBankClaim
-            ? 'your bank account' // todo: show bank account number, scoped for next pr
+            ? maskedAccountNumber
             : (claimLinkData.sender?.username ?? printableAddress(claimLinkData.senderAddress)),
         amount: isBankClaim
             ? (formatTokenAmount(
@@ -95,12 +108,13 @@ export const SuccessClaimLinkView = ({
             : formatUnits(claimLinkData.amount, tokenDetails?.decimals ?? 6),
         tokenSymbol: isBankClaim ? (offrampDetails?.quote.destination_currency ?? '') : claimLinkData.tokenSymbol,
         message: isBankClaim
-            ? `to your bank account` // todo: show bank account number, scoped for next pr
+            ? maskedAccountNumber
             : `from ${claimLinkData.sender?.username || printableAddress(claimLinkData.senderAddress)}`,
+        title: isBankClaim ? 'You will receive' : 'You claimed',
     }
 
     const renderButtons = () => {
-        if (isBankClaim || !!authUser?.user.userId) {
+        if (authUser?.user.userId) {
             return (
                 <Button
                     shadowSize="4"

@@ -18,6 +18,7 @@ export type TransactionDirection =
     | 'withdraw'
     | 'add'
     | 'bank_withdraw'
+    | 'bank_claim'
     | 'bank_deposit'
 
 interface TransactionDetailsHeaderCardProps {
@@ -89,6 +90,9 @@ const getTitle = (
             case 'bank_withdraw':
                 titleText = `${status === 'completed' ? 'Withdrew' : 'Withdrawing'} to ${displayName}`
                 break
+            case 'bank_claim':
+                titleText = displayName
+                break
             case 'add':
             case 'bank_deposit':
                 titleText = `${status === 'completed' ? 'Added' : 'Adding'} from ${displayName}`
@@ -115,6 +119,7 @@ const getIcon = (direction: TransactionDirection, isLinkTransaction?: boolean): 
         case 'request_received':
             return 'arrow-down-left'
         case 'withdraw':
+        case 'bank_claim':
             return 'arrow-up'
         case 'add':
             return 'arrow-down'

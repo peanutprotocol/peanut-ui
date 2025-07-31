@@ -50,6 +50,7 @@ import { BadgeIcon } from './badge'
 import { UserIdIcon } from './user-id'
 import { ClockIcon } from './clock'
 import { DollarIcon } from './dollar'
+import { LinkShashIcon } from './link-slash'
 
 // available icon names
 export type IconName =
@@ -81,6 +82,7 @@ export type IconName =
     | 'currency'
     | 'achievements'
     | 'link'
+    | 'link-slash'
     | 'logout'
     | 'paperclip'
     | 'smile'
@@ -138,6 +140,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     currency: CurrencyIcon,
     achievements: AchievementsIcon,
     link: LinkIcon,
+    'link-slash': LinkShashIcon,
     logout: LogoutIcon,
     paperclip: PaperClipIcon,
     smile: SmileIcon,

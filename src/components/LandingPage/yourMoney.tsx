@@ -1,4 +1,3 @@
-import React from 'react'
 import Image from 'next/image'
 import iphoneYourMoney1 from '@/assets/iphone-ss/iphone-your-money-1.png'
 import iphoneYourMoney2 from '@/assets/iphone-ss/iphone-your-money-2.png'

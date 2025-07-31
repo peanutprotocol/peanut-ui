@@ -13,7 +13,7 @@ import { formatUnits } from 'viem'
 import { formatTokenAmount, printableAddress } from '@/utils/general.utils'
 
 export const ClaimCountryListView = ({ claimLinkData }: Pick<IClaimScreenProps, 'claimLinkData'>) => {
-    const { setGuestFlowStep, setSelectedCountry, resetGuestFlow } = useGuestFlow()
+    const { setGuestFlowStep, setSelectedCountry } = useGuestFlow()
     const [searchTerm, setSearchTerm] = useState('')
 
     const supportedCountries = useMemo(() => {
@@ -35,12 +35,12 @@ export const ClaimCountryListView = ({ claimLinkData }: Pick<IClaimScreenProps, 
 
     const handleCountrySelect = (country: (typeof countryData)[0]) => {
         setSelectedCountry(country)
-        setGuestFlowStep('bank-form')
+        setGuestFlowStep('bank-details-form')
     }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
-            <NavHeader title="Receive" onPrev={() => resetGuestFlow()} />
+            <NavHeader title="Receive" onPrev={() => setGuestFlowStep(null)} />
             <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
                 <PeanutActionDetailsCard
                     avatarSize="small"

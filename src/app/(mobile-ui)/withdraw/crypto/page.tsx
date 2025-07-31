@@ -27,6 +27,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { captureMessage } from '@sentry/nextjs'
 import type { Address } from 'viem'
+import { Slider } from '@/components/Slider'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
@@ -76,6 +77,10 @@ export default function WithdrawCryptoPage() {
     const clearErrors = useCallback(() => {
         setError(null)
     }, [setError])
+
+    useEffect(() => {
+        dispatch(paymentActions.resetPaymentState())
+    }, [dispatch])
 
     useEffect(() => {
         if (!amountToWithdraw) {
@@ -338,9 +343,9 @@ export default function WithdrawCryptoPage() {
                         headerTitle="Withdraw"
                         recipientType="ADDRESS"
                         type="SEND"
-                        currencyAmount={`$ ${amountToWithdraw}`}
+                        amount={amountToWithdraw}
                         isWithdrawFlow={true}
-                        redirectTo="/withdraw"
+                        redirectTo="/home"
                         message={
                             <AddressLink
                                 className="text-sm font-normal text-grey-1 no-underline"
@@ -361,16 +366,16 @@ export default function WithdrawCryptoPage() {
                 title="Is this address compatible?"
                 description="Only send to address that support the selected network and token. Incorrect transfers may be lost."
                 icon="alert"
-                ctas={[
-                    {
-                        text: 'Proceed',
-                        onClick: handleCompatibilityProceed,
-                        variant: 'purple',
-                        shadowSize: '4',
-                        className: 'h-10 text-sm',
-                        icon: 'check-circle',
-                    },
-                ]}
+                footer={
+                    <div className="w-full">
+                        <Slider
+                            onValueChange={(v: boolean) => {
+                                if (!v) return
+                                handleCompatibilityProceed()
+                            }}
+                        />
+                    </div>
+                }
             />
         </div>
     )

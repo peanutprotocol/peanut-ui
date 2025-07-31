@@ -53,6 +53,17 @@ type SquidGetRouteParams = {
     toToken: string
 }
 
+// options for route fetching behaviour
+type RouteOptions = {
+    /**
+     * when true, we will fetch a route using a non-Coral Squid integrator id.
+     * coral (rfq) routes have a very short expiry which is problematic for
+     * external-wallet Add Money flows that require approval + swap.  Setting
+     * this flag disables coral by switching the integrator key.
+     */
+    disableCoral?: boolean
+}
+
 type SquidCall = {
     chainType: string
     callType: number
@@ -240,12 +251,17 @@ async function estimateApprovalCostUsd(
  * Fetch the route from the squid API.
  * We use this when we fetch the route several times while finding the optimal fromAmount.
  */
-async function getSquidRouteRaw(params: SquidGetRouteParams): Promise<SquidRouteResponse> {
+async function getSquidRouteRaw(params: SquidGetRouteParams, options: RouteOptions = {}): Promise<SquidRouteResponse> {
     const response = await fetchWithSentry(`${SQUID_API_URL}/v2/route`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'x-integrator-id': process.env.SQUID_INTEGRATOR_ID!,
+            // use alternative integrator id when coral must be disabled
+            'x-integrator-id': options.disableCoral
+                ? process.env.DEFAULT_SQUID_INTEGRATOR_ID ||
+                  process.env.NEXT_PUBLIC_DEFAULT_SQUID_INTEGRATOR_ID ||
+                  process.env.SQUID_INTEGRATOR_ID!
+                : process.env.SQUID_INTEGRATOR_ID!,
         },
         body: JSON.stringify(params),
     })
@@ -268,7 +284,8 @@ async function getSquidRouteRaw(params: SquidGetRouteParams): Promise<SquidRoute
 async function findOptimalFromAmount(
     params: Omit<SquidGetRouteParams, 'fromAmount'>,
     targetToAmount: bigint,
-    _toTokenPrice?: { price: number; decimals: number }
+    _toTokenPrice?: { price: number; decimals: number },
+    options: RouteOptions = {}
 ): Promise<SquidRouteResponse> {
     // Only fetch if not provided
     const [toTokenPrice, fromTokenPrice] = await Promise.all([
@@ -318,7 +335,7 @@ async function findOptimalFromAmount(
         const testParams = { ...params, fromAmount: midPoint.toString() }
 
         try {
-            const response = await getSquidRouteRaw(testParams)
+            const response = await getSquidRouteRaw(testParams, options)
             const receivedAmount = BigInt(response.route.estimate.toAmountMin)
             console.log('fromAmount', midPoint)
             console.log('receivedAmount', receivedAmount)
@@ -358,7 +375,7 @@ async function findOptimalFromAmount(
     }
 
     // Fallback call
-    return await getSquidRouteRaw({ ...params, fromAmount: highBound.toString() })
+    return await getSquidRouteRaw({ ...params, fromAmount: highBound.toString() }, options)
 }
 
 export type PeanutCrossChainRoute = {
@@ -381,7 +398,10 @@ export type PeanutCrossChainRoute = {
  *
  * Returns the route with the less slippage..
  */
-export async function getRoute({ from, to, ...amount }: RouteParams): Promise<PeanutCrossChainRoute> {
+export async function getRoute(
+    { from, to, ...amount }: RouteParams,
+    options: RouteOptions = {}
+): Promise<PeanutCrossChainRoute> {
     let fromAmount: string
     let response: SquidRouteResponse
 
@@ -389,15 +409,18 @@ export async function getRoute({ from, to, ...amount }: RouteParams): Promise<Pe
 
     if (amount.fromAmount) {
         fromAmount = amount.fromAmount.toString()
-        response = await getSquidRouteRaw({
-            fromChain: from.chainId,
-            fromToken: from.tokenAddress,
-            fromAmount: fromAmount,
-            fromAddress: from.address,
-            toAddress: to.address,
-            toChain: to.chainId,
-            toToken: to.tokenAddress,
-        })
+        response = await getSquidRouteRaw(
+            {
+                fromChain: from.chainId,
+                fromToken: from.tokenAddress,
+                fromAmount: fromAmount,
+                fromAddress: from.address,
+                toAddress: to.address,
+                toChain: to.chainId,
+                toToken: to.tokenAddress,
+            },
+            options
+        )
     } else if (amount.fromUsd) {
         // Convert USD to token amount
         const fromTokenPrice = await fetchTokenPrice(from.tokenAddress, from.chainId)
@@ -406,15 +429,18 @@ export async function getRoute({ from, to, ...amount }: RouteParams): Promise<Pe
         const tokenAmount = Number(amount.fromUsd) / fromTokenPrice.price
         fromAmount = parseUnits(tokenAmount.toFixed(fromTokenPrice.decimals), fromTokenPrice.decimals).toString()
 
-        response = await getSquidRouteRaw({
-            fromChain: from.chainId,
-            fromToken: from.tokenAddress,
-            fromAmount,
-            fromAddress: from.address,
-            toAddress: to.address,
-            toChain: to.chainId,
-            toToken: to.tokenAddress,
-        })
+        response = await getSquidRouteRaw(
+            {
+                fromChain: from.chainId,
+                fromToken: from.tokenAddress,
+                fromAmount,
+                fromAddress: from.address,
+                toAddress: to.address,
+                toChain: to.chainId,
+                toToken: to.tokenAddress,
+            },
+            options
+        )
     } else if (amount.toAmount) {
         // Use binary search to find optimal fromAmount
         response = await findOptimalFromAmount(
@@ -426,7 +452,9 @@ export async function getRoute({ from, to, ...amount }: RouteParams): Promise<Pe
                 toChain: to.chainId,
                 toToken: to.tokenAddress,
             },
-            amount.toAmount
+            amount.toAmount,
+            undefined /* _toTokenPrice */,
+            options
         )
     } else if (amount.toUsd) {
         // Convert target USD to token amount, then use binary search
@@ -448,7 +476,8 @@ export async function getRoute({ from, to, ...amount }: RouteParams): Promise<Pe
                 toToken: to.tokenAddress,
             },
             targetToAmount,
-            toTokenPrice // Pass the already-fetched price
+            toTokenPrice, // Pass the already-fetched price
+            options
         )
     } else {
         throw new Error('No amount specified')
