@@ -62,6 +62,7 @@ export const Claim = ({}) => {
     const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useWallet()
     const { user } = useAuth()
+    const [isLinkCancelling, setisLinkCancelling] = useState(false)
 
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!claimLinkData) return null
@@ -278,7 +279,12 @@ export const Claim = ({}) => {
             )}
             {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <genericViews.WrongPasswordClaimLink />}
             {linkState === _consts.claimLinkStateType.NOT_FOUND && <genericViews.NotFoundClaimLink />}
-            <TransactionDetailsReceipt transaction={selectedTransaction} />
+            <TransactionDetailsReceipt
+                transaction={selectedTransaction}
+                setIsLoading={setisLinkCancelling}
+                isLoading={isLinkCancelling}
+                onClose={() => checkLink(window.location.href)}
+            />
         </PageContainer>
     )
 }

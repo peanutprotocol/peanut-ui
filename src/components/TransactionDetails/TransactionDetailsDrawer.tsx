@@ -73,6 +73,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
             isLoading={isLoading}
         >
             <TransactionDetailsReceipt
+                isLoading={isLoading}
                 transaction={transaction}
                 onClose={handleClose}
                 setIsLoading={setIsLoading}
@@ -96,11 +97,13 @@ const getBankAccountLabel = (type: string) => {
 export const TransactionDetailsReceipt = ({
     transaction,
     onClose,
+    isLoading,
     setIsLoading,
     contentRef,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
+    isLoading?: boolean
     setIsLoading?: (isLoading: boolean) => void
     contentRef?: React.RefObject<HTMLDivElement>
 }) => {
@@ -687,6 +690,7 @@ export const TransactionDetailsReceipt = ({
                                             setIsLoading(false)
                                         })
                                 }}
+                                loading={isLoading}
                                 variant={'primary-soft'}
                                 className="flex w-full items-center gap-1"
                                 shadowSize="4"
@@ -715,6 +719,7 @@ export const TransactionDetailsReceipt = ({
                     icon="cancel"
                     iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
                     iconClassName="p-1"
+                    loading={isLoading}
                     onClick={() => {
                         setIsLoading(true)
                         chargesApi
