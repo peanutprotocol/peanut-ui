@@ -263,12 +263,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     <span className="text-xs font-bold text-grey-1 lg:text-sm">or</span>
                     <div className="h-[1px] w-full bg-grey-1"></div>
                 </div>
-                <Button
-                    icon="plus"
-                    className="mb-5 mt-auto"
-                    onClick={() => setShouldShowAllMethods(true)}
-                    shadowSize="4"
-                >
+                <Button icon="plus" className="mb-5" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
                     Select new method
                 </Button>
             </div>
