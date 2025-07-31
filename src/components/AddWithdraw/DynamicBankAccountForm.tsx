@@ -98,6 +98,24 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 const accountNumber = isMx ? data.clabe : data.accountNumber
 
                 const { firstName, lastName } = data
+                let bic = data.bic
+
+                if (isIban && !bic) {
+                    try {
+                        bic = await getBicFromIban(accountNumber)
+                        if (!bic) {
+                            setShowBicField(true)
+                            setIsSubmitting(false)
+                            setSubmissionError('BIC is required')
+                            return
+                        }
+                    } catch (error) {
+                        setShowBicField(true)
+                        setIsSubmitting(false)
+                        setSubmissionError('BIC is required')
+                        return
+                    }
+                }
 
                 const payload: Partial<AddBankAccountPayload> = {
                     accountType,
@@ -116,7 +134,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         postalCode: data.postalCode ?? '',
                         country: isUs ? 'USA' : country.toUpperCase(),
                     },
-                    ...(data.bic && { bic: data.bic }),
+                    ...(bic && { bic }),
                 }
 
                 if (isUs && data.routingNumber) {
@@ -241,20 +259,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     undefined,
                                     async (field) => {
                                         if (!field.value || field.value.trim().length === 0) return
-
-                                        try {
-                                            setShowBicField(false)
-                                            setValue('bic', '', { shouldValidate: false })
-                                            const bic = await getBicFromIban(field.value.trim())
-                                            if (bic) {
-                                                setValue('bic', bic, { shouldValidate: true })
-                                            } else {
-                                                setShowBicField(true)
-                                            }
-                                        } catch (error) {
-                                            console.warn('Failed to fetch BIC:', error)
-                                            setShowBicField(true)
-                                        }
                                     }
                                 )
                               : renderInput(
