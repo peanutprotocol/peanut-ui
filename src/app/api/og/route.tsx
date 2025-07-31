@@ -7,48 +7,11 @@ import path from 'path'
 import { BASE_URL } from '@/constants'
 import getOrigin from '@/lib/hosting/get-origin'
 import { ReceiptCardOG } from '@/components/og/ReceiptCardOG'
-import { printableAddress } from '@/utils'
+import { printableAddress, resolveAddressToUsername } from '@/utils'
 import { isAddress } from 'viem'
 import { ProfileCardOG } from '@/components/og/ProfileCardOG'
 
 export const runtime = 'nodejs' //node.js instead of edge!
-
-// utility function to resolve ENS name from an address
-async function resolveAddressToENS(address: string): Promise<string | null> {
-    if (!isAddress(address)) return null
-
-    try {
-        const response = await fetch(`https://api.justaname.id/ens/v1/subname/address?address=${address}&chainId=1`, {
-            headers: {
-                Accept: '*/*',
-            },
-        })
-
-        if (!response.ok) {
-            return null
-        }
-
-        const data = await response.json()
-
-        // handle response from justaname
-        if (
-            data?.result?.data?.subnames &&
-            Array.isArray(data.result.data.subnames) &&
-            data.result.data.subnames.length > 0
-        ) {
-            // get the first subname
-            const firstSubname = data.result.data.subnames[0]
-            if (firstSubname.ens) {
-                return firstSubname.ens
-            }
-        }
-
-        return null
-    } catch (error) {
-        console.error('Error resolving ENS name:', error)
-        return null
-    }
-}
 
 // utility function to clean up username display
 function formatUsernameForDisplay(username: string): string {
@@ -116,7 +79,7 @@ export async function GET(req: NextRequest) {
 
     // for send/claim links, try to resolve ENS name if username is an address
     if (type === 'send' && isAddress(username)) {
-        const ensName = await resolveAddressToENS(username)
+        const ensName = await resolveAddressToUsername(username, origin)
         if (ensName) {
             username = ensName // Use the resolved ENS name
         }
