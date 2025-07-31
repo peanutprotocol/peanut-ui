@@ -126,10 +126,6 @@ export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
         (source: 'completed' | 'manual' | 'tos_accepted' = 'manual') => {
             const wasShowingTos = iframeOptions.src === apiResponse?.tosLink
 
-            console.log('source', source)
-
-            console.log('flow', flow)
-
             // if we just closed the tos link after it was accepted, open the kyc link next.
             if (wasShowingTos && source === 'tos_accepted' && apiResponse?.kycLink) {
                 const kycUrl = convertPersonaUrl(apiResponse.kycLink)
