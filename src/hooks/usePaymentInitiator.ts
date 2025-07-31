@@ -79,7 +79,7 @@ interface InitiationResult {
 // hook for handling payment initiation and processing
 export const usePaymentInitiator = () => {
     const dispatch = useAppDispatch()
-    const { requestDetails, chargeDetails: chargeDetailsFromStore } = usePaymentStore()
+    const { requestDetails, chargeDetails: chargeDetailsFromStore, currentView } = usePaymentStore()
     const { selectedTokenData, selectedChainID, selectedTokenAddress, setIsXChain } = useContext(tokenSelectorContext)
     const { isConnected: isPeanutWallet, address: peanutWalletAddress, sendTransactions, sendMoney } = useWallet()
     const { switchChainAsync } = useSwitchChain()
@@ -675,7 +675,15 @@ export const usePaymentInitiator = () => {
                     return { status: 'Charge Created', charge: determinedChargeDetails, success: false }
                 }
 
-                // 3. execute payment based on wallet type
+                // 3. if user is on the initial screen and chargeid is present, execute the handle charge state flow
+                if (payload.isAddMoneyFlow && currentView === 'INITIAL' && payload.chargeId) {
+                    console.log('Executing add money flow: ChargeID already exists')
+                    setLoadingStep('Charge Created')
+
+                    return { status: 'Charge Created', charge: determinedChargeDetails, success: false }
+                }
+
+                // 4. execute payment based on wallet type
                 if (payload.isAddMoneyFlow) {
                     if (!wagmiAddress) {
                         console.error('Add Money flow requires an external wallet (WAGMI) to be connected.')
