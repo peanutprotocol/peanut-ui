@@ -25,6 +25,7 @@ export default function WithdrawPage() {
         setAmountToWithdraw,
         setError,
         error,
+        setUsdAmount,
         resetWithdrawFlow,
     } = useWithdrawFlow()
 
@@ -173,6 +174,8 @@ export default function WithdrawPage() {
         if (validateAmount(rawTokenAmount)) {
             const cleanedAmount = rawTokenAmount.replace(/,/g, '')
             setAmountToWithdraw(cleanedAmount)
+            const usdVal = (selectedTokenData?.price ?? 1) * parseFloat(cleanedAmount)
+            setUsdAmount(usdVal.toString())
             // the step will automatically change to 'selectMethod' via the useEffect above
         }
     }

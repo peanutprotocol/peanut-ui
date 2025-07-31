@@ -36,6 +36,7 @@ export default function WithdrawCryptoPage() {
     const { isConnected: isPeanutWallet, address } = useWallet()
     const {
         amountToWithdraw,
+        usdAmount,
         setAmountToWithdraw,
         currentView,
         setCurrentView,
@@ -318,7 +319,7 @@ export default function WithdrawCryptoPage() {
         <div className="mx-auto h-full min-h-[inherit] w-full max-w-md space-y-4 self-center">
             {currentView === 'INITIAL' && (
                 <InitialWithdrawView
-                    amount={amountToWithdraw}
+                    amount={usdAmount}
                     onReview={handleSetupReview}
                     onBack={() => router.back()}
                     isProcessing={isPreparingReview}
@@ -327,7 +328,7 @@ export default function WithdrawCryptoPage() {
 
             {currentView === 'CONFIRM' && withdrawData && activeChargeDetailsFromStore && (
                 <ConfirmWithdrawView
-                    amount={amountToWithdraw}
+                    amount={usdAmount}
                     token={withdrawData.token}
                     chain={withdrawData.chain}
                     toAddress={withdrawData.address}
@@ -351,7 +352,7 @@ export default function WithdrawCryptoPage() {
                         headerTitle="Withdraw"
                         recipientType="ADDRESS"
                         type="SEND"
-                        amount={amountToWithdraw}
+                        amount={usdAmount}
                         isWithdrawFlow={true}
                         redirectTo="/home"
                         message={
