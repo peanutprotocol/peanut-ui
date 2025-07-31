@@ -669,6 +669,7 @@ export const TransactionDetailsReceipt = ({
                         setIsLoading &&
                         onClose && (
                             <Button
+                                disabled={isLoading}
                                 onClick={() => setshowCancelLinkModal(true)}
                                 loading={isLoading}
                                 variant={'primary-soft'}
@@ -676,10 +677,12 @@ export const TransactionDetailsReceipt = ({
                                 shadowSize="4"
                             >
                                 <div className="flex items-center">
-                                    <Icon
-                                        name="cancel"
-                                        className="mr-0.5 min-w-3 rounded-full border border-black p-0.5"
-                                    />
+                                    {!isLoading && (
+                                        <Icon
+                                            name="cancel"
+                                            className="mr-0.5 min-w-3 rounded-full border border-black p-0.5"
+                                        />
+                                    )}
                                 </div>
                                 <span>Cancel link</span>
                             </Button>
@@ -700,6 +703,7 @@ export const TransactionDetailsReceipt = ({
                     iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
                     iconClassName="p-1"
                     loading={isLoading}
+                    disabled={isLoading}
                     onClick={() => {
                         setIsLoading(true)
                         chargesApi
@@ -744,6 +748,7 @@ export const TransactionDetailsReceipt = ({
                         icon="cancel"
                         iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
                         iconClassName="p-1"
+                        disabled={isLoading}
                         onClick={() => {
                             setIsLoading(true)
                             chargesApi
@@ -784,6 +789,7 @@ export const TransactionDetailsReceipt = ({
                 setIsLoading &&
                 onClose && (
                     <Button
+                        disabled={isLoading}
                         onClick={async () => {
                             setIsLoading(true)
                             try {
