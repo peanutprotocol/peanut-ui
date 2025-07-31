@@ -83,7 +83,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     transactionType={'WITHDRAW'}
                     recipientType="USERNAME"
                     recipientName={''}
-                    amount={formatAmount(amount)}
+                    amount={`${formatAmount(parseFloat(amount) * (selectedTokenData?.price ?? 1))}`}
                     tokenSymbol="USDC"
                 />
 

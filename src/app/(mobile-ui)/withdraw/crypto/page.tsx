@@ -48,6 +48,7 @@ export default function WithdrawCryptoPage() {
         paymentError,
         setPaymentError,
         setError: setWithdrawError,
+        resetWithdrawFlow,
     } = useWithdrawFlow()
 
     const {
@@ -271,6 +272,13 @@ export default function WithdrawCryptoPage() {
 
         return fromChainId !== toChainId
     }, [withdrawData, activeChargeDetailsFromStore, isPeanutWallet])
+
+    // reset withdraw flow when this component unmounts
+    useEffect(() => {
+        return () => {
+            resetWithdrawFlow()
+        }
+    }, [resetWithdrawFlow])
 
     // Check for route type errors (similar to payment flow)
     const routeTypeError = useMemo<string | null>(() => {
