@@ -1,8 +1,6 @@
-import React from 'react'
 import Image from 'next/image'
-import { Star } from '@/assets'
 import scribble from '@/assets/scribble.svg'
-import peanutMeans from '@/assets/illustrations/peanut-means.svg'
+import { Button } from '../0_Bruddle'
 
 // Define the background color as a constant
 const businessBgColor = '#90A8ED'
@@ -16,13 +14,9 @@ export function BusinessIntegrate() {
             <div className="relative mx-auto max-w-3xl text-center">
                 {/* Main heading */}
                 <div className="mb-8 mt-8 md:mb-24 md:mt-20">
-                    <Image
-                        src={peanutMeans}
-                        alt="Peanut Means"
-                        width={600}
-                        height={120}
-                        className="mx-auto h-auto w-[95%] max-w-md md:w-full md:max-w-2xl"
-                    />
+                    <h1 className="font-roboto-flex-extrabold text-5xl font-extraBlack md:text-heading lg:text-headingMedium">
+                        PEANUT MEANS
+                    </h1>
                 </div>
 
                 {/* Stylized BUSINESS title using knerd fonts */}
@@ -48,10 +42,10 @@ export function BusinessIntegrate() {
 
                 {/* Subtitle with scribble around a word */}
                 <p
-                    className="mb-8 max-w-xs font-roboto text-xl font-medium leading-tight md:mb-16 md:max-w-none md:text-4xl"
+                    className="mb-8 px-4 font-roboto text-xl font-medium leading-tight md:mb-16 md:max-w-none md:px-0 md:text-4xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    PLUG-AND-PLAY MONEY RAILS <br /> FOR PRODUCTS THAT NEED TO MOVE FAST.
+                    ENTERPRISE PLUG-AND-PLAY MONEY RAILS <br /> FOR PRODUCTS THAT NEED TO MOVE FAST.
                 </p>
 
                 {/* CTA Button */}
@@ -59,10 +53,13 @@ export function BusinessIntegrate() {
                     href="https://peanutprotocol.notion.site/12c83811757980afb3b6d3e5a4c68f4d"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-shadow-primary-4 inline-block rounded-sm border-[1px] border-n-1 bg-white px-8 py-4 font-roboto text-base font-black text-n-1 hover:bg-grey-2 focus:outline-none md:px-10 md:py-4 md:text-lg"
-                    style={{ fontWeight: 900 }}
                 >
-                    INTEGRATE PEANUT
+                    <Button
+                        shadowSize="4"
+                        className="inline-block w-58 bg-white px-7 pb-11 pt-4 text-base font-extrabold hover:bg-white/90 md:w-72 md:px-10 md:text-lg"
+                    >
+                        INTEGRATE PEANUT
+                    </Button>
                 </a>
             </div>
         </section>

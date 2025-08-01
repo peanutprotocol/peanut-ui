@@ -51,8 +51,46 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     } = useCurrency(searchParams.get('currency'))
     const [currencyAmount, setCurrencyAmount] = useState<string>('')
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
+    const [isLinkCancelling, setisLinkCancelling] = useState(false)
 
     const isMountedRef = useRef(true)
+
+    const fetchChargeDetails = async () => {
+        if (!chargeId) return
+        chargesApi
+            .get(chargeId)
+            .then(async (charge) => {
+                dispatch(paymentActions.setChargeDetails(charge))
+
+                const isCurrencyValueReliable =
+                    charge.currencyCode === 'USD' &&
+                    charge.currencyAmount &&
+                    String(charge.currencyAmount) !== String(charge.tokenAmount)
+
+                if (isCurrencyValueReliable) {
+                    dispatch(paymentActions.setUsdAmount(Number(charge.currencyAmount).toFixed(2)))
+                } else {
+                    const priceData = await fetchTokenPrice(charge.tokenAddress, charge.chainId)
+                    if (priceData?.price) {
+                        const usdValue = Number(charge.tokenAmount) * priceData.price
+                        dispatch(paymentActions.setUsdAmount(usdValue.toFixed(2)))
+                    }
+                }
+
+                // check latest payment status if payments exist
+                if (charge.payments && charge.payments.length > 0) {
+                    const latestPayment = charge.payments[charge.payments.length - 1]
+
+                    // show STATUS view for any payment attempt (including failed ones)
+                    if (latestPayment.status !== 'NEW') {
+                        dispatch(paymentActions.setView('STATUS'))
+                    }
+                }
+            })
+            .catch((_err) => {
+                setError(getDefaultError(!!user))
+            })
+    }
 
     // prevent memory leaks
     useEffect(() => {
@@ -116,39 +154,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     useEffect(() => {
         // always show initial view, to let payer select token/chain of choice
         if (chargeId) {
-            chargesApi
-                .get(chargeId)
-                .then(async (charge) => {
-                    dispatch(paymentActions.setChargeDetails(charge))
-
-                    const isCurrencyValueReliable =
-                        charge.currencyCode === 'USD' &&
-                        charge.currencyAmount &&
-                        String(charge.currencyAmount) !== String(charge.tokenAmount)
-
-                    if (isCurrencyValueReliable) {
-                        dispatch(paymentActions.setUsdAmount(Number(charge.currencyAmount).toFixed(2)))
-                    } else {
-                        const priceData = await fetchTokenPrice(charge.tokenAddress, charge.chainId)
-                        if (priceData?.price) {
-                            const usdValue = Number(charge.tokenAmount) * priceData.price
-                            dispatch(paymentActions.setUsdAmount(usdValue.toFixed(2)))
-                        }
-                    }
-
-                    // check latest payment status if payments exist
-                    if (charge.payments && charge.payments.length > 0) {
-                        const latestPayment = charge.payments[charge.payments.length - 1]
-
-                        // show STATUS view for any payment attempt (including failed ones)
-                        if (latestPayment.status !== 'NEW') {
-                            dispatch(paymentActions.setView('STATUS'))
-                        }
-                    }
-                })
-                .catch((_err) => {
-                    setError(getDefaultError(!!user))
-                })
+            fetchChargeDetails()
         }
     }, [chargeId, dispatch, user])
 
@@ -322,7 +328,10 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             return
         }
 
-        dispatch(paymentActions.setView('STATUS'))
+        // show status view only if fulfillment payment is successful
+        if (chargeDetails?.fulfillmentPayment?.status === 'SUCCESSFUL') {
+            dispatch(paymentActions.setView('STATUS'))
+        }
 
         // only open transaction details drawer if not add money flow
         if (!isAddMoneyFlow) {
@@ -383,12 +392,12 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             </div>
         )
     }
-
     // default payment flow
     return (
         <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-center')}>
             {currentView === 'INITIAL' && (
                 <InitialPaymentView
+                    key={`initial-${flow}`}
                     {...(parsedPaymentData as ParsedURL)}
                     isAddMoneyFlow={isAddMoneyFlow}
                     isDirectUsdPayment={isDirectPay}
@@ -407,6 +416,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             )}
             {currentView === 'CONFIRM' && (
                 <ConfirmPaymentView
+                    key={`confirm-${flow}`}
                     isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
                     currencyAmount={currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined}
                     isAddMoneyFlow={isAddMoneyFlow}
@@ -418,9 +428,15 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     {parsedPaymentData?.token?.symbol === 'PNT' ? (
                         <PintaReqPaySuccessView />
                     ) : isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
-                        <TransactionDetailsReceipt transaction={selectedTransaction} />
+                        <TransactionDetailsReceipt
+                            transaction={selectedTransaction}
+                            onClose={fetchChargeDetails}
+                            setIsLoading={setisLinkCancelling}
+                            isLoading={isLinkCancelling}
+                        />
                     ) : (
                         <DirectSuccessView
+                            key={`success-${flow}`}
                             headerTitle={isAddMoneyFlow ? 'Add Money' : 'Send'}
                             recipientType={parsedPaymentData?.recipient?.recipientType}
                             type="SEND"

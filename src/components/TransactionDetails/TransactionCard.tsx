@@ -187,6 +187,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 isOpen={isDrawerOpen && selectedTransaction?.id === transaction.id}
                 onClose={closeTransactionDetails}
                 transaction={selectedTransaction}
+                transactionAmount={finalDisplayAmount}
             />
         </>
     )

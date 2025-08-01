@@ -344,3 +344,14 @@ Firefox input[type='number'] {
 input::placeholder {
     translate: no;
 }
+
+.enable-select {
+    @apply select-text;
+}
+
+.font-roboto-flex-extrabold {
+    font-family: var(--font-roboto-flex-bold), 'sans-serif';
+    font-weight: 1000;
+    line-height: 100%;
+    letter-spacing: -1px;
+}

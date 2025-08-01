@@ -22,8 +22,14 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     // track completed event from iframe and close the modal
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            if (event.data?.name === 'complete' && event.data?.metadata?.status === 'completed') {
+            const data = event.data
+            if (data?.name === 'complete' && data?.metadata?.status === 'completed') {
                 onClose('completed')
+            }
+            // @dev note: kinda hacky, but tos modal takes too long to close using websocket, so we use the signedAgreementId to close it
+            // persona fires this event when the user clicks the "accept" button within the iframe
+            if (data?.signedAgreementId) {
+                onClose('tos_accepted')
             }
         }
 
@@ -95,6 +101,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 </div>
                 <div className="h-full w-full flex-grow overflow-scroll">
                     <iframe
+                        key={src}
                         src={src}
                         allow="camera;"
                         style={{ width: '100%', height: '100%', border: 'none' }}

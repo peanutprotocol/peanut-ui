@@ -49,6 +49,8 @@ import { WalletOutlineIcon } from './wallet-outline'
 import { BadgeIcon } from './badge'
 import { UserIdIcon } from './user-id'
 import { ClockIcon } from './clock'
+import { DollarIcon } from './dollar'
+import { LinkShashIcon } from './link-slash'
 
 // available icon names
 export type IconName =
@@ -80,6 +82,7 @@ export type IconName =
     | 'currency'
     | 'achievements'
     | 'link'
+    | 'link-slash'
     | 'logout'
     | 'paperclip'
     | 'smile'
@@ -102,6 +105,7 @@ export type IconName =
     | 'badge'
     | 'user-id'
     | 'clock'
+    | 'dollar'
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
@@ -120,6 +124,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     check: CheckIcon,
     'chevron-up': ChevronUpIcon,
     download: DownloadIcon,
+    dollar: DollarIcon,
     eye: EyeIcon,
     'eye-slash': EyeSlashIcon,
     exchange: ExchangeIcon,
@@ -135,6 +140,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     currency: CurrencyIcon,
     achievements: AchievementsIcon,
     link: LinkIcon,
+    'link-slash': LinkShashIcon,
     logout: LogoutIcon,
     paperclip: PaperClipIcon,
     smile: SmileIcon,

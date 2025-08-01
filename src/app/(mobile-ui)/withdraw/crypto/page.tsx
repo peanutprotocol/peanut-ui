@@ -27,6 +27,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { captureMessage } from '@sentry/nextjs'
 import type { Address } from 'viem'
+import { Slider } from '@/components/Slider'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
@@ -35,6 +36,7 @@ export default function WithdrawCryptoPage() {
     const { isConnected: isPeanutWallet, address } = useWallet()
     const {
         amountToWithdraw,
+        usdAmount,
         setAmountToWithdraw,
         currentView,
         setCurrentView,
@@ -47,6 +49,7 @@ export default function WithdrawCryptoPage() {
         paymentError,
         setPaymentError,
         setError: setWithdrawError,
+        resetWithdrawFlow,
     } = useWithdrawFlow()
 
     const {
@@ -76,6 +79,10 @@ export default function WithdrawCryptoPage() {
     const clearErrors = useCallback(() => {
         setError(null)
     }, [setError])
+
+    useEffect(() => {
+        dispatch(paymentActions.resetPaymentState())
+    }, [dispatch])
 
     useEffect(() => {
         if (!amountToWithdraw) {
@@ -264,15 +271,15 @@ export default function WithdrawCryptoPage() {
         const fromChainId = isPeanutWallet ? PEANUT_WALLET_CHAIN.id.toString() : withdrawData.chain.chainId
         const toChainId = activeChargeDetailsFromStore.chainId
 
-        console.log('Cross-chain check:', {
-            fromChainId,
-            toChainId,
-            isPeanutWallet,
-            isCrossChain: fromChainId !== toChainId,
-        })
-
         return fromChainId !== toChainId
     }, [withdrawData, activeChargeDetailsFromStore, isPeanutWallet])
+
+    // reset withdraw flow when this component unmounts
+    useEffect(() => {
+        return () => {
+            resetWithdrawFlow()
+        }
+    }, [resetWithdrawFlow])
 
     // Check for route type errors (similar to payment flow)
     const routeTypeError = useMemo<string | null>(() => {
@@ -312,7 +319,7 @@ export default function WithdrawCryptoPage() {
         <div className="mx-auto h-full min-h-[inherit] w-full max-w-md space-y-4 self-center">
             {currentView === 'INITIAL' && (
                 <InitialWithdrawView
-                    amount={amountToWithdraw}
+                    amount={usdAmount}
                     onReview={handleSetupReview}
                     onBack={() => router.back()}
                     isProcessing={isPreparingReview}
@@ -321,7 +328,7 @@ export default function WithdrawCryptoPage() {
 
             {currentView === 'CONFIRM' && withdrawData && activeChargeDetailsFromStore && (
                 <ConfirmWithdrawView
-                    amount={amountToWithdraw}
+                    amount={usdAmount}
                     token={withdrawData.token}
                     chain={withdrawData.chain}
                     toAddress={withdrawData.address}
@@ -345,9 +352,9 @@ export default function WithdrawCryptoPage() {
                         headerTitle="Withdraw"
                         recipientType="ADDRESS"
                         type="SEND"
-                        currencyAmount={`$ ${amountToWithdraw}`}
+                        amount={usdAmount}
                         isWithdrawFlow={true}
-                        redirectTo="/withdraw"
+                        redirectTo="/home"
                         message={
                             <AddressLink
                                 className="text-sm font-normal text-grey-1 no-underline"
@@ -368,16 +375,16 @@ export default function WithdrawCryptoPage() {
                 title="Is this address compatible?"
                 description="Only send to address that support the selected network and token. Incorrect transfers may be lost."
                 icon="alert"
-                ctas={[
-                    {
-                        text: 'Proceed',
-                        onClick: handleCompatibilityProceed,
-                        variant: 'purple',
-                        shadowSize: '4',
-                        className: 'h-10 text-sm',
-                        icon: 'check-circle',
-                    },
-                ]}
+                footer={
+                    <div className="w-full">
+                        <Slider
+                            onValueChange={(v: boolean) => {
+                                if (!v) return
+                                handleCompatibilityProceed()
+                            }}
+                        />
+                    </div>
+                }
             />
         </div>
     )

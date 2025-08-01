@@ -26,6 +26,8 @@ export interface RecipientState {
 interface WithdrawFlowContextType {
     amountToWithdraw: string
     setAmountToWithdraw: (amount: string) => void
+    usdAmount: string
+    setUsdAmount: (amount: string) => void
     currentView: WithdrawView
     setCurrentView: (view: WithdrawView) => void
     withdrawData: WithdrawData | null
@@ -46,6 +48,8 @@ interface WithdrawFlowContextType {
     setError: (error: InitialViewErrorState) => void
     selectedBankAccount: Account | null
     setSelectedBankAccount: (account: Account | null) => void
+    showAllWithdrawMethods: boolean
+    setShowAllWithdrawMethods: (show: boolean) => void
     resetWithdrawFlow: () => void
 }
 
@@ -53,6 +57,7 @@ const WithdrawFlowContext = createContext<WithdrawFlowContextType | undefined>(u
 
 export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [amountToWithdraw, setAmountToWithdraw] = useState<string>('')
+    const [usdAmount, setUsdAmount] = useState<string>('')
     const [currentView, setCurrentView] = useState<WithdrawView>('INITIAL')
     const [withdrawData, setWithdrawData] = useState<WithdrawData | null>(null)
     const [showCompatibilityModal, setShowCompatibilityModal] = useState<boolean>(false)
@@ -67,6 +72,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
         errorMessage: '',
     })
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
+    const [showAllWithdrawMethods, setShowAllWithdrawMethods] = useState<boolean>(false)
 
     const resetWithdrawFlow = useCallback(() => {
         setAmountToWithdraw('')
@@ -76,12 +82,16 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
         setRecipient({ address: '', name: '' })
         setError({ showError: false, errorMessage: '' })
         setPaymentError(null)
+        setShowAllWithdrawMethods(false)
+        setUsdAmount('')
     }, [])
 
     const value = useMemo(
         () => ({
             amountToWithdraw,
             setAmountToWithdraw,
+            usdAmount,
+            setUsdAmount,
             currentView,
             setCurrentView,
             withdrawData,
@@ -102,6 +112,8 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             setError,
             selectedBankAccount,
             setSelectedBankAccount,
+            showAllWithdrawMethods,
+            setShowAllWithdrawMethods,
             resetWithdrawFlow,
         }),
         [
@@ -111,11 +123,14 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             showCompatibilityModal,
             isPreparingReview,
             paymentError,
+            usdAmount,
             isValidRecipient,
             inputChanging,
             recipient,
             error,
             selectedBankAccount,
+            showAllWithdrawMethods,
+            setShowAllWithdrawMethods,
             resetWithdrawFlow,
         ]
     )

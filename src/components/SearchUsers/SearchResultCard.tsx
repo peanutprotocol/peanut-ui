@@ -5,7 +5,7 @@ import { twMerge } from 'tailwind-merge'
 import { Button } from '../0_Bruddle'
 
 interface SearchResultCardProps {
-    title: string
+    title: string | React.ReactNode
     description?: string
     leftIcon?: React.ReactNode
     onClick: () => void

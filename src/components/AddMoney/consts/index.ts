@@ -158,6 +158,13 @@ export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
         isSoon: false,
     },
     {
+        id: 'crypto-add',
+        icon: 'wallet-outline' as IconName,
+        title: 'From Crypto',
+        description: 'Usually arrives instantly',
+        isSoon: false,
+    },
+    {
         id: 'mercado-pago-add',
         icon: MERCADO_PAGO,
         title: 'Mercado Pago',
@@ -187,6 +194,24 @@ export const DEFAULT_BANK_WITHDRAW_METHOD: SpecificPaymentMethod = {
     description: 'Standard bank withdrawal',
     isSoon: false,
 }
+
+export const DEFAULT_WITHDRAW_METHODS: SpecificPaymentMethod[] = [
+    {
+        id: 'crypto-withdraw',
+        icon: 'wallet-outline' as IconName,
+        title: 'Crypto',
+        description: 'Withdraw to a wallet address',
+        isSoon: false,
+        path: '/withdraw/crypto',
+    },
+    {
+        id: 'default-bank-withdraw',
+        icon: 'bank' as IconName,
+        title: 'To Bank',
+        description: 'Standard bank withdrawal',
+        isSoon: false,
+    },
+]
 
 const countrySpecificWithdrawMethods: Record<
     string,
@@ -248,13 +273,6 @@ export const countryData: CountryData[] = [
         title: 'United Arab Emirates',
         currency: 'AED',
         path: 'united-arab-emirates',
-    },
-    {
-        id: 'AF',
-        type: 'country',
-        title: 'Afghanistan',
-        currency: 'AFN',
-        path: 'afghanistan',
     },
     {
         id: 'AG',
@@ -481,13 +499,6 @@ export const countryData: CountryData[] = [
         path: 'botswana',
     },
     {
-        id: 'BY',
-        type: 'country',
-        title: 'Belarus',
-        currency: 'BYN',
-        path: 'belarus',
-    },
-    {
         id: 'BZ',
         type: 'country',
         title: 'Belize',
@@ -584,13 +595,6 @@ export const countryData: CountryData[] = [
         title: 'Costa Rica',
         currency: 'CRC',
         path: 'costa-rica',
-    },
-    {
-        id: 'CU',
-        type: 'country',
-        title: 'Cuba',
-        currency: 'CUP',
-        path: 'cuba',
     },
     {
         id: 'CV',
@@ -978,20 +982,6 @@ export const countryData: CountryData[] = [
         path: 'british-indian-ocean-territory',
     },
     {
-        id: 'IQ',
-        type: 'country',
-        title: 'Iraq',
-        currency: 'IQD',
-        path: 'iraq',
-    },
-    {
-        id: 'IR',
-        type: 'country',
-        title: 'Iran',
-        currency: 'IRR',
-        path: 'iran',
-    },
-    {
         id: 'ISL',
         type: 'country',
         title: 'Iceland',
@@ -1074,13 +1064,6 @@ export const countryData: CountryData[] = [
         title: 'Saint Kitts and Nevis',
         currency: 'XCD',
         path: 'saint-kitts-and-nevis',
-    },
-    {
-        id: 'KP',
-        type: 'country',
-        title: 'North Korea',
-        currency: 'KPW',
-        path: 'north-korea',
     },
     {
         id: 'KR',
@@ -1249,13 +1232,6 @@ export const countryData: CountryData[] = [
         title: 'Mali',
         currency: 'XOF',
         path: 'mali',
-    },
-    {
-        id: 'MM',
-        type: 'country',
-        title: 'Myanmar [Burma]',
-        currency: 'MMK',
-        path: 'myanmar-burma',
     },
     {
         id: 'MN',
@@ -1566,13 +1542,6 @@ export const countryData: CountryData[] = [
         path: 'serbia',
     },
     {
-        id: 'RU',
-        type: 'country',
-        title: 'Russia',
-        currency: 'RUB',
-        path: 'russia',
-    },
-    {
         id: 'RW',
         type: 'country',
         title: 'Rwanda',
@@ -1711,13 +1680,6 @@ export const countryData: CountryData[] = [
         title: 'Sint Maarten',
         currency: 'ANG',
         path: 'sint-maarten',
-    },
-    {
-        id: 'SY',
-        type: 'country',
-        title: 'Syria',
-        currency: 'SYP',
-        path: 'syria',
     },
     {
         id: 'SZ',
@@ -1893,13 +1855,6 @@ export const countryData: CountryData[] = [
         title: 'Saint Vincent and the Grenadines',
         currency: 'XCD',
         path: 'saint-vincent-and-the-grenadines',
-    },
-    {
-        id: 'VE',
-        type: 'country',
-        title: 'Venezuela',
-        currency: 'VEF',
-        path: 'venezuela',
     },
     {
         id: 'VG',
@@ -2131,6 +2086,14 @@ countryData.forEach((country) => {
             })
         }
 
+        const cryptoWithdrawMethod = DEFAULT_WITHDRAW_METHODS.find((m) => m.id === 'crypto-withdraw')
+        if (cryptoWithdrawMethod) {
+            const cryptoExists = withdrawList.some((m) => m.id === 'crypto-withdraw')
+            if (!cryptoExists) {
+                withdrawList.unshift(cryptoWithdrawMethod)
+            }
+        }
+
         // filter add methods: include Mercado Pago only for LATAM countries
         const currentAddMethods = UPDATED_DEFAULT_ADD_MONEY_METHODS.filter((method) => {
             if (method.id === 'mercado-pago-add') {
@@ -2142,6 +2105,9 @@ countryData.forEach((country) => {
             if (newMethod.id === 'bank-transfer-add') {
                 newMethod.path = `/add-money/${country.path}/bank`
                 newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode) || countryCode === 'MX'
+            } else if (newMethod.id === 'crypto-add') {
+                newMethod.path = `/add-money/crypto`
+                newMethod.isSoon = false
             } else {
                 newMethod.isSoon = true
             }

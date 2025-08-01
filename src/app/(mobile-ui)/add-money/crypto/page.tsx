@@ -6,21 +6,27 @@ import NetworkSelectionView, { SelectedNetwork } from '@/components/AddMoney/vie
 import TokenSelectionView from '@/components/AddMoney/views/TokenSelection.view'
 import ActionModal from '@/components/Global/ActionModal'
 import NavHeader from '@/components/Global/NavHeader'
+import { Slider } from '@/components/Slider'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { useEffect, useState } from 'react'
 
 type AddMoneyCryptoStep = 'sourceSelection' | 'tokenSelection' | 'networkSelection' | 'riskModal' | 'qrScreen'
 
 const AddMoneyCryptoPage = () => {
     const router = useRouter()
     const { address: peanutWalletAddress } = useWallet()
-    const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('sourceSelection')
-    const [selectedSource, setSelectedSource] = useState<CryptoSource | null>(null)
+    const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('tokenSelection') // hotfix for deposit - select tokenSelection view as default
+    const [selectedSource, setSelectedSource] = useState<CryptoSource | null>(CRYPTO_EXCHANGES[3]) // hotfix for deposit - select Other exhange by default
     const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(null)
     const [selectedNetwork, setSelectedNetwork] = useState<SelectedNetwork | null>(null)
     const [isRiskAccepted, setIsRiskAccepted] = useState(false)
+
+    useEffect(() => {
+        if (isRiskAccepted) {
+            setCurrentStep('qrScreen')
+        }
+    }, [isRiskAccepted])
 
     const handleCryptoSourceSelected = (source: CryptoSource) => {
         setSelectedSource(source)
@@ -38,12 +44,6 @@ const AddMoneyCryptoPage = () => {
         setCurrentStep('riskModal')
     }
 
-    const handleRiskContinue = () => {
-        if (isRiskAccepted) {
-            setCurrentStep('qrScreen')
-        }
-    }
-
     const resetSelections = () => {
         setSelectedToken(null)
         setSelectedNetwork(null)
@@ -51,6 +51,11 @@ const AddMoneyCryptoPage = () => {
     }
 
     const handleBackToSourceSelection = () => {
+        // hotfix for deposit - redirect to previous route if user is on tokenSelection and selected source is other-exchanges
+        if (selectedSource?.id === 'other-exchanges' && currentStep === 'tokenSelection') {
+            router.back()
+            return
+        }
         setCurrentStep('sourceSelection')
         setSelectedSource(null)
         resetSelections()
@@ -69,7 +74,7 @@ const AddMoneyCryptoPage = () => {
 
     const handleBackToNetworkSelectionFromQR = () => {
         if (selectedSource?.type === 'exchange') {
-            setCurrentStep('sourceSelection')
+            setCurrentStep('tokenSelection') // hotfix for deposit - redirect to tokenSelection view if user is on qrScreen and selected source is exchange
         } else {
             setCurrentStep('networkSelection')
         }
@@ -88,26 +93,19 @@ const AddMoneyCryptoPage = () => {
                         visible={true}
                         onClose={handleBackToNetworkSelectionFromRisk}
                         icon={'alert'}
+                        iconContainerClassName="bg-yellow-1"
                         title={`Only send ${selectedToken.symbol} on ${selectedNetwork.name}`}
-                        description="Sending funds via any other network will result in a permanent loss of funds. Peanut is not responsible for any loss of funds due to incorrect network selection."
-                        checkbox={{
-                            text: 'I understand and accept the risk.',
-                            checked: isRiskAccepted,
-                            onChange: setIsRiskAccepted,
-                        }}
-                        ctas={[
-                            {
-                                text: 'Continue',
-                                onClick: handleRiskContinue,
-                                disabled: !isRiskAccepted,
-                                variant: isRiskAccepted ? 'purple' : 'stroke',
-                                shadowSize: '4',
-                                className: twMerge(
-                                    !isRiskAccepted ? 'border-grey-2 text-grey-2' : '',
-                                    'text-black border border-black h-11 hover:text-black'
-                                ),
-                            },
-                        ]}
+                        description={
+                            <span className="text-sm">
+                                Sending funds via any other network will result in a <b>permanent loss.</b>
+                            </span>
+                        }
+                        footer={
+                            <div className="w-full">
+                                <Slider onValueChange={(v) => v && setIsRiskAccepted(true)} />
+                            </div>
+                        }
+                        ctas={[]}
                         modalPanelClassName="max-w-xs"
                     />
                 )}

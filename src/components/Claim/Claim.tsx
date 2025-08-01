@@ -24,6 +24,7 @@ import PeanutLoading from '../Global/PeanutLoading'
 import * as _consts from './Claim.consts'
 import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
+import { useGuestFlow } from '@/context/GuestFlowContext'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -51,7 +52,6 @@ export const Claim = ({}) => {
         password: '',
         recipient: '',
     })
-    const [claimToExternalWallet, setClaimToExternalWallet] = useState<boolean>(false)
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
     const { selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
@@ -61,7 +61,8 @@ export const Claim = ({}) => {
     const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
     const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useWallet()
-    const { user } = useAuth()
+    const { user, isFetchingUser } = useAuth()
+    const [isLinkCancelling, setisLinkCancelling] = useState(false)
 
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!claimLinkData) return null
@@ -196,10 +197,13 @@ export const Claim = ({}) => {
                 }
                 if (0 < price) setTokenPrice(price)
 
-                if (user && user.user.userId === sendLink.sender?.userId) {
-                    setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
-                } else {
-                    setLinkState(_consts.claimLinkStateType.CLAIM)
+                // perform user related checks only after user is fetched
+                if (!isFetchingUser) {
+                    if (user && user.user.userId === sendLink.sender?.userId) {
+                        setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
+                    } else {
+                        setLinkState(_consts.claimLinkStateType.CLAIM)
+                    }
                 }
             } catch (error) {
                 console.error(error)
@@ -207,7 +211,7 @@ export const Claim = ({}) => {
                 Sentry.captureException(error)
             }
         },
-        [user]
+        [user, isFetchingUser]
     )
 
     useEffect(() => {
@@ -272,15 +276,18 @@ export const Claim = ({}) => {
                             setUserId,
                             initialKYCStep,
                             setInitialKYCStep,
-                            claimToExternalWallet,
-                            setClaimToExternalWallet,
                         } as unknown as _consts.IClaimScreenProps
                     }
                 />
             )}
             {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <genericViews.WrongPasswordClaimLink />}
             {linkState === _consts.claimLinkStateType.NOT_FOUND && <genericViews.NotFoundClaimLink />}
-            <TransactionDetailsReceipt transaction={selectedTransaction} />
+            <TransactionDetailsReceipt
+                transaction={selectedTransaction}
+                setIsLoading={setisLinkCancelling}
+                isLoading={isLinkCancelling}
+                onClose={() => checkLink(window.location.href)}
+            />
         </PageContainer>
     )
 }

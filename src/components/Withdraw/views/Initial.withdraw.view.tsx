@@ -27,6 +27,7 @@ interface InitialWithdrawViewProps {
 }
 
 export default function InitialWithdrawView({ amount, onReview, onBack, isProcessing }: InitialWithdrawViewProps) {
+    const { usdAmount } = useWithdrawFlow()
     const router = useRouter()
     const {
         selectedTokenData,
@@ -83,7 +84,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     transactionType={'WITHDRAW'}
                     recipientType="USERNAME"
                     recipientName={''}
-                    amount={formatAmount(amount)}
+                    amount={`${formatAmount(parseFloat(usdAmount || amount))}`}
                     tokenSymbol="USDC"
                 />
 

@@ -1,10 +1,7 @@
-import React from 'react'
 import Image from 'next/image'
 import iphoneYourMoney1 from '@/assets/iphone-ss/iphone-your-money-1.png'
 import iphoneYourMoney2 from '@/assets/iphone-ss/iphone-your-money-2.png'
 import iphoneYourMoney3 from '@/assets/iphone-ss/iphone-your-money-3.png'
-import yourMoneyAnywhere from '@/assets/illustrations/your-money-anywhere.svg'
-import mobileYourMoneyAnywhere from '@/assets/illustrations/mobile-your-money-anywhere.svg'
 import freeGlobalTransfers from '@/assets/illustrations/free-global-transfers.svg'
 import payAnyoneAnywhere from '@/assets/illustrations/pay-anyone-anywhere.svg'
 import getPaidWorldwide from '@/assets/illustrations/get-paid-worldwide.svg'
@@ -53,22 +50,9 @@ export function YourMoney() {
         <section className="bg-secondary-1 px-4 py-12 text-n-1 md:py-16">
             <div className="mx-auto max-w-7xl">
                 <div className="mb-12 mt-4 text-center md:mb-20 md:mt-6 md:text-left">
-                    {/* Mobile version */}
-                    <Image
-                        src={mobileYourMoneyAnywhere}
-                        alt="Your Money, Anywhere"
-                        width={800}
-                        height={150}
-                        className="mx-auto block h-auto w-full md:hidden"
-                    />
-                    {/* Desktop version */}
-                    <Image
-                        src={yourMoneyAnywhere}
-                        alt="Your Money, Anywhere"
-                        width={800}
-                        height={150}
-                        className="mx-auto hidden h-auto w-3/4 max-w-sm md:mx-0 md:block md:max-w-4xl"
-                    />
+                    <h1 className="font-roboto-flex-extrabold text-6xl font-extraBlack md:text-6xl lg:text-headingMedium">
+                        YOUR MONEY, ANYWHERE
+                    </h1>
                 </div>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
                     {features.map((feature, index) => (
@@ -83,16 +67,8 @@ export function YourMoney() {
                                 />
                             </div>
                             <div>
-                                <div
-                                    className={`${index === 1 ? 'mb-3' : 'mb-4'} w-full max-w-sm text-left md:text-left`}
-                                >
-                                    <Image
-                                        src={feature.titleSvg}
-                                        alt={feature.title}
-                                        width={300}
-                                        height={60}
-                                        className="h-auto w-full max-w-[240px] md:mx-0 md:max-w-sm"
-                                    />
+                                <div className={`${index === 1 ? 'mb-3' : 'mb-4'} w-full text-left md:text-left`}>
+                                    <h3 className="font-roboto-flex-extrabold text-2xl lg:text-3xl">{feature.title}</h3>
                                 </div>
                                 <p
                                     className="w-full max-w-[360px] text-left font-roboto text-lg font-normal leading-relaxed md:text-lg"
