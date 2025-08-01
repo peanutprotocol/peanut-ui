@@ -265,6 +265,8 @@ async function getSquidRouteRaw(params: SquidGetRouteParams, options: RouteOptio
     })
 
     if (!response.ok) {
+        console.error(`Failed to get route: ${response.status}`)
+        console.dir(await response.json())
         throw new Error(`Failed to get route: ${response.status}`)
     }
 
