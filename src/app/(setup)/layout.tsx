@@ -20,7 +20,12 @@ const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
         dispatch(setupActions.setSteps(filteredSteps))
     }, [isPWA])
 
-    return <>{children}</>
+    return (
+        <>
+            <Banner />
+            {children}
+        </>
+    )
 }
 
 export default SetupLayout
