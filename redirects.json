@@ -37,12 +37,12 @@
     },
     {
         "source": "/pints",
-        "destination": "/setup",
+        "destination": "https://lu.ma/7j6g06rq",
         "permanent": false
     },
     {
         "source": "/events",
-        "destination": "/setup",
+        "destination": "https://lu.ma/7j6g06rq",
         "permanent": false
     }
 ]
