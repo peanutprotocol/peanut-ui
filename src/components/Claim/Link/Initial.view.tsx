@@ -18,7 +18,6 @@ import {
     PINTA_WALLET_CHAIN,
     PINTA_WALLET_TOKEN,
     ROUTE_NOT_FOUND_ERROR,
-    SQUID_API_URL,
 } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
@@ -37,11 +36,11 @@ import {
 } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
-import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
+import type { Address } from 'viem'
 import { IClaimScreenProps } from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
 import GuestActionList from '@/components/GuestActions/MethodList'
@@ -51,6 +50,7 @@ import { Slider } from '@/components/Slider'
 import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { BankFlowManager } from './views/BankFlowManager.view'
+import { type PeanutCrossChainRoute, getRoute } from '@/services/swap'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const {
@@ -80,7 +80,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [isXchainLoading, setIsXchainLoading] = useState<boolean>(false)
-    const [routes, setRoutes] = useState<any[]>([])
+    const [routes, setRoutes] = useState<PeanutCrossChainRoute[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
     const [showConfirmationModal, setShowConfirmationModal] = useState<boolean>(false)
 
@@ -371,7 +371,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
         ) {
             setIsXChain(false)
-            setSelectedRoute(null)
+            setSelectedRoute(undefined)
             setHasFetchedRoute(false)
         } else {
             setIsXChain(true)
@@ -388,10 +388,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             try {
                 const existingRoute = routes.find(
                     (route) =>
-                        route.fromChain === claimLinkData.chainId &&
-                        route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
-                        route.toChain === (toChain || selectedChainID) &&
-                        areEvmAddressesEqual(route.toToken, toToken || selectedTokenAddress)
+                        route.rawResponse.route.estimate.fromToken.chainId === claimLinkData.chainId &&
+                        areEvmAddressesEqual(
+                            route.rawResponse.route.estimate.fromToken.address,
+                            claimLinkData.tokenAddress
+                        ) &&
+                        route.rawResponse.route.estimate.toToken.chainId === (toChain || selectedChainID) &&
+                        areEvmAddressesEqual(
+                            route.rawResponse.route.estimate.toToken.address,
+                            toToken || selectedTokenAddress
+                        )
                 )
 
                 if (existingRoute) {
@@ -409,20 +415,26 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         ? SQUID_ETH_ADDRESS
                         : claimLinkData.tokenAddress.toLowerCase()
 
-                const route = await getSquidRouteRaw({
-                    squidRouterUrl: `${SQUID_API_URL}/v2/route`,
-                    fromChain: claimLinkData.chainId.toString(),
-                    fromToken: fromToken,
-                    fromAmount: tokenAmount.toString(),
-                    toChain: toChain ? toChain : selectedChainID.toString(),
-                    toToken: toToken ? toToken : selectedTokenAddress,
-                    slippage: 1,
-                    fromAddress: claimLinkData.sender?.accounts[0].identifier ?? claimLinkData.senderAddress,
-                    toAddress:
-                        recipientType === 'us' || recipientType === 'iban'
-                            ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
-                            : recipient.address || '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-                })
+                const route = await getRoute(
+                    {
+                        from: {
+                            address: (claimLinkData.sender?.accounts[0].identifier ??
+                                claimLinkData.senderAddress) as Address,
+                            tokenAddress: fromToken as Address,
+                            chainId: claimLinkData.chainId,
+                        },
+                        to: {
+                            address:
+                                recipientType === 'us' || recipientType === 'iban'
+                                    ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
+                                    : (recipient.address as Address) || '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
+                            tokenAddress: (toToken ? toToken : selectedTokenAddress) as Address,
+                            chainId: toChain ? toChain : selectedChainID,
+                        },
+                        fromAmount: tokenAmount,
+                    },
+                    { disableCoral: true }
+                )
 
                 setRoutes([...routes, route])
                 if (!toToken && !toChain) {
@@ -500,7 +512,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }, [recipientType])
 
     useEffect(() => {
-        setSelectedRoute(null)
+        setSelectedRoute(undefined)
         setHasFetchedRoute(false)
 
         if (isPeanutWallet) {
