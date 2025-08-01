@@ -5,6 +5,7 @@ export * from './balance.utils'
 export * from './sentry.utils'
 export * from './token.utils'
 export * from './onramp.utils'
+export * from './ens.utils'
 
 // Bridge utils - explicit exports to avoid naming conflicts
 export {
