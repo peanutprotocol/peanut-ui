@@ -1,9 +1,6 @@
 'use client'
 
-import { MarqueeWrapper } from '@/components/Global/MarqueeWrapper'
 import { useRouter } from 'next/navigation'
-import { HandThumbsUp } from '@/assets'
-import Image from 'next/image'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TopNavbar from '@/components/Global/TopNavbar'
@@ -20,6 +17,7 @@ import PullToRefresh from 'pulltorefreshjs'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
+import { Banner } from '@/components/Global/Banner'
 
 const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$)/
 
@@ -104,7 +102,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 {/* Main content area */}
                 <div className="flex w-full flex-1 flex-col">
                     {/* Only show banner if not on landing page */}
-                    {pathName !== '/' && (
+                    {/* {pathName !== '/' && (
                         <button onClick={() => router.push('/support')} className="w-full cursor-pointer">
                             <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
                                 <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
@@ -113,7 +111,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                                 </span>
                             </MarqueeWrapper>
                         </button>
-                    )}
+                    )} */}
+
+                    {/* temp show maintainace banner */}
+                    {pathName !== '/' && <Banner />}
+
                     {/* Fixed top navbar */}
                     {showFullPeanutWallet && (
                         <div className="sticky top-0 z-10 w-full">
