@@ -369,7 +369,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             router.push(`/send/${username}`)
         }
         return (
-            <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-start')}>
+            <div className={twMerge('mx-auto h-full w-full space-y-8 self-start')}>
                 <PublicProfile
                     username={username}
                     isVerified={user?.user.kycStatus === 'approved'}
@@ -394,7 +394,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     }
     // default payment flow
     return (
-        <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-center')}>
+        <div className={twMerge('mx-auto h-full w-full space-y-8 self-center')}>
             {currentView === 'INITIAL' && (
                 <InitialPaymentView
                     key={`initial-${flow}`}

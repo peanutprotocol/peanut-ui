@@ -613,7 +613,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex flex-col justify-between gap-8">
             {!!user?.user.userId || showGuestActionsList ? (
                 <div className="md:hidden">
                     <NavHeader

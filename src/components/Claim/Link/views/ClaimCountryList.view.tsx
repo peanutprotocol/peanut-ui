@@ -39,7 +39,7 @@ export const ClaimCountryListView = ({ claimLinkData }: Pick<IClaimScreenProps, 
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+        <div className="flex flex-col justify-normal gap-8">
             <NavHeader title="Receive" onPrev={() => setGuestFlowStep(null)} />
             <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
                 <PeanutActionDetailsCard

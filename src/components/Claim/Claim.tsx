@@ -238,7 +238,7 @@ export const Claim = ({}) => {
     }, [linkState, transactionForDrawer])
 
     return (
-        <PageContainer className="min-h-[inherit] pb-5">
+        <PageContainer alignItems="center">
             {linkState === _consts.claimLinkStateType.LOADING && <PeanutLoading />}
             {linkState === _consts.claimLinkStateType.CLAIM && (
                 <FlowManager

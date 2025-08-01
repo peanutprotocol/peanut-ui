@@ -597,7 +597,7 @@ export const PaymentForm = ({
     }, [error])
 
     return (
-        <div className="flex h-full min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex h-full flex-col justify-between gap-8">
             <NavHeader onPrev={router.back} title={isAddMoneyFlow ? 'Add Money' : 'Send'} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isExternalWalletConnected && isUsingExternalWallet && (
