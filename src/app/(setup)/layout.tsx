@@ -6,7 +6,6 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect } from 'react'
 import { setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
-import { Banner } from '@/components/Global/Banner'
 
 const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
     const dispatch = useAppDispatch()
@@ -20,12 +19,7 @@ const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
         dispatch(setupActions.setSteps(filteredSteps))
     }, [isPWA])
 
-    return (
-        <>
-            <Banner />
-            {children}
-        </>
-    )
+    return <>{children}</>
 }
 
 export default SetupLayout
