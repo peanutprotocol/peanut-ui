@@ -403,7 +403,7 @@ export const PaymentForm = ({
             currency,
             currencyAmount,
             isAddMoneyFlow: !!isAddMoneyFlow,
-            transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectUsdPayment ? 'DIRECT_SEND' : 'REQUEST',
+            transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectUsdPayment || !requestId ? 'DIRECT_SEND' : 'REQUEST',
             attachmentOptions: attachmentOptions,
         }
 
@@ -655,7 +655,7 @@ export const PaymentForm = ({
                 {!(chain && isPeanutWalletConnected) && isConnected && !isAddMoneyFlow && (
                     <div className="space-y-2">
                         {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
-                            <div className="text-sm font-bold">Select token and chain to pay with</div>
+                            <div className="text-sm font-bold">Select token and chain to receive</div>
                         )}
                         <TokenSelector viewType="req_pay" />
                         {!isPeanutWalletUSDC && selectedTokenAddress && selectedChainID && (

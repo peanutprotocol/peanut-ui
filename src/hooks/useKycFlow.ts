@@ -137,9 +137,14 @@ export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
                 })
             } else if (source === 'completed') {
                 // if we just closed the kyc link after completion, open the "in progress" modal.
+                setIframeOptions((prev) => ({ ...prev, visible: false }))
                 setIsVerificationProgressModalOpen(true)
             } else if (source === 'manual' && flow === 'add') {
                 router.push('/add-money')
+            }
+            // if user is in withdraw flow, and they close on the ToS acceptance page
+            else {
+                setIframeOptions((prev) => ({ ...prev, visible: false }))
             }
         },
         [iframeOptions.src, apiResponse, flow, router]

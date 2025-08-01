@@ -18,6 +18,7 @@ export enum EHistoryEntryType {
     WITHDRAW = 'WITHDRAW',
     BRIDGE_OFFRAMP = 'BRIDGE_OFFRAMP',
     BRIDGE_ONRAMP = 'BRIDGE_ONRAMP',
+    BRIDGE_GUEST_OFFRAMP = 'BRIDGE_GUEST_OFFRAMP',
 }
 
 export enum EHistoryUserRole {
@@ -198,7 +199,8 @@ export function useTransactionHistory({
                     }
                     case EHistoryEntryType.WITHDRAW:
                     case EHistoryEntryType.BRIDGE_OFFRAMP:
-                    case EHistoryEntryType.BRIDGE_ONRAMP: {
+                    case EHistoryEntryType.BRIDGE_ONRAMP:
+                    case EHistoryEntryType.BRIDGE_GUEST_OFFRAMP: {
                         tokenSymbol = entry.tokenSymbol
                         usdAmount = entry.amount.toString()
                         break

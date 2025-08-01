@@ -4,7 +4,7 @@ import Icon from '@/components/Global/Icon'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { BASE_URL } from '@/constants'
-import { HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { EHistoryEntryType, HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
@@ -16,6 +16,7 @@ import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem } from '../Kyc/KycStatusItem'
 import { isKycStatusItem, KycHistoryEntry } from '@/hooks/useKycFlow'
 import { KYCStatus } from '@/utils'
+import { useWallet } from '@/hooks/wallet/useWallet'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -35,13 +36,26 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
         error,
     } = useTransactionHistory({ mode, limit, username, filterMutualTxs, enabled: isLoggedIn })
     const kycStatus: KYCStatus = user?.user?.kycStatus || 'not_started'
+    // check if the username is the same as the current user
+    const isSameUser = username === user?.user.username
+    const { fetchBalance, getRewardWalletBalance } = useWallet()
 
     // WebSocket for real-time updates
     const { historyEntries: wsHistoryEntries } = useWebSocket({
         username, // Pass the username to the WebSocket hook
-        onHistoryEntry: useCallback(() => {
-            // Optionally show a toast or notification when new entries arrive
-        }, []),
+        onHistoryEntry: useCallback(
+            (entry: HistoryEntry) => {
+                // for direct send and completed requests, fetch the balance
+                if (
+                    entry.type === EHistoryEntryType.DIRECT_SEND ||
+                    (entry.type === EHistoryEntryType.REQUEST && entry.status.toUpperCase() === 'COMPLETED')
+                ) {
+                    fetchBalance()
+                    getRewardWalletBalance()
+                }
+            },
+            [fetchBalance, getRewardWalletBalance]
+        ),
     })
 
     // Combine fetched history with real-time updates
@@ -82,7 +96,14 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
             })
 
             // Add KYC status item if applicable and not on a public page
-            if (user?.user?.kycStatus && user.user.kycStatus !== 'not_started' && user.user.kycStartedAt && !isPublic) {
+            // and the user is viewing their own history
+            if (
+                isSameUser &&
+                user?.user?.kycStatus &&
+                user.user.kycStatus !== 'not_started' &&
+                user.user.kycStartedAt &&
+                !isPublic
+            ) {
                 entries.push({
                     isKyc: true,
                     timestamp: user.user.kycStartedAt,
@@ -143,7 +164,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     if (!combinedEntries.length) {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                {kycStatus !== 'not_started' && (
+                {isSameUser && kycStatus !== 'not_started' && (
                     <div className="space-y-3">
                         <h2 className="text-base font-bold">Activity</h2>
                         <KycStatusItem position="single" />
@@ -192,7 +213,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     </div>
                 </>
             )}
-            {isPublic ? (
+            {!isSameUser ? (
                 <h2 className="text-base font-bold">Latest Transactions</h2>
             ) : (
                 <Link href="/history" className="flex items-center justify-between">

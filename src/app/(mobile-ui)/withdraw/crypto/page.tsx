@@ -36,6 +36,7 @@ export default function WithdrawCryptoPage() {
     const { isConnected: isPeanutWallet, address } = useWallet()
     const {
         amountToWithdraw,
+        usdAmount,
         setAmountToWithdraw,
         currentView,
         setCurrentView,
@@ -48,6 +49,7 @@ export default function WithdrawCryptoPage() {
         paymentError,
         setPaymentError,
         setError: setWithdrawError,
+        resetWithdrawFlow,
     } = useWithdrawFlow()
 
     const {
@@ -272,6 +274,13 @@ export default function WithdrawCryptoPage() {
         return fromChainId !== toChainId
     }, [withdrawData, activeChargeDetailsFromStore, isPeanutWallet])
 
+    // reset withdraw flow when this component unmounts
+    useEffect(() => {
+        return () => {
+            resetWithdrawFlow()
+        }
+    }, [resetWithdrawFlow])
+
     // Check for route type errors (similar to payment flow)
     const routeTypeError = useMemo<string | null>(() => {
         if (!isCrossChainWithdrawal || !xChainRoute || !isPeanutWallet) return null
@@ -310,7 +319,7 @@ export default function WithdrawCryptoPage() {
         <div className="mx-auto h-full min-h-[inherit] w-full max-w-md space-y-4 self-center">
             {currentView === 'INITIAL' && (
                 <InitialWithdrawView
-                    amount={amountToWithdraw}
+                    amount={usdAmount}
                     onReview={handleSetupReview}
                     onBack={() => router.back()}
                     isProcessing={isPreparingReview}
@@ -319,7 +328,7 @@ export default function WithdrawCryptoPage() {
 
             {currentView === 'CONFIRM' && withdrawData && activeChargeDetailsFromStore && (
                 <ConfirmWithdrawView
-                    amount={amountToWithdraw}
+                    amount={usdAmount}
                     token={withdrawData.token}
                     chain={withdrawData.chain}
                     toAddress={withdrawData.address}
@@ -343,9 +352,9 @@ export default function WithdrawCryptoPage() {
                         headerTitle="Withdraw"
                         recipientType="ADDRESS"
                         type="SEND"
-                        amount={amountToWithdraw}
+                        amount={usdAmount}
                         isWithdrawFlow={true}
-                        redirectTo="/withdraw"
+                        redirectTo="/home"
                         message={
                             <AddressLink
                                 className="text-sm font-normal text-grey-1 no-underline"

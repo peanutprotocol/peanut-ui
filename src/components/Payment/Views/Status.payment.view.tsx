@@ -7,7 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { PEANUT_WALLET_TOKEN_SYMBOL, TRANSACTIONS, BASE_URL } from '@/constants'
+import { TRANSACTIONS, BASE_URL } from '@/constants'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
@@ -74,14 +74,17 @@ const DirectSuccessView = ({
         return amount ?? chargeDetails?.tokenAmount ?? '0'
     }, [amount, chargeDetails])
 
+    // always show values in USD – never in tokens
     const displayAmount = useMemo(() => {
-        if (usdAmount) return `$ ${formatAmount(Number(usdAmount))}`
+        // 1. explicit currency amount
         if (currencyAmount) return currencyAmount
-        if (!chargeDetails && !!amountValue) return `$ ${formatAmount(amountValue)}`
-        return chargeDetails?.tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase()
-            ? `$ ${formatAmount(amountValue)}`
-            : `${formatAmount(amountValue)} ${chargeDetails?.tokenSymbol ?? 'USDC'}`
-    }, [amountValue, chargeDetails, currencyAmount, usdAmount])
+
+        // 2. usdAmount - comes from charge response
+        if (usdAmount) return `$ ${formatAmount(Number(usdAmount))}`
+
+        // 3. fallback: we only know the raw amount which is USD
+        return `$ ${formatAmount(amountValue)}`
+    }, [amountValue, currencyAmount, usdAmount])
 
     // construct transaction details for the drawer
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
