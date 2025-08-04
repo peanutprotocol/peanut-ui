@@ -114,6 +114,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             </MarqueeWrapper>
                         </button>
                     )}
+
                     {/* Fixed top navbar */}
                     {showFullPeanutWallet && (
                         <div className="sticky top-0 z-10 w-full">
