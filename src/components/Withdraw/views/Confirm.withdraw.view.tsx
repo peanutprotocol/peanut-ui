@@ -138,7 +138,7 @@ export default function ConfirmWithdrawView({
                                 )}
                                 <span>
                                     {resolvedTokenSymbol || token.symbol} on{' '}
-                                    <span className="capitalize">{resolvedChainName || chain.axelarChainName}</span>
+                                    <span className="capitalize">{resolvedChainName || chain.networkName}</span>
                                 </span>
                             </div>
                         }

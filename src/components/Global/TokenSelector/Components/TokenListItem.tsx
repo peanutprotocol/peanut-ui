@@ -36,7 +36,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
     const chainDetails = useMemo(() => {
         const chain = supportedSquidChainsAndTokens[String(balance.chainId)]
         return {
-            name: chain?.axelarChainName || `Chain ${balance.chainId}`,
+            name: chain?.networkName || `Chain ${balance.chainId}`,
             iconURI: chain?.chainIconURI,
         }
     }, [supportedSquidChainsAndTokens, balance.chainId])

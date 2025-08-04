@@ -8,7 +8,7 @@ export function mapToIPeanutChainDetailsArray(
     const combinedArray: _interfaces.CombinedType[] = []
     data.forEach((chain) => {
         const chainDetails: interfaces.IPeanutChainDetails = {
-            name: chain.axelarChainName || '',
+            name: chain.networkName || '',
             chain: chain.chainType || '',
             icon: {
                 url: chain.chainIconURI || '',

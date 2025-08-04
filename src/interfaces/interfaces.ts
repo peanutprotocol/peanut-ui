@@ -110,12 +110,6 @@ export interface ILinkDetails {
     rawOnchainDepositInfo: {}
 }
 
-interface IChain {
-    chainId: string
-    axelarChainName: string
-    chainType: string
-}
-
 export interface IToken {
     chainId: string
     address: string
