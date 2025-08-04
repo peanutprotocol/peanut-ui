@@ -1,6 +1,6 @@
 import { fetchWithSentry } from '@/utils'
 import { NextResponse } from 'next/server'
-import { SQUID_API_URL, SQUID_INTEGRATOR_ID, DEFAULT_SQUID_INTEGRATOR_ID } from '@/constants'
+import { SQUID_API_URL, SQUID_INTEGRATOR_ID, SQUID_INTEGRATOR_ID_WITHOUT_CORAL } from '@/constants'
 
 /**
  * Health check for Squid API
@@ -10,7 +10,7 @@ export async function GET() {
     const startTime = Date.now()
 
     try {
-        if (!SQUID_INTEGRATOR_ID && !DEFAULT_SQUID_INTEGRATOR_ID) {
+        if (!SQUID_INTEGRATOR_ID && !SQUID_INTEGRATOR_ID_WITHOUT_CORAL) {
             return NextResponse.json(
                 {
                     status: 'unhealthy',
@@ -40,7 +40,7 @@ export async function GET() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-integrator-id': DEFAULT_SQUID_INTEGRATOR_ID!,
+                'x-integrator-id': SQUID_INTEGRATOR_ID_WITHOUT_CORAL!,
             },
             body: JSON.stringify(regularRouteParams),
         })
