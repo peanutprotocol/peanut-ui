@@ -132,16 +132,13 @@ export const usePaymentInitiator = () => {
             loadingStep !== 'Charge Created',
         [loadingStep]
     )
-
-    // reset state
-    useEffect(() => {
+    const reset = useCallback(() => {
         setError(null)
         setLoadingStep('Idle')
         setIsFeeEstimationError(false)
         setIsCalculatingFees(false)
         setIsPreparingTx(false)
         setIsEstimatingGas(false)
-
         setUnsignedTx(null)
         setXChainUnsignedTxs(null)
         setXChainRoute(undefined)
@@ -150,7 +147,13 @@ export const usePaymentInitiator = () => {
         setEstimatedGasCostUsd(undefined)
         setTransactionHash(null)
         setPaymentDetails(null)
-    }, [selectedChainID, selectedTokenAddress, requestDetails])
+        setCreatedChargeDetails(null)
+    }, [])
+
+    // reset state
+    useEffect(() => {
+        reset()
+    }, [selectedChainID, selectedTokenAddress, requestDetails, reset])
 
     const handleError = useCallback(
         (err: unknown, step: string): InitiationResult => {
@@ -766,5 +769,6 @@ export const usePaymentInitiator = () => {
         diffTokens,
         cancelOperation,
         xChainRoute,
+        reset,
     }
 }
