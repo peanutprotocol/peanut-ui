@@ -13,6 +13,7 @@ export const MAINTAINABLE_ROUTES = {
 const config: MaintenanceConfig = {
     routes: [
         MAINTAINABLE_ROUTES.CASHOUT, // Routes under maintenance
+        // '/', // put all routes under maintenance
     ],
 }
 
