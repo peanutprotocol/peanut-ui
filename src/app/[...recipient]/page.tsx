@@ -158,6 +158,7 @@ export async function generateMetadata({ params, searchParams }: any) {
 export default function Page(props: PageProps) {
     const params = use(props.params)
     const recipient = params.recipient ?? []
+
     return (
         <PageContainer>
             <PaymentPage recipient={recipient} />

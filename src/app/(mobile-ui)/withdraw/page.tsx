@@ -196,7 +196,7 @@ export default function WithdrawPage() {
 
     if (step === 'inputAmount') {
         return (
-            <div className="flex flex-col justify-start space-y-8">
+            <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
                 <NavHeader title="Withdraw" onPrev={() => router.push('/home')} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="text-sm font-bold">Amount to withdraw</div>

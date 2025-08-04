@@ -394,7 +394,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     }
     // default payment flow
     return (
-        <div className={twMerge('mx-auto h-full w-full space-y-8 self-center')}>
+        <div className={twMerge('mx-auto min-h-[inherit] w-full space-y-8 self-center')}>
             {currentView === 'INITIAL' && (
                 <InitialPaymentView
                     key={`initial-${flow}`}

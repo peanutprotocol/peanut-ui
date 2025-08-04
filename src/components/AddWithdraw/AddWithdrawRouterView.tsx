@@ -190,7 +190,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
     if (flow === 'withdraw' && savedAccounts.length === 0 && !shouldShowAllMethods) {
         return (
-            <div className="flex flex-col justify-start gap-8">
+            <div className="flex min-h-[inherit] flex-col justify-start gap-8">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <Card className="my-auto flex flex-col items-center justify-center gap-4 p-4">
                     <div className="space-y-2">
@@ -215,7 +215,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     // Render saved accounts for withdraw flow if they exist and we're not in 'showAll' mode
     if (flow === 'withdraw' && !shouldShowAllMethods && savedAccounts.length > 0) {
         return (
-            <div className="flex flex-col justify-normal gap-8">
+            <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <div className="space-y-4">
                     <div className="flex h-full flex-col justify-center space-y-2">
@@ -247,7 +247,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         }))
 
         return (
-            <div className="flex flex-col justify-normal gap-6">
+            <div className="flex min-h-[inherit] flex-col justify-normal gap-6">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <div className="flex h-full flex-col justify-center space-y-2">
                     <h2 className="text-base font-bold">Recent methods</h2>
@@ -272,7 +272,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
     // show all methods view for both flows
     return (
-        <div className="flex flex-col justify-normal gap-8">
+        <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
             <NavHeader
                 title={pageTitle}
                 onPrev={() => {
