@@ -6,10 +6,8 @@ import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
-import BottomDrawer from '@/components/Global/BottomDrawer'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
-import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { IToken, IUserBalance } from '@/interfaces'
 import { areEvmAddressesEqual, formatTokenAmount, isNativeCurrency } from '@/utils'
 import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
@@ -27,6 +25,7 @@ import {
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
 import { fetchWalletBalances } from '@/app/actions/tokens'
+import { Drawer, DrawerContent } from '../Drawer'
 
 interface SectionProps {
     title: string
@@ -55,7 +54,6 @@ interface NewTokenSelectorProps {
 const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other', disabled }) => {
     // state to track content height
     const contentRef = useRef<HTMLDivElement>(null)
-    const drawerHeightVh = useDynamicHeight(contentRef, { maxHeightVh: 90, minHeightVh: 10, extraVhOffset: 5 })
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [searchValue, setSearchValue] = useState('')
     const [showNetworkList, setShowNetworkList] = useState(false)
@@ -481,9 +479,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         )
     }
 
-    const currentExpandedHeight = drawerHeightVh ?? 80
-    const currentHalfHeight = Math.min(60, drawerHeightVh ?? 60)
-
     const popularTokensListTitle = useMemo(() => {
         if (searchValue && !isExternalWalletConnected) return 'Search Results'
         if (selectedChainID && selectedNetworkName) return `Popular tokens on ${selectedNetworkName}`
@@ -578,133 +573,130 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 </div>
             </Button>
 
-            <BottomDrawer
-                isOpen={isDrawerOpen}
-                onClose={closeDrawer}
-                initialPosition="expanded"
-                expandedHeight={currentExpandedHeight}
-                halfHeight={currentHalfHeight}
-                collapsedHeight={10}
-            >
-                <div ref={contentRef} className="mx-auto md:max-w-2xl">
-                    {showNetworkList ? (
-                        <NetworkListView
-                            chains={supportedSquidChainsAndTokens}
-                            onSelectChain={handleChainSelectFromList}
-                            onBack={() => setShowNetworkList(false)}
-                            searchValue={networkSearchValue}
-                            setSearchValue={setNetworkSearchValue}
-                            selectedChainID={selectedChainID}
-                            allowedChainIds={allowedChainIds}
-                            comingSoonNetworks={TOKEN_SELECTOR_COMING_SOON_NETWORKS}
-                        />
-                    ) : (
-                        <div className="relative flex flex-col space-y-4">
-                            {/* Popular chains section - rendered for all views */}
-                            <>
-                                <Section title="Select a network">
-                                    <div className="flex flex-col gap-4">
-                                        <div className="flex items-stretch justify-between space-x-2">
-                                            {popularChainsForButtons.map((chain) => (
-                                                <NetworkButton
-                                                    key={chain.chainId}
-                                                    chainName={chain.name}
-                                                    chainIconURI={chain.iconURI}
-                                                    onClick={() => {
-                                                        if (selectedChainID === chain.chainId) {
-                                                            setSelectedChainID('') // clear selection if already selected
-                                                        } else {
-                                                            setSelectedChainID(chain.chainId) //otherwise, select it
-                                                        }
-                                                    }}
-                                                    isSelected={chain.chainId === selectedChainID}
-                                                />
-                                            ))}
-                                            <NetworkButton
-                                                chainName="Search"
-                                                isSearch={true}
-                                                onClick={handleSearchNetwork}
-                                            />
-                                        </div>
-                                    </div>
-                                </Section>
-                                <Divider className="p-0" dividerClassname="border-grey-1" />
-                            </>
-
-                            <div className="sticky -top-1 z-10 space-y-2 bg-background py-3">
-                                <SearchInput
-                                    value={searchValue}
-                                    onChange={setSearchValue}
-                                    onClear={() => setSearchValue('')}
-                                    placeholder="Search for a token or paste address"
-                                />
-                                <div className="flex items-center justify-center gap-2">
-                                    <Icon name="info" size={10} className="text-grey-1" />
-                                    <span className="text-xs font-normal text-grey-1">
-                                        Transactions using USDC on Arbitrum are sponsored
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Popular tokens section - rendered only when there is no wallet connected */}
-                            {showPopularTokensList && (
-                                <Section
-                                    title={popularTokensListTitle}
-                                    icon={searchValue ? 'search' : 'star'}
-                                    titleClassName="text-grey-1 font-medium"
-                                    className="relative space-y-4"
-                                >
-                                    {selectedNetworkName && clearChainSelection()}
-                                    <ScrollableList>
-                                        {filteredPopularTokensToDisplay.length > 0 ? (
-                                            filteredPopularTokensToDisplay.map((token) => {
-                                                const isSelected =
-                                                    !isExternalWalletConnected &&
-                                                    selectedTokenAddress?.toLowerCase() ===
-                                                        token.address.toLowerCase() &&
-                                                    selectedChainID === String(token.chainId)
-
-                                                return (
-                                                    <TokenListItem
-                                                        key={`${token.address}_${String(token.chainId)}_popular`}
-                                                        balance={token}
-                                                        onClick={() => handleTokenSelect(token)}
-                                                        isSelected={isSelected}
-                                                        isPopularToken={true}
+            <Drawer open={isDrawerOpen} onOpenChange={closeDrawer}>
+                <DrawerContent className="p-5">
+                    <div ref={contentRef} className="mx-auto md:max-w-2xl">
+                        {showNetworkList ? (
+                            <NetworkListView
+                                chains={supportedSquidChainsAndTokens}
+                                onSelectChain={handleChainSelectFromList}
+                                onBack={() => setShowNetworkList(false)}
+                                searchValue={networkSearchValue}
+                                setSearchValue={setNetworkSearchValue}
+                                selectedChainID={selectedChainID}
+                                allowedChainIds={allowedChainIds}
+                                comingSoonNetworks={TOKEN_SELECTOR_COMING_SOON_NETWORKS}
+                            />
+                        ) : (
+                            <div className="relative flex flex-col space-y-4">
+                                {/* Popular chains section - rendered for all views */}
+                                <>
+                                    <Section title="Select a network">
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-stretch justify-between space-x-2">
+                                                {popularChainsForButtons.map((chain) => (
+                                                    <NetworkButton
+                                                        key={chain.chainId}
+                                                        chainName={chain.name}
+                                                        chainIconURI={chain.iconURI}
+                                                        onClick={() => {
+                                                            if (selectedChainID === chain.chainId) {
+                                                                setSelectedChainID('') // clear selection if already selected
+                                                            } else {
+                                                                setSelectedChainID(chain.chainId) //otherwise, select it
+                                                            }
+                                                        }}
+                                                        isSelected={chain.chainId === selectedChainID}
                                                     />
-                                                )
-                                            })
-                                        ) : searchValue ? (
-                                            <EmptyState
-                                                title="No matching popular tokens found"
-                                                icon="search"
-                                                description="Try searching for a different token"
-                                            />
-                                        ) : (
-                                            <EmptyState title="No popular tokens available" icon="star" />
-                                        )}
-                                    </ScrollableList>
-                                </Section>
-                            )}
+                                                ))}
+                                                <NetworkButton
+                                                    chainName="Search"
+                                                    isSearch={true}
+                                                    onClick={handleSearchNetwork}
+                                                />
+                                            </div>
+                                        </div>
+                                    </Section>
+                                    <Divider className="p-0" dividerClassname="border-grey-1" />
+                                </>
 
-                            {/* USER's wallet tokens section - rendered only when there is a wallet connected */}
-                            {showUserTokensList && (
-                                <Section
-                                    title={
-                                        selectedNetworkName ? `Your tokens on ${selectedNetworkName}` : 'Your tokens'
-                                    }
-                                    className="relative space-y-4"
-                                    icon={searchValue ? 'search' : 'wallet-outline'}
-                                    titleClassName="text-grey-1 font-medium"
-                                >
-                                    {selectedNetworkName && isExternalWalletConnected && clearChainSelection()}
-                                    <ScrollableList>{renderUserTokenListContent()}</ScrollableList>
-                                </Section>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </BottomDrawer>
+                                <div className="sticky -top-1 z-10 space-y-2 bg-background py-3">
+                                    <SearchInput
+                                        value={searchValue}
+                                        onChange={setSearchValue}
+                                        onClear={() => setSearchValue('')}
+                                        placeholder="Search for a token or paste address"
+                                    />
+                                    <div className="flex items-center justify-center gap-2">
+                                        <Icon name="info" size={10} className="text-grey-1" />
+                                        <span className="text-xs font-normal text-grey-1">
+                                            Transactions using USDC on Arbitrum are sponsored
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Popular tokens section - rendered only when there is no wallet connected */}
+                                {showPopularTokensList && (
+                                    <Section
+                                        title={popularTokensListTitle}
+                                        icon={searchValue ? 'search' : 'star'}
+                                        titleClassName="text-grey-1 font-medium"
+                                        className="relative space-y-4"
+                                    >
+                                        {selectedNetworkName && clearChainSelection()}
+                                        <ScrollableList>
+                                            {filteredPopularTokensToDisplay.length > 0 ? (
+                                                filteredPopularTokensToDisplay.map((token) => {
+                                                    const isSelected =
+                                                        !isExternalWalletConnected &&
+                                                        selectedTokenAddress?.toLowerCase() ===
+                                                            token.address.toLowerCase() &&
+                                                        selectedChainID === String(token.chainId)
+
+                                                    return (
+                                                        <TokenListItem
+                                                            key={`${token.address}_${String(token.chainId)}_popular`}
+                                                            balance={token}
+                                                            onClick={() => handleTokenSelect(token)}
+                                                            isSelected={isSelected}
+                                                            isPopularToken={true}
+                                                        />
+                                                    )
+                                                })
+                                            ) : searchValue ? (
+                                                <EmptyState
+                                                    title="No matching popular tokens found"
+                                                    icon="search"
+                                                    description="Try searching for a different token"
+                                                />
+                                            ) : (
+                                                <EmptyState title="No popular tokens available" icon="star" />
+                                            )}
+                                        </ScrollableList>
+                                    </Section>
+                                )}
+
+                                {/* USER's wallet tokens section - rendered only when there is a wallet connected */}
+                                {showUserTokensList && (
+                                    <Section
+                                        title={
+                                            selectedNetworkName
+                                                ? `Your tokens on ${selectedNetworkName}`
+                                                : 'Your tokens'
+                                        }
+                                        className="relative space-y-4"
+                                        icon={searchValue ? 'search' : 'wallet-outline'}
+                                        titleClassName="text-grey-1 font-medium"
+                                    >
+                                        {selectedNetworkName && isExternalWalletConnected && clearChainSelection()}
+                                        <ScrollableList>{renderUserTokenListContent()}</ScrollableList>
+                                    </Section>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </DrawerContent>
+            </Drawer>
         </>
     )
 }

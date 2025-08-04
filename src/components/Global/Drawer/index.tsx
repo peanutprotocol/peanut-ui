@@ -4,9 +4,29 @@ import * as React from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Drawer as DrawerPrimitive } from 'vaul'
 
-const Drawer = ({ shouldScaleBackground = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
-    <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
-)
+const Drawer = ({
+    shouldScaleBackground = true,
+    snapPoints,
+    activeSnapPoint,
+    setActiveSnapPoint,
+    ...props
+}: React.ComponentProps<typeof DrawerPrimitive.Root> & {
+    snapPoints?: (number | string)[]
+    activeSnapPoint?: number | string | null
+    setActiveSnapPoint?: (snap: number | string | null) => void
+}) => {
+    return (
+        <DrawerPrimitive.Root
+            snapPoints={snapPoints ?? []}
+            activeSnapPoint={activeSnapPoint}
+            setActiveSnapPoint={setActiveSnapPoint}
+            shouldScaleBackground={shouldScaleBackground}
+            snapToSequentialPoint
+            modal={snapPoints ? false : true}
+            {...props}
+        />
+    )
+}
 Drawer.displayName = 'Drawer'
 
 const DrawerTrigger = DrawerPrimitive.Trigger
@@ -36,7 +56,6 @@ const DrawerContent = React.forwardRef<
                 className
             )}
             {...props}
-            onTouchMove={(e) => e.stopPropagation()}
         >
             <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-black" />
             <div className="flex w-full justify-center">

@@ -1,9 +1,8 @@
 import Divider from '@/components/0_Bruddle/Divider'
-import BottomDrawer from '@/components/Global/BottomDrawer'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
-import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { useRef, useState } from 'react'
+import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 
 interface QRBottomDrawerProps {
     url: string
@@ -14,36 +13,40 @@ interface QRBottomDrawerProps {
 }
 
 const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText }: QRBottomDrawerProps) => {
-    const [title, setTitle] = useState<string>(collapsedTitle)
     const contentRef = useRef<HTMLDivElement>(null)
-    const drawerHeightVh = useDynamicHeight(contentRef, { maxHeightVh: 90, minHeightVh: 10, extraVhOffset: 5 })
-    const currentExpandedHeight = drawerHeightVh ?? 80
-    const currentHalfHeight = Math.min(60, drawerHeightVh ?? 60)
+
+    const snapPoints = [0.75, 1] // 75%, 100% of screen height
+    const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(snapPoints[0]) // Start with the smallest snap point
+
+    const handleSnapPointChange = (snapPoint: number | string | null) => {
+        setActiveSnapPoint(snapPoint)
+    }
+
     return (
-        <BottomDrawer
-            initialPosition="collapsed"
-            handleTitle={title}
-            collapsedHeight={24}
-            halfHeight={currentHalfHeight}
-            expandedHeight={currentExpandedHeight}
-            isOpen={true}
-            onPositionChange={(position) => {
-                if (position === 'collapsed') {
-                    setTitle(collapsedTitle)
-                } else {
-                    setTitle(expandedTitle)
-                }
-            }}
-        >
-            <div ref={contentRef}>
-                <QRCodeWrapper url={url} />
-                <div className="mx-auto mt-4 w-full p-2 text-center text-base text-gray-500">{text}</div>
-                <Divider className="text-gray-500" text="or" />
-                <ShareButton url={url} title="Share your profile">
-                    {buttonText}
-                </ShareButton>
-            </div>
-        </BottomDrawer>
+        <>
+            <Drawer
+                open={true}
+                snapPoints={snapPoints}
+                activeSnapPoint={activeSnapPoint}
+                setActiveSnapPoint={handleSnapPointChange}
+            >
+                <DrawerContent className="min-h-[200px] p-5">
+                    <DrawerTitle className="mb-8 space-y-2">
+                        <h2 className="text-lg font-bold">
+                            {activeSnapPoint === snapPoints[0] ? collapsedTitle : expandedTitle}
+                        </h2>
+                    </DrawerTitle>
+                    <div ref={contentRef}>
+                        <QRCodeWrapper url={url} />
+                        <div className="mx-auto mt-4 w-full p-2 text-center text-base text-gray-500">{text}</div>
+                        <Divider className="text-gray-500" text="or" />
+                        <ShareButton url={url} title="Share your profile">
+                            {buttonText}
+                        </ShareButton>
+                    </div>
+                </DrawerContent>
+            </Drawer>
+        </>
     )
 }
 

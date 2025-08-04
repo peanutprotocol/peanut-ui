@@ -1,9 +1,7 @@
-import BottomDrawer from '@/components/Global/BottomDrawer'
 import Card from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
@@ -25,8 +23,8 @@ import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import CopyToClipboard from '../Global/CopyToClipboard'
 import MoreInfo from '../Global/MoreInfo'
-import ActionModal from '../Global/ActionModal'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
+import { Drawer, DrawerContent } from '../Global/Drawer'
 
 interface TransactionDetailsDrawerProps {
     isOpen: boolean
@@ -50,17 +48,6 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     const contentRef = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState<boolean>(false)
 
-    // calculate drawer height based on content, with min/max constraints
-    const drawerHeightVh = useDynamicHeight(contentRef, {
-        maxHeightVh: 90, // max 90% of viewport height
-        minHeightVh: 30, // min 30% of viewport height
-        extraVhOffset: 10, // some extra padding to the calculated height
-    })
-
-    // determine the heights for the drawer states (expanded, half)
-    const currentExpandedHeight = drawerHeightVh ?? 85 // use calculated height or fallback
-    const currentHalfHeight = Math.min(60, drawerHeightVh ?? 60) // half height, capped at 60vh or calculated height
-
     const handleClose = useCallback(() => {
         if (onClose) {
             onClose()
@@ -70,25 +57,18 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     if (!transaction) return null
 
     return (
-        <BottomDrawer
-            isOpen={isOpen}
-            onClose={handleClose}
-            initialPosition="expanded"
-            collapsedHeight={5}
-            halfHeight={currentHalfHeight}
-            expandedHeight={currentExpandedHeight}
-            preventScroll={false}
-            isLoading={isLoading}
-        >
-            <TransactionDetailsReceipt
-                isLoading={isLoading}
-                transaction={transaction}
-                onClose={handleClose}
-                setIsLoading={setIsLoading}
-                contentRef={contentRef}
-                transactionAmount={transactionAmount}
-            />
-        </BottomDrawer>
+        <Drawer open={isOpen} onOpenChange={onClose}>
+            <DrawerContent className="p-5">
+                <TransactionDetailsReceipt
+                    isLoading={isLoading}
+                    transaction={transaction}
+                    onClose={handleClose}
+                    setIsLoading={setIsLoading}
+                    contentRef={contentRef}
+                    transactionAmount={transactionAmount}
+                />
+            </DrawerContent>
+        </Drawer>
     )
 }
 
