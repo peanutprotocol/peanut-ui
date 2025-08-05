@@ -178,6 +178,7 @@ export interface TRequestChargeResponse {
     tokenDecimals: number
     tokenType: string
     tokenSymbol: string
+    transactionType: TChargeTransactionType
     updatedAt: string
     payments: Payment[]
     fulfillmentPayment: Payment | null

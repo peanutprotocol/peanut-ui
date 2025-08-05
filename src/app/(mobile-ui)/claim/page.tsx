@@ -57,7 +57,7 @@ export async function generateMetadata({
 
         if (!linkDetails.claimed) {
             title = username
-                ? `${username} sent you ${formatAmount(Number(linkDetails.tokenAmount))} via Peanut`
+                ? `${username} sent you $${formatAmount(Number(linkDetails.tokenAmount))} via Peanut`
                 : `You received ${Number(linkDetails.tokenAmount) < 0.01 ? 'some ' : formatAmount(Number(linkDetails.tokenAmount)) + ' in '}${linkDetails.tokenSymbol}!`
         } else {
             title = 'This link has been claimed'
@@ -90,7 +90,7 @@ export async function generateMetadata({
 
     const description = claimData?.linkDetails?.claimed
         ? 'This payment link has already been claimed.'
-        : 'Tap the link to claim instantly and without fees.'
+        : 'Tap the link to receive instantly and without fees.'
 
     return {
         title,
@@ -101,7 +101,7 @@ export async function generateMetadata({
         },
         openGraph: {
             title,
-            description: 'Tap the link to claim instantly and without fees.',
+            description,
             images: [{ url: ogImageUrl, width: 1200, height: 630 }],
             type: 'website',
             siteName: 'Peanut',
@@ -111,7 +111,7 @@ export async function generateMetadata({
             site: '@PeanutProtocol',
             creator: '@PeanutProtocol',
             title,
-            description: 'Tap the link to claim instantly and without fees.',
+            description,
             images: [
                 {
                     url: ogImageUrl,

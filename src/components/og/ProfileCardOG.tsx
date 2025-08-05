@@ -1,7 +1,7 @@
 const usernameFontSize = 150
 function usernamePxWidth(name: string) {
-    const charPx = 0.6 * usernameFontSize // ≈48 px per glyph
-    return Math.round(name.length * charPx) + 40 // +40 padding
+    const charPx = 0.9 * usernameFontSize // ≈48 px per glyph
+    return Math.round(name.length * charPx) + 80 // +40 padding
 }
 
 export function ProfileCardOG({
@@ -50,13 +50,13 @@ export function ProfileCardOG({
                 <h2
                     style={{
                         fontFamily: 'Montserrat SemiBold',
-                        fontWeight: 700,
+                        fontWeight: 1000,
                         fontSize: usernameFontSize,
                         margin: 0,
                         letterSpacing: '-0.05em',
                     }}
                 >
-                    {username}
+                    {username.toUpperCase()}
                 </h2>
 
                 {/* 2) the scribble on top, absolutely positioned */}
@@ -67,7 +67,7 @@ export function ProfileCardOG({
                     alt=""
                     style={{
                         position: 'absolute',
-                        top: -20,
+                        top: -50,
                         left: '50%',
                         transform: 'translateX(-50%)',
                         pointerEvents: 'none',
@@ -83,7 +83,7 @@ export function ProfileCardOG({
                     gap: 16,
                 }}
             >
-                <p style={{ fontFamily: 'Montserrat Medium', fontWeight: 500, fontSize: 46 }}>with</p>
+                <p style={{ fontFamily: 'Montserrat SemiBold', fontWeight: 800, fontSize: 50 }}>with</p>
                 <img src={iconSrc} width={36} height={46} alt="Peanut logo" />
                 <img src={logoSrc} width={132} height={26} alt="Peanut text" />
             </div>

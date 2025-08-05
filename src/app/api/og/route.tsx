@@ -101,6 +101,12 @@ export async function GET(req: NextRequest) {
             {
                 width: 1200,
                 height: 630,
+                fonts: [
+                    { name: 'Knerd Filled', data: knerdFilled, style: 'normal' },
+                    { name: 'Knerd Outline', data: knerdOutline, style: 'normal' },
+                    { name: 'Montserrat Medium', data: montserratMedium, style: 'normal' },
+                    { name: 'Montserrat SemiBold', data: montserratSemibold, style: 'normal' },
+                ],
             }
         )
     }
