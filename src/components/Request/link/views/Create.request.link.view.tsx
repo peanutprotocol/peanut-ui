@@ -13,6 +13,7 @@ import { BASE_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
+import { useDebounce } from '@/hooks/useDebounce'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
@@ -56,6 +57,16 @@ export const CreateRequestLinkView = () => {
     const [requestId, setRequestId] = useState<string | null>(null)
     const [isCreatingLink, setIsCreatingLink] = useState(false)
     const [isUpdatingRequest, setIsUpdatingRequest] = useState(false)
+
+    // Debounced attachment options to prevent rapid API calls during typing
+    const debouncedAttachmentOptions = useDebounce(attachmentOptions, 1000)
+
+    // Track last processed states to prevent duplicate operations
+    const lastProcessedAttachmentRef = useRef<IAttachmentOptions>({
+        message: '',
+        fileUrl: '',
+        rawFile: undefined,
+    })
 
     // Track the last saved state to determine if updates are needed
     const lastSavedAttachmentRef = useRef<IAttachmentOptions>({
@@ -184,6 +195,7 @@ export const CreateRequestLinkView = () => {
 
                 // Update the last saved state
                 lastSavedAttachmentRef.current = { ...attachmentOptions }
+                lastProcessedAttachmentRef.current = { ...attachmentOptions }
 
                 toast.success('Link created successfully!')
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
@@ -238,6 +250,7 @@ export const CreateRequestLinkView = () => {
 
                 // Update the last saved state
                 lastSavedAttachmentRef.current = { ...attachmentOptions }
+                lastProcessedAttachmentRef.current = { ...attachmentOptions }
 
                 toast.success('Request updated successfully!')
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
@@ -263,8 +276,11 @@ export const CreateRequestLinkView = () => {
         if (!requestId) return false
 
         const lastSaved = lastSavedAttachmentRef.current
-        return lastSaved.message !== attachmentOptions.message || lastSaved.rawFile !== attachmentOptions.rawFile
-    }, [requestId, attachmentOptions.message, attachmentOptions.rawFile])
+        return (
+            lastSaved.message !== debouncedAttachmentOptions.message ||
+            lastSaved.rawFile !== debouncedAttachmentOptions.rawFile
+        )
+    }, [requestId, debouncedAttachmentOptions.message, debouncedAttachmentOptions.rawFile])
 
     const handleTokenValueChange = useCallback(
         (value: string | undefined) => {
@@ -276,6 +292,11 @@ export const CreateRequestLinkView = () => {
                 setGeneratedLink(null)
                 setRequestId(null)
                 lastSavedAttachmentRef.current = {
+                    message: '',
+                    fileUrl: '',
+                    rawFile: undefined,
+                }
+                lastProcessedAttachmentRef.current = {
                     message: '',
                     fileUrl: '',
                     rawFile: undefined,
@@ -299,18 +320,33 @@ export const CreateRequestLinkView = () => {
                     fileUrl: '',
                     rawFile: undefined,
                 }
+                lastProcessedAttachmentRef.current = {
+                    message: '',
+                    fileUrl: '',
+                    rawFile: undefined,
+                }
             }
 
-            // If file was added/changed and we have a request, update it immediately
-            if (requestId && options.rawFile !== lastSavedAttachmentRef.current.rawFile) {
+            // For file changes, trigger immediate update (files don't need debouncing)
+            if (
+                requestId &&
+                options.rawFile !== lastProcessedAttachmentRef.current.rawFile &&
+                !isUpdatingRequest &&
+                !isCreatingLink
+            ) {
+                lastProcessedAttachmentRef.current = { ...options }
                 updateRequestLink(options)
             }
+
+            // Note: Text changes (message) will be handled by onBlur or onSubmit
+            // with debounced values to prevent rapid API calls during typing
         },
-        [requestId, updateRequestLink]
+        [requestId, updateRequestLink, isUpdatingRequest, isCreatingLink]
     )
 
     const handleTokenAmountSubmit = useCallback(async () => {
         if (!tokenValue || parseFloat(tokenValue) <= 0) return
+        if (isCreatingLink || isUpdatingRequest) return // Prevent duplicate calls
 
         if (!generatedLink) {
             // POST: Create new request
@@ -320,19 +356,40 @@ export const CreateRequestLinkView = () => {
             }
         } else if (hasUnsavedChanges) {
             // PATCH: Update existing request
-            await updateRequestLink(attachmentOptions)
+            await updateRequestLink(debouncedAttachmentOptions)
         }
-    }, [tokenValue, generatedLink, attachmentOptions, hasUnsavedChanges, createRequestLink, updateRequestLink])
+    }, [
+        tokenValue,
+        generatedLink,
+        attachmentOptions,
+        debouncedAttachmentOptions,
+        hasUnsavedChanges,
+        createRequestLink,
+        updateRequestLink,
+        isCreatingLink,
+        isUpdatingRequest,
+    ])
 
     const handleAttachmentBlur = useCallback(async () => {
-        if (requestId && hasUnsavedChanges) {
-            await updateRequestLink(attachmentOptions)
+        if (requestId && !isUpdatingRequest && !isCreatingLink) {
+            // On blur, use current attachmentOptions (not debounced) since user is done typing
+            const currentOptions = attachmentOptions
+            const lastSaved = lastSavedAttachmentRef.current
+
+            // Check if there are unsaved changes using current options
+            const hasCurrentUnsavedChanges =
+                lastSaved.message !== currentOptions.message || lastSaved.rawFile !== currentOptions.rawFile
+
+            if (hasCurrentUnsavedChanges) {
+                await updateRequestLink(currentOptions)
+            }
         }
-    }, [requestId, hasUnsavedChanges, attachmentOptions, updateRequestLink])
+    }, [requestId, attachmentOptions, updateRequestLink, isUpdatingRequest, isCreatingLink])
 
     const generateLink = useCallback(async () => {
         if (generatedLink) return generatedLink
         if (Number(tokenValue) === 0) return qrCodeLink
+        if (isCreatingLink || isUpdatingRequest) return '' // Prevent duplicate operations
 
         // Create new request when share button is clicked
         const link = await createRequestLink(attachmentOptions)
@@ -340,7 +397,7 @@ export const CreateRequestLinkView = () => {
             setGeneratedLink(link)
         }
         return link || ''
-    }, [generatedLink, qrCodeLink, tokenValue, attachmentOptions, createRequestLink])
+    }, [generatedLink, qrCodeLink, tokenValue, attachmentOptions, createRequestLink, isCreatingLink, isUpdatingRequest])
 
     // Set wallet defaults when connected
     useMemo(() => {
