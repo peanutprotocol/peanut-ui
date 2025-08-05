@@ -1,7 +1,7 @@
 const usernameFontSize = 150
 function usernamePxWidth(name: string) {
-    const charPx = 0.9 * usernameFontSize // ≈48 px per glyph
-    return Math.round(name.length * charPx) + 80 // +40 padding
+    const charPx = 0.9 * usernameFontSize // ≈135 px per glyph
+    return Math.round(name.length * charPx) + 80 // +80 padding
 }
 
 export function ProfileCardOG({
