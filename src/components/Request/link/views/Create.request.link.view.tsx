@@ -277,11 +277,6 @@ export const CreateRequestLinkView = () => {
     const handleDebouncedChange = useCallback(async () => {
         if (isCreatingLink || isUpdatingRequest) return
 
-        // Skip if content is completely cleared (handled by handleAttachmentOptionsChange)
-        if (!debouncedAttachmentOptions.rawFile && !debouncedAttachmentOptions.message) {
-            return
-        }
-
         // If no request exists but we have content, create request
         if (!requestId && (debouncedAttachmentOptions.rawFile || debouncedAttachmentOptions.message)) {
             if (!tokenValue || parseFloat(tokenValue) <= 0) return
@@ -291,7 +286,7 @@ export const CreateRequestLinkView = () => {
                 setGeneratedLink(link)
             }
         }
-        // If request exists and content changed, update it
+        // If request exists and content changed (including clearing), update it
         else if (requestId) {
             // Check for unsaved changes inline to avoid dependency issues
             const lastSaved = lastSavedAttachmentRef.current
@@ -339,17 +334,6 @@ export const CreateRequestLinkView = () => {
     const handleAttachmentOptionsChange = useCallback((options: IAttachmentOptions) => {
         setAttachmentOptions(options)
         setErrorState({ showError: false, errorMessage: '' })
-
-        // Reset link and request when attachments are completely cleared
-        if (!options.rawFile && !options.message) {
-            setGeneratedLink(null)
-            setRequestId(null)
-            lastSavedAttachmentRef.current = {
-                message: '',
-                fileUrl: '',
-                rawFile: undefined,
-            }
-        }
     }, [])
 
     const handleTokenAmountSubmit = useCallback(async () => {
