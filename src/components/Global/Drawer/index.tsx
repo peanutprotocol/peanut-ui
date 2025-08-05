@@ -6,23 +6,16 @@ import { Drawer as DrawerPrimitive } from 'vaul'
 
 const Drawer = ({
     shouldScaleBackground = true,
-    snapPoints,
     activeSnapPoint,
     setActiveSnapPoint,
     ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Root> & {
-    snapPoints?: (number | string)[]
-    activeSnapPoint?: number | string | null
-    setActiveSnapPoint?: (snap: number | string | null) => void
-}) => {
+}: React.ComponentProps<typeof DrawerPrimitive.Root>) => {
     return (
         <DrawerPrimitive.Root
-            snapPoints={snapPoints ?? []}
             activeSnapPoint={activeSnapPoint}
             setActiveSnapPoint={setActiveSnapPoint}
             shouldScaleBackground={shouldScaleBackground}
             snapToSequentialPoint
-            modal={snapPoints ? false : true}
             {...props}
         />
     )
@@ -52,10 +45,11 @@ const DrawerContent = React.forwardRef<
         <DrawerPrimitive.Content
             ref={ref}
             className={twMerge(
-                'fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background',
+                'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-[10px] border bg-background',
                 className
             )}
             {...props}
+            onTouchMove={(e) => e.stopPropagation()}
         >
             <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-black" />
             <div className="flex w-full justify-center">
