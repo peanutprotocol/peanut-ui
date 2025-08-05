@@ -274,33 +274,48 @@ export const CreateRequestLinkView = () => {
     }, [requestId, debouncedAttachmentOptions.message, debouncedAttachmentOptions.rawFile])
 
     // Handle debounced attachment changes
-    useEffect(() => {
-        const handleDebouncedChange = async () => {
-            if (isCreatingLink || isUpdatingRequest) return
+    const handleDebouncedChange = useCallback(async () => {
+        if (isCreatingLink || isUpdatingRequest) return
 
-            // Skip if content is completely cleared (handled by handleAttachmentOptionsChange)
-            if (!debouncedAttachmentOptions.rawFile && !debouncedAttachmentOptions.message) {
-                return
+        // Skip if content is completely cleared (handled by handleAttachmentOptionsChange)
+        if (!debouncedAttachmentOptions.rawFile && !debouncedAttachmentOptions.message) {
+            return
+        }
+
+        // If no request exists but we have content, create request
+        if (!requestId && (debouncedAttachmentOptions.rawFile || debouncedAttachmentOptions.message)) {
+            if (!tokenValue || parseFloat(tokenValue) <= 0) return
+
+            const link = await createRequestLink(debouncedAttachmentOptions)
+            if (link) {
+                setGeneratedLink(link)
             }
+        }
+        // If request exists and content changed, update it
+        else if (requestId) {
+            // Check for unsaved changes inline to avoid dependency issues
+            const lastSaved = lastSavedAttachmentRef.current
+            const hasChanges =
+                lastSaved.message !== debouncedAttachmentOptions.message ||
+                lastSaved.rawFile !== debouncedAttachmentOptions.rawFile
 
-            // If no request exists but we have content, create request
-            if (!requestId && (debouncedAttachmentOptions.rawFile || debouncedAttachmentOptions.message)) {
-                if (!tokenValue || parseFloat(tokenValue) <= 0) return
-
-                const link = await createRequestLink(debouncedAttachmentOptions)
-                if (link) {
-                    setGeneratedLink(link)
-                }
-            }
-            // If request exists and content changed, update it
-            else if (requestId && hasUnsavedChanges) {
+            if (hasChanges) {
                 await updateRequestLink(debouncedAttachmentOptions)
             }
         }
+    }, [
+        debouncedAttachmentOptions,
+        requestId,
+        tokenValue,
+        isCreatingLink,
+        isUpdatingRequest,
+        createRequestLink,
+        updateRequestLink,
+    ])
 
+    useEffect(() => {
         handleDebouncedChange()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedAttachmentOptions.message, debouncedAttachmentOptions.rawFile])
+    }, [handleDebouncedChange])
 
     const handleTokenValueChange = useCallback(
         (value: string | undefined) => {
