@@ -4,21 +4,8 @@ import * as React from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Drawer as DrawerPrimitive } from 'vaul'
 
-const Drawer = ({
-    shouldScaleBackground = true,
-    activeSnapPoint,
-    setActiveSnapPoint,
-    ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Root>) => {
-    return (
-        <DrawerPrimitive.Root
-            activeSnapPoint={activeSnapPoint}
-            setActiveSnapPoint={setActiveSnapPoint}
-            shouldScaleBackground={shouldScaleBackground}
-            snapToSequentialPoint
-            {...props}
-        />
-    )
+const Drawer = ({ shouldScaleBackground = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => {
+    return <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} snapToSequentialPoint {...props} />
 }
 Drawer.displayName = 'Drawer'
 
@@ -53,7 +40,7 @@ const DrawerContent = React.forwardRef<
         >
             <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-black" />
             <div className="flex w-full justify-center">
-                <div className="w-full md:max-w-xl">{children}</div>
+                <div className="max-h-[80vh] w-full overflow-auto md:max-w-xl">{children}</div>
             </div>
         </DrawerPrimitive.Content>
     </DrawerPortal>

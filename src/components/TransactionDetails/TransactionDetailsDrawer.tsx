@@ -190,7 +190,7 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
     return (
-        <div ref={contentRef} className="space-y-4 pb-8">
+        <div ref={contentRef} className="space-y-4">
             {/* show qr code at the top if applicable */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
                 <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
