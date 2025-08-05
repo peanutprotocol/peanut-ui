@@ -286,7 +286,7 @@ export const CreateRequestLinkView = () => {
     )
 
     const handleAttachmentOptionsChange = useCallback(
-        (options: IAttachmentOptions) => {
+        async (options: IAttachmentOptions) => {
             setAttachmentOptions(options)
             setErrorState({ showError: false, errorMessage: '' })
 
@@ -299,30 +299,44 @@ export const CreateRequestLinkView = () => {
                     fileUrl: '',
                     rawFile: undefined,
                 }
+                return
             }
 
-            // If file was added/changed and we have a request, update it immediately
-            if (requestId && options.rawFile !== lastSavedAttachmentRef.current.rawFile) {
+            // If we don't have a request yet and now we have content, create the request
+            if (!requestId && (options.rawFile || options.message)) {
+                if (!tokenValue || parseFloat(tokenValue) <= 0) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Please enter a token amount first',
+                    })
+                    return
+                }
+
+                const link = await createRequestLink(options)
+                if (link) {
+                    setGeneratedLink(link)
+                }
+            }
+            // If we already have a request and content changed, update it
+            else if (
+                requestId &&
+                (options.rawFile !== lastSavedAttachmentRef.current.rawFile ||
+                    options.message !== lastSavedAttachmentRef.current.message)
+            ) {
                 updateRequestLink(options)
             }
         },
-        [requestId, updateRequestLink]
+        [requestId, tokenValue, createRequestLink, updateRequestLink]
     )
 
     const handleTokenAmountSubmit = useCallback(async () => {
         if (!tokenValue || parseFloat(tokenValue) <= 0) return
 
-        if (!generatedLink) {
-            // POST: Create new request
-            const link = await createRequestLink(attachmentOptions)
-            if (link) {
-                setGeneratedLink(link)
-            }
-        } else if (hasUnsavedChanges) {
+        if (hasUnsavedChanges) {
             // PATCH: Update existing request
             await updateRequestLink(attachmentOptions)
         }
-    }, [tokenValue, generatedLink, attachmentOptions, hasUnsavedChanges, createRequestLink, updateRequestLink])
+    }, [tokenValue, attachmentOptions, hasUnsavedChanges, updateRequestLink])
 
     const handleAttachmentBlur = useCallback(async () => {
         if (requestId && hasUnsavedChanges) {
@@ -363,9 +377,8 @@ export const CreateRequestLinkView = () => {
                     setTokenValue={handleTokenValueChange}
                     tokenValue={tokenValue}
                     onSubmit={handleTokenAmountSubmit}
-                    onBlur={handleTokenAmountSubmit}
                     walletBalance={peanutWalletBalance}
-                    disabled={!!generatedLink}
+                    disabled={!!requestId}
                 />
 
                 <FileUploadInput
