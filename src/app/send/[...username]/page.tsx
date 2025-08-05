@@ -1,4 +1,4 @@
-import PaymentPage from '@/app/[...recipient]/client'
+import DirectSendPageClient from './client'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { Metadata } from 'next'
@@ -12,11 +12,9 @@ export default function DirectPaymentPage(props: PageProps) {
     const params = use(props.params)
     const usernameSegments = params.username ?? []
 
-    const recipient = usernameSegments
-
     return (
         <PageContainer className="min-h-[inherit]">
-            <PaymentPage recipient={recipient} flow="direct_pay" />
+            <DirectSendPageClient recipient={usernameSegments} />
         </PageContainer>
     )
 }
