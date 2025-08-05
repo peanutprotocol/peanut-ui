@@ -13,6 +13,7 @@ import { BASE_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
+import { useDebounce } from '@/hooks/useDebounce'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { IToken } from '@/interfaces'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
@@ -23,7 +24,7 @@ import * as Sentry from '@sentry/nextjs'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 export const CreateRequestLinkView = () => {
     const toast = useToast()
@@ -56,6 +57,9 @@ export const CreateRequestLinkView = () => {
     const [requestId, setRequestId] = useState<string | null>(null)
     const [isCreatingLink, setIsCreatingLink] = useState(false)
     const [isUpdatingRequest, setIsUpdatingRequest] = useState(false)
+
+    // Debounced attachment options to prevent rapid API calls during typing
+    const debouncedAttachmentOptions = useDebounce(attachmentOptions, 500)
 
     // Track the last saved state to determine if updates are needed
     const lastSavedAttachmentRef = useRef<IAttachmentOptions>({
@@ -263,8 +267,40 @@ export const CreateRequestLinkView = () => {
         if (!requestId) return false
 
         const lastSaved = lastSavedAttachmentRef.current
-        return lastSaved.message !== attachmentOptions.message || lastSaved.rawFile !== attachmentOptions.rawFile
-    }, [requestId, attachmentOptions.message, attachmentOptions.rawFile])
+        return (
+            lastSaved.message !== debouncedAttachmentOptions.message ||
+            lastSaved.rawFile !== debouncedAttachmentOptions.rawFile
+        )
+    }, [requestId, debouncedAttachmentOptions.message, debouncedAttachmentOptions.rawFile])
+
+    // Handle debounced attachment changes
+    useEffect(() => {
+        const handleDebouncedChange = async () => {
+            if (isCreatingLink || isUpdatingRequest) return
+
+            // Skip if content is completely cleared (handled by handleAttachmentOptionsChange)
+            if (!debouncedAttachmentOptions.rawFile && !debouncedAttachmentOptions.message) {
+                return
+            }
+
+            // If no request exists but we have content, create request
+            if (!requestId && (debouncedAttachmentOptions.rawFile || debouncedAttachmentOptions.message)) {
+                if (!tokenValue || parseFloat(tokenValue) <= 0) return
+
+                const link = await createRequestLink(debouncedAttachmentOptions)
+                if (link) {
+                    setGeneratedLink(link)
+                }
+            }
+            // If request exists and content changed, update it
+            else if (requestId && hasUnsavedChanges) {
+                await updateRequestLink(debouncedAttachmentOptions)
+            }
+        }
+
+        handleDebouncedChange()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedAttachmentOptions.message, debouncedAttachmentOptions.rawFile])
 
     const handleTokenValueChange = useCallback(
         (value: string | undefined) => {
@@ -285,68 +321,43 @@ export const CreateRequestLinkView = () => {
         [tokenValue]
     )
 
-    const handleAttachmentOptionsChange = useCallback(
-        async (options: IAttachmentOptions) => {
-            setAttachmentOptions(options)
-            setErrorState({ showError: false, errorMessage: '' })
+    const handleAttachmentOptionsChange = useCallback((options: IAttachmentOptions) => {
+        setAttachmentOptions(options)
+        setErrorState({ showError: false, errorMessage: '' })
 
-            // Reset link and request when attachments are completely cleared
-            if (!options.rawFile && !options.message) {
-                setGeneratedLink(null)
-                setRequestId(null)
-                lastSavedAttachmentRef.current = {
-                    message: '',
-                    fileUrl: '',
-                    rawFile: undefined,
-                }
-                return
+        // Reset link and request when attachments are completely cleared
+        if (!options.rawFile && !options.message) {
+            setGeneratedLink(null)
+            setRequestId(null)
+            lastSavedAttachmentRef.current = {
+                message: '',
+                fileUrl: '',
+                rawFile: undefined,
             }
-
-            // If we don't have a request yet and now we have content, create the request
-            if (!requestId && (options.rawFile || options.message)) {
-                if (!tokenValue || parseFloat(tokenValue) <= 0) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Please enter a token amount first',
-                    })
-                    return
-                }
-
-                const link = await createRequestLink(options)
-                if (link) {
-                    setGeneratedLink(link)
-                }
-            }
-            // If we already have a request and content changed, update it
-            else if (
-                requestId &&
-                (options.rawFile !== lastSavedAttachmentRef.current.rawFile ||
-                    options.message !== lastSavedAttachmentRef.current.message)
-            ) {
-                updateRequestLink(options)
-            }
-        },
-        [requestId, tokenValue, createRequestLink, updateRequestLink]
-    )
+        }
+    }, [])
 
     const handleTokenAmountSubmit = useCallback(async () => {
         if (!tokenValue || parseFloat(tokenValue) <= 0) return
+        if (isCreatingLink || isUpdatingRequest) return // Prevent duplicate calls
 
         if (hasUnsavedChanges) {
             // PATCH: Update existing request
-            await updateRequestLink(attachmentOptions)
+            await updateRequestLink(debouncedAttachmentOptions)
         }
-    }, [tokenValue, attachmentOptions, hasUnsavedChanges, updateRequestLink])
-
-    const handleAttachmentBlur = useCallback(async () => {
-        if (requestId && hasUnsavedChanges) {
-            await updateRequestLink(attachmentOptions)
-        }
-    }, [requestId, hasUnsavedChanges, attachmentOptions, updateRequestLink])
+    }, [
+        tokenValue,
+        debouncedAttachmentOptions,
+        hasUnsavedChanges,
+        updateRequestLink,
+        isCreatingLink,
+        isUpdatingRequest,
+    ])
 
     const generateLink = useCallback(async () => {
         if (generatedLink) return generatedLink
         if (Number(tokenValue) === 0) return qrCodeLink
+        if (isCreatingLink || isUpdatingRequest) return '' // Prevent duplicate operations
 
         // Create new request when share button is clicked
         const link = await createRequestLink(attachmentOptions)
@@ -354,7 +365,7 @@ export const CreateRequestLinkView = () => {
             setGeneratedLink(link)
         }
         return link || ''
-    }, [generatedLink, qrCodeLink, tokenValue, attachmentOptions, createRequestLink])
+    }, [generatedLink, qrCodeLink, tokenValue, attachmentOptions, createRequestLink, isCreatingLink, isUpdatingRequest])
 
     // Set wallet defaults when connected
     useMemo(() => {
@@ -386,7 +397,6 @@ export const CreateRequestLinkView = () => {
                     placeholder="Comment"
                     attachmentOptions={attachmentOptions}
                     setAttachmentOptions={handleAttachmentOptionsChange}
-                    onBlur={handleAttachmentBlur}
                 />
 
                 {isCreatingLink || isUpdatingRequest ? (
