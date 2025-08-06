@@ -4,13 +4,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 
-export const ClaimedView = ({
-    amount,
-    senderUsername,
-}: {
-    amount: number | bigint | undefined
-    senderUsername: string | undefined
-}) => {
+export const ClaimedView = ({ amount, senderUsername }: { amount: number | bigint; senderUsername: string }) => {
     const { user } = useAuth()
     const router = useRouter()
 

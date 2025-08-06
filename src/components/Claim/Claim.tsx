@@ -291,12 +291,14 @@ export const Claim = ({}) => {
             )}
             {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <genericViews.WrongPasswordClaimLink />}
             {linkState === _consts.claimLinkStateType.NOT_FOUND && <genericViews.NotFoundClaimLink />}
-            {/* Show this state only to guest users and receivers, never to the creator */}
+            {/* Show this state only to guest users and receivers, never to the link creator */}
             {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED &&
+                selectedTransaction &&
+                claimLinkData &&
                 (!user || user.user.userId !== claimLinkData?.sender.userId) && (
                     <genericViews.ClaimedView
-                        amount={selectedTransaction?.amount}
-                        senderUsername={claimLinkData?.sender.username}
+                        amount={selectedTransaction.amount}
+                        senderUsername={claimLinkData.sender.username}
                     />
                 )}
             {showTransactionReceipt && (
