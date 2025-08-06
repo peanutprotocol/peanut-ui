@@ -146,6 +146,16 @@ export const Claim = ({}) => {
             idx: _consts.CLAIM_SCREEN_FLOW.indexOf(screen),
         }))
     }
+
+    const showTransactionReceipt = useMemo(() => {
+        if (!selectedTransaction) return false
+        // check for showing txn receipt only to the creator after link is claimed
+        if (linkState === _consts.claimLinkStateType.ALREADY_CLAIMED) {
+            return user?.user.userId === claimLinkData?.sender.userId
+        }
+        return true
+    }, [selectedTransaction, linkState, user, claimLinkData])
+
     const checkLink = useCallback(
         async (link: string) => {
             try {
@@ -281,12 +291,22 @@ export const Claim = ({}) => {
             )}
             {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <genericViews.WrongPasswordClaimLink />}
             {linkState === _consts.claimLinkStateType.NOT_FOUND && <genericViews.NotFoundClaimLink />}
-            <TransactionDetailsReceipt
-                transaction={selectedTransaction}
-                setIsLoading={setisLinkCancelling}
-                isLoading={isLinkCancelling}
-                onClose={() => checkLink(window.location.href)}
-            />
+            {/* Show this state only to guest users and receivers, never to the creator */}
+            {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED &&
+                (!user || user.user.userId !== claimLinkData?.sender.userId) && (
+                    <genericViews.ClaimedView
+                        amount={selectedTransaction?.amount}
+                        senderUsername={claimLinkData?.sender.username}
+                    />
+                )}
+            {showTransactionReceipt && (
+                <TransactionDetailsReceipt
+                    transaction={selectedTransaction}
+                    setIsLoading={setisLinkCancelling}
+                    isLoading={isLinkCancelling}
+                    onClose={() => checkLink(window.location.href)}
+                />
+            )}
         </PageContainer>
     )
 }
