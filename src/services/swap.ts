@@ -329,8 +329,6 @@ async function findOptimalFromAmount(
         maxOverage = 0.001 // 0.1%
     }
 
-    // Step 1: Test initial estimate to understand actual swap behavior
-    console.log('Testing initial estimate:', initialFromAmount.toString())
     const testResponse = await getSquidRouteRaw(
         {
             ...params,
@@ -340,19 +338,10 @@ async function findOptimalFromAmount(
     )
 
     const actualReceived = BigInt(testResponse.route.estimate.toAmountMin)
-    console.log(
-        'Initial test - fromAmount:',
-        initialFromAmount,
-        'receivedAmount:',
-        actualReceived,
-        'targetToAmount:',
-        targetToAmount
-    )
 
     // Step 2: Check if initial test is already good enough
     const initialOverage = calculateOverage(actualReceived, targetToAmount)
     if (initialOverage >= 0 && initialOverage <= maxOverage) {
-        console.log('Initial estimate is good enough, overage:', initialOverage)
         return testResponse
     }
 
@@ -368,11 +357,6 @@ async function findOptimalFromAmount(
     // Ensure bounds are positive
     if (lowBound <= 0n) lowBound = linearEstimate / 2n
 
-    console.log('Linear interpolation - ratio:', ratio, 'linearEstimate:', linearEstimate, 'bounds:', [
-        lowBound,
-        highBound,
-    ])
-
     let bestResult: { response: SquidRouteResponse; overage: number } | null = null
     let iterations = 0
     const maxIterations = 2 // Only 2 more calls since bounds are accurate
@@ -386,21 +370,12 @@ async function findOptimalFromAmount(
         try {
             const response = await getSquidRouteRaw(testParams, options)
             const receivedAmount = BigInt(response.route.estimate.toAmountMin)
-            console.log(
-                'Binary search - fromAmount:',
-                midPoint,
-                'receivedAmount:',
-                receivedAmount,
-                'targetToAmount:',
-                targetToAmount
-            )
 
             const overage = calculateOverage(receivedAmount, targetToAmount)
 
             if (overage >= 0) {
                 // We have enough tokens
                 if (overage <= maxOverage) {
-                    console.log('Found optimal solution, overage:', overage)
                     return response
                 }
 
@@ -420,11 +395,9 @@ async function findOptimalFromAmount(
 
     // Step 5: Return best result found, or fallback to initial test
     if (bestResult) {
-        console.log('Returning best result found, overage:', bestResult.overage)
         return bestResult.response
     }
 
-    console.log('Falling back to initial test result')
     return testResponse
 }
 
