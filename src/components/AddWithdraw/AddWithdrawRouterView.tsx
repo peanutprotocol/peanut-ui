@@ -2,9 +2,7 @@
 import { Button } from '@/components/0_Bruddle'
 import { DepositMethod, DepositMethodList } from '@/components/AddMoney/components/DepositMethodList'
 import { countryData as ALL_METHODS_DATA, countryCodeMap } from '@/components/AddMoney/consts'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
-import { SearchInput } from '@/components/SearchUsers/SearchInput'
 import {
     RecentMethod,
     getUserPreferences,
@@ -13,7 +11,7 @@ import {
     formatIban,
 } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
-import { FC, useEffect, useMemo, useState } from 'react'
+import { FC, useEffect, useState } from 'react'
 import { useUserStore } from '@/redux/hooks'
 import { AccountType, Account } from '@/interfaces'
 import Image from 'next/image'
@@ -24,6 +22,8 @@ import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import Divider from '@/components/0_Bruddle/Divider'
 import Card from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { CountryList } from '../Common/CountryList'
+import PeanutLoading from '../Global/PeanutLoading'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -53,7 +53,6 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     // determine if we should show the full list of methods (countries/crypto) instead of the default view
     const shouldShowAllMethods = flow === 'withdraw' ? showAllWithdrawMethods : localShowAllMethods
     const setShouldShowAllMethods = flow === 'withdraw' ? setShowAllWithdrawMethods : setLocalShowAllMethods
-    const [searchTerm, setSearchTerm] = useState('')
     const [isLoadingPreferences, setIsLoadingPreferences] = useState(true)
 
     const baseRoute = flow === 'add' ? '/add-money' : '/withdraw'
@@ -126,66 +125,14 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         }
     }
 
-    const allMethodsTransformed: DepositMethod[] = useMemo(() => {
-        let methods = ALL_METHODS_DATA.map((method) => {
-            let path = `${baseRoute}/${method.path}`
-            return {
-                ...method,
-                path: path,
-                type: method.type as 'crypto' | 'country',
-            }
-        })
-
-        return methods
-    }, [baseRoute, flow])
-
-    const filteredAllMethods = useMemo(() => {
-        let methodsToShow
-        if (!searchTerm) {
-            methodsToShow = [...allMethodsTransformed]
-        } else {
-            methodsToShow = allMethodsTransformed.filter(
-                (method) =>
-                    method.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    method.currency?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    method.description?.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-        }
-
-        const transformedMethods = methodsToShow.map((method) => {
-            if (method.type === 'crypto') {
-                return {
-                    ...method,
-                    title: flow === 'add' ? 'Crypto Deposit' : 'Crypto',
-                    description: flow === 'add' ? 'Use an exchange or your wallet' : 'Withdraw to a wallet or exchange',
-                }
-            }
-            return method
-        })
-
-        return transformedMethods.sort((a, b) => {
-            if (a.type === 'crypto' && b.type !== 'crypto') {
-                return -1
-            }
-            if (b.type === 'crypto' && a.type !== 'crypto') {
-                return 1
-            }
-            return a.title.toLowerCase().localeCompare(b.title.toLowerCase())
-        })
-    }, [searchTerm, allMethodsTransformed, flow])
-
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value)
-    }
-
-    const handleClearSearch = () => {
-        setSearchTerm('')
-    }
-
     const defaultBackNavigation = () => router.push('/home')
 
     if (isLoadingPreferences) {
-        return null
+        return (
+            <div className="flex min-h-[inherit] flex-col justify-center gap-8">
+                <PeanutLoading />
+            </div>
+        )
     }
 
     if (flow === 'withdraw' && savedAccounts.length === 0 && !shouldShowAllMethods) {
@@ -286,31 +233,19 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 }}
             />
 
-            <div className="flex h-full w-full flex-1 flex-col justify-start space-y-2">
-                <h2 className="text-base font-bold">{mainHeading}</h2>
-
-                <SearchInput
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    onClear={handleClearSearch}
-                    placeholder="Search country or currency"
-                />
-                {searchTerm && filteredAllMethods.length === 0 ? (
-                    <EmptyState
-                        title="No results found"
-                        description="Try searching with a different term."
-                        icon="search"
-                    />
-                ) : (
-                    <div className="flex-1 overflow-y-auto">
-                        <DepositMethodList
-                            methods={filteredAllMethods}
-                            onItemClick={handleMethodSelected}
-                            isAllMethodsView={true}
-                        />
-                    </div>
-                )}
-            </div>
+            <CountryList
+                inputTitle={mainHeading}
+                viewMode="add-withdraw"
+                onCountryClick={(country) => {
+                    const countryPath = `${baseRoute}/${country.path}`
+                    router.push(countryPath)
+                }}
+                onCryptoClick={() => {
+                    const cryptoPath = `${baseRoute}/crypto`
+                    router.push(cryptoPath)
+                }}
+                flow={flow}
+            />
         </div>
     )
 }

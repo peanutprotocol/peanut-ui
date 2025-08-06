@@ -3,7 +3,6 @@
 import { IClaimScreenProps } from '../../Claim.consts'
 import { DynamicBankAccountForm, IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { useGuestFlow } from '@/context/GuestFlowContext'
-import { ClaimCountryListView } from './ClaimCountryList.view'
 import { useCallback, useContext, useState } from 'react'
 import { loadingStateContext } from '@/context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
@@ -20,6 +19,7 @@ import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.
 import peanut from '@squirrel-labs/peanut-sdk'
 import { getUserById } from '@/app/actions/users'
 import NavHeader from '@/components/Global/NavHeader'
+import { CountryListRouter } from '../../../Common/CountryListRouter'
 
 export const BankFlowManager = (props: IClaimScreenProps) => {
     const { onCustom, claimLinkData, setTransactionHash } = props
@@ -204,7 +204,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     }
 
     if (guestFlowStep === 'bank-country-list' || !selectedCountry) {
-        return <ClaimCountryListView {...props} />
+        return <CountryListRouter claimLinkData={claimLinkData} inputTitle="Which country do you want to receive to?" />
     }
 
     return (

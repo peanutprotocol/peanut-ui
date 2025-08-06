@@ -7,8 +7,6 @@ import { User } from '@/interfaces'
 import { IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 
 interface GuestFlowContextType {
-    showGuestActionsList: boolean
-    setShowGuestActionsList: (showGuestActionsList: boolean) => void
     claimToExternalWallet: boolean
     setClaimToExternalWallet: (claimToExternalWallet: boolean) => void
     guestFlowStep: string | null
@@ -33,8 +31,7 @@ interface GuestFlowContextType {
 const GuestFlowContext = createContext<GuestFlowContextType | undefined>(undefined)
 
 export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [showGuestActionsList, setShowGuestActionsList] = useState(false)
-    const [claimToExternalWallet, setClaimToExternalWallet] = useState<boolean>(false) // this is a combined state for exchange and crypto wallets
+    const [claimToExternalWallet, setClaimToExternalWallet] = useState<boolean>(false)
     const [guestFlowStep, setGuestFlowStep] = useState<string | null>(null)
     const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(null)
     const [offrampDetails, setOfframpDetails] = useState<TCreateOfframpResponse | null>(null)
@@ -46,7 +43,6 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
 
     const resetGuestFlow = useCallback(() => {
         setClaimToExternalWallet(false)
-        setShowGuestActionsList(false)
         setGuestFlowStep(null)
         setSelectedCountry(null)
         setOfframpDetails(null)
@@ -59,8 +55,6 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
 
     const value = useMemo(
         () => ({
-            showGuestActionsList,
-            setShowGuestActionsList,
             claimToExternalWallet,
             setClaimToExternalWallet,
             guestFlowStep,
@@ -82,7 +76,6 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
             setBankDetails,
         }),
         [
-            showGuestActionsList,
             claimToExternalWallet,
             guestFlowStep,
             selectedCountry,
