@@ -42,7 +42,7 @@ import { formatUnits } from 'viem'
 import type { Address } from 'viem'
 import { IClaimScreenProps } from '../Claim.consts'
 import ActionList from '@/components/Common/ActionList'
-import { useGuestFlow } from '@/context/GuestFlowContext'
+import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import useClaimLink from '../useClaimLink'
 import ActionModal from '@/components/Global/ActionModal'
 import { Slider } from '@/components/Slider'
@@ -86,12 +86,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     const {
         claimToExternalWallet,
-        guestFlowStep,
+        flowStep: claimBankFlowStep,
         showVerificationModal,
         setShowVerificationModal,
         setClaimToExternalWallet,
-        resetGuestFlow,
-    } = useGuestFlow()
+        resetFlow: resetClaimBankFlow,
+    } = useClaimBankFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
         selectedChainID,
@@ -470,10 +470,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     )
 
     useEffect(() => {
-        if (guestFlowStep?.startsWith('bank-')) {
+        if (claimBankFlowStep?.startsWith('bank-')) {
             resetSelectedToken()
         }
-    }, [guestFlowStep, resetSelectedToken])
+    }, [claimBankFlowStep, resetSelectedToken])
 
     useEffect(() => {
         let isMounted = true
@@ -595,13 +595,13 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }
 
-    if (guestFlowStep?.startsWith('bank-')) {
+    if (claimBankFlowStep?.startsWith('bank-')) {
         return <BankFlowManager {...props} />
     }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            {!!user?.user.userId || guestFlowStep || claimToExternalWallet ? (
+            {!!user?.user.userId || claimBankFlowStep || claimToExternalWallet ? (
                 <div className="md:hidden">
                     <NavHeader
                         title="Receive"
@@ -643,7 +643,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 {recipientType !== 'iban' &&
                     recipientType !== 'us' &&
                     !isPeanutClaimOnlyMode &&
-                    guestFlowStep !== 'bank-country-selection' &&
+                    claimBankFlowStep !== ClaimBankFlowStep.BankCountryList &&
                     !!claimToExternalWallet && (
                         <TokenSelector viewType="claim" disabled={recipientType === 'username'} />
                     )}

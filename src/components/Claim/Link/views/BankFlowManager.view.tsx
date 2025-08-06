@@ -2,7 +2,7 @@
 
 import { IClaimScreenProps } from '../../Claim.consts'
 import { DynamicBankAccountForm, IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
-import { useGuestFlow } from '@/context/GuestFlowContext'
+import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useCallback, useContext, useState } from 'react'
 import { loadingStateContext } from '@/context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
@@ -23,7 +23,13 @@ import { CountryListRouter } from '../../../Common/CountryListRouter'
 
 export const BankFlowManager = (props: IClaimScreenProps) => {
     const { onCustom, claimLinkData, setTransactionHash } = props
-    const { guestFlowStep, setGuestFlowStep, selectedCountry, setClaimType, setBankDetails } = useGuestFlow()
+    const {
+        flowStep: claimBankFlowStep,
+        setFlowStep: setClaimBankFlowStep,
+        selectedCountry,
+        setClaimType,
+        setBankDetails,
+    } = useClaimBankFlow()
     const { isLoading, setLoadingState } = useContext(loadingStateContext)
     const { claimLink } = useClaimLink()
     const [offrampDetails, setOfframpDetails] = useState<TCreateOfframpResponse | null>(null)
@@ -137,7 +143,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
             setLocalBankDetails(rawData)
             setBankDetails(rawData)
-            setGuestFlowStep('bank-confirm-claim')
+            setClaimBankFlowStep(ClaimBankFlowStep.BankConfirmClaim)
             return {}
         } catch (e: any) {
             const errorString = ErrorHandler(e)
@@ -186,13 +192,13 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         setError,
     ])
 
-    if (guestFlowStep === 'bank-confirm-claim' && offrampDetails && localBankDetails) {
+    if (claimBankFlowStep === 'bank-confirm-claim' && offrampDetails && localBankDetails) {
         return (
             <ConfirmBankClaimView
                 claimLinkData={claimLinkData}
                 onConfirm={handleConfirmClaim}
                 onBack={() => {
-                    setGuestFlowStep('bank-details-form')
+                    setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
                     setError(null)
                 }}
                 isProcessing={isLoading}
@@ -203,14 +209,14 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         )
     }
 
-    if (guestFlowStep === 'bank-country-list' || !selectedCountry) {
+    if (claimBankFlowStep === 'bank-country-list' || !selectedCountry) {
         return <CountryListRouter claimLinkData={claimLinkData} inputTitle="Which country do you want to receive to?" />
     }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <div className="md:hidden">
-                <NavHeader title="Receive" onPrev={() => setGuestFlowStep('bank-country-list')} />
+                <NavHeader title="Receive" onPrev={() => setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)} />
             </div>
             <DynamicBankAccountForm
                 key={selectedCountry.id}

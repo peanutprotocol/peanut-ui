@@ -3,17 +3,24 @@
 import React, { createContext, ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 import { CountryData } from '../components/AddMoney/consts'
 import { TCreateOfframpResponse } from '@/services/services.types'
-import { User } from '@/interfaces'
+import { Account, User } from '@/interfaces'
 import { IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
+import { KYCStatus } from '@/utils/bridge-accounts.utils'
 
-interface GuestFlowContextType {
+export enum ClaimBankFlowStep {
+    BankDetailsForm = 'bank-details-form',
+    BankConfirmClaim = 'bank-confirm-claim',
+    BankCountryList = 'bank-country-list',
+}
+
+interface ClaimBankFlowContextType {
     claimToExternalWallet: boolean
     setClaimToExternalWallet: (claimToExternalWallet: boolean) => void
-    guestFlowStep: string | null
-    setGuestFlowStep: (step: string | null) => void
+    flowStep: ClaimBankFlowStep | null
+    setFlowStep: (step: ClaimBankFlowStep | null) => void
     selectedCountry: CountryData | null
     setSelectedCountry: (country: CountryData | null) => void
-    resetGuestFlow: () => void
+    resetFlow: () => void
     offrampDetails?: TCreateOfframpResponse | null
     setOfframpDetails: (details: TCreateOfframpResponse | null) => void
     claimError?: string | null
@@ -26,13 +33,19 @@ interface GuestFlowContextType {
     setShowVerificationModal: (show: boolean) => void
     bankDetails: IBankAccountDetails | null
     setBankDetails: (details: IBankAccountDetails | null) => void
+    savedAccounts: Account[]
+    setSavedAccounts: (accounts: Account[]) => void
+    selectedBankAccount: Account | null
+    setSelectedBankAccount: (account: Account | null) => void
+    senderKycStatus?: KYCStatus
+    setSenderKycStatus: (status?: KYCStatus) => void
 }
 
-const GuestFlowContext = createContext<GuestFlowContextType | undefined>(undefined)
+const ClaimBankFlowContext = createContext<ClaimBankFlowContextType | undefined>(undefined)
 
-export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [claimToExternalWallet, setClaimToExternalWallet] = useState<boolean>(false)
-    const [guestFlowStep, setGuestFlowStep] = useState<string | null>(null)
+    const [flowStep, setFlowStep] = useState<string | null>(null)
     const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(null)
     const [offrampDetails, setOfframpDetails] = useState<TCreateOfframpResponse | null>(null)
     const [claimError, setClaimError] = useState<string | null>(null)
@@ -40,10 +53,13 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
     const [senderDetails, setSenderDetails] = useState<User | null>(null)
     const [showVerificationModal, setShowVerificationModal] = useState(false)
     const [bankDetails, setBankDetails] = useState<IBankAccountDetails | null>(null)
+    const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
+    const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
+    const [senderKycStatus, setSenderKycStatus] = useState<KYCStatus | undefined>()
 
-    const resetGuestFlow = useCallback(() => {
+    const resetFlow = useCallback(() => {
         setClaimToExternalWallet(false)
-        setGuestFlowStep(null)
+        setFlowStep(null)
         setSelectedCountry(null)
         setOfframpDetails(null)
         setClaimError(null)
@@ -51,17 +67,20 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
         setSenderDetails(null)
         setShowVerificationModal(false)
         setBankDetails(null)
+        setSavedAccounts([])
+        setSelectedBankAccount(null)
+        setSenderKycStatus(undefined)
     }, [])
 
     const value = useMemo(
         () => ({
             claimToExternalWallet,
             setClaimToExternalWallet,
-            guestFlowStep,
-            setGuestFlowStep,
+            flowStep,
+            setFlowStep,
             selectedCountry,
             setSelectedCountry,
-            resetGuestFlow,
+            resetFlow,
             offrampDetails,
             setOfframpDetails,
             claimError,
@@ -74,29 +93,41 @@ export const GuestFlowContextProvider: React.FC<{ children: ReactNode }> = ({ ch
             setShowVerificationModal,
             bankDetails,
             setBankDetails,
+            savedAccounts,
+            setSavedAccounts,
+            selectedBankAccount,
+            setSelectedBankAccount,
+            senderKycStatus,
+            setSenderKycStatus,
         }),
         [
             claimToExternalWallet,
-            guestFlowStep,
+            flowStep,
             selectedCountry,
-            resetGuestFlow,
+            resetFlow,
             offrampDetails,
             claimError,
             claimType,
-            setClaimType,
             senderDetails,
             showVerificationModal,
             bankDetails,
+            savedAccounts,
+            selectedBankAccount,
+            senderKycStatus,
         ]
     )
 
-    return <GuestFlowContext.Provider value={value}>{children}</GuestFlowContext.Provider>
+    return (
+        <ClaimBankFlowContext.Provider value={value as ClaimBankFlowContextType}>
+            {children}
+        </ClaimBankFlowContext.Provider>
+    )
 }
 
-export const useGuestFlow = (): GuestFlowContextType => {
-    const context = useContext(GuestFlowContext)
+export const useClaimBankFlow = (): ClaimBankFlowContextType => {
+    const context = useContext(ClaimBankFlowContext)
     if (context === undefined) {
-        throw new Error('useGuestFlow must be used within a GuestFlowContextProvider')
+        throw new Error('useClaimBankFlow must be used within a ClaimBankFlowContextProvider')
     }
     return context
 }

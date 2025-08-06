@@ -6,7 +6,7 @@ import IconStack from '../Global/IconStack'
 import mercadoPagoIcon from '@/assets/payment-apps/mercado-pago.svg'
 import binanceIcon from '@/assets/exchanges/binance.svg'
 import { METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
-import { useGuestFlow } from '@/context/GuestFlowContext'
+import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { getUserById } from '@/app/actions/users'
 import { ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
@@ -71,7 +71,12 @@ interface IActionListProps {
  */
 export default function ActionList({ claimLinkData, isLoggedIn }: IActionListProps) {
     const router = useRouter()
-    const { setClaimToExternalWallet, setGuestFlowStep, setSenderDetails, setShowVerificationModal } = useGuestFlow()
+    const {
+        setClaimToExternalWallet,
+        setFlowStep: setClaimBankFlowStep,
+        setSenderDetails,
+        setShowVerificationModal,
+    } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
 
     const handleMethodClick = async (method: Method) => {
@@ -90,7 +95,7 @@ export default function ActionList({ claimLinkData, isLoggedIn }: IActionListPro
                     const senderDetails = await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
                     if (senderDetails && senderDetails.kycStatus === 'approved') {
                         setSenderDetails(senderDetails)
-                        setGuestFlowStep('bank-country-list')
+                        setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
                     } else {
                         setShowVerificationModal(true)
                     }

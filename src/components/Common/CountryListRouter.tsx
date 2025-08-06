@@ -1,7 +1,7 @@
 'use client'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
-import { useGuestFlow } from '@/context/GuestFlowContext'
+import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { formatUnits } from 'viem'
 import { formatTokenAmount, printableAddress } from '@/utils/general.utils'
 import { CountryList } from '@/components/Common/CountryList'
@@ -22,16 +22,16 @@ interface ICountryListRouterViewProps {
  * @returns {JSX.Element}
  */
 export const CountryListRouter = ({ claimLinkData, inputTitle }: ICountryListRouterViewProps) => {
-    const { setGuestFlowStep, setSelectedCountry } = useGuestFlow()
+    const { setFlowStep: setClaimBankFlowStep, setSelectedCountry } = useClaimBankFlow()
 
     const handleCountryClick = (country: CountryData) => {
         setSelectedCountry(country)
-        setGuestFlowStep('bank-details-form')
+        setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
     }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
-            <NavHeader title="Receive" onPrev={() => setGuestFlowStep(null)} />
+            <NavHeader title="Receive" onPrev={() => setClaimBankFlowStep(null)} />
             <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
                 <PeanutActionDetailsCard
                     avatarSize="small"
