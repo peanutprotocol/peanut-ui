@@ -53,9 +53,9 @@ export const ConfirmClaimLinkView = ({
     // Determine which chain/token details to show – prefer the selectedRoute details if present,
     // otherwise fall back to what the user picked in the token selector.
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
-        chainId: selectedRoute?.route.params.toChain ?? selectedChainID,
-        tokenAddress: selectedRoute?.route.estimate.toToken.address ?? selectedTokenAddress,
-        tokenSymbol: selectedRoute?.route.estimate.toToken.symbol ?? claimLinkData.tokenSymbol,
+        chainId: selectedRoute?.rawResponse.route.params.toChain ?? selectedChainID,
+        tokenAddress: selectedRoute?.rawResponse.route.estimate.toToken.address ?? selectedTokenAddress,
+        tokenSymbol: selectedRoute?.rawResponse.route.estimate.toToken.symbol ?? claimLinkData.tokenSymbol,
     })
 
     // calculate minimum amount the user will receive after slippage

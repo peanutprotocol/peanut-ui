@@ -60,6 +60,7 @@ export default function WithdrawCryptoPage() {
         xChainRoute,
         isCalculatingFees,
         isPreparingTx,
+        reset: resetPaymentInitiator,
     } = usePaymentInitiator()
 
     // Helper to manage errors consistently
@@ -82,7 +83,8 @@ export default function WithdrawCryptoPage() {
 
     useEffect(() => {
         dispatch(paymentActions.resetPaymentState())
-    }, [dispatch])
+        resetPaymentInitiator()
+    }, [dispatch, resetPaymentInitiator])
 
     useEffect(() => {
         if (!amountToWithdraw) {
@@ -109,10 +111,10 @@ export default function WithdrawCryptoPage() {
                     tokenAddress: PEANUT_WALLET_TOKEN,
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 },
-                usdAmount: amountToWithdraw,
+                usdAmount: usdAmount,
             })
         }
-    }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, amountToWithdraw, address])
+    }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, usdAmount, address])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -251,9 +253,9 @@ export default function WithdrawCryptoPage() {
                 tokenAddress: PEANUT_WALLET_TOKEN,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
             },
-            usdAmount: amountToWithdraw,
+            usdAmount: usdAmount,
         })
-    }, [activeChargeDetailsFromStore, prepareTransactionDetails, amountToWithdraw, address])
+    }, [activeChargeDetailsFromStore, prepareTransactionDetails, usdAmount, address])
 
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')
@@ -278,8 +280,9 @@ export default function WithdrawCryptoPage() {
     useEffect(() => {
         return () => {
             resetWithdrawFlow()
+            resetPaymentInitiator()
         }
-    }, [resetWithdrawFlow])
+    }, [resetWithdrawFlow, resetPaymentInitiator])
 
     // Check for route type errors (similar to payment flow)
     const routeTypeError = useMemo<string | null>(() => {

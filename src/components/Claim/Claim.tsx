@@ -16,7 +16,6 @@ import * as interfaces from '@/interfaces'
 import { ESendLinkStatus, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
 import { getInitialsFromName, getTokenDetails, isStableCoin } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
-import { useRouter } from 'next/navigation'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import PageContainer from '../0_Bruddle/PageContainer'
@@ -24,7 +23,7 @@ import PeanutLoading from '../Global/PeanutLoading'
 import * as _consts from './Claim.consts'
 import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
-import { useGuestFlow } from '@/context/GuestFlowContext'
+import { type PeanutCrossChainRoute } from '@/services/swap'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -41,7 +40,7 @@ export const Claim = ({}) => {
     })
     const [tokenPrice, setTokenPrice] = useState<number>(0)
     const [estimatedPoints, setEstimatedPoints] = useState<number>(0)
-    const [selectedRoute, setSelectedRoute] = useState<any>(undefined)
+    const [selectedRoute, setSelectedRoute] = useState<PeanutCrossChainRoute | undefined>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>()
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
 

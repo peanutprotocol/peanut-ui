@@ -7,47 +7,11 @@ import path from 'path'
 import { BASE_URL } from '@/constants'
 import getOrigin from '@/lib/hosting/get-origin'
 import { ReceiptCardOG } from '@/components/og/ReceiptCardOG'
-import { printableAddress } from '@/utils'
+import { printableAddress, resolveAddressToUsername } from '@/utils'
 import { isAddress } from 'viem'
+import { ProfileCardOG } from '@/components/og/ProfileCardOG'
 
 export const runtime = 'nodejs' //node.js instead of edge!
-
-// utility function to resolve ENS name from an address
-async function resolveAddressToENS(address: string): Promise<string | null> {
-    if (!isAddress(address)) return null
-
-    try {
-        const response = await fetch(`https://api.justaname.id/ens/v1/subname/address?address=${address}&chainId=1`, {
-            headers: {
-                Accept: '*/*',
-            },
-        })
-
-        if (!response.ok) {
-            return null
-        }
-
-        const data = await response.json()
-
-        // handle response from justaname
-        if (
-            data?.result?.data?.subnames &&
-            Array.isArray(data.result.data.subnames) &&
-            data.result.data.subnames.length > 0
-        ) {
-            // get the first subname
-            const firstSubname = data.result.data.subnames[0]
-            if (firstSubname.ens) {
-                return firstSubname.ens
-            }
-        }
-
-        return null
-    } catch (error) {
-        console.error('Error resolving ENS name:', error)
-        return null
-    }
-}
 
 // utility function to clean up username display
 function formatUsernameForDisplay(username: string): string {
@@ -56,9 +20,9 @@ function formatUsernameForDisplay(username: string): string {
         return username.replace('.peanut.me', '')
     }
 
-    // if it's too long and looks like an address, make it printable
+    // if it's too long and looks like an address, make it printable (6 first, 4 last chars)
     if (username.length > 12) {
-        return printableAddress(username)
+        return printableAddress(username, 6, 4)
     }
 
     return username
@@ -103,6 +67,7 @@ export async function GET(req: NextRequest) {
     const amount = Number(searchParams.get('amount') ?? 0)
     const token = searchParams.get('token') || null
     const isReceipt = searchParams.get('isReceipt') || 'false'
+    const isPeanutUsername = searchParams.get('isPeanutUsername') || 'false'
 
     if (type === 'generic') {
         return new ImageResponse(<div style={{}}>Peanut Protocol</div>, {
@@ -114,7 +79,7 @@ export async function GET(req: NextRequest) {
 
     // for send/claim links, try to resolve ENS name if username is an address
     if (type === 'send' && isAddress(username)) {
-        const ensName = await resolveAddressToENS(username)
+        const ensName = await resolveAddressToUsername(username, origin)
         if (ensName) {
             username = ensName // Use the resolved ENS name
         }
@@ -123,7 +88,37 @@ export async function GET(req: NextRequest) {
     // format username for display (handles .peanut.me cleanup and address formatting)
     username = formatUsernameForDisplay(username)
 
+    if (isPeanutUsername === 'true' && isReceipt === 'false') {
+        return new ImageResponse(
+            (
+                <ProfileCardOG
+                    username={username}
+                    scribbleSrc={`${origin}/scribble.svg`}
+                    logoSrc={`${origin}/logos/peanut-logo.svg`}
+                    iconSrc={`${origin}/icons/peanut-icon.svg`}
+                />
+            ),
+            {
+                width: 1200,
+                height: 630,
+                fonts: [
+                    { name: 'Knerd Filled', data: knerdFilled, style: 'normal' },
+                    { name: 'Knerd Outline', data: knerdOutline, style: 'normal' },
+                    { name: 'Montserrat Medium', data: montserratMedium, style: 'normal' },
+                    { name: 'Montserrat SemiBold', data: montserratSemibold, style: 'normal' },
+                ],
+            }
+        )
+    }
     if (isReceipt === 'true') {
+        // create an object with all arrow SVG paths for receipts
+        const arrowSrcs = {
+            topLeft: `${origin}/arrows/top-left-arrows.svg`,
+            topRight: `${origin}/arrows/top-right-arrow.svg`,
+            bottomLeft: `${origin}/arrows/bottom-left-arrow.svg`,
+            bottomRight: `${origin}/arrows/bottom-right-arrow.svg`,
+        }
+
         const link: PaymentLink & { token?: string } = {
             type,
             username,
@@ -138,6 +133,7 @@ export async function GET(req: NextRequest) {
                     iconSrc={`${origin}/icons/peanut-icon.svg`}
                     logoSrc={`${origin}/logos/peanut-logo.svg`}
                     scribbleSrc={`${origin}/scribble.svg`}
+                    arrowSrcs={arrowSrcs}
                 />
             ),
             {

@@ -80,8 +80,8 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
             onClose={() => {}}
             preventClose={true}
             hideOverlay={true}
-            className="z-50 !items-center !justify-center"
-            classWrap="!self-center !bottom-auto !mx-auto"
+            className="z-50 !items-center !justify-center !px-6"
+            classWrap="!self-center !bottom-auto !mx-auto !w-auto !max-w-md"
         >
             <div className="flex w-full flex-col items-center justify-center gap-6 p-6 text-center">
                 <div className="flex size-16 items-center justify-center rounded-full bg-yellow-400">

@@ -5,7 +5,7 @@ import { parseUnits, formatUnits, encodeFunctionData, erc20Abi } from 'viem'
 import { fetchTokenPrice, estimateTransactionCostUsd } from '@/app/actions/tokens'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { fetchWithSentry, isNativeCurrency, areEvmAddressesEqual } from '@/utils'
-import { SQUID_API_URL, USDT_IN_MAINNET } from '@/constants'
+import { SQUID_API_URL, USDT_IN_MAINNET, SQUID_INTEGRATOR_ID, SQUID_INTEGRATOR_ID_WITHOUT_CORAL } from '@/constants'
 
 type TokenInfo = {
     address: Address
@@ -258,10 +258,8 @@ async function getSquidRouteRaw(params: SquidGetRouteParams, options: RouteOptio
             'Content-Type': 'application/json',
             // use alternative integrator id when coral must be disabled
             'x-integrator-id': options.disableCoral
-                ? process.env.DEFAULT_SQUID_INTEGRATOR_ID ||
-                  process.env.NEXT_PUBLIC_DEFAULT_SQUID_INTEGRATOR_ID ||
-                  process.env.SQUID_INTEGRATOR_ID!
-                : process.env.SQUID_INTEGRATOR_ID!,
+                ? SQUID_INTEGRATOR_ID_WITHOUT_CORAL || SQUID_INTEGRATOR_ID
+                : SQUID_INTEGRATOR_ID,
         },
         body: JSON.stringify(params),
     })
@@ -277,11 +275,27 @@ async function getSquidRouteRaw(params: SquidGetRouteParams, options: RouteOptio
 }
 
 /**
+ * Calculate overage percentage between received and target amounts
+ */
+function calculateOverage(receivedAmount: bigint, targetAmount: bigint): number {
+    if (receivedAmount < targetAmount) return -1 // Indicates undershoot
+
+    const diff = receivedAmount - targetAmount
+    const target = targetAmount
+
+    if (diff <= Number.MAX_SAFE_INTEGER && target <= Number.MAX_SAFE_INTEGER) {
+        return Number(diff) / Number(target)
+    } else {
+        // Handle very large numbers with careful scaling
+        return Number(diff / (target / 1_000_000_000_000_000_000n)) / 1e18
+    }
+}
+
+/**
  * Find the optimal fromAmount for a given target amount of tokens.
  *
- * Uses binary search to find the optimal fromAmount for a given target amount of tokens.
- * This is done by calling the squid API with different fromAmount values until the
- * overage is below a certain threshold.
+ * Uses hybrid approach: linear interpolation to set realistic bounds,
+ * then binary search within those bounds for precision.
  */
 async function findOptimalFromAmount(
     params: Omit<SquidGetRouteParams, 'fromAmount'>,
@@ -302,59 +316,65 @@ async function findOptimalFromAmount(
     console.info('findOptimalFromAmount', { params, targetToAmount, toTokenPrice, targetUsd })
 
     // Dynamic tolerances based on USD amount
-    // This is needed because for different quantities the slippage is different
-    // for example 0.4% of 10 USD is different than 0.4% of 1000 USD
     let maxOverage: number
-    let rangeMultiplier: { low: number; high: number }
     if (targetUsd < 0.3) {
-        // Really small amounts, mainly used for testing
         maxOverage = 0.05 // 5%
-        rangeMultiplier = { low: 0.945, high: 1.15 }
     } else if (targetUsd < 1) {
         maxOverage = 0.01 // 1%
-        rangeMultiplier = { low: 0.985, high: 1.03 }
     } else if (targetUsd < 10) {
         maxOverage = 0.005 // 0.5%
-        rangeMultiplier = { low: 0.9925, high: 1.015 }
     } else if (targetUsd < 1000) {
         maxOverage = 0.003 // 0.3%
-        rangeMultiplier = { low: 0.995, high: 1.009 }
     } else {
         maxOverage = 0.001 // 0.1%
-        rangeMultiplier = { low: 0.995, high: 1.01 }
     }
 
-    let lowBound = (initialFromAmount * BigInt(Math.floor(rangeMultiplier.low * 10000))) / 10000n
-    let highBound = (initialFromAmount * BigInt(Math.floor(rangeMultiplier.high * 10000))) / 10000n
+    const testResponse = await getSquidRouteRaw(
+        {
+            ...params,
+            fromAmount: initialFromAmount.toString(),
+        },
+        options
+    )
+
+    const actualReceived = BigInt(testResponse.route.estimate.toAmountMin)
+
+    // Step 2: Check if initial test is already good enough
+    const initialOverage = calculateOverage(actualReceived, targetToAmount)
+    if (initialOverage >= 0 && initialOverage <= maxOverage) {
+        return testResponse
+    }
+
+    // Step 3: Use linear interpolation to calculate realistic bounds
+    const ratio = Number(targetToAmount) / Number(actualReceived)
+    const linearEstimate = (initialFromAmount * BigInt(Math.floor(ratio * 1000))) / 1000n
+
+    // Set tight bounds around the linear estimate (±2% range)
+    const boundRange = linearEstimate / 50n // 2% of linear estimate
+    let lowBound = linearEstimate - boundRange
+    let highBound = linearEstimate + boundRange
+
+    // Ensure bounds are positive
+    if (lowBound <= 0n) lowBound = linearEstimate / 2n
 
     let bestResult: { response: SquidRouteResponse; overage: number } | null = null
     let iterations = 0
-    const maxIterations = 3 // Avoid too many calls to squid API!
+    const maxIterations = 2 // Only 2 more calls since bounds are accurate
+    const minBoundDifference = linearEstimate / 1000n // 0.1% to prevent infinite loops
 
-    // Binary search to find the optimal fromAmount
-    while (iterations < maxIterations && highBound > lowBound) {
+    // Step 4: Binary search within the realistic bounds
+    while (iterations < maxIterations && highBound > lowBound && highBound - lowBound > minBoundDifference) {
         const midPoint = (lowBound + highBound) / 2n
         const testParams = { ...params, fromAmount: midPoint.toString() }
 
         try {
             const response = await getSquidRouteRaw(testParams, options)
             const receivedAmount = BigInt(response.route.estimate.toAmountMin)
-            console.log('fromAmount', midPoint)
-            console.log('receivedAmount', receivedAmount)
-            console.log('targetToAmount', targetToAmount)
-            if (receivedAmount >= targetToAmount) {
-                iterations++
-                const diff = receivedAmount - targetToAmount
-                const target = targetToAmount
 
-                let overage: number
-                if (diff <= Number.MAX_SAFE_INTEGER && target <= Number.MAX_SAFE_INTEGER) {
-                    overage = Number(diff) / Number(target)
-                } else {
-                    // Handle very large numbers with careful scaling
-                    overage = Number(diff / (target / 1_000_000_000_000_000_000n)) / 1e18
-                }
+            const overage = calculateOverage(receivedAmount, targetToAmount)
 
+            if (overage >= 0) {
+                // We have enough tokens
                 if (overage <= maxOverage) {
                     return response
                 }
@@ -362,8 +382,10 @@ async function findOptimalFromAmount(
                 bestResult = { response, overage }
                 highBound = midPoint - 1n
             } else {
+                // Not enough tokens, need more input
                 lowBound = midPoint + 1n
             }
+            iterations++
         } catch (error) {
             console.warn('Error fetching route:', error)
             lowBound = midPoint + 1n
@@ -371,13 +393,12 @@ async function findOptimalFromAmount(
         }
     }
 
-    // Return best result found, or make one final call with high bound
+    // Step 5: Return best result found, or fallback to initial test
     if (bestResult) {
         return bestResult.response
     }
 
-    // Fallback call
-    return await getSquidRouteRaw({ ...params, fromAmount: highBound.toString() }, options)
+    return testResponse
 }
 
 export type PeanutCrossChainRoute = {
