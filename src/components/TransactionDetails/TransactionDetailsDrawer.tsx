@@ -47,6 +47,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     // ref for the main content area to calculate dynamic height
     const contentRef = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState<boolean>(false)
+    const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
 
     const handleClose = useCallback(() => {
         if (onClose) {
@@ -57,7 +58,11 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     if (!transaction) return null
 
     return (
-        <Drawer open={isOpen} onOpenChange={onClose}>
+        <Drawer
+            open={isOpen}
+            // close the drawer only if the CancelLinkModal is closed
+            onOpenChange={showCancelLinkModal ? undefined : onClose}
+        >
             <DrawerContent className="p-5">
                 <TransactionDetailsReceipt
                     isLoading={isLoading}
@@ -66,6 +71,8 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                     setIsLoading={setIsLoading}
                     contentRef={contentRef}
                     transactionAmount={transactionAmount}
+                    showCancelLinkModal={showCancelLinkModal}
+                    setShowCancelLinkModal={setShowCancelLinkModal}
                 />
             </DrawerContent>
         </Drawer>
@@ -90,6 +97,8 @@ export const TransactionDetailsReceipt = ({
     setIsLoading,
     contentRef,
     transactionAmount,
+    showCancelLinkModal,
+    setShowCancelLinkModal,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
@@ -97,13 +106,14 @@ export const TransactionDetailsReceipt = ({
     setIsLoading?: (isLoading: boolean) => void
     contentRef?: React.RefObject<HTMLDivElement>
     transactionAmount?: string // dollarized amount of the transaction
+    showCancelLinkModal?: boolean
+    setShowCancelLinkModal?: (show: boolean) => void
 }) => {
     // ref for the main content area to calculate dynamic height
     const { user } = useUserStore()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const [showBankDetails, setShowBankDetails] = useState(false)
-    const [showCancelLinkModal, setshowCancelLinkModal] = useState(false)
 
     const isGuestBankClaim = useMemo(() => {
         if (!transaction) return false
@@ -692,7 +702,7 @@ export const TransactionDetailsReceipt = ({
                         onClose && (
                             <Button
                                 disabled={isLoading}
-                                onClick={() => setshowCancelLinkModal(true)}
+                                onClick={() => setShowCancelLinkModal?.(true)}
                                 loading={isLoading}
                                 variant={'primary-soft'}
                                 className="flex w-full items-center gap-1"
@@ -858,14 +868,14 @@ export const TransactionDetailsReceipt = ({
 
             {/* Cancel Link Modal  */}
 
-            {setIsLoading && onClose && (
+            {setIsLoading && onClose && setShowCancelLinkModal && (
                 <CancelSendLinkModal
-                    showCancelLinkModal={showCancelLinkModal}
-                    setshowCancelLinkModal={setshowCancelLinkModal}
+                    showCancelLinkModal={showCancelLinkModal || false}
+                    setshowCancelLinkModal={setShowCancelLinkModal}
                     amount={amountDisplay}
                     onClick={() => {
                         setIsLoading(true)
-                        setshowCancelLinkModal(false)
+                        setShowCancelLinkModal(false)
                         sendLinksApi
                             .claim(user!.user.username!, transaction.extraDataForDrawer!.link!)
                             .then(() => {
