@@ -230,11 +230,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         }}
                         className="space-y-4"
                     >
-                        {flow === 'claim' &&
-                            !user?.user.userId &&
-                            renderInput('name', 'Full Name', {
-                                required: 'Full name is required',
-                            })}
+                        {flow === 'claim' && !user?.user.userId && (
+                            <div className="w-full space-y-4">
+                                {renderInput('firstName', 'First Name', { required: 'First name is required' })}
+                                {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
+                            </div>
+                        )}
                         {flow === 'claim' && user?.user.userId && !user.user.fullName && (
                             <div className="w-full space-y-4">
                                 {renderInput('firstName', 'First Name', { required: 'First name is required' })}

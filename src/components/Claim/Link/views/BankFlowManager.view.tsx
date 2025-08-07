@@ -67,6 +67,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const [error, setError] = useState<string | null>(null)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(user?.user?.kycStatus as KYCStatus)
+    const [isProcessingKycSuccess, setIsProcessingKycSuccess] = useState(false)
+    const [offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
 
     // effect to clear cached bank details when user goes back to country list
     useEffect(() => {
@@ -176,6 +178,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             const peanutContractAddress = peanut.getContractAddress(chainId, contractVersion) as Address
 
             const offrampRequestParams: TCreateOfframpRequest = {
+                onBehalfOf: userForOfframp.bridgeCustomerId,
                 amount: formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals),
                 userId: userForOfframp.userId,
                 sendLinkPubKey: pubKey,
@@ -201,6 +204,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             const offrampData = offrampResponse.data as TCreateOfframpResponse
             setLocalBankDetails(account)
             setBankDetails(account)
+            setOfframpData(offrampData)
 
             await handleConfirmClaim(offrampData)
         } catch (e: any) {
@@ -252,22 +256,51 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             bankClaimType === BankClaimType.UserBankClaim ||
             (bankClaimType === BankClaimType.ReceiverKycNeeded && justCompletedKyc)
         ) {
+            if (isProcessingKycSuccess) return {}
+            setIsProcessingKycSuccess(true)
             if (justCompletedKyc) {
                 setJustCompletedKyc(false)
             }
-            const currentAccountIds = new Set(user?.accounts.map((acc: any) => acc.id))
-            const result = await addBankAccount(payload)
-            if (result.error) {
-                setError(result.error)
-                return { error: result.error }
-            }
-            if (user?.user.userId) {
-                sessionStorage.removeItem(`temp-bank-account-${user.user.userId}`)
-            }
-            const updatedUser = await fetchUser()
-            const newAccount = updatedUser?.accounts.find((acc: any) => !currentAccountIds.has(acc.id))
-            if (newAccount) {
-                await handleCreateOfframpAndClaim(newAccount as unknown as IBankAccountDetails)
+            try {
+                const addBankAccountResponse = await addBankAccount(payload)
+                if (addBankAccountResponse.error) {
+                    setError(addBankAccountResponse.error)
+                    return { error: addBankAccountResponse.error }
+                }
+                if (user?.user.userId) {
+                    sessionStorage.removeItem(`temp-bank-account-${user.user.userId}`)
+                }
+                if (addBankAccountResponse.data?.id) {
+                    const bankDetails: IBankAccountDetails & { id?: string; bridgeAccountId?: string } = {
+                        name: addBankAccountResponse.data.details.accountOwnerName || user?.user.fullName || '',
+                        iban:
+                            addBankAccountResponse.data.type === 'iban'
+                                ? addBankAccountResponse.data.identifier
+                                : undefined,
+                        clabe:
+                            addBankAccountResponse.data.type === 'clabe' ? addBankAccountResponse.data.identifier : '',
+                        accountNumber:
+                            addBankAccountResponse.data.type === 'us' ? addBankAccountResponse.data.identifier : '',
+                        country: addBankAccountResponse.data.details.countryCode,
+                        id: addBankAccountResponse.data.id,
+                        bridgeAccountId: addBankAccountResponse.data.bridgeAccountId,
+                        bic: addBankAccountResponse.data.bic ?? '',
+                        routingNumber: addBankAccountResponse.data.routingNumber ?? '',
+                        firstName: addBankAccountResponse.data.firstName || rawData.firstName,
+                        lastName: addBankAccountResponse.data.lastName || rawData.lastName,
+                        email: user?.user.email ?? '',
+                        street: '',
+                        city: '',
+                        state: '',
+                        postalCode: '',
+                    }
+                    setLocalBankDetails(bankDetails)
+                    setBankDetails(bankDetails)
+                    setReceiverFullName(`${bankDetails.firstName} ${bankDetails.lastName}`)
+                    setClaimBankFlowStep(ClaimBankFlowStep.BankConfirmClaim)
+                }
+            } finally {
+                setIsProcessingKycSuccess(false)
             }
             return {}
         }
@@ -291,11 +324,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 }
                 if (!senderInfo.bridgeCustomerId) throw new Error('Sender bridge customer ID not found')
 
-                const [firstName, ...lastNameParts] = rawData.name?.split(' ') ?? ['', '']
                 const payloadWithCountry = {
                     ...payload,
                     country: selectedCountry.id,
-                    accountOwnerName: { firstName, lastName: lastNameParts.join(' ') },
                 }
 
                 const externalAccountResponse = await createBridgeExternalAccountForGuest(
@@ -309,7 +340,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     throw new Error('Failed to create external account')
                 }
 
-                await handleCreateOfframpAndClaim(externalAccountResponse as unknown as IBankAccountDetails)
+                const finalBankDetails = { ...rawData, ...(externalAccountResponse as object) }
+                setLocalBankDetails(finalBankDetails)
+                setBankDetails(finalBankDetails)
+                setReceiverFullName(payload.accountOwnerName.firstName + ' ' + payload.accountOwnerName.lastName)
+                setClaimBankFlowStep(ClaimBankFlowStep.BankConfirmClaim)
                 return {}
             } catch (e: any) {
                 const errorString = ErrorHandler(e)
@@ -452,7 +487,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             }
             return null
         default:
-            // todo: show error ui here
             return null
     }
 }
