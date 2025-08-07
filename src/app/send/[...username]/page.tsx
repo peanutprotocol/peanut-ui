@@ -15,7 +15,7 @@ export default function DirectPaymentPage(props: PageProps) {
     const recipient = usernameSegments
 
     return (
-        <PageContainer className="min-h-[inherit]">
+        <PageContainer>
             <PaymentPage recipient={recipient} flow="direct_pay" />
         </PageContainer>
     )

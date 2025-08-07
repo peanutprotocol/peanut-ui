@@ -286,7 +286,7 @@ export default function OnrampBankPage() {
 
     if (step === 'collectUserDetails') {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
+            <div className="flex flex-col justify-start space-y-8">
                 <NavHeader onPrev={handleBack} title="Identity Verification" />
                 <div className="flex flex-grow flex-col justify-center space-y-4">
                     <h3 className="text-sm font-bold">Verify your details</h3>
@@ -315,7 +315,7 @@ export default function OnrampBankPage() {
 
     if (step === 'kyc') {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
+            <div className="flex flex-col justify-start space-y-8">
                 <InitiateKYCModal
                     isOpen={isKycModalOpen}
                     onClose={handleKycModalClose}
@@ -333,7 +333,7 @@ export default function OnrampBankPage() {
 
     if (step === 'inputAmount') {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
+            <div className="flex flex-col justify-start space-y-8">
                 <NavHeader title="Add Money" onPrev={handleBack} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="text-sm font-bold">How much do you want to add?</div>

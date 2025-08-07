@@ -208,7 +208,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex flex-col justify-between gap-8">
             <div className="md:hidden">
                 <NavHeader title="Receive" onPrev={() => setGuestFlowStep('bank-country-list')} />
             </div>
