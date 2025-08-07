@@ -6,6 +6,7 @@ import { FooterVisibilityProvider } from '@/context/footerVisibility'
 import { Viewport } from 'next'
 import { Londrina_Solid, Roboto_Flex, Sniglet } from 'next/font/google'
 import localFont from 'next/font/local'
+import Script from 'next/script'
 import '../styles/globals.css'
 import { generateMetadata } from './metadata'
 
@@ -64,6 +65,24 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en">
+            <head>
+                {process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_GA_KEY && (
+                    <>
+                        <Script
+                            src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_KEY}`}
+                            strategy="afterInteractive"
+                        />
+                        <Script id="google-analytics" strategy="afterInteractive">
+                            {`
+                                window.dataLayer = window.dataLayer || [];
+                                function gtag(){dataLayer.push(arguments);}
+                                gtag('js', new Date());
+                                gtag('config', '${process.env.NEXT_PUBLIC_GA_KEY}');
+                            `}
+                        </Script>
+                    </>
+                )}
+            </head>
             <body
                 className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}
             >
