@@ -21,9 +21,9 @@ import { formatUnits } from 'viem'
 import PageContainer from '../0_Bruddle/PageContainer'
 import PeanutLoading from '../Global/PeanutLoading'
 import * as _consts from './Claim.consts'
-import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
 import { type PeanutCrossChainRoute } from '@/services/swap'
+import { NotFoundClaimLink, WrongPasswordClaimLink, ClaimedView } from './Generic'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -146,6 +146,16 @@ export const Claim = ({}) => {
             idx: _consts.CLAIM_SCREEN_FLOW.indexOf(screen),
         }))
     }
+
+    const showTransactionReceipt = useMemo(() => {
+        if (!selectedTransaction) return false
+        // check for showing txn receipt only to the creator after link is claimed
+        if (linkState === _consts.claimLinkStateType.ALREADY_CLAIMED) {
+            return user?.user.userId === claimLinkData?.sender.userId
+        }
+        return true
+    }, [selectedTransaction, linkState, user, claimLinkData])
+
     const checkLink = useCallback(
         async (link: string) => {
             try {
@@ -279,14 +289,23 @@ export const Claim = ({}) => {
                     }
                 />
             )}
-            {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <genericViews.WrongPasswordClaimLink />}
-            {linkState === _consts.claimLinkStateType.NOT_FOUND && <genericViews.NotFoundClaimLink />}
-            <TransactionDetailsReceipt
-                transaction={selectedTransaction}
-                setIsLoading={setisLinkCancelling}
-                isLoading={isLinkCancelling}
-                onClose={() => checkLink(window.location.href)}
-            />
+            {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <WrongPasswordClaimLink />}
+            {linkState === _consts.claimLinkStateType.NOT_FOUND && <NotFoundClaimLink />}
+            {/* Show this state only to guest users and receivers, never to the link creator */}
+            {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED &&
+                selectedTransaction &&
+                claimLinkData &&
+                (!user || user.user.userId !== claimLinkData?.sender.userId) && (
+                    <ClaimedView amount={selectedTransaction.amount} senderUsername={claimLinkData.sender.username} />
+                )}
+            {showTransactionReceipt && (
+                <TransactionDetailsReceipt
+                    transaction={selectedTransaction}
+                    setIsLoading={setisLinkCancelling}
+                    isLoading={isLinkCancelling}
+                    onClose={() => checkLink(window.location.href)}
+                />
+            )}
         </PageContainer>
     )
 }
