@@ -136,7 +136,7 @@ export default function Home() {
     // effect for showing balance warning modal
     useEffect(() => {
         if (typeof window !== 'undefined' && !isFetchingBalance) {
-            const hasSeenBalanceWarning = getFromLocalStorage('hasSeenBalanceWarning')
+            const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
             const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
 
             // show if:
@@ -158,7 +158,7 @@ export default function Home() {
     // effect for showing balance warning modal
     useEffect(() => {
         if (typeof window !== 'undefined' && !isFetchingBalance) {
-            const hasSeenBalanceWarning = getFromLocalStorage('hasSeenBalanceWarning')
+            const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
             const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
 
             // show if:
@@ -266,7 +266,7 @@ export default function Home() {
                 visible={showBalanceWarningModal}
                 onCloseAction={() => {
                     setShowBalanceWarningModal(false)
-                    saveToLocalStorage('hasSeenBalanceWarning', 'true', BALANCE_WARNING_EXPIRY)
+                    saveToLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`, 'true', BALANCE_WARNING_EXPIRY)
                 }}
             />
 
