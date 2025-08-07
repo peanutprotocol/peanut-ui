@@ -43,9 +43,14 @@ export interface WithdrawPayload {
 }
 
 export interface RequestPayPayload {
+    // For existing charges/requests
     chargeId?: string
     requestId?: string
     tokenAmount: string
     recipient?: PaymentRecipient
     attachmentOptions?: AttachmentOptions
+
+    // For dynamic charge creation (like CryptoWithdrawFlow)
+    selectedTokenAddress?: string
+    selectedChainID?: string
 }

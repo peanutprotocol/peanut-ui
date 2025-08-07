@@ -8,11 +8,11 @@ export type PaymentFlowType = 'direct_send' | 'add_money' | 'withdraw' | 'reques
  * Hook that returns the appropriate payment flow based on flow type
  * This replaces the complex conditional logic in the old PaymentForm
  */
-export const usePaymentFlow = (flowType: PaymentFlowType) => {
+export const usePaymentFlow = (flowType: PaymentFlowType, chargeId?: string) => {
     const directSendFlow = useDirectSendFlow()
     const addMoneyFlow = useAddMoneyFlow()
     const withdrawFlow = useCryptoWithdrawFlow()
-    const requestPayFlow = useRequestPayFlow()
+    const requestPayFlow = useRequestPayFlow(chargeId)
 
     switch (flowType) {
         case 'direct_send':

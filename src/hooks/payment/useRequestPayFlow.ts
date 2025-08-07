@@ -1,20 +1,29 @@
 'use client'
 
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { chargesApi } from '@/services/charges'
 import { getRoute } from '@/services/swap'
-import { PaymentCreationResponse, TRequestChargeResponse } from '@/services/services.types'
-import { ErrorHandler, areEvmAddressesEqual } from '@/utils'
-import { useCallback, useState } from 'react'
+import { TRequestChargeResponse, CreateChargeRequest } from '@/services/services.types'
+import { ErrorHandler, areEvmAddressesEqual, getTokenDetails, NATIVE_TOKEN_ADDRESS } from '@/utils'
+import { useCallback, useState, useContext } from 'react'
 import { parseUnits } from 'viem'
 import type { Address, TransactionReceipt } from 'viem'
 import { useConfig, useSendTransaction, useSwitchChain, useAccount } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { tokenSelectorContext } from '@/context'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import type { RequestPayPayload, BasePaymentResult } from './types'
 
 /**
  * Hook for handling request payment flow (fulfilling payment requests)
+ *
+ * Modernized with TanStack Query for:
+ * - Automatic caching and deduplication
+ * - Built-in retry logic and error handling
+ * - Race condition elimination
+ * - Better loading states and UX
  *
  * This flow handles:
  * 1. Get/create charge for request
@@ -25,215 +34,333 @@ import type { RequestPayPayload, BasePaymentResult } from './types'
  *
  * Supports both Peanut wallet and external wallet payments, with cross-chain capability.
  */
-export const useRequestPayFlow = () => {
+export const useRequestPayFlow = (chargeId?: string) => {
     const { sendMoney, sendTransactions, address: peanutWalletAddress, isConnected: isPeanutWallet } = useWallet()
     const { sendTransactionAsync } = useSendTransaction()
     const { switchChainAsync } = useSwitchChain()
     const { address: wagmiAddress, chain: connectedChain } = useAccount()
     const config = useConfig()
+    const queryClient = useQueryClient()
 
-    const [isProcessing, setIsProcessing] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [chargeDetails, setChargeDetails] = useState<TRequestChargeResponse | null>(null)
-    const [paymentDetails, setPaymentDetails] = useState<PaymentCreationResponse | null>(null)
+    // Get selected token context for external wallets
+    const { selectedTokenAddress, selectedChainID } = useContext(tokenSelectorContext)
+
+    // Local state for transaction execution
     const [transactionHash, setTransactionHash] = useState<string | null>(null)
-    const [isPreparingRoute, setIsPreparingRoute] = useState(false)
-    const [estimatedFees, setEstimatedFees] = useState<number | undefined>(undefined)
 
-    const reset = useCallback(() => {
-        setError(null)
-        setChargeDetails(null)
-        setPaymentDetails(null)
-        setTransactionHash(null)
-        setIsPreparingRoute(false)
-        setEstimatedFees(undefined)
-    }, [])
+    // TanStack Query for charge details fetching
+    const chargeQuery = useQuery({
+        queryKey: ['charge-details', chargeId],
+        queryFn: () => chargesApi.get(chargeId!),
+        enabled: !!chargeId,
+        staleTime: 30000, // 30 seconds
+        retry: 3,
+    })
 
-    const payRequest = useCallback(
-        async (payload: RequestPayPayload): Promise<BasePaymentResult> => {
+    // TanStack Query for route preparation
+    const routeQuery = useQuery({
+        queryKey: [
+            'request-pay-route',
+            chargeQuery.data,
+            isPeanutWallet,
+            connectedChain?.id,
+            selectedTokenAddress,
+            selectedChainID,
+        ],
+        queryFn: async () => {
+            const charge = chargeQuery.data!
             const activeWalletAddress = isPeanutWallet ? peanutWalletAddress : wagmiAddress
 
             if (!activeWalletAddress) {
-                return { success: false, error: 'No wallet connected' }
+                throw new Error('No wallet connected')
             }
 
-            setIsProcessing(true)
-            setError(null)
+            const targetChainId = charge.chainId
+            const targetTokenAddress = charge.tokenAddress
 
-            try {
-                console.log('🚀 Starting request payment flow:', payload)
+            // For Peanut wallet, we're always sending from PEANUT_WALLET_CHAIN/PEANUT_WALLET_TOKEN
+            // For external wallets, use selected token/chain from TokenSelector
+            const sourceChainId = isPeanutWallet
+                ? PEANUT_WALLET_CHAIN.id.toString()
+                : selectedChainID || connectedChain?.id.toString() || '1'
 
-                // 1. Get charge details (should already exist for requests)
-                let fullChargeDetails: TRequestChargeResponse
+            const sourceTokenAddress = isPeanutWallet ? PEANUT_WALLET_TOKEN : selectedTokenAddress || targetTokenAddress
 
-                if (payload.chargeId) {
-                    console.log('📋 Fetching existing charge:', payload.chargeId)
-                    fullChargeDetails = await chargesApi.get(payload.chargeId)
-                } else {
-                    throw new Error('Request payment requires a charge ID')
-                }
+            const isXChain = sourceChainId !== targetChainId
+            const isDiffToken = !areEvmAddressesEqual(sourceTokenAddress, targetTokenAddress)
 
-                setChargeDetails(fullChargeDetails)
+            // Only get route if cross-chain/cross-token is needed
+            if (!isXChain && !isDiffToken) {
+                return null
+            }
 
-                // 2. Determine if cross-chain/cross-token is needed
-                const targetChainId = fullChargeDetails.chainId
-                const targetTokenAddress = fullChargeDetails.tokenAddress
+            console.log('🔄 Getting cross-chain route for request payment...', {
+                sourceChainId,
+                sourceTokenAddress,
+                targetChainId,
+                targetTokenAddress,
+                isXChain,
+                isDiffToken,
+            })
 
-                // For Peanut wallet, we're always sending from PEANUT_WALLET_CHAIN/PEANUT_WALLET_TOKEN
-                // For external wallet, we need to determine the source chain/token
-                const sourceChainId = isPeanutWallet
-                    ? PEANUT_WALLET_CHAIN.id.toString()
-                    : connectedChain?.id.toString() || '1' // Default to mainnet if unknown
-
-                const sourceTokenAddress = isPeanutWallet ? PEANUT_WALLET_TOKEN : targetTokenAddress // For external wallet, assume same token for now
-
-                const isXChain = sourceChainId !== targetChainId
-                const isDiffToken = !areEvmAddressesEqual(sourceTokenAddress, targetTokenAddress)
-
-                let transactions: Array<{ to: Address; data: string; value: bigint }> = []
-                let feeCostsUsd = 0
-                let receipt: TransactionReceipt
-
-                // 3. Handle cross-chain/cross-token scenarios
-                if (isXChain || isDiffToken) {
-                    console.log('🔄 Cross-chain/token payment needed, getting route...')
-                    setIsPreparingRoute(true)
-
-                    const route = await getRoute({
-                        from: {
-                            address: activeWalletAddress as Address,
-                            tokenAddress: sourceTokenAddress as Address,
-                            chainId: sourceChainId,
-                        },
-                        to: {
-                            address: fullChargeDetails.requestLink.recipientAddress as Address,
-                            tokenAddress: targetTokenAddress as Address,
-                            chainId: targetChainId,
-                        },
-                        toAmount: parseUnits(fullChargeDetails.tokenAmount, fullChargeDetails.tokenDecimals),
-                    })
-
-                    transactions = route.transactions.map((tx) => ({
-                        to: tx.to,
-                        data: tx.data,
-                        value: BigInt(tx.value),
-                    }))
-                    feeCostsUsd = route.feeCostsUsd
-                    setEstimatedFees(feeCostsUsd)
-                    setIsPreparingRoute(false)
-
-                    // 4a. Execute cross-chain transactions
-                    if (isPeanutWallet) {
-                        console.log('💸 Executing cross-chain via Peanut wallet...')
-                        receipt = await sendTransactions(
-                            transactions.map((tx) => ({ to: tx.to, data: tx.data, value: tx.value })),
-                            sourceChainId
-                        )
-                    } else {
-                        console.log('💸 Executing cross-chain via external wallet...')
-
-                        // Switch network if needed
-                        if (connectedChain?.id !== Number(sourceChainId)) {
-                            await switchChainAsync({ chainId: Number(sourceChainId) })
-                        }
-
-                        // Execute transactions sequentially
-                        let finalReceipt: TransactionReceipt | null = null
-                        for (let i = 0; i < transactions.length; i++) {
-                            const tx = transactions[i]
-                            const hash = await sendTransactionAsync({
-                                to: tx.to,
-                                data: tx.data as `0x${string}`,
-                                value: tx.value,
-                                chainId: Number(sourceChainId),
-                            })
-
-                            finalReceipt = await waitForTransactionReceipt(config, {
-                                hash,
-                                chainId: Number(sourceChainId),
-                                confirmations: 1,
-                            })
-                        }
-                        receipt = finalReceipt!
-                    }
-                } else {
-                    // 4b. Handle same-chain, same-token payments
-                    if (isPeanutWallet && areEvmAddressesEqual(sourceTokenAddress, PEANUT_WALLET_TOKEN)) {
-                        console.log('💸 Simple USDC transfer via Peanut wallet...')
-                        receipt = await sendMoney(
-                            fullChargeDetails.requestLink.recipientAddress as Address,
-                            fullChargeDetails.tokenAmount
-                        )
-                    } else {
-                        throw new Error('Same-chain external wallet payments not yet implemented')
-                    }
-                }
-
-                if (!receipt || !receipt.transactionHash) {
-                    throw new Error('Payment transaction failed or receipt missing')
-                }
-
-                setTransactionHash(receipt.transactionHash)
-                console.log('✅ Payment transaction successful:', receipt.transactionHash)
-
-                // 5. Create payment record
-                console.log('📊 Creating payment record...')
-                const payment = await chargesApi.createPayment({
-                    chargeId: fullChargeDetails.uuid,
+            return await getRoute({
+                from: {
+                    address: activeWalletAddress as Address,
+                    tokenAddress: sourceTokenAddress as Address,
                     chainId: sourceChainId,
-                    hash: receipt.transactionHash,
-                    tokenAddress: sourceTokenAddress,
-                    payerAddress: activeWalletAddress,
-                })
+                },
+                to: {
+                    address: charge.requestLink.recipientAddress as Address,
+                    tokenAddress: targetTokenAddress as Address,
+                    chainId: targetChainId,
+                },
+                toAmount: parseUnits(charge.tokenAmount, charge.tokenDecimals),
+            })
+        },
+        enabled:
+            !!chargeQuery.data &&
+            (!!peanutWalletAddress || !!wagmiAddress) &&
+            // For external wallets, wait for token selection
+            (isPeanutWallet || (!!selectedTokenAddress && !!selectedChainID)),
+        staleTime: 60000, // 1 minute
+        retry: 2,
+    })
 
-                setPaymentDetails(payment)
-                console.log('🎉 Request payment flow completed successfully!')
+    const reset = useCallback(() => {
+        setTransactionHash(null)
+        queryClient.removeQueries({ queryKey: ['request-pay-route'] })
+    }, [queryClient])
 
-                return {
-                    success: true,
-                    charge: fullChargeDetails,
-                    payment,
-                    txHash: receipt.transactionHash,
+    // Separate charge creation function for dynamic scenarios
+    const createCharge = useCallback(
+        async (payload: RequestPayPayload): Promise<TRequestChargeResponse> => {
+            if (!payload.recipient || !payload.selectedTokenAddress || !payload.selectedChainID) {
+                throw new Error('Missing required data for charge creation')
+            }
+
+            console.log('🆕 Creating dynamic charge for payment...')
+
+            // Get token details for the target token
+            const tokenDetails = getTokenDetails({
+                tokenAddress: payload.selectedTokenAddress as Address,
+                chainId: payload.selectedChainID,
+            })
+
+            if (!tokenDetails) {
+                throw new Error('Unable to get token details for payment')
+            }
+
+            const tokenType =
+                payload.selectedTokenAddress.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase()
+                    ? peanutInterfaces.EPeanutLinkType.native
+                    : peanutInterfaces.EPeanutLinkType.erc20
+
+            // Create charge for dynamic payment
+            const chargePayload: CreateChargeRequest = {
+                pricing_type: 'fixed_price',
+                local_price: { amount: payload.tokenAmount, currency: 'USD' },
+                baseUrl: window.location.origin,
+                requestProps: {
+                    chainId: payload.selectedChainID,
+                    tokenAmount: payload.tokenAmount,
+                    tokenAddress: payload.selectedTokenAddress,
+                    tokenType: tokenType,
+                    tokenSymbol: tokenDetails.symbol,
+                    tokenDecimals: tokenDetails.decimals,
+                    recipientAddress: payload.recipient.resolvedAddress,
+                },
+                transactionType: 'REQUEST',
+            }
+
+            console.log('Creating charge with payload:', chargePayload)
+            const charge = await chargesApi.create(chargePayload)
+
+            if (!charge || !charge.data || !charge.data.id) {
+                throw new Error('Failed to create charge for payment or charge ID missing.')
+            }
+
+            const fullChargeDetails = await chargesApi.get(charge.data.id)
+            console.log('✅ Dynamic charge created successfully:', fullChargeDetails.uuid)
+
+            // Update the query cache with the new charge
+            queryClient.setQueryData(['charge-details', fullChargeDetails.uuid], fullChargeDetails)
+
+            return fullChargeDetails
+        },
+        [queryClient]
+    )
+
+    // TanStack Query mutation for payment execution
+    const paymentMutation = useMutation({
+        mutationFn: async (payload: RequestPayPayload): Promise<BasePaymentResult> => {
+            const activeWalletAddress = isPeanutWallet ? peanutWalletAddress : wagmiAddress
+
+            if (!activeWalletAddress) {
+                throw new Error('No wallet connected')
+            }
+
+            console.log('🚀 Starting request payment flow:', payload)
+
+            // 1. Get charge details (should exist by now)
+            let fullChargeDetails: TRequestChargeResponse
+
+            if (payload.chargeId) {
+                // Get charge from cache or API
+                console.log('📋 Using charge:', payload.chargeId)
+                fullChargeDetails =
+                    queryClient.getQueryData(['charge-details', payload.chargeId]) ||
+                    (await chargesApi.get(payload.chargeId))
+            } else {
+                throw new Error(
+                    'Request payment requires a charge ID - charge should be created before payment execution'
+                )
+            }
+
+            // 2. Get route from cache or prepare new one
+            const route = routeQuery.data
+
+            // 3. Determine transaction parameters
+            const targetChainId = fullChargeDetails.chainId
+            const targetTokenAddress = fullChargeDetails.tokenAddress
+            const sourceChainId = isPeanutWallet
+                ? PEANUT_WALLET_CHAIN.id.toString()
+                : selectedChainID || connectedChain?.id.toString() || '1'
+            const sourceTokenAddress = isPeanutWallet ? PEANUT_WALLET_TOKEN : selectedTokenAddress || targetTokenAddress
+
+            const isXChain = sourceChainId !== targetChainId
+            const isDiffToken = !areEvmAddressesEqual(sourceTokenAddress, targetTokenAddress)
+
+            let receipt: TransactionReceipt
+
+            // 4. Execute transactions based on route type
+            if (route && (isXChain || isDiffToken)) {
+                console.log('💸 Executing cross-chain payment...')
+
+                const transactions = route.transactions.map((tx) => ({
+                    to: tx.to,
+                    data: tx.data,
+                    value: BigInt(tx.value),
+                }))
+
+                if (isPeanutWallet) {
+                    receipt = await sendTransactions(
+                        transactions.map((tx) => ({ to: tx.to, data: tx.data, value: tx.value })),
+                        sourceChainId
+                    )
+                } else {
+                    // Switch network if needed
+                    if (connectedChain?.id !== Number(sourceChainId)) {
+                        await switchChainAsync({ chainId: Number(sourceChainId) })
+                    }
+
+                    // Execute transactions sequentially
+                    let finalReceipt: TransactionReceipt | null = null
+                    for (let i = 0; i < transactions.length; i++) {
+                        const tx = transactions[i]
+                        const hash = await sendTransactionAsync({
+                            to: tx.to,
+                            data: tx.data as `0x${string}`,
+                            value: tx.value,
+                            chainId: Number(sourceChainId),
+                        })
+
+                        finalReceipt = await waitForTransactionReceipt(config, {
+                            hash,
+                            chainId: Number(sourceChainId),
+                            confirmations: 1,
+                        })
+                    }
+                    receipt = finalReceipt!
                 }
-            } catch (err) {
-                console.error('❌ Request payment flow failed:', err)
-                const errorMessage = ErrorHandler(err)
-                setError(errorMessage)
+            } else {
+                // Same-chain, same-token payment
+                if (isPeanutWallet && areEvmAddressesEqual(sourceTokenAddress, PEANUT_WALLET_TOKEN)) {
+                    console.log('💸 Simple USDC transfer via Peanut wallet...')
+                    receipt = await sendMoney(
+                        fullChargeDetails.requestLink.recipientAddress as Address,
+                        fullChargeDetails.tokenAmount
+                    )
+                } else {
+                    throw new Error('Same-chain external wallet payments not yet implemented')
+                }
+            }
 
+            if (!receipt || !receipt.transactionHash) {
+                throw new Error('Payment transaction failed or receipt missing')
+            }
+
+            setTransactionHash(receipt.transactionHash)
+            console.log('✅ Payment transaction successful:', receipt.transactionHash)
+
+            // 5. Create payment record
+            console.log('📊 Creating payment record...')
+            const payment = await chargesApi.createPayment({
+                chargeId: fullChargeDetails.uuid,
+                chainId: sourceChainId,
+                hash: receipt.transactionHash,
+                tokenAddress: sourceTokenAddress,
+                payerAddress: activeWalletAddress,
+            })
+
+            console.log('🎉 Request payment flow completed successfully!')
+
+            return {
+                success: true,
+                charge: fullChargeDetails,
+                payment,
+                txHash: receipt.transactionHash,
+            }
+        },
+        onError: (error) => {
+            console.error('❌ Request payment flow failed:', error)
+        },
+    })
+
+    const payRequest = useCallback(
+        async (payload: RequestPayPayload): Promise<BasePaymentResult> => {
+            try {
+                return await paymentMutation.mutateAsync(payload)
+            } catch (error) {
+                const errorMessage = ErrorHandler(error)
                 return {
                     success: false,
                     error: errorMessage,
                 }
-            } finally {
-                setIsProcessing(false)
-                setIsPreparingRoute(false)
             }
         },
-        [
-            isPeanutWallet,
-            peanutWalletAddress,
-            wagmiAddress,
-            sendMoney,
-            sendTransactions,
-            sendTransactionAsync,
-            switchChainAsync,
-            connectedChain,
-            config,
-        ]
+        [paymentMutation]
     )
 
     return {
-        // Main action
+        // Main actions
         payRequest,
+        createCharge,
 
-        // State
-        isProcessing,
-        isPreparingRoute,
-        error,
-        chargeDetails,
-        paymentDetails,
+        // TanStack Query states
+        isProcessing: paymentMutation.isPending,
+        isPreparingRoute: routeQuery.isFetching,
+        error: paymentMutation.error
+            ? ErrorHandler(paymentMutation.error)
+            : chargeQuery.error
+              ? ErrorHandler(chargeQuery.error)
+              : routeQuery.error
+                ? ErrorHandler(routeQuery.error)
+                : null,
+
+        // Data from queries
+        chargeDetails: chargeQuery.data,
+        route: routeQuery.data,
         transactionHash,
-        estimatedFees,
+        estimatedFees: routeQuery.data?.feeCostsUsd,
+
+        // Loading states
+        isLoadingCharge: chargeQuery.isLoading,
+        isLoadingRoute: routeQuery.isLoading,
+
+        // Query states for advanced usage
+        chargeQuery,
+        routeQuery,
+        paymentMutation,
 
         // Utilities
         reset,

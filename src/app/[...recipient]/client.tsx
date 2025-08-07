@@ -6,6 +6,7 @@ import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
+import { RequestPayFlow } from '@/components/Payment/flows/RequestPayFlow'
 import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsDrawer'
@@ -392,7 +393,22 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             </div>
         )
     }
-    // default payment flow
+    // modernized payment flow using TanStack Query architecture
+    if (flow === 'request_pay') {
+        return (
+            <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-center')}>
+                <RequestPayFlow
+                    recipient={recipient}
+                    onComplete={() => {
+                        // Handle completion - could navigate or reset state
+                        console.log('Request payment flow completed')
+                    }}
+                />
+            </div>
+        )
+    }
+
+    // legacy flows (add_money, direct_pay, etc.) - keep using old system for now
     return (
         <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-center')}>
             {currentView === 'INITIAL' && (
