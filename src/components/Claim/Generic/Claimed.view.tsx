@@ -3,8 +3,14 @@ import { Button, Card } from '@/components/0_Bruddle'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
+import { FC } from 'react'
 
-export const ClaimedView = ({ amount, senderUsername }: { amount: number | bigint; senderUsername: string }) => {
+interface ClaimedViewProps {
+    amount: number | bigint
+    senderUsername: string
+}
+
+export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) => {
     const { user } = useAuth()
     const router = useRouter()
 
