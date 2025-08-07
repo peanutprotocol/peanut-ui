@@ -21,9 +21,9 @@ import { formatUnits } from 'viem'
 import PageContainer from '../0_Bruddle/PageContainer'
 import PeanutLoading from '../Global/PeanutLoading'
 import * as _consts from './Claim.consts'
-import * as genericViews from './Generic'
 import FlowManager from './Link/FlowManager'
 import { type PeanutCrossChainRoute } from '@/services/swap'
+import { NotFoundClaimLink, WrongPasswordClaimLink, ClaimedView } from './Generic'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -289,17 +289,14 @@ export const Claim = ({}) => {
                     }
                 />
             )}
-            {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <genericViews.WrongPasswordClaimLink />}
-            {linkState === _consts.claimLinkStateType.NOT_FOUND && <genericViews.NotFoundClaimLink />}
+            {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <WrongPasswordClaimLink />}
+            {linkState === _consts.claimLinkStateType.NOT_FOUND && <NotFoundClaimLink />}
             {/* Show this state only to guest users and receivers, never to the link creator */}
             {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED &&
                 selectedTransaction &&
                 claimLinkData &&
                 (!user || user.user.userId !== claimLinkData?.sender.userId) && (
-                    <genericViews.ClaimedView
-                        amount={selectedTransaction.amount}
-                        senderUsername={claimLinkData.sender.username}
-                    />
+                    <ClaimedView amount={selectedTransaction.amount} senderUsername={claimLinkData.sender.username} />
                 )}
             {showTransactionReceipt && (
                 <TransactionDetailsReceipt
