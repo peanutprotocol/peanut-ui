@@ -370,7 +370,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             router.push(`/send/${username}`)
         }
         return (
-            <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-start')}>
+            <div className={twMerge('mx-auto h-full w-full space-y-8 self-start')}>
                 <PublicProfile
                     username={username}
                     isVerified={user?.user.kycStatus === 'approved'}
@@ -395,16 +395,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     }
     // default payment flow
     return (
-        <div className={twMerge('mx-auto h-full min-h-[inherit] w-full space-y-8 self-center')}>
-            {!user && parsedPaymentData?.recipient?.recipientType !== 'USERNAME' && (
-                <div className="absolute left-0 top-0 md:top-18">
-                    <GenericBanner
-                        message="THIS FEATURE IS CURRENTLY IN TESTING - ONLY USE WITH SMALL AMOUNTS"
-                        marqueeClassName="flex h-11 items-center justify-center border-b-2 border-black"
-                        messageClassName="text-lg"
-                    />
-                </div>
-            )}
+        <div className={twMerge('mx-auto min-h-[inherit] w-full space-y-8 self-center')}>
             {currentView === 'INITIAL' && (
                 <InitialPaymentView
                     key={`initial-${flow}`}

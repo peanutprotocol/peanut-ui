@@ -36,7 +36,7 @@ const LinkSendSuccessView = () => {
     }
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8">
+        <div className="flex  w-full flex-col justify-start space-y-8">
             <NavHeader
                 icon="cancel"
                 title="Send"
