@@ -1,7 +1,7 @@
 // Payment flow hooks
 export { useDirectSendFlow } from './useDirectSendFlow'
 export { useAddMoneyFlow } from './useAddMoneyFlow'
-export { useWithdrawFlow } from './useWithdrawFlow'
+export { useCryptoWithdrawFlow } from './useCryptoWithdrawFlow'
 export { useRequestPayFlow } from './useRequestPayFlow'
 
 // Types

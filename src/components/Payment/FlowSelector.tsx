@@ -1,6 +1,6 @@
 'use client'
 
-import { useDirectSendFlow, useAddMoneyFlow, useWithdrawFlow, useRequestPayFlow } from '@/hooks/payment'
+import { useDirectSendFlow, useAddMoneyFlow, useCryptoWithdrawFlow, useRequestPayFlow } from '@/hooks/payment'
 
 export type PaymentFlowType = 'direct_send' | 'add_money' | 'withdraw' | 'request_pay'
 
@@ -11,7 +11,7 @@ export type PaymentFlowType = 'direct_send' | 'add_money' | 'withdraw' | 'reques
 export const usePaymentFlow = (flowType: PaymentFlowType) => {
     const directSendFlow = useDirectSendFlow()
     const addMoneyFlow = useAddMoneyFlow()
-    const withdrawFlow = useWithdrawFlow()
+    const withdrawFlow = useCryptoWithdrawFlow()
     const requestPayFlow = useRequestPayFlow()
 
     switch (flowType) {
