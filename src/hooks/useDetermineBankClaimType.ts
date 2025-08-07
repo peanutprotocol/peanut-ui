@@ -10,6 +10,11 @@ export enum BankClaimType {
     GuestKycNeeded = 'guest-kyc-needed',
 }
 
+/**
+ * Used to determine the bank claim type based on the sender and receiver kyc status
+ * @param {string} senderUserId The user id of the sender
+ * @returns {object} An object containing the bank claim type and a function to set the claim type
+ */
 export function useDetermineBankClaimType(senderUserId: string): {
     claimType: BankClaimType
     setClaimType: (claimType: BankClaimType) => void
