@@ -8,6 +8,7 @@ import { IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccount
 import { KYCStatus } from '@/utils/bridge-accounts.utils'
 
 export enum ClaimBankFlowStep {
+    SavedAccountsList = 'saved-accounts-list',
     BankDetailsForm = 'bank-details-form',
     BankConfirmClaim = 'bank-confirm-claim',
     BankCountryList = 'bank-country-list',
@@ -39,13 +40,17 @@ interface ClaimBankFlowContextType {
     setSelectedBankAccount: (account: Account | null) => void
     senderKycStatus?: KYCStatus
     setSenderKycStatus: (status?: KYCStatus) => void
+    justCompletedKyc: boolean
+    setJustCompletedKyc: (status: boolean) => void
+    cachedBankDetails: Partial<IBankAccountDetails> | null
+    setCachedBankDetails: (details: Partial<IBankAccountDetails> | null) => void
 }
 
 const ClaimBankFlowContext = createContext<ClaimBankFlowContextType | undefined>(undefined)
 
 export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [claimToExternalWallet, setClaimToExternalWallet] = useState<boolean>(false)
-    const [flowStep, setFlowStep] = useState<string | null>(null)
+    const [flowStep, setFlowStep] = useState<ClaimBankFlowStep | null>(null)
     const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(null)
     const [offrampDetails, setOfframpDetails] = useState<TCreateOfframpResponse | null>(null)
     const [claimError, setClaimError] = useState<string | null>(null)
@@ -56,6 +61,8 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
     const [senderKycStatus, setSenderKycStatus] = useState<KYCStatus | undefined>()
+    const [justCompletedKyc, setJustCompletedKyc] = useState(false)
+    const [cachedBankDetails, setCachedBankDetails] = useState<Partial<IBankAccountDetails> | null>(null)
 
     const resetFlow = useCallback(() => {
         setClaimToExternalWallet(false)
@@ -70,6 +77,8 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
         setSavedAccounts([])
         setSelectedBankAccount(null)
         setSenderKycStatus(undefined)
+        setJustCompletedKyc(false)
+        setCachedBankDetails(null)
     }, [])
 
     const value = useMemo(
@@ -99,6 +108,10 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             setSelectedBankAccount,
             senderKycStatus,
             setSenderKycStatus,
+            justCompletedKyc,
+            setJustCompletedKyc,
+            cachedBankDetails,
+            setCachedBankDetails,
         }),
         [
             claimToExternalWallet,
@@ -114,6 +127,8 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             savedAccounts,
             selectedBankAccount,
             senderKycStatus,
+            justCompletedKyc,
+            cachedBankDetails,
         ]
     )
 

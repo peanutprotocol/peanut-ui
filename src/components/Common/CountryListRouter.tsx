@@ -7,6 +7,7 @@ import { formatTokenAmount, printableAddress } from '@/utils/general.utils'
 import { CountryList } from '@/components/Common/CountryList'
 import { ClaimLinkData } from '@/services/sendLinks'
 import { CountryData } from '@/components/AddMoney/consts'
+import useSavedAccounts from '@/hooks/useSavedAccounts'
 
 interface ICountryListRouterViewProps {
     claimLinkData: ClaimLinkData
@@ -23,6 +24,7 @@ interface ICountryListRouterViewProps {
  */
 export const CountryListRouter = ({ claimLinkData, inputTitle }: ICountryListRouterViewProps) => {
     const { setFlowStep: setClaimBankFlowStep, setSelectedCountry } = useClaimBankFlow()
+    const savedAccounts = useSavedAccounts()
 
     const handleCountryClick = (country: CountryData) => {
         setSelectedCountry(country)
@@ -31,7 +33,16 @@ export const CountryListRouter = ({ claimLinkData, inputTitle }: ICountryListRou
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
-            <NavHeader title="Receive" onPrev={() => setClaimBankFlowStep(null)} />
+            <NavHeader
+                title="Receive"
+                onPrev={() => {
+                    if (savedAccounts.length > 0) {
+                        setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
+                    } else {
+                        setClaimBankFlowStep(null)
+                    }
+                }}
+            />
             <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
                 <PeanutActionDetailsCard
                     avatarSize="small"

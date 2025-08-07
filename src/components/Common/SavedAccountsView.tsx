@@ -6,13 +6,6 @@ import Image from 'next/image'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 
-/**
- * Component to render saved bank accounts
- *
- * @param {object} props
- * @param {Account[]} props.accounts The accounts to render
- * @param {function} props.onItemClick The function to call when an item is clicked
- */
 import NavHeader from '../Global/NavHeader'
 import Divider from '../0_Bruddle/Divider'
 import { Button } from '../0_Bruddle'
@@ -25,6 +18,16 @@ interface SavedAccountListProps {
     onSelectNewMethodClick: () => void
 }
 
+/**
+ * Component to render saved bank accounts
+ *
+ * @param {object} props
+ * @param {string} props.pageTitle The title of the page
+ * @param {function} props.onPrev The function to call when the previous button is clicked
+ * @param {Account[]} props.savedAccounts The accounts to render
+ * @param {function} props.onAccountClick The function to call when an account is clicked
+ * @param {function} props.onSelectNewMethodClick The function to call when the select new method button is clicked
+ */
 export default function SavedAccountsView({
     pageTitle,
     onPrev,

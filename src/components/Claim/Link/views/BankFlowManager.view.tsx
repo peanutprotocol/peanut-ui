@@ -3,111 +3,172 @@
 import { IClaimScreenProps } from '../../Claim.consts'
 import { DynamicBankAccountForm, IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useCallback, useContext, useState } from 'react'
+import { useCallback, useContext, useState, useRef, useEffect } from 'react'
 import { loadingStateContext } from '@/context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
-import { confirmOfframp, createOfframpForGuest } from '@/app/actions/offramp'
+import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
 import { Address, formatUnits } from 'viem'
 import { ErrorHandler, formatTokenAmount } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import useClaimLink from '../../useClaimLink'
-import { ConfirmBankClaimView } from './Confirm.bank-claim.view'
 import { AddBankAccountPayload } from '@/app/actions/types/users.types'
+import { useAuth } from '@/context/authContext'
 import { TCreateOfframpRequest, TCreateOfframpResponse } from '@/services/services.types'
 import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { getUserById } from '@/app/actions/users'
+import { addBankAccount, getUserById, updateUserById } from '@/app/actions/users'
+import SavedAccountsView from '../../../Common/SavedAccountsView'
+import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
+import useSavedAccounts from '@/hooks/useSavedAccounts'
+import { ConfirmBankClaimView } from './Confirm.bank-claim.view'
+import { CountryListRouter } from '@/components/Common/CountryListRouter'
 import NavHeader from '@/components/Global/NavHeader'
-import { CountryListRouter } from '../../../Common/CountryListRouter'
+import { InitiateKYCModal } from '@/components/Kyc'
+import { jsonParse, jsonStringify } from '@/utils/general.utils'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import { KYCStatus } from '@/utils/bridge-accounts.utils'
 
+/**
+ * @name BankFlowManager
+ * @description This component manages the entire bank claim flow, acting as a state machine.
+ * It determines which view to show based on the user's KYC status, saved accounts, and progress.
+ * It handles creating off-ramps, adding bank accounts, and orchestrating the KYC process.
+ */
 export const BankFlowManager = (props: IClaimScreenProps) => {
+    // props and basic setup
     const { onCustom, claimLinkData, setTransactionHash } = props
+    const { user, fetchUser } = useAuth()
+
+    // state from the centralized context
     const {
         flowStep: claimBankFlowStep,
         setFlowStep: setClaimBankFlowStep,
         selectedCountry,
         setClaimType,
         setBankDetails,
+        justCompletedKyc,
+        setJustCompletedKyc,
+        cachedBankDetails,
+        setCachedBankDetails,
+        showVerificationModal: isKycModalOpen,
+        setShowVerificationModal: setIsKycModalOpen,
     } = useClaimBankFlow()
+
+    // hooks for business logic and data fetching
+    const { claimType: bankClaimType } = useDetermineBankClaimType(claimLinkData.sender?.userId ?? '')
+    const savedAccounts = useSavedAccounts()
     const { isLoading, setLoadingState } = useContext(loadingStateContext)
     const { claimLink } = useClaimLink()
-    const [offrampDetails, setOfframpDetails] = useState<TCreateOfframpResponse | null>(null)
+
+    // local states for this component
     const [localBankDetails, setLocalBankDetails] = useState<IBankAccountDetails | null>(null)
     const [receiverFullName, setReceiverFullName] = useState<string>('')
     const [error, setError] = useState<string | null>(null)
+    const formRef = useRef<{ handleSubmit: () => void }>(null)
+    const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(user?.user?.kycStatus as KYCStatus)
 
-    const handleSuccess = async (payload: AddBankAccountPayload, rawData: IBankAccountDetails) => {
-        if (!selectedCountry) {
-            const err = 'Country not selected'
-            setError(err)
-            return { error: err }
+    // effect to clear cached bank details when user goes back to country list
+    useEffect(() => {
+        if (claimBankFlowStep === ClaimBankFlowStep.BankCountryList) {
+            if (user?.user.userId) {
+                sessionStorage.removeItem(`temp-bank-account-${user.user.userId}`)
+                setCachedBankDetails(null)
+            }
         }
+    }, [claimBankFlowStep, user?.user.userId, setCachedBankDetails])
 
+    // websocket for real-time KYC status updates
+    useWebSocket({
+        username: user?.user.username ?? undefined,
+        autoConnect: !!user?.user.username,
+        onKycStatusUpdate: (newStatus) => {
+            setLiveKycStatus(newStatus as KYCStatus)
+        },
+    })
+
+    // effect to update live KYC status from user object
+    useEffect(() => {
+        if (user?.user.kycStatus) {
+            setLiveKycStatus(user.user.kycStatus as KYCStatus)
+        }
+    }, [user?.user.kycStatus])
+
+    // effect to retrieve cached bank details after page refresh if KYC is approved
+    useEffect(() => {
+        if (user?.user.userId) {
+            const item = sessionStorage.getItem(`temp-bank-account-${user.user.userId}`)
+            const data = item ? jsonParse(item) : null
+            const currentStatus = liveKycStatus || user.user.kycStatus
+            if (data && currentStatus === 'approved' && !cachedBankDetails) {
+                setCachedBankDetails(data)
+                setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
+            }
+        }
+    }, [user, liveKycStatus, cachedBankDetails, setClaimBankFlowStep, setCachedBankDetails])
+
+    // effect to trigger form submission after KYC is completed
+    useEffect(() => {
+        if (justCompletedKyc && formRef.current) {
+            formRef.current.handleSubmit()
+        }
+    }, [justCompletedKyc])
+
+    /**
+     * @name handleConfirmClaim
+     * @description claims the link to the deposit address provided by the off-ramp api and confirms the transfer.
+     */
+    const handleConfirmClaim = useCallback(
+        async (details: TCreateOfframpResponse) => {
+            try {
+                const claimTx = await claimLink({
+                    address: details.depositInstructions.toAddress,
+                    link: claimLinkData.link,
+                })
+                setTransactionHash(claimTx)
+                await confirmOfframp(details.transferId, claimTx)
+                if (setClaimType) setClaimType('claim-bank')
+                onCustom('SUCCESS')
+            } catch (e: any) {
+                const errorString = ErrorHandler(e)
+                setError(errorString)
+                Sentry.captureException(e)
+                throw e
+            }
+        },
+        [claimLink, claimLinkData.link, setTransactionHash, setClaimType, onCustom]
+    )
+
+    /**
+     * @name handleCreateOfframpAndClaim
+     * @description creates an off-ramp transfer for the user, either as a guest or a logged-in user.
+     */
+    const handleCreateOfframpAndClaim = async (account: IBankAccountDetails) => {
         try {
-            if (!claimLinkData.sender?.userId) return { error: 'Sender details not found' }
             setLoadingState('Executing transaction')
             setError(null)
-            const userResponse = await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
 
-            if (!userResponse || ('error' in userResponse && userResponse.error)) {
-                const errorMessage =
-                    (userResponse && typeof userResponse.error === 'string' && userResponse.error) ||
-                    'Failed to get user info'
-                setError(errorMessage)
-                return { error: errorMessage }
+            const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
+            const userForOfframp = isGuestFlow
+                ? await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
+                : user?.user
+
+            if (!userForOfframp || ('error' in userForOfframp && userForOfframp.error)) {
+                throw new Error(
+                    (userForOfframp && typeof userForOfframp.error === 'string' && userForOfframp.error) ||
+                        'Failed to get user info'
+                )
             }
 
-            if (userResponse.kycStatus !== 'approved') {
-                setError('User not KYC approved')
-                return { error: 'User not KYC approved' }
-            }
+            if (userForOfframp.kycStatus !== 'approved') throw new Error('User not KYC approved')
+            if (!userForOfframp?.bridgeCustomerId) throw new Error('User bridge customer ID not found')
 
-            setReceiverFullName(rawData.name ?? '')
-            sessionStorage.setItem('receiverFullName', rawData.name ?? '')
-
-            const [firstName, ...lastNameParts] = rawData.name?.split(' ') ?? ['', '']
-            const lastName = lastNameParts.join(' ')
+            setReceiverFullName(userForOfframp.fullName ?? '')
 
             const paymentRail = getBridgeChainName(claimLinkData.chainId)
             const currency = getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
+            if (!paymentRail || !currency) throw new Error('Chain or token not supported for bank withdrawal')
 
-            if (!paymentRail || !currency) {
-                const err = 'Chain or token not supported for bank withdrawal'
-                setError(err)
-                return { error: err }
-            }
-
-            const payloadWithCountry = {
-                ...payload,
-                country: selectedCountry.id,
-                accountOwnerName: {
-                    firstName: firstName,
-                    lastName: lastName,
-                },
-            }
-
-            if (!userResponse?.bridgeCustomerId) {
-                setError('Sender details not found')
-                return { error: 'Sender details not found' }
-            }
-
-            const externalAccountResponse = await createBridgeExternalAccountForGuest(
-                userResponse.bridgeCustomerId,
-                payloadWithCountry
-            )
-
-            if ('error' in externalAccountResponse && externalAccountResponse.error) {
-                setError(externalAccountResponse.error)
-                return { error: externalAccountResponse.error }
-            }
-
-            if (!('id' in externalAccountResponse)) {
-                setError('Failed to create external account')
-                return { error: 'Failed to create external account' }
-            }
-
-            // note: we pass peanut contract address to offramp as the funds go from, user -> peanut contract -> bridge
             const params = peanut.getParamsFromLink(claimLinkData.link)
             const { address: pubKey } = peanut.generateKeysFromString(params.password)
             const chainId = params.chainId
@@ -116,7 +177,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
             const offrampRequestParams: TCreateOfframpRequest = {
                 amount: formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals),
-                userId: userResponse.userId,
+                userId: userForOfframp.userId,
                 sendLinkPubKey: pubKey,
                 source: {
                     paymentRail: paymentRail,
@@ -124,112 +185,274 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     fromAddress: peanutContractAddress,
                 },
                 destination: {
-                    ...getOfframpCurrencyConfig(selectedCountry.id),
-                    externalAccountId: externalAccountResponse.id,
+                    ...getOfframpCurrencyConfig(account.country ?? selectedCountry!.id),
+                    externalAccountId: (account as any).bridgeAccountId ?? (account as any).id,
                 },
-                features: {
-                    allowAnyFromAddress: true,
-                },
+                features: { allowAnyFromAddress: true },
             }
 
-            const offrampResponse = await createOfframpForGuest(offrampRequestParams)
+            const offrampResponse = isGuestFlow
+                ? await createOfframpForGuest(offrampRequestParams)
+                : await createOfframp(offrampRequestParams)
 
             if (offrampResponse.error || !offrampResponse.data) {
-                setError(offrampResponse.error || 'Failed to create offramp')
-                return { error: offrampResponse.error || 'Failed to create offramp' }
+                throw new Error(offrampResponse.error || 'Failed to create offramp')
+            }
+            const offrampData = offrampResponse.data as TCreateOfframpResponse
+            setLocalBankDetails(account)
+            setBankDetails(account)
+
+            await handleConfirmClaim(offrampData)
+        } catch (e: any) {
+            const errorString = ErrorHandler(e)
+            setError(errorString)
+            Sentry.captureException(e)
+        } finally {
+            setLoadingState('Idle')
+        }
+    }
+
+    /**
+     * @name handleSuccess
+     * @description Callback for when the DynamicBankAccountForm is successfully submitted.
+     * It handles different logic based on the bank claim type (guest, user, kyc needed).
+     */
+    const handleSuccess = async (
+        payload: AddBankAccountPayload,
+        rawData: IBankAccountDetails
+    ): Promise<{ error?: string }> => {
+        // scenario 1: receiver needs KYC
+        if (bankClaimType === BankClaimType.ReceiverKycNeeded && !justCompletedKyc) {
+            // update user's name and email if they are not present
+            const hasNameOnLoad = !!user?.user.fullName
+            const hasEmailOnLoad = !!user?.user.email
+            if (!hasNameOnLoad || !hasEmailOnLoad) {
+                if (user?.user.userId && rawData.firstName && rawData.lastName && rawData.email) {
+                    const result = await updateUserById({
+                        userId: user.user.userId,
+                        fullName: `${rawData.firstName} ${rawData.lastName}`.trim(),
+                        email: rawData.email,
+                    })
+                    if (result.error) return { error: result.error }
+                    await fetchUser()
+                }
             }
 
-            setOfframpDetails(offrampResponse.data as TCreateOfframpResponse)
-
-            setLocalBankDetails(rawData)
-            setBankDetails(rawData)
-            setClaimBankFlowStep(ClaimBankFlowStep.BankConfirmClaim)
+            // cache bank details in session storage and show KYC modal
+            const { firstName, lastName, email, ...detailsToSave } = rawData
+            if (user?.user.userId) {
+                sessionStorage.setItem(`temp-bank-account-${user.user.userId}`, jsonStringify(detailsToSave))
+            }
+            setIsKycModalOpen(true)
             return {}
-        } catch (e: any) {
-            const errorString = ErrorHandler(e)
-            setError(errorString)
-            Sentry.captureException(e)
-            return { error: errorString }
-        } finally {
-            setLoadingState('Idle')
         }
-    }
 
-    const handleConfirmClaim = useCallback(async () => {
-        try {
-            setLoadingState('Executing transaction')
-            setError(null)
-
-            if (!offrampDetails) {
-                throw new Error('Offramp details not available')
+        // scenario 2: logged-in user is claiming
+        if (
+            bankClaimType === BankClaimType.UserBankClaim ||
+            (bankClaimType === BankClaimType.ReceiverKycNeeded && justCompletedKyc)
+        ) {
+            if (justCompletedKyc) {
+                setJustCompletedKyc(false)
+            }
+            const currentAccountIds = new Set(user?.accounts.map((acc: any) => acc.id))
+            const result = await addBankAccount(payload)
+            if (result.error) {
+                setError(result.error)
+                return { error: result.error }
+            }
+            if (user?.user.userId) {
+                sessionStorage.removeItem(`temp-bank-account-${user.user.userId}`)
+            }
+            const updatedUser = await fetchUser()
+            const newAccount = updatedUser?.accounts.find((acc: any) => !currentAccountIds.has(acc.id))
+            if (newAccount) {
+                await handleCreateOfframpAndClaim(newAccount as unknown as IBankAccountDetails)
+            }
+            return {}
+        }
+        // scenario 3: guest user is claiming (using sender's KYC)
+        else if (bankClaimType === BankClaimType.GuestBankClaim) {
+            if (!selectedCountry) {
+                const err = 'Country not selected'
+                setError(err)
+                return { error: err }
             }
 
-            const claimTx = await claimLink({
-                address: offrampDetails.depositInstructions.toAddress,
-                link: claimLinkData.link,
-            })
+            try {
+                setLoadingState('Executing transaction')
+                setError(null)
+                const senderInfo = await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
+                if (!senderInfo || ('error' in senderInfo && senderInfo.error)) {
+                    throw new Error(
+                        (senderInfo && typeof senderInfo.error === 'string' && senderInfo.error) ||
+                            'Failed to get sender info'
+                    )
+                }
+                if (!senderInfo.bridgeCustomerId) throw new Error('Sender bridge customer ID not found')
 
-            setTransactionHash(claimTx)
-            await confirmOfframp(offrampDetails.transferId, claimTx)
-            if (setClaimType) setClaimType('claim-bank')
-            onCustom('SUCCESS')
-        } catch (e: any) {
-            const errorString = ErrorHandler(e)
-            setError(errorString)
-            Sentry.captureException(e)
-        } finally {
-            setLoadingState('Idle')
+                const [firstName, ...lastNameParts] = rawData.name?.split(' ') ?? ['', '']
+                const payloadWithCountry = {
+                    ...payload,
+                    country: selectedCountry.id,
+                    accountOwnerName: { firstName, lastName: lastNameParts.join(' ') },
+                }
+
+                const externalAccountResponse = await createBridgeExternalAccountForGuest(
+                    senderInfo.bridgeCustomerId,
+                    payloadWithCountry
+                )
+                if ('error' in externalAccountResponse && externalAccountResponse.error) {
+                    throw new Error(String(externalAccountResponse.error))
+                }
+                if (!('id' in externalAccountResponse)) {
+                    throw new Error('Failed to create external account')
+                }
+
+                await handleCreateOfframpAndClaim(externalAccountResponse as unknown as IBankAccountDetails)
+                return {}
+            } catch (e: any) {
+                const errorString = ErrorHandler(e)
+                setError(errorString)
+                Sentry.captureException(e)
+                return { error: errorString }
+            } finally {
+                setLoadingState('Idle')
+            }
         }
-    }, [
-        offrampDetails,
-        claimLink,
-        claimLinkData.link,
-        setTransactionHash,
-        confirmOfframp,
-        setClaimType,
-        onCustom,
-        setLoadingState,
-        setError,
-    ])
-
-    if (claimBankFlowStep === 'bank-confirm-claim' && offrampDetails && localBankDetails) {
-        return (
-            <ConfirmBankClaimView
-                claimLinkData={claimLinkData}
-                onConfirm={handleConfirmClaim}
-                onBack={() => {
-                    setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
-                    setError(null)
-                }}
-                isProcessing={isLoading}
-                error={error}
-                bankDetails={localBankDetails}
-                fullName={receiverFullName}
-            />
-        )
+        return {}
     }
 
-    if (claimBankFlowStep === 'bank-country-list' || !selectedCountry) {
-        return <CountryListRouter claimLinkData={claimLinkData} inputTitle="Which country do you want to receive to?" />
+    /**
+     * @name handleKycSuccess
+     * @description callback for when the KYC process is successfully completed.
+     */
+    const handleKycSuccess = () => {
+        setIsKycModalOpen(false)
+        setJustCompletedKyc(true)
     }
 
-    return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <div className="md:hidden">
-                <NavHeader title="Receive" onPrev={() => setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)} />
-            </div>
-            <DynamicBankAccountForm
-                key={selectedCountry.id}
-                country={selectedCountry.id}
-                onSuccess={handleSuccess}
-                flow={'claim'}
-                actionDetailsProps={{
-                    transactionType: 'CLAIM_LINK_BANK_ACCOUNT',
-                    recipientType: 'BANK_ACCOUNT',
-                    amount: formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!,
-                    tokenSymbol: claimLinkData.tokenSymbol,
-                }}
-            />
-        </div>
-    )
+    // main render logic based on the current flow step
+    switch (claimBankFlowStep) {
+        case ClaimBankFlowStep.SavedAccountsList:
+            return (
+                <SavedAccountsView
+                    pageTitle="Receive"
+                    onPrev={() => setClaimBankFlowStep(null)}
+                    savedAccounts={savedAccounts}
+                    onAccountClick={async (account) => {
+                        const [firstName, ...lastNameParts] = (
+                            account.details.accountOwnerName ||
+                            user?.user.fullName ||
+                            ''
+                        ).split(' ')
+                        const lastName = lastNameParts.join(' ')
+
+                        const bankDetails: IBankAccountDetails & { id?: string; bridgeAccountId?: string } = {
+                            name: account.details.accountOwnerName || user?.user.fullName || '',
+                            iban: account.type === 'iban' ? account.identifier : undefined,
+                            clabe: account.type === 'clabe' ? account.identifier : '',
+                            accountNumber: account.type === 'us' ? account.identifier : '',
+                            country: account.details.countryCode,
+                            id: account.id,
+                            bridgeAccountId: account.bridgeAccountId,
+                            bic: account.bic ?? '',
+                            routingNumber: account.routingNumber ?? '',
+                            firstName: firstName,
+                            lastName: lastName,
+                            email: user?.user.email ?? '',
+                            street: '',
+                            city: '',
+                            state: '',
+                            postalCode: '',
+                        }
+
+                        setLocalBankDetails(bankDetails)
+                        setBankDetails(bankDetails)
+
+                        const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
+                        const userForOfframp = isGuestFlow
+                            ? await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
+                            : user?.user
+                        if (userForOfframp && !('error' in userForOfframp)) {
+                            setReceiverFullName(userForOfframp.fullName ?? '')
+                        }
+
+                        setClaimBankFlowStep(ClaimBankFlowStep.BankConfirmClaim)
+                    }}
+                    onSelectNewMethodClick={() => {
+                        setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
+                    }}
+                />
+            )
+        case ClaimBankFlowStep.BankCountryList:
+            return (
+                <CountryListRouter
+                    claimLinkData={claimLinkData}
+                    inputTitle="Which country do you want to receive to?"
+                />
+            )
+        case ClaimBankFlowStep.BankDetailsForm:
+            return (
+                <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+                    <div className="md:hidden">
+                        <NavHeader
+                            title="Receive"
+                            onPrev={() =>
+                                savedAccounts.length > 0
+                                    ? setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
+                                    : setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
+                            }
+                        />
+                    </div>
+                    <DynamicBankAccountForm
+                        ref={formRef}
+                        key={selectedCountry?.id}
+                        country={selectedCountry?.id ?? ''}
+                        countryName={selectedCountry?.title ?? ''}
+                        onSuccess={handleSuccess}
+                        flow={'claim'}
+                        actionDetailsProps={{
+                            transactionType: 'CLAIM_LINK_BANK_ACCOUNT',
+                            recipientType: 'BANK_ACCOUNT',
+                            amount: formatTokenAmount(
+                                Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
+                            )!,
+                            tokenSymbol: claimLinkData.tokenSymbol,
+                        }}
+                        initialData={cachedBankDetails ?? {}}
+                    />
+                    <InitiateKYCModal
+                        isOpen={isKycModalOpen}
+                        onClose={() => setIsKycModalOpen(false)}
+                        onKycSuccess={handleKycSuccess}
+                    />
+                </div>
+            )
+        case ClaimBankFlowStep.BankConfirmClaim:
+            if (localBankDetails) {
+                return (
+                    <ConfirmBankClaimView
+                        claimLinkData={claimLinkData}
+                        onConfirm={() => handleCreateOfframpAndClaim(localBankDetails)}
+                        onBack={() => {
+                            setClaimBankFlowStep(
+                                savedAccounts.length > 0
+                                    ? ClaimBankFlowStep.SavedAccountsList
+                                    : ClaimBankFlowStep.BankDetailsForm
+                            )
+                            setError(null)
+                        }}
+                        isProcessing={isLoading}
+                        error={error}
+                        bankDetails={localBankDetails}
+                        fullName={receiverFullName}
+                    />
+                )
+            }
+            return null
+        default:
+            // todo: show error ui here
+            return null
+    }
 }

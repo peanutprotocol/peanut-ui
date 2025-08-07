@@ -49,7 +49,7 @@ export function ConfirmBankClaimView({
     }, [bankDetails])
 
     const countryCodeForFlag = useMemo(() => {
-        return countryCodeMap[bankDetails.country.toUpperCase()] ?? bankDetails.country.toUpperCase()
+        return countryCodeMap[bankDetails?.country?.toUpperCase()] ?? bankDetails.country.toUpperCase()
     }, [bankDetails.country])
 
     return (
@@ -71,8 +71,8 @@ export function ConfirmBankClaimView({
                 <Card className="rounded-sm">
                     {/* todo: take full name from user, this name rn is of senders */}
                     <PaymentInfoRow label="Full name" value={displayedFullName} />
-                    {bankDetails.iban && <PaymentInfoRow label="IBAN" value={bankDetails.iban} />}
-                    {bankDetails.bic && <PaymentInfoRow label="BIC" value={bankDetails.bic} />}
+                    {bankDetails.iban && <PaymentInfoRow label="IBAN" value={bankDetails.iban.toUpperCase()} />}
+                    {bankDetails.bic && <PaymentInfoRow label="BIC" value={bankDetails.bic.toUpperCase()} />}
                     <ExchangeRate accountType={accountType} />
                     <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                 </Card>

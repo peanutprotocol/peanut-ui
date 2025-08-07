@@ -470,7 +470,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     )
 
     useEffect(() => {
-        if (claimBankFlowStep?.startsWith('bank-')) {
+        if (claimBankFlowStep) {
             resetSelectedToken()
         }
     }, [claimBankFlowStep, resetSelectedToken])
@@ -595,7 +595,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }
 
-    if (claimBankFlowStep?.startsWith('bank-')) {
+    if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
     }
 

@@ -7,7 +7,6 @@ import mercadoPagoIcon from '@/assets/payment-apps/mercado-pago.svg'
 import binanceIcon from '@/assets/exchanges/binance.svg'
 import { METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { getUserById } from '@/app/actions/users'
 import { ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
 import { useState } from 'react'
@@ -19,6 +18,8 @@ import Image from 'next/image'
 import { saveRedirectUrl } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
+import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
+import useSavedAccounts from '@/hooks/useSavedAccounts'
 
 interface Method {
     id: string
@@ -71,13 +72,10 @@ interface IActionListProps {
  */
 export default function ActionList({ claimLinkData, isLoggedIn }: IActionListProps) {
     const router = useRouter()
-    const {
-        setClaimToExternalWallet,
-        setFlowStep: setClaimBankFlowStep,
-        setSenderDetails,
-        setShowVerificationModal,
-    } = useClaimBankFlow()
+    const { setClaimToExternalWallet, setFlowStep: setClaimBankFlowStep, setShowVerificationModal } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
+    const { claimType } = useDetermineBankClaimType(claimLinkData.sender?.userId ?? '')
+    const savedAccounts = useSavedAccounts()
 
     const handleMethodClick = async (method: Method) => {
         const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
@@ -88,16 +86,14 @@ export default function ActionList({ claimLinkData, isLoggedIn }: IActionListPro
         switch (method.id) {
             case 'bank':
                 {
-                    if (!claimLinkData.sender?.userId) {
+                    if (claimType === BankClaimType.GuestKycNeeded) {
                         setShowVerificationModal(true)
-                        return
-                    }
-                    const senderDetails = await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
-                    if (senderDetails && senderDetails.kycStatus === 'approved') {
-                        setSenderDetails(senderDetails)
-                        setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
                     } else {
-                        setShowVerificationModal(true)
+                        if (savedAccounts.length) {
+                            setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
+                        } else {
+                            setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
+                        }
                     }
                 }
                 break
