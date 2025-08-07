@@ -25,6 +25,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { fetchTokenPrice } from '@/app/actions/tokens'
+import { GenericBanner } from '@/components/Global/Banner'
 
 interface Props {
     recipient: string[]
@@ -395,6 +396,15 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     // default payment flow
     return (
         <div className={twMerge('mx-auto min-h-[inherit] w-full space-y-8 self-center')}>
+            {!user && parsedPaymentData?.recipient?.recipientType !== 'USERNAME' && (
+                <div className="absolute left-0 top-0 md:top-18">
+                    <GenericBanner
+                        message="THIS FEATURE IS CURRENTLY IN TESTING - ONLY USE WITH SMALL AMOUNTS"
+                        marqueeClassName="flex h-11 items-center justify-center border-b-2 border-black"
+                        messageClassName="text-lg"
+                    />
+                </div>
+            )}
             {currentView === 'INITIAL' && (
                 <InitialPaymentView
                     key={`initial-${flow}`}
