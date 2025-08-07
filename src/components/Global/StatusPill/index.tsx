@@ -9,12 +9,12 @@ interface StatusPillProps {
 
 const StatusPill = ({ status }: StatusPillProps) => {
     const colorClasses: Record<StatusType, string> = {
-        completed: 'border-success-5 bg-success-2',
-        pending: 'border-[#FAE184] bg-secondary-4',
+        completed: 'border-success-5 bg-success-2 text-success-4',
+        pending: 'border-yellow-8 bg-secondary-4 text-yellow-6',
         cancelled: 'border-error-2 bg-error-1 text-error',
         failed: 'border-error-2 bg-error-1 text-error',
-        processing: 'border-[#FAE184] bg-secondary-4',
-        soon: 'border-[#FAE184] bg-secondary-4',
+        processing: 'border-yellow-8 bg-secondary-4 text-yellow-6',
+        soon: 'border-yellow-8 bg-secondary-4 text-yellow-6',
     }
 
     const iconClasses: Record<StatusType, IconName> = {
