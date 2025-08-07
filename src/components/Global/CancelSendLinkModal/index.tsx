@@ -21,7 +21,7 @@ const CancelSendLinkModal = ({
             iconContainerClassName="bg-purple-1"
             iconProps={{ className: 'text-black' }}
             title="Cancel this link?"
-            modalClassName="z-[1000]"
+            modalClassName="z-[9999]"
             description={
                 <>
                     The <strong>{amount}</strong> locked in the link will go straight back to your balance.
