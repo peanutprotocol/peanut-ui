@@ -10,6 +10,7 @@ import {
 } from '@/utils/color.utils'
 import React from 'react'
 import { isAddress } from 'viem'
+import { StatusType } from '../Global/Badges/StatusBadge'
 
 interface TransactionAvatarBadgeProps {
     size?: AvatarSize
@@ -19,6 +20,7 @@ interface TransactionAvatarBadgeProps {
     isVerified?: boolean
     transactionType: TransactionType
     context: 'card' | 'header' | 'drawer'
+    status?: StatusType
 }
 
 /**
@@ -33,6 +35,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     size = 'medium',
     transactionType,
     context,
+    status,
 }) => {
     let displayIconName: IconName | undefined = undefined
     let displayInitials: string | undefined = initials
@@ -112,6 +115,8 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
             inlineStyle={{ backgroundColor: calculatedBgColor }}
             textColor={textColor}
             iconFillColor={iconFillColor}
+            showStatusPill
+            statusPillStatus={status}
         />
     )
 }
