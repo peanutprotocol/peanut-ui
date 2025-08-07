@@ -1,6 +1,6 @@
 'use client'
 
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { chargesApi } from '@/services/charges'
 import { getRoute } from '@/services/swap'
@@ -94,14 +94,7 @@ export const useRequestPayFlow = (chargeId?: string) => {
                 return null
             }
 
-            console.log('🔄 Getting cross-chain route for request payment...', {
-                sourceChainId,
-                sourceTokenAddress,
-                targetChainId,
-                targetTokenAddress,
-                isXChain,
-                isDiffToken,
-            })
+
 
             return await getRoute({
                 from: {
@@ -138,10 +131,8 @@ export const useRequestPayFlow = (chargeId?: string) => {
                 throw new Error('Missing required data for charge creation')
             }
 
-            console.log('🆕 Creating dynamic charge for payment...')
-
-            // Get token details for the target token
-            const tokenDetails = getTokenDetails({
+        // Get token details for the target token
+        const tokenDetails = getTokenDetails({
                 tokenAddress: payload.selectedTokenAddress as Address,
                 chainId: payload.selectedChainID,
             })
@@ -172,7 +163,6 @@ export const useRequestPayFlow = (chargeId?: string) => {
                 transactionType: 'REQUEST',
             }
 
-            console.log('Creating charge with payload:', chargePayload)
             const charge = await chargesApi.create(chargePayload)
 
             if (!charge || !charge.data || !charge.data.id) {
@@ -180,7 +170,6 @@ export const useRequestPayFlow = (chargeId?: string) => {
             }
 
             const fullChargeDetails = await chargesApi.get(charge.data.id)
-            console.log('✅ Dynamic charge created successfully:', fullChargeDetails.uuid)
 
             // Update the query cache with the new charge
             queryClient.setQueryData(['charge-details', fullChargeDetails.uuid], fullChargeDetails)
@@ -199,14 +188,11 @@ export const useRequestPayFlow = (chargeId?: string) => {
                 throw new Error('No wallet connected')
             }
 
-            console.log('🚀 Starting request payment flow:', payload)
-
             // 1. Get charge details (should exist by now)
             let fullChargeDetails: TRequestChargeResponse
 
             if (payload.chargeId) {
                 // Get charge from cache or API
-                console.log('📋 Using charge:', payload.chargeId)
                 fullChargeDetails =
                     queryClient.getQueryData(['charge-details', payload.chargeId]) ||
                     (await chargesApi.get(payload.chargeId))
@@ -234,7 +220,6 @@ export const useRequestPayFlow = (chargeId?: string) => {
 
             // 4. Execute transactions based on route type
             if (route && (isXChain || isDiffToken)) {
-                console.log('💸 Executing cross-chain payment...')
 
                 const transactions = route.transactions.map((tx) => ({
                     to: tx.to,
@@ -275,7 +260,6 @@ export const useRequestPayFlow = (chargeId?: string) => {
             } else {
                 // Same-chain, same-token payment
                 if (isPeanutWallet && areEvmAddressesEqual(sourceTokenAddress, PEANUT_WALLET_TOKEN)) {
-                    console.log('💸 Simple USDC transfer via Peanut wallet...')
                     receipt = await sendMoney(
                         fullChargeDetails.requestLink.recipientAddress as Address,
                         fullChargeDetails.tokenAmount
@@ -290,10 +274,8 @@ export const useRequestPayFlow = (chargeId?: string) => {
             }
 
             setTransactionHash(receipt.transactionHash)
-            console.log('✅ Payment transaction successful:', receipt.transactionHash)
 
             // 5. Create payment record
-            console.log('📊 Creating payment record...')
             const payment = await chargesApi.createPayment({
                 chargeId: fullChargeDetails.uuid,
                 chainId: sourceChainId,
@@ -301,8 +283,6 @@ export const useRequestPayFlow = (chargeId?: string) => {
                 tokenAddress: sourceTokenAddress,
                 payerAddress: activeWalletAddress,
             })
-
-            console.log('🎉 Request payment flow completed successfully!')
 
             return {
                 success: true,

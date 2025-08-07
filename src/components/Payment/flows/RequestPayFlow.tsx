@@ -64,7 +64,6 @@ export const RequestPayFlow = ({ recipient, onComplete }: RequestPayFlowProps) =
 
             // For dynamic scenarios (no existing charge), create charge before moving to confirm
             if (!payload.chargeId && payload.recipient && payload.selectedTokenAddress && payload.selectedChainID) {
-                console.log('🔄 Creating charge before moving to confirm view...')
                 setIsCreatingCharge(true)
 
                 const newCharge = await createCharge(payload)
@@ -74,7 +73,6 @@ export const RequestPayFlow = ({ recipient, onComplete }: RequestPayFlowProps) =
                     ...payload,
                     chargeId: newCharge.uuid,
                 }
-                console.log('✅ Charge created, moving to confirm with chargeId:', newCharge.uuid)
             }
 
             setPaymentPayload(finalPayload)
