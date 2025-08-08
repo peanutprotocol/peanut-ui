@@ -31,7 +31,7 @@ export const Profile = () => {
                     <ProfileMenuItem
                         icon="smile"
                         label="Invite friends to Peanut"
-                        href="https://docs.peanut.to/how-to-use-peanut-links/referrals"
+                        href="https://docs.peanut.me/how-to-use-peanut-links/referrals"
                         position="single"
                         isExternalLink
                     />
@@ -52,7 +52,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="fees"
                             label="Fees"
-                            href="https://docs.peanut.to/fees"
+                            href="https://docs.peanut.me/fees"
                             position="first"
                             isExternalLink
                         />

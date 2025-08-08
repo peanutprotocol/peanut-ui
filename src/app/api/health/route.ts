@@ -78,7 +78,7 @@ export async function GET() {
                 const isDev = process.env.NODE_ENV === 'development'
                 const baseUrl = isDev
                     ? 'http://localhost:3000'
-                    : process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.to'
+                    : process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
                 const response = await fetchWithSentry(`${baseUrl}/api/health/${service}`, {
                     method: 'GET',
                     headers: {
