@@ -135,7 +135,7 @@ export default function Home() {
 
     // effect for showing balance warning modal
     useEffect(() => {
-        if (isFetchingBalance || !balance) return
+        if (isFetchingBalance || balance === undefined) return
 
         if (typeof window !== 'undefined') {
             const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
@@ -159,7 +159,7 @@ export default function Home() {
 
     // effect for showing balance warning modal
     useEffect(() => {
-        if (isFetchingBalance || !balance) return
+        if (isFetchingBalance || balance === undefined) return
 
         if (typeof window !== 'undefined') {
             const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
@@ -308,13 +308,13 @@ function WalletBalance({
                 </span>
             )
         }
-        return balance ? formatExtendedNumber(printableUsdc(balance)) : ''
+        return balance !== undefined ? formatExtendedNumber(printableUsdc(balance)) : ''
     }, [isBalanceHidden, balance])
 
     return (
         <div className="flex items-center gap-4">
             <div className="flex items-end gap-2 text-[48px] font-black leading-none md:text-[56px]">
-                {isFetchingBalance || !balance ? (
+                {isFetchingBalance || balance === undefined ? (
                     <span className="block pl-3">
                         <Loading />
                     </span>

@@ -30,7 +30,7 @@ const LinkSendInitialView = () => {
     const queryClient = useQueryClient()
 
     const peanutWalletBalance = useMemo(() => {
-        return balance ? printableUsdc(balance) : ''
+        return balance !== undefined ? printableUsdc(balance) : ''
     }, [balance])
 
     const handleOnNext = useCallback(async () => {

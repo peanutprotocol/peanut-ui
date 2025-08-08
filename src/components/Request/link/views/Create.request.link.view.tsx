@@ -72,7 +72,7 @@ export const CreateRequestLinkView = () => {
     const createLinkAbortRef = useRef<AbortController | null>(null)
 
     // Derived state
-    const peanutWalletBalance = useMemo(() => (balance ? printableUsdc(balance) : ''), [balance])
+    const peanutWalletBalance = useMemo(() => (balance !== undefined ? printableUsdc(balance) : ''), [balance])
 
     const usdValue = useMemo(() => {
         if (!selectedTokenPrice || !tokenValue) return ''
