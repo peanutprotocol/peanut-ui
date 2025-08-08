@@ -150,11 +150,13 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             setLoadingState('Executing transaction')
             setError(null)
 
+            // determine user for offramp based on the bank claim type
             const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
             const userForOfframp = isGuestFlow
                 ? await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
                 : user?.user
 
+            // handle error if user for offramp is not found
             if (!userForOfframp || ('error' in userForOfframp && userForOfframp.error)) {
                 throw new Error(
                     (userForOfframp && typeof userForOfframp.error === 'string' && userForOfframp.error) ||
@@ -162,21 +164,25 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 )
             }
 
+            // handle error if user is not KYC approved
             if (userForOfframp.kycStatus !== 'approved') throw new Error('User not KYC approved')
             if (!userForOfframp?.bridgeCustomerId) throw new Error('User bridge customer ID not found')
 
             setReceiverFullName(userForOfframp.fullName ?? '')
 
+            // get payment rail and currency for the offramp
             const paymentRail = getBridgeChainName(claimLinkData.chainId)
             const currency = getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
             if (!paymentRail || !currency) throw new Error('Chain or token not supported for bank withdrawal')
 
+            // get params from send link
             const params = peanut.getParamsFromLink(claimLinkData.link)
             const { address: pubKey } = peanut.generateKeysFromString(params.password)
             const chainId = params.chainId
             const contractVersion = params.contractVersion
             const peanutContractAddress = peanut.getContractAddress(chainId, contractVersion) as Address
 
+            // handle offramp request creation
             const offrampRequestParams: TCreateOfframpRequest = {
                 onBehalfOf: userForOfframp.bridgeCustomerId,
                 amount: formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals),
@@ -206,6 +212,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             setBankDetails(account)
             setOfframpData(offrampData)
 
+            // claim send link to deposit address received from offramp response
             await handleConfirmClaim(offrampData)
         } catch (e: any) {
             const errorString = ErrorHandler(e)
