@@ -1,5 +1,6 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import MoreInfo from '@/components/Global/MoreInfo'
+import { useDebounce } from '@/hooks/useDebounce'
 import * as Sentry from '@sentry/nextjs'
 import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -43,7 +44,7 @@ const ValidatedInput = ({
 }: ValidatedInputProps) => {
     const [isValid, setIsValid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
-    const [debouncedValue, setDebouncedValue] = useState<string>(value)
+    const debouncedValue = useDebounce(value, debounceTime)
     const previousValueRef = useRef(value)
     const currentValueRef = useRef(value)
     const listId = useRef(`datalist-${Math.random().toString(36).substr(2, 9)}`)
@@ -128,16 +129,10 @@ const ValidatedInput = ({
         }
     }, [debouncedValue])
 
+    // Update currentValueRef when value changes
     useEffect(() => {
         currentValueRef.current = value
-        const handler = setTimeout(() => {
-            setDebouncedValue(value)
-        }, debounceTime)
-
-        return () => {
-            clearTimeout(handler)
-        }
-    }, [value, debounceTime])
+    }, [value])
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value
