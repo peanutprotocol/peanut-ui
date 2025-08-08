@@ -51,7 +51,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         setIsLoadingPreferences(true)
         if (flow === 'withdraw') {
             const bankAccounts =
-                user?.accounts.filter((acc) => acc.type === AccountType.IBAN || acc.type === AccountType.US) ?? []
+                user?.accounts.filter(
+                    (acc) =>
+                        acc.type === AccountType.IBAN || acc.type === AccountType.US || acc.type === AccountType.CLABE
+                ) ?? []
 
             if (bankAccounts.length > 0) {
                 setSavedAccounts(bankAccounts as unknown as Account[])

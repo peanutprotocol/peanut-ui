@@ -5,7 +5,6 @@ import { Analytics } from '@vercel/analytics/react'
 import countries from 'i18n-iso-countries'
 import enLocale from 'i18n-iso-countries/langs/en.json'
 import { useEffect } from 'react'
-import ReactGA from 'react-ga4'
 import { Provider as ReduxProvider } from 'react-redux'
 
 import store from '@/redux/store'
@@ -17,7 +16,6 @@ import '../../sentry.server.config'
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
     if (process.env.NODE_ENV !== 'development') {
         useEffect(() => {
-            ReactGA.initialize(process.env.NEXT_PUBLIC_GA_KEY ?? '')
             peanut.toggleVerbose(true)
             // LogRocket.init('x2zwq1/peanut-protocol')
             countries.registerLocale(enLocale)

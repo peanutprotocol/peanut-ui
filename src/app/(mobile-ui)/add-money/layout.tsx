@@ -9,5 +9,5 @@ export const metadata = generateMetadata({
 })
 
 export default function AddMoneyLayout({ children }: { children: React.ReactNode }) {
-    return <PageContainer className="min-h-[inherit] self-start">{children}</PageContainer>
+    return <PageContainer>{children}</PageContainer>
 }

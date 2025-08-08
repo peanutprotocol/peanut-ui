@@ -13,7 +13,7 @@ export default function DirectRequestPage(props: PageProps) {
     const recipient = usernameSegments
 
     return (
-        <PageContainer className="min-h-[inherit]">
+        <PageContainer>
             <DirectRequestInitialView username={recipient[0]} />
         </PageContainer>
     )

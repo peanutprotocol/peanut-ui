@@ -174,7 +174,7 @@ const DirectSuccessView = ({
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex flex-col justify-between gap-8">
             {type === 'SEND' && (
                 <div className="md:hidden">
                     <NavHeader

@@ -56,7 +56,13 @@ export async function generateMetadata({ params, searchParams }: any) {
         try {
             const chargeDetails = await chargesApi.get(chargeId)
             isPaid = chargeDetails?.fulfillmentPayment?.status === 'SUCCESSFUL'
-            username = chargeDetails.requestee?.username
+            if (isPaid) {
+                // If the charge is paid (i.e its a receipt), we need to get the username of the payer
+                username = chargeDetails.payments.find((payment) => payment.status === 'SUCCESSFUL')?.payerAccount?.user
+                    ?.username
+            } else {
+                username = chargeDetails.requestee?.username
+            }
 
             // If we don't have amount/token from URL but have chargeId, get them from charge details
             if (!amount && chargeDetails) {
@@ -109,12 +115,12 @@ export async function generateMetadata({ params, searchParams }: any) {
     if (isReceipt) {
         // Receipt case - show who shared the receipt
         const displayName = username || (isEthAddress ? printableAddress(recipient) : recipient)
-        title = `${displayName} shared a receipt for ${amount} via Peanut`
+        title = `${displayName} shared a receipt for $${amount} via Peanut`
         description = 'Tap to view the payment details instantly and securely.'
     } else if (amount && token) {
-        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting ${amount} via Peanut`
+        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount} via Peanut`
     } else if (amount) {
-        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting ${amount} via Peanut`
+        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount} via Peanut`
     } else if (isAddressOrEns) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting funds`
     } else if (chargeId) {
@@ -158,8 +164,9 @@ export async function generateMetadata({ params, searchParams }: any) {
 export default function Page(props: PageProps) {
     const params = use(props.params)
     const recipient = params.recipient ?? []
+
     return (
-        <PageContainer className="min-h-[inherit]">
+        <PageContainer>
             <PaymentPage recipient={recipient} />
         </PageContainer>
     )

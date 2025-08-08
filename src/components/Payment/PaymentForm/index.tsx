@@ -82,6 +82,7 @@ export const PaymentForm = ({
     const [inputTokenAmount, setInputTokenAmount] = useState<string>(
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
     )
+
     const [disconnectWagmiModal, setDisconnectWagmiModal] = useState<boolean>(false)
     const [inputUsdValue, setInputUsdValue] = useState<string>('')
     const [usdValue, setUsdValue] = useState<string>('')
@@ -597,7 +598,7 @@ export const PaymentForm = ({
     }, [error])
 
     return (
-        <div className="flex h-full min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={router.back} title={isAddMoneyFlow ? 'Add Money' : 'Send'} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isExternalWalletConnected && isUsingExternalWallet && (
