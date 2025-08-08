@@ -15,7 +15,7 @@ import Loading from '../Loading'
 
 const steps = [{ label: '1. Bank Account' }, { label: '2. Confirm details' }]
 
-interface IGlobaLinkAccountComponentProps {
+interface IGlobalLinkAccountComponentProps {
     accountNumber?: string
     onCompleted?: () => void
 }
@@ -32,7 +32,7 @@ interface IRegisterAccountDetails {
     type: string // account type: iban or us
 }
 
-export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGlobaLinkAccountComponentProps) => {
+export const GlobalLinkAccountComponent = ({ accountNumber, onCompleted }: IGlobalLinkAccountComponentProps) => {
     const {
         setStep: setActiveStep,
         activeStep,

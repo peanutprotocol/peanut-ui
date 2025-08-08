@@ -7,7 +7,7 @@ import FeeDescription from '@/components/Global/FeeDescription'
 import Icon from '@/components/Global/Icon'
 import InfoRow from '@/components/Global/InfoRow'
 import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
-import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
+import { GlobalLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
 import Loading from '@/components/Global/Loading'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as consts from '@/constants'
@@ -429,7 +429,7 @@ export const OfframpConfirmView = ({
             }
 
             // @dev this code has been removed, we go straight to success screen. Cross-chain status is checked in backend
-            // todo: revist, not a good idea to wait for the tx to be available, look for better soln
+            // todo: revisit, not a good idea to wait for the tx to be available, look for better soln
             // const maxAttempts = 15
             // let attempts = 0
 
@@ -800,7 +800,7 @@ export const OfframpConfirmView = ({
             </div>
             {activeStep < 3 ? (
                 <GlobalKYCComponent
-                    intialStep={initialKYCStep}
+                    initialStep={initialKYCStep}
                     offrampForm={offrampForm}
                     setOfframpForm={setOfframpForm}
                     onCompleted={(message) => {
@@ -808,7 +808,7 @@ export const OfframpConfirmView = ({
                     }}
                 />
             ) : activeStep === 3 ? (
-                <GlobaLinkAccountComponent
+                <GlobalLinkAccountComponent
                     accountNumber={offrampForm?.recipient}
                     onCompleted={() => {
                         handleCompleteLinkAccount('success')
