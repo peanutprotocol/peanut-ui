@@ -59,7 +59,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     }
 
     const peanutWalletBalance = useMemo(() => {
-        return printableUsdc(balance)
+        return balance ? printableUsdc(balance) : ''
     }, [balance])
 
     const handleTokenValueChange = (value: string | undefined) => {

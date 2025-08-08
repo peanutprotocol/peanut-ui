@@ -135,7 +135,9 @@ export default function Home() {
 
     // effect for showing balance warning modal
     useEffect(() => {
-        if (typeof window !== 'undefined' && !isFetchingBalance) {
+        if (isFetchingBalance || !balance) return
+
+        if (typeof window !== 'undefined') {
             const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
             const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
 
@@ -157,7 +159,9 @@ export default function Home() {
 
     // effect for showing balance warning modal
     useEffect(() => {
-        if (typeof window !== 'undefined' && !isFetchingBalance) {
+        if (isFetchingBalance || !balance) return
+
+        if (typeof window !== 'undefined') {
             const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
             const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
 
@@ -291,7 +295,7 @@ function WalletBalance({
     onToggleBalanceVisibility,
     isFetchingBalance,
 }: {
-    balance: bigint
+    balance: bigint | undefined
     isBalanceHidden: boolean
     onToggleBalanceVisibility: (e: React.MouseEvent<HTMLButtonElement>) => void
     isFetchingBalance?: boolean
@@ -304,14 +308,13 @@ function WalletBalance({
                 </span>
             )
         }
-
-        return formatExtendedNumber(printableUsdc(balance ?? 0))
+        return balance ? formatExtendedNumber(printableUsdc(balance)) : ''
     }, [isBalanceHidden, balance])
 
     return (
         <div className="flex items-center gap-4">
             <div className="flex items-end gap-2 text-[48px] font-black leading-none md:text-[56px]">
-                {isFetchingBalance ? (
+                {isFetchingBalance || !balance ? (
                     <span className="block pl-3">
                         <Loading />
                     </span>

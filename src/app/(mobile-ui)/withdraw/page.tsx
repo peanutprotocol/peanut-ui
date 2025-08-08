@@ -48,12 +48,11 @@ export default function WithdrawPage() {
     const { balance } = useWallet()
 
     const maxDecimalAmount = useMemo(() => {
-        return Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
+        return balance ? Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : 0
     }, [balance])
 
     const peanutWalletBalance = useMemo(() => {
-        const formattedBalance = formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
-        return formattedBalance
+        return balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
     }, [balance])
 
     // clear errors and reset any persisted state when component mounts to ensure clean state
