@@ -186,7 +186,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         return (
             <div className="w-full space-y-8 self-start">
                 <NavHeader
-                    title={'Withdraw'}
+                    title={flow === 'withdraw' ? 'Withdraw' : 'Add money'}
                     onPrev={() => {
                         // ensure kyc modal isn't open so late success events don't flip view
                         setIsKycModalOpen(false)
