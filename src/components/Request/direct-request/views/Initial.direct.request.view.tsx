@@ -194,7 +194,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
 
     if (isLoading) {
         return (
-            <div className="flex w-full items-center justify-center">
+            <div className="flex min-h-[inherit] w-full items-center justify-center">
                 <PeanutLoading />
             </div>
         )
