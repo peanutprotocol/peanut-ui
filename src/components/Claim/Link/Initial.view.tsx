@@ -600,7 +600,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     return (
-        <div className="flex flex-col justify-between gap-8">
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             {!!user?.user.userId || claimBankFlowStep || claimToExternalWallet ? (
                 <div className="md:hidden">
                     <NavHeader
@@ -716,13 +716,13 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 description={
                     <div className="space-y-2">
                         <p>Only claim to an address that support the selected network and token.</p>
-                        <p className="font-bold">Incorrect transfers may be lost.</p>
+                        <p className="font-bold">Incorrect transfers may be lost. If you're unsure, do not proceed.</p>
                     </div>
                 }
                 icon="alert"
                 iconContainerClassName="bg-yellow-400"
                 footer={
-                    <div className="w-full">
+                    <div className="w-full space-y-3">
                         <Slider
                             onValueChange={(v) => {
                                 if (!v) return
@@ -736,6 +736,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                 }
                             }}
                         />
+                        <Button
+                            variant="transparent"
+                            className="h-fit p-0 text-sm underline"
+                            onClick={() => {
+                                setShowConfirmationModal(false)
+                                setClaimToExternalWallet(false)
+                            }}
+                        >
+                            Not sure? Claim to peanut instead
+                        </Button>
                     </div>
                 }
                 preventClose={false}
