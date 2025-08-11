@@ -598,7 +598,16 @@ export const PaymentForm = ({
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={router.back} title={isAddMoneyFlow ? 'Add Money' : 'Send'} />
+            <NavHeader
+                onPrev={() => {
+                    if (window.history.length > 1) {
+                        router.back()
+                    } else {
+                        router.push('/')
+                    }
+                }}
+                title={isAddMoneyFlow ? 'Add Money' : 'Send'}
+            />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isExternalWalletConnected && isUsingExternalWallet && (
                     <Button

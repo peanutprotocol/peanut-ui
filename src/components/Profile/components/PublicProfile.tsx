@@ -58,7 +58,16 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                         <Image src={PEANUT_LOGO_BLACK} alt="Peanut Text" height={12} />
                     </div>
                 ) : (
-                    <NavHeader onPrev={router.back} hideLabel />
+                    <NavHeader
+                        onPrev={() => {
+                            if (window.history.length > 1) {
+                                router.back()
+                            } else {
+                                router.push('/')
+                            }
+                        }}
+                        hideLabel
+                    />
                 )}
             </div>
 
