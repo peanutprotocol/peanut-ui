@@ -25,7 +25,6 @@ import { ConfirmBankClaimView } from './Confirm.bank-claim.view'
 import { CountryListRouter } from '@/components/Common/CountryListRouter'
 import NavHeader from '@/components/Global/NavHeader'
 import { InitiateKYCModal } from '@/components/Kyc'
-import { jsonParse, jsonStringify } from '@/utils/general.utils'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { KYCStatus } from '@/utils/bridge-accounts.utils'
 
@@ -49,8 +48,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         setBankDetails,
         justCompletedKyc,
         setJustCompletedKyc,
-        cachedBankDetails,
-        setCachedBankDetails,
         showVerificationModal: isKycModalOpen,
         setShowVerificationModal: setIsKycModalOpen,
     } = useClaimBankFlow()
@@ -70,16 +67,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const [isProcessingKycSuccess, setIsProcessingKycSuccess] = useState(false)
     const [offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
 
-    // effect to clear cached bank details when user goes back to country list
-    useEffect(() => {
-        if (claimBankFlowStep === ClaimBankFlowStep.BankCountryList) {
-            if (user?.user.userId) {
-                sessionStorage.removeItem(`temp-bank-account-${user.user.userId}`)
-                setCachedBankDetails(null)
-            }
-        }
-    }, [claimBankFlowStep, user?.user.userId, setCachedBankDetails])
-
     // websocket for real-time KYC status updates
     useWebSocket({
         username: user?.user.username ?? undefined,
@@ -95,26 +82,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             setLiveKycStatus(user.user.kycStatus as KYCStatus)
         }
     }, [user?.user.kycStatus])
-
-    // effect to retrieve cached bank details after page refresh if KYC is approved
-    useEffect(() => {
-        if (user?.user.userId) {
-            const item = sessionStorage.getItem(`temp-bank-account-${user.user.userId}`)
-            const data = item ? jsonParse(item) : null
-            const currentStatus = liveKycStatus || user.user.kycStatus
-            if (data && currentStatus === 'approved' && !cachedBankDetails) {
-                setCachedBankDetails(data)
-                setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
-            }
-        }
-    }, [user, liveKycStatus, cachedBankDetails, setClaimBankFlowStep, setCachedBankDetails])
-
-    // effect to trigger form submission after KYC is completed
-    useEffect(() => {
-        if (justCompletedKyc && formRef.current) {
-            formRef.current.handleSubmit()
-        }
-    }, [justCompletedKyc])
 
     /**
      * @name handleConfirmClaim
@@ -249,11 +216,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 }
             }
 
-            // cache bank details in session storage and show KYC modal
-            const { firstName, lastName, email, ...detailsToSave } = rawData
-            if (user?.user.userId) {
-                sessionStorage.setItem(`temp-bank-account-${user.user.userId}`, jsonStringify(detailsToSave))
-            }
             setIsKycModalOpen(true)
             return {}
         }
@@ -273,9 +235,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 if (addBankAccountResponse.error) {
                     setError(addBankAccountResponse.error)
                     return { error: addBankAccountResponse.error }
-                }
-                if (user?.user.userId) {
-                    sessionStorage.removeItem(`temp-bank-account-${user.user.userId}`)
                 }
                 if (addBankAccountResponse.data?.id) {
                     const bankDetails: IBankAccountDetails & { id?: string; bridgeAccountId?: string } = {
@@ -372,6 +331,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const handleKycSuccess = () => {
         setIsKycModalOpen(false)
         setJustCompletedKyc(true)
+        setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
     }
 
     // main render logic based on the current flow step
@@ -462,7 +422,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             )!,
                             tokenSymbol: claimLinkData.tokenSymbol,
                         }}
-                        initialData={cachedBankDetails ?? {}}
+                        initialData={{}}
                     />
                     <InitiateKYCModal
                         isOpen={isKycModalOpen}

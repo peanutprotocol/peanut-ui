@@ -139,8 +139,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     }
 
     const handleKycSuccess = () => {
-        setIsKycModalOpen(false)
-        setView('form')
+        // only transition to form if this component initiated the KYC modal
+        if (isKycModalOpen) {
+            setIsKycModalOpen(false)
+            setView('form')
+        }
     }
 
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
@@ -182,7 +185,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     if (view === 'form') {
         return (
             <div className="w-full space-y-8 self-start">
-                <NavHeader title={'Withdraw'} onPrev={() => setView('list')} />
+                <NavHeader
+                    title={'Withdraw'}
+                    onPrev={() => {
+                        // ensure kyc modal isn't open so late success events don't flip view
+                        setIsKycModalOpen(false)
+                        setView('list')
+                    }}
+                />
                 <DynamicBankAccountForm
                     ref={formRef}
                     country={currentCountry.id}

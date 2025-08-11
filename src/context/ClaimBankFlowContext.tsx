@@ -42,8 +42,6 @@ interface ClaimBankFlowContextType {
     setSenderKycStatus: (status?: KYCStatus) => void
     justCompletedKyc: boolean
     setJustCompletedKyc: (status: boolean) => void
-    cachedBankDetails: Partial<IBankAccountDetails> | null
-    setCachedBankDetails: (details: Partial<IBankAccountDetails> | null) => void
 }
 
 const ClaimBankFlowContext = createContext<ClaimBankFlowContextType | undefined>(undefined)
@@ -62,7 +60,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
     const [senderKycStatus, setSenderKycStatus] = useState<KYCStatus | undefined>()
     const [justCompletedKyc, setJustCompletedKyc] = useState(false)
-    const [cachedBankDetails, setCachedBankDetails] = useState<Partial<IBankAccountDetails> | null>(null)
 
     const resetFlow = useCallback(() => {
         setClaimToExternalWallet(false)
@@ -78,7 +75,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
         setSelectedBankAccount(null)
         setSenderKycStatus(undefined)
         setJustCompletedKyc(false)
-        setCachedBankDetails(null)
     }, [])
 
     const value = useMemo(
@@ -110,8 +106,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             setSenderKycStatus,
             justCompletedKyc,
             setJustCompletedKyc,
-            cachedBankDetails,
-            setCachedBankDetails,
         }),
         [
             claimToExternalWallet,
@@ -128,7 +122,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             selectedBankAccount,
             senderKycStatus,
             justCompletedKyc,
-            cachedBankDetails,
         ]
     )
 
