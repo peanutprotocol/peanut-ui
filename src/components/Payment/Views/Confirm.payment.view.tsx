@@ -263,6 +263,10 @@ export default function ConfirmPaymentView({
     }, [routeTypeError, paymentError, isRouteExpired])
 
     const handleGoBack = () => {
+        if (isExternalWalletFlow) {
+            dispatch(paymentActions.setView('INITIAL'))
+            return
+        }
         dispatch(paymentActions.setView('INITIAL'))
         window.history.replaceState(null, '', `${window.location.pathname}`)
         dispatch(paymentActions.setChargeDetails(null))
@@ -421,7 +425,7 @@ export default function ConfirmPaymentView({
     }, [xChainRoute, chargeDetails?.tokenDecimals, requestedResolvedTokenSymbol])
 
     return (
-        <div className="flex flex-col justify-between gap-8">
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Send')} onPrev={handleGoBack} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4 pb-5">
                 {parsedPaymentData?.recipient && (

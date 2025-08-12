@@ -29,6 +29,7 @@ import { GenericBanner } from '@/components/Global/Banner'
 import { useRequestFulfilmentFlow } from '@/context/RequestFulfilBankFlowContext'
 import ExternalWalletFulfilManager from '@/components/Request/views/ExternalWalletFulfilManager'
 import ActionList from '@/components/Common/ActionList'
+import NavHeader from '@/components/Global/NavHeader'
 
 interface Props {
     recipient: string[]
@@ -59,14 +60,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const { showExternalWalletFulfilMethods } = useRequestFulfilmentFlow()
 
     const isMountedRef = useRef(true)
-
-    const onFulfilmentBack = () => {
-        if (showExternalWalletFulfilMethods) {
-            dispatch(paymentActions.setView('INITIAL'))
-        } else {
-            dispatch(paymentActions.setView('INITIAL'))
-        }
-    }
 
     const fetchChargeDetails = async () => {
         if (!chargeId) return
@@ -373,9 +366,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
 
     // render external wallet fulfilment methods
     if (showExternalWalletFulfilMethods) {
-        return (
-            <ExternalWalletFulfilManager parsedPaymentData={parsedPaymentData as ParsedURL} onBack={onFulfilmentBack} />
-        )
+        return <ExternalWalletFulfilManager parsedPaymentData={parsedPaymentData as ParsedURL} />
     }
 
     // render PUBLIC_PROFILE view
@@ -431,7 +422,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                         {...(parsedPaymentData as ParsedURL)}
                         isExternalWalletFlow={isExternalWalletFlow}
                         isDirectUsdPayment={isDirectPay}
-                        onBack={onFulfilmentBack}
                         currency={
                             currencyCode
                                 ? {
@@ -444,12 +434,11 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                         setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
                         currencyAmount={currencyAmount}
                     />
-                    <div className="">
+                    <div>
                         <ActionList
                             flow="request"
                             requestLinkData={parsedPaymentData as ParsedURL}
                             isLoggedIn={!!user?.user.userId}
-                            onBack={onFulfilmentBack}
                         />
                     </div>
                 </div>
@@ -468,12 +457,16 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     {parsedPaymentData?.token?.symbol === 'PNT' ? (
                         <PintaReqPaySuccessView />
                     ) : isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
-                        <TransactionDetailsReceipt
-                            transaction={selectedTransaction}
-                            onClose={fetchChargeDetails}
-                            setIsLoading={setisLinkCancelling}
-                            isLoading={isLinkCancelling}
-                        />
+                        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+                            <NavHeader disableBackBtn={!user?.user.userId} title="Receipt" />
+                            <TransactionDetailsReceipt
+                                className="my-auto flex h-full flex-col justify-center space-y-4"
+                                transaction={selectedTransaction}
+                                onClose={fetchChargeDetails}
+                                setIsLoading={setisLinkCancelling}
+                                isLoading={isLinkCancelling}
+                            />
+                        </div>
                     ) : (
                         <DirectSuccessView
                             key={`success-${flow}`}

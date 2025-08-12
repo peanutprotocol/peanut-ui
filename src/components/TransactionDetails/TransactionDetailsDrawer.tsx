@@ -25,6 +25,7 @@ import CopyToClipboard from '../Global/CopyToClipboard'
 import MoreInfo from '../Global/MoreInfo'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { Drawer, DrawerContent } from '../Global/Drawer'
+import { twMerge } from 'tailwind-merge'
 
 interface TransactionDetailsDrawerProps {
     isOpen: boolean
@@ -99,6 +100,7 @@ export const TransactionDetailsReceipt = ({
     transactionAmount,
     showCancelLinkModal,
     setShowCancelLinkModal,
+    className,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
@@ -108,6 +110,7 @@ export const TransactionDetailsReceipt = ({
     transactionAmount?: string // dollarized amount of the transaction
     showCancelLinkModal?: boolean
     setShowCancelLinkModal?: (show: boolean) => void
+    className?: HTMLDivElement['className']
 }) => {
     // ref for the main content area to calculate dynamic height
     const { user } = useUserStore()
@@ -200,7 +203,7 @@ export const TransactionDetailsReceipt = ({
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
     return (
-        <div ref={contentRef} className="space-y-4">
+        <div ref={contentRef} className={twMerge('space-y-4', className)}>
             {/* show qr code at the top if applicable */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
                 <QRCodeWrapper url={transaction.extraDataForDrawer.link} />

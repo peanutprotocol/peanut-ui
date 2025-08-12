@@ -1,6 +1,8 @@
 'use client'
 
 import { fetchTokenPrice } from '@/app/actions/tokens'
+import { PEANUT_LOGO_BLACK } from '@/assets'
+import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { Button } from '@/components/0_Bruddle'
 import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
@@ -25,6 +27,7 @@ import {
 } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
+import { useRequestFulfilmentFlow } from '@/context/RequestFulfilBankFlowContext'
 import { InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
@@ -33,6 +36,7 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, ErrorHandler, formatAmount } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
+import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
@@ -78,6 +82,8 @@ export const PaymentForm = ({
         error: paymentStoreError,
         attachmentOptions,
     } = usePaymentStore()
+    const { setShowExternalWalletFulfilMethods, setExternalWalletFulfilMethod } = useRequestFulfilmentFlow()
+
     const { isConnected: isPeanutWalletConnected, balance } = useWallet()
     const { isConnected: isExternalWalletConnected, status } = useAccount()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
@@ -461,7 +467,15 @@ export const PaymentForm = ({
         }
 
         if (isActivePeanutWallet) {
-            return 'Send'
+            return (
+                <div className="flex items-center gap-1">
+                    <div>Send with </div>
+                    <div className="flex items-center gap-1">
+                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                    </div>
+                </div>
+            )
         }
 
         return 'Review'
@@ -603,9 +617,18 @@ export const PaymentForm = ({
         return error?.includes("You don't have enough balance.")
     }, [error])
 
+    const handleGoBack = () => {
+        if (isExternalWalletFlow) {
+            setShowExternalWalletFulfilMethods(true)
+            setExternalWalletFulfilMethod(null)
+            return
+        }
+        router.back()
+    }
+
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={router.back} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Send')} />
+            <NavHeader onPrev={handleGoBack} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Send')} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isExternalWalletConnected && isUsingExternalWallet && (
                     <Button

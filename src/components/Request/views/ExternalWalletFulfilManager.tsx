@@ -7,13 +7,7 @@ import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { PaymentForm } from '@/components/Payment/PaymentForm'
 
-export default function ExternalWalletFulfilManager({
-    parsedPaymentData,
-    onBack,
-}: {
-    parsedPaymentData: ParsedURL
-    onBack: () => void
-}) {
+export default function ExternalWalletFulfilManager({ parsedPaymentData }: { parsedPaymentData: ParsedURL }) {
     const {
         showExternalWalletFulfilMethods,
         externalWalletFulfilMethod,
@@ -66,7 +60,7 @@ export default function ExternalWalletFulfilManager({
     }
 
     if (showExternalWalletFulfilMethods) {
-        return <ExternalWalletFulfilMethods onBack={onBack} />
+        return <ExternalWalletFulfilMethods onBack={() => setShowExternalWalletFulfilMethods(false)} />
     }
 
     return null
