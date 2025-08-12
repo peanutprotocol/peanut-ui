@@ -1,13 +1,13 @@
 import { PaymentForm, PaymentFormProps } from '../PaymentForm'
 
-export default function InitialPaymentView(props: PaymentFormProps) {
+export default function InitialPaymentView(props: PaymentFormProps & { onBack?: () => void }) {
     const isPintaReq = props.token?.symbol === 'PNT' || props.isPintaReq
 
     return (
         <PaymentForm
             {...props}
             isPintaReq={isPintaReq}
-            isAddMoneyFlow={props.isAddMoneyFlow}
+            isExternalWalletFlow={props.isExternalWalletFlow}
             isDirectUsdPayment={props.isDirectUsdPayment}
         />
     )

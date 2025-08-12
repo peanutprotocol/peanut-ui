@@ -1,16 +1,56 @@
-import NavHeader from '@/components/Global/NavHeader'
 import { useRequestFulfilmentFlow } from '@/context/RequestFulfilBankFlowContext'
 import ExternalWalletFulfilMethods from './ExternalWalletFulfilMethods'
 import AddMoneyCryptoPage from '@/app/(mobile-ui)/add-money/crypto/page'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
+import { usePaymentStore } from '@/redux/hooks'
+import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
+import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
+import { PaymentForm } from '@/components/Payment/PaymentForm'
 
-export default function ExternalWalletFulfilManager({ parsedPaymentData }: { parsedPaymentData: ParsedURL }) {
+export default function ExternalWalletFulfilManager({
+    parsedPaymentData,
+    onBack,
+}: {
+    parsedPaymentData: ParsedURL
+    onBack: () => void
+}) {
     const {
         showExternalWalletFulfilMethods,
         externalWalletFulfilMethod,
         setExternalWalletFulfilMethod,
         setShowExternalWalletFulfilMethods,
     } = useRequestFulfilmentFlow()
+    const { currentView } = usePaymentStore()
+
+    if (externalWalletFulfilMethod === 'wallet') {
+        switch (currentView) {
+            case 'INITIAL':
+                return (
+                    <PaymentForm
+                        recipient={parsedPaymentData.recipient}
+                        amount={parsedPaymentData.amount}
+                        token={parsedPaymentData.token}
+                        chain={parsedPaymentData.chain}
+                        isExternalWalletFlow={true}
+                        headerTitle="Send"
+                    />
+                )
+            case 'CONFIRM':
+                return <ConfirmPaymentView isExternalWalletFlow={true} headerTitle="Send" />
+            case 'STATUS':
+                return (
+                    <DirectSuccessView
+                        headerTitle="Send"
+                        type="SEND"
+                        currencyAmount={parsedPaymentData.amount}
+                        recipientType={parsedPaymentData.recipient.recipientType}
+                        redirectTo="/home"
+                    />
+                )
+            default:
+                break
+        }
+    }
 
     if (externalWalletFulfilMethod === 'exchange') {
         return (
@@ -26,15 +66,8 @@ export default function ExternalWalletFulfilManager({ parsedPaymentData }: { par
     }
 
     if (showExternalWalletFulfilMethods) {
-        return <ExternalWalletFulfilMethods />
+        return <ExternalWalletFulfilMethods onBack={onBack} />
     }
 
-    return (
-        <div className="flex h-full min-h-[inherit] w-full flex-1 flex-col justify-start gap-4">
-            <NavHeader title="Send" onPrev={() => setShowExternalWalletFulfilMethods(false)} />
-            <div className="my-auto space-y-2">
-                <div className="text-base font-bold">Where will you send from?</div>
-            </div>
-        </div>
-    )
+    return null
 }

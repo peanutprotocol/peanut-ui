@@ -29,7 +29,7 @@ type DirectSuccessViewProps = {
     type?: 'SEND' | 'REQUEST'
     headerTitle?: string
     currencyAmount?: string
-    isAddMoneyFlow?: boolean
+    isExternalWalletFlow?: boolean
     isWithdrawFlow?: boolean
     redirectTo?: string
 }
@@ -42,7 +42,7 @@ const DirectSuccessView = ({
     type,
     headerTitle,
     currencyAmount,
-    isAddMoneyFlow,
+    isExternalWalletFlow,
     isWithdrawFlow,
     redirectTo = '/home',
 }: DirectSuccessViewProps) => {
@@ -167,14 +167,14 @@ const DirectSuccessView = ({
     }
 
     const getTitle = () => {
-        if (isAddMoneyFlow) return 'You successfully added'
+        if (isExternalWalletFlow) return 'You successfully added'
         if (isWithdrawFlow) return 'You just withdrew'
         if (type === 'SEND') return 'You sent '
         if (type === 'REQUEST') return 'You requested '
     }
 
     return (
-        <div className="flex flex-col justify-between gap-8">
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             {type === 'SEND' && (
                 <div className="md:hidden">
                     <NavHeader
@@ -201,7 +201,7 @@ const DirectSuccessView = ({
                     <div className="space-y-1">
                         <h1 className="text-sm font-normal text-grey-1">
                             {getTitle()}
-                            {!isAddMoneyFlow &&
+                            {!isExternalWalletFlow &&
                                 !isWithdrawFlow &&
                                 (recipientType !== 'USERNAME' ? (
                                     <AddressLink
@@ -231,7 +231,7 @@ const DirectSuccessView = ({
                             Create Account
                         </Button>
                     )}
-                    {type === 'SEND' && !isAddMoneyFlow && !isWithdrawFlow && (
+                    {type === 'SEND' && !isExternalWalletFlow && !isWithdrawFlow && (
                         <Button
                             variant="primary-soft"
                             shadowSize="4"

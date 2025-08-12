@@ -765,7 +765,7 @@ export const TransactionDetailsReceipt = ({
             )}
 
             {isPendingRequestee && setIsLoading && onClose && (
-                <div className="space-y-2">
+                <div className="space-y-2 pr-1">
                     <Button
                         onClick={() => {
                             window.location.href = transaction.extraDataForDrawer?.link ?? ''
@@ -811,7 +811,9 @@ export const TransactionDetailsReceipt = ({
             )}
 
             {shouldShowShareReceipt && transaction.extraDataForDrawer?.link && (
-                <ShareButton url={transaction.extraDataForDrawer.link}>Share Receipt</ShareButton>
+                <div className="pr-1">
+                    <ShareButton url={transaction.extraDataForDrawer.link}>Share Receipt</ShareButton>
+                </div>
             )}
 
             {/* Cancel deposit button for bridge_onramp transactions in awaiting_funds state */}

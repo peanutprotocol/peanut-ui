@@ -21,12 +21,12 @@ const methods: Method[] = [
     },
 ]
 
-export default function ExternalWalletFulfilMethods() {
+export default function ExternalWalletFulfilMethods({ onBack }: { onBack: () => void }) {
     const { setExternalWalletFulfilMethod, setShowExternalWalletFulfilMethods } = useRequestFulfilmentFlow()
 
     return (
         <div className="flex h-full min-h-[inherit] w-full flex-1 flex-col justify-start gap-4">
-            <NavHeader title="Send" onPrev={() => setShowExternalWalletFulfilMethods(false)} />
+            <NavHeader title="Send" onPrev={onBack} />
             <div className="my-auto space-y-2">
                 <div className="text-base font-bold">Where will you send from?</div>
                 {methods.map((method) => (
