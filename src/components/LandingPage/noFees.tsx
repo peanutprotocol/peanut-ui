@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import noHiddenFees from '@/assets/illustrations/no-hidden-fees.svg'
@@ -8,10 +8,74 @@ import { Star } from '@/assets'
 import Image from 'next/image'
 import { Button } from '../0_Bruddle'
 import CurrencySelect from './CurrencySelect'
+import { Icon } from '../Global/Icons/Icon'
+import { useDebounce } from '@/hooks/useDebounce'
+import { useSearchParams, useRouter } from 'next/navigation'
 
 export function NoFees() {
+    const searchParams = useSearchParams()
+    const router = useRouter()
+
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
-    const [sourceCurrency, setSourceCurrency] = useState('')
+
+    // Get values from URL or use defaults
+    const sourceCurrency = searchParams.get('from') || 'USD'
+    const destinationCurrency = searchParams.get('to') || 'EUR'
+    const urlSourceAmount = parseFloat(searchParams.get('amount') || '10')
+
+    // Local state for immediate UI updates (amount input)
+    const [localSourceAmount, setLocalSourceAmount] = useState(urlSourceAmount)
+    const [destinationAmount, setDestinationAmount] = useState(0)
+    const [currentExchangeRate, setCurrentExchangeRate] = useState(0)
+
+    // Use local amount for immediate display, URL amount for API calls
+    const sourceAmount = localSourceAmount
+    const debouncedSourceAmount = useDebounce(localSourceAmount, 300)
+
+    // Function to update URL parameters
+    const updateUrlParams = useCallback(
+        (params: { from?: string; to?: string; amount?: number }) => {
+            const newSearchParams = new URLSearchParams(searchParams.toString())
+
+            if (params.from) newSearchParams.set('from', params.from)
+            if (params.to) newSearchParams.set('to', params.to)
+            if (params.amount !== undefined) newSearchParams.set('amount', params.amount.toString())
+
+            router.replace(`?${newSearchParams.toString()}`, { scroll: false })
+        },
+        [searchParams, router]
+    )
+
+    // Setter functions that update URL
+    const setSourceCurrency = useCallback(
+        (currency: string) => {
+            updateUrlParams({ from: currency })
+        },
+        [updateUrlParams]
+    )
+
+    const setDestinationCurrency = useCallback(
+        (currency: string) => {
+            updateUrlParams({ to: currency })
+        },
+        [updateUrlParams]
+    )
+
+    const setSourceAmount = useCallback((amount: number) => {
+        setLocalSourceAmount(amount) // Immediate UI update
+    }, [])
+
+    // Sync URL amount with local amount when URL changes
+    useEffect(() => {
+        setLocalSourceAmount(urlSourceAmount)
+    }, [urlSourceAmount])
+
+    // Debounced URL update for amount
+    useEffect(() => {
+        if (debouncedSourceAmount !== urlSourceAmount) {
+            updateUrlParams({ amount: debouncedSourceAmount })
+        }
+    }, [debouncedSourceAmount, urlSourceAmount, updateUrlParams])
 
     useEffect(() => {
         const handleResize = () => {
@@ -37,6 +101,19 @@ export function NoFees() {
             },
         }
     }
+
+    useEffect(() => {
+        const fetchExchangeRate = async () => {
+            const _sourceCurrency = sourceCurrency.toLocaleLowerCase()
+            const _destinationCurrency = destinationCurrency.toLocaleLowerCase()
+            const response = await fetch(`/api/bridge/exchange-rate?from=${_sourceCurrency}&to=${_destinationCurrency}`)
+            const data = await response.json()
+            setCurrentExchangeRate(data.rates.buy)
+            setDestinationAmount(debouncedSourceAmount * data.rates.buy)
+        }
+
+        fetchExchangeRate()
+    }, [sourceCurrency, destinationCurrency, debouncedSourceAmount])
 
     return (
         <section className="relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-28">
@@ -128,11 +205,24 @@ export function NoFees() {
                     <div className="w-full">
                         <h2 className="text-left text-sm">You Send</h2>
                         <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
-                            <input type="number" className="w-full bg-transparent outline-none" />
+                            <input
+                                min={0}
+                                value={sourceAmount}
+                                onChange={(e) => {
+                                    const value = parseFloat(e.target.value)
+                                    setSourceAmount(isNaN(value) || value < 0 ? 0 : value)
+                                }}
+                                type="number"
+                                className="w-full bg-transparent outline-none"
+                            />
                             <CurrencySelect
                                 selectedCurrency={sourceCurrency}
                                 setSelectedCurrency={setSourceCurrency}
-                                trigger={<button>USD</button>}
+                                trigger={
+                                    <button className="flex items-center">
+                                        {sourceCurrency} <Icon name="chevron-down" className="text-gray-1" size={10} />
+                                    </button>
+                                }
                             />
                         </div>
                     </div>
@@ -140,26 +230,42 @@ export function NoFees() {
                     <div className="w-full">
                         <h2 className="text-left text-sm">Recipient gets</h2>
                         <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
-                            <input type="number" className="w-full bg-transparent outline-none" />
-                            <p>USD</p>
+                            <input
+                                value={destinationAmount}
+                                onChange={(e) => setDestinationAmount(parseFloat(e.target.value))}
+                                type="number"
+                                className="w-full bg-transparent outline-none"
+                            />
+                            <CurrencySelect
+                                selectedCurrency={destinationCurrency}
+                                setSelectedCurrency={setDestinationCurrency}
+                                trigger={
+                                    <button className="flex items-center">
+                                        {destinationCurrency}{' '}
+                                        <Icon name="chevron-down" className="text-gray-1" size={10} />
+                                    </button>
+                                }
+                            />
                         </div>
                     </div>
 
                     <div className="rounded-full bg-grey-4 px-2 py-[2px] text-xs font-bold text-gray-1">
-                        1 USD = 0.86 EUR
+                        1 {sourceCurrency} = {currentExchangeRate} {destinationCurrency}
                     </div>
 
-                    <div className="flex w-full flex-col gap-3 rounded-sm border-[1.15px] border-black px-4 py-2">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-left text-sm font-normal">Bank fee</h2>
-                            <h2 className="text-left text-sm font-normal">Free!</h2>
-                        </div>
+                    {destinationAmount > 0 && (
+                        <div className="flex w-full flex-col gap-3 rounded-sm border-[1.15px] border-black px-4 py-2">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-left text-sm font-normal">Bank fee</h2>
+                                <h2 className="text-left text-sm font-normal">Free!</h2>
+                            </div>
 
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-left text-sm font-normal">Peanut fee</h2>
-                            <h2 className="text-left text-sm font-normal">Free!</h2>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-left text-sm font-normal">Peanut fee</h2>
+                                <h2 className="text-left text-sm font-normal">Free!</h2>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <Button icon="arrow-up-right" iconSize={13} shadowSize="4" className="w-full text-base font-bold">
                         Send Money
