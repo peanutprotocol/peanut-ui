@@ -20,8 +20,10 @@ import { useRouter } from 'next/navigation'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
+import { useRequestFulfilmentFlow } from '@/context/RequestFulfilBankFlowContext'
+import { ParsedURL } from '@/lib/url-parser/types/payment'
 
-interface Method {
+export interface Method {
     id: string
     title: string
     description: string
@@ -58,7 +60,9 @@ const ACTION_METHODS: Method[] = [
 ]
 
 interface IActionListProps {
-    claimLinkData: ClaimLinkData
+    flow: 'claim' | 'request'
+    claimLinkData?: ClaimLinkData
+    requestLinkData?: ParsedURL
     isLoggedIn: boolean
 }
 
@@ -70,39 +74,54 @@ interface IActionListProps {
  * @param {boolean} props.isLoggedIn Whether the user is logged in, used to show cta for continue with peanut if not logged in
  * @returns {JSX.Element}
  */
-export default function ActionList({ claimLinkData, isLoggedIn }: IActionListProps) {
+export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLinkData }: IActionListProps) {
     const router = useRouter()
     const { setClaimToExternalWallet, setFlowStep: setClaimBankFlowStep, setShowVerificationModal } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
-    const { claimType } = useDetermineBankClaimType(claimLinkData.sender?.userId ?? '')
+    const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const savedAccounts = useSavedAccounts()
+    const { setExternalWalletFulfilMethod, setShowExternalWalletFulfilMethods } = useRequestFulfilmentFlow()
 
     const handleMethodClick = async (method: Method) => {
-        const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
-        if (method.id === 'bank' && amountInUsd < 1) {
-            setShowMinAmountError(true)
-            return
-        }
-        switch (method.id) {
-            case 'bank':
-                {
-                    if (claimType === BankClaimType.GuestKycNeeded) {
-                        setShowVerificationModal(true)
-                    } else {
-                        if (savedAccounts.length) {
-                            setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
+        if (flow === 'claim' && claimLinkData) {
+            const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
+            if (method.id === 'bank' && amountInUsd < 1) {
+                setShowMinAmountError(true)
+                return
+            }
+            switch (method.id) {
+                case 'bank':
+                    {
+                        if (claimType === BankClaimType.GuestKycNeeded) {
+                            setShowVerificationModal(true)
                         } else {
-                            setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
+                            if (savedAccounts.length) {
+                                setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
+                            } else {
+                                setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
+                            }
                         }
                     }
-                }
-                break
-            case 'mercadopago':
-                break // soon tag, so no action needed
-            case 'crypto':
-            case 'exchange-or-wallet':
-                setClaimToExternalWallet(true)
-                break
+                    break
+                case 'mercadopago':
+                    break // soon tag, so no action needed
+                case 'exchange-or-wallet':
+                    setClaimToExternalWallet(true)
+                    break
+            }
+        } else if (flow === 'request' && requestLinkData) {
+            switch (method.id) {
+                case 'bank':
+                    {
+                        console.log('bank') // TODO: implement bank fulfilment
+                    }
+                    break
+                case 'mercadopago':
+                    break // soon tag, so no action needed
+                case 'exchange-or-wallet':
+                    setShowExternalWalletFulfilMethods(true)
+                    break
+            }
         }
     }
 
@@ -145,7 +164,7 @@ export default function ActionList({ claimLinkData, isLoggedIn }: IActionListPro
     )
 }
 
-const MethodCard = ({ method, onClick }: { method: Method; onClick: () => void }) => {
+export const MethodCard = ({ method, onClick }: { method: Method; onClick: () => void }) => {
     return (
         <SearchResultCard
             position="single"

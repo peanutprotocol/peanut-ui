@@ -26,6 +26,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { GenericBanner } from '@/components/Global/Banner'
+import { useRequestFulfilmentFlow } from '@/context/RequestFulfilBankFlowContext'
+import ExternalWalletFulfilManager from '@/components/Request/views/ExternalWalletFulfilManager'
+import ActionList from '@/components/Common/ActionList'
 
 interface Props {
     recipient: string[]
@@ -53,6 +56,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const [currencyAmount, setCurrencyAmount] = useState<string>('')
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
+    const { showExternalWalletFulfilMethods } = useRequestFulfilmentFlow()
 
     const isMountedRef = useRef(true)
 
@@ -359,6 +363,11 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         )
     }
 
+    // render external wallet fulfilment methods
+    if (showExternalWalletFulfilMethods) {
+        return <ExternalWalletFulfilManager parsedPaymentData={parsedPaymentData as ParsedURL} />
+    }
+
     // render PUBLIC_PROFILE view
     if (
         currentView === 'PUBLIC_PROFILE' &&
@@ -406,23 +415,32 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 </div>
             )}
             {currentView === 'INITIAL' && (
-                <InitialPaymentView
-                    key={`initial-${flow}`}
-                    {...(parsedPaymentData as ParsedURL)}
-                    isAddMoneyFlow={isAddMoneyFlow}
-                    isDirectUsdPayment={isDirectPay}
-                    currency={
-                        currencyCode
-                            ? {
-                                  code: currencyCode,
-                                  symbol: currencySymbol!,
-                                  price: currencyPrice!,
-                              }
-                            : undefined
-                    }
-                    setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
-                    currencyAmount={currencyAmount}
-                />
+                <div className="space-y-2">
+                    <InitialPaymentView
+                        key={`initial-${flow}`}
+                        {...(parsedPaymentData as ParsedURL)}
+                        isAddMoneyFlow={isAddMoneyFlow}
+                        isDirectUsdPayment={isDirectPay}
+                        currency={
+                            currencyCode
+                                ? {
+                                      code: currencyCode,
+                                      symbol: currencySymbol!,
+                                      price: currencyPrice!,
+                                  }
+                                : undefined
+                        }
+                        setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
+                        currencyAmount={currencyAmount}
+                    />
+                    <div className="">
+                        <ActionList
+                            flow="request"
+                            requestLinkData={parsedPaymentData as ParsedURL}
+                            isLoggedIn={!!user?.user.userId}
+                        />
+                    </div>
+                </div>
             )}
             {currentView === 'CONFIRM' && (
                 <ConfirmPaymentView

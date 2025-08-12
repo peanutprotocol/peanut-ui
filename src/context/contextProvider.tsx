@@ -7,6 +7,7 @@ import { PushProvider } from './pushProvider'
 import { TokenContextProvider } from './tokenSelector.context'
 import { WithdrawFlowContextProvider } from './WithdrawFlowContext'
 import { ClaimBankFlowContextProvider } from './ClaimBankFlowContext'
+import { RequestFulfilmentFlowContextProvider } from './RequestFulfilBankFlowContext'
 
 export const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return (
@@ -17,9 +18,11 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
                         <TokenContextProvider>
                             <LoadingStateContextProvider>
                                 <ClaimBankFlowContextProvider>
-                                    <WithdrawFlowContextProvider>
-                                        <OnrampFlowContextProvider>{children}</OnrampFlowContextProvider>
-                                    </WithdrawFlowContextProvider>
+                                    <RequestFulfilmentFlowContextProvider>
+                                        <WithdrawFlowContextProvider>
+                                            <OnrampFlowContextProvider>{children}</OnrampFlowContextProvider>
+                                        </WithdrawFlowContextProvider>
+                                    </RequestFulfilmentFlowContextProvider>
                                 </ClaimBankFlowContextProvider>
                             </LoadingStateContextProvider>
                         </TokenContextProvider>

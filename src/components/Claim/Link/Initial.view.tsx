@@ -705,7 +705,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         </Button>
                     )}
                     {!isPeanutClaimOnlyMode && !claimToExternalWallet && (
-                        <ActionList claimLinkData={claimLinkData} isLoggedIn={!!user?.user.userId} />
+                        <ActionList flow="claim" claimLinkData={claimLinkData} isLoggedIn={!!user?.user.userId} />
                     )}
                 </div>
             </div>

@@ -13,7 +13,12 @@ import { useEffect, useState } from 'react'
 
 type AddMoneyCryptoStep = 'sourceSelection' | 'tokenSelection' | 'networkSelection' | 'riskModal' | 'qrScreen'
 
-const AddMoneyCryptoPage = () => {
+interface AddMoneyCryptoPageProps {
+    onBack?: () => void
+    depositAddress?: string
+}
+
+const AddMoneyCryptoPage = ({ onBack, depositAddress }: AddMoneyCryptoPageProps) => {
     const router = useRouter()
     const { address: peanutWalletAddress } = useWallet()
     const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('tokenSelection') // hotfix for deposit - select tokenSelection view as default
@@ -81,7 +86,7 @@ const AddMoneyCryptoPage = () => {
     }
 
     if (currentStep === 'tokenSelection' && selectedSource) {
-        return <TokenSelectionView onTokenSelect={handleTokenSelected} onBack={handleBackToSourceSelection} />
+        return <TokenSelectionView onTokenSelect={handleTokenSelected} onBack={onBack ?? handleBackToSourceSelection} />
     }
 
     if ((currentStep === 'networkSelection' || currentStep === 'riskModal') && selectedSource && selectedToken) {
@@ -118,7 +123,7 @@ const AddMoneyCryptoPage = () => {
             <CryptoDepositQR
                 tokenName={selectedToken.symbol}
                 chainName={selectedNetwork.name}
-                depositAddress={peanutWalletAddress}
+                depositAddress={depositAddress ?? peanutWalletAddress}
                 onBack={handleBackToNetworkSelectionFromQR}
             />
         )
