@@ -1,0 +1,75 @@
+import { DISCORD_ICON, GITHUB_WHITE_ICON, PEANUT_LOGO, TWITTER_ICON } from '@/assets'
+import Image from 'next/image'
+import React from 'react'
+import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
+import handWaving from '@/assets/illustrations/hand-waving.svg'
+import handPeace from '@/assets/illustrations/hand-peace.svg'
+import handMiddleFinger from '@/assets/illustrations/hand-middle-finger.svg'
+
+const Footer = () => {
+    return (
+        <footer className="relative flex h-52 items-end justify-between bg-black px-8 pb-10 md:items-center md:px-20 md:pb-0">
+            <section className="flex flex-col gap-1">
+                <div className="flex">
+                    <Image src={PEANUT_LOGO} alt="Peanut Logo" width={110} height={40} />
+                </div>
+                <p className="text-xs text-white">
+                    made with love by{' '}
+                    <a className="underline" href="https://squirrellabs.dev/" target="_blank">
+                        Squirrel Labs
+                    </a>
+                </p>
+            </section>
+
+            <section className="absolute left-1/2 top-5 flex -translate-x-1/2 flex-col items-center gap-4 md:static md:translate-x-0">
+                <div className="flex gap-2">
+                    <Image src={DISCORD_ICON} alt="Discord" width={20} height={20} />
+                    <Image src={TWITTER_ICON} alt="Twitter" width={20} height={20} />
+                    <Image src={GITHUB_WHITE_ICON} alt="Github" width={20} height={20} />
+                </div>
+
+                <div className="flex gap-2">
+                    <a className="text-xl font-bold text-white" href="https://docs.peanut.to/" target="_blank">
+                        Docs
+                    </a>
+                    <a
+                        className="text-xl font-bold text-white"
+                        href="https://peanutprotocol.notion.site/Privacy-Policy-37debda366c941f2bbb8db8c113d8c8b"
+                        target="_blank"
+                    >
+                        Privacy
+                    </a>
+                    <a
+                        className="text-xl font-bold text-white"
+                        href=" https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a"
+                        target="_blank"
+                    >
+                        Terms
+                    </a>
+                    <a
+                        className="text-xl font-bold text-white"
+                        href="https://peanutprotocol.notion.site/Career-b351de56d92e405e962f0027b3a60f52"
+                        target="_blank"
+                    >
+                        Jobs
+                    </a>
+                </div>
+            </section>
+
+            <section className="flex gap-3">
+                <Image
+                    src={handPeace.src}
+                    alt="Hand peace"
+                    width={20}
+                    height={20}
+                    onClick={() => window.open('https://youtube.com/shorts/qd2FbzLS380?si=T5xk7xrTGYiIiWFu', '_blank')}
+                />
+                <Image src={handThumbsUp.src} alt="Hand thumbs up" width={20} height={20} />
+                <Image src={handMiddleFinger.src} alt="Hand waving" width={20} height={20} />
+                <Image src={handWaving.src} alt="Hand waving" width={25} height={25} />
+            </section>
+        </footer>
+    )
+}
+
+export default Footer

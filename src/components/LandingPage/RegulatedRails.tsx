@@ -99,7 +99,7 @@ export function RegulatedRails() {
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
                     transition={{ type: 'spring', damping: 5, delay: 0.6 }}
                 />
-                <h1 className="font-roboto-flex-extrabold text-left text-heading font-extraBlack !leading-[5rem] md:text-6xl lg:text-headingMedium">
+                <h1 className="font-roboto-flex-extrabold text-left text-[3.25rem] font-extraBlack !leading-[5rem] md:text-6xl lg:text-headingMedium">
                     REGULATED RAILS, SELF-CUSTODY CONTROL
                 </h1>
                 <p className="mt-6 text-left text-base md:text-2xl">

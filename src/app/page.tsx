@@ -11,6 +11,7 @@ import {
     SendInSeconds,
     YourMoney,
 } from '@/components/LandingPage'
+import Footer from '@/components/LandingPage/Footer'
 import { RegulatedRails } from '@/components/LandingPage/RegulatedRails'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef } from 'react'
@@ -201,6 +202,7 @@ export default function LandingPage() {
             <Marquee {...marqueeProps} />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
             <Marquee {...marqueeProps} />
+            <Footer />
         </Layout>
     )
 }

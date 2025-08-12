@@ -4,6 +4,9 @@ import iphoneYourMoney3 from '@/assets/iphone-ss/iphone-your-money-3.png'
 import freeGlobalTransfers from '@/assets/illustrations/free-global-transfers.svg'
 import payAnyoneAnywhere from '@/assets/illustrations/pay-anyone-anywhere.svg'
 import getPaidWorldwide from '@/assets/illustrations/get-paid-worldwide.svg'
+import Image from 'next/image'
+import { LandingCountries } from '@/assets'
+import { Button } from '../0_Bruddle'
 
 interface Feature {
     id: number
@@ -62,7 +65,17 @@ export function YourMoney() {
                     </p>
                 </div>
 
-                <div className="h-10 w-full bg-red md:w-1/2"></div>
+                <div className="relative w-full md:w-1/2">
+                    <Image src={LandingCountries} alt="countries" />
+                    <a href="/setup" target="_blank" rel="noopener noreferrer">
+                        <Button
+                            shadowSize="4"
+                            className="absolute left-1/3 top-28 w-38 bg-white  px-7 py-3 text-base font-extrabold hover:bg-white/90 md:left-[40%] md:top-40 md:w-44 md:px-9 md:py-8 md:text-xl"
+                        >
+                            TRY NOW
+                        </Button>
+                    </a>
+                </div>
             </div>
         </section>
     )
