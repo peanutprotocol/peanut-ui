@@ -1,7 +1,7 @@
 [
     {
         "source": "/docs",
-        "destination": "https://docs.peanut.to",
+        "destination": "https://docs.peanut.me",
         "permanent": false,
         "basePath": false
     },

@@ -21,7 +21,7 @@ function ValidationErrorView({ title, message, buttonText, redirectTo }: Validat
                 <h3 className="text-sm font-normal md:max-w-xs">{message}</h3>
             </div>
             <Link
-                href={'https://docs.peanut.to/how-to-use-peanut-links/request-peanut-links'}
+                href={'https://docs.peanut.me/how-to-use-peanut-links/request-peanut-links'}
                 className="text-sm underline"
                 target="_blank"
             >

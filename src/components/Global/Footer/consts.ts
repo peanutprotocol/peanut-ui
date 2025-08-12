@@ -18,7 +18,7 @@ export const SOCIALS = [
     },
     {
         name: 'gitbook',
-        url: 'https://docs.peanut.to',
+        url: 'https://docs.peanut.me',
         logoSrc: icons.GITBOOK_ICON.src,
     },
     {
@@ -31,7 +31,7 @@ export const SOCIALS = [
 export const LINKS = [
     {
         name: 'Docs',
-        url: 'https://docs.peanut.to',
+        url: 'https://docs.peanut.me',
     },
     {
         name: 'Terms & Privacy',

@@ -16,7 +16,7 @@ const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? ''
 const metadata = {
     name: 'Peanut Protocol',
     description: 'Peanut protocol - send crypto with links',
-    url: process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.to', // origin must match your domain & subdomain
+    url: process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me', // origin must match your domain & subdomain
     icons: [`${process.env.NEXT_PUBLIC_BASE_URL}/favicon.ico`],
 }
 
