@@ -15,6 +15,7 @@ export default function ExternalWalletFulfilManager({ parsedPaymentData }: { par
     if (externalWalletFulfilMethod === 'exchange') {
         return (
             <AddMoneyCryptoPage
+                headerTitle="Send"
                 depositAddress={parsedPaymentData.recipient.resolvedAddress}
                 onBack={() => {
                     setExternalWalletFulfilMethod(null)
