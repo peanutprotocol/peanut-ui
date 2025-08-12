@@ -249,9 +249,11 @@ export function NoFees() {
                         </div>
                     </div>
 
-                    <div className="rounded-full bg-grey-4 px-2 py-[2px] text-xs font-bold text-gray-1">
-                        1 {sourceCurrency} = {currentExchangeRate} {destinationCurrency}
-                    </div>
+                    {destinationAmount > 0 && (
+                        <div className="rounded-full bg-grey-4 px-2 py-[2px] text-xs font-bold text-gray-1">
+                            1 {sourceCurrency} = {currentExchangeRate} {destinationCurrency}
+                        </div>
+                    )}
 
                     {destinationAmount > 0 && (
                         <div className="flex w-full flex-col gap-3 rounded-sm border-[1.15px] border-black px-4 py-2">

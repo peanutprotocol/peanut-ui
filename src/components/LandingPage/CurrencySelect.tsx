@@ -50,8 +50,8 @@ const CurrencySelect = ({ selectedCurrency, setSelectedCurrency, trigger }: Curr
         <Popover placement="bottom-end">
             <PopoverTrigger>{trigger}</PopoverTrigger>
             <PopoverContent
-                width="sm"
-                height={'52'} //{'72'}
+                width={{ base: '72', sm: '80', md: '96' }}
+                height={'52'} //{'72'} commented out for now, this will be final height when we add all the currencies
                 marginTop="16px"
                 borderRadius="2px"
                 border="1px"

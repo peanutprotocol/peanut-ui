@@ -67,10 +67,15 @@ export function YourMoney() {
 
                 <div className="relative w-full md:w-1/2">
                     <Image src={LandingCountries} alt="countries" />
-                    <a href="/setup" target="_blank" rel="noopener noreferrer">
+                    <a
+                        href="/setup"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute inset-0 flex items-center justify-center"
+                    >
                         <Button
                             shadowSize="4"
-                            className="absolute left-1/3 top-28 w-38 bg-white  px-7 py-3 text-base font-extrabold hover:bg-white/90 md:left-[40%] md:top-40 md:w-44 md:px-9 md:py-8 md:text-xl"
+                            className="w-38 bg-white py-3 text-base font-extrabold hover:bg-white/90 md:w-40 md:py-6 md:text-lg"
                         >
                             TRY NOW
                         </Button>
