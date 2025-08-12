@@ -53,7 +53,7 @@ export function ConfirmBankClaimView({
     }, [bankDetails.country])
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex flex-col justify-between gap-8">
             <div className="md:hidden">
                 <NavHeader title="Receive" onPrev={onBack} />
             </div>

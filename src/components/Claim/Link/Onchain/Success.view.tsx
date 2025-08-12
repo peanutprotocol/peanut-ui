@@ -136,7 +136,7 @@ export const SuccessClaimLinkView = ({
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex flex-col justify-between gap-8">
             <div className="md:hidden">
                 <NavHeader
                     icon="cancel"

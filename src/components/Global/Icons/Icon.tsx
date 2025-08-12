@@ -51,6 +51,10 @@ import { UserIdIcon } from './user-id'
 import { ClockIcon } from './clock'
 import { DollarIcon } from './dollar'
 import { LinkSlashIcon } from './link-slash'
+import { SuccessIcon } from './success'
+import { PendingIcon } from './pending'
+import { ProcessingIcon } from './processing'
+import { FailedIcon } from './failed'
 
 // available icon names
 export type IconName =
@@ -106,6 +110,10 @@ export type IconName =
     | 'user-id'
     | 'clock'
     | 'dollar'
+    | 'success'
+    | 'pending'
+    | 'processing'
+    | 'failed'
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
@@ -166,6 +174,10 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     retry: RetryIcon,
     'user-id': UserIdIcon,
     clock: ClockIcon,
+    success: SuccessIcon,
+    pending: PendingIcon,
+    processing: ProcessingIcon,
+    failed: FailedIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

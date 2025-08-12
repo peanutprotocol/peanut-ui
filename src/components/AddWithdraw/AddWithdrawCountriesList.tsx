@@ -189,7 +189,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     if (!amountToWithdraw && flow === 'withdraw') {
         return (
-            <div className="flex h-full min-h-[inherit] w-full items-center justify-center md:min-h-[80vh]">
+            <div className="flex h-full w-full items-center justify-center md:min-h-[80vh]">
                 <PeanutLoading />
             </div>
         )
@@ -206,7 +206,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     if (view === 'form') {
         return (
-            <div className="min-h-[inherit] w-full space-y-8 self-start">
+            <div className="w-full space-y-8 self-start">
                 <NavHeader title={'Withdraw'} onPrev={() => setView('list')} />
                 <DynamicBankAccountForm
                     ref={formRef}

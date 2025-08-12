@@ -12,7 +12,7 @@ export const metadata = generateMetadata({
 
 export default function SendPage() {
     return (
-        <PageContainer className="h-full min-h-[inherit] w-full md:self-start">
+        <PageContainer>
             <SendRouterView />
         </PageContainer>
     )

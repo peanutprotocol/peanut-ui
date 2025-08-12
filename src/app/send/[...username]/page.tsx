@@ -13,7 +13,7 @@ export default function DirectPaymentPage(props: PageProps) {
     const usernameSegments = params.username ?? []
 
     return (
-        <PageContainer className="min-h-[inherit]">
+        <PageContainer>
             <DirectSendPageClient recipient={usernameSegments} />
         </PageContainer>
     )

@@ -1,9 +1,7 @@
-import BottomDrawer from '@/components/Global/BottomDrawer'
 import Card from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
@@ -25,8 +23,8 @@ import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import CopyToClipboard from '../Global/CopyToClipboard'
 import MoreInfo from '../Global/MoreInfo'
-import ActionModal from '../Global/ActionModal'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
+import { Drawer, DrawerContent } from '../Global/Drawer'
 
 interface TransactionDetailsDrawerProps {
     isOpen: boolean
@@ -49,17 +47,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     // ref for the main content area to calculate dynamic height
     const contentRef = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState<boolean>(false)
-
-    // calculate drawer height based on content, with min/max constraints
-    const drawerHeightVh = useDynamicHeight(contentRef, {
-        maxHeightVh: 90, // max 90% of viewport height
-        minHeightVh: 30, // min 30% of viewport height
-        extraVhOffset: 10, // some extra padding to the calculated height
-    })
-
-    // determine the heights for the drawer states (expanded, half)
-    const currentExpandedHeight = drawerHeightVh ?? 85 // use calculated height or fallback
-    const currentHalfHeight = Math.min(60, drawerHeightVh ?? 60) // half height, capped at 60vh or calculated height
+    const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
 
     const handleClose = useCallback(() => {
         if (onClose) {
@@ -70,25 +58,24 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     if (!transaction) return null
 
     return (
-        <BottomDrawer
-            isOpen={isOpen}
-            onClose={handleClose}
-            initialPosition="expanded"
-            collapsedHeight={5}
-            halfHeight={currentHalfHeight}
-            expandedHeight={currentExpandedHeight}
-            preventScroll={false}
-            isLoading={isLoading}
+        <Drawer
+            open={isOpen}
+            // close the drawer only if the CancelLinkModal is closed
+            onOpenChange={showCancelLinkModal ? undefined : onClose}
         >
-            <TransactionDetailsReceipt
-                isLoading={isLoading}
-                transaction={transaction}
-                onClose={handleClose}
-                setIsLoading={setIsLoading}
-                contentRef={contentRef}
-                transactionAmount={transactionAmount}
-            />
-        </BottomDrawer>
+            <DrawerContent className="p-5">
+                <TransactionDetailsReceipt
+                    isLoading={isLoading}
+                    transaction={transaction}
+                    onClose={handleClose}
+                    setIsLoading={setIsLoading}
+                    contentRef={contentRef}
+                    transactionAmount={transactionAmount}
+                    showCancelLinkModal={showCancelLinkModal}
+                    setShowCancelLinkModal={setShowCancelLinkModal}
+                />
+            </DrawerContent>
+        </Drawer>
     )
 }
 
@@ -110,6 +97,8 @@ export const TransactionDetailsReceipt = ({
     setIsLoading,
     contentRef,
     transactionAmount,
+    showCancelLinkModal,
+    setShowCancelLinkModal,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
@@ -117,13 +106,14 @@ export const TransactionDetailsReceipt = ({
     setIsLoading?: (isLoading: boolean) => void
     contentRef?: React.RefObject<HTMLDivElement>
     transactionAmount?: string // dollarized amount of the transaction
+    showCancelLinkModal?: boolean
+    setShowCancelLinkModal?: (show: boolean) => void
 }) => {
     // ref for the main content area to calculate dynamic height
     const { user } = useUserStore()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const [showBankDetails, setShowBankDetails] = useState(false)
-    const [showCancelLinkModal, setshowCancelLinkModal] = useState(false)
 
     const isGuestBankClaim = useMemo(() => {
         if (!transaction) return false
@@ -209,8 +199,18 @@ export const TransactionDetailsReceipt = ({
             (transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST &&
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
+    const getLabelText = (transaction: TransactionDetails) => {
+        if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.WITHDRAW) {
+            return 'Completed'
+        } else if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.DEPOSIT) {
+            return 'Completed'
+        } else {
+            return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
+        }
+    }
+
     return (
-        <div ref={contentRef} className="space-y-4 pb-8">
+        <div ref={contentRef} className="space-y-4">
             {/* show qr code at the top if applicable */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
                 <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
@@ -232,10 +232,10 @@ export const TransactionDetailsReceipt = ({
             {/* details card (date, fee, memo) and more */}
             <Card position={shouldShowQrShare ? 'first' : 'single'} className="px-4 py-0" border={true}>
                 <div className="space-y-0">
-                    {transaction.date && (
+                    {transaction.createdAt && (
                         <PaymentInfoRow
-                            label={transaction.status === 'cancelled' ? 'Created' : 'Date'}
-                            value={formatDate(transaction.date as Date)}
+                            label={'Created'}
+                            value={formatDate(new Date(transaction.createdAt?.toString()))}
                             hideBottomBorder={
                                 !transaction.bankAccountDetails &&
                                 !transaction.tokenDisplayDetails &&
@@ -285,21 +285,38 @@ export const TransactionDetailsReceipt = ({
                         />
                     )}
 
-                    {transaction.status === 'cancelled' &&
-                        transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.BOTH &&
-                        transaction.cancelledDate && (
+                    {transaction.status === 'cancelled' && transaction.cancelledDate && (
+                        <>
+                            {transaction.cancelledDate && (
+                                <PaymentInfoRow
+                                    label="Cancelled"
+                                    value={formatDate(transaction.cancelledDate as Date)}
+                                />
+                            )}
+                        </>
+                    )}
+
+                    {transaction.status === 'completed' && transaction.claimedAt && (
+                        <>
+                            {transaction.claimedAt && (
+                                <PaymentInfoRow label="Claimed" value={formatDate(new Date(transaction.claimedAt))} />
+                            )}
+                        </>
+                    )}
+
+                    {transaction.status === 'completed' &&
+                        transaction.completedAt &&
+                        transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND && (
                             <>
-                                {transaction.cancelledDate && (
+                                {transaction.completedAt && (
                                     <PaymentInfoRow
-                                        label="Cancelled"
-                                        value={formatDate(transaction.cancelledDate as Date)}
-                                        hideBottomBorder={
-                                            !transaction.fee && !transaction.memo && !transaction.attachmentUrl
-                                        }
+                                        label={getLabelText(transaction)}
+                                        value={formatDate(new Date(transaction.completedAt))}
                                     />
                                 )}
                             </>
                         )}
+
                     {transaction.fee !== undefined && (
                         <PaymentInfoRow
                             label="Fee"
@@ -712,7 +729,7 @@ export const TransactionDetailsReceipt = ({
                         onClose && (
                             <Button
                                 disabled={isLoading}
-                                onClick={() => setshowCancelLinkModal(true)}
+                                onClick={() => setShowCancelLinkModal?.(true)}
                                 loading={isLoading}
                                 variant={'primary-soft'}
                                 className="flex w-full items-center gap-1"
@@ -878,14 +895,14 @@ export const TransactionDetailsReceipt = ({
 
             {/* Cancel Link Modal  */}
 
-            {setIsLoading && onClose && (
+            {setIsLoading && onClose && setShowCancelLinkModal && (
                 <CancelSendLinkModal
-                    showCancelLinkModal={showCancelLinkModal}
-                    setshowCancelLinkModal={setshowCancelLinkModal}
+                    showCancelLinkModal={showCancelLinkModal || false}
+                    setshowCancelLinkModal={setShowCancelLinkModal}
                     amount={amountDisplay}
                     onClick={() => {
                         setIsLoading(true)
-                        setshowCancelLinkModal(false)
+                        setShowCancelLinkModal(false)
                         sendLinksApi
                             .claim(user!.user.username!, transaction.extraDataForDrawer!.link!)
                             .then(() => {

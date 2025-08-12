@@ -170,22 +170,7 @@ export default function SetupPage() {
         )
     }
 
-    if (showDeviceNotSupportedModal) {
-        return (
-            <ActionModal
-                visible={true}
-                onClose={() => {}} // no action on close for this modal
-                title="Device not supported!"
-                description="This device doesn't support some of the technologies Peanut needs to work properly. Please try opening this link on a newer phone."
-                icon={'alert' as IconName}
-                preventClose={true}
-                hideModalCloseButton={true}
-                ctas={[]}
-            />
-        )
-    }
-
-    if (showBrowserNotSupportedModal) {
+    if (showBrowserNotSupportedModal || showDeviceNotSupportedModal) {
         return <UnsupportedBrowserModal visible={true} allowClose={false} />
     }
 
