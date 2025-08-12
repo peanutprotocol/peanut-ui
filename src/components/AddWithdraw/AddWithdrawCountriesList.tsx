@@ -206,14 +206,17 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     if (view === 'form') {
         return (
-            <div className="w-full space-y-8 self-start">
+            <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
                 <NavHeader title={'Withdraw'} onPrev={() => setView('list')} />
-                <DynamicBankAccountForm
-                    ref={formRef}
-                    country={currentCountry.id}
-                    onSuccess={handleFormSubmit}
-                    initialData={cachedBankDetails ?? {}}
-                />
+
+                <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
+                    <DynamicBankAccountForm
+                        ref={formRef}
+                        country={currentCountry.id}
+                        onSuccess={handleFormSubmit}
+                        initialData={cachedBankDetails ?? {}}
+                    />
+                </div>
                 <InitiateKYCModal
                     isOpen={isKycModalOpen}
                     onClose={() => setIsKycModalOpen(false)}
