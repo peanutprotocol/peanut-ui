@@ -59,7 +59,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     }
 
     const peanutWalletBalance = useMemo(() => {
-        return printableUsdc(balance)
+        return balance !== undefined ? printableUsdc(balance) : ''
     }, [balance])
 
     const handleTokenValueChange = (value: string | undefined) => {
@@ -202,7 +202,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
 
     if (validationError) {
         return (
-            <div className="flex min-h-[inherit] flex-col items-center justify-center gap-8">
+            <div className="flex flex-col items-center justify-center gap-8">
                 {!!authUser?.user.userId ? <NavHeader onPrev={() => router.back()} title="Request" /> : null}
                 <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4 md:w-6/12">
                     <ValidationErrorView {...validationError} />
@@ -214,7 +214,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     if (view === 'success') {
         if (!user) return null
         return (
-            <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="flex flex-col justify-between gap-8">
                 {!!authUser?.user.userId ? (
                     <NavHeader onPrev={() => resetRequestState()} title="Request" />
                 ) : (

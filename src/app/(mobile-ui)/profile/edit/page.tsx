@@ -10,7 +10,7 @@ export const metadata = generateMetadata({
 
 export default function ProfileEditPage() {
     return (
-        <PageContainer className="self-start">
+        <PageContainer>
             <ProfileEditView />
         </PageContainer>
     )

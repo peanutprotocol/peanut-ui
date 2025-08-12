@@ -1,4 +1,4 @@
-import StatusBadge, { StatusType } from '@/components/Global/Badges/StatusBadge'
+import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon, IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
@@ -13,6 +13,7 @@ import React from 'react'
 import AddressLink from '../Global/AddressLink'
 import { STABLE_COINS } from '@/constants'
 import Image from 'next/image'
+import StatusPill from '../Global/StatusPill'
 
 export type TransactionType =
     | 'send'
@@ -137,7 +138,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         {avatarUrl ? (
                             <div
                                 className={
-                                    'flex h-12 w-12 items-center justify-center rounded-full border border-black bg-white py-2.5 pl-3.5 pr-0.5'
+                                    'relative flex h-12 w-12 items-center justify-center rounded-full border border-black bg-white py-2.5 pl-3.5 pr-0.5'
                                 }
                             >
                                 <Image
@@ -147,6 +148,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     width={30}
                                     height={30}
                                 />
+
+                                {status && <StatusPill status={status} />}
                             </div>
                         ) : (
                             <TransactionAvatarBadge
@@ -156,6 +159,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 transactionType={type}
                                 context="card"
                                 size="small"
+                                status={status}
                             />
                         )}
                         <div className="flex flex-col">
@@ -177,7 +181,6 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     {/* amount and status on the right side */}
                     <div className="flex flex-col items-end space-y-1">
                         <span className="font-roboto text-[16px] font-medium">{finalDisplayAmount}</span>
-                        {status && <StatusBadge status={status} />}
                     </div>
                 </div>
             </Card>

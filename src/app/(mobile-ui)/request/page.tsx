@@ -12,7 +12,7 @@ export const metadata = generateMetadata({
 
 export default function RequestPage() {
     return (
-        <PageContainer className="self-start">
+        <PageContainer>
             <RequestRouterView />
         </PageContainer>
     )

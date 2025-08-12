@@ -68,6 +68,9 @@ export type HistoryEntry = {
         userId?: string
     }
     extraData?: Record<string, any>
+    claimedAt?: string | Date
+    createdAt?: string | Date
+    completedAt?: string | Date
 }
 
 export type HistoryResponse = {
