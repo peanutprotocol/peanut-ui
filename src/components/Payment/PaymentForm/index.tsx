@@ -27,7 +27,7 @@ import {
 } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
-import { useRequestFulfilmentFlow } from '@/context/RequestFulfilBankFlowContext'
+import { useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
 import { InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { ParsedURL } from '@/lib/url-parser/types/payment'

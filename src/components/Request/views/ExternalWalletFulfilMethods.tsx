@@ -2,7 +2,7 @@ import { BINANCE_LOGO, LEMON_LOGO, RIPIO_LOGO } from '@/assets'
 import { METAMASK_LOGO, RAINBOW_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import { Method, MethodCard } from '@/components/Common/ActionList'
 import NavHeader from '@/components/Global/NavHeader'
-import { ExternalWalletFulfilMethod, useRequestFulfilmentFlow } from '@/context/RequestFulfilBankFlowContext'
+import { ExternalWalletFulfilMethod, useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
 
 const methods: Method[] = [
     {

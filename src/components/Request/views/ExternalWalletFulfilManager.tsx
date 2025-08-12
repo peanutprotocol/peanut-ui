@@ -1,4 +1,4 @@
-import { useRequestFulfilmentFlow } from '@/context/RequestFulfilBankFlowContext'
+import { useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
 import ExternalWalletFulfilMethods from './ExternalWalletFulfilMethods'
 import AddMoneyCryptoPage from '@/app/(mobile-ui)/add-money/crypto/page'
 import { ParsedURL } from '@/lib/url-parser/types/payment'

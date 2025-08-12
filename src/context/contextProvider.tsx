@@ -7,7 +7,7 @@ import { PushProvider } from './pushProvider'
 import { TokenContextProvider } from './tokenSelector.context'
 import { WithdrawFlowContextProvider } from './WithdrawFlowContext'
 import { ClaimBankFlowContextProvider } from './ClaimBankFlowContext'
-import { RequestFulfilmentFlowContextProvider } from './RequestFulfilBankFlowContext'
+import { RequestFulfilmentFlowContextProvider } from './RequestFulfilmentFlowContext'
 
 export const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return (

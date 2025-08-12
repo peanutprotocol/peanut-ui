@@ -20,7 +20,7 @@ import { useRouter } from 'next/navigation'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
-import { useRequestFulfilmentFlow } from '@/context/RequestFulfilBankFlowContext'
+import { useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 
 export interface Method {
