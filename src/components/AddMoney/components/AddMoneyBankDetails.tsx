@@ -2,7 +2,7 @@
 
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
+import PeanutActionDetailsCard, { PeanutActionDetailsCardProps } from '@/components/Global/PeanutActionDetailsCard'
 import ShareButton from '@/components/Global/ShareButton'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
@@ -14,31 +14,47 @@ import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import Icon from '@/components/Global/Icon'
 import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
+import { RequestFulfilmentBankFlowStep, useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
+import { usePaymentStore } from '@/redux/hooks'
+import { printableAddress } from '@/utils'
 
-export default function AddMoneyBankDetails() {
-    const { amountToOnramp, onrampData, setOnrampData } = useOnrampFlow()
+export default function AddMoneyBankDetails({ flow = 'add-money' }: { flow?: 'add-money' | 'request-fulfillment' }) {
+    const isAddMoneyFlow = flow === 'add-money'
+
+    // contexts
+    const onrampContext = useOnrampFlow()
+    const {
+        setFlowStep: setRequestFulfilmentBankFlowStep,
+        onrampData: requestFulfilmentOnrampData,
+        selectedCountry: requestFulfilmentSelectedCountry,
+    } = useRequestFulfilmentFlow()
+    const { chargeDetails } = usePaymentStore()
+
+    // data from contexts based on flow
+    const amount = isAddMoneyFlow ? onrampContext.amountToOnramp : chargeDetails?.tokenAmount
+    const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
+
     const router = useRouter()
     const params = useParams()
     const currentCountryName = params.country as string
 
-    // Get country information from URL params
+    // get country information from URL params
     const currentCountryDetails = useMemo(() => {
-        // Check if we have country params (from dynamic route)
+        // check if we have country params (from dynamic route)
         if (currentCountryName) {
-            const countryDetails = countryData.find(
+            return countryData.find(
                 (country) => country.type === 'country' && country.path === currentCountryName.toLowerCase()
             )
-            return countryDetails
         }
 
-        // Check if we're on the static US route by examining the current pathname
+        // check if we're on the static US route by examining the current pathname
         if (typeof window !== 'undefined' && window.location.pathname.includes('/add-money/us/bank')) {
             return countryData.find((c) => c.id === 'US')
         }
 
-        // Default to US if no country is detected
+        // default to US if no country is detected
         return countryData.find((c) => c.id === 'US')
-    }, [currentCountryName])
+    }, [isAddMoneyFlow, requestFulfilmentSelectedCountry, currentCountryName])
 
     const countryCodeForFlag = useMemo(() => {
         const countryId = currentCountryDetails?.id || 'USA'
@@ -49,22 +65,24 @@ export default function AddMoneyBankDetails() {
     const onrampCurrency = getCurrencyConfig(currentCountryDetails?.id || 'US', 'onramp').currency
 
     useEffect(() => {
-        // If no amount is set, redirect back to add money page
-        if (!amountToOnramp || parseFloat(amountToOnramp) <= 0) {
-            router.replace('/add-money')
-            return
+        // if no amount is set, redirect back to add money page
+        if (isAddMoneyFlow) {
+            if (!amount || parseFloat(amount) <= 0) {
+                router.replace('/add-money')
+                return
+            }
         }
-    }, [amountToOnramp, router])
+    }, [amount, router, isAddMoneyFlow])
 
     const generateBankDetails = async () => {
-        const formattedAmount = formatCurrencyAmount(amountToOnramp, onrampCurrency)
+        const formattedAmount = formatCurrencyAmount(amount ?? '0', onrampCurrency)
         const isMexico = currentCountryDetails?.id === 'MX'
 
         let bankDetails = `Bank Transfer Details:
 Amount: ${formattedAmount}
 Bank Name: ${onrampData?.depositInstructions?.bankName || 'Loading...'}`
 
-        // Only include Bank Address for non-Mexico countries since Mexico doesn't return IBAN/BIC or equivalent
+        // only include Bank Address for non-Mexico countries since Mexico doesn't return IBAN/BIC or equivalent
         if (!isMexico) {
             bankDetails += `
 Bank Address: ${onrampData?.depositInstructions?.bankAddress || 'Loading...'}`
@@ -96,31 +114,54 @@ Please use these details to complete your bank transfer.`
     }
 
     const handleBack = () => {
-        router.back()
+        if (isAddMoneyFlow) {
+            router.back()
+        } else {
+            setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.BankCountryList)
+        }
     }
 
-    if (!amountToOnramp) {
+    const peanutActionDetailsCardProps = useMemo<PeanutActionDetailsCardProps>(() => {
+        if (isAddMoneyFlow) {
+            return {
+                avatarSize: 'small',
+                transactionType: 'ADD_MONEY_BANK_ACCOUNT',
+                recipientType: 'BANK_ACCOUNT',
+                recipientName: 'Your Bank Account',
+                amount: amount ?? '0',
+                tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
+                countryCodeForFlag: countryCodeForFlag,
+                currencySymbol: getCurrencySymbol(onrampCurrency),
+            }
+        } else {
+            return {
+                avatarSize: 'small',
+                transactionType: 'REQUEST_PAYMENT',
+                recipientType: 'USERNAME',
+                recipientName:
+                    chargeDetails?.requestLink.recipientAccount.user.username ??
+                    printableAddress(chargeDetails?.requestLink.recipientAddress as string),
+                amount: amount ?? '0',
+                tokenSymbol: chargeDetails?.tokenSymbol ?? '',
+                countryCodeForFlag: countryCodeForFlag,
+                currencySymbol: getCurrencySymbol(onrampCurrency),
+            }
+        }
+    }, [isAddMoneyFlow, amount, countryCodeForFlag, onrampCurrency, chargeDetails])
+
+    if (!amount) {
         return null
     }
 
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
-            <NavHeader title="Add Money" onPrev={handleBack} />
+            <NavHeader title={isAddMoneyFlow ? 'Add Money' : 'Send'} onPrev={handleBack} />
 
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
-                <PeanutActionDetailsCard
-                    avatarSize="small"
-                    transactionType={'ADD_MONEY_BANK_ACCOUNT'}
-                    recipientType={'BANK_ACCOUNT'}
-                    recipientName={'Your Bank Account'}
-                    amount={amountToOnramp}
-                    tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
-                    countryCodeForFlag={countryCodeForFlag}
-                    currencySymbol={getCurrencySymbol(onrampCurrency)}
-                />
+                <PeanutActionDetailsCard {...peanutActionDetailsCardProps} />
 
                 <Card className="rounded-sm">
-                    <PaymentInfoRow label={'Amount'} value={formatCurrencyAmount(amountToOnramp, onrampCurrency)} />
+                    <PaymentInfoRow label={'Amount'} value={formatCurrencyAmount(amount, onrampCurrency)} />
                     <PaymentInfoRow
                         label={'Bank Name'}
                         value={onrampData?.depositInstructions?.bankName || 'Loading...'}
