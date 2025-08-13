@@ -1,7 +1,7 @@
 import * as _interfaces from './Claim.interfaces'
 import * as interfaces from '@/interfaces'
 export function mapToIPeanutChainDetailsArray(
-    data: _interfaces.SquidChainWithTokens[] | undefined
+    data: (_interfaces.SquidChainWithTokens & { networkName: string })[]
 ): _interfaces.CombinedType[] {
     if (!data) return []
 

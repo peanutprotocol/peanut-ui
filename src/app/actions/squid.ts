@@ -34,16 +34,17 @@ const getSquidTokensCache = unstable_cache(
 )
 
 export const getSquidChainsAndTokens = unstable_cache(
-    async (): Promise<Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>> => {
+    async (): Promise<
+        Record<string, interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }>
+    > => {
         const [chains, tokens] = await Promise.all([getSquidChainsCache(), getSquidTokensCache()])
 
-        const chainsById = chains.reduce<Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>>(
-            (acc, chain) => {
-                acc[chain.chainId] = { ...chain, tokens: [] }
-                return acc
-            },
-            {}
-        )
+        const chainsById = chains.reduce<
+            Record<string, interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }>
+        >((acc, chain) => {
+            acc[chain.chainId] = { ...(chain as interfaces.ISquidChain & { networkName: string }), tokens: [] }
+            return acc
+        }, {})
 
         tokens.forEach((token) => {
             if (token.active && token.chainId in chainsById) {

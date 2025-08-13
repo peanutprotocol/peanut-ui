@@ -20,7 +20,7 @@ import { ROUTE_NOT_FOUND_ERROR } from '@/constants'
 interface WithdrawConfirmViewProps {
     amount: string
     token: ITokenPriceData
-    chain: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
+    chain: interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
     toAddress: string
     networkFee?: number
     peanutFee?: string
