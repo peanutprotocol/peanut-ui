@@ -65,15 +65,16 @@ const Footer = () => {
             </section>
 
             <section className="flex gap-3">
-                <Image
-                    src={handPeace.src}
-                    alt="Hand peace"
-                    width={20}
-                    height={20}
-                    onClick={() => window.open('https://youtube.com/shorts/qd2FbzLS380?si=T5xk7xrTGYiIiWFu', '_blank')}
-                />
+                <a
+                    href="https://youtube.com/shorts/qd2FbzLS380?si=T5xk7xrTGYiIiWFu"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Watch Peanut teaser on YouTube (opens in a new tab)"
+                >
+                    <Image src={handPeace} alt="" width={20} height={20} />
+                </a>
                 <Image src={handThumbsUp.src} alt="Hand thumbs up" width={20} height={20} />
-                <Image src={handMiddleFinger.src} alt="Hand waving" width={20} height={20} />
+                <Image src={handMiddleFinger.src} alt="Hand Middle finger" width={20} height={20} />
                 <Image src={handWaving.src} alt="Hand waving" width={25} height={25} />
             </section>
         </footer>

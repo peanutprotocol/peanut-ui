@@ -5,6 +5,7 @@ import BaseInput from '../0_Bruddle/BaseInput'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
+import { countryCurrencyMappings } from '../../constants/countryCurrencyMapping'
 
 interface CurrencySelectProps {
     selectedCurrency: string
@@ -12,23 +13,15 @@ interface CurrencySelectProps {
     trigger: React.ReactNode
 }
 
-const currencies = [
-    {
-        countryCode: 'us',
-        country: 'United States',
-        currency: 'USD',
-    },
-    {
-        countryCode: 'eu',
-        country: 'Euro',
-        currency: 'EUR',
-    },
-    {
-        countryCode: 'mx',
-        country: 'Mexico',
-        currency: 'MXN',
-    },
-]
+// Transform the currency mappings into the format expected by the component
+const currencies = countryCurrencyMappings.map((mapping) => ({
+    countryCode: mapping.flagCode,
+    country: mapping.country,
+    currency: mapping.currencyCode,
+    currencyName: mapping.currencyName,
+}))
+
+const popularCurrnecies = ['USD', 'EUR', 'MXN']
 
 const CurrencySelect = ({ selectedCurrency, setSelectedCurrency, trigger }: CurrencySelectProps) => {
     const [searchTerm, setSearchTerm] = useState('')
@@ -42,7 +35,8 @@ const CurrencySelect = ({ selectedCurrency, setSelectedCurrency, trigger }: Curr
         return currencies.filter(
             (currency) =>
                 currency.currency.toLowerCase().includes(lowerSearchTerm) ||
-                currency.country.toLowerCase().includes(lowerSearchTerm)
+                currency.country.toLowerCase().includes(lowerSearchTerm) ||
+                currency.currencyName.toLowerCase().includes(lowerSearchTerm)
         )
     }, [searchTerm])
 
@@ -51,7 +45,7 @@ const CurrencySelect = ({ selectedCurrency, setSelectedCurrency, trigger }: Curr
             <PopoverTrigger>{trigger}</PopoverTrigger>
             <PopoverContent
                 width={{ base: '72', sm: '80', md: '96' }}
-                height={'52'} //{'72'} commented out for now, this will be final height when we add all the currencies
+                height={'72'}
                 marginTop="16px"
                 borderRadius="2px"
                 border="1px"
@@ -73,19 +67,39 @@ const CurrencySelect = ({ selectedCurrency, setSelectedCurrency, trigger }: Curr
                     </div>
 
                     <div className="flex w-full flex-col items-start">
-                        {/* <h2 className="text-left text-xs font-normal text-gray-1">Popular currencies</h2> */}
-                        {filteredCurrencies.map((currency) => (
-                            <CurrencyBox
-                                key={currency.countryCode}
-                                countryCode={currency.countryCode}
-                                country={currency.country}
-                                currency={currency.currency}
-                                selected={currency.currency === selectedCurrency}
-                                onSelect={() => {
-                                    setSelectedCurrency(currency.currency)
-                                }}
-                            />
-                        ))}
+                        <h2 className="text-left text-xs font-normal text-gray-1">Popular currencies</h2>
+                        {filteredCurrencies
+                            .filter((currency) => popularCurrnecies.includes(currency.currency))
+                            .map((currency, index) => (
+                                <CurrencyBox
+                                    key={`${currency.countryCode}-${currency.country}-${index}`}
+                                    countryCode={currency.countryCode}
+                                    country={currency.country}
+                                    currency={currency.currency}
+                                    currencyName={currency.currencyName}
+                                    selected={currency.currency === selectedCurrency}
+                                    onSelect={() => {
+                                        setSelectedCurrency(currency.currency)
+                                    }}
+                                />
+                            ))}
+
+                        <h2 className="text-left text-xs font-normal text-gray-1">All currencies</h2>
+                        {filteredCurrencies
+                            .filter((currency) => !popularCurrnecies.includes(currency.currency))
+                            .map((currency, index) => (
+                                <CurrencyBox
+                                    key={`${currency.countryCode}-${currency.country}-${index}`}
+                                    countryCode={currency.countryCode}
+                                    country={currency.country}
+                                    currency={currency.currency}
+                                    currencyName={currency.currencyName}
+                                    selected={currency.currency === selectedCurrency}
+                                    onSelect={() => {
+                                        setSelectedCurrency(currency.currency)
+                                    }}
+                                />
+                            ))}
                     </div>
                 </div>
             </PopoverContent>
@@ -100,9 +114,10 @@ interface CurrencyBoxProps {
     countryCode: string
     country: string
     currency: string
+    currencyName: string
     onSelect: () => void
 }
-const CurrencyBox = ({ selected, countryCode, country, currency, onSelect }: CurrencyBoxProps) => {
+const CurrencyBox = ({ selected, countryCode, country, currency, currencyName, onSelect }: CurrencyBoxProps) => {
     return (
         <div
             onClick={onSelect}
@@ -119,8 +134,12 @@ const CurrencyBox = ({ selected, countryCode, country, currency, onSelect }: Cur
                     height={160}
                     className="size-4 rounded-full object-cover"
                 />
-                <h3 className="text-base font-bold">{currency}</h3>
-                <span className="text-xs font-medium text-gray-1">{country}</span>
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold">{currency}</h3>
+                        <span className="text-xs font-medium text-gray-1">{currencyName}</span>
+                    </div>
+                </div>
             </div>
 
             {selected && <Icon name="success" className="text-gray-1" />}

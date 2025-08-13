@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import noHiddenFees from '@/assets/illustrations/no-hidden-fees.svg'
@@ -11,6 +11,7 @@ import CurrencySelect from './CurrencySelect'
 import { Icon } from '../Global/Icons/Icon'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useSearchParams, useRouter } from 'next/navigation'
+import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 
 export function NoFees() {
     const searchParams = useSearchParams()
@@ -21,7 +22,7 @@ export function NoFees() {
     // Get values from URL or use defaults
     const sourceCurrency = searchParams.get('from') || 'USD'
     const destinationCurrency = searchParams.get('to') || 'EUR'
-    const urlSourceAmount = parseFloat(searchParams.get('amount') || '10')
+    const urlSourceAmount = parseFloat(searchParams.get('amount') || '10') || 10
 
     // Local state for immediate UI updates (amount input)
     const [localSourceAmount, setLocalSourceAmount] = useState(urlSourceAmount)
@@ -102,14 +103,24 @@ export function NoFees() {
         }
     }
 
+    const sourceCurrencyFlag = useMemo(
+        () => countryCurrencyMappings.find((currency) => currency.currencyCode === sourceCurrency)?.flagCode,
+        [sourceCurrency]
+    )
+
+    const destinationCurrencyFlag = useMemo(
+        () => countryCurrencyMappings.find((currency) => currency.currencyCode === destinationCurrency)?.flagCode,
+        [destinationCurrency]
+    )
+
     useEffect(() => {
         const fetchExchangeRate = async () => {
-            const _sourceCurrency = sourceCurrency.toLocaleLowerCase()
-            const _destinationCurrency = destinationCurrency.toLocaleLowerCase()
-            const response = await fetch(`/api/bridge/exchange-rate?from=${_sourceCurrency}&to=${_destinationCurrency}`)
+            const _sourceCurrency = sourceCurrency
+            const _destinationCurrency = destinationCurrency
+            const response = await fetch(`/api/exchange-rate?from=${_sourceCurrency}&to=${_destinationCurrency}`)
             const data = await response.json()
-            setCurrentExchangeRate(data.rates.buy)
-            setDestinationAmount(debouncedSourceAmount * data.rates.buy)
+            setCurrentExchangeRate(data.rate)
+            setDestinationAmount(debouncedSourceAmount * data.rate)
         }
 
         fetchExchangeRate()
@@ -219,7 +230,14 @@ export function NoFees() {
                                 selectedCurrency={sourceCurrency}
                                 setSelectedCurrency={setSourceCurrency}
                                 trigger={
-                                    <button className="flex items-center">
+                                    <button className="flex w-32 items-center gap-2">
+                                        <Image
+                                            src={`https://flagcdn.com/w320/${sourceCurrencyFlag}.png`}
+                                            alt={`${sourceCurrencyFlag} flag`}
+                                            width={160}
+                                            height={160}
+                                            className="size-4 rounded-full object-cover"
+                                        />
                                         {sourceCurrency} <Icon name="chevron-down" className="text-gray-1" size={10} />
                                     </button>
                                 }
@@ -240,7 +258,14 @@ export function NoFees() {
                                 selectedCurrency={destinationCurrency}
                                 setSelectedCurrency={setDestinationCurrency}
                                 trigger={
-                                    <button className="flex items-center">
+                                    <button className="flex w-32 items-center gap-2">
+                                        <Image
+                                            src={`https://flagcdn.com/w320/${destinationCurrencyFlag}.png`}
+                                            alt={`${destinationCurrencyFlag} flag`}
+                                            width={160}
+                                            height={160}
+                                            className="size-4 rounded-full object-cover"
+                                        />
                                         {destinationCurrency}{' '}
                                         <Icon name="chevron-down" className="text-gray-1" size={10} />
                                     </button>
