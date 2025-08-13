@@ -1,6 +1,11 @@
 'use client'
 
-import { COUNTRY_SPECIFIC_METHODS, countryData, SpecificPaymentMethod } from '@/components/AddMoney/consts'
+import {
+    COUNTRY_SPECIFIC_METHODS,
+    countryCodeMap,
+    countryData,
+    SpecificPaymentMethod,
+} from '@/components/AddMoney/consts'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -11,7 +16,7 @@ import Image, { StaticImageData } from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { InitiateKYCModal } from '@/components/Kyc'
 import { DynamicBankAccountForm, IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount, updateUserById } from '@/app/actions/users'
@@ -62,9 +67,30 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const isBankPage = countryPathParts[countryPathParts.length - 1] === 'bank'
     const countrySlugFromUrl = isBankPage ? countryPathParts.slice(0, -1).join('-') : countryPathParts.join('-')
 
-    const currentCountry = countryData.find(
-        (country) => country.type === 'country' && country.path === countrySlugFromUrl
+    const baseCountry = useMemo(
+        () => countryData.find((c) => c.type === 'country' && c.path === countrySlugFromUrl),
+        [countrySlugFromUrl]
     )
+
+    const currentCountry = useMemo(() => {
+        if (!baseCountry) return undefined
+
+        // Prioritize 3-letter country code if a mapping exists
+        const threeLetterCode = Object.keys(countryCodeMap).find(
+            (key) => key === baseCountry.id || countryCodeMap[key] === baseCountry.id
+        )
+
+        if (threeLetterCode) {
+            const countryWithThreeLetterCode = countryData.find((c) => c.id === threeLetterCode)
+            if (countryWithThreeLetterCode) {
+                return countryWithThreeLetterCode
+            }
+            // If no dedicated 3-letter code object exists, create a synthetic one
+            return { ...baseCountry, id: threeLetterCode }
+        }
+
+        return baseCountry
+    }, [baseCountry])
 
     useEffect(() => {
         if (user?.user.userId) {
@@ -226,7 +252,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         )
     }
 
-    const methods = COUNTRY_SPECIFIC_METHODS[currentCountry.id]
+    const methods = baseCountry ? COUNTRY_SPECIFIC_METHODS[baseCountry.id] : undefined
 
     const renderPaymentMethods = (title: string, paymentMethods: SpecificPaymentMethod[]) => {
         if (!paymentMethods || paymentMethods.length === 0) {

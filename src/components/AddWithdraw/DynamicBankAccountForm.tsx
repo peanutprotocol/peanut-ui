@@ -13,6 +13,7 @@ import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
+import { getCountryFromIban } from '@/utils/withdraw.utils'
 
 const isIBANCountry = (country: string) => {
     return countryCodeMap[country.toUpperCase()] !== undefined
@@ -99,6 +100,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                 const { firstName, lastName } = data
                 let bic = data.bic
+
+                if (isIban && getCountryFromIban(accountNumber)?.toLowerCase() !== countryName?.toLocaleString()) {
+                    setIsSubmitting(false)
+                    setSubmissionError('IBAN does not match the selected country')
+                    return
+                }
 
                 if (isIban && !bic) {
                     try {
