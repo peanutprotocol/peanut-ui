@@ -199,6 +199,16 @@ export const TransactionDetailsReceipt = ({
             (transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST &&
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
+    const getLabelText = (transaction: TransactionDetails) => {
+        if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.WITHDRAW) {
+            return 'Completed'
+        } else if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.DEPOSIT) {
+            return 'Completed'
+        } else {
+            return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
+        }
+    }
+
     return (
         <div ref={contentRef} className="space-y-4">
             {/* show qr code at the top if applicable */}
@@ -222,10 +232,10 @@ export const TransactionDetailsReceipt = ({
             {/* details card (date, fee, memo) and more */}
             <Card position={shouldShowQrShare ? 'first' : 'single'} className="px-4 py-0" border={true}>
                 <div className="space-y-0">
-                    {transaction.date && (
+                    {transaction.createdAt && (
                         <PaymentInfoRow
-                            label={transaction.status === 'cancelled' ? 'Created' : 'Date'}
-                            value={formatDate(transaction.date as Date)}
+                            label={'Created'}
+                            value={formatDate(new Date(transaction.createdAt?.toString()))}
                             hideBottomBorder={
                                 !transaction.bankAccountDetails &&
                                 !transaction.tokenDisplayDetails &&
@@ -275,21 +285,38 @@ export const TransactionDetailsReceipt = ({
                         />
                     )}
 
-                    {transaction.status === 'cancelled' &&
-                        transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.BOTH &&
-                        transaction.cancelledDate && (
+                    {transaction.status === 'cancelled' && transaction.cancelledDate && (
+                        <>
+                            {transaction.cancelledDate && (
+                                <PaymentInfoRow
+                                    label="Cancelled"
+                                    value={formatDate(transaction.cancelledDate as Date)}
+                                />
+                            )}
+                        </>
+                    )}
+
+                    {transaction.status === 'completed' && transaction.claimedAt && (
+                        <>
+                            {transaction.claimedAt && (
+                                <PaymentInfoRow label="Claimed" value={formatDate(new Date(transaction.claimedAt))} />
+                            )}
+                        </>
+                    )}
+
+                    {transaction.status === 'completed' &&
+                        transaction.completedAt &&
+                        transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND && (
                             <>
-                                {transaction.cancelledDate && (
+                                {transaction.completedAt && (
                                     <PaymentInfoRow
-                                        label="Cancelled"
-                                        value={formatDate(transaction.cancelledDate as Date)}
-                                        hideBottomBorder={
-                                            !transaction.fee && !transaction.memo && !transaction.attachmentUrl
-                                        }
+                                        label={getLabelText(transaction)}
+                                        value={formatDate(new Date(transaction.completedAt))}
                                     />
                                 )}
                             </>
                         )}
+
                     {transaction.fee !== undefined && (
                         <PaymentInfoRow
                             label="Fee"
