@@ -101,7 +101,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 const { firstName, lastName } = data
                 let bic = data.bic
 
-                if (isIban && getCountryFromIban(accountNumber)?.toLowerCase() !== countryName?.toLocaleString()) {
+                if (isIban && getCountryFromIban(accountNumber)?.toLowerCase() !== countryName) {
                     setIsSubmitting(false)
                     setSubmissionError('IBAN does not match the selected country')
                     return
