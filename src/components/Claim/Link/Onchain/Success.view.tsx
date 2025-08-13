@@ -3,7 +3,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
-import { useGuestFlow } from '@/context/GuestFlowContext'
+import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
 import { formatTokenAmount, getTokenDetails, printableAddress, shortenAddressLong } from '@/utils'
@@ -25,7 +25,7 @@ export const SuccessClaimLinkView = ({
     const { fetchUser } = useAuth()
     const router = useRouter()
     const queryClient = useQueryClient()
-    const { offrampDetails, claimType, bankDetails } = useGuestFlow()
+    const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
 
     useEffect(() => {
         queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })

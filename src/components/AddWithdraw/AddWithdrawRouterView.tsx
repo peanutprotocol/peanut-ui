@@ -1,29 +1,19 @@
 'use client'
 import { Button } from '@/components/0_Bruddle'
 import { DepositMethod, DepositMethodList } from '@/components/AddMoney/components/DepositMethodList'
-import { countryData as ALL_METHODS_DATA, countryCodeMap } from '@/components/AddMoney/consts'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
-import { SearchInput } from '@/components/SearchUsers/SearchInput'
-import {
-    RecentMethod,
-    getUserPreferences,
-    updateUserPreferences,
-    shortenAddressLong,
-    formatIban,
-} from '@/utils/general.utils'
+import { RecentMethod, getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
-import { FC, useEffect, useMemo, useState } from 'react'
+import { FC, useEffect, useState } from 'react'
 import { useUserStore } from '@/redux/hooks'
 import { AccountType, Account } from '@/interfaces'
-import Image from 'next/image'
-import { Icon } from '@/components/Global/Icons/Icon'
-import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
-import Divider from '@/components/0_Bruddle/Divider'
 import Card from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { CountryList } from '../Common/CountryList'
+import PeanutLoading from '../Global/PeanutLoading'
+import SavedAccountsView from '../Common/SavedAccountsView'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -53,7 +43,6 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     // determine if we should show the full list of methods (countries/crypto) instead of the default view
     const shouldShowAllMethods = flow === 'withdraw' ? showAllWithdrawMethods : localShowAllMethods
     const setShouldShowAllMethods = flow === 'withdraw' ? setShowAllWithdrawMethods : setLocalShowAllMethods
-    const [searchTerm, setSearchTerm] = useState('')
     const [isLoadingPreferences, setIsLoadingPreferences] = useState(true)
 
     const baseRoute = flow === 'add' ? '/add-money' : '/withdraw'
@@ -129,66 +118,14 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         }
     }
 
-    const allMethodsTransformed: DepositMethod[] = useMemo(() => {
-        let methods = ALL_METHODS_DATA.map((method) => {
-            let path = `${baseRoute}/${method.path}`
-            return {
-                ...method,
-                path: path,
-                type: method.type as 'crypto' | 'country',
-            }
-        })
-
-        return methods
-    }, [baseRoute, flow])
-
-    const filteredAllMethods = useMemo(() => {
-        let methodsToShow
-        if (!searchTerm) {
-            methodsToShow = [...allMethodsTransformed]
-        } else {
-            methodsToShow = allMethodsTransformed.filter(
-                (method) =>
-                    method.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    method.currency?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    method.description?.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-        }
-
-        const transformedMethods = methodsToShow.map((method) => {
-            if (method.type === 'crypto') {
-                return {
-                    ...method,
-                    title: flow === 'add' ? 'Crypto Deposit' : 'Crypto',
-                    description: flow === 'add' ? 'Use an exchange or your wallet' : 'Withdraw to a wallet or exchange',
-                }
-            }
-            return method
-        })
-
-        return transformedMethods.sort((a, b) => {
-            if (a.type === 'crypto' && b.type !== 'crypto') {
-                return -1
-            }
-            if (b.type === 'crypto' && a.type !== 'crypto') {
-                return 1
-            }
-            return a.title.toLowerCase().localeCompare(b.title.toLowerCase())
-        })
-    }, [searchTerm, allMethodsTransformed, flow])
-
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value)
-    }
-
-    const handleClearSearch = () => {
-        setSearchTerm('')
-    }
-
     const defaultBackNavigation = () => router.push('/home')
 
     if (isLoadingPreferences) {
-        return null
+        return (
+            <div className="flex min-h-[inherit] flex-col justify-center gap-8">
+                <PeanutLoading />
+            </div>
+        )
     }
 
     if (flow === 'withdraw' && savedAccounts.length === 0 && !shouldShowAllMethods) {
@@ -218,25 +155,16 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     // Render saved accounts for withdraw flow if they exist and we're not in 'showAll' mode
     if (flow === 'withdraw' && !shouldShowAllMethods && savedAccounts.length > 0) {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
-                <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
-                <div className="space-y-4">
-                    <div className="flex h-full flex-col justify-center space-y-2">
-                        <h2 className="text-base font-bold">Saved accounts</h2>
-                        <SavedAccountsList
-                            accounts={savedAccounts}
-                            onItemClick={(account, path) => {
-                                setSelectedBankAccount(account)
-                                router.push(path)
-                            }}
-                        />
-                    </div>
-                    <Divider textClassname="font-bold text-grey-1" dividerClassname="bg-grey-1" text="or" />
-                    <Button icon="plus" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
-                        Select new method
-                    </Button>
-                </div>
-            </div>
+            <SavedAccountsView
+                pageTitle={pageTitle}
+                onPrev={onBackClick || defaultBackNavigation}
+                savedAccounts={savedAccounts}
+                onAccountClick={(account, path) => {
+                    setSelectedBankAccount(account)
+                    router.push(path)
+                }}
+                onSelectNewMethodClick={() => setShouldShowAllMethods(true)}
+            />
         )
     }
 
@@ -289,104 +217,19 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 }}
             />
 
-            <div className="flex h-full w-full flex-1 flex-col justify-start space-y-2">
-                <h2 className="text-base font-bold">{mainHeading}</h2>
-
-                <SearchInput
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    onClear={handleClearSearch}
-                    placeholder="Search country or currency"
-                />
-                {searchTerm && filteredAllMethods.length === 0 ? (
-                    <EmptyState
-                        title="No results found"
-                        description="Try searching with a different term."
-                        icon="search"
-                    />
-                ) : (
-                    <div className="flex-1 overflow-y-auto">
-                        <DepositMethodList
-                            methods={filteredAllMethods}
-                            onItemClick={handleMethodSelected}
-                            isAllMethodsView={true}
-                        />
-                    </div>
-                )}
-            </div>
-        </div>
-    )
-}
-
-// component to render saved bank accounts
-const SavedAccountsList: FC<{ accounts: Account[]; onItemClick: (account: Account, path: string) => void }> = ({
-    accounts,
-    onItemClick,
-}) => {
-    return (
-        <div className="flex flex-col">
-            {accounts.map((account, index) => {
-                let details: { countryCode?: string; countryName?: string; country?: string } = {}
-                if (typeof account.details === 'string') {
-                    try {
-                        details = JSON.parse(account.details)
-                    } catch (error) {
-                        console.error('Failed to parse account_details:', error)
-                    }
-                } else if (typeof account.details === 'object' && account.details !== null) {
-                    details = account.details as { country?: string }
-                }
-
-                const threeLetterCountryCode = (details.countryCode ?? '').toUpperCase()
-                const twoLetterCountryCode = countryCodeMap[threeLetterCountryCode] ?? threeLetterCountryCode
-
-                const countryCodeForFlag = twoLetterCountryCode.toLowerCase() ?? ''
-
-                let countryInfo
-                if (account.type === AccountType.US) {
-                    countryInfo = ALL_METHODS_DATA.find((c) => c.id === 'US')
-                } else {
-                    countryInfo = details.countryName
-                        ? ALL_METHODS_DATA.find((c) => c.title.toLowerCase() === details.countryName?.toLowerCase())
-                        : ALL_METHODS_DATA.find((c) => c.id === threeLetterCountryCode)
-                }
-
-                const path = countryInfo ? `/withdraw/${countryInfo.path}/bank` : '/withdraw'
-                const isSingle = accounts.length === 1
-                const isFirst = index === 0
-                const isLast = index === accounts.length - 1
-
-                let position: 'first' | 'last' | 'middle' | 'single' = 'middle'
-                if (isSingle) position = 'single'
-                else if (isFirst) position = 'first'
-                else if (isLast) position = 'last'
-
-                return (
-                    <SearchResultCard
-                        key={account.id}
-                        title={shortenAddressLong(formatIban(account.identifier), 6)}
-                        position={position}
-                        onClick={() => onItemClick(account, path)}
-                        className="p-4 py-2.5"
-                        leftIcon={
-                            <div className="relative h-8 w-8">
-                                {countryCodeForFlag && (
-                                    <Image
-                                        src={`https://flagcdn.com/w160/${account.type === AccountType.US ? 'us' : countryCodeForFlag}.png`}
-                                        alt={`${details.countryName ?? 'country'} flag`}
-                                        width={80}
-                                        height={80}
-                                        className="h-8 w-8 rounded-full object-cover"
-                                    />
-                                )}
-                                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-400 p-1">
-                                    <Icon name="bank" className="h-full w-full text-black" />
-                                </div>
-                            </div>
-                        }
-                    />
-                )
-            })}
+            <CountryList
+                inputTitle={mainHeading}
+                viewMode="add-withdraw"
+                onCountryClick={(country) => {
+                    const countryPath = `${baseRoute}/${country.path}`
+                    router.push(countryPath)
+                }}
+                onCryptoClick={() => {
+                    const cryptoPath = `${baseRoute}/crypto`
+                    router.push(cryptoPath)
+                }}
+                flow={flow}
+            />
         </div>
     )
 }

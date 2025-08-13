@@ -37,6 +37,7 @@ export type IBankAccountDetails = {
 
 interface DynamicBankAccountFormProps {
     country: string
+    countryName?: string
     onSuccess: (payload: AddBankAccountPayload, rawData: IBankAccountDetails) => Promise<{ error?: string }>
     initialData?: Partial<IBankAccountDetails>
     flow?: 'claim' | 'withdraw'
@@ -44,7 +45,10 @@ interface DynamicBankAccountFormProps {
 }
 
 export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, DynamicBankAccountFormProps>(
-    ({ country, onSuccess, initialData, flow = 'withdraw', actionDetailsProps }, ref) => {
+    (
+        { country, onSuccess, initialData, flow = 'withdraw', actionDetailsProps, countryName: countryNameFromProps },
+        ref
+    ) => {
         const { user } = useAuth()
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
@@ -121,7 +125,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     accountType,
                     accountNumber: accountNumber.replace(/\s/g, ''),
                     countryCode: isUs ? 'USA' : country.toUpperCase(),
-                    countryName: countryName as string,
+                    countryName: (countryName ?? countryNameFromProps) as string,
                     accountOwnerType: BridgeAccountOwnerType.INDIVIDUAL,
                     accountOwnerName: {
                         firstName: firstName.trim(),
@@ -151,6 +155,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 })
                 if (result.error) {
                     setSubmissionError(result.error)
+                    setIsSubmitting(false)
                 }
             } catch (error: any) {
                 setSubmissionError(error.message)
@@ -225,9 +230,23 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         }}
                         className="space-y-4"
                     >
+                        {flow === 'claim' && !user?.user.userId && (
+                            <div className="w-full space-y-4">
+                                {renderInput('firstName', 'First Name', { required: 'First name is required' })}
+                                {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
+                            </div>
+                        )}
+                        {flow === 'claim' && user?.user.userId && !user.user.fullName && (
+                            <div className="w-full space-y-4">
+                                {renderInput('firstName', 'First Name', { required: 'First name is required' })}
+                                {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
+                            </div>
+                        )}
                         {flow === 'claim' &&
-                            renderInput('name', 'Full Name', {
-                                required: 'Full name is required',
+                            user?.user.userId &&
+                            !user.user.email &&
+                            renderInput('email', 'E-mail', {
+                                required: 'Email is required',
                             })}
                         {flow !== 'claim' && !user?.user?.fullName && (
                             <div className="w-full space-y-4">
