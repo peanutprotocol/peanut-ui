@@ -1,26 +1,20 @@
 import { useUserStore } from '@/redux/hooks'
 import { ApiUser, usersApi } from '@/services/users'
 import { useEffect, useRef, useState } from 'react'
+import { useDebounce } from './useDebounce'
 
 export const useUserSearch = () => {
     const { user: authenticatedUser } = useUserStore()
     const [searchTerm, setSearchTerm] = useState('')
-    const [debouncedValue, setDebouncedValue] = useState(searchTerm)
+    const debouncedValue = useDebounce(searchTerm, 300)
     const [searchResults, setSearchResults] = useState<ApiUser[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [error, setError] = useState('')
     const currentValueRef = useRef(searchTerm)
 
-    // handle debounced search
+    // Update currentValueRef when searchTerm changes
     useEffect(() => {
         currentValueRef.current = searchTerm
-        const handler = setTimeout(() => {
-            setDebouncedValue(searchTerm)
-        }, 300)
-
-        return () => {
-            clearTimeout(handler)
-        }
     }, [searchTerm])
 
     // handle API call when debounced value changes
