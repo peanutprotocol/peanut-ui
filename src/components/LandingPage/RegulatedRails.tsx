@@ -20,15 +20,15 @@ import { Star } from '@/assets'
 const bgColor = '#F9F4F0'
 
 const logos = [
-    BBVA_ICON,
-    BRUBANK_ICON,
-    N26_ICON,
-    SANTANDER_ICON,
-    REVOLUT_ICON,
-    STRIPE_ICON,
-    MERCADO_PAGO_ICON,
-    PIX_ICON,
-    WISE_ICON,
+    { logo: BBVA_ICON, alt: 'BBVA' },
+    { logo: BRUBANK_ICON, alt: 'Brubank' },
+    { logo: N26_ICON, alt: 'N26' },
+    { logo: SANTANDER_ICON, alt: 'Santander' },
+    { logo: REVOLUT_ICON, alt: 'Revolut' },
+    { logo: STRIPE_ICON, alt: 'Stripe' },
+    { logo: MERCADO_PAGO_ICON, alt: 'Mercado Pago' },
+    { logo: PIX_ICON, alt: 'PIX' },
+    { logo: WISE_ICON, alt: 'Wise' },
 ]
 
 export function RegulatedRails() {
@@ -114,10 +114,13 @@ export function RegulatedRails() {
             </div>
 
             <div className="w-full">
-                <MarqueeWrapper backgroundColor="#FFFFF" direction="right" className="border-none ">
-                    {logos.map((logo, i) => (
-                        <div className="btn btn-purple btn-shadow-primary-4 mx-7 mb-2 flex h-26 w-48 items-center gap-2">
-                            <Image src={logo} key={i} alt="BBVA" width={101} height={32} />
+                <MarqueeWrapper backgroundColor="#FFFFFF" direction="right" className="border-none ">
+                    {logos.map((logo) => (
+                        <div
+                            key={logo.alt}
+                            className="btn btn-purple btn-shadow-primary-4 mx-7 mb-2 flex h-26 w-48 items-center gap-2"
+                        >
+                            <Image src={logo.logo} alt={logo.alt} width={101} height={32} />
                         </div>
                     ))}
                 </MarqueeWrapper>

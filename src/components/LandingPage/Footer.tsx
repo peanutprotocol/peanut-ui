@@ -29,19 +29,26 @@ const Footer = () => {
                 </div>
 
                 <div className="flex gap-2">
-                    <a className="text-xl font-bold text-white" href="https://docs.peanut.to/" target="_blank">
+                    <a
+                        className="text-xl font-bold text-white"
+                        href="https://docs.peanut.to/"
+                        rel="noopener noreferrer"
+                        target="_blank"
+                    >
                         Docs
                     </a>
                     <a
                         className="text-xl font-bold text-white"
                         href="https://peanutprotocol.notion.site/Privacy-Policy-37debda366c941f2bbb8db8c113d8c8b"
+                        rel="noopener noreferrer"
                         target="_blank"
                     >
                         Privacy
                     </a>
                     <a
                         className="text-xl font-bold text-white"
-                        href=" https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a"
+                        href="https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a"
+                        rel="noopener noreferrer"
                         target="_blank"
                     >
                         Terms
@@ -49,6 +56,7 @@ const Footer = () => {
                     <a
                         className="text-xl font-bold text-white"
                         href="https://peanutprotocol.notion.site/Career-b351de56d92e405e962f0027b3a60f52"
+                        rel="noopener noreferrer"
                         target="_blank"
                     >
                         Jobs

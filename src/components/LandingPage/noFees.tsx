@@ -232,7 +232,7 @@ export function NoFees() {
                         <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
                             <input
                                 value={destinationAmount}
-                                onChange={(e) => setDestinationAmount(parseFloat(e.target.value))}
+                                readOnly
                                 type="number"
                                 className="w-full bg-transparent outline-none"
                             />
