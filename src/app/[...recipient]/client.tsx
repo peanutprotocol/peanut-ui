@@ -30,6 +30,7 @@ import { useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext
 import ExternalWalletFulfilManager from '@/components/Request/views/ExternalWalletFulfilManager'
 import ActionList from '@/components/Common/ActionList'
 import NavHeader from '@/components/Global/NavHeader'
+import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
 
 interface Props {
     recipient: string[]
@@ -57,7 +58,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const [currencyAmount, setCurrencyAmount] = useState<string>('')
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
-    const { showExternalWalletFulfilMethods } = useRequestFulfilmentFlow()
+    const { showExternalWalletFulfilMethods, showRequestFulfilmentBankFlowManager } = useRequestFulfilmentFlow()
 
     const isMountedRef = useRef(true)
 
@@ -367,6 +368,11 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     // render external wallet fulfilment methods
     if (showExternalWalletFulfilMethods) {
         return <ExternalWalletFulfilManager parsedPaymentData={parsedPaymentData as ParsedURL} />
+    }
+
+    // render request fulfilment bank flow manager
+    if (showRequestFulfilmentBankFlowManager) {
+        return <ReqFulfillBankFlowManager parsedPaymentData={parsedPaymentData as ParsedURL} />
     }
 
     // render PUBLIC_PROFILE view

@@ -20,8 +20,9 @@ import { useRouter } from 'next/navigation'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
-import { useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
+import { RequestFulfilmentBankFlowStep, useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
+import { usePaymentStore } from '@/redux/hooks'
 
 export interface Method {
     id: string
@@ -80,7 +81,12 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const savedAccounts = useSavedAccounts()
-    const { setExternalWalletFulfilMethod, setShowExternalWalletFulfilMethods } = useRequestFulfilmentFlow()
+    const { usdAmount } = usePaymentStore()
+    const {
+        setShowRequestFulfilmentBankFlowManager,
+        setShowExternalWalletFulfilMethods,
+        setFlowStep: setRequestFulfilmentBankFlowStep,
+    } = useRequestFulfilmentFlow()
 
     const handleMethodClick = async (method: Method) => {
         if (flow === 'claim' && claimLinkData) {
@@ -110,11 +116,15 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     break
             }
         } else if (flow === 'request' && requestLinkData) {
+            const amountInUsd = parseFloat(usdAmount ?? '0')
+            if (method.id === 'bank' && amountInUsd < 1) {
+                setShowMinAmountError(true)
+                return
+            }
             switch (method.id) {
                 case 'bank':
-                    {
-                        console.log('bank') // TODO: implement bank fulfilment
-                    }
+                    setShowRequestFulfilmentBankFlowManager(true)
+                    setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.BankCountryList)
                     break
                 case 'mercadopago':
                     break // soon tag, so no action needed
@@ -153,7 +163,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
                 title="Minimum Amount "
-                description="The minimum amount to claim a link to a bank account is $1. Please try claiming with a different method."
+                description={'The minimum amount for a bank transaction is $1. Please try a different method.'}
                 icon="alert"
                 ctas={[{ text: 'Close', shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
                 iconContainerClassName="bg-yellow-400"

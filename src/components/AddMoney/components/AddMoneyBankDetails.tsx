@@ -8,17 +8,30 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useParams } from 'next/navigation'
-import { useEffect, useMemo } from 'react'
-import { countryCodeMap, countryData } from '@/components/AddMoney/consts'
+import { useCallback, useEffect, useMemo } from 'react'
+import { countryCodeMap, CountryData, countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import Icon from '@/components/Global/Icon'
-import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
+import { getCurrencyConfig, getCurrencySymbol, getOnrampCurrencyConfig } from '@/utils/bridge.utils'
 import { RequestFulfilmentBankFlowStep, useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
 import { usePaymentStore } from '@/redux/hooks'
-import { printableAddress } from '@/utils'
+import { formatAmount, printableAddress } from '@/utils'
+import useGetExchangeRate from '@/hooks/useGetExchangeRate'
+import { AccountType } from '@/interfaces'
 
-export default function AddMoneyBankDetails({ flow = 'add-money' }: { flow?: 'add-money' | 'request-fulfillment' }) {
+interface IAddMoneyBankDetails {
+    flow?: 'add-money' | 'request-fulfillment'
+}
+
+const getAccountTypeFromCountry = (country: CountryData | null): AccountType => {
+    if (!country) return AccountType.US
+    if (country.currency === 'MXN') return AccountType.CLABE
+    if (country.currency === 'EUR') return AccountType.IBAN
+    return AccountType.US
+}
+
+export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBankDetails) {
     const isAddMoneyFlow = flow === 'add-money'
 
     // contexts
@@ -30,9 +43,28 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: { flow?: 'ad
     } = useRequestFulfilmentFlow()
     const { chargeDetails } = usePaymentStore()
 
+    // hooks
+    const { exchangeRate, isFetchingRate } = useGetExchangeRate({
+        accountType: getAccountTypeFromCountry(requestFulfilmentSelectedCountry),
+    })
+
     // data from contexts based on flow
     const amount = isAddMoneyFlow ? onrampContext.amountToOnramp : chargeDetails?.tokenAmount
     const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
+
+    const currencySymbolBasedOnCountry = useMemo(() => {
+        return getCurrencySymbol(getOnrampCurrencyConfig(requestFulfilmentSelectedCountry?.id ?? 'US').currency)
+    }, [requestFulfilmentSelectedCountry])
+
+    const amountBasedOnCurrencyExchangeRate = useCallback(
+        (amount: string) => {
+            if (!exchangeRate) return currencySymbolBasedOnCountry + ' ' + amount
+            return (
+                currencySymbolBasedOnCountry + ' ' + formatAmount(parseFloat(amount ?? '0') * parseFloat(exchangeRate))
+            )
+        },
+        [exchangeRate, currencySymbolBasedOnCountry]
+    )
 
     const router = useRouter()
     const params = useParams()
@@ -40,6 +72,9 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: { flow?: 'ad
 
     // get country information from URL params
     const currentCountryDetails = useMemo(() => {
+        if (!isAddMoneyFlow) {
+            return requestFulfilmentSelectedCountry
+        }
         // check if we have country params (from dynamic route)
         if (currentCountryName) {
             return countryData.find(
@@ -141,13 +176,21 @@ Please use these details to complete your bank transfer.`
                 recipientName:
                     chargeDetails?.requestLink.recipientAccount.user.username ??
                     printableAddress(chargeDetails?.requestLink.recipientAddress as string),
-                amount: amount ?? '0',
-                tokenSymbol: chargeDetails?.tokenSymbol ?? '',
+                amount: isFetchingRate ? '-' : amountBasedOnCurrencyExchangeRate(amount ?? '0'),
+                tokenSymbol: '',
                 countryCodeForFlag: countryCodeForFlag,
                 currencySymbol: getCurrencySymbol(onrampCurrency),
             }
         }
-    }, [isAddMoneyFlow, amount, countryCodeForFlag, onrampCurrency, chargeDetails])
+    }, [
+        isAddMoneyFlow,
+        amount,
+        countryCodeForFlag,
+        onrampCurrency,
+        chargeDetails,
+        isFetchingRate,
+        amountBasedOnCurrencyExchangeRate,
+    ])
 
     if (!amount) {
         return null
@@ -161,7 +204,9 @@ Please use these details to complete your bank transfer.`
                 <PeanutActionDetailsCard {...peanutActionDetailsCardProps} />
 
                 <Card className="rounded-sm">
-                    <PaymentInfoRow label={'Amount'} value={formatCurrencyAmount(amount, onrampCurrency)} />
+                    {flow === 'add-money' && (
+                        <PaymentInfoRow label={'Amount'} value={formatCurrencyAmount(amount, onrampCurrency)} />
+                    )}
                     <PaymentInfoRow
                         label={'Bank Name'}
                         value={onrampData?.depositInstructions?.bankName || 'Loading...'}
