@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Modal from '../Modal'
+import Header from '@/components/Global/Header'
 type LayoutProps = {
     children: React.ReactNode
     className?: string
@@ -27,6 +28,8 @@ const Layout = ({ children, className }: LayoutProps) => {
     const path = usePathname()
 
     const isTryNow = path === '/pay'
+    const isLanding = path === '/'
+    const showHeader = !isLanding && !isTryNow
 
     useEffect(() => {
         setIsReady(true)
@@ -43,6 +46,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                 <div className={twMerge('relative bg-background', isTryNow && 'bg-pink-1')}>
                     <div className="flex min-h-screen flex-col ">
                         <MigrationBanner className="h-[7vh] min-h-[90px]" />
+                        {showHeader && <Header />}
                         <div className="flex grow justify-center">
                             <div
                                 className={`4xl:max-w-full flex grow flex-col justify-center pb-2 pt-6 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}
