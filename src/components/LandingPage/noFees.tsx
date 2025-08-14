@@ -62,9 +62,17 @@ export function NoFees() {
         [updateUrlParams]
     )
 
-    const setSourceAmount = useCallback((amount: number) => {
-        setLocalSourceAmount(amount) // Immediate UI update
-    }, [])
+    // const setSourceAmount = useCallback((amount: number) => {
+    //     setLocalSourceAmount(amount) // Immediate UI update
+    // }, [])
+
+    const setSourceAmount = useCallback(
+        (amount: number) => {
+            setLocalSourceAmount(amount) // Immediate UI update
+            setDestinationAmount(amount * currentExchangeRate) // Optimistic update
+        },
+        [currentExchangeRate]
+    )
 
     // Sync URL amount with local amount when URL changes
     useEffect(() => {

@@ -1,5 +1,5 @@
 'use client'
-import { Popover, PopoverTrigger, PopoverContent } from '@chakra-ui/react'
+import { Popover, PopoverTrigger, PopoverContent, Portal } from '@chakra-ui/react'
 import React, { useState, useMemo } from 'react'
 import BaseInput from '../0_Bruddle/BaseInput'
 import { Icon } from '../Global/Icons/Icon'
@@ -52,66 +52,68 @@ const CurrencySelect = ({
     return (
         <Popover placement="bottom-end">
             <PopoverTrigger>{trigger}</PopoverTrigger>
-            <PopoverContent
-                width={{ base: '72', sm: '80', md: '96' }}
-                height={{ base: '64', md: '72' }}
-                marginTop="16px"
-                borderRadius="2px"
-                border="1px"
-                borderColor="black"
-                overflow="scroll"
-            >
-                <div className="flex w-full flex-col gap-4 p-4">
-                    <div className="relative w-full">
-                        <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                            <Icon name="search" size={15} />
+            <Portal>
+                <PopoverContent
+                    width={{ base: '72', sm: '80', md: '96' }}
+                    height={72}
+                    marginTop="16px"
+                    borderRadius="2px"
+                    border="1px"
+                    borderColor="black"
+                    overflow="scroll"
+                >
+                    <div className="flex w-full flex-col gap-4 p-4">
+                        <div className="relative w-full">
+                            <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                                <Icon name="search" size={15} />
+                            </div>
+                            <BaseInput
+                                type="text"
+                                placeholder="Currency or country"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="h-10 w-full rounded-sm border-[1.15px] border-black pl-10 pr-10 font-normal caret-[#FF90E8] focus:border-black focus:outline-none focus:ring-0"
+                            />
                         </div>
-                        <BaseInput
-                            type="text"
-                            placeholder="Currency or country"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="h-10 w-full rounded-sm border-[1.15px] border-black pl-10 pr-10 font-normal caret-[#FF90E8] focus:border-black focus:outline-none focus:ring-0"
-                        />
-                    </div>
 
-                    <div className="flex w-full flex-col items-start">
-                        <h2 className="text-left text-xs font-normal text-gray-1">Popular currencies</h2>
-                        {filteredCurrencies
-                            .filter((currency) => popularCurrencies.includes(currency.currency))
-                            .map((currency, index) => (
-                                <CurrencyBox
-                                    key={`${currency.countryCode}-${currency.country}-${index}`}
-                                    countryCode={currency.countryCode}
-                                    country={currency.country}
-                                    currency={currency.currency}
-                                    currencyName={currency.currencyName}
-                                    selected={currency.currency === selectedCurrency}
-                                    onSelect={() => {
-                                        setSelectedCurrency(currency.currency)
-                                    }}
-                                />
-                            ))}
+                        <div className="flex w-full flex-col items-start">
+                            <h2 className="text-left text-xs font-normal text-gray-1">Popular currencies</h2>
+                            {filteredCurrencies
+                                .filter((currency) => popularCurrencies.includes(currency.currency))
+                                .map((currency, index) => (
+                                    <CurrencyBox
+                                        key={`${currency.countryCode}-${currency.country}-${index}`}
+                                        countryCode={currency.countryCode}
+                                        country={currency.country}
+                                        currency={currency.currency}
+                                        currencyName={currency.currencyName}
+                                        selected={currency.currency === selectedCurrency}
+                                        onSelect={() => {
+                                            setSelectedCurrency(currency.currency)
+                                        }}
+                                    />
+                                ))}
 
-                        <h2 className="text-left text-xs font-normal text-gray-1">All currencies</h2>
-                        {filteredCurrencies
-                            .filter((currency) => !popularCurrencies.includes(currency.currency))
-                            .map((currency, index) => (
-                                <CurrencyBox
-                                    key={`${currency.countryCode}-${currency.country}-${index}`}
-                                    countryCode={currency.countryCode}
-                                    country={currency.country}
-                                    currency={currency.currency}
-                                    currencyName={currency.currencyName}
-                                    selected={currency.currency === selectedCurrency}
-                                    onSelect={() => {
-                                        setSelectedCurrency(currency.currency)
-                                    }}
-                                />
-                            ))}
+                            <h2 className="text-left text-xs font-normal text-gray-1">All currencies</h2>
+                            {filteredCurrencies
+                                .filter((currency) => !popularCurrencies.includes(currency.currency))
+                                .map((currency, index) => (
+                                    <CurrencyBox
+                                        key={`${currency.countryCode}-${currency.country}-${index}`}
+                                        countryCode={currency.countryCode}
+                                        country={currency.country}
+                                        currency={currency.currency}
+                                        currencyName={currency.currencyName}
+                                        selected={currency.currency === selectedCurrency}
+                                        onSelect={() => {
+                                            setSelectedCurrency(currency.currency)
+                                        }}
+                                    />
+                                ))}
+                        </div>
                     </div>
-                </div>
-            </PopoverContent>
+                </PopoverContent>
+            </Portal>
         </Popover>
     )
 }

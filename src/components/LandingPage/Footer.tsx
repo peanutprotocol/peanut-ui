@@ -23,9 +23,30 @@ const Footer = () => {
 
             <section className="absolute left-1/2 top-5 flex -translate-x-1/2 flex-col items-center gap-4 md:static md:translate-x-0">
                 <div className="flex gap-2">
-                    <Image src={DISCORD_ICON} alt="Discord" width={20} height={20} />
-                    <Image src={TWITTER_ICON} alt="Twitter" width={20} height={20} />
-                    <Image src={GITHUB_WHITE_ICON} alt="Github" width={20} height={20} />
+                    <a
+                        href="https://discord.gg/B99T9mQqBv"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Join us on Discord"
+                    >
+                        <Image src={DISCORD_ICON} alt="Discord" width={20} height={20} />
+                    </a>
+                    <a
+                        href="https://x.com/PeanutProtocol"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Follow us on Twitter"
+                    >
+                        <Image src={TWITTER_ICON} alt="Twitter" width={20} height={20} />
+                    </a>
+                    <a
+                        href="https://github.com/peanutprotocol"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="View our GitHub"
+                    >
+                        <Image src={GITHUB_WHITE_ICON} alt="GitHub" width={20} height={20} />
+                    </a>
                 </div>
 
                 <div className="flex gap-2">
