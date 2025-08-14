@@ -10,6 +10,7 @@ import { Button } from '../0_Bruddle'
 import CurrencySelect from './CurrencySelect'
 import { Icon } from '../Global/Icons/Icon'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useSearchParams, useRouter } from 'next/navigation'
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 
@@ -24,14 +25,22 @@ export function NoFees() {
     const destinationCurrency = searchParams.get('to') || 'EUR'
     const urlSourceAmount = parseFloat(searchParams.get('amount') || '10') || 10
 
-    // Local state for immediate UI updates (amount input)
-    const [localSourceAmount, setLocalSourceAmount] = useState(urlSourceAmount)
-    const [destinationAmount, setDestinationAmount] = useState(0)
-    const [currentExchangeRate, setCurrentExchangeRate] = useState(0)
+    // Exchange rate hook handles all the conversion logic
+    const {
+        sourceAmount,
+        destinationAmount,
+        exchangeRate,
+        isLoading,
+        handleSourceAmountChange,
+        handleDestinationAmountChange,
+        getDestinationDisplayValue,
+    } = useExchangeRate({
+        sourceCurrency,
+        destinationCurrency,
+        initialSourceAmount: urlSourceAmount,
+    })
 
-    // Use local amount for immediate display, URL amount for API calls
-    const sourceAmount = localSourceAmount
-    const debouncedSourceAmount = useDebounce(localSourceAmount, 300)
+    const debouncedSourceAmount = useDebounce(sourceAmount, 500)
 
     // Function to update URL parameters
     const updateUrlParams = useCallback(
@@ -62,26 +71,9 @@ export function NoFees() {
         [updateUrlParams]
     )
 
-    // const setSourceAmount = useCallback((amount: number) => {
-    //     setLocalSourceAmount(amount) // Immediate UI update
-    // }, [])
-
-    const setSourceAmount = useCallback(
-        (amount: number) => {
-            setLocalSourceAmount(amount) // Immediate UI update
-            setDestinationAmount(amount * currentExchangeRate) // Optimistic update
-        },
-        [currentExchangeRate]
-    )
-
-    // Sync URL amount with local amount when URL changes
+    // Update URL when source amount changes (only for valid numbers)
     useEffect(() => {
-        setLocalSourceAmount(urlSourceAmount)
-    }, [urlSourceAmount])
-
-    // Debounced URL update for amount
-    useEffect(() => {
-        if (debouncedSourceAmount !== urlSourceAmount) {
+        if (typeof debouncedSourceAmount === 'number' && debouncedSourceAmount !== urlSourceAmount) {
             updateUrlParams({ amount: debouncedSourceAmount })
         }
     }, [debouncedSourceAmount, urlSourceAmount, updateUrlParams])
@@ -120,19 +112,6 @@ export function NoFees() {
         () => countryCurrencyMappings.find((currency) => currency.currencyCode === destinationCurrency)?.flagCode,
         [destinationCurrency]
     )
-
-    useEffect(() => {
-        const fetchExchangeRate = async () => {
-            const _sourceCurrency = sourceCurrency
-            const _destinationCurrency = destinationCurrency
-            const response = await fetch(`/api/exchange-rate?from=${_sourceCurrency}&to=${_destinationCurrency}`)
-            const data = await response.json()
-            setCurrentExchangeRate(data.rate)
-            setDestinationAmount(debouncedSourceAmount * data.rate)
-        }
-
-        fetchExchangeRate()
-    }, [sourceCurrency, destinationCurrency, debouncedSourceAmount])
 
     return (
         <section className="relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14">
@@ -226,10 +205,16 @@ export function NoFees() {
                         <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
                             <input
                                 min={0}
-                                value={sourceAmount}
+                                placeholder="0"
+                                value={sourceAmount === '' ? '' : sourceAmount}
                                 onChange={(e) => {
-                                    const value = parseFloat(e.target.value)
-                                    setSourceAmount(isNaN(value) || value < 0 ? 0 : value)
+                                    const inputValue = e.target.value
+                                    if (inputValue === '') {
+                                        handleSourceAmountChange('')
+                                    } else {
+                                        const value = parseFloat(inputValue)
+                                        handleSourceAmountChange(isNaN(value) ? '' : value)
+                                    }
                                 }}
                                 type="number"
                                 className="w-full bg-transparent outline-none"
@@ -258,8 +243,18 @@ export function NoFees() {
                         <h2 className="text-left text-sm">Recipient gets</h2>
                         <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
                             <input
-                                value={destinationAmount.toFixed(2)}
-                                readOnly
+                                min={0}
+                                placeholder="0"
+                                value={getDestinationDisplayValue()}
+                                onChange={(e) => {
+                                    const inputValue = e.target.value
+                                    if (inputValue === '') {
+                                        handleDestinationAmountChange('', '')
+                                    } else {
+                                        const value = parseFloat(inputValue)
+                                        handleDestinationAmountChange(inputValue, isNaN(value) ? '' : value)
+                                    }
+                                }}
                                 type="number"
                                 className="w-full bg-transparent outline-none"
                             />
@@ -284,13 +279,11 @@ export function NoFees() {
                         </div>
                     </div>
 
-                    {destinationAmount > 0 && (
-                        <div className="rounded-full bg-grey-4 px-2 py-[2px] text-xs font-bold text-gray-1">
-                            1 {sourceCurrency} = {currentExchangeRate.toFixed(2)} {destinationCurrency}
-                        </div>
-                    )}
+                    <div className="rounded-full bg-grey-4 px-2 py-[2px] text-xs font-bold text-gray-1">
+                        1 {sourceCurrency} = {exchangeRate.toFixed(4)} {destinationCurrency}
+                    </div>
 
-                    {destinationAmount > 0 && (
+                    {typeof destinationAmount === 'number' && destinationAmount > 0 && (
                         <div className="flex w-full flex-col gap-3 rounded-sm border-[1.15px] border-black px-4 py-2">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-left text-sm font-normal">Bank fee</h2>
@@ -313,6 +306,13 @@ export function NoFees() {
                     >
                         Send Money
                     </Button>
+
+                    {typeof destinationAmount === 'number' && destinationAmount > 0 && (
+                        <div className="flex items-center">
+                            <Icon name="info" className="text-gray-1" size={10} />
+                            <p className="text-xs text-gray-1">Should arrive in minutes</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </section>
