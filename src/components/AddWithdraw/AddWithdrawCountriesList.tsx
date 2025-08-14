@@ -1,6 +1,11 @@
 'use client'
 
-import { COUNTRY_SPECIFIC_METHODS, countryData, SpecificPaymentMethod } from '@/components/AddMoney/consts'
+import {
+    COUNTRY_SPECIFIC_METHODS,
+    countryCodeMap,
+    countryData,
+    SpecificPaymentMethod,
+} from '@/components/AddMoney/consts'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -11,7 +16,7 @@ import Image, { StaticImageData } from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { InitiateKYCModal } from '@/components/Kyc'
 import { DynamicBankAccountForm, IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount, updateUserById } from '@/app/actions/users'
@@ -23,6 +28,7 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { Account } from '@/interfaces'
 import PeanutLoading from '../Global/PeanutLoading'
+import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -212,7 +218,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
                     <DynamicBankAccountForm
                         ref={formRef}
-                        country={currentCountry.id}
+                        country={getCountryCodeForWithdraw(currentCountry.id)}
                         onSuccess={handleFormSubmit}
                         initialData={cachedBankDetails ?? {}}
                     />
