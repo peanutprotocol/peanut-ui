@@ -107,14 +107,6 @@ export const validateMXCLabeAccount = (accountNumber: string) => {
         }
     }
 
-    // Check for repeated patterns (like 111111111111111111)
-    if (/^(\d)\1{17}$/.test(cleanAccountNumber)) {
-        return {
-            isValid: false,
-            error: 'CLABE appears to be invalid',
-        }
-    }
-
     // Validate CLABE check digit using the official algorithm
     const digits = cleanAccountNumber.split('').map(Number)
     const weights = [3, 7, 1, 3, 7, 1, 3, 7, 1, 3, 7, 1, 3, 7, 1, 3, 7]
