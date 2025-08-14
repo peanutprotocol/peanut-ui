@@ -67,22 +67,6 @@ export const validateUSBankAccount = (accountNumber: string) => {
         }
     }
 
-    // Check for sequential numbers (like 123456789)
-    if (/^(123456789|0123456789|1234567890|9876543210|0987654321)/.test(cleanAccountNumber)) {
-        return {
-            isValid: false,
-            error: 'Account number appears to be invalid',
-        }
-    }
-
-    // Check for repeated patterns (like 111111 or 123123123)
-    if (/^(\d)\1{5,}$/.test(cleanAccountNumber) || /^(\d{2,3})\1{2,}$/.test(cleanAccountNumber)) {
-        return {
-            isValid: false,
-            error: 'Account number appears to be invalid',
-        }
-    }
-
     return {
         isValid: true,
         error: null,
@@ -148,26 +132,6 @@ export const validateMXCLabeAccount = (accountNumber: string) => {
         return {
             isValid: false,
             error: 'CLABE check digit is invalid',
-        }
-    }
-
-    // Extract and validate bank code (first 3 digits)
-    const bankCode = cleanAccountNumber.substring(0, 3)
-
-    // Basic bank code validation (should not be 000 or 999)
-    if (bankCode === '000' || bankCode === '999') {
-        return {
-            isValid: false,
-            error: 'Invalid bank code in CLABE',
-        }
-    }
-
-    // Extract branch code (digits 4-6) - should not be 000
-    const branchCode = cleanAccountNumber.substring(3, 6)
-    if (branchCode === '000') {
-        return {
-            isValid: false,
-            error: 'Invalid branch code in CLABE',
         }
     }
 
