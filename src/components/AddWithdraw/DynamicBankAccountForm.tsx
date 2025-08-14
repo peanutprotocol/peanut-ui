@@ -86,7 +86,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             setIsSubmitting(true)
             setSubmissionError(null)
             try {
-                const isUs = country.toUpperCase() === 'US'
+                const isUs = country.toUpperCase() === 'USA'
                 const isMx = country.toUpperCase() === 'MX'
                 const isIban = isUs || isMx ? false : isIBANCountry(country)
 
