@@ -193,7 +193,7 @@ export default function PeanutActionDetailsCard({
                 <div className="w-full space-y-1">
                     {getTitle()}
                     <h2 className="text-2xl font-extrabold">
-                        {transactionType === 'ADD_MONEY' && currencySymbol
+                        {(transactionType === 'ADD_MONEY' || isAddBankAccount) && currencySymbol
                             ? `${currencySymbol} `
                             : tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() ||
                                 (transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && viewType === 'SUCCESS')
