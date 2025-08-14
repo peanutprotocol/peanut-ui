@@ -20,6 +20,7 @@ import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.
 import peanut from '@squirrel-labs/peanut-sdk'
 import { getUserById } from '@/app/actions/users'
 import NavHeader from '@/components/Global/NavHeader'
+import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 
 export const BankFlowManager = (props: IClaimScreenProps) => {
     const { onCustom, claimLinkData, setTransactionHash } = props
@@ -214,7 +215,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             </div>
             <DynamicBankAccountForm
                 key={selectedCountry.id}
-                country={selectedCountry.id}
+                country={getCountryCodeForWithdraw(selectedCountry.id)}
                 onSuccess={handleSuccess}
                 flow={'claim'}
                 actionDetailsProps={{

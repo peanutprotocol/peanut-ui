@@ -178,3 +178,16 @@ export const validateMXCLabeAccount = (accountNumber: string) => {
         error: null,
     }
 }
+
+// Returns the 3-letter country code for the given country code
+export const getCountryCodeForWithdraw = (country: string) => {
+    // If the input is already a 3-digit code and exists in the map, return it
+    if (countryCodeMap[country]) {
+        return country
+    }
+
+    // If the input is a 2-digit code, find the corresponding 3-digit code
+    const threeDigitCode = Object.keys(countryCodeMap).find((key) => countryCodeMap[key] === country)
+
+    return threeDigitCode || country
+}
