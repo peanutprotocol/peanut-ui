@@ -31,6 +31,7 @@ export function NoFees() {
         destinationAmount,
         exchangeRate,
         isLoading,
+        isError,
         handleSourceAmountChange,
         handleDestinationAmountChange,
         getDestinationDisplayValue,
@@ -112,6 +113,13 @@ export function NoFees() {
         () => countryCurrencyMappings.find((currency) => currency.currencyCode === destinationCurrency)?.flagCode,
         [destinationCurrency]
     )
+
+    // Determine delivery time text based on destination currency
+    const deliveryTimeText = useMemo(() => {
+        return destinationCurrency === 'USD'
+            ? 'Should arrive in hours. Estimate.'
+            : 'Should arrive in minutes. Estimate.'
+    }, [destinationCurrency])
 
     return (
         <section className="relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14">
@@ -203,26 +211,32 @@ export function NoFees() {
                     <div className="w-full">
                         <h2 className="text-left text-sm">You Send</h2>
                         <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
-                            <input
-                                min={0}
-                                placeholder="0"
-                                value={sourceAmount === '' ? '' : sourceAmount}
-                                onChange={(e) => {
-                                    const inputValue = e.target.value
-                                    if (inputValue === '') {
-                                        handleSourceAmountChange('')
-                                    } else {
-                                        const value = parseFloat(inputValue)
-                                        handleSourceAmountChange(isNaN(value) ? '' : value)
-                                    }
-                                }}
-                                type="number"
-                                className="w-full bg-transparent outline-none"
-                            />
+                            {isLoading ? (
+                                <div className="flex w-full items-center">
+                                    <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
+                                </div>
+                            ) : (
+                                <input
+                                    min={0}
+                                    placeholder="0"
+                                    value={sourceAmount === '' ? '' : sourceAmount}
+                                    onChange={(e) => {
+                                        const inputValue = e.target.value
+                                        if (inputValue === '') {
+                                            handleSourceAmountChange('')
+                                        } else {
+                                            const value = parseFloat(inputValue)
+                                            handleSourceAmountChange(isNaN(value) ? '' : value)
+                                        }
+                                    }}
+                                    type="number"
+                                    className="w-full bg-transparent outline-none"
+                                />
+                            )}
                             <CurrencySelect
                                 selectedCurrency={sourceCurrency}
                                 setSelectedCurrency={setSourceCurrency}
-                                excludeCurrencies={[destinationCurrency]}
+                                // excludeCurrencies={[destinationCurrency]}
                                 trigger={
                                     <button className="flex w-32 items-center gap-2">
                                         <Image
@@ -240,28 +254,33 @@ export function NoFees() {
                     </div>
 
                     <div className="w-full">
-                        <h2 className="text-left text-sm">Recipient gets</h2>
+                        <h2 className="text-left text-sm">Recipient Gets</h2>
                         <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
-                            <input
-                                min={0}
-                                placeholder="0"
-                                value={getDestinationDisplayValue()}
-                                onChange={(e) => {
-                                    const inputValue = e.target.value
-                                    if (inputValue === '') {
-                                        handleDestinationAmountChange('', '')
-                                    } else {
-                                        const value = parseFloat(inputValue)
-                                        handleDestinationAmountChange(inputValue, isNaN(value) ? '' : value)
-                                    }
-                                }}
-                                type="number"
-                                className="w-full bg-transparent outline-none"
-                            />
+                            {isLoading ? (
+                                <div className="flex w-full items-center">
+                                    <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
+                                </div>
+                            ) : (
+                                <input
+                                    min={0}
+                                    placeholder="0"
+                                    value={getDestinationDisplayValue()}
+                                    onChange={(e) => {
+                                        const inputValue = e.target.value
+                                        if (inputValue === '') {
+                                            handleDestinationAmountChange('', '')
+                                        } else {
+                                            const value = parseFloat(inputValue)
+                                            handleDestinationAmountChange(inputValue, isNaN(value) ? '' : value)
+                                        }
+                                    }}
+                                    type="number"
+                                    className="w-full bg-transparent outline-none"
+                                />
+                            )}
                             <CurrencySelect
                                 selectedCurrency={destinationCurrency}
                                 setSelectedCurrency={setDestinationCurrency}
-                                excludeCurrencies={[sourceCurrency]}
                                 trigger={
                                     <button className="flex w-32 items-center gap-2">
                                         <Image
@@ -280,7 +299,15 @@ export function NoFees() {
                     </div>
 
                     <div className="rounded-full bg-grey-4 px-2 py-[2px] text-xs font-bold text-gray-1">
-                        1 {sourceCurrency} = {exchangeRate.toFixed(4)} {destinationCurrency}
+                        {isLoading ? (
+                            <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-grey-2" />
+                        ) : isError ? (
+                            <span>Rate currently unavailable</span>
+                        ) : (
+                            <>
+                                1 {sourceCurrency} = {exchangeRate.toFixed(4)} {destinationCurrency}
+                            </>
+                        )}
                     </div>
 
                     {typeof destinationAmount === 'number' && destinationAmount > 0 && (
@@ -310,7 +337,7 @@ export function NoFees() {
                     {typeof destinationAmount === 'number' && destinationAmount > 0 && (
                         <div className="flex items-center">
                             <Icon name="info" className="text-gray-1" size={10} />
-                            <p className="text-xs text-gray-1">Should arrive in minutes</p>
+                            <p className="text-xs text-gray-1">{deliveryTimeText}</p>
                         </div>
                     )}
                 </div>

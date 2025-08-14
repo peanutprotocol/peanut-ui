@@ -6,6 +6,7 @@ import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
 import { countryCurrencyMappings } from '../../constants/countryCurrencyMapping'
+import StatusBadge from '../Global/Badges/StatusBadge'
 
 interface CurrencySelectProps {
     selectedCurrency: string
@@ -20,6 +21,7 @@ const currencies = countryCurrencyMappings.map((mapping) => ({
     country: mapping.country,
     currency: mapping.currencyCode,
     currencyName: mapping.currencyName,
+    comingSoon: mapping.comingSoon || false,
 }))
 
 const popularCurrencies = ['USD', 'EUR', 'MXN']
@@ -93,10 +95,13 @@ const CurrencySelect = ({
                                                 country={currency.country}
                                                 currency={currency.currency}
                                                 currencyName={currency.currencyName}
+                                                comingSoon={currency.comingSoon}
                                                 selected={currency.currency === selectedCurrency}
                                                 onSelect={() => {
-                                                    onClose()
-                                                    setSelectedCurrency(currency.currency)
+                                                    if (!currency.comingSoon) {
+                                                        onClose()
+                                                        setSelectedCurrency(currency.currency)
+                                                    }
                                                 }}
                                             />
                                         ))}
@@ -113,10 +118,13 @@ const CurrencySelect = ({
                                                 country={currency.country}
                                                 currency={currency.currency}
                                                 currencyName={currency.currencyName}
+                                                comingSoon={currency.comingSoon}
                                                 selected={currency.currency === selectedCurrency}
                                                 onSelect={() => {
-                                                    onClose()
-                                                    setSelectedCurrency(currency.currency)
+                                                    if (!currency.comingSoon) {
+                                                        onClose()
+                                                        setSelectedCurrency(currency.currency)
+                                                    }
                                                 }}
                                             />
                                         ))}
@@ -138,15 +146,26 @@ interface CurrencyBoxProps {
     country: string
     currency: string
     currencyName: string
+    comingSoon?: boolean
     onSelect: () => void
 }
-const CurrencyBox = ({ selected, countryCode, country, currency, currencyName, onSelect }: CurrencyBoxProps) => {
+const CurrencyBox = ({
+    selected,
+    countryCode,
+    country,
+    currency,
+    currencyName,
+    comingSoon = false,
+    onSelect,
+}: CurrencyBoxProps) => {
     return (
         <div
             onClick={onSelect}
             className={twMerge(
-                'flex w-full cursor-pointer justify-between px-4 py-2',
-                selected && 'rounded-sm border border-gray-1'
+                'flex w-full justify-between px-4 py-2',
+                !comingSoon && 'cursor-pointer',
+                comingSoon && 'cursor-not-allowed bg-grey-4 opacity-75',
+                selected && !comingSoon && 'rounded-sm border border-gray-1'
             )}
         >
             <div className="flex items-center gap-2">
@@ -162,13 +181,16 @@ const CurrencyBox = ({ selected, countryCode, country, currency, currencyName, o
                 />
                 <div className="flex flex-col">
                     <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold">{currency}</h3>
+                        <h3 className={twMerge('text-base font-bold', comingSoon && 'text-gray-1')}>{currency}</h3>
                         <span className="text-xs font-medium text-gray-1">{currencyName}</span>
                     </div>
                 </div>
             </div>
 
-            {selected && <Icon name="success" className="text-gray-1" />}
+            <div className="flex items-center gap-2">
+                {comingSoon && <StatusBadge status="soon" size="small" />}
+                {selected && !comingSoon && <Icon name="success" className="text-gray-1" />}
+            </div>
         </div>
     )
 }

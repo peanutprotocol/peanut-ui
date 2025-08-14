@@ -3,6 +3,7 @@ export interface CountryCurrencyMapping {
     currencyName: string
     country: string
     flagCode: string
+    comingSoon?: boolean
 }
 
 export const countryCurrencyMappings: CountryCurrencyMapping[] = [
@@ -27,6 +28,10 @@ export const countryCurrencyMappings: CountryCurrencyMapping[] = [
 
     // Mexico
     { currencyCode: 'MXN', currencyName: 'Mexican Peso', country: 'Mexico', flagCode: 'mx' },
+
+    // Coming Soon
+    { currencyCode: 'BRL', currencyName: 'Brazilian Real', country: 'Brazil', flagCode: 'br', comingSoon: true },
+    { currencyCode: 'ARS', currencyName: 'Argentine Peso', country: 'Argentina', flagCode: 'ar', comingSoon: true },
 ]
 
 export default countryCurrencyMappings

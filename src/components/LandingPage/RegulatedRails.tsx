@@ -109,7 +109,25 @@ export function RegulatedRails() {
                 </p>
 
                 <h6 className="mt-3 text-sm">
-                    Verified with Persona: SOC 2, ISO 27001, GDPR. Zero data stored by Peanut.
+                    Our partners hold{' '}
+                    <a
+                        href="https://www.bridge.xyz/legal/licenses/us-licenses-and-registrations"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-n-1 underline"
+                    >
+                        MSB
+                    </a>{' '}
+                    licenses and are compliant under{' '}
+                    <a
+                        href="https://withpersona.com/security"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-n-1 underline"
+                    >
+                        GDPR and CCPA/CCPR
+                    </a>
+                    &nbsp; frameworks
                 </h6>
             </div>
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useDebounce } from './useDebounce'
+import { useQuery } from '@tanstack/react-query'
 
 type InputValue = number | ''
 
@@ -15,6 +16,7 @@ interface UseExchangeRateReturn {
     destinationInputValue: string
     exchangeRate: number
     isLoading: boolean
+    isError: boolean
     handleSourceAmountChange: (amount: InputValue) => void
     handleDestinationAmountChange: (inputValue: string, amount: InputValue) => void
     getDestinationDisplayValue: () => string
@@ -29,8 +31,6 @@ export function useExchangeRate({
     const [sourceAmount, setSourceAmount] = useState<InputValue>(initialSourceAmount)
     const [destinationAmount, setDestinationAmount] = useState<InputValue>('')
     const [destinationInputValue, setDestinationInputValue] = useState('')
-    const [exchangeRate, setExchangeRate] = useState(0)
-    const [isLoading, setIsLoading] = useState(false)
     const [lastEditedField, setLastEditedField] = useState<'source' | 'destination' | null>(null)
 
     // Debounced values
@@ -74,52 +74,59 @@ export function useExchangeRate({
         return typeof destinationAmount === 'number' ? destinationAmount.toFixed(2) : String(destinationAmount)
     }, [lastEditedField, destinationInputValue, destinationAmount])
 
-    // Exchange rate API call and calculations
+    // Client-side cached exchange rate (2 minutes)
+    const {
+        data: rateData,
+        isFetching,
+        isError,
+    } = useQuery<{ rate: number }>({
+        queryKey: ['exchangeRate', sourceCurrency, destinationCurrency],
+        queryFn: async () => {
+            const res = await fetch(`/api/exchange-rate?from=${sourceCurrency}&to=${destinationCurrency}`)
+            if (!res.ok) throw new Error('Failed to fetch exchange rate')
+            return res.json()
+        },
+        staleTime: 2 * 60 * 1000, // 2 minutes
+        gcTime: 10 * 60 * 1000, // garbage collect after 10 minutes
+        refetchOnWindowFocus: false,
+    })
+
+    const exchangeRate = rateData?.rate ?? 0
+    const isLoading = isFetching
+
+    // Recalculate amounts when debounced inputs or rate changes (no extra loading toggles)
     useEffect(() => {
-        const fetchExchangeRateAndCalculate = async () => {
-            setIsLoading(true)
+        if (exchangeRate <= 0) return
 
-            try {
-                const response = await fetch(`/api/exchange-rate?from=${sourceCurrency}&to=${destinationCurrency}`)
-                const data = await response.json()
-                setExchangeRate(data.rate)
+        const hasValidSource = isValidAmount(debouncedSourceAmount)
+        const hasValidDestination = isValidAmount(debouncedDestinationAmount)
 
-                // Handle empty field clearing after we have the exchange rate
-                if (lastEditedField === 'source' && !isValidAmount(debouncedSourceAmount)) {
-                    clearDestinationFields()
-                    return
-                }
-
-                if (lastEditedField === 'destination' && !isValidAmount(debouncedDestinationAmount)) {
-                    setSourceAmount('')
-                    return
-                }
-
-                // Check if we have valid amounts to calculate with
-                const hasValidSource = isValidAmount(debouncedSourceAmount)
-                const hasValidDestination = isValidAmount(debouncedDestinationAmount)
-
-                // Calculate based on which field was last edited
-                if (lastEditedField === 'source' && hasValidSource) {
-                    const calculatedAmount = debouncedSourceAmount * data.rate
-                    updateDestinationFromCalculation(calculatedAmount)
-                } else if (lastEditedField === 'destination' && hasValidDestination) {
-                    const calculatedSourceAmount = debouncedDestinationAmount / data.rate
-                    setSourceAmount(parseFloat(calculatedSourceAmount.toFixed(2)))
-                } else if (!lastEditedField && hasValidSource) {
-                    // Initial load - calculate destination from source
-                    const calculatedAmount = debouncedSourceAmount * data.rate
-                    updateDestinationFromCalculation(calculatedAmount)
-                }
-            } catch (error) {
-                console.error('Error fetching exchange rate:', error)
-            } finally {
-                setIsLoading(false)
+        if (lastEditedField === 'source') {
+            if (!hasValidSource) {
+                clearDestinationFields()
+                return
             }
+            const calculatedAmount = debouncedSourceAmount * exchangeRate
+            updateDestinationFromCalculation(calculatedAmount)
+            return
         }
 
-        fetchExchangeRateAndCalculate()
-    }, [sourceCurrency, destinationCurrency, debouncedSourceAmount, debouncedDestinationAmount, lastEditedField])
+        if (lastEditedField === 'destination') {
+            if (!hasValidDestination) {
+                setSourceAmount('')
+                return
+            }
+            const calculatedSourceAmount = debouncedDestinationAmount / exchangeRate
+            setSourceAmount(parseFloat(calculatedSourceAmount.toFixed(2)))
+            return
+        }
+
+        // Initial load - calculate destination from source
+        if (!lastEditedField && hasValidSource) {
+            const calculatedAmount = debouncedSourceAmount * exchangeRate
+            updateDestinationFromCalculation(calculatedAmount)
+        }
+    }, [debouncedSourceAmount, debouncedDestinationAmount, lastEditedField, exchangeRate])
 
     // Update source amount when initial amount changes
     useEffect(() => {
@@ -132,6 +139,7 @@ export function useExchangeRate({
         destinationInputValue,
         exchangeRate,
         isLoading,
+        isError,
         handleSourceAmountChange,
         handleDestinationAmountChange,
         getDestinationDisplayValue,
