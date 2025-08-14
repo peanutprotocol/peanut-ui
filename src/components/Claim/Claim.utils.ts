@@ -1,14 +1,14 @@
 import * as _interfaces from './Claim.interfaces'
 import * as interfaces from '@/interfaces'
 export function mapToIPeanutChainDetailsArray(
-    data: _interfaces.SquidChainWithTokens[] | undefined
+    data: (_interfaces.SquidChainWithTokens & { networkName: string })[]
 ): _interfaces.CombinedType[] {
     if (!data) return []
 
     const combinedArray: _interfaces.CombinedType[] = []
     data.forEach((chain) => {
         const chainDetails: interfaces.IPeanutChainDetails = {
-            name: chain.axelarChainName || '',
+            name: chain.networkName || '',
             chain: chain.chainType || '',
             icon: {
                 url: chain.chainIconURI || '',
