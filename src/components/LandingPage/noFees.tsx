@@ -127,7 +127,7 @@ export function NoFees() {
     }, [sourceCurrency, destinationCurrency, debouncedSourceAmount])
 
     return (
-        <section className="relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-28">
+        <section className="relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14">
             <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
                 {/* Animated clouds */}
                 <motion.img
@@ -229,6 +229,7 @@ export function NoFees() {
                             <CurrencySelect
                                 selectedCurrency={sourceCurrency}
                                 setSelectedCurrency={setSourceCurrency}
+                                excludeCurrencies={[destinationCurrency]}
                                 trigger={
                                     <button className="flex w-32 items-center gap-2">
                                         <Image
@@ -257,6 +258,7 @@ export function NoFees() {
                             <CurrencySelect
                                 selectedCurrency={destinationCurrency}
                                 setSelectedCurrency={setDestinationCurrency}
+                                excludeCurrencies={[sourceCurrency]}
                                 trigger={
                                     <button className="flex w-32 items-center gap-2">
                                         <Image
@@ -294,7 +296,13 @@ export function NoFees() {
                         </div>
                     )}
 
-                    <Button icon="arrow-up-right" iconSize={13} shadowSize="4" className="w-full text-base font-bold">
+                    <Button
+                        onClick={() => router.push('/setup')}
+                        icon="arrow-up-right"
+                        iconSize={13}
+                        shadowSize="4"
+                        className="w-full text-base font-bold"
+                    >
                         Send Money
                     </Button>
                 </div>

@@ -11,6 +11,7 @@ interface CurrencySelectProps {
     selectedCurrency: string
     setSelectedCurrency: (currency: string) => void
     trigger: React.ReactNode
+    excludeCurrencies?: string[]
 }
 
 // Transform the currency mappings into the format expected by the component
@@ -21,31 +22,39 @@ const currencies = countryCurrencyMappings.map((mapping) => ({
     currencyName: mapping.currencyName,
 }))
 
-const popularCurrnecies = ['USD', 'EUR', 'MXN']
+const popularCurrencies = ['USD', 'EUR', 'MXN']
 
-const CurrencySelect = ({ selectedCurrency, setSelectedCurrency, trigger }: CurrencySelectProps) => {
+const CurrencySelect = ({
+    selectedCurrency,
+    setSelectedCurrency,
+    trigger,
+    excludeCurrencies = [],
+}: CurrencySelectProps) => {
     const [searchTerm, setSearchTerm] = useState('')
 
     const filteredCurrencies = useMemo(() => {
+        // First filter out excluded currencies
+        const availableCurrencies = currencies.filter((currency) => !excludeCurrencies.includes(currency.currency))
+
         if (!searchTerm.trim()) {
-            return currencies
+            return availableCurrencies
         }
 
         const lowerSearchTerm = searchTerm.toLowerCase().trim()
-        return currencies.filter(
+        return availableCurrencies.filter(
             (currency) =>
                 currency.currency.toLowerCase().includes(lowerSearchTerm) ||
                 currency.country.toLowerCase().includes(lowerSearchTerm) ||
                 currency.currencyName.toLowerCase().includes(lowerSearchTerm)
         )
-    }, [searchTerm])
+    }, [searchTerm, excludeCurrencies])
 
     return (
         <Popover placement="bottom-end">
             <PopoverTrigger>{trigger}</PopoverTrigger>
             <PopoverContent
                 width={{ base: '72', sm: '80', md: '96' }}
-                height={'72'}
+                height={{ base: '64', md: '72' }}
                 marginTop="16px"
                 borderRadius="2px"
                 border="1px"
@@ -69,7 +78,7 @@ const CurrencySelect = ({ selectedCurrency, setSelectedCurrency, trigger }: Curr
                     <div className="flex w-full flex-col items-start">
                         <h2 className="text-left text-xs font-normal text-gray-1">Popular currencies</h2>
                         {filteredCurrencies
-                            .filter((currency) => popularCurrnecies.includes(currency.currency))
+                            .filter((currency) => popularCurrencies.includes(currency.currency))
                             .map((currency, index) => (
                                 <CurrencyBox
                                     key={`${currency.countryCode}-${currency.country}-${index}`}
@@ -86,7 +95,7 @@ const CurrencySelect = ({ selectedCurrency, setSelectedCurrency, trigger }: Curr
 
                         <h2 className="text-left text-xs font-normal text-gray-1">All currencies</h2>
                         {filteredCurrencies
-                            .filter((currency) => !popularCurrnecies.includes(currency.currency))
+                            .filter((currency) => !popularCurrencies.includes(currency.currency))
                             .map((currency, index) => (
                                 <CurrencyBox
                                     key={`${currency.countryCode}-${currency.country}-${index}`}
@@ -133,6 +142,9 @@ const CurrencyBox = ({ selected, countryCode, country, currency, currencyName, o
                     width={160}
                     height={160}
                     className="size-4 rounded-full object-cover"
+                    onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                    }}
                 />
                 <div className="flex flex-col">
                     <div className="flex items-center gap-2">

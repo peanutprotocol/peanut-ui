@@ -31,7 +31,7 @@ const Footer = () => {
                 <div className="flex gap-2">
                     <a
                         className="text-xl font-bold text-white"
-                        href="https://docs.peanut.to/"
+                        href="https://docs.peanut.me/"
                         rel="noopener noreferrer"
                         target="_blank"
                     >
