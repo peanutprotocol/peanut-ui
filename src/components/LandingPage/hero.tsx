@@ -159,7 +159,7 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
         <div className="relative flex h-[90vh] flex-col justify-between overflow-x-hidden overflow-y-hidden bg-primary-1">
             <CloudImages screenWidth={screenWidth} />
 
-            <div className="relative mb-8 mt-12 flex grow flex-col justify-between space-y-6 md:mb-10 md:mt-4">
+            <div className="relative mb-8 mt-0 flex grow flex-col justify-between space-y-6 md:mb-10 md:mt-4">
                 <img
                     src={PeanutGuyGIF.src}
                     className="mg:bottom-0 absolute bottom-[55%] left-1/2 z-10 mx-auto h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 translate-y-1/2 transform object-contain"
@@ -178,7 +178,7 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
 
                 <Stack spacing={2} className="relative h-1/3 items-center justify-center px-4 text-center lg:h-full">
                     <div className="mt-8 md:mt-12 lg:mt-6">
-                        <h2 className="font-roboto-flex-bold text-2xl font-extraBlack text-black md:text-heading">
+                        <h2 className="font-roboto-flex-extrabold text-[2.375rem] font-extraBlack text-black md:text-heading">
                             INSTANTLY SEND & RECEIVE
                         </h2>
                         <span

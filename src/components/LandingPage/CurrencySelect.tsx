@@ -189,7 +189,7 @@ const CurrencyBox = ({
 
             <div className="flex items-center gap-2">
                 {comingSoon && <StatusBadge status="soon" size="small" />}
-                {selected && !comingSoon && <Icon name="success" className="text-gray-1" />}
+                {selected && !comingSoon && <Icon size={14} name="success" className="font-light text-gray-1" />}
             </div>
         </div>
     )
