@@ -250,7 +250,7 @@ export function NoFees() {
                         <h2 className="text-left text-sm">Recipient gets</h2>
                         <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
                             <input
-                                value={destinationAmount}
+                                value={destinationAmount.toFixed(2)}
                                 readOnly
                                 type="number"
                                 className="w-full bg-transparent outline-none"
@@ -278,7 +278,7 @@ export function NoFees() {
 
                     {destinationAmount > 0 && (
                         <div className="rounded-full bg-grey-4 px-2 py-[2px] text-xs font-bold text-gray-1">
-                            1 {sourceCurrency} = {currentExchangeRate} {destinationCurrency}
+                            1 {sourceCurrency} = {currentExchangeRate.toFixed(2)} {destinationCurrency}
                         </div>
                     )}
 

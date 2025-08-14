@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
         // Return structured exchange rate data
         const exchangeRate: ExchangeRateResponse = {
-            rate: Number((data.rates[to] * 0.995).toFixed(3)), // subtract 50bps to match bridge's rate
+            rate: data.rates[to] * 0.995, // subtract 50bps to match bridge's rate
         }
 
         return NextResponse.json(exchangeRate)
