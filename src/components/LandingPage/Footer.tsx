@@ -95,7 +95,14 @@ const Footer = () => {
                     <Image src={handPeace} alt="" width={20} height={20} />
                 </a>
                 <Image src={handThumbsUp.src} alt="Hand thumbs up" width={20} height={20} />
-                <Image src={handMiddleFinger.src} alt="Hand Middle finger" width={20} height={20} />
+                <a
+                    href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Never gonna give you up (opens in a new tab)"
+                >
+                    <Image src={handMiddleFinger.src} alt="Hand Middle finger" width={20} height={20} />
+                </a>
                 <Image src={handWaving.src} alt="Hand waving" width={25} height={25} />
             </section>
         </footer>
