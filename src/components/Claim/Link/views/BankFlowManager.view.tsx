@@ -216,6 +216,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             <DynamicBankAccountForm
                 key={selectedCountry.id}
                 country={getCountryCodeForWithdraw(selectedCountry.id)}
+                countryName={selectedCountry.title}
                 onSuccess={handleSuccess}
                 flow={'claim'}
                 actionDetailsProps={{

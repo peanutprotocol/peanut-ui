@@ -42,15 +42,16 @@ interface DynamicBankAccountFormProps {
     initialData?: Partial<IBankAccountDetails>
     flow?: 'claim' | 'withdraw'
     actionDetailsProps?: Partial<PeanutActionDetailsCardProps>
+    countryName?: string
 }
 
 export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, DynamicBankAccountFormProps>(
-    ({ country, onSuccess, initialData, flow = 'withdraw', actionDetailsProps }, ref) => {
+    ({ country, countryName, onSuccess, initialData, flow = 'withdraw', actionDetailsProps }, ref) => {
         const { user } = useAuth()
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const [showBicField, setShowBicField] = useState(false)
-        const { country: countryName } = useParams()
+        const { country: countryNameParams } = useParams()
         const { amountToWithdraw } = useWithdrawFlow()
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
         const lastName = lastNameParts.join(' ')
@@ -101,7 +102,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 const { firstName, lastName } = data
                 let bic = data.bic
 
-                if (isIban && getCountryFromIban(accountNumber)?.toLowerCase() !== countryName) {
+                let _countryName = (countryName ?? (countryNameParams as string)).toLowerCase()
+
+                if (isIban && getCountryFromIban(accountNumber)?.toLowerCase() !== _countryName) {
                     setIsSubmitting(false)
                     setSubmissionError('IBAN does not match the selected country')
                     return
@@ -128,7 +131,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     accountType,
                     accountNumber: accountNumber.replace(/\s/g, ''),
                     countryCode: isUs ? 'USA' : country.toUpperCase(),
-                    countryName: countryName as string,
+                    countryName: _countryName as string,
                     accountOwnerType: BridgeAccountOwnerType.INDIVIDUAL,
                     accountOwnerName: {
                         firstName: firstName.trim(),

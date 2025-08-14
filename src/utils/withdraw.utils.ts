@@ -12,15 +12,13 @@ export const getCountryFromIban = (iban: string): string | null => {
     // Extract the first 2 characters as country code
     const countryCode = cleanIban.substring(0, 2)
 
-    // First try to find by 2-letter country code directly
+    // Try to find country by 2-letter code directly in countryData
     let country = countryData.find((c) => c.type === 'country' && c.id === countryCode)
 
-    // If not found, try to find by 3-letter code that maps to this 2-letter code
+    // If not found, get the 3-letter code and try that
     if (!country) {
-        // Find the 3-letter code that maps to our 2-letter code
-        const threeLetterCode = Object.keys(countryCodeMap).find((key) => countryCodeMap[key] === countryCode)
-
-        if (threeLetterCode) {
+        const threeLetterCode = getCountryCodeForWithdraw(countryCode)
+        if (threeLetterCode !== countryCode) {
             country = countryData.find((c) => c.type === 'country' && c.id === threeLetterCode)
         }
     }
