@@ -56,6 +56,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
         const lastName = lastNameParts.join(' ')
 
+        let selectedCountry = (countryName ?? (countryNameParams as string)).toLowerCase()
+
         const {
             control,
             handleSubmit,
@@ -102,14 +104,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 const { firstName, lastName } = data
                 let bic = data.bic
 
-                let _countryName = (countryName ?? (countryNameParams as string)).toLowerCase()
-
-                if (isIban && getCountryFromIban(accountNumber)?.toLowerCase() !== _countryName) {
-                    setIsSubmitting(false)
-                    setSubmissionError('IBAN does not match the selected country')
-                    return
-                }
-
                 if (isIban && !bic) {
                     try {
                         bic = await getBicFromIban(accountNumber)
@@ -131,7 +125,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     accountType,
                     accountNumber: accountNumber.replace(/\s/g, ''),
                     countryCode: isUs ? 'USA' : country.toUpperCase(),
-                    countryName: _countryName as string,
+                    countryName: selectedCountry,
                     accountOwnerType: BridgeAccountOwnerType.INDIVIDUAL,
                     accountOwnerName: {
                         firstName: firstName.trim(),
@@ -264,8 +258,17 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     'accountNumber',
                                     'IBAN',
                                     {
-                                        required: 'Account number is required',
-                                        validate: async (val: string) => (await validateIban(val)) || 'Invalid IBAN',
+                                        required: 'IBAN is required',
+                                        validate: async (val: string) => {
+                                            const isValidIban = await validateIban(val)
+                                            if (!isValidIban) return 'Invalid IBAN'
+
+                                            if (getCountryFromIban(val)?.toLowerCase() !== selectedCountry) {
+                                                return 'IBAN does not match the selected country'
+                                            }
+
+                                            return true
+                                        },
                                     },
                                     'text',
                                     undefined,
