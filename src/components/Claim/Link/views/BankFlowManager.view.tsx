@@ -27,6 +27,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { InitiateKYCModal } from '@/components/Kyc'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { KYCStatus } from '@/utils/bridge-accounts.utils'
+import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 
 /**
  * @name BankFlowManager
@@ -410,7 +411,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     <DynamicBankAccountForm
                         ref={formRef}
                         key={selectedCountry?.id}
-                        country={selectedCountry?.id ?? ''}
+                        country={getCountryCodeForWithdraw(selectedCountry?.id ?? '')}
                         countryName={selectedCountry?.title ?? ''}
                         onSuccess={handleSuccess}
                         flow={'claim'}
