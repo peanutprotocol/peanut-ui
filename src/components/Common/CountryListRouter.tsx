@@ -15,6 +15,8 @@ import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useCallback, useMemo } from 'react'
 import { RequestFulfilmentBankFlowStep, useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
 import { usePaymentStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
+import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 
 interface ICountryListRouterViewProps {
     claimLinkData?: ClaimLinkData
@@ -44,9 +46,12 @@ export const CountryListRouter = ({
         setFlowStep: setRequestFulfilmentBankFlowStep,
         setShowRequestFulfilmentBankFlowManager,
         setSelectedCountry: setSelectedCountryForRequest,
+        setShowVerificationModal,
     } = useRequestFulfilmentFlow()
     const savedAccounts = useSavedAccounts()
     const { chargeDetails } = usePaymentStore()
+    const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
+    const { user } = useAuth()
 
     const handleCountryClick = (country: CountryData) => {
         if (flow === 'claim') {
@@ -54,7 +59,16 @@ export const CountryListRouter = ({
             setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
         } else if (flow === 'request') {
             setSelectedCountryForRequest(country)
-            setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.OnrampConfirmation)
+
+            if (requestType === BankRequestType.PayerKycNeeded) {
+                if (user && (!user.user.fullName || !user.user.email)) {
+                    setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.CollectUserDetails)
+                } else {
+                    setShowVerificationModal(true)
+                }
+            } else {
+                setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.OnrampConfirmation)
+            }
         }
     }
 

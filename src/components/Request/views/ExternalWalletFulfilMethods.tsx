@@ -22,7 +22,7 @@ const methods: Method[] = [
 ]
 
 export default function ExternalWalletFulfilMethods({ onBack }: { onBack: () => void }) {
-    const { setExternalWalletFulfilMethod, setShowExternalWalletFulfilMethods } = useRequestFulfilmentFlow()
+    const { setExternalWalletFulfilMethod } = useRequestFulfilmentFlow()
 
     return (
         <div className="flex h-full min-h-[inherit] w-full flex-1 flex-col justify-start gap-4">

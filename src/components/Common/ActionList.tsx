@@ -9,7 +9,7 @@ import { METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import Divider from '../0_Bruddle/Divider'
 import { Button } from '../0_Bruddle'
@@ -23,6 +23,8 @@ import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { RequestFulfilmentBankFlowStep, useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
+import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
+import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 
 export interface Method {
     id: string
@@ -80,6 +82,8 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     const { setClaimToExternalWallet, setFlowStep: setClaimBankFlowStep, setShowVerificationModal } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
+    const { chargeDetails } = usePaymentStore()
+    const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
     const savedAccounts = useSavedAccounts()
     const { usdAmount } = usePaymentStore()
     const {
@@ -87,6 +91,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
         setShowExternalWalletFulfilMethods,
         setFlowStep: setRequestFulfilmentBankFlowStep,
     } = useRequestFulfilmentFlow()
+    const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
 
     const handleMethodClick = async (method: Method) => {
         if (flow === 'claim' && claimLinkData) {
@@ -123,8 +128,12 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
             }
             switch (method.id) {
                 case 'bank':
-                    setShowRequestFulfilmentBankFlowManager(true)
-                    setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.BankCountryList)
+                    if (requestType === BankRequestType.GuestKycNeeded) {
+                        setIsGuestVerificationModalOpen(true)
+                    } else {
+                        setShowRequestFulfilmentBankFlowManager(true)
+                        setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.BankCountryList)
+                    }
                     break
                 case 'mercadopago':
                     break // soon tag, so no action needed
@@ -134,6 +143,16 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
             }
         }
     }
+
+    const requiresVerification = useMemo(() => {
+        if (flow === 'claim') {
+            return claimType === BankClaimType.GuestKycNeeded || claimType === BankClaimType.ReceiverKycNeeded
+        }
+        if (flow === 'request') {
+            return requestType === BankRequestType.GuestKycNeeded || requestType === BankRequestType.PayerKycNeeded
+        }
+        return false
+    }, [claimType, requestType, flow])
 
     return (
         <div className="space-y-2">
@@ -155,9 +174,16 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
             )}
             <Divider text="or" />
             <div className="space-y-2">
-                {ACTION_METHODS.map((method) => (
-                    <MethodCard onClick={() => handleMethodClick(method)} key={method.id} method={method} />
-                ))}
+                {ACTION_METHODS.map((method) => {
+                    return (
+                        <MethodCard
+                            onClick={() => handleMethodClick(method)}
+                            key={method.id}
+                            method={method}
+                            requiresVerification={method.id === 'bank' && requiresVerification}
+                        />
+                    )
+                })}
             </div>
             <ActionModal
                 visible={showMinAmountError}
@@ -170,11 +196,25 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />
+            <GuestVerificationModal
+                secondaryCtaLabel="Use other method"
+                isOpen={isGuestVerificationModalOpen}
+                onClose={() => setIsGuestVerificationModalOpen(false)}
+                description="To fulfill this request using bank account, please create an account and verify your identity."
+            />
         </div>
     )
 }
 
-export const MethodCard = ({ method, onClick }: { method: Method; onClick: () => void }) => {
+export const MethodCard = ({
+    method,
+    onClick,
+    requiresVerification,
+}: {
+    method: Method
+    onClick: () => void
+    requiresVerification?: boolean
+}) => {
     return (
         <SearchResultCard
             position="single"
@@ -183,7 +223,12 @@ export const MethodCard = ({ method, onClick }: { method: Method; onClick: () =>
             title={
                 <div className="flex items-center gap-2">
                     {method.title}
-                    {method.soon && <StatusBadge status="soon" />}
+                    {(method.soon || requiresVerification) && (
+                        <StatusBadge
+                            status={requiresVerification ? 'custom' : 'soon'}
+                            customText={requiresVerification ? 'REQUIRES VERIFICATION' : ''}
+                        />
+                    )}
                 </div>
             }
             onClick={onClick}

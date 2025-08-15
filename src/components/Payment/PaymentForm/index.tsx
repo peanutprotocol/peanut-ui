@@ -318,6 +318,11 @@ export const PaymentForm = ({
     ])
 
     const handleInitiatePayment = useCallback(async () => {
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
+            router.push('/add-money')
+            return
+        }
+
         if (!isExternalWalletConnected && isExternalWalletFlow) {
             openReownModal()
             return
@@ -466,6 +471,18 @@ export const PaymentForm = ({
             return 'Send'
         }
 
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
+            return (
+                <div className="flex items-center gap-1">
+                    <div>Add funds to </div>
+                    <div className="flex items-center gap-1">
+                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                    </div>
+                </div>
+            )
+        }
+
         if (isActivePeanutWallet) {
             return (
                 <div className="flex items-center gap-1">
@@ -484,6 +501,8 @@ export const PaymentForm = ({
     const getButtonIcon = (): IconName | undefined => {
         if (!isExternalWalletConnected && isExternalWalletFlow) return 'wallet-outline'
 
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) return 'arrow-down'
+
         if (!isProcessing && isActivePeanutWallet && !isExternalWalletFlow) return 'arrow-up-right'
 
         return undefined
@@ -492,14 +511,9 @@ export const PaymentForm = ({
     const guestAction = () => {
         if (isConnected || user) return null
         return (
-            <div className="space-y-4">
-                <Button variant="purple" shadowSize="4" onClick={() => router.push('/setup')} className="w-full">
-                    Sign In
-                </Button>
-                <Button variant="primary-soft" shadowSize="4" onClick={() => openReownModal()} className="w-full">
-                    Connect Wallet
-                </Button>
-            </div>
+            <Button variant="purple" shadowSize="4" onClick={() => openReownModal()} className="w-full">
+                Connect Wallet
+            </Button>
         )
     }
 
@@ -531,8 +545,13 @@ export const PaymentForm = ({
         }
     }, [isPintaReq, inputTokenAmount])
 
+    const isInsufficientBalanceError = useMemo(() => {
+        return error?.includes("You don't have enough balance.")
+    }, [error])
+
     const isButtonDisabled = useMemo(() => {
         if (isProcessing) return true
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) return false
         if (!!error) return true
 
         // ensure inputTokenAmount is a valid positive number before allowing payment
@@ -612,10 +631,6 @@ export const PaymentForm = ({
             Number(selectedChainID) === PEANUT_WALLET_CHAIN.id
         )
     }, [selectedTokenData, selectedChainID])
-
-    const isInsufficientBalanceError = useMemo(() => {
-        return error?.includes("You don't have enough balance.")
-    }, [error])
 
     const handleGoBack = () => {
         if (isExternalWalletFlow) {
@@ -710,7 +725,7 @@ export const PaymentForm = ({
                 )}
 
                 <div className="space-y-4">
-                    {guestAction()}
+                    {isExternalWalletFlow && guestAction()}
                     {isConnected && (!error || isInsufficientBalanceError) && (
                         <Button
                             variant="purple"
@@ -742,7 +757,15 @@ export const PaymentForm = ({
                         </Button>
                     )}
 
-                    {error && <ErrorAlert description={error} />}
+                    {error && (
+                        <ErrorAlert
+                            description={
+                                error.includes("You don't have enough balance.")
+                                    ? 'Not enough balance to fulfill this request with Peanut'
+                                    : error
+                            }
+                        />
+                    )}
                 </div>
             </div>
             <ActionModal

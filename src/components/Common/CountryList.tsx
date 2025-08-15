@@ -9,6 +9,7 @@ import { getCardPosition } from '../Global/Card'
 import { useGeoLocaion } from '@/hooks/useGeoLocaion'
 import { CountryListSkeleton } from './CountryListSkeleton'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
+import StatusBadge from '../Global/Badges/StatusBadge'
 
 interface CountryListViewProps {
     inputTitle: string
@@ -34,14 +35,6 @@ export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClic
     const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocaion()
 
     const supportedCountries = useMemo(() => {
-        // if it's a claim or request flow, we only show SEPA countries and US/MX
-        if (viewMode === 'claim-request') {
-            const sepaCountries = Object.keys(countryCodeMap)
-            const supported = new Set([...sepaCountries, 'US', 'MX'])
-
-            return countryData.filter((country) => country.type === 'country' && supported.has(country.id))
-        }
-        // if it's an add or withdraw flow, we show all countries
         return countryData.filter((country) => country.type === 'country')
     }, [viewMode])
 
@@ -112,13 +105,20 @@ export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClic
                             const twoLetterCountryCode =
                                 countryCodeMap[country.id.toUpperCase()] ?? country.id.toLowerCase()
                             const position = getCardPosition(index, filteredCountries.length)
+                            // flag used to show soon badge based on the view mode
+                            const isSupported =
+                                viewMode === 'add-withdraw' ||
+                                ['US', 'MX', ...Object.keys(countryCodeMap)].includes(country.id)
+
                             return (
                                 <SearchResultCard
                                     key={country.id}
                                     title={country.title}
+                                    rightContent={!isSupported && <StatusBadge status="soon" />}
                                     description={country.currency}
                                     onClick={() => onCountryClick(country)}
                                     position={position}
+                                    isDisabled={!isSupported}
                                     leftIcon={
                                         <div className="relative h-8 w-8">
                                             <Image
