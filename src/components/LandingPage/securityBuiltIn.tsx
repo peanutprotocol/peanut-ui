@@ -18,26 +18,28 @@ interface Feature {
 const features: Feature[] = [
     {
         id: 1,
-        title: 'BIOMETRIC AUTH',
+        title: 'TOTAL SECURITY',
         titleSvg: biometricProtection,
         description:
-            "Peanut uses your phone's secure enclave, a cryptographic hardware designed to securely authenticate your actions and keep your account private and unhackable.",
+            'Peanut is 100 % self-custodial. Every transaction is approved via Passkeys using Face ID, Touch ID or passcode. No one else can move your assets.',
         iconSrc: handThumbsUp,
         iconAlt: 'Thumbs up',
     },
     {
         id: 2,
-        title: 'SELF-CUSTODIAL BY DESIGN',
+        title: 'TRUE CONTROL',
         titleSvg: selfCustodialDesign,
-        description: 'Your assets cannot be frozen by anyone or moved without your consent',
+        description:
+            'You verify your identity only when a feature truly requires it. The rest of the time you operate without mandatory KYC or friction.',
         iconSrc: handWaving,
         iconAlt: 'Hand waving',
     },
     {
         id: 3,
-        title: 'KYC ONLY WHEN REQUIRED',
+        title: '24/7 HELP',
         titleSvg: kycOnlyWhenRequired,
-        description: 'No mandatory hoops, verify your identity only if you actually need the feature.',
+        description:
+            'One tap connects you to real humans. Friendly, expert support is on hand day or night to resolve any question instantly.',
         iconSrc: handPeace,
         iconAlt: 'Peace sign',
     },
@@ -48,8 +50,8 @@ export function SecurityBuiltIn() {
         <section className="bg-primary-1 px-4 py-16 text-n-1 md:py-40">
             <div className="mx-auto max-w-7xl">
                 <div className="mb-12 text-center md:mb-16 md:text-left">
-                    <h1 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-6xl lg:text-heading">
-                        SECURITY & PRIVACY, BUILT-IN
+                    <h1 className="font-roboto-flex-extrabold text-left text-heading font-extraBlack md:text-6xl lg:text-heading">
+                        SECURITY. CONTROL. SUPPORT.
                     </h1>
                 </div>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
@@ -74,7 +76,7 @@ export function SecurityBuiltIn() {
                                     <h3 className="font-roboto-flex-extrabold text-2xl lg:text-3xl">{feature.title}</h3>
                                 </div>
                                 <p
-                                    className="w-full max-w-[360px] text-left font-roboto text-lg font-normal leading-relaxed md:text-lg"
+                                    className="font-roboto-flex w-full max-w-[360px] text-left text-lg font-normal leading-relaxed md:text-xl"
                                     style={{ letterSpacing: '-0.5px' }}
                                 >
                                     {feature.description}

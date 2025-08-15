@@ -1,17 +1,83 @@
-import React, { useEffect, useState } from 'react'
+'use client'
+
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import gotItHand from '@/assets/illustrations/got-it-hand.svg'
-import gotItHandFlipped from '@/assets/illustrations/got-it-hand-flipped.svg'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
-import zero from '@/assets/illustrations/zero.svg'
-import mobileZeroFees from '@/assets/illustrations/mobile-zero-fees.svg'
 import noHiddenFees from '@/assets/illustrations/no-hidden-fees.svg'
 import { Star } from '@/assets'
-import scribble from '@/assets/scribble.svg'
 import Image from 'next/image'
+import { Button } from '../0_Bruddle'
+import CurrencySelect from './CurrencySelect'
+import { Icon } from '../Global/Icons/Icon'
+import { useDebounce } from '@/hooks/useDebounce'
+import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { useSearchParams, useRouter } from 'next/navigation'
+import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 
 export function NoFees() {
+    const searchParams = useSearchParams()
+    const router = useRouter()
+
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
+
+    // Get values from URL or use defaults
+    const sourceCurrency = searchParams.get('from') || 'USD'
+    const destinationCurrency = searchParams.get('to') || 'EUR'
+    const urlSourceAmount = searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : 10
+
+    // Exchange rate hook handles all the conversion logic
+    const {
+        sourceAmount,
+        destinationAmount,
+        exchangeRate,
+        isLoading,
+        isError,
+        handleSourceAmountChange,
+        handleDestinationAmountChange,
+        getDestinationDisplayValue,
+    } = useExchangeRate({
+        sourceCurrency,
+        destinationCurrency,
+        initialSourceAmount: urlSourceAmount,
+    })
+
+    const debouncedSourceAmount = useDebounce(sourceAmount, 500)
+
+    // Function to update URL parameters
+    const updateUrlParams = useCallback(
+        (params: { from?: string; to?: string; amount?: number }) => {
+            const newSearchParams = new URLSearchParams(searchParams.toString())
+
+            if (params.from) newSearchParams.set('from', params.from)
+            if (params.to) newSearchParams.set('to', params.to)
+            if (params.amount !== undefined) newSearchParams.set('amount', params.amount.toString())
+
+            router.replace(`?${newSearchParams.toString()}`, { scroll: false })
+        },
+        [searchParams, router]
+    )
+
+    // Setter functions that update URL
+    const setSourceCurrency = useCallback(
+        (currency: string) => {
+            updateUrlParams({ from: currency })
+        },
+        [updateUrlParams]
+    )
+
+    const setDestinationCurrency = useCallback(
+        (currency: string) => {
+            updateUrlParams({ to: currency })
+        },
+        [updateUrlParams]
+    )
+
+    // Update URL when source amount changes (only for valid numbers)
+    useEffect(() => {
+        if (typeof debouncedSourceAmount === 'number' && debouncedSourceAmount !== urlSourceAmount) {
+            updateUrlParams({ amount: debouncedSourceAmount })
+        }
+    }, [debouncedSourceAmount, urlSourceAmount, updateUrlParams])
 
     useEffect(() => {
         const handleResize = () => {
@@ -38,8 +104,25 @@ export function NoFees() {
         }
     }
 
+    const sourceCurrencyFlag = useMemo(
+        () => countryCurrencyMappings.find((currency) => currency.currencyCode === sourceCurrency)?.flagCode,
+        [sourceCurrency]
+    )
+
+    const destinationCurrencyFlag = useMemo(
+        () => countryCurrencyMappings.find((currency) => currency.currencyCode === destinationCurrency)?.flagCode,
+        [destinationCurrency]
+    )
+
+    // Determine delivery time text based on destination currency
+    const deliveryTimeText = useMemo(() => {
+        return destinationCurrency === 'USD'
+            ? 'Should arrive in hours. Estimate.'
+            : 'Should arrive in minutes. Estimate.'
+    }, [destinationCurrency])
+
     return (
-        <section className="relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-40">
+        <section className="relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14">
             <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
                 {/* Animated clouds */}
                 <motion.img
@@ -110,60 +193,8 @@ export function NoFees() {
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: -5 }}
                     transition={{ type: 'spring', damping: 5, delay: 1.0 }}
                 />
-                {/* Main stylized headline */}
-                <div className="md:mb-4">
-                    {/* Mobile version */}
-                    <div className="block md:hidden">
-                        <Image
-                            src={mobileZeroFees}
-                            alt="0 FEES"
-                            width={400}
-                            height={100}
-                            className="mx-auto h-auto w-[95%]"
-                        />
-                    </div>
 
-                    {/* Desktop version */}
-                    <div className="relative hidden md:mb-5 md:inline-block">
-                        <div className="flex items-baseline justify-center">
-                            <Image
-                                src={zero}
-                                alt="Zero"
-                                width={60}
-                                height={60}
-                                className="mr-2 h-[27px] w-[27px] md:mr-6 md:h-[160px] md:w-[160px]"
-                            />
-                            <div className="relative">
-                                <h1 className="relative translate-x-[1px] font-knerd-filled text-4xl text-white md:translate-x-[3px] md:text-[13rem]">
-                                    FEES
-                                </h1>
-                                <h1 className="absolute left-0 top-0 font-knerd-outline text-4xl md:text-[13rem]">
-                                    FEES
-                                </h1>
-                            </div>
-                        </div>
-
-                        {/* Bottom left arrow pointing to zero */}
-                        <Image
-                            src="/arrows/bottom-left-arrow.svg"
-                            alt="Bottom left arrow"
-                            width={40}
-                            height={100}
-                            className="absolute -left-12 bottom-1 hidden md:-bottom-5 md:-left-12 md:block md:h-[120px] md:w-[120px]"
-                            style={{ transform: 'rotate(25deg)' }}
-                        />
-
-                        {/* Bottom right arrow pointing to "S" in FEES */}
-                        <Image
-                            src="/arrows/bottom-right-arrow.svg"
-                            alt="Bottom right arrow"
-                            width={40}
-                            height={100}
-                            className="absolute -right-12 bottom-1 hidden md:-bottom-3 md:-right-19 md:block md:h-[120px] md:w-[120px]"
-                            style={{ transform: 'rotate(48deg)' }}
-                        />
-                    </div>
-                </div>
+                <h1 className="font-roboto-flex-extrabold text-heading text-black md:text-headingMedium">ZERO FEES</h1>
 
                 {/* No hidden fees SVG */}
                 <div className="mb-1">
@@ -174,6 +205,141 @@ export function NoFees() {
                         height={150}
                         className="mx-auto h-auto w-full max-w-xs md:max-w-md"
                     />
+                </div>
+
+                <div className="btn btn-shadow-primary-4 mx-auto mt-12 flex h-fit w-full flex-col items-center justify-center gap-4 bg-white p-7 md:w-[420px]">
+                    <div className="w-full">
+                        <h2 className="text-left text-sm">You Send</h2>
+                        <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
+                            {isLoading ? (
+                                <div className="flex w-full items-center">
+                                    <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
+                                </div>
+                            ) : (
+                                <input
+                                    min={0}
+                                    placeholder="0"
+                                    value={sourceAmount === '' ? '' : sourceAmount}
+                                    onChange={(e) => {
+                                        const inputValue = e.target.value
+                                        if (inputValue === '') {
+                                            handleSourceAmountChange('')
+                                        } else {
+                                            const value = parseFloat(inputValue)
+                                            handleSourceAmountChange(isNaN(value) ? '' : value)
+                                        }
+                                    }}
+                                    type="number"
+                                    className="w-full bg-transparent outline-none"
+                                />
+                            )}
+                            <CurrencySelect
+                                selectedCurrency={sourceCurrency}
+                                setSelectedCurrency={setSourceCurrency}
+                                // excludeCurrencies={[destinationCurrency]}
+                                trigger={
+                                    <button className="flex w-32 items-center gap-2">
+                                        <Image
+                                            src={`https://flagcdn.com/w320/${sourceCurrencyFlag}.png`}
+                                            alt={`${sourceCurrencyFlag} flag`}
+                                            width={160}
+                                            height={160}
+                                            className="size-4 rounded-full object-cover"
+                                        />
+                                        {sourceCurrency} <Icon name="chevron-down" className="text-gray-1" size={10} />
+                                    </button>
+                                }
+                            />
+                        </div>
+                    </div>
+
+                    <div className="w-full">
+                        <h2 className="text-left text-sm">Recipient Gets</h2>
+                        <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
+                            {isLoading ? (
+                                <div className="flex w-full items-center">
+                                    <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
+                                </div>
+                            ) : (
+                                <input
+                                    min={0}
+                                    placeholder="0"
+                                    value={getDestinationDisplayValue()}
+                                    onChange={(e) => {
+                                        const inputValue = e.target.value
+                                        if (inputValue === '') {
+                                            handleDestinationAmountChange('', '')
+                                        } else {
+                                            const value = parseFloat(inputValue)
+                                            handleDestinationAmountChange(inputValue, isNaN(value) ? '' : value)
+                                        }
+                                    }}
+                                    type="number"
+                                    className="w-full bg-transparent outline-none"
+                                />
+                            )}
+                            <CurrencySelect
+                                selectedCurrency={destinationCurrency}
+                                setSelectedCurrency={setDestinationCurrency}
+                                trigger={
+                                    <button className="flex w-32 items-center gap-2">
+                                        <Image
+                                            src={`https://flagcdn.com/w320/${destinationCurrencyFlag}.png`}
+                                            alt={`${destinationCurrencyFlag} flag`}
+                                            width={160}
+                                            height={160}
+                                            className="size-4 rounded-full object-cover"
+                                        />
+                                        {destinationCurrency}{' '}
+                                        <Icon name="chevron-down" className="text-gray-1" size={10} />
+                                    </button>
+                                }
+                            />
+                        </div>
+                    </div>
+
+                    <div className="rounded-full bg-grey-4 px-2 py-[2px] text-xs font-bold text-gray-1">
+                        {isLoading ? (
+                            <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-grey-2" />
+                        ) : isError ? (
+                            <span>Rate currently unavailable</span>
+                        ) : (
+                            <>
+                                1 {sourceCurrency} = {exchangeRate.toFixed(4)} {destinationCurrency}
+                            </>
+                        )}
+                    </div>
+
+                    {typeof destinationAmount === 'number' && destinationAmount > 0 && (
+                        <div className="flex w-full flex-col gap-3 rounded-sm border-[1.15px] border-black px-4 py-2">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-left text-sm font-normal">Bank fee</h2>
+                                <h2 className="text-left text-sm font-normal">Free!</h2>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-left text-sm font-normal">Peanut fee</h2>
+                                <h2 className="text-left text-sm font-normal">Free!</h2>
+                            </div>
+                        </div>
+                    )}
+
+                    <Button
+                        onClick={() => router.push('/setup')}
+                        icon="arrow-up-right"
+                        iconSize={13}
+                        shadowSize="4"
+                        className="w-full text-base font-bold"
+                    >
+                        Send Money
+                    </Button>
+
+                    {typeof destinationAmount === 'number' && destinationAmount > 0 && (
+                        <div className="flex items-center">
+                            <Icon name="info" className="text-gray-1" size={10} />
+                            <p className="text-xs text-gray-1">{deliveryTimeText}</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </section>
