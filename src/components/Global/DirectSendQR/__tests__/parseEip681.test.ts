@@ -6,7 +6,7 @@ describe('parseEip681', () => {
         const result = parseEip681(url)
         expect(result).toEqual({
             address: '0xfb6916095ca1df60bb79Ce92ce3ea74c37c5d359',
-            amount: '2.014e18',
+            amount: '2.014',
             tokenSymbol: 'ETH',
         })
     })
@@ -17,7 +17,7 @@ describe('parseEip681', () => {
         expect(result).toEqual({
             address: '0xfb6916095ca1df60bb79Ce92ce3ea74c37c5d359',
             chainId: '42',
-            amount: '1.5e18',
+            amount: '1.5',
             tokenSymbol: 'ETH',
         })
     })
@@ -28,7 +28,7 @@ describe('parseEip681', () => {
         const result = parseEip681(url)
         expect(result).toEqual({
             address: '0x8e23ee67d1332ad560396262c48ffbb01f93d052',
-            amount: '1',
+            amount: '0.000001',
             tokenAddress: '0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7',
         })
     })
@@ -44,7 +44,7 @@ describe('parseEip681', () => {
         const result = parseEip681(url)
         expect(result).toEqual({
             address: '0xfb6916095ca1df60bb79Ce92ce3ea74c37c5d359',
-            amount: '1e18',
+            amount: '1',
             tokenSymbol: 'ETH',
         })
     })
