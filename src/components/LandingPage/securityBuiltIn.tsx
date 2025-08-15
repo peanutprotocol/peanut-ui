@@ -76,7 +76,7 @@ export function SecurityBuiltIn() {
                                     <h3 className="font-roboto-flex-extrabold text-2xl lg:text-3xl">{feature.title}</h3>
                                 </div>
                                 <p
-                                    className="font-roboto-flex w-full max-w-[360px] text-left font-roboto text-lg font-normal leading-relaxed md:text-xl"
+                                    className="font-roboto-flex w-full max-w-[360px] text-left text-lg font-normal leading-relaxed md:text-xl"
                                     style={{ letterSpacing: '-0.5px' }}
                                 >
                                     {feature.description}

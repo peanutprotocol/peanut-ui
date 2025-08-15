@@ -10,9 +10,9 @@ import {
     SecurityBuiltIn,
     SendInSeconds,
     YourMoney,
+    RegulatedRails,
 } from '@/components/LandingPage'
 import Footer from '@/components/LandingPage/Footer'
-import { RegulatedRails } from '@/components/LandingPage/RegulatedRails'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef } from 'react'
 

@@ -6,7 +6,7 @@ import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
 import StatusBadge from '../Global/Badges/StatusBadge'
-import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
+import { countryCurrencyMappings } from '@/constants/countryCurrencyMapping'
 
 interface CurrencySelectProps {
     selectedCurrency: string
