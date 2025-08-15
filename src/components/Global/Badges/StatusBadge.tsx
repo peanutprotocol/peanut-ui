@@ -1,15 +1,16 @@
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 
-export type StatusType = 'completed' | 'pending' | 'failed' | 'cancelled' | 'soon' | 'processing'
+export type StatusType = 'completed' | 'pending' | 'failed' | 'cancelled' | 'soon' | 'processing' | 'custom'
 
 interface StatusBadgeProps {
     status: StatusType
     className?: string
     size?: 'small' | 'medium' | 'large'
+    customText?: string
 }
 
-const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'small' }) => {
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'small', customText }) => {
     const getStatusStyles = () => {
         switch (status) {
             case 'completed':
@@ -21,6 +22,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
             case 'cancelled':
                 return 'bg-error-1 text-error border border-error-2'
             case 'soon':
+            case 'custom':
                 return 'bg-primary-3 text-primary-4'
             default:
                 return 'bg-grey-2 text-grey-1'
@@ -41,6 +43,8 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
                 return 'Cancelled'
             case 'soon':
                 return 'Soon!'
+            case 'custom':
+                return customText
             default:
                 return status
         }

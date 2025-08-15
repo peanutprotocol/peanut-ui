@@ -62,7 +62,7 @@ export interface InitiatePaymentPayload {
         price: number
     }
     currencyAmount?: string
-    isAddMoneyFlow?: boolean
+    isExternalWalletFlow?: boolean
     transactionType?: TChargeTransactionType
     attachmentOptions?: IAttachmentOptions
 }
@@ -659,7 +659,7 @@ export const usePaymentInitiator = () => {
                 if (
                     chargeCreated &&
                     (payload.isPintaReq ||
-                        payload.isAddMoneyFlow ||
+                        payload.isExternalWalletFlow ||
                         !isPeanutWallet ||
                         (isPeanutWallet &&
                             (!areEvmAddressesEqual(determinedChargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) ||
@@ -669,7 +669,7 @@ export const usePaymentInitiator = () => {
                         `Charge created. Transitioning to Confirm view for: ${
                             payload.isPintaReq
                                 ? 'Pinta Request'
-                                : payload.isAddMoneyFlow
+                                : payload.isExternalWalletFlow
                                   ? 'Add Money Flow'
                                   : 'External Wallet'
                         }.`
@@ -679,7 +679,7 @@ export const usePaymentInitiator = () => {
                 }
 
                 // 3. if user is on the initial screen and chargeid is present, execute the handle charge state flow
-                if (payload.isAddMoneyFlow && currentView === 'INITIAL' && payload.chargeId) {
+                if (payload.isExternalWalletFlow && currentView === 'INITIAL' && payload.chargeId) {
                     console.log('Executing add money flow: ChargeID already exists')
                     setLoadingStep('Charge Created')
 
@@ -687,7 +687,7 @@ export const usePaymentInitiator = () => {
                 }
 
                 // 4. execute payment based on wallet type
-                if (payload.isAddMoneyFlow) {
+                if (payload.isExternalWalletFlow) {
                     if (!wagmiAddress) {
                         console.error('Add Money flow requires an external wallet (WAGMI) to be connected.')
                         throw new Error('External wallet not connected for Add Money flow.')

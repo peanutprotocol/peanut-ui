@@ -11,18 +11,22 @@ import { Icon, IconName } from '../Icons/Icon'
 import RouteExpiryTimer from '../RouteExpiryTimer'
 import Image from 'next/image'
 
+export type PeanutActionDetailsCardTransactionType =
+    | 'REQUEST'
+    | 'RECEIVED_LINK'
+    | 'CLAIM_LINK'
+    | 'CLAIM_LINK_BANK_ACCOUNT'
+    | 'REQUEST_PAYMENT'
+    | 'ADD_MONEY'
+    | 'WITHDRAW'
+    | 'WITHDRAW_BANK_ACCOUNT'
+    | 'ADD_MONEY_BANK_ACCOUNT'
+
+export type PeanutActionDetailsCardRecipientType = RecipientType | 'BANK_ACCOUNT'
+
 export interface PeanutActionDetailsCardProps {
-    transactionType:
-        | 'REQUEST'
-        | 'RECEIVED_LINK'
-        | 'CLAIM_LINK'
-        | 'CLAIM_LINK_BANK_ACCOUNT'
-        | 'REQUEST_PAYMENT'
-        | 'ADD_MONEY'
-        | 'WITHDRAW'
-        | 'WITHDRAW_BANK_ACCOUNT'
-        | 'ADD_MONEY_BANK_ACCOUNT'
-    recipientType: RecipientType | 'BANK_ACCOUNT'
+    transactionType: PeanutActionDetailsCardTransactionType
+    recipientType: PeanutActionDetailsCardRecipientType
     recipientName: string
     message?: string
     amount: string

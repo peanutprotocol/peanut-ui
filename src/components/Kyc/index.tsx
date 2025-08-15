@@ -9,7 +9,7 @@ interface KycModalFlowProps {
     onClose: () => void
     onKycSuccess?: () => void
     onManualClose?: () => void
-    flow?: 'add' | 'withdraw'
+    flow?: 'add' | 'withdraw' | 'request_fulfillment'
 }
 
 export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess, onManualClose, flow }: KycModalFlowProps) => {
@@ -21,7 +21,7 @@ export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess, onManualClose,
         handleInitiateKyc,
         handleIframeClose,
         closeVerificationProgressModal,
-    } = useKycFlow({ onKycSuccess, flow })
+    } = useKycFlow({ onKycSuccess, flow, onManualClose })
 
     const handleVerifyClick = async () => {
         const result = await handleInitiateKyc()

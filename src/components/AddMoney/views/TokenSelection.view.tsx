@@ -8,14 +8,15 @@ import React from 'react'
 import { CryptoToken, DEPOSIT_CRYPTO_TOKENS } from '../consts'
 
 interface TokenSelectionViewProps {
+    headerTitle?: string
     onTokenSelect: (token: CryptoToken) => void
     onBack: () => void
 }
 
-const TokenSelectionView: React.FC<TokenSelectionViewProps> = ({ onTokenSelect, onBack }) => {
+const TokenSelectionView: React.FC<TokenSelectionViewProps> = ({ headerTitle, onTokenSelect, onBack }) => {
     return (
         <div className="w-full space-y-8 self-start">
-            <NavHeader title="Add Money" onPrev={onBack} />
+            <NavHeader title={headerTitle ?? 'Add Money'} onPrev={onBack} />
             <div className="flex h-full w-full flex-col justify-start gap-2 self-start pb-5 md:pb-0">
                 <h2 className="text-base font-bold">Choose a token</h2>
                 <div className="">

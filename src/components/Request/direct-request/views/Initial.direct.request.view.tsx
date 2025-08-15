@@ -214,7 +214,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     if (view === 'success') {
         if (!user) return null
         return (
-            <div className="flex flex-col justify-between gap-8">
+            <div className="flex min-h-[inherit] flex-col justify-between gap-8">
                 {!!authUser?.user.userId ? (
                     <NavHeader onPrev={() => resetRequestState()} title="Request" />
                 ) : (

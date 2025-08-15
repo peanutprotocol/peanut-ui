@@ -4,8 +4,7 @@ import React, { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 import AchievementsBadge, { AchievementsBadgeSize } from '../Global/Badges/AchievementsBadge'
 import { Icon, IconName } from '../Global/Icons/Icon'
-import StatusPill from '../Global/StatusPill'
-import { StatusType } from '../Global/Badges/StatusBadge'
+import StatusPill, { TStatusPillType } from '../Global/StatusPill'
 
 export type AvatarSize = 'extra-small' | 'small' | 'medium' | 'large'
 
@@ -23,7 +22,7 @@ interface AvatarWithBadgeProps {
     textColor?: string
     iconFillColor?: string
     showStatusPill?: boolean
-    statusPillStatus?: StatusType
+    statusPillStatus?: TStatusPillType
 }
 
 /**

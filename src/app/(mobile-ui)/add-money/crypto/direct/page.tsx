@@ -35,5 +35,5 @@ export default function AddMoneyCryptoDirectPage() {
 
     const recipientPathSegments = [recipientUsername ?? '']
 
-    return <PaymentPage recipient={recipientPathSegments} flow="add_money" />
+    return <PaymentPage recipient={recipientPathSegments} flow="external_wallet" />
 }

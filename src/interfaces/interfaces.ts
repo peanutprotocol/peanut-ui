@@ -159,121 +159,6 @@ export interface IDirectSendDetails {
     txHash: string
 }
 
-export interface KYCData {
-    id: string
-    full_name: string
-    email: string
-    type: string
-    kyc_link: string
-    tos_link: string
-    kyc_status: string
-    rejection_reasons: string[]
-    tos_status: string
-    created_at: string
-    customer_id: string | null
-    persona_inquiry_type: string
-}
-
-interface KYCResponse {
-    count: number
-    data: KYCData[]
-}
-
-export interface IBridgeAccount {
-    id: string
-    customer_id: string
-    created_at: string
-    updated_at: string
-    bank_name: string | null
-    account_name: string | null
-    account_owner_name: string
-    active: boolean
-    currency: string
-    account_owner_type: string | null
-    account_type: 'iban' | 'us'
-    first_name: string | null
-    last_name: string | null
-    business_name: string | null
-    beneficiary_address_valid?: boolean // Optional, only present in US account
-    last_4: string
-
-    // Use a union type for the account-specific details
-    account_details: IBridgeIbanDetails | IBridgeUsAccountDetails
-}
-
-export interface IBridgeIbanDetails {
-    type: 'iban'
-    last_4: string
-    bic: string
-    country: string
-}
-
-interface IBridgeUsAccountDetails {
-    type: 'us'
-    last_4: string
-    routing_number: string
-}
-
-interface IBridgeDepositInstructions {
-    payment_rail: string
-    amount: string
-    currency: string
-    from_address: string
-    to_address: string
-}
-
-interface IBridgeSource {
-    payment_rail: string
-    currency: string
-    from_address: string
-}
-
-interface IBridgeDestination {
-    payment_rail: string
-    currency: string
-    external_account_id: string
-}
-
-interface IBridgeReceipt {
-    initial_amount: string
-    developer_fee: string
-    exchange_fee: string
-    subtotal_amount: string
-    gas_fee: string
-    final_amount: string
-    exchange_rate?: string
-}
-
-interface IBridgeTransaction {
-    id: string
-    client_reference_id: string | null
-    state: string
-    on_behalf_of: string
-    source_deposit_instructions: IBridgeDepositInstructions
-    currency: string
-    amount: string
-    developer_fee: string
-    source: IBridgeSource
-    destination: IBridgeDestination
-    receipt: IBridgeReceipt
-    created_at: string
-    updated_at: string
-}
-
-export interface IBridgeLiquidationAddress {
-    id: string
-    chain: string
-    external_account_id: string
-    currency: string
-    address: string
-    destination_wire_message?: string // for wire
-    destination_sepa_reference?: string // for sepa
-    destination_payment_rail: string
-    destination_currency: string
-    created_at: string
-    updated_at: string
-}
-
 interface Transaction {
     tx_hash: string
     chain_id: string
@@ -296,12 +181,6 @@ interface ReferralConnection {
     user_id: string
     referrer: string
     account_identifier: string
-}
-
-interface PointsPerReferral {
-    address: string
-    points: number
-    totalReferrals: number
 }
 
 export interface User {
@@ -332,27 +211,6 @@ export enum AccountType {
     PEANUT_WALLET = 'peanut-wallet',
     BRIDGE = 'bridgeBankAccount',
 }
-
-// these types should always be the same as ChainId defined in
-// src/constants/general.consts.ts -> supportedWalletconnectChains
-// previously defined here:
-// https://github.com/peanutprotocol/peanut-ui/blob/195c4a71111389b50034842e3a150fc82d827ef3/src/constants/general.consts.ts#L18
-export type ChainIdType =
-    | '1'
-    | '10'
-    | '56'
-    | '100'
-    | '137'
-    | '324'
-    | '1101'
-    | '5000'
-    | '8217'
-    | '8453'
-    | '42161'
-    | '42220'
-    | '43114'
-    | '7777777'
-    | '1313161554'
 
 export interface Account {
     id: string

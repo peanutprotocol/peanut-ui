@@ -7,7 +7,7 @@ export default function InitialPaymentView(props: PaymentFormProps) {
         <PaymentForm
             {...props}
             isPintaReq={isPintaReq}
-            isAddMoneyFlow={props.isAddMoneyFlow}
+            isExternalWalletFlow={props.isExternalWalletFlow}
             isDirectUsdPayment={props.isDirectUsdPayment}
         />
     )
