@@ -105,10 +105,12 @@ export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClic
                             const twoLetterCountryCode =
                                 countryCodeMap[country.id.toUpperCase()] ?? country.id.toLowerCase()
                             const position = getCardPosition(index, filteredCountries.length)
-                            // flag used to show soon badge based on the view mode
+                            // flag used to show soon badge based on the view mode, check country code map keys and values for supported countries
                             const isSupported =
                                 viewMode === 'add-withdraw' ||
-                                ['US', 'MX', ...Object.keys(countryCodeMap)].includes(country.id)
+                                ['US', 'MX', ...Object.keys(countryCodeMap), ...Object.values(countryCodeMap)].includes(
+                                    country.id
+                                )
 
                             return (
                                 <SearchResultCard
