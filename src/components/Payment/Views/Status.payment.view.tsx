@@ -1,10 +1,10 @@
 'use client'
 import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
-import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import { TStatusPillType } from '@/components/Global/StatusPill'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS, BASE_URL } from '@/constants'
@@ -101,7 +101,7 @@ const DirectSuccessView = ({
         let details: Partial<TransactionDetails> = {
             id: paymentDetails?.payerTransactionHash,
             txHash: paymentDetails?.payerTransactionHash,
-            status: 'completed' as StatusType,
+            status: 'completed' as TStatusPillType,
             amount: parseFloat(amountValue),
             date: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
             tokenSymbol: chargeDetails.tokenSymbol,

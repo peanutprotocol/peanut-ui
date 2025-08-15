@@ -44,8 +44,8 @@ export const useTokenChainIcons = ({
         return { ...defaultResponse, resolvedChainName: name }
     }
 
-    // use axelarChainName if available, otherwise fallback to simple CHAIN
-    const resolvedChainName = chainInfo.axelarChainName ? chainInfo.axelarChainName : `CHAIN`
+    // use networkName if available, otherwise fallback to simple CHAIN
+    const resolvedChainName = chainInfo.networkName ? chainInfo.networkName : `CHAIN`
     let tokenInfo: interfaces.ISquidToken | undefined = undefined
 
     if (tokenAddress) {

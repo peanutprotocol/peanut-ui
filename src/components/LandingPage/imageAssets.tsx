@@ -1,6 +1,7 @@
 'use client'
-import { Cloud, Star } from '@/assets'
+import { Star } from '@/assets'
 import { motion } from 'framer-motion'
+import borderCloud from '@/assets/illustrations/border-cloud.svg'
 
 const CloudAnimation = ({
     side,
@@ -55,7 +56,7 @@ export const CloudImages = ({ screenWidth }: { screenWidth: number }) => {
                 side="right"
                 top="5%"
                 duration={10}
-                imageSrc={Cloud.src}
+                imageSrc={borderCloud.src}
                 screenWidth={screenWidth}
                 startXOffset={-200}
                 speed={55}
@@ -64,7 +65,7 @@ export const CloudImages = ({ screenWidth }: { screenWidth: number }) => {
                 side="right"
                 top="35%"
                 duration={12}
-                imageSrc={Cloud.src}
+                imageSrc={borderCloud.src}
                 styleMod="scale-50"
                 screenWidth={screenWidth}
                 startXOffset={100}
@@ -85,7 +86,7 @@ export const CloudImages = ({ screenWidth }: { screenWidth: number }) => {
                 side="left"
                 top="15%"
                 duration={15}
-                imageSrc={Cloud.src}
+                imageSrc={borderCloud.src}
                 styleMod="scale-50"
                 screenWidth={screenWidth}
                 startXOffset={-100}
@@ -95,7 +96,7 @@ export const CloudImages = ({ screenWidth }: { screenWidth: number }) => {
                 side="left"
                 top="45%"
                 duration={18}
-                imageSrc={Cloud.src}
+                imageSrc={borderCloud.src}
                 screenWidth={screenWidth}
                 startXOffset={200}
                 speed={40}

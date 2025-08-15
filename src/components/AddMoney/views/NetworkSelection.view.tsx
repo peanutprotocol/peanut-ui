@@ -50,7 +50,7 @@ const NetworkSelectionView: React.FC<NetworkSelectionViewProps> = ({ headerTitle
                             <NetworkListItem
                                 key={index}
                                 chainId={squidChainDetails?.chainId ?? network.chainId}
-                                name={squidChainDetails?.axelarChainName ?? network.name}
+                                name={squidChainDetails?.networkName ?? network.name}
                                 iconUrl={squidChainDetails?.chainIconURI ?? network.iconUrl}
                                 isComingSoon={isComingSoon}
                                 iconClassName={
@@ -61,7 +61,7 @@ const NetworkSelectionView: React.FC<NetworkSelectionViewProps> = ({ headerTitle
                                 onClick={() =>
                                     onNetworkSelect({
                                         chainId: squidChainDetails?.chainId ?? network.chainId,
-                                        name: squidChainDetails?.axelarChainName ?? network.name,
+                                        name: squidChainDetails?.networkName ?? network.name,
                                         iconUrl: squidChainDetails?.chainIconURI ?? network.iconUrl,
                                     })
                                 }

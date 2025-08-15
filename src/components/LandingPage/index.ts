@@ -1,4 +1,4 @@
-export * from './businessIntegrate'
+export * from './dropLink'
 export * from './faq'
 export * from './hero'
 export * from './marquee'

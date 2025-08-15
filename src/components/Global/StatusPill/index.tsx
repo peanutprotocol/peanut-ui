@@ -1,14 +1,15 @@
-import React from 'react'
 import { Icon, IconName } from '../Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 import { StatusType } from '../Badges/StatusBadge'
 
+export type TStatusPillType = Exclude<StatusType, 'custom'>
+
 interface StatusPillProps {
-    status: StatusType
+    status: TStatusPillType
 }
 
 const StatusPill = ({ status }: StatusPillProps) => {
-    const colorClasses: Record<StatusType, string> = {
+    const colorClasses: Record<TStatusPillType, string> = {
         completed: 'border-success-5 bg-success-2 text-success-4',
         pending: 'border-yellow-8 bg-secondary-4 text-yellow-6',
         cancelled: 'border-error-2 bg-error-1 text-error',
@@ -17,7 +18,7 @@ const StatusPill = ({ status }: StatusPillProps) => {
         soon: 'border-yellow-8 bg-secondary-4 text-yellow-6',
     }
 
-    const iconClasses: Record<StatusType, IconName> = {
+    const iconClasses: Record<TStatusPillType, IconName> = {
         completed: 'success',
         failed: 'cancel',
         processing: 'pending',
@@ -26,7 +27,7 @@ const StatusPill = ({ status }: StatusPillProps) => {
         cancelled: 'cancel',
     }
 
-    const iconSize: Record<StatusType, number> = {
+    const iconSize: Record<TStatusPillType, number> = {
         completed: 10,
         failed: 7,
         processing: 10,

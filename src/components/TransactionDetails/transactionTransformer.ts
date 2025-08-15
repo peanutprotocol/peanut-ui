@@ -4,6 +4,7 @@ import { TransactionType as TransactionCardType } from '@/components/Transaction
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { EHistoryEntryType, EHistoryUserRole, HistoryEntry } from '@/hooks/useTransactionHistory'
 import { getExplorerUrl, getInitialsFromName } from '@/utils/general.utils'
+import { TStatusPillType } from '../Global/StatusPill'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -40,7 +41,7 @@ export interface TransactionDetails {
     currencySymbol?: string
     tokenSymbol?: string
     initials: string
-    status?: StatusType
+    status?: TStatusPillType
     isVerified?: boolean
     date: string | Date
     fee?: number | string
@@ -128,7 +129,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     let direction: TransactionDirection
     let transactionCardType: TransactionCardType
     let nameForDetails = ''
-    let uiStatus: StatusType = 'pending'
+    let uiStatus: TStatusPillType = 'pending'
     let isLinkTx = false
     let isPeerActuallyUser = false
 
@@ -310,8 +311,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                         'soon',
                         'processing',
                     ]
-                    if (entry.status && knownStatuses.includes(entry.status.toLowerCase() as StatusType)) {
-                        uiStatus = entry.status.toLowerCase() as StatusType
+                    if (entry.status && knownStatuses.includes(entry.status.toLowerCase() as TStatusPillType)) {
+                        uiStatus = entry.status.toLowerCase() as TStatusPillType
                     } else {
                         uiStatus = 'pending'
                     }
