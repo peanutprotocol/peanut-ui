@@ -1,3 +1,4 @@
+'use client'
 import React, { forwardRef, useEffect, useRef, useState, useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon, IconName } from '../Global/Icons/Icon'
