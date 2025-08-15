@@ -68,7 +68,7 @@ export async function generateMetadata({
         title,
         description: 'Request cryptocurrency from friends, family, or anyone else using Peanut on any chain.',
         icons: {
-            icon: '/logo-favicon.png',
+            icon: '/favicon.ico',
         },
         openGraph: {
             images: [
