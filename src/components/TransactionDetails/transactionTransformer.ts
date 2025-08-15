@@ -101,6 +101,9 @@ export interface TransactionDetails {
         identifier: string
         type: string
     }
+    claimedAt?: string | Date
+    createdAt?: string | Date
+    completedAt?: string | Date
 }
 
 /**
@@ -349,7 +352,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         fee: undefined,
         memo: entry.memo?.trim(),
         attachmentUrl: entry.attachmentUrl,
-        cancelledDate: entry.userRole === EHistoryUserRole.BOTH ? entry.cancelledAt : undefined,
+        cancelledDate: entry.cancelledAt,
         txHash: entry.txHash,
         explorerUrl: explorerUrlWithTx,
         extraDataForDrawer: {
@@ -371,6 +374,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                       type: entry.recipientAccount.type,
                   }
                 : undefined,
+        claimedAt: entry.claimedAt,
+        createdAt: entry.createdAt,
+        completedAt: entry.completedAt,
     }
 
     return {

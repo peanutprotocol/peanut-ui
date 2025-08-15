@@ -100,8 +100,7 @@ export const PaymentForm = ({
     const { initiatePayment, isProcessing, error: initiatorError } = usePaymentInitiator()
 
     const peanutWalletBalance = useMemo(() => {
-        const formattedBalance = formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
-        return formattedBalance
+        return balance !== undefined ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
     }, [balance])
 
     const error = useMemo(() => {
@@ -637,13 +636,16 @@ export const PaymentForm = ({
             setShowExternalWalletFulfilMethods(true)
             setExternalWalletFulfilMethod(null)
             return
+        } else if (window.history.length > 1) {
+            router.back()
+        } else {
+            router.push('/')
         }
-        router.back()
     }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={handleGoBack} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Send')} />
+            <NavHeader onPrev={router.back} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Send')} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isExternalWalletConnected && isUsingExternalWallet && (
                     <Button

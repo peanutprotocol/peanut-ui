@@ -6,6 +6,7 @@ const mockSquidChains: Record<string, interfaces.ISquidChain & { tokens: interfa
     '1': {
         chainId: '1',
         axelarChainName: 'Ethereum',
+        networkName: 'Ethereum',
         chainType: 'evm',
         chainIconURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/ethereum.webp',
         tokens: [
@@ -34,6 +35,7 @@ const mockSquidChains: Record<string, interfaces.ISquidChain & { tokens: interfa
     '10': {
         chainId: '10',
         axelarChainName: 'optimism',
+        networkName: 'optimism',
         chainType: 'evm',
         chainIconURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/optimism.webp',
         tokens: [
@@ -62,6 +64,7 @@ const mockSquidChains: Record<string, interfaces.ISquidChain & { tokens: interfa
     '8453': {
         chainId: '8453',
         axelarChainName: 'base',
+        networkName: 'base',
         chainType: 'evm',
         chainIconURI: 'https://raw.githubusercontent.com/0xsquid/assets/main/images/chains/base.svg',
         tokens: [

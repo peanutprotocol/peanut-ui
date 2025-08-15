@@ -184,7 +184,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     if (view === 'form') {
         return (
-            <div className="w-full space-y-8 self-start">
+            <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
                 <NavHeader
                     title={flow === 'withdraw' ? 'Withdraw' : 'Add money'}
                     onPrev={() => {
