@@ -7,12 +7,13 @@ import { AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType } from
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { countryCodeMap } from '@/components/AddMoney/consts'
 import { useParams } from 'next/navigation'
-import { validateBankAccount, validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-accounts.utils'
+import { validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-accounts.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
+import { getCountryFromIban, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
 
 const isIBANCountry = (country: string) => {
     return countryCodeMap[country.toUpperCase()] !== undefined
@@ -58,6 +59,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
         const lastName = lastNameParts.join(' ')
 
+        let selectedCountry = (countryNameFromProps ?? (countryName as string)).toLowerCase()
+
         const {
             control,
             handleSubmit,
@@ -89,9 +92,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             setIsSubmitting(true)
             setSubmissionError(null)
             try {
-                const isIban = isIBANCountry(country)
-                const isUs = country.toUpperCase() === 'US'
+                const isUs = country.toUpperCase() === 'USA'
                 const isMx = country.toUpperCase() === 'MX'
+                const isIban = isUs || isMx ? false : isIBANCountry(country)
 
                 let accountType: BridgeAccountType
                 if (isIban) accountType = BridgeAccountType.IBAN
@@ -125,7 +128,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     accountType,
                     accountNumber: accountNumber.replace(/\s/g, ''),
                     countryCode: isUs ? 'USA' : country.toUpperCase(),
-                    countryName: (countryName ?? countryNameFromProps) as string,
+                    countryName: selectedCountry,
                     accountOwnerType: BridgeAccountOwnerType.INDIVIDUAL,
                     accountOwnerName: {
                         firstName: firstName.trim(),
@@ -164,9 +167,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             }
         }
 
-        const isIban = isIBANCountry(country)
-        const isUs = country.toUpperCase() === 'US'
         const isMx = country.toUpperCase() === 'MX'
+        const isUs = country.toUpperCase() === 'USA'
+        const isIban = isUs || isMx ? false : isIBANCountry(country)
 
         const renderInput = (
             name: keyof IBankAccountDetails,
@@ -265,14 +268,25 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                   required: 'CLABE is required',
                                   minLength: { value: 18, message: 'CLABE must be 18 digits' },
                                   maxLength: { value: 18, message: 'CLABE must be 18 digits' },
+                                  validate: async (value: string) =>
+                                      validateMXCLabeAccount(value).isValid || 'Invalid CLABE',
                               })
                             : isIban
                               ? renderInput(
                                     'accountNumber',
                                     'IBAN',
                                     {
-                                        required: 'Account number is required',
-                                        validate: async (val: string) => (await validateIban(val)) || 'Invalid IBAN',
+                                        required: 'IBAN is required',
+                                        validate: async (val: string) => {
+                                            const isValidIban = await validateIban(val)
+                                            if (!isValidIban) return 'Invalid IBAN'
+
+                                            if (getCountryFromIban(val)?.toLowerCase() !== selectedCountry) {
+                                                return 'IBAN does not match the selected country'
+                                            }
+
+                                            return true
+                                        },
                                     },
                                     'text',
                                     undefined,
@@ -286,7 +300,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     {
                                         required: 'Account number is required',
                                         validate: async (value: string) =>
-                                            (await validateBankAccount(value)) || 'Invalid account number',
+                                            validateUSBankAccount(value).isValid || 'Invalid account number',
                                     },
                                     'text'
                                 )}

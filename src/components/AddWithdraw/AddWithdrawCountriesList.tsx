@@ -21,6 +21,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { Account } from '@/interfaces'
 import PeanutLoading from '../Global/PeanutLoading'
+import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -195,7 +196,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 />
                 <DynamicBankAccountForm
                     ref={formRef}
-                    country={currentCountry.id}
+                    country={getCountryCodeForWithdraw(currentCountry.id)}
                     onSuccess={handleFormSubmit}
                     initialData={{}}
                 />
