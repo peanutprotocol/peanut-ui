@@ -102,13 +102,13 @@ export function RegulatedRails() {
                 <h1 className="font-roboto-flex-extrabold text-left text-[3.25rem] font-extraBlack !leading-[5rem] md:text-6xl lg:text-headingMedium">
                     REGULATED RAILS, SELF-CUSTODY CONTROL
                 </h1>
-                <p className="mt-6 text-left text-base md:text-2xl">
+                <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">
                     Peanut connects your self-custodial wallet to global regulated banks and top compliance partners. It
                     operates under international licenses and standards to keep every transaction secure, private, and
                     under your control.
                 </p>
 
-                <h6 className="mt-3 text-sm">
+                <h6 className="font-roboto-flex mt-3 text-xs md:text-lg">
                     Our partners hold{' '}
                     <a
                         href="https://www.bridge.xyz/legal/licenses/us-licenses-and-registrations"
