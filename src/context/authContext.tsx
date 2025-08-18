@@ -8,7 +8,7 @@ import { fetchWithSentry, getFromCookie, removeFromCookie, syncLocalStorageToCoo
 import { useAppKit } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { createContext, ReactNode, useContext, useState } from 'react'
+import { createContext, ReactNode, useContext, useState, useEffect } from 'react'
 import { captureException } from '@sentry/nextjs'
 
 interface AuthContextType {
@@ -53,9 +53,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: user, isFetching: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
 
-    if (user) {
-        syncLocalStorageToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
-    }
+    useEffect(() => {
+        if (user) {
+            syncLocalStorageToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
+        }
+    }, [user])
 
     const legacy_fetchUser = async () => {
         const { data: fetchedUser } = await fetchUser()
