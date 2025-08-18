@@ -1,54 +1,43 @@
 'use client'
 
-import PaymentPage from '@/app/[...recipient]/client'
 import { Button } from '@/components/0_Bruddle'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { PEANUT_WALLET_TOKEN } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useAppDispatch, useUserStore } from '@/redux/hooks'
-import { paymentActions } from '@/redux/slices/payment-slice'
 import { DaimoPayButton, useDaimoPayUI } from '@daimo/pay'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { getAddress } from 'viem'
 import { arbitrum } from 'viem/chains'
 
 export default function AddMoneyCryptoDirectPage() {
     const router = useRouter()
     const { address } = useWallet()
-    const searchParams = useSearchParams()
-    const { user } = useUserStore()
-    const [recipientUsername, setRecipientUsername] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const dispatch = useAppDispatch()
     const [inputTokenAmount, setInputTokenAmount] = useState<string>('')
     const { resetPayment } = useDaimoPayUI()
-
-    useEffect(() => {
-        dispatch(paymentActions.resetPaymentState())
-    }, [dispatch])
-
-    useEffect(() => {
-        if (user?.user.username) {
-            setRecipientUsername(user.user.username)
-        } else {
-            router.replace('/add-money/crypto')
-            return
-        }
-        setIsLoading(false)
-    }, [searchParams, router, user])
-
-    if (isLoading) {
-        return <PeanutLoading />
-    }
+    const [isPaymentSuccess, setisPaymentSuccess] = useState(false)
 
     const resetPaymentAmount = async () => {
         await resetPayment({
-            toUnits: inputTokenAmount,
+            toUnits: inputTokenAmount.replace(/,/g, ''),
         })
     }
+
+    if (isPaymentSuccess) {
+        return (
+            <DirectSuccessView
+                key={`success-add-money}`}
+                headerTitle={'Add Money'}
+                type="SEND"
+                currencyAmount={`$ ${inputTokenAmount}`}
+                isAddMoneyFlow={true}
+                redirectTo={'/add-money'}
+            />
+        )
+    }
+
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader
@@ -78,16 +67,20 @@ export default function AddMoneyCryptoDirectPage() {
 
                 {address && (
                     <DaimoPayButton.Custom
-                        appId="pay-demo"
+                        appId={
+                            process.env.NEXT_PUBLIC_DAIMO_APP_ID ??
+                            (() => {
+                                throw new Error('Daimo APP ID is required')
+                            })()
+                        }
                         intent="Deposit"
                         toChain={arbitrum.id}
-                        toUnits={inputTokenAmount}
+                        toUnits={inputTokenAmount.replace(/,/g, '')}
                         toAddress={getAddress(address)}
                         toToken={getAddress(PEANUT_WALLET_TOKEN)} // USDC on arbitrum
-                        onPaymentBounced={(e) => {
-                            console.log(e)
+                        onPaymentCompleted={(e) => {
+                            setisPaymentSuccess(true)
                         }}
-                        paymentOptions={['Coinbase', 'Binance', 'Lemon']}
                     >
                         {({ show }) => (
                             <Button
@@ -96,9 +89,7 @@ export default function AddMoneyCryptoDirectPage() {
                                     show()
                                 }}
                                 variant="purple"
-                                // loading={isProcessing}
                                 shadowSize="4"
-                                // onClick={handleInitiatePayment}
                                 disabled={inputTokenAmount.length == 0}
                                 className="w-full"
                                 icon={'plus'}
