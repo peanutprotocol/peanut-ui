@@ -136,8 +136,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             if (userForOfframp.kycStatus !== 'approved') throw new Error('User not KYC approved')
             if (!userForOfframp?.bridgeCustomerId) throw new Error('User bridge customer ID not found')
 
-            setReceiverFullName(userForOfframp.fullName ?? '')
-
             // get payment rail and currency for the offramp
             const paymentRail = getBridgeChainName(claimLinkData.chainId)
             const currency = getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
@@ -377,7 +375,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         const userForOfframp = isGuestFlow
                             ? await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
                             : user?.user
-                        if (userForOfframp && !('error' in userForOfframp)) {
+                        if (userForOfframp && !('error' in userForOfframp) && !isGuestFlow) {
                             setReceiverFullName(userForOfframp.fullName ?? '')
                         }
 
