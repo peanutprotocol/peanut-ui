@@ -211,6 +211,17 @@ export const removeFromCookie = (key: string) => {
     }
 }
 
+// for backward compatibility - save localstorage data in cookie if it does not exist
+export const syncLocalStorageToCookie = (key: string) => {
+    const localStorageData = getFromLocalStorage(key)
+    const cookieData = getFromCookie(key)
+
+    if (localStorageData && !cookieData) {
+        saveToCookie(key, localStorageData, 90)
+        console.log('Data synced successfully')
+    }
+}
+
 export const getAllLinksFromLocalStorage = ({ address }: { address: string }) => {
     try {
         if (typeof localStorage === 'undefined') return

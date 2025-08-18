@@ -4,7 +4,7 @@ import { useUserQuery } from '@/hooks/query/user'
 import * as interfaces from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { fetchWithSentry, removeFromCookie } from '@/utils'
+import { fetchWithSentry, getFromCookie, removeFromCookie, syncLocalStorageToCookie } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -49,8 +49,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { user: authUser } = useUserStore()
     const toast = useToast()
     const queryClient = useQueryClient()
+    const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
     const { data: user, isFetching: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
+
+    if (user) {
+        syncLocalStorageToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
+    }
 
     const legacy_fetchUser = async () => {
         const { data: fetchedUser } = await fetchUser()
@@ -107,8 +112,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const logoutUser = async () => {
-        const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
-
         if (isLoggingOut) return
 
         setIsLoggingOut(true)
