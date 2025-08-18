@@ -16,8 +16,8 @@ type AddMoneyCryptoStep = 'sourceSelection' | 'tokenSelection' | 'networkSelecti
 const AddMoneyCryptoPage = () => {
     const router = useRouter()
     const { address: peanutWalletAddress } = useWallet()
-    const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('tokenSelection') // hotfix for deposit - select tokenSelection view as default
-    const [selectedSource, setSelectedSource] = useState<CryptoSource | null>(CRYPTO_EXCHANGES[3]) // hotfix for deposit - select Other exhange by default
+    const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('sourceSelection')
+    const [selectedSource, setSelectedSource] = useState<CryptoSource | null>(null)
     const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(null)
     const [selectedNetwork, setSelectedNetwork] = useState<SelectedNetwork | null>(null)
     const [isRiskAccepted, setIsRiskAccepted] = useState(false)
@@ -51,11 +51,6 @@ const AddMoneyCryptoPage = () => {
     }
 
     const handleBackToSourceSelection = () => {
-        // hotfix for deposit - redirect to previous route if user is on tokenSelection and selected source is other-exchanges
-        if (selectedSource?.id === 'other-exchanges' && currentStep === 'tokenSelection') {
-            router.back()
-            return
-        }
         setCurrentStep('sourceSelection')
         setSelectedSource(null)
         resetSelections()
@@ -74,7 +69,7 @@ const AddMoneyCryptoPage = () => {
 
     const handleBackToNetworkSelectionFromQR = () => {
         if (selectedSource?.type === 'exchange') {
-            setCurrentStep('tokenSelection') // hotfix for deposit - redirect to tokenSelection view if user is on qrScreen and selected source is exchange
+            setCurrentStep('sourceSelection')
         } else {
             setCurrentStep('networkSelection')
         }

@@ -26,6 +26,7 @@
         "@chakra-ui/react": "^2.10.4",
         "@chakra-ui/react-context": "^2.1.0",
         "@chakra-ui/shared-utils": "^2.0.4",
+        "@daimo/pay": "^1.15.0",
         "@dicebear/collection": "^9.2.2",
         "@dicebear/core": "^9.2.2",
         "@headlessui/react": "^1.7.19",
@@ -78,8 +79,8 @@
         "uuid": "^10.0.0",
         "validator": "^13.12.0",
         "vaul": "^1.1.2",
-        "viem": "^2.21.48",
-        "wagmi": "2.8.6",
+        "viem": "^2.22.0",
+        "wagmi": "2.16.3",
         "web-push": "^3.6.7",
         "yup": "^1.4.0"
     },
@@ -154,8 +155,8 @@
     },
     "resolutions": {
         "@wagmi/core": "2.14.3",
-        "viem": "^2.21.48",
-        "wagmi": "2.8.6"
+        "viem": "^2.22.0",
+        "wagmi": "2.16.3"
     },
     "size-limit": [
         {

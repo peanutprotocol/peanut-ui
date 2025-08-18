@@ -225,7 +225,12 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     router.push(countryPath)
                 }}
                 onCryptoClick={() => {
-                    const cryptoPath = `${baseRoute}/crypto`
+                    let cryptoPath = ''
+                    if (flow === 'add') {
+                        cryptoPath = `${baseRoute}/crypto/direct`
+                    } else {
+                        cryptoPath = `${baseRoute}/crypto`
+                    }
                     router.push(cryptoPath)
                 }}
                 flow={flow}
