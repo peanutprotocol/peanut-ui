@@ -60,10 +60,14 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                 ) : (
                     <NavHeader
                         onPrev={() => {
-                            if (window.history.length > 1) {
+                            // Check if the referrer is from the same domain (internal navigation)
+                            const isInternalReferrer =
+                                document.referrer && new URL(document.referrer).origin === window.location.origin
+
+                            if (isInternalReferrer && window.history.length > 1) {
                                 router.back()
                             } else {
-                                router.push('/')
+                                router.push('/home')
                             }
                         }}
                         hideLabel
