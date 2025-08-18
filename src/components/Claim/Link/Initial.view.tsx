@@ -609,9 +609,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8 ">
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
             {!!user?.user.userId || claimBankFlowStep || claimToExternalWallet ? (
-                <div className="md:hidden">
+                <div>
                     <NavHeader
                         title="Receive"
                         onPrev={() => {

@@ -395,8 +395,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             )
         case ClaimBankFlowStep.BankDetailsForm:
             return (
-                <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-                    <div className="md:hidden">
+                <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+                    <div>
                         <NavHeader
                             title="Receive"
                             onPrev={() =>
