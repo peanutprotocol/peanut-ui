@@ -8,7 +8,7 @@ import {
 import { useAuth } from '@/context/authContext'
 import { useAppDispatch } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { getFromLocalStorage } from '@/utils'
+import { getFromCookie, getFromLocalStorage } from '@/utils'
 import { PasskeyValidatorContractVersion, toPasskeyValidator, toWebAuthnKey } from '@zerodev/passkey-validator'
 import {
     createKernelAccount,
@@ -127,7 +127,8 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
 
     // lifecycle hooks
     useEffect(() => {
-        const storedWebAuthnKey = getFromLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY)
+        const storedWebAuthnKey =
+            getFromLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY) || getFromCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
         if (storedWebAuthnKey) {
             setWebAuthnKey(storedWebAuthnKey)
         } else {

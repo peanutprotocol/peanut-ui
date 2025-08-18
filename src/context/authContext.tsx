@@ -4,7 +4,7 @@ import { useUserQuery } from '@/hooks/query/user'
 import * as interfaces from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry, removeFromCookie } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -122,6 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             if (response.ok) {
                 localStorage.removeItem(LOCAL_STORAGE_WEB_AUTHN_KEY)
+                removeFromCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
                 queryClient.invalidateQueries()
 
                 // clear JWT cookie by setting it to expire
