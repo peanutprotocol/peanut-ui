@@ -7,6 +7,7 @@ import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
+import { checkIfInternalNavigation } from '@/utils'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -25,8 +26,7 @@ export const Profile = () => {
                 hideLabel
                 onPrev={() => {
                     // Check if the referrer is from the same domain (internal navigation)
-                    const isInternalReferrer =
-                        document.referrer && new URL(document.referrer).origin === window.location.origin
+                    const isInternalReferrer = checkIfInternalNavigation()
 
                     if (isInternalReferrer && window.history.length > 1) {
                         router.back()
