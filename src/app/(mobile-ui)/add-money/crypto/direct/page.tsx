@@ -5,6 +5,7 @@ import { Button } from '@/components/0_Bruddle'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import { PEANUT_WALLET_TOKEN } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
@@ -25,9 +26,6 @@ export default function AddMoneyCryptoDirectPage() {
     const [inputTokenAmount, setInputTokenAmount] = useState<string>('')
     const { resetPayment } = useDaimoPayUI()
 
-    // Memoize the external ID to prevent re-renders
-    const externalId = useMemo(() => `deposit-${Date.now()}`, [])
-
     useEffect(() => {
         dispatch(paymentActions.resetPaymentState())
     }, [dispatch])
@@ -46,15 +44,11 @@ export default function AddMoneyCryptoDirectPage() {
         return <PeanutLoading />
     }
 
-    const recipientPathSegments = [recipientUsername ?? '']
-
     const resetPaymentAmount = async () => {
         await resetPayment({
             toUnits: inputTokenAmount,
         })
     }
-
-    // return <PaymentPage recipient={recipientPathSegments} flow="add_money" />
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader
@@ -89,8 +83,7 @@ export default function AddMoneyCryptoDirectPage() {
                         toChain={arbitrum.id}
                         toUnits={inputTokenAmount}
                         toAddress={getAddress(address)}
-                        toToken={getAddress('0xaf88d065e77c8cc2239327c5edb3a432268e5831')} // USDC on arbitrum
-                        externalId={externalId}
+                        toToken={getAddress(PEANUT_WALLET_TOKEN)} // USDC on arbitrum
                         onPaymentBounced={(e) => {
                             console.log(e)
                         }}

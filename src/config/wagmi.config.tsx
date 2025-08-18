@@ -79,7 +79,7 @@ export function ContextProvider({ children, cookies }: { children: React.ReactNo
     return (
         <WagmiProvider config={wagmiAdapter.wagmiConfig} initialState={initialState}>
             <QueryClientProvider client={queryClient}>
-                <DaimoPayProvider customTheme={DAIMO_THEME}>
+                <DaimoPayProvider options={{ embedGoogleFonts: true }} customTheme={DAIMO_THEME}>
                     <JustaNameContext>{children}</JustaNameContext>
                 </DaimoPayProvider>
             </QueryClientProvider>
