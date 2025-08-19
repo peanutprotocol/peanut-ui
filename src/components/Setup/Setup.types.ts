@@ -9,6 +9,7 @@ export type ScreenId =
     | 'add-wallets'
     | 'success'
     | 'unsupported-browser'
+    | 'join-beta'
 
 export type LayoutType = 'signup' | 'standard' | 'android-initial-pwa-install'
 

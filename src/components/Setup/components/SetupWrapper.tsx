@@ -217,7 +217,7 @@ export const SetupWrapper = memo(
                         <div
                             className={twMerge(
                                 'mx-auto h-full w-full space-y-4 md:max-h-48 md:max-w-xs',
-                                screenId === 'signup' && 'md:max-h-12'
+                                (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12'
                             )}
                         >
                             {title && (

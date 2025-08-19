@@ -8,6 +8,7 @@ const initialState: ISetupState = {
     currentStep: 1,
     direction: 0,
     isLoading: false,
+    telegramHandle: '',
     steps: [],
 }
 
@@ -43,6 +44,9 @@ const setupSlice = createSlice({
 
         setStep: (state, action: PayloadAction<number>) => {
             state.currentStep = action.payload
+        },
+        setTelegramHandle: (state, action: PayloadAction<string>) => {
+            state.telegramHandle = action.payload
         },
     },
 })
