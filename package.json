@@ -46,7 +46,7 @@
         "@tanstack/react-query": "5.8.4",
         "@typeform/embed-react": "^3.20.0",
         "@vercel/analytics": "^1.4.1",
-        "@wagmi/core": "2.14.3",
+        "@wagmi/core": "2.19.0",
         "@zerodev/passkey-validator": "^5.5.0",
         "@zerodev/sdk": "5.4.0",
         "auto-text-size": "^0.2.3",
@@ -154,9 +154,10 @@
         ]
     },
     "resolutions": {
-        "@wagmi/core": "2.14.3",
+        "@wagmi/core": "2.19.0",
         "viem": "^2.22.0",
-        "wagmi": "2.16.3"
+        "wagmi": "2.16.3",
+        "ox": "0.6.5"
     },
     "size-limit": [
         {
