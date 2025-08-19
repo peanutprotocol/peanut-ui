@@ -100,24 +100,17 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
 
 export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
-    const [scrollY, setScrollY] = useState(0)
 
     useEffect(() => {
         const handleResize = () => {
             setScreenWidth(window.innerWidth)
         }
 
-        const handleScroll = () => {
-            setScrollY(window.scrollY)
-        }
-
         handleResize()
         window.addEventListener('resize', handleResize)
-        window.addEventListener('scroll', handleScroll)
 
         return () => {
             window.removeEventListener('resize', handleResize)
-            window.removeEventListener('scroll', handleScroll)
         }
     }, [])
 
