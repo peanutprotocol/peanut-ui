@@ -68,11 +68,13 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
                     amount: chargeDetails?.tokenAmount ?? '0',
                     country: selectedCountry,
                     userId: requesterDetails?.userId ?? '',
+                    chargeId: chargeDetails?.uuid,
                 })
             } else {
                 onrampDataResponse = await createOnramp({
                     amount: chargeDetails?.tokenAmount ?? '0',
                     country: selectedCountry,
+                    chargeId: chargeDetails?.uuid,
                 })
             }
 

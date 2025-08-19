@@ -20,6 +20,7 @@ export type TransactionDirection =
     | 'bank_withdraw'
     | 'bank_claim'
     | 'bank_deposit'
+    | 'bank_request_fulfillment'
 
 interface TransactionDetailsHeaderCardProps {
     direction: TransactionDirection
@@ -113,6 +114,7 @@ const getIcon = (direction: TransactionDirection, isLinkTransaction?: boolean): 
 
     switch (direction) {
         case 'send':
+        case 'bank_request_fulfillment':
             return 'arrow-up-right'
         case 'request_sent':
         case 'receive':
@@ -122,6 +124,7 @@ const getIcon = (direction: TransactionDirection, isLinkTransaction?: boolean): 
         case 'bank_claim':
             return 'arrow-up'
         case 'add':
+        case 'bank_deposit':
             return 'arrow-down'
         default:
             return undefined

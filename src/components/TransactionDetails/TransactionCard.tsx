@@ -23,6 +23,7 @@ export type TransactionType =
     | 'receive'
     | 'bank_withdraw'
     | 'bank_deposit'
+    | 'bank_request_fulfillment'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -67,7 +68,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const defaultDisplayDecimals = actualCurrencyCode === 'JPY' ? 0 : 2 // JPY has 0, others default to 2
 
     // Special handling for bank_deposit transactions with non-USD currency
-    if (type === 'bank_deposit' && actualCurrencyCode && actualCurrencyCode.toUpperCase() !== 'USD') {
+    if (
+        (type === 'bank_deposit' || type === 'bank_request_fulfillment') &&
+        actualCurrencyCode &&
+        actualCurrencyCode.toUpperCase() !== 'USD'
+    ) {
         const isCompleted = transaction.status === 'completed'
 
         if (isCompleted) {
@@ -225,6 +230,9 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
             iconName = 'arrow-down'
             iconSize = 8
             break
+        case 'bank_request_fulfillment':
+            iconName = 'arrow-up-right'
+            break
         default:
             return null
     }
@@ -239,6 +247,9 @@ function getActionText(type: TransactionType): string {
             break
         case 'bank_deposit':
             actionText = 'Add'
+            break
+        case 'bank_request_fulfillment':
+            actionText = 'Request pay via Bank'
             break
     }
     return actionText
