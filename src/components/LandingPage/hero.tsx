@@ -14,7 +14,6 @@ type CTAButton = {
 }
 
 type HeroProps = {
-    heading: string
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
@@ -99,7 +98,7 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
         </>
     )
 
-export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
+export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
     const [scrollY, setScrollY] = useState(0)
 
@@ -158,20 +157,24 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
     }
 
     return (
-        <section className="relative flex min-h-[85vh] flex-col items-center justify-between bg-primary-1 px-4 py-4 xl:h-[93vh] xl:justify-center">
+        <section className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 py-4 xl:h-[93vh] xl:justify-center">
             <CloudImages screenWidth={screenWidth} />
-            <img
-                src={ButterySmoothGlobalMoney.src}
-                className="z-0 mx-auto w-full max-w-[1000px] object-contain md:w-[50%]"
-                alt="Buttery Smooth Global Money"
-            />
+            <div className="relative mt-10 w-full md:mt-0">
+                <img
+                    src={ButterySmoothGlobalMoney.src}
+                    className="z-0 mx-auto w-full max-w-[1000px] object-contain md:w-[50%]"
+                    alt="Buttery Smooth Global Money"
+                />
+
+                <HeroImages />
+            </div>
             <img
                 src={PeanutGuyGIF.src}
                 className="mg:bottom-0 absolute bottom-[55%] left-1/2 z-10 mx-auto h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 translate-y-1/2 transform object-contain"
                 alt="Peanut Guy"
             />
 
-            <div className="relative flex flex-col items-center justify-center">
+            <div className="relative mb-4 flex w-full flex-col items-center justify-center md:mb-0">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
                     INSTANTLY SEND & RECEIVE
                 </h2>
