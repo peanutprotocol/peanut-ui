@@ -157,7 +157,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
     }
 
     return (
-        <section className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 py-4 xl:h-[93vh] xl:justify-center">
+        <section className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 py-4 xl:h-fit xl:justify-center">
             <CloudImages screenWidth={screenWidth} />
             <div className="relative mt-10 w-full md:mt-0">
                 <img
