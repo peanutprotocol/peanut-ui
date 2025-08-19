@@ -1,4 +1,6 @@
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import peanutWithGlassesAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_06.gif'
+import happyPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
 import { PEANUTMAN_MOBILE } from '@/assets'
 import { ISetupStep } from '@/components/Setup/Setup.types'
 import { InstallPWA, SetupPasskey, SignupStep, WelcomeStep, JoinBetaSetp } from '@/components/Setup/Views'
@@ -67,7 +69,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: 'In for the beta program?',
         description: 'We’ll occasionally DM you on Telegram for feedback and early features.',
-        image: chillPeanutAnim.src,
+        image: peanutWithGlassesAnim.src,
         component: JoinBetaSetp,
         showBackButton: true,
         showSkipButton: false,
@@ -78,7 +80,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: `Let's set up your passkey`,
         description: `Use your face or fingerprint to log in. No passwords, no hassle. Just you.`,
-        image: chillPeanutAnim.src,
+        image: happyPeanutAnim.src,
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,
