@@ -291,18 +291,18 @@ export const TransactionDetailsReceipt = ({
                             />
                         )}
 
-                    {transaction.direction === 'add' && (
+                    {transaction.direction === 'add' && transaction.extraDataForDrawer?.addressExplorerUrl && (
                         <PaymentInfoRow
                             label="Depositor Address"
                             value={
-                                <span>
+                                <a
+                                    href={transaction.extraDataForDrawer.addressExplorerUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
                                     {shortenAddressLong(transaction.userName)}{' '}
-                                    <CopyToClipboard
-                                        className="inline"
-                                        textToCopy={transaction.userName}
-                                        iconSize="4"
-                                    />
-                                </span>
+                                    <Icon className="inline" name="external-link" size={16} />
+                                </a>
                             }
                             hideBottomBorder={false}
                         />

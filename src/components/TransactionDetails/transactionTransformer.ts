@@ -58,6 +58,7 @@ export interface TransactionDetails {
     txHash?: string
     explorerUrl?: string
     extraDataForDrawer?: {
+        addressExplorerUrl?: string
         originalType: EHistoryEntryType
         originalUserRole: EHistoryUserRole
         link?: string
@@ -335,9 +336,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
 
     // construct explorer url if possible
     let explorerUrlWithTx: string | undefined = undefined
-    if (entry.txHash && entry.chainId) {
-        const baseUrl = getExplorerUrl(entry.chainId)
-        if (baseUrl) {
+    let addressExplorerUrl: string | undefined = undefined
+    const baseUrl = getExplorerUrl(entry.chainId)
+    if (baseUrl) {
+        addressExplorerUrl = `${baseUrl}/address/${entry.senderAccount?.identifier}`
+        if (entry.txHash && entry.chainId) {
             explorerUrlWithTx = `${baseUrl}/tx/${entry.txHash}`
         }
     }
@@ -381,6 +384,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         explorerUrl: explorerUrlWithTx,
         tokenDisplayDetails,
         extraDataForDrawer: {
+            addressExplorerUrl,
             originalType: entry.type as EHistoryEntryType,
             originalUserRole: entry.userRole as EHistoryUserRole,
             link: entry.extraData?.link,
