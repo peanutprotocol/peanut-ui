@@ -3,7 +3,15 @@ import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import { TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { EHistoryEntryType, EHistoryUserRole, HistoryEntry } from '@/hooks/useTransactionHistory'
-import { getExplorerUrl, getInitialsFromName } from '@/utils/general.utils'
+import {
+    getExplorerUrl,
+    getInitialsFromName,
+    getTokenDetails,
+    getChainName,
+    getTokenLogo,
+    getChainLogo,
+} from '@/utils/general.utils'
+import type { Address } from 'viem'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -334,6 +342,22 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         }
     }
 
+    let tokenDisplayDetails
+    if (entry.tokenAddress && entry.chainId) {
+        const tokenDetails = getTokenDetails({
+            tokenAddress: entry.tokenAddress as Address,
+            chainId: entry.chainId,
+        })
+        const chainName = getChainName(entry.chainId)
+        const tokenSymbol = entry.tokenSymbol ?? tokenDetails?.symbol
+        tokenDisplayDetails = {
+            tokenSymbol,
+            tokenIconUrl: tokenSymbol ? getTokenLogo(tokenSymbol) : undefined,
+            chainName,
+            chainIconUrl: chainName ? getChainLogo(chainName) : undefined,
+        }
+    }
+
     const rewardData = REWARD_TOKENS[entry.tokenAddress?.toLowerCase()]
 
     // build the final transactiondetails object for the ui
@@ -355,6 +379,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         cancelledDate: entry.cancelledAt,
         txHash: entry.txHash,
         explorerUrl: explorerUrlWithTx,
+        tokenDisplayDetails,
         extraDataForDrawer: {
             originalType: entry.type as EHistoryEntryType,
             originalUserRole: entry.userRole as EHistoryUserRole,

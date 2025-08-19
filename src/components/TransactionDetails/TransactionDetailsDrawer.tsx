@@ -8,7 +8,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
-import { formatIban, shortenAddress } from '@/utils/general.utils'
+import { formatIban, shortenAddress, shortenAddressLong } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -249,39 +249,75 @@ export const TransactionDetailsReceipt = ({
                         />
                     )}
 
-                    {transaction.tokenDisplayDetails && transaction.sourceView === 'history' && (
-                        <PaymentInfoRow
-                            label="Token and network"
-                            value={
-                                <div className="flex items-center gap-2">
-                                    <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
-                                        {/* Main token icon */}
-                                        <DisplayIcon
-                                            iconUrl={transaction.tokenDisplayDetails.tokenIconUrl}
-                                            altText={transaction.tokenDisplayDetails.tokenSymbol || 'token'}
-                                            fallbackName={transaction.tokenDisplayDetails.tokenSymbol || 'T'}
-                                            sizeClass="h-6 w-6"
-                                        />
-                                        {/* Smaller chain icon, absolutely positioned */}
-                                        {transaction.tokenDisplayDetails.chainIconUrl && (
-                                            <div className="absolute -bottom-1 -right-1">
-                                                <DisplayIcon
-                                                    iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
-                                                    altText={transaction.tokenDisplayDetails.chainName || 'chain'}
-                                                    fallbackName={transaction.tokenDisplayDetails.chainName || 'C'}
-                                                    sizeClass="h-3.5 w-3.5"
-                                                    className="rounded-full border-2 border-white dark:border-grey-4"
-                                                />
-                                            </div>
-                                        )}
+                    {['add', 'withdraw'].includes(transaction.direction) &&
+                        transaction.tokenDisplayDetails &&
+                        transaction.sourceView === 'history' && (
+                            <PaymentInfoRow
+                                label="Token and network"
+                                value={
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                            {/* Main token icon */}
+                                            <DisplayIcon
+                                                iconUrl={transaction.tokenDisplayDetails.tokenIconUrl}
+                                                altText={transaction.tokenDisplayDetails.tokenSymbol || 'token'}
+                                                fallbackName={transaction.tokenDisplayDetails.tokenSymbol || 'T'}
+                                                sizeClass="h-6 w-6"
+                                            />
+                                            {/* Smaller chain icon, absolutely positioned */}
+                                            {transaction.tokenDisplayDetails.chainIconUrl && (
+                                                <div className="absolute -bottom-1 -right-1">
+                                                    <DisplayIcon
+                                                        iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
+                                                        altText={transaction.tokenDisplayDetails.chainName || 'chain'}
+                                                        fallbackName={transaction.tokenDisplayDetails.chainName || 'C'}
+                                                        sizeClass="h-3.5 w-3.5"
+                                                        className="rounded-full border-2 border-white dark:border-grey-4"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span>
+                                            {transaction.tokenDisplayDetails.tokenSymbol} on{' '}
+                                            {transaction.tokenDisplayDetails.chainName}
+                                        </span>
                                     </div>
-                                    <span>
-                                        {transaction.tokenDisplayDetails.tokenSymbol} on{' '}
-                                        {transaction.tokenDisplayDetails.chainName}
-                                    </span>
-                                </div>
+                                }
+                                hideBottomBorder={
+                                    !transaction.networkFeeDetails &&
+                                    !transaction.peanutFeeDetails &&
+                                    !transaction.explorerUrl
+                                }
+                            />
+                        )}
+
+                    {transaction.direction === 'add' && (
+                        <PaymentInfoRow
+                            label="Depositor Address"
+                            value={
+                                <span>
+                                    {shortenAddressLong(transaction.userName)}{' '}
+                                    <CopyToClipboard
+                                        className="inline"
+                                        textToCopy={transaction.userName}
+                                        iconSize="4"
+                                    />
+                                </span>
                             }
-                            hideBottomBorder={!transaction.networkFeeDetails && !transaction.peanutFeeDetails}
+                            hideBottomBorder={false}
+                        />
+                    )}
+
+                    {['add', 'withdraw'].includes(transaction.direction) && transaction.explorerUrl && (
+                        <PaymentInfoRow
+                            label="TX ID"
+                            value={
+                                <a href={transaction.explorerUrl} target="_blank" rel="noreferrer">
+                                    {shortenAddressLong(transaction.txHash)}{' '}
+                                    <Icon className="inline" name="external-link" size={16} />
+                                </a>
+                            }
+                            hideBottomBorder={false}
                         />
                     )}
 
