@@ -216,7 +216,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             nameForDetails = 'Bank Account'
             isPeerActuallyUser = false
             break
-        case EHistoryEntryType.BRIDGE_GUEST_OFFRAMP:
+        case EHistoryEntryType.BANK_SEND_LINK_CLAIM:
             direction = 'bank_claim'
             transactionCardType = 'bank_withdraw'
             nameForDetails = 'Claimed to Bank'
@@ -252,7 +252,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     if (
         entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
         entry.type === EHistoryEntryType.BRIDGE_ONRAMP ||
-        entry.type === EHistoryEntryType.BRIDGE_GUEST_OFFRAMP
+        entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM
     ) {
         switch (entry.status?.toUpperCase()) {
             case 'AWAITING_FUNDS':
@@ -369,7 +369,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         },
         sourceView: 'history',
         bankAccountDetails:
-            entry.type === EHistoryEntryType.BRIDGE_OFFRAMP || entry.type === EHistoryEntryType.BRIDGE_GUEST_OFFRAMP
+            entry.type === EHistoryEntryType.BRIDGE_OFFRAMP || entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM
                 ? {
                       identifier: entry.recipientAccount.identifier,
                       type: entry.recipientAccount.type,

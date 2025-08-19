@@ -120,7 +120,7 @@ export const TransactionDetailsReceipt = ({
 
     const isGuestBankClaim = useMemo(() => {
         if (!transaction) return false
-        return transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_GUEST_OFFRAMP
+        return transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BANK_SEND_LINK_CLAIM
     }, [transaction])
 
     const isPendingRequestee = useMemo(() => {
