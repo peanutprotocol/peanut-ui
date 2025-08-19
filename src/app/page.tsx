@@ -179,12 +179,7 @@ export default function LandingPage() {
 
     return (
         <Layout className="enable-select !m-0 w-full !p-0">
-            <Hero
-                heading={hero.heading}
-                primaryCta={hero.primaryCta}
-                buttonVisible={buttonVisible}
-                buttonScale={buttonScale}
-            />
+            <Hero primaryCta={hero.primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
             <Marquee {...marqueeProps} />
             <NoFees />
             <Marquee {...marqueeProps} />
