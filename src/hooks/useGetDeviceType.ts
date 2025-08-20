@@ -11,7 +11,7 @@ export enum DeviceType {
  * Used to get the user's device type
  * @returns {object} An object with the device type
  */
-export const getDeviceType = () => {
+export const useDeviceType = () => {
     const [deviceType, setDeviceType] = useState<DeviceType | null>(null)
 
     const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent)
