@@ -12,3 +12,4 @@ export { default as PeanutsBG } from './peanuts-bg.svg'
 export { default as Sparkle } from './sparkle.svg'
 export { default as Star } from './star.svg'
 export { default as LandingCountries } from './landing-countries.svg'
+export {default as ThinkingPeanut} from "./thinking_peanut.gif"

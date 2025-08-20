@@ -1,7 +1,7 @@
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import peanutWithGlassesAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_06.gif'
 import happyPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
-import { PEANUTMAN_MOBILE } from '@/assets'
+import { PEANUTMAN_MOBILE, ThinkingPeanut } from '@/assets'
 import { ISetupStep } from '@/components/Setup/Setup.types'
 import { InstallPWA, SetupPasskey, SignupStep, WelcomeStep, JoinBetaSetp } from '@/components/Setup/Views'
 
@@ -58,7 +58,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: 'How should we call you?',
         description: "Choose your username. It'll be your ID to send and receive money.",
-        image: chillPeanutAnim.src,
+        image: ThinkingPeanut.src,
         component: SignupStep,
         showBackButton: true,
         showSkipButton: false,
