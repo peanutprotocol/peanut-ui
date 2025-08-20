@@ -27,6 +27,7 @@ export type ScreenProps = {
     'pwa-install': undefined
     'android-initial-pwa-install': undefined
     'unsupported-browser': undefined
+    'join-beta': undefined
 }
 
 export interface StepComponentProps {
