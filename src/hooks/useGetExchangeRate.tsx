@@ -17,6 +17,8 @@ export default function useGetExchangeRate({ accountType }: IExchangeRate) {
     useEffect(() => {
         const fetchExchangeRate = async () => {
             setIsFetchingRate(true)
+            // reset previous value to avoid showing a stale rate for a new account type
+            setExchangeRate(null)
 
             if (accountType === AccountType.US) {
                 setExchangeRate('1')
@@ -29,6 +31,9 @@ export default function useGetExchangeRate({ accountType }: IExchangeRate) {
 
                 if (rateError) {
                     console.error('Failed to fetch exchange rate:', rateError)
+                    // set default rate to 1 for error cases
+                    setExchangeRate('1')
+                    return
                 }
 
                 if (data) {
