@@ -13,8 +13,9 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useSearchParams, useRouter } from 'next/navigation'
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
+import { twMerge } from 'tailwind-merge'
 
-export function NoFees() {
+export function NoFees({ isExchangePage = false }: { isExchangePage?: boolean }) {
     const searchParams = useSearchParams()
     const router = useRouter()
 
@@ -122,7 +123,12 @@ export function NoFees() {
     }, [destinationCurrency])
 
     return (
-        <section className="relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14">
+        <section
+            className={twMerge(
+                'relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14',
+                isExchangePage && 'flex h-screen w-screen flex-col items-center justify-center'
+            )}
+        >
             <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
                 {/* Animated clouds */}
                 <motion.img
@@ -141,7 +147,7 @@ export function NoFees() {
                 />
             </div>
 
-            <div className="relative mx-auto max-w-3xl text-center">
+            <div className="relative mx-auto w-full max-w-3xl text-center">
                 {/* Animated stars */}
                 <motion.img
                     src={Star.src}
