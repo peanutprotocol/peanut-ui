@@ -560,6 +560,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         selectedRoute,
         recipient.address,
         isValidRecipient,
+        hasFetchedRoute,
     ])
 
     const getButtonText = () => {
