@@ -339,7 +339,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     let addressExplorerUrl: string | undefined = undefined
     const baseUrl = getExplorerUrl(entry.chainId)
     if (baseUrl) {
-        addressExplorerUrl = `${baseUrl}/address/${entry.senderAccount?.identifier}`
+        if (entry.senderAccount?.identifier) {
+            addressExplorerUrl = `${baseUrl}/address/${entry.senderAccount.identifier}`
+        }
         if (entry.txHash && entry.chainId) {
             explorerUrlWithTx = `${baseUrl}/tx/${entry.txHash}`
         }
