@@ -36,7 +36,7 @@ import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
 import { IClaimScreenProps } from '../Claim.consts'
@@ -109,6 +109,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const { user } = useAuth()
     const queryClient = useQueryClient()
     const searchParams = useSearchParams()
+    const prevRecipientType = useRef<string | null>(null)
 
     const resetSelectedToken = useCallback(() => {
         if (isPeanutWallet) {
@@ -139,9 +140,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setIsXChain(true)
             }
         } else {
-            setSelectedChainID(claimLinkData.chainId)
-            setSelectedTokenAddress(claimLinkData.tokenAddress)
+            if (prevRecipientType.current === 'username') {
+                setSelectedChainID(claimLinkData.chainId)
+                setSelectedTokenAddress(claimLinkData.tokenAddress)
+            }
         }
+        prevRecipientType.current = recipientType
     }, [recipientType, claimLinkData.chainId, isPeanutChain, claimLinkData.tokenAddress])
 
     const handleClaimLink = useCallback(
@@ -583,7 +587,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     const handleClaimAction = () => {
-        if (isPeanutWallet && !isPeanutChain) {
+        if (claimToExternalWallet) {
+            if (isXChain) {
+                setRefetchXchainRoute(true)
+            }
+            onNext()
+        } else if (isPeanutWallet && !isPeanutChain) {
             setRefetchXchainRoute(true)
             onNext()
         } else if (recipientType === 'iban' || recipientType === 'us') {
@@ -600,9 +609,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8 ">
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
             {!!user?.user.userId || claimBankFlowStep || claimToExternalWallet ? (
-                <div className="md:hidden">
+                <div>
                     <NavHeader
                         title="Receive"
                         onPrev={() => {
