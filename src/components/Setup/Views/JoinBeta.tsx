@@ -15,6 +15,9 @@ const JoinBeta = () => {
 
     const validateUsername = (username: string) => {
         // Regex based on Telegram rules
+        // Length: 5–32 characters
+        // Characters allowed: a–z, 0–9, and underscores (_)
+        // Must not start with a number
         const regex = /^(?!\d)[a-zA-Z0-9_]{5,32}$/
         const res = regex.test(username)
         if (!res) {
@@ -26,7 +29,7 @@ const JoinBeta = () => {
     return (
         <>
             <div className="flex h-full flex-col justify-between gap-11 md:pt-5">
-                <div className="mb-auto w-full space-y-6">
+                <div className="mb-auto w-full space-y-3 md:space-y-6">
                     <BaseInput
                         value={telegramHandle}
                         onChange={(e) => setTelegramHandle(e.target.value)}
