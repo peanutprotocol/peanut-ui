@@ -192,6 +192,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 placeholder={placeholder}
                                 className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
                                 onBlur={async (e) => {
+                                    // remove any whitespace from the input field
+                                    // note: @dev not a great fix, this should also be fixed in the backend
+                                    if (typeof field.value === 'string') {
+                                        field.onChange(field.value.trim())
+                                    }
                                     field.onBlur()
                                     if (onBlur) {
                                         await onBlur(field)
