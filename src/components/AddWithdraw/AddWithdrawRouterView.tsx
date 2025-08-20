@@ -83,6 +83,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             return
         }
 
+        if (flow === 'add' && method.id === 'crypto') {
+            router.push('/add-money/crypto/direct')
+            return
+        }
+
         const newRecentMethod: RecentMethod = {
             id: method.id,
             type: method.type as 'crypto' | 'country',
