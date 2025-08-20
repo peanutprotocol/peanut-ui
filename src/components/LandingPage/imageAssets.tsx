@@ -21,7 +21,7 @@ const CloudAnimation = ({
     speed?: number
     startXOffset?: number
 }) => {
-    const imageWidth = 340 // Width of the cloud image (adjust as needed)
+    const imageWidth = 200 // Width of the cloud image (adjust as needed)
     const vpWidth = screenWidth || 1080
 
     // Total travel distance is screen width + image width + offset

@@ -4,8 +4,7 @@ import iphoneYourMoney3 from '@/assets/iphone-ss/iphone-your-money-3.png'
 import freeGlobalTransfers from '@/assets/illustrations/free-global-transfers.svg'
 import payAnyoneAnywhere from '@/assets/illustrations/pay-anyone-anywhere.svg'
 import getPaidWorldwide from '@/assets/illustrations/get-paid-worldwide.svg'
-import Image from 'next/image'
-import { LandingCountries } from '@/assets'
+
 import { Button } from '../0_Bruddle'
 
 interface Feature {
@@ -57,16 +56,18 @@ export function YourMoney() {
                         <br /> ANYWHERE
                     </h1>
 
-                    <h2 className="text-xl md:text-3xl">140+ countries · 50+ currencies · 0% fees</h2>
+                    <h2 className="font-roboto-flex text-lg md:text-4xl md:font-medium">
+                        140+ countries · 50+ currencies · 0% fees
+                    </h2>
 
-                    <p className="text-left text-base md:text-2xl">
+                    <p className="font-roboto-flex text-left text-xl font-light md:text-4xl md:font-normal">
                         Peanut turns the entire planet into one seamless wallet, moving funds in real time across the
                         world with zero hidden spreads or hoops to jump through.
                     </p>
                 </div>
 
                 <div className="relative w-full md:w-1/2">
-                    <Image src={LandingCountries} alt="countries" />
+                    <video src="/currencies.webm" autoPlay loop muted playsInline className="h-auto w-full" />
                     <a
                         href="/setup"
                         target="_blank"
