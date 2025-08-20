@@ -73,6 +73,13 @@ export function ConfirmBankClaimView({
                     <PaymentInfoRow label="Full name" value={displayedFullName} />
                     {bankDetails.iban && <PaymentInfoRow label="IBAN" value={bankDetails.iban.toUpperCase()} />}
                     {bankDetails.bic && <PaymentInfoRow label="BIC" value={bankDetails.bic.toUpperCase()} />}
+                    {bankDetails.clabe && <PaymentInfoRow label="CLABE" value={bankDetails.clabe.toUpperCase()} />}
+                    {bankDetails.accountNumber && (
+                        <PaymentInfoRow label="Account Number" value={bankDetails.accountNumber.toUpperCase()} />
+                    )}
+                    {bankDetails.routingNumber && (
+                        <PaymentInfoRow label="Routing Number" value={bankDetails.routingNumber.toUpperCase()} />
+                    )}
                     <ExchangeRate accountType={accountType} />
                     <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                 </Card>

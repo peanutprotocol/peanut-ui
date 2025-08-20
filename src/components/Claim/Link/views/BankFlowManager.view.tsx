@@ -113,7 +113,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
      * @name handleCreateOfframpAndClaim
      * @description creates an off-ramp transfer for the user, either as a guest or a logged-in user.
      */
-    const handleCreateOfframpAndClaim = async (account: IBankAccountDetails) => {
+    const handleCreateOfframpAndClaim = async (
+        account: IBankAccountDetails & { id?: string; bridgeAccountId?: string }
+    ) => {
         try {
             setLoadingState('Executing transaction')
             setError(null)
@@ -148,6 +150,12 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             const contractVersion = params.contractVersion
             const peanutContractAddress = peanut.getContractAddress(chainId, contractVersion) as Address
 
+            const externalAccountId = account?.bridgeAccountId ?? account?.id
+
+            if (!externalAccountId) throw new Error('External account ID not found')
+
+            const destination = getOfframpCurrencyConfig(account.country ?? selectedCountry!.id)
+
             // handle offramp request creation
             const offrampRequestParams: TCreateOfframpRequest = {
                 onBehalfOf: userForOfframp.bridgeCustomerId,
@@ -160,8 +168,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     fromAddress: peanutContractAddress,
                 },
                 destination: {
-                    ...getOfframpCurrencyConfig(account.country ?? selectedCountry!.id),
-                    externalAccountId: (account as any).bridgeAccountId ?? (account as any).id,
+                    ...destination,
+                    externalAccountId,
                 },
                 features: { allowAnyFromAddress: true },
             }
@@ -226,9 +234,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         ) {
             if (isProcessingKycSuccess) return {}
             setIsProcessingKycSuccess(true)
-            if (justCompletedKyc) {
-                setJustCompletedKyc(false)
-            }
+
             try {
                 const addBankAccountResponse = await addBankAccount(payload)
                 if (addBankAccountResponse.error) {
@@ -327,11 +333,14 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
      * @name handleKycSuccess
      * @description callback for when the KYC process is successfully completed.
      */
-    const handleKycSuccess = () => {
+    const handleKycSuccess = useCallback(async () => {
+        if (justCompletedKyc) return
+
         setIsKycModalOpen(false)
+        await fetchUser()
         setJustCompletedKyc(true)
         setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
-    }
+    }, [fetchUser, setClaimBankFlowStep, setIsKycModalOpen, setJustCompletedKyc, justCompletedKyc])
 
     // main render logic based on the current flow step
     switch (claimBankFlowStep) {
