@@ -21,6 +21,7 @@ const setupSlice = createSlice({
         },
         resetSetup: (state) => {
             state.username = ''
+            state.telegramHandle = ''
             state.currentStep = 1
             state.direction = 0
             state.isLoading = false

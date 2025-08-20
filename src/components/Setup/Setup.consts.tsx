@@ -3,7 +3,7 @@ import peanutWithGlassesAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALP
 import happyPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
 import { PEANUTMAN_MOBILE, ThinkingPeanut } from '@/assets'
 import { ISetupStep } from '@/components/Setup/Setup.types'
-import { InstallPWA, SetupPasskey, SignupStep, WelcomeStep, JoinBetaSetp } from '@/components/Setup/Views'
+import { InstallPWA, SetupPasskey, SignupStep, WelcomeStep, JoinBetaStep } from '@/components/Setup/Views'
 
 export const setupSteps: ISetupStep[] = [
     {
@@ -70,7 +70,7 @@ export const setupSteps: ISetupStep[] = [
         title: 'In for the beta program?',
         description: 'We’ll occasionally DM you on Telegram for feedback and early features.',
         image: peanutWithGlassesAnim.src,
-        component: JoinBetaSetp,
+        component: JoinBetaStep,
         showBackButton: true,
         showSkipButton: false,
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
