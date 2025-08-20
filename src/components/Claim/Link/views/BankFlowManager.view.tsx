@@ -234,9 +234,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         ) {
             if (isProcessingKycSuccess) return {}
             setIsProcessingKycSuccess(true)
-            if (justCompletedKyc) {
-                setJustCompletedKyc(false)
-            }
+
             try {
                 const addBankAccountResponse = await addBankAccount(payload)
                 if (addBankAccountResponse.error) {
@@ -335,11 +333,14 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
      * @name handleKycSuccess
      * @description callback for when the KYC process is successfully completed.
      */
-    const handleKycSuccess = () => {
+    const handleKycSuccess = useCallback(async () => {
+        if (justCompletedKyc) return
+
         setIsKycModalOpen(false)
+        await fetchUser()
         setJustCompletedKyc(true)
         setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
-    }
+    }, [fetchUser, setClaimBankFlowStep, setIsKycModalOpen, setJustCompletedKyc, justCompletedKyc])
 
     // main render logic based on the current flow step
     switch (claimBankFlowStep) {
