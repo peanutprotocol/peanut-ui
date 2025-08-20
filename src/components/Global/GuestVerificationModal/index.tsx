@@ -1,3 +1,5 @@
+'use client'
+
 import { saveRedirectUrl } from '@/utils/general.utils'
 import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'

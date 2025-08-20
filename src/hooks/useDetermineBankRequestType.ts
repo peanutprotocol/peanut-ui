@@ -1,6 +1,6 @@
 import { getUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
-import { useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
+import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { useEffect, useState } from 'react'
 
 export enum BankRequestType {
@@ -21,7 +21,7 @@ export function useDetermineBankRequestType(requesterUserId: string): {
 } {
     const { user } = useAuth()
     const [requestType, setRequestType] = useState<BankRequestType>(BankRequestType.PayerKycNeeded)
-    const { setRequesterDetails } = useRequestFulfilmentFlow()
+    const { setRequesterDetails } = useRequestFulfillmentFlow()
 
     useEffect(() => {
         const determineBankRequestType = async () => {

@@ -13,7 +13,7 @@ import { CountryData } from '@/components/AddMoney/consts'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useCallback, useMemo } from 'react'
-import { RequestFulfilmentBankFlowStep, useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
+import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { usePaymentStore } from '@/redux/hooks'
 import { useAuth } from '@/context/authContext'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
@@ -47,7 +47,7 @@ export const CountryListRouter = ({
         setShowRequestFulfilmentBankFlowManager,
         setSelectedCountry: setSelectedCountryForRequest,
         setShowVerificationModal,
-    } = useRequestFulfilmentFlow()
+    } = useRequestFulfillmentFlow()
     const savedAccounts = useSavedAccounts()
     const { chargeDetails } = usePaymentStore()
     const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
@@ -62,12 +62,12 @@ export const CountryListRouter = ({
 
             if (requestType === BankRequestType.PayerKycNeeded) {
                 if (user && (!user.user.fullName || !user.user.email)) {
-                    setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.CollectUserDetails)
+                    setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.CollectUserDetails)
                 } else {
                     setShowVerificationModal(true)
                 }
             } else {
-                setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.OnrampConfirmation)
+                setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.OnrampConfirmation)
             }
         }
     }

@@ -2,7 +2,7 @@ import { BINANCE_LOGO, LEMON_LOGO, RIPIO_LOGO } from '@/assets'
 import { METAMASK_LOGO, RAINBOW_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import { Method, MethodCard } from '@/components/Common/ActionList'
 import NavHeader from '@/components/Global/NavHeader'
-import { ExternalWalletFulfilMethod, useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
+import { ExternalWalletFulfilMethod, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 
 const methods: Method[] = [
     {
@@ -22,7 +22,7 @@ const methods: Method[] = [
 ]
 
 export default function ExternalWalletFulfilMethods({ onBack }: { onBack: () => void }) {
-    const { setExternalWalletFulfilMethod } = useRequestFulfilmentFlow()
+    const { setExternalWalletFulfilMethod } = useRequestFulfillmentFlow()
 
     return (
         <div className="flex h-full min-h-[inherit] w-full flex-1 flex-col justify-start gap-4">

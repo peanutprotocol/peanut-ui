@@ -46,13 +46,13 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
                     },
                 }),
             })
-            const responseData = await response.json()
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
 
-            return responseData
+            const onrampData = await response.json()
+            return onrampData
         } catch (error) {
             console.error('Error creating onramp:', error)
             setError('Failed to create bank transfer. Please try again.')
