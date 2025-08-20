@@ -63,7 +63,7 @@ export const ConfirmClaimLinkView = ({
         if (!selectedRoute || !resolvedTokenSymbol) return ''
         const amount = formatUnits(
             BigInt(selectedRoute.rawResponse.route.estimate.toAmountMin),
-            claimLinkData.tokenDecimals
+            selectedRoute.rawResponse.route.estimate.toToken.decimals
         )
         return isStableCoin(resolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${resolvedTokenSymbol}`
     }, [selectedRoute, resolvedTokenSymbol, claimLinkData])
@@ -208,7 +208,7 @@ export const ConfirmClaimLinkView = ({
                     shadowSize="4"
                     onClick={handleOnClaim}
                     disabled={isLoading || (isXChain && !selectedRoute)}
-                    loading={isLoading}
+                    loading={isLoading || (isXChain && !selectedRoute)}
                 >
                     Receive now
                 </Button>
