@@ -527,7 +527,7 @@ export const PaymentForm = ({
                     chargeDetails: chargeDetails,
                     txHash: daimoPaymentResponse.txHash as string,
                     sourceChainId: daimoPaymentResponse.payment.source.chainId,
-                    payerAddress: '0x440625190B841f928b06E16C36F8502a164d26Ea', //daimoPaymentResponse.payment.source.payerAddress,
+                    payerAddress: daimoPaymentResponse.payment.source.payerAddress,
                 })
 
                 if (result.status === 'Success') {
@@ -598,7 +598,6 @@ export const PaymentForm = ({
                     toAddress={getAddress(recipient.resolvedAddress)}
                     toToken={getAddress(PEANUT_WALLET_TOKEN)} // USDC on arbitrum
                     onPaymentCompleted={(e) => {
-                        console.log('Payment completed! calling handleCompleteDaimoPayment')
                         handleCompleteDaimoPayment(e)
                     }}
                     closeOnSuccess
