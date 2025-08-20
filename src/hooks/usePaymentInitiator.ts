@@ -752,11 +752,8 @@ export const usePaymentInitiator = () => {
             console.log('handleDaimoPayment', payload)
             let determinedChargeDetails: TRequestChargeResponse | null = null
             let chargeCreated = false
-
-            console.log('first')
-
             const { chargeDetails, chargeCreated: created } = await determineChargeDetails(payload)
-            console.log('second')
+
             determinedChargeDetails = chargeDetails
             chargeCreated = created
             console.log('Proceeding with charge details:', determinedChargeDetails.uuid)
@@ -805,6 +802,7 @@ export const usePaymentInitiator = () => {
         isProcessing,
         isPreparingTx,
         loadingStep,
+        setLoadingStep,
         error,
         activeChargeDetails,
         transactionHash,

@@ -32,7 +32,7 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, ErrorHandler, formatAmount } from '@/utils'
-import { DaimoPayButton } from '@daimo/pay'
+import { DaimoPayButton, useDaimoPayUI } from '@daimo/pay'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -90,11 +90,13 @@ export const PaymentForm = ({
     const [usdValue, setUsdValue] = useState<string>('')
     const [requestedTokenPrice, setRequestedTokenPrice] = useState<number>(0)
     const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
+    const { resetPayment } = useDaimoPayUI()
 
     const {
         initiatePayment,
         isProcessing,
         error: initiatorError,
+        setLoadingStep,
         initiateDaimoPayment,
         completeDaimoPayment,
     } = usePaymentInitiator()
@@ -498,29 +500,49 @@ export const PaymentForm = ({
         } else {
             console.warn('Unexpected status from usePaymentInitiator:', result.status)
         }
-    }, [])
+    }, [
+        inputTokenAmount,
+        dispatch,
+        inputUsdValue,
+        chargeDetails,
+        requestDetails,
+        requestedTokenPrice,
+        selectedChainID,
+        selectedTokenAddress,
+        recipient,
+        requestId,
+        currency,
+        currencyAmount,
+        isAddMoneyFlow,
+        isDirectUsdPayment,
+        attachmentOptions,
+        initiateDaimoPayment,
+    ])
 
-    const handleCompleteDaimoPayment = useCallback(async (daimoPaymentResponse: any) => {
-        console.log('handleCompleteDaimoPayment called')
-        if (chargeDetails) {
-            const result = await completeDaimoPayment({
-                chargeDetails: chargeDetails,
-                txHash: daimoPaymentResponse.txHash as string,
-                sourceChainId: daimoPaymentResponse.payment.source.chainId,
-                payerAddress: '0x440625190B841f928b06E16C36F8502a164d26Ea', //daimoPaymentResponse.payment.source.payerAddress,
-            })
+    const handleCompleteDaimoPayment = useCallback(
+        async (daimoPaymentResponse: any) => {
+            console.log('handleCompleteDaimoPayment called')
+            if (chargeDetails) {
+                const result = await completeDaimoPayment({
+                    chargeDetails: chargeDetails,
+                    txHash: daimoPaymentResponse.txHash as string,
+                    sourceChainId: daimoPaymentResponse.payment.source.chainId,
+                    payerAddress: '0x440625190B841f928b06E16C36F8502a164d26Ea', //daimoPaymentResponse.payment.source.payerAddress,
+                })
 
-            if (result.status === 'Success') {
-                dispatch(paymentActions.setView('STATUS'))
-            } else if (result.status === 'Charge Created') {
-                dispatch(paymentActions.setView('CONFIRM'))
-            } else if (result.status === 'Error') {
-                console.error('Payment initiation failed:', result.error)
-            } else {
-                console.warn('Unexpected status from usePaymentInitiator:', result.status)
+                if (result.status === 'Success') {
+                    dispatch(paymentActions.setView('STATUS'))
+                } else if (result.status === 'Charge Created') {
+                    dispatch(paymentActions.setView('CONFIRM'))
+                } else if (result.status === 'Error') {
+                    console.error('Payment initiation failed:', result.error)
+                } else {
+                    console.warn('Unexpected status from usePaymentInitiator:', result.status)
+                }
             }
-        }
-    }, [])
+        },
+        [chargeDetails, completeDaimoPayment, dispatch]
+    )
 
     const getButtonText = () => {
         if (!isExternalWalletConnected && isAddMoneyFlow) {
@@ -551,10 +573,16 @@ export const PaymentForm = ({
     }
 
     const guestAction = () => {
-        if (isConnected || user) return null
+        if (isPeanutWalletConnected || user) return null
         return (
             <div className="space-y-4">
-                <Button variant="purple" shadowSize="4" onClick={() => router.push('/setup')} className="w-full">
+                <Button
+                    disabled={isProcessing}
+                    variant="purple"
+                    shadowSize="4"
+                    onClick={() => router.push('/setup')}
+                    className="w-full"
+                >
                     Sign In
                 </Button>
                 <DaimoPayButton.Custom
@@ -574,13 +602,20 @@ export const PaymentForm = ({
                         handleCompleteDaimoPayment(e)
                     }}
                     closeOnSuccess
+                    onClose={() => {
+                        setLoadingStep('Idle')
+                    }}
                 >
                     {({ show }) => (
                         <Button
+                            loading={isProcessing}
                             variant="primary-soft"
                             shadowSize="4"
                             onClick={async () => {
                                 await handleInitiateDaimoPayment()
+                                await resetPayment({
+                                    toUnits: inputTokenAmount.replace(/,/g, ''),
+                                })
                                 show()
                             }}
                             className="w-full"
@@ -772,7 +807,8 @@ export const PaymentForm = ({
                     select a token if it's not included in the url
                     From other wallets we always need to select a token
                 */}
-                {!(chain && isPeanutWalletConnected) && isConnected && !isAddMoneyFlow && (
+                {/* we dont need this as daimo will handle token selection */}
+                {/* {!(chain && isPeanutWalletConnected) && isConnected && !isAddMoneyFlow && (
                     <div className="space-y-2">
                         {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
                             <div className="text-sm font-bold">Select token and chain to receive</div>
@@ -784,11 +820,11 @@ export const PaymentForm = ({
                             </div>
                         )}
                     </div>
-                )}
+                )} */}
 
-                {isExternalWalletConnected && isAddMoneyFlow && (
+                {/* {isExternalWalletConnected && isAddMoneyFlow && (
                     <TokenSelector viewType="add" disabled={!isExternalWalletConnected && isAddMoneyFlow} />
-                )}
+                )} */}
 
                 {isDirectUsdPayment && (
                     <FileUploadInput
@@ -801,7 +837,7 @@ export const PaymentForm = ({
 
                 <div className="space-y-4">
                     {guestAction()}
-                    {isConnected && (!error || isInsufficientBalanceError) && (
+                    {isPeanutWalletConnected && (!error || isInsufficientBalanceError) && (
                         <Button
                             variant="purple"
                             loading={isProcessing}
@@ -815,7 +851,7 @@ export const PaymentForm = ({
                             {getButtonText()}
                         </Button>
                     )}
-                    {isConnected && error && !isInsufficientBalanceError && (
+                    {isPeanutWalletConnected && error && !isInsufficientBalanceError && (
                         <Button
                             variant="purple"
                             loading={isProcessing}
