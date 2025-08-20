@@ -12,7 +12,7 @@ import React from 'react'
 import AddressLink from '../Global/AddressLink'
 import { STABLE_COINS } from '@/constants'
 import Image from 'next/image'
-import StatusPill, { TStatusPillType } from '../Global/StatusPill'
+import StatusPill, { StatusPillType } from '../Global/StatusPill'
 
 export type TransactionType =
     | 'send'
@@ -29,7 +29,7 @@ interface TransactionCardProps {
     type: TransactionType
     name: string
     amount: number // For USD, this amount might come signed from mapTransactionDataForDrawer
-    status?: TStatusPillType
+    status?: StatusPillType
     initials?: string
     position?: CardPosition
     transaction: TransactionDetails

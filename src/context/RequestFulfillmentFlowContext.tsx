@@ -7,14 +7,14 @@ import { User } from '@/interfaces'
 
 export type ExternalWalletFulfilMethod = 'exchange' | 'wallet'
 
-export enum RequestFulfilmentBankFlowStep {
+export enum RequestFulfillmentBankFlowStep {
     BankCountryList = 'bank-country-list',
     DepositBankDetails = 'deposit-bank-details',
     OnrampConfirmation = 'onramp-confirmation',
     CollectUserDetails = 'collect-user-details',
 }
 
-interface RequestFulfilmentFlowContextType {
+interface RequestFulfillmentFlowContextType {
     resetFlow: () => void
     showExternalWalletFulfilMethods: boolean
     setShowExternalWalletFulfilMethods: (showExternalWalletFulfilMethods: boolean) => void
@@ -22,8 +22,8 @@ interface RequestFulfilmentFlowContextType {
     setShowRequestFulfilmentBankFlowManager: (showRequestFulfilmentBankFlowManager: boolean) => void
     externalWalletFulfilMethod: ExternalWalletFulfilMethod | null
     setExternalWalletFulfilMethod: (externalWalletFulfilMethod: ExternalWalletFulfilMethod | null) => void
-    flowStep: RequestFulfilmentBankFlowStep | null
-    setFlowStep: (step: RequestFulfilmentBankFlowStep | null) => void
+    flowStep: RequestFulfillmentBankFlowStep | null
+    setFlowStep: (step: RequestFulfillmentBankFlowStep | null) => void
     selectedCountry: CountryData | null
     setSelectedCountry: (country: CountryData | null) => void
     onrampData: IOnrampData | null
@@ -34,7 +34,7 @@ interface RequestFulfilmentFlowContextType {
     setRequesterDetails: (details: User | null) => void
 }
 
-const RequestFulfilmentFlowContext = createContext<RequestFulfilmentFlowContextType | undefined>(undefined)
+const RequestFulfillmentFlowContext = createContext<RequestFulfillmentFlowContextType | undefined>(undefined)
 
 export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [showExternalWalletFulfilMethods, setShowExternalWalletFulfilMethods] = useState(false)
@@ -42,7 +42,7 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
         null
     )
     const [showRequestFulfilmentBankFlowManager, setShowRequestFulfilmentBankFlowManager] = useState(false)
-    const [flowStep, setFlowStep] = useState<RequestFulfilmentBankFlowStep | null>(null)
+    const [flowStep, setFlowStep] = useState<RequestFulfillmentBankFlowStep | null>(null)
     const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(null)
     const [onrampData, setOnrampData] = useState<IOnrampData | null>(null)
     const [showVerificationModal, setShowVerificationModal] = useState(false)
@@ -93,16 +93,16 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
     )
 
     return (
-        <RequestFulfilmentFlowContext.Provider value={value as RequestFulfilmentFlowContextType}>
+        <RequestFulfillmentFlowContext.Provider value={value as RequestFulfillmentFlowContextType}>
             {children}
-        </RequestFulfilmentFlowContext.Provider>
+        </RequestFulfillmentFlowContext.Provider>
     )
 }
 
-export const useRequestFulfilmentFlow = (): RequestFulfilmentFlowContextType => {
-    const context = useContext(RequestFulfilmentFlowContext)
+export const useRequestFulfillmentFlow = (): RequestFulfillmentFlowContextType => {
+    const context = useContext(RequestFulfillmentFlowContext)
     if (context === undefined) {
-        throw new Error('useRequestFulfilmentFlow must be used within a RequestFulfilmentFlowContextProvider')
+        throw new Error('useRequestFulfillmentFlow must be used within a RequestFulfilmentFlowContextProvider')
     }
     return context
 }

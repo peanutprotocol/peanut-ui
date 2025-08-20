@@ -1217,3 +1217,7 @@ export function isTxReverted(receipt: TransactionReceipt): boolean {
     if (receipt.status === 'reverted') return true
     return receipt.logs.some((log) => log.topics[0] === USER_OPERATION_REVERT_REASON_TOPIC)
 }
+
+export function checkIfInternalNavigation(): boolean {
+    return !!document.referrer && new URL(document.referrer).origin === window.location.origin
+}

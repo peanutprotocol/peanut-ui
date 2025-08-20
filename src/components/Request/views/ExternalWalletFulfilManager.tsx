@@ -1,4 +1,4 @@
-import { useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
+import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import ExternalWalletFulfilMethods from './ExternalWalletFulfilMethods'
 import AddMoneyCryptoPage from '@/app/(mobile-ui)/add-money/crypto/page'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
@@ -13,7 +13,7 @@ export default function ExternalWalletFulfilManager({ parsedPaymentData }: { par
         externalWalletFulfilMethod,
         setExternalWalletFulfilMethod,
         setShowExternalWalletFulfilMethods,
-    } = useRequestFulfilmentFlow()
+    } = useRequestFulfillmentFlow()
     const { currentView } = usePaymentStore()
 
     if (externalWalletFulfilMethod === 'wallet') {

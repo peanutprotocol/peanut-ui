@@ -20,7 +20,7 @@ import { useRouter } from 'next/navigation'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
-import { RequestFulfilmentBankFlowStep, useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
+import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
@@ -83,14 +83,15 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const { chargeDetails } = usePaymentStore()
-    const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
+    const requesterUserId = chargeDetails?.requestLink?.recipientAccount?.userId ?? ''
+    const { requestType } = useDetermineBankRequestType(requesterUserId)
     const savedAccounts = useSavedAccounts()
     const { usdAmount } = usePaymentStore()
     const {
         setShowRequestFulfilmentBankFlowManager,
         setShowExternalWalletFulfilMethods,
         setFlowStep: setRequestFulfilmentBankFlowStep,
-    } = useRequestFulfilmentFlow()
+    } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
 
     const handleMethodClick = async (method: Method) => {
@@ -132,7 +133,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                         setIsGuestVerificationModalOpen(true)
                     } else {
                         setShowRequestFulfilmentBankFlowManager(true)
-                        setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.BankCountryList)
+                        setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
                     }
                     break
                 case 'mercadopago':

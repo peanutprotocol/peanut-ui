@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/authContext'
 import { CountryListRouter } from '@/components/Common/CountryListRouter'
-import { RequestFulfilmentBankFlowStep, useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
+import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
@@ -49,7 +49,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
         showVerificationModal,
         setShowVerificationModal,
         resetFlow,
-    } = useRequestFulfilmentFlow()
+    } = useRequestFulfillmentFlow()
 
     useEffect(() => {
         if (showVerificationModal) {
@@ -84,22 +84,22 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
                 onrampDataResponse.data.transferId
             ) {
                 setOnrampData(onrampDataResponse.data)
-                setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.DepositBankDetails)
+                setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.DepositBankDetails)
             } else if (onrampDataResponse.transferId) {
                 setOnrampData(onrampDataResponse)
-                setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.DepositBankDetails)
+                setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.DepositBankDetails)
             } else {
                 console.error('Onramp creation response issue:', onrampDataResponse)
-                setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.BankCountryList)
+                setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
             }
         } catch (error) {
             console.error('Failed to create onramp', error)
-            setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.BankCountryList)
+            setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
         }
     }
     const handleKycSuccess = () => {
         setShowVerificationModal(false)
-        setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.BankCountryList)
+        setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
         fetchUser()
     }
 
@@ -150,7 +150,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
                 onKycSuccess={handleKycSuccess}
                 onManualClose={() => {
                     setShowVerificationModal(false)
-                    setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.BankCountryList)
+                    setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
                 }}
                 flow="request_fulfillment"
             />
@@ -158,7 +158,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
     }
 
     switch (requestFulfilmentBankFlowStep) {
-        case RequestFulfilmentBankFlowStep.BankCountryList:
+        case RequestFulfillmentBankFlowStep.BankCountryList:
             return (
                 <CountryListRouter
                     flow="request"
@@ -166,26 +166,26 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
                     inputTitle="Which country do you want to receive to?"
                 />
             )
-        case RequestFulfilmentBankFlowStep.OnrampConfirmation:
+        case RequestFulfillmentBankFlowStep.OnrampConfirmation:
             return (
                 <OnrampConfirmationModal
                     visible={true}
                     onClose={() => {
-                        setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.BankCountryList)
+                        setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
                     }}
                     onConfirm={() => {
                         handleOnrampConfirmation()
                     }}
                 />
             )
-        case RequestFulfilmentBankFlowStep.DepositBankDetails:
+        case RequestFulfillmentBankFlowStep.DepositBankDetails:
             return <AddMoneyBankDetails flow="request-fulfillment" />
 
-        case RequestFulfilmentBankFlowStep.CollectUserDetails:
+        case RequestFulfillmentBankFlowStep.CollectUserDetails:
             return (
                 <div className="flex flex-col justify-start space-y-8">
                     <NavHeader
-                        onPrev={() => setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.BankCountryList)}
+                        onPrev={() => setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)}
                         title="Identity Verification"
                     />
                     <div className="flex flex-grow flex-col justify-center space-y-4">

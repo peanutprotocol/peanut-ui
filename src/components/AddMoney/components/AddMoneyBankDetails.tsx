@@ -14,7 +14,7 @@ import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import Icon from '@/components/Global/Icon'
 import { getCurrencyConfig, getCurrencySymbol, getOnrampCurrencyConfig } from '@/utils/bridge.utils'
-import { RequestFulfilmentBankFlowStep, useRequestFulfilmentFlow } from '@/context/RequestFulfilmentFlowContext'
+import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { usePaymentStore } from '@/redux/hooks'
 import { formatAmount, printableAddress } from '@/utils'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
@@ -40,7 +40,7 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
         setFlowStep: setRequestFulfilmentBankFlowStep,
         onrampData: requestFulfilmentOnrampData,
         selectedCountry: requestFulfilmentSelectedCountry,
-    } = useRequestFulfilmentFlow()
+    } = useRequestFulfillmentFlow()
     const { chargeDetails } = usePaymentStore()
 
     // hooks
@@ -152,7 +152,7 @@ Please use these details to complete your bank transfer.`
         if (isAddMoneyFlow) {
             router.back()
         } else {
-            setRequestFulfilmentBankFlowStep(RequestFulfilmentBankFlowStep.BankCountryList)
+            setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
         }
     }
 

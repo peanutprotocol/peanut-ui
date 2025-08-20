@@ -10,7 +10,7 @@ import {
 } from '@/utils/color.utils'
 import React from 'react'
 import { isAddress } from 'viem'
-import { TStatusPillType } from '../Global/StatusPill'
+import { StatusPillType } from '../Global/StatusPill'
 
 interface TransactionAvatarBadgeProps {
     size?: AvatarSize
@@ -20,7 +20,7 @@ interface TransactionAvatarBadgeProps {
     isVerified?: boolean
     transactionType: TransactionType
     context: 'card' | 'header' | 'drawer'
-    status?: TStatusPillType
+    status?: StatusPillType
 }
 
 /**

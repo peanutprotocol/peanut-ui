@@ -1,5 +1,4 @@
 import { ButterySmoothGlobalMoney, PeanutGuyGIF, Sparkle } from '@/assets'
-import { Stack } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -14,7 +13,6 @@ type CTAButton = {
 }
 
 type HeroProps = {
-    heading: string
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
@@ -47,7 +45,7 @@ const getHoverAnimation = (variant: 'primary' | 'secondary') => ({
 const transitionConfig = { type: 'spring', damping: 15 } as const
 
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
-    `relative z-20 mt-8 md:mt-12 ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
+    `relative z-20 mt-8 md:mt-12 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
 const getButtonClasses = (variant: 'primary' | 'secondary') =>
     `${variant === 'primary' ? 'btn bg-white fill-n-1 text-n-1 hover:bg-white/90' : 'btn-yellow'} px-7 md:px-9 py-3 md:py-8 text-base md:text-xl btn-shadow-primary-4`
@@ -99,26 +97,19 @@ const renderArrows = (variant: 'primary' | 'secondary', arrowOpacity: number, bu
         </>
     )
 
-export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
+export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
-    const [scrollY, setScrollY] = useState(0)
 
     useEffect(() => {
         const handleResize = () => {
             setScreenWidth(window.innerWidth)
         }
 
-        const handleScroll = () => {
-            setScrollY(window.scrollY)
-        }
-
         handleResize()
         window.addEventListener('resize', handleResize)
-        window.addEventListener('scroll', handleScroll)
 
         return () => {
             window.removeEventListener('resize', handleResize)
-            window.removeEventListener('scroll', handleScroll)
         }
     }, [])
 
@@ -148,7 +139,7 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
                     </Button>
                 </a>
 
-                <p className="font-roboto-flex-bold mt-2 text-xs italic text-n-1 md:text-sm">Takes 10 seconds</p>
+                <p className="mx-auto mt-2 text-xs italic text-n-1 md:text-sm">Takes 10 seconds</p>
 
                 {renderArrows(variant, arrowOpacity, buttonVisible)}
             </motion.div>
@@ -156,45 +147,37 @@ export function Hero({ heading, primaryCta, secondaryCta, buttonVisible, buttonS
     }
 
     return (
-        <div className="relative flex h-[90vh] flex-col justify-between overflow-x-hidden overflow-y-hidden bg-primary-1">
+        <section className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 py-4 xl:h-fit xl:justify-center">
             <CloudImages screenWidth={screenWidth} />
-
-            <div className="relative mb-8 mt-0 flex grow flex-col justify-between space-y-6 md:mb-10 md:mt-4">
+            <div className="relative mt-10 w-full md:mt-0">
                 <img
-                    src={PeanutGuyGIF.src}
-                    className="mg:bottom-0 absolute bottom-[55%] left-1/2 z-10 mx-auto h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 translate-y-1/2 transform object-contain"
-                    alt="Peanut Guy"
+                    src={ButterySmoothGlobalMoney.src}
+                    className="z-0 mx-auto w-full max-w-[1000px] object-contain md:w-[50%]"
+                    alt="Buttery Smooth Global Money"
                 />
 
-                <Stack spacing={2} className="relative h-1/3 items-center justify-center px-4 text-center lg:h-full">
-                    <img
-                        src={ButterySmoothGlobalMoney.src}
-                        className="z-0 mx-auto w-full max-w-[1000px] object-contain md:w-[50%]"
-                        alt="Buttery Smooth Global Money"
-                    />
-
-                    <HeroImages />
-                </Stack>
-
-                <Stack spacing={2} className="relative h-1/3 items-center justify-center px-4 text-center lg:h-full">
-                    <div className="mt-8 md:mt-12 lg:mt-6">
-                        <h2 className="font-roboto-flex-extrabold text-[2.375rem] font-extraBlack text-black md:text-heading">
-                            INSTANTLY SEND & RECEIVE
-                        </h2>
-                        <span
-                            className="mt-2 block text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
-                            style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
-                        >
-                            MONEY ACROSS THE GLOBE
-                        </span>
-                    </div>
-
-                    {primaryCta && renderCTAButton(primaryCta, 'primary')}
-                    {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
-
-                    <HeroImages />
-                </Stack>
+                <HeroImages />
             </div>
-        </div>
+            <img
+                src={PeanutGuyGIF.src}
+                className="mg:bottom-0 absolute bottom-[55%] left-1/2 z-10 mx-auto h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 translate-y-1/2 transform object-contain"
+                alt="Peanut Guy"
+            />
+
+            <div className="relative mb-4 flex w-full flex-col items-center justify-center md:mb-0">
+                <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
+                    INSTANTLY SEND & RECEIVE
+                </h2>
+                <span
+                    className="mt-2 block text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
+                    style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
+                >
+                    MONEY ACROSS THE GLOBE
+                </span>
+                {primaryCta && renderCTAButton(primaryCta, 'primary')}
+                {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
+                <HeroImages />
+            </div>
+        </section>
     )
 }
