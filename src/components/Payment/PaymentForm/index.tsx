@@ -32,10 +32,12 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, ErrorHandler, formatAmount } from '@/utils'
+import { DaimoPayButton } from '@daimo/pay'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { formatUnits } from 'viem'
+import { formatUnits, getAddress } from 'viem'
+import { arbitrum } from 'viem/chains'
 import { useAccount } from 'wagmi'
 
 export type PaymentFlowProps = {
@@ -89,7 +91,13 @@ export const PaymentForm = ({
     const [requestedTokenPrice, setRequestedTokenPrice] = useState<number>(0)
     const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
 
-    const { initiatePayment, isProcessing, error: initiatorError } = usePaymentInitiator()
+    const {
+        initiatePayment,
+        isProcessing,
+        error: initiatorError,
+        initiateDaimoPayment,
+        completeDaimoPayment,
+    } = usePaymentInitiator()
 
     const peanutWalletBalance = useMemo(() => {
         return balance !== undefined ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
@@ -440,6 +448,80 @@ export const PaymentForm = ({
         requestedTokenPrice,
     ])
 
+    const handleInitiateDaimoPayment = useCallback(async () => {
+        if (!inputTokenAmount || parseFloat(inputTokenAmount) <= 0) {
+            console.error('Invalid amount entered')
+            dispatch(paymentActions.setError('Please enter a valid amount'))
+            return
+        }
+
+        if (inputUsdValue && parseFloat(inputUsdValue) > 0) {
+            dispatch(paymentActions.setUsdAmount(inputUsdValue))
+        }
+
+        // clear error state
+        dispatch(paymentActions.setError(null))
+
+        const requestedToken = chargeDetails?.tokenAddress ?? requestDetails?.tokenAddress
+        const requestedChain = chargeDetails?.chainId ?? requestDetails?.chainId
+
+        let tokenAmount = inputTokenAmount
+        if (
+            requestedToken &&
+            requestedTokenPrice &&
+            (requestedChain !== selectedChainID || !areEvmAddressesEqual(requestedToken, selectedTokenAddress))
+        ) {
+            tokenAmount = (parseFloat(inputUsdValue) / requestedTokenPrice).toString()
+        }
+
+        const payload: InitiatePaymentPayload = {
+            recipient: recipient,
+            tokenAmount,
+            isPintaReq: false, // explicitly set to false for non-PINTA requests
+            requestId: requestId ?? undefined,
+            chargeId: chargeDetails?.uuid,
+            currency,
+            currencyAmount,
+            isAddMoneyFlow: !!isAddMoneyFlow,
+            transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectUsdPayment || !requestId ? 'DIRECT_SEND' : 'REQUEST',
+            attachmentOptions: attachmentOptions,
+        }
+
+        console.log('Initiating Daimo payment', payload)
+
+        const result = await initiateDaimoPayment(payload)
+
+        if (result.status === 'Charge Created') {
+            console.log('Charge created!!')
+        } else if (result.status === 'Error') {
+            console.error('Payment initiation failed:', result)
+        } else {
+            console.warn('Unexpected status from usePaymentInitiator:', result.status)
+        }
+    }, [])
+
+    const handleCompleteDaimoPayment = useCallback(async (daimoPaymentResponse: any) => {
+        console.log('handleCompleteDaimoPayment called')
+        if (chargeDetails) {
+            const result = await completeDaimoPayment({
+                chargeDetails: chargeDetails,
+                txHash: daimoPaymentResponse.txHash as string,
+                sourceChainId: daimoPaymentResponse.payment.source.chainId,
+                payerAddress: '0x440625190B841f928b06E16C36F8502a164d26Ea', //daimoPaymentResponse.payment.source.payerAddress,
+            })
+
+            if (result.status === 'Success') {
+                dispatch(paymentActions.setView('STATUS'))
+            } else if (result.status === 'Charge Created') {
+                dispatch(paymentActions.setView('CONFIRM'))
+            } else if (result.status === 'Error') {
+                console.error('Payment initiation failed:', result.error)
+            } else {
+                console.warn('Unexpected status from usePaymentInitiator:', result.status)
+            }
+        }
+    }, [])
+
     const getButtonText = () => {
         if (!isExternalWalletConnected && isAddMoneyFlow) {
             return 'Connect Wallet'
@@ -475,9 +557,38 @@ export const PaymentForm = ({
                 <Button variant="purple" shadowSize="4" onClick={() => router.push('/setup')} className="w-full">
                     Sign In
                 </Button>
-                <Button variant="primary-soft" shadowSize="4" onClick={() => openReownModal()} className="w-full">
-                    Connect Wallet
-                </Button>
+                <DaimoPayButton.Custom
+                    appId={
+                        process.env.NEXT_PUBLIC_DAIMO_APP_ID ??
+                        (() => {
+                            throw new Error('Daimo APP ID is required')
+                        })()
+                    }
+                    intent="Deposit"
+                    toChain={arbitrum.id}
+                    toUnits={inputTokenAmount.replace(/,/g, '')}
+                    toAddress={getAddress(recipient.resolvedAddress)}
+                    toToken={getAddress(PEANUT_WALLET_TOKEN)} // USDC on arbitrum
+                    onPaymentCompleted={(e) => {
+                        console.log('Payment completed! calling handleCompleteDaimoPayment')
+                        handleCompleteDaimoPayment(e)
+                    }}
+                    closeOnSuccess
+                >
+                    {({ show }) => (
+                        <Button
+                            variant="primary-soft"
+                            shadowSize="4"
+                            onClick={async () => {
+                                await handleInitiateDaimoPayment()
+                                show()
+                            }}
+                            className="w-full"
+                        >
+                            Pay with Daimo
+                        </Button>
+                    )}
+                </DaimoPayButton.Custom>
             </div>
         )
     }

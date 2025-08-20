@@ -79,6 +79,7 @@ export default function AddMoneyCryptoDirectPage() {
                         toAddress={getAddress(address)}
                         toToken={getAddress(PEANUT_WALLET_TOKEN)} // USDC on arbitrum
                         onPaymentCompleted={(e) => {
+                            console.log(e)
                             setisPaymentSuccess(true)
                         }}
                     >
