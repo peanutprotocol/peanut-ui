@@ -175,7 +175,7 @@ export const TransactionDetailsReceipt = ({
     } else if (transaction.extraDataForDrawer?.rewardData) {
         amountDisplay = transaction.extraDataForDrawer.rewardData.formatAmount(transaction.amount)
     } else if (
-        transaction.direction === 'bank_deposit' &&
+        (transaction.direction === 'bank_deposit' || transaction.direction === 'bank_request_fulfillment') &&
         transaction.currency?.code &&
         transaction.currency.code.toUpperCase() !== 'USD'
     ) {
