@@ -4,6 +4,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Link from 'next/link'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
+import { Tooltip } from '../Tooltip'
 
 interface UserHeaderProps {
     username: string
@@ -40,22 +41,30 @@ export const VerifiedUserLabel = ({
     iconSize?: number
     haveSentMoneyToUser?: boolean
 }) => {
+    // determine badge and tooltip content based on verification status
     let badge = null
+    let tooltipContent = ''
 
-    // a kyc-verified user always gets at least a single badge.
+    // A kyc-verified user always gets at least a single badge.
     if (isVerified) {
         badge = <Icon name="check" size={iconSize} className="text-success-1" />
+        tooltipContent = 'This is a verified user.'
     }
 
     // if they are also verified and the viewer has sent them money, it's upgraded to a double badge.
     if (isVerified && haveSentMoneyToUser) {
         badge = <Icon name="double-check" size={iconSize} className="text-success-1" />
+        tooltipContent = "This is a verified user and you've sent them money before."
     }
 
     return (
         <div className="flex items-center gap-1.5">
             <div className={twMerge('text-sm font-semibold md:text-base', className)}>{name}</div>
-            {badge}
+            {badge && (
+                <Tooltip content={tooltipContent} position="top">
+                    {badge}
+                </Tooltip>
+            )}
         </div>
     )
 }
