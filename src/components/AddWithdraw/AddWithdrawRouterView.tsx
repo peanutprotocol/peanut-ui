@@ -14,6 +14,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { CountryList } from '../Common/CountryList'
 import PeanutLoading from '../Global/PeanutLoading'
 import SavedAccountsView from '../Common/SavedAccountsView'
+import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -39,6 +40,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     // local flag only for add flow; for withdraw we derive from context
     const [localShowAllMethods, setLocalShowAllMethods] = useState<boolean>(false)
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     // determine if we should show the full list of methods (countries/crypto) instead of the default view
     const shouldShowAllMethods = flow === 'withdraw' ? showAllWithdrawMethods : localShowAllMethods
@@ -84,7 +86,8 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         }
 
         if (flow === 'add' && method.id === 'crypto') {
-            router.push('/add-money/crypto/direct')
+            // router.push('/add-money/crypto/direct')
+            setIsDrawerOpen(true)
             return
         }
 
@@ -202,6 +205,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 <Button icon="plus" className="mb-5" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
                     Select new method
                 </Button>
+                <CryptoMethodDrawer isDrawerOpen={isDrawerOpen} closeDrawer={() => setIsDrawerOpen(false)} />
             </div>
         )
     }

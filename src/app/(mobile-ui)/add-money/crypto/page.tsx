@@ -1,11 +1,19 @@
 'use client'
+import { ARBITRUM_ICON } from '@/assets'
 import { CryptoSourceListCard } from '@/components/AddMoney/components/CryptoSourceListCard'
-import { CRYPTO_EXCHANGES, CRYPTO_WALLETS, CryptoSource, CryptoToken } from '@/components/AddMoney/consts'
+import {
+    CRYPTO_EXCHANGES,
+    CRYPTO_WALLETS,
+    CryptoSource,
+    CryptoToken,
+    DEPOSIT_CRYPTO_TOKENS,
+} from '@/components/AddMoney/consts'
 import { CryptoDepositQR } from '@/components/AddMoney/views/CryptoDepositQR.view'
 import NetworkSelectionView, { SelectedNetwork } from '@/components/AddMoney/views/NetworkSelection.view'
 import TokenSelectionView from '@/components/AddMoney/views/TokenSelection.view'
 import ActionModal from '@/components/Global/ActionModal'
 import NavHeader from '@/components/Global/NavHeader'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Slider } from '@/components/Slider'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRouter } from 'next/navigation'
@@ -16,10 +24,14 @@ type AddMoneyCryptoStep = 'sourceSelection' | 'tokenSelection' | 'networkSelecti
 const AddMoneyCryptoPage = () => {
     const router = useRouter()
     const { address: peanutWalletAddress } = useWallet()
-    const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('sourceSelection')
-    const [selectedSource, setSelectedSource] = useState<CryptoSource | null>(null)
-    const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(null)
-    const [selectedNetwork, setSelectedNetwork] = useState<SelectedNetwork | null>(null)
+    const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('qrScreen')
+    const [selectedSource, setSelectedSource] = useState<CryptoSource | null>(CRYPTO_EXCHANGES[3])
+    const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(DEPOSIT_CRYPTO_TOKENS[0])
+    const [selectedNetwork, setSelectedNetwork] = useState<SelectedNetwork | null>({
+        chainId: '42161',
+        name: 'Arbitrum',
+        iconUrl: ARBITRUM_ICON,
+    })
     const [isRiskAccepted, setIsRiskAccepted] = useState(false)
 
     useEffect(() => {
@@ -68,11 +80,13 @@ const AddMoneyCryptoPage = () => {
     }
 
     const handleBackToNetworkSelectionFromQR = () => {
-        if (selectedSource?.type === 'exchange') {
-            setCurrentStep('sourceSelection')
-        } else {
-            setCurrentStep('networkSelection')
-        }
+        router.back()
+
+        // if (selectedSource?.type === 'exchange') {
+        //     setCurrentStep('sourceSelection')
+        // } else {
+        //     setCurrentStep('networkSelection')
+        // }
     }
 
     if (currentStep === 'tokenSelection' && selectedSource) {
@@ -109,6 +123,9 @@ const AddMoneyCryptoPage = () => {
     }
 
     if (currentStep === 'qrScreen' && selectedSource && selectedToken && selectedNetwork) {
+        if (!peanutWalletAddress) {
+            return <PeanutLoading />
+        }
         return (
             <CryptoDepositQR
                 tokenName={selectedToken.symbol}
