@@ -26,7 +26,7 @@ import { useAppKitAccount } from '@reown/appkit/react'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { parseUnits } from 'viem'
-import type { TransactionReceipt, Address, Hex } from 'viem'
+import type { TransactionReceipt, Address, Hex, Hash } from 'viem'
 import { useConfig, useSendTransaction, useSwitchChain, useAccount as useWagmiAccount } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { getRoute, type PeanutCrossChainRoute } from '@/services/swap'
@@ -468,41 +468,43 @@ export const usePaymentInitiator = () => {
                 throw new Error('Charge data is missing required properties for transaction preparation.')
             }
 
-            let receipt: TransactionReceipt
+            let receipt: TransactionReceipt | null
+            let userOpHash: Hash
             const transactionsToSend = xChainUnsignedTxs ?? (unsignedTx ? [unsignedTx] : null)
             if (transactionsToSend && transactionsToSend.length > 0) {
                 setLoadingStep('Sending Transaction')
-                receipt = await sendTransactions(transactionsToSend, PEANUT_WALLET_CHAIN.id.toString())
+                const txResult = await sendTransactions(transactionsToSend, PEANUT_WALLET_CHAIN.id.toString())
+                receipt = txResult.receipt
+                userOpHash = txResult.userOpHash
             } else if (
                 areEvmAddressesEqual(chargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) &&
                 chargeDetails.chainId === PEANUT_WALLET_CHAIN.id.toString()
             ) {
-                receipt = await sendMoney(
+                const txResult = await sendMoney(
                     chargeDetails.requestLink.recipientAddress as `0x${string}`,
                     chargeDetails.tokenAmount
                 )
+                receipt = txResult.receipt
+                userOpHash = txResult.userOpHash
             } else {
                 console.error('No transaction prepared to send for peanut wallet.')
                 throw new Error('No transaction prepared to send.')
             }
 
             // validation of the received receipt.
-            if (!receipt || !receipt.transactionHash) {
-                console.error('sendTransactions returned invalid receipt (missing hash?):', receipt)
-                throw new Error('Transaction likely failed or was not submitted correctly by the wallet.')
-            }
-            if (isTxReverted(receipt)) {
+            if (receipt !== null && isTxReverted(receipt)) {
                 console.error('Transaction reverted according to receipt:', receipt)
                 throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
             }
 
+            const txHash = receipt?.transactionHash ?? userOpHash
             // update payment status in the backend api.
             setLoadingStep('Updating Payment Status')
             // peanut wallet flow: payer is the peanut wallet itself
             const payment: PaymentCreationResponse = await chargesApi.createPayment({
                 chargeId: chargeDetails.uuid,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                hash: receipt.transactionHash,
+                hash: txHash,
                 tokenAddress: PEANUT_WALLET_TOKEN,
                 payerAddress: peanutWalletAddress ?? '',
             })
@@ -510,11 +512,11 @@ export const usePaymentInitiator = () => {
 
             setPaymentDetails(payment)
             dispatch(paymentActions.setPaymentDetails(payment))
-            dispatch(paymentActions.setTransactionHash(receipt.transactionHash))
+            dispatch(paymentActions.setTransactionHash(txHash))
 
             setLoadingStep('Success')
             console.log('Peanut Wallet payment successful.')
-            return { status: 'Success', charge: chargeDetails, payment, txHash: receipt.transactionHash, success: true }
+            return { status: 'Success', charge: chargeDetails, payment, txHash: txHash, success: true }
         },
         [sendTransactions, xChainUnsignedTxs, unsignedTx, peanutWalletAddress]
     )

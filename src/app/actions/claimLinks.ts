@@ -1,13 +1,13 @@
 'use server'
 import { unstable_cache } from 'next/cache'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { type Address } from 'viem'
+import type { Address, Hash } from 'viem'
 import { getContract } from 'viem'
 
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { fetchTokenDetails } from '@/app/actions/tokens'
 import { getLinkFromReceipt, fetchWithSentry, jsonParse } from '@/utils'
-import { PEANUT_API_URL } from '@/constants'
+import { PEANUT_API_URL, PEANUT_WALLET_CHAIN } from '@/constants'
 
 export const getLinkDetails = unstable_cache(
     async (link: string): Promise<any> => {
@@ -66,6 +66,18 @@ export const getLinkFromTx = unstable_cache(
     },
     ['getLinkFromTx']
 )
+
+export async function getNextDepositIndex(contractVersion: string): Promise<number> {
+    const publicClient = await getPublicClient(PEANUT_WALLET_CHAIN.id)
+    const contractAbi = peanut.getContractAbi(contractVersion)
+    const contractAddress: Hash = peanut.getContractAddress(PEANUT_WALLET_CHAIN.id.toString(), contractVersion) as Hash
+    return (await publicClient.readContract({
+        address: contractAddress,
+        abi: contractAbi,
+        functionName: 'getDepositCount',
+        args: [],
+    })) as number
+}
 
 export async function claimSendLink(pubKey: string, recipient: string, password: string) {
     const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links/${pubKey}/claim`, {
