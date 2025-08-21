@@ -151,6 +151,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 const result = await onSuccess(payload as AddBankAccountPayload, {
                     ...data,
                     iban: isIban ? data.accountNumber : undefined,
+                    accountNumber: isIban ? '' : data.accountNumber,
+                    bic: bic,
                     country,
                     firstName: data.firstName.trim(),
                     lastName: data.lastName.trim(),

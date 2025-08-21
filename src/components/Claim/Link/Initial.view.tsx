@@ -776,7 +776,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         className: 'md:py-2.5',
                         onClick: () => {
                             saveRedirectUrl()
-                            router.push('/setup')
+                            // push to setup page with redirect uri, to prevent the user from losing their claim context
+                            const redirectUri = encodeURIComponent(
+                                window.location.pathname + window.location.search + window.location.hash
+                            )
+                            router.push(`/setup?redirect_uri=${redirectUri}`)
                         },
                     },
                     {

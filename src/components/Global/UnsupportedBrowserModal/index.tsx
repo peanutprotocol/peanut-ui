@@ -4,7 +4,8 @@ import ActionModal, { ActionModalButtonProps } from '@/components/Global/ActionM
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { IconName } from '@/components/Global/Icons/Icon'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 export const inAppSignatures = [
     'WebView',
@@ -34,13 +35,14 @@ export const inAppSignatures = [
     'Electron', // Electron App
 ]
 
-const UnsupportedBrowserModal = ({
+const UnsupportedBrowserModalContent = ({
     allowClose = true,
     visible = false,
 }: {
     allowClose?: boolean
     visible?: boolean
 }) => {
+    const searchParams = useSearchParams()
     const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(false)
     const [copyButtonText, setCopyButtonText] = useState('Copy Link')
     const toast = useToast()
@@ -85,7 +87,12 @@ const UnsupportedBrowserModal = ({
             iconPosition: 'left',
             onClick: async () => {
                 try {
-                    await copyTextToClipboardWithFallback(window.location.href)
+                    // copy the redirect uri if it exists, otherwise copy the current url
+                    const redirectUri = searchParams.get('redirect_uri')
+                    const urlToCopy = redirectUri
+                        ? `${window.location.origin}${decodeURIComponent(redirectUri)}`
+                        : window.location.href
+                    await copyTextToClipboardWithFallback(urlToCopy)
                     setCopyButtonText('Copied!')
                     toast.success('Link copied to clipboard!')
                     setTimeout(() => setCopyButtonText('Copy Link'), 2000)
@@ -121,6 +128,15 @@ const UnsupportedBrowserModal = ({
             contentContainerClassName="text-center"
             descriptionClassName="mb-0"
         />
+    )
+}
+
+// suspense is being used to prevent hydration errors that may be caused by useSearchParams
+const UnsupportedBrowserModal = (props: { allowClose?: boolean; visible?: boolean }) => {
+    return (
+        <Suspense fallback={null}>
+            <UnsupportedBrowserModalContent {...props} />
+        </Suspense>
     )
 }
 
