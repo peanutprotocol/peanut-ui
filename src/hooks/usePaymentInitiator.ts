@@ -775,6 +775,7 @@ export const usePaymentInitiator = () => {
             payerAddress: string
         }) => {
             try {
+                setLoadingStep('Updating Payment Status')
                 const payment = await chargesApi.createPayment({
                     chargeId: chargeDetails.uuid,
                     chainId: sourceChainId.toString(),
