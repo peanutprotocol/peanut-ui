@@ -362,8 +362,11 @@ export const useCreateLink = () => {
                 type: 'normal',
             })
             const tokenAddress = PEANUT_WALLET_TOKEN as Hash
-          const contractAbi = peanut.getContractAbi(contractVersion)
-          const contractAddress: Hash = peanut.getContractAddress(PEANUT_WALLET_CHAIN.id.toString(), contractVersion) as Hash
+            const contractAbi = peanut.getContractAbi(contractVersion)
+            const contractAddress: Hash = peanut.getContractAddress(
+                PEANUT_WALLET_CHAIN.id.toString(),
+                contractVersion
+            ) as Hash
             // Get the next deposit index to store in case of failure
             const nextIndex = await getNextDepositIndex(contractVersion)
 
