@@ -6,6 +6,8 @@ import payAnyoneAnywhere from '@/assets/illustrations/pay-anyone-anywhere.svg'
 import getPaidWorldwide from '@/assets/illustrations/get-paid-worldwide.svg'
 
 import { Button } from '../0_Bruddle'
+import Image from 'next/image'
+import { LandingCountries } from '@/assets'
 
 interface Feature {
     id: number
@@ -67,7 +69,7 @@ export function YourMoney() {
                 </div>
 
                 <div className="relative w-full md:w-1/2">
-                    <video src="/currencies.webm" autoPlay loop muted playsInline className="h-auto w-full" />
+                    <Image src={LandingCountries} alt="countries" />
                     <a
                         href="/setup"
                         target="_blank"
