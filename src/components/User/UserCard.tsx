@@ -6,6 +6,7 @@ import Attachment from '../Global/Attachment'
 import Card from '../Global/Card'
 import { Icon, IconName } from '../Global/Icons/Icon'
 import AvatarWithBadge, { AvatarSize } from '../Profile/AvatarWithBadge'
+import { VerifiedUserLabel } from '../UserHeader'
 
 interface UserCardProps {
     type: 'send' | 'request' | 'received_link'
@@ -15,6 +16,8 @@ interface UserCardProps {
     size?: AvatarSize
     message?: string
     fileUrl?: string
+    isVerified?: boolean
+    haveSentMoneyToUser?: boolean
 }
 
 const UserCard = ({
@@ -25,6 +28,8 @@ const UserCard = ({
     size = 'extra-small',
     message,
     fileUrl,
+    isVerified,
+    haveSentMoneyToUser,
 }: UserCardProps) => {
     const getIcon = (): IconName | undefined => {
         if (type === 'send') return 'arrow-up-right'
@@ -66,7 +71,12 @@ const UserCard = ({
                 {recipientType !== 'USERNAME' ? (
                     <AddressLink address={username} className="text-base font-medium" />
                 ) : (
-                    <div className="text-base font-medium">{fullName || username}</div>
+                    <VerifiedUserLabel
+                        name={fullName || username}
+                        isVerified={isVerified}
+                        haveSentMoneyToUser={haveSentMoneyToUser}
+                        className="text-base font-medium"
+                    />
                 )}
                 <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
             </div>

@@ -18,7 +18,6 @@ export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) 
                 <AvatarWithBadge
                     size="extra-small"
                     className="h-7 w-7 text-[11px] md:h-8 md:w-8 md:text-[13px]"
-                    achievementsBadgeSize="extra-small"
                     name={fullName || username}
                 />
                 <VerifiedUserLabel name={username} isVerified={isVerified} />
