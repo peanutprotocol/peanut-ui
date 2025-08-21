@@ -8,7 +8,6 @@ import Image from 'next/image'
 import { LandingCountries } from '@/assets'
 import { Button } from '../0_Bruddle'
 
-
 interface Feature {
     id: number
     title: string
