@@ -387,12 +387,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
         return (
             <div className={twMerge('mx-auto h-full w-full space-y-8 self-start')}>
-                <PublicProfile
-                    username={username}
-                    isVerified={user?.user.kycStatus === 'approved'}
-                    isLoggedIn={!!user}
-                    onSendClick={handleSendClick}
-                />
+                <PublicProfile username={username} isLoggedIn={!!user} onSendClick={handleSendClick} />
             </div>
         )
     }

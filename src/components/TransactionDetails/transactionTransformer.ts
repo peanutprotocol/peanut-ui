@@ -107,6 +107,7 @@ export interface TransactionDetails {
     claimedAt?: string | Date
     createdAt?: string | Date
     completedAt?: string | Date
+    haveTransactedBefore?: boolean
 }
 
 /**
@@ -359,7 +360,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
         initials: getInitialsFromName(nameForDetails),
         status: uiStatus,
-        isVerified: entry.recipientAccount?.isUser || entry.senderAccount?.isUser || false,
+        isVerified: entry.isVerified,
         date: new Date(entry.timestamp),
         fee: undefined,
         memo: entry.memo?.trim(),
@@ -393,6 +394,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         claimedAt: entry.claimedAt,
         createdAt: entry.createdAt,
         completedAt: entry.completedAt,
+        haveTransactedBefore: entry.extraData?.haveTransactedBefore as boolean,
     }
 
     return {

@@ -1,10 +1,11 @@
-import { ApiUser } from '@/services/users'
+import { ApiUser, RecentUser } from '@/services/users'
 import { twMerge } from 'tailwind-merge'
 import Card from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
 import PeanutLoading from '../Global/PeanutLoading'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
+import { VerifiedUserLabel } from '../UserHeader'
 import { SearchResultCard } from './SearchResultCard'
 
 interface SearchResultsProps {
@@ -14,8 +15,9 @@ interface SearchResultsProps {
     showMinCharError: boolean
     showNoResults: boolean
     className?: string
-    recentTransactions?: Pick<ApiUser, 'userId' | 'username' | 'fullName'>[]
+    recentTransactions?: RecentUser[]
     onUserSelect: (username: string) => void
+    interactions?: Record<string, boolean>
 }
 
 export const SearchResults = ({
@@ -27,6 +29,7 @@ export const SearchResults = ({
     className,
     recentTransactions = [],
     onUserSelect,
+    interactions = {},
 }: SearchResultsProps) => {
     return (
         <div className={twMerge('flex h-full flex-col overflow-hidden', className)}>
@@ -38,24 +41,36 @@ export const SearchResults = ({
                 <>
                     <h2 className="mb-2 text-base font-bold">People</h2>
                     <div className="flex-1 overflow-y-auto">
-                        {results.map((user, index) => (
-                            <SearchResultCard
-                                position={
-                                    results.length === 1
-                                        ? 'single'
-                                        : index === 0
-                                          ? 'first'
-                                          : index === results.length - 1
-                                            ? 'last'
-                                            : 'middle'
-                                }
-                                key={user.userId}
-                                title={user.fullName || user.username}
-                                description={`@${user.username}`}
-                                leftIcon={<AvatarWithBadge size="extra-small" name={user.fullName || user.username} />}
-                                onClick={() => onUserSelect(user.username)}
-                            />
-                        ))}
+                        {results.map((user, index) => {
+                            const isVerified = user.kycStatus === 'approved'
+                            const haveSentMoneyToUser = interactions[user.userId] || false
+                            return (
+                                <SearchResultCard
+                                    position={
+                                        results.length === 1
+                                            ? 'single'
+                                            : index === 0
+                                              ? 'first'
+                                              : index === results.length - 1
+                                                ? 'last'
+                                                : 'middle'
+                                    }
+                                    key={user.userId}
+                                    title={
+                                        <VerifiedUserLabel
+                                            name={user.fullName || user.username}
+                                            isVerified={isVerified}
+                                            haveSentMoneyToUser={haveSentMoneyToUser}
+                                        />
+                                    }
+                                    description={`@${user.username}`}
+                                    leftIcon={
+                                        <AvatarWithBadge size="extra-small" name={user.fullName || user.username} />
+                                    }
+                                    onClick={() => onUserSelect(user.username)}
+                                />
+                            )
+                        })}
                     </div>
                 </>
             )}
@@ -85,26 +100,36 @@ export const SearchResults = ({
                     <h2 className="mb-2 text-base font-bold">Recent transactions</h2>
                     {recentTransactions.length > 0 ? (
                         <div className="flex-1 overflow-y-auto">
-                            {recentTransactions.map((user, index) => (
-                                <SearchResultCard
-                                    key={user.userId}
-                                    title={user.fullName || user.username}
-                                    description={`@${user.username}`}
-                                    leftIcon={
-                                        <AvatarWithBadge size="extra-small" name={user.fullName || user.username} />
-                                    }
-                                    onClick={() => onUserSelect(user.username)}
-                                    position={
-                                        recentTransactions.length === 1
-                                            ? 'single'
-                                            : index === 0
-                                              ? 'first'
-                                              : index === recentTransactions.length - 1
-                                                ? 'last'
-                                                : 'middle'
-                                    }
-                                />
-                            ))}
+                            {recentTransactions.map((user, index) => {
+                                const isVerified = user.kycStatus === 'approved'
+                                const haveSentMoneyToUser = interactions[user.userId] || false
+                                return (
+                                    <SearchResultCard
+                                        key={user.userId}
+                                        title={
+                                            <VerifiedUserLabel
+                                                name={user.fullName || user.username}
+                                                isVerified={isVerified}
+                                                haveSentMoneyToUser={haveSentMoneyToUser}
+                                            />
+                                        }
+                                        description={`@${user.username}`}
+                                        leftIcon={
+                                            <AvatarWithBadge size="extra-small" name={user.fullName || user.username} />
+                                        }
+                                        onClick={() => onUserSelect(user.username)}
+                                        position={
+                                            recentTransactions.length === 1
+                                                ? 'single'
+                                                : index === 0
+                                                  ? 'first'
+                                                  : index === recentTransactions.length - 1
+                                                    ? 'last'
+                                                    : 'middle'
+                                        }
+                                    />
+                                )
+                            })}
                         </div>
                     ) : (
                         <EmptyState

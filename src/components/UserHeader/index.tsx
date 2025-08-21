@@ -2,6 +2,8 @@ import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Link from 'next/link'
+import { Icon } from '../Global/Icons/Icon'
+import { twMerge } from 'tailwind-merge'
 
 interface UserHeaderProps {
     username: string
@@ -16,13 +18,45 @@ export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) 
                 <AvatarWithBadge
                     size="extra-small"
                     className="h-7 w-7 text-[11px] md:h-8 md:w-8 md:text-[13px]"
-                    isVerified={isVerified}
                     achievementsBadgeSize="extra-small"
                     name={fullName || username}
                 />
-                <div className="text-sm font-semibold md:text-base">{username}</div>
+                <VerifiedUserLabel name={username} isVerified={isVerified} />
             </Link>
             <CopyToClipboard textToCopy={`${BASE_URL}/${username}`} fill="black" iconSize={'4'} />
+        </div>
+    )
+}
+
+export const VerifiedUserLabel = ({
+    name,
+    isVerified,
+    className,
+    iconSize = 14,
+    haveSentMoneyToUser = false,
+}: {
+    name: string
+    isVerified: boolean | undefined
+    className?: HTMLDivElement['className']
+    iconSize?: number
+    haveSentMoneyToUser?: boolean
+}) => {
+    let badge = null
+
+    // a kyc-verified user always gets at least a single badge.
+    if (isVerified) {
+        badge = <Icon name="check" size={iconSize} className="text-success-1" />
+    }
+
+    // if they are also verified and the viewer has sent them money, it's upgraded to a double badge.
+    if (isVerified && haveSentMoneyToUser) {
+        badge = <Icon name="double-check" size={iconSize} className="text-success-1" />
+    }
+
+    return (
+        <div className="flex items-center gap-1.5">
+            <div className={twMerge('text-sm font-semibold md:text-base', className)}>{name}</div>
+            {badge}
         </div>
     )
 }
