@@ -1,7 +1,9 @@
 'use client'
 
+import { updateDepositorAddress } from '@/app/actions/addMoney'
 import { Button } from '@/components/0_Bruddle'
 import NavHeader from '@/components/Global/NavHeader'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { PEANUT_WALLET_TOKEN } from '@/constants'
@@ -18,11 +20,30 @@ export default function AddMoneyCryptoDirectPage() {
     const [inputTokenAmount, setInputTokenAmount] = useState<string>('')
     const { resetPayment } = useDaimoPayUI()
     const [isPaymentSuccess, setisPaymentSuccess] = useState(false)
+    const [isUpdatingDepositStatus, setIsUpdatingDepositStatus] = useState(false)
 
     const resetPaymentAmount = async () => {
         await resetPayment({
             toUnits: inputTokenAmount.replace(/,/g, ''),
         })
+    }
+
+    const onPaymentCompleted = async (e: any) => {
+        setIsUpdatingDepositStatus(true)
+        // 6 second delay to ensure the payment is indexed in the backend
+        await new Promise((resolve) => setTimeout(resolve, 6000))
+
+        // Update the depositor address
+        await updateDepositorAddress({
+            txHash: e.txHash,
+            payerAddress: e.payment.source?.payerAddress,
+        })
+        setIsUpdatingDepositStatus(false)
+        setisPaymentSuccess(true)
+    }
+
+    if (isUpdatingDepositStatus) {
+        return <PeanutLoading />
     }
 
     if (isPaymentSuccess) {
@@ -78,10 +99,8 @@ export default function AddMoneyCryptoDirectPage() {
                         toUnits={inputTokenAmount.replace(/,/g, '')}
                         toAddress={getAddress(address)}
                         toToken={getAddress(PEANUT_WALLET_TOKEN)} // USDC on arbitrum
-                        onPaymentCompleted={(e) => {
-                            console.log(e)
-                            setisPaymentSuccess(true)
-                        }}
+                        onPaymentCompleted={onPaymentCompleted}
+                        closeOnSuccess
                     >
                         {({ show }) => (
                             <Button
