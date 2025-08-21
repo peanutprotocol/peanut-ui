@@ -54,12 +54,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const [showBicField, setShowBicField] = useState(false)
-        const { country: countryName } = useParams()
+        const { country: countryNameParams } = useParams()
         const { amountToWithdraw } = useWithdrawFlow()
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
         const lastName = lastNameParts.join(' ')
 
-        let selectedCountry = (countryNameFromProps ?? (countryName as string)).toLowerCase()
+        let selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
 
         const {
             control,
