@@ -9,7 +9,7 @@ import Divider from '@/components/0_Bruddle/Divider'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
 import { IToken, IUserBalance } from '@/interfaces'
-import { areEvmAddressesEqual, formatTokenAmount, isNativeCurrency } from '@/utils'
+import { areEvmAddressesEqual, formatTokenAmount, isNativeCurrency, getChainName } from '@/utils'
 import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import EmptyState from '../EmptyStates/EmptyState'
@@ -198,8 +198,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // selected network name memo, being used ui
     const selectedNetworkName = useMemo(() => {
         if (!selectedChainID) return null
-        const network = supportedSquidChainsAndTokens[selectedChainID]
-        return network?.axelarChainName || `Chain ${selectedChainID}`
+        return getChainName(selectedChainID) || `Chain ${selectedChainID}`
     }, [selectedChainID, supportedSquidChainsAndTokens])
 
     const peanutWalletTokenDetails = useMemo(() => {
@@ -213,7 +212,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         // Balance for this specific token is not relevant for its display in the "Free transaction token" section
         return {
             symbol: token.symbol,
-            chainName: chainInfo.axelarChainName,
+            chainName: chainInfo.networkName,
             logoURI: token.logoURI,
             chainLogoURI: chainInfo.chainIconURI,
             balance: null,
@@ -241,7 +240,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             if (generalTokenDetails && chainInfo) {
                 buttonSymbol = generalTokenDetails.symbol
                 buttonLogoURI = generalTokenDetails.logoURI
-                buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
+                buttonChainName = chainInfo.networkName || `Chain ${selectedChainID}`
                 buttonChainLogoURI = chainInfo.chainIconURI
             }
             if (userBalanceDetails) {
@@ -261,7 +260,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             if (generalTokenDetails && chainInfo) {
                 buttonSymbol = generalTokenDetails.symbol
                 buttonLogoURI = generalTokenDetails.logoURI
-                buttonChainName = chainInfo.axelarChainName || `Chain ${selectedChainID}`
+                buttonChainName = chainInfo.networkName || `Chain ${selectedChainID}`
                 buttonChainLogoURI = chainInfo.chainIconURI
             }
         }
@@ -278,7 +277,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
             return {
                 chainId: chain.chainId,
-                name: popularNetwork.name || chain.axelarChainName || `Chain ${chain.chainId}`,
+                name: popularNetwork.name || chain.networkName || `Chain ${chain.chainId}`,
                 iconURI: chain.chainIconURI || '',
             }
         }).filter((chain): chain is { chainId: string; name: string; iconURI: string } => Boolean(chain)) // type guard filter nulls

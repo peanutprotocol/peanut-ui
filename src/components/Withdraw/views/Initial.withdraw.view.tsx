@@ -19,7 +19,7 @@ interface InitialWithdrawViewProps {
     amount: string
     onReview: (data: {
         token: ITokenPriceData
-        chain: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
+        chain: interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
         address: string
     }) => void
     onBack?: () => void

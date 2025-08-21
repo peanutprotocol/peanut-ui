@@ -20,12 +20,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { InitiateKYCModal } from '@/components/Kyc'
 import { DynamicBankAccountForm, IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount, updateUserById } from '@/app/actions/users'
-import { jsonParse, jsonStringify } from '@/utils/general.utils'
 import { KYCStatus } from '@/utils/bridge-accounts.utils'
 import { AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
-import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { Account } from '@/interfaces'
 import PeanutLoading from '../Global/PeanutLoading'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
@@ -39,10 +37,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const params = useParams()
     const { user, fetchUser } = useAuth()
     const { setSelectedBankAccount, amountToWithdraw } = useWithdrawFlow()
-    const { setFromBankSelected } = useOnrampFlow()
     const [view, setView] = useState<'list' | 'form'>('list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
-    const [cachedBankDetails, setCachedBankDetails] = useState<Partial<IBankAccountDetails> | null>(null)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(user?.user?.kycStatus as KYCStatus)
 
@@ -71,18 +67,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const currentCountry = countryData.find(
         (country) => country.type === 'country' && country.path === countrySlugFromUrl
     )
-
-    useEffect(() => {
-        if (user?.user.userId) {
-            const item = sessionStorage.getItem(`temp-bank-account-${user.user.userId}`)
-            const data = item ? jsonParse(item) : null
-            const currentStatus = liveKycStatus || user.user.kycStatus
-            if (data && currentStatus === 'approved' && !cachedBankDetails) {
-                setCachedBankDetails(data)
-                setView('form')
-            }
-        }
-    }, [user, liveKycStatus, cachedBankDetails])
 
     const handleFormSubmit = async (
         payload: AddBankAccountPayload,
@@ -130,9 +114,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 setSelectedBankAccount(newAccountFromResponse)
             }
 
-            if (user?.user.userId) {
-                sessionStorage.removeItem(`temp-bank-account-${user.user.userId}`)
-            }
             if (currentCountry) {
                 router.push(`/withdraw/${currentCountry.path}/bank`)
             }
@@ -157,10 +138,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         // scenario (2): if the user hasn't completed kyc yet
         if (!isUserKycVerified) {
-            const { firstName, lastName, email, ...detailsToSave } = rawData
-            if (user?.user.userId) {
-                sessionStorage.setItem(`temp-bank-account-${user.user.userId}`, jsonStringify(detailsToSave))
-            }
             setIsKycModalOpen(true)
         }
 
@@ -168,9 +145,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     }
 
     const handleKycSuccess = () => {
-        setIsKycModalOpen(false)
-        if (formRef.current) {
-            formRef.current.handleSubmit()
+        // only transition to form if this component initiated the KYC modal
+        if (isKycModalOpen) {
+            setIsKycModalOpen(false)
+            setView('form')
         }
     }
 
@@ -213,16 +191,20 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     if (view === 'form') {
         return (
             <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
-                <NavHeader title={'Withdraw'} onPrev={() => setView('list')} />
-
-                <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
-                    <DynamicBankAccountForm
-                        ref={formRef}
-                        country={getCountryCodeForWithdraw(currentCountry.id)}
-                        onSuccess={handleFormSubmit}
-                        initialData={cachedBankDetails ?? {}}
-                    />
-                </div>
+                <NavHeader
+                    title={flow === 'withdraw' ? 'Withdraw' : 'Add money'}
+                    onPrev={() => {
+                        // ensure kyc modal isn't open so late success events don't flip view
+                        setIsKycModalOpen(false)
+                        setView('list')
+                    }}
+                />
+                <DynamicBankAccountForm
+                    ref={formRef}
+                    country={getCountryCodeForWithdraw(currentCountry.id)}
+                    onSuccess={handleFormSubmit}
+                    initialData={{}}
+                />
                 <InitiateKYCModal
                     isOpen={isKycModalOpen}
                     onClose={() => setIsKycModalOpen(false)}

@@ -1,5 +1,5 @@
-import { getTokenSymbol, validateEnsName } from '@/utils'
-import { isAddress } from 'viem'
+import { getTokenSymbol, validateEnsName, getTokenDecimals } from '@/utils'
+import { isAddress, formatUnits } from 'viem'
 
 // Constants
 const PINTA_MERCHANTS: Record<string, string> = {
@@ -114,7 +114,9 @@ export const parseEip681 = (
     const params = new URLSearchParams('?' + queryString)
 
     if (!functionName) {
-        const value = params.get('value') || undefined
+        const rawValue = params.get('value') || undefined
+        const weiValue = rawValue ? BigInt(Number(rawValue)) : undefined
+        const value = weiValue ? formatUnits(weiValue, 18) : undefined
         return {
             address,
             chainId,
@@ -127,7 +129,12 @@ export const parseEip681 = (
     if (functionName.toLowerCase() === 'transfer') {
         const tokenAddress = address
         const recipientAddress = params.get('address') || ''
-        const amount = params.get('uint256') || undefined
+        const rawAmount = params.get('uint256') || undefined
+        // Amount may be in scientific notation, so we need to convert it
+        const atomicAmount = rawAmount ? BigInt(Number(rawAmount)) : undefined
+        const amount = atomicAmount
+            ? formatUnits(atomicAmount, getTokenDecimals(tokenAddress, chainId) ?? 6)
+            : undefined
         return {
             address: recipientAddress,
             chainId,

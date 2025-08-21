@@ -97,7 +97,7 @@ export async function generateMetadata({
         description,
         ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
         icons: {
-            icon: '/logo-favicon.png',
+            icon: '/favicon.ico',
         },
         openGraph: {
             title,

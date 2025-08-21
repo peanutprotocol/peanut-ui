@@ -14,21 +14,18 @@ export const CHAIN_DETAILS = {
     },
 }
 
-export const TOKEN_DETAILS = {
-    1: {
-        ETH: {
-            name: 'Ethereum',
-            symbol: 'ETH',
-            decimals: 18,
-            address: '0x0000000000000000000000000000000000000000',
-        },
+export const TOKEN_DETAILS = [
+    {
+        chainId: '1',
+        name: 'Ethereum',
+        tokens: [
+            {
+                address: '0x0000000000000000000000000000000000000000',
+                name: 'Ether',
+                symbol: 'ETH',
+                decimals: 18,
+                logoURI: 'https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg',
+            },
+        ],
     },
-    11155111: {
-        ETH: {
-            name: 'Sepolia Ether',
-            symbol: 'ETH',
-            decimals: 18,
-            address: '0x0000000000000000000000000000000000000000',
-        },
-    },
-}
+]

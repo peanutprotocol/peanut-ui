@@ -6,9 +6,12 @@ import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
+import { useRouter } from 'next/navigation'
+import { checkIfInternalNavigation } from '@/utils'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
+    const router = useRouter()
 
     const logout = async () => {
         await logoutUser()
@@ -19,7 +22,19 @@ export const Profile = () => {
 
     return (
         <div className="h-full w-full bg-background">
-            <NavHeader hideLabel />
+            <NavHeader
+                hideLabel
+                onPrev={() => {
+                    // Check if the referrer is from the same domain (internal navigation)
+                    const isInternalReferrer = checkIfInternalNavigation()
+
+                    if (isInternalReferrer && window.history.length > 1) {
+                        router.back()
+                    } else {
+                        router.push('/home')
+                    }
+                }}
+            />
             <div className="space-y-8">
                 <ProfileHeader
                     name={fullName || username}

@@ -49,12 +49,12 @@ export function ConfirmBankClaimView({
     }, [bankDetails])
 
     const countryCodeForFlag = useMemo(() => {
-        return countryCodeMap[bankDetails.country.toUpperCase()] ?? bankDetails.country.toUpperCase()
+        return countryCodeMap[bankDetails?.country?.toUpperCase()] ?? bankDetails.country.toUpperCase()
     }, [bankDetails.country])
 
     return (
-        <div className="flex flex-col justify-between gap-8">
-            <div className="md:hidden">
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+            <div>
                 <NavHeader title="Receive" onPrev={onBack} />
             </div>
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
@@ -71,8 +71,15 @@ export function ConfirmBankClaimView({
                 <Card className="rounded-sm">
                     {/* todo: take full name from user, this name rn is of senders */}
                     <PaymentInfoRow label="Full name" value={displayedFullName} />
-                    {bankDetails.iban && <PaymentInfoRow label="IBAN" value={bankDetails.iban} />}
-                    {bankDetails.bic && <PaymentInfoRow label="BIC" value={bankDetails.bic} />}
+                    {bankDetails.iban && <PaymentInfoRow label="IBAN" value={bankDetails.iban.toUpperCase()} />}
+                    {bankDetails.bic && <PaymentInfoRow label="BIC" value={bankDetails.bic.toUpperCase()} />}
+                    {bankDetails.clabe && <PaymentInfoRow label="CLABE" value={bankDetails.clabe.toUpperCase()} />}
+                    {bankDetails.accountNumber && (
+                        <PaymentInfoRow label="Account Number" value={bankDetails.accountNumber.toUpperCase()} />
+                    )}
+                    {bankDetails.routingNumber && (
+                        <PaymentInfoRow label="Routing Number" value={bankDetails.routingNumber.toUpperCase()} />
+                    )}
                     <ExchangeRate accountType={accountType} />
                     <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                 </Card>
