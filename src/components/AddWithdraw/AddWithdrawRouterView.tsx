@@ -86,7 +86,6 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         }
 
         if (flow === 'add' && method.id === 'crypto') {
-            // router.push('/add-money/crypto/direct')
             setIsDrawerOpen(true)
             return
         }
@@ -234,16 +233,16 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     router.push(countryPath)
                 }}
                 onCryptoClick={() => {
-                    let cryptoPath = ''
                     if (flow === 'add') {
-                        cryptoPath = `${baseRoute}/crypto/direct`
+                        setIsDrawerOpen(true)
                     } else {
-                        cryptoPath = `${baseRoute}/crypto`
+                        const cryptoPath = `${baseRoute}/crypto`
+                        router.push(cryptoPath)
                     }
-                    router.push(cryptoPath)
                 }}
                 flow={flow}
             />
+            <CryptoMethodDrawer isDrawerOpen={isDrawerOpen} closeDrawer={() => setIsDrawerOpen(false)} />
         </div>
     )
 }

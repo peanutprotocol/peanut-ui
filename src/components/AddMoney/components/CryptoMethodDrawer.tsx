@@ -2,20 +2,26 @@
 
 import { ARBITRUM_ICON, OTHER_CHAINS_ICON } from '@/assets'
 import { Card } from '@/components/0_Bruddle'
+import ActionModal from '@/components/Global/ActionModal'
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
+import { Slider } from '@/components/Slider'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import React from 'react'
+import React, { useState } from 'react'
 
 const CryptoMethodDrawer = ({ isDrawerOpen, closeDrawer }: { isDrawerOpen: boolean; closeDrawer: () => void }) => {
     const router = useRouter()
+    const [showRiskModal, setShowRiskModal] = useState(false)
     return (
-        <Drawer open={isDrawerOpen} onOpenChange={closeDrawer}>
+        <Drawer open={isDrawerOpen} onOpenChange={showRiskModal ? undefined : closeDrawer}>
             <DrawerContent className="p-5">
                 <div className="mx-auto space-y-4 md:max-w-2xl">
                     <h2 className="text-base font-bold">Select a deposit method</h2>
 
-                    <Card className={'cursor-pointer px-4 py-2 hover:bg-gray-50'}>
+                    <Card
+                        onClick={() => setShowRiskModal(true)}
+                        className={'cursor-pointer px-4 py-2 hover:bg-gray-50'}
+                    >
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="flex flex-col">
@@ -63,6 +69,26 @@ const CryptoMethodDrawer = ({ isDrawerOpen, closeDrawer }: { isDrawerOpen: boole
                     </Card>
                 </div>
             </DrawerContent>
+            <ActionModal
+                visible={showRiskModal}
+                onClose={() => setShowRiskModal(false)}
+                icon={'alert'}
+                iconContainerClassName="bg-yellow-1"
+                modalClassName="z-[9999]"
+                title={`Only send USDC on Arbitrum`}
+                description={
+                    <span className="text-sm">
+                        Sending funds via any other network will result in a <b>permanent loss.</b>
+                    </span>
+                }
+                footer={
+                    <div className="w-full">
+                        <Slider onValueChange={(v) => v && router.push('/add-money/crypto')} />
+                    </div>
+                }
+                ctas={[]}
+                modalPanelClassName="max-w-xs"
+            />
         </Drawer>
     )
 }
