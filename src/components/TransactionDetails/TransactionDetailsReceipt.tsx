@@ -112,6 +112,8 @@ export const TransactionDetailsReceipt = ({
         const hasNetworkFee = transaction.networkFeeDetails && transaction.sourceView === 'status'
         const hasAttachment = !!transaction.attachmentUrl
 
+        const isNonPendingTransaction = transaction.status !== 'pending'
+
         // if any of these are true, it means there's another row below "Created", so we should NOT hide the border.
         const hasFollowingRows =
             hasTokenDetails ||
@@ -125,7 +127,8 @@ export const TransactionDetailsReceipt = ({
             hasDepositInstructions ||
             hasMemo ||
             hasNetworkFee ||
-            hasAttachment
+            hasAttachment ||
+            isNonPendingTransaction
 
         return !hasFollowingRows
     }, [transaction, isPendingBankRequest])
@@ -238,6 +241,7 @@ export const TransactionDetailsReceipt = ({
                 isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={transaction.extraDataForDrawer?.rewardData?.avatarUrl}
+                haveSentMoneyToUser={transaction.haveSentMoneyToUser}
             />
 
             {/* details card (date, fee, memo) and more */}

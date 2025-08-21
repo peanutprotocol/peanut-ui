@@ -43,6 +43,7 @@ export interface TransactionDetails {
     initials: string
     status?: StatusPillType
     isVerified?: boolean
+    haveSentMoneyToUser?: boolean
     date: string | Date
     fee?: number | string
     memo?: string
@@ -107,7 +108,6 @@ export interface TransactionDetails {
     claimedAt?: string | Date
     createdAt?: string | Date
     completedAt?: string | Date
-    haveTransactedBefore?: boolean
 }
 
 /**
@@ -394,7 +394,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         claimedAt: entry.claimedAt,
         createdAt: entry.createdAt,
         completedAt: entry.completedAt,
-        haveTransactedBefore: entry.extraData?.haveTransactedBefore as boolean,
+        haveSentMoneyToUser: entry.extraData?.haveSentMoneyToUser as boolean,
     }
 
     return {
