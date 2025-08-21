@@ -4,11 +4,11 @@ import { useUserQuery } from '@/hooks/query/user'
 import * as interfaces from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { fetchWithSentry } from '@/utils'
+import { fetchWithSentry, getFromCookie, removeFromCookie, syncLocalStorageToCookie } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { createContext, ReactNode, useContext, useState } from 'react'
+import { createContext, ReactNode, useContext, useState, useEffect } from 'react'
 import { captureException } from '@sentry/nextjs'
 
 interface AuthContextType {
@@ -49,8 +49,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { user: authUser } = useUserStore()
     const toast = useToast()
     const queryClient = useQueryClient()
+    const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
     const { data: user, isFetching: isFetchingUser, refetch: fetchUser } = useUserQuery(!authUser?.user.userId)
+
+    useEffect(() => {
+        if (user) {
+            syncLocalStorageToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
+        }
+    }, [user])
 
     const legacy_fetchUser = async () => {
         const { data: fetchedUser } = await fetchUser()
@@ -107,8 +114,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const logoutUser = async () => {
-        const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
-
         if (isLoggingOut) return
 
         setIsLoggingOut(true)
@@ -122,6 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             if (response.ok) {
                 localStorage.removeItem(LOCAL_STORAGE_WEB_AUTHN_KEY)
+                removeFromCookie(LOCAL_STORAGE_WEB_AUTHN_KEY)
                 queryClient.invalidateQueries()
 
                 // clear JWT cookie by setting it to expire
