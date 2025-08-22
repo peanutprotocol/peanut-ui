@@ -501,8 +501,12 @@ export const PaymentForm = ({
             chargeId: chargeDetails?.uuid,
             currency,
             currencyAmount,
-            isAddMoneyFlow: !!isAddMoneyFlow,
-            transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectUsdPayment || !requestId ? 'DIRECT_SEND' : 'REQUEST',
+            isExternalWalletFlow: !!isExternalWalletFlow,
+            transactionType: isExternalWalletFlow
+                ? 'DEPOSIT'
+                : isDirectUsdPayment || !requestId
+                  ? 'DIRECT_SEND'
+                  : 'REQUEST',
             attachmentOptions: attachmentOptions,
         }
 
@@ -535,7 +539,7 @@ export const PaymentForm = ({
         requestId,
         currency,
         currencyAmount,
-        isAddMoneyFlow,
+        isExternalWalletFlow,
         isDirectUsdPayment,
         attachmentOptions,
         initiateDaimoPayment,
