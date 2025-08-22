@@ -57,7 +57,7 @@ export const getLinkFromTx = unstable_cache(
         txHash: string
         password: string
     }): Promise<string> => {
-        const { chainId, baseUrl, trackId } = linkDetails
+        const { chainId } = linkDetails
         const client = await getPublicClient(Number(chainId) as ChainId)
         const txReceipt = await client.waitForTransactionReceipt({
             hash: txHash as `0x${string}`,
@@ -70,7 +70,10 @@ export const getLinkFromTx = unstable_cache(
 export async function getNextDepositIndex(contractVersion: string): Promise<number> {
     const publicClient = await getPublicClient(PEANUT_WALLET_CHAIN.id)
     const contractAbi = peanut.getContractAbi(contractVersion)
-    const contractAddress: Hash = peanut.getContractAddress(PEANUT_WALLET_CHAIN.id.toString(), contractVersion) as Hash
+    const contractAddress: Address = peanut.getContractAddress(
+        PEANUT_WALLET_CHAIN.id.toString(),
+        contractVersion
+    ) as Hash
     return (await publicClient.readContract({
         address: contractAddress,
         abi: contractAbi,

@@ -5,15 +5,13 @@ import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { fetchWithSentry, isNativeCurrency, saveToLocalStorage } from '@/utils'
 import peanut, {
     generateKeysFromString,
-    getContractAbi,
-    getContractAddress,
     getLatestContractVersion,
     getLinkFromParams,
     getRandomString,
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext } from 'react'
-import type { Hash } from 'viem'
+import type { Hash, Address } from 'viem'
 import { bytesToNumber, encodeFunctionData, parseAbi, parseEther, parseEventLogs, parseUnits, toBytes } from 'viem'
 import { useSignTypedData } from 'wagmi'
 
@@ -363,12 +361,10 @@ export const useCreateLink = () => {
             })
             const tokenAddress = PEANUT_WALLET_TOKEN as Hash
             const contractAbi = peanut.getContractAbi(contractVersion)
-            const contractAddress: Hash = peanut.getContractAddress(
+            const contractAddress: Address = peanut.getContractAddress(
                 PEANUT_WALLET_CHAIN.id.toString(),
                 contractVersion
             ) as Hash
-            // Get the next deposit index to store in case of failure
-            const nextIndex = await getNextDepositIndex(contractVersion)
 
             const approveData = encodeFunctionData({
                 abi: parseAbi(['function approve(address _spender, uint256 _amount) external returns (bool)']),
@@ -380,13 +376,16 @@ export const useCreateLink = () => {
                 functionName: 'makeDeposit',
                 args: [tokenAddress, 1, amount, 0, generatedKeys.address as Hash],
             })
-            const { receipt } = await handleSendUserOpEncoded(
-                [
-                    { to: tokenAddress, value: 0n, data: approveData },
-                    { to: contractAddress, value: 0n, data: makeDepositData },
-                ],
-                chainId
-            )
+            const [nextIndex, { receipt }] = await Promise.all([
+                getNextDepositIndex(contractVersion),
+                handleSendUserOpEncoded(
+                    [
+                        { to: tokenAddress, value: 0n, data: approveData },
+                        { to: contractAddress, value: 0n, data: makeDepositData },
+                    ],
+                    chainId
+                ),
+            ])
             let depositIdx: number
             let txHash: Hash | undefined = undefined
             if (receipt !== null) {
