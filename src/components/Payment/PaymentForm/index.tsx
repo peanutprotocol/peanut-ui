@@ -495,10 +495,15 @@ export const PaymentForm = ({
 
         if (result.status === 'Charge Created') {
             console.log('Charge created!!')
+            return true
         } else if (result.status === 'Error') {
+            dispatch(paymentActions.setError('Something went wrong. Please try again.'))
             console.error('Payment initiation failed:', result)
+            return false
         } else {
             console.warn('Unexpected status from usePaymentInitiator:', result.status)
+            dispatch(paymentActions.setError('Something went wrong. Please try again.'))
+            return false
         }
     }, [
         inputTokenAmount,
@@ -611,15 +616,17 @@ export const PaymentForm = ({
                             variant="primary-soft"
                             shadowSize="4"
                             onClick={async () => {
-                                await handleInitiateDaimoPayment()
-                                await resetPayment({
-                                    toUnits: inputTokenAmount.replace(/,/g, ''),
-                                })
-                                show()
+                                const res = await handleInitiateDaimoPayment()
+                                if (res) {
+                                    await resetPayment({
+                                        toUnits: inputTokenAmount.replace(/,/g, ''),
+                                    })
+                                    show()
+                                }
                             }}
                             className="w-full"
                         >
-                            Pay with Daimo
+                            Send money
                         </Button>
                     )}
                 </DaimoPayButton.Custom>

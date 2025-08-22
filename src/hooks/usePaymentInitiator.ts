@@ -749,15 +749,19 @@ export const usePaymentInitiator = () => {
 
     const initiateDaimoPayment = useCallback(
         async (payload: InitiatePaymentPayload) => {
-            console.log('handleDaimoPayment', payload)
-            let determinedChargeDetails: TRequestChargeResponse | null = null
-            let chargeCreated = false
-            const { chargeDetails, chargeCreated: created } = await determineChargeDetails(payload)
+            try {
+                console.log('handleDaimoPayment', payload)
+                let determinedChargeDetails: TRequestChargeResponse | null = null
+                let chargeCreated = false
+                const { chargeDetails, chargeCreated: created } = await determineChargeDetails(payload)
 
-            determinedChargeDetails = chargeDetails
-            chargeCreated = created
-            console.log('Proceeding with charge details:', determinedChargeDetails.uuid)
-            return { status: 'Charge Created', charge: determinedChargeDetails, success: false }
+                determinedChargeDetails = chargeDetails
+                chargeCreated = created
+                console.log('Proceeding with charge details:', determinedChargeDetails.uuid)
+                return { status: 'Charge Created', charge: determinedChargeDetails, success: false }
+            } catch (err) {
+                return handleError(err, loadingStep)
+            }
         },
         [determineChargeDetails, setLoadingStep, setPaymentDetails]
     )
