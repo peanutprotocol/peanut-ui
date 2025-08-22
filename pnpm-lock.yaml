@@ -290,9 +290,6 @@ importers:
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.17
-      tailwindcss-tooltip-arrow-after:
-        specifier: ^1.0.0
-        version: 1.0.0
       ts-jest:
         specifier: ^29.1.2
         version: 29.2.5(@babel/core@7.26.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.0))(jest@29.7.0(@types/node@20.4.2)(babel-plugin-macros@3.1.0))(typescript@5.7.3)
@@ -7091,9 +7088,6 @@ packages:
     engines: {node: '>=12.13.0'}
     peerDependencies:
       tailwindcss: 3.x
-
-  tailwindcss-tooltip-arrow-after@1.0.0:
-    resolution: {integrity: sha512-iPL63shQtlAeS9iVIT5mEf7x/Tz2RfdfsYdVMvq9ZrjmRTVqvneEjOqEMuUJ/XupdMJakYoFw3DawEaeAY5aBQ==}
 
   tailwindcss@3.4.17:
     resolution: {integrity: sha512-w33E2aCvSDP0tW9RZuNXadXlkHXqFzSkQew/aIa2i/Sj8fThxwovwlXHSPXTbAHwEIhBFXAedUhP2tueAKP8Og==}
@@ -16810,10 +16804,6 @@ snapshots:
   tailwind-scrollbar@3.1.0(tailwindcss@3.4.17):
     dependencies:
       tailwindcss: 3.4.17
-
-  tailwindcss-tooltip-arrow-after@1.0.0:
-    dependencies:
-      lodash: 4.17.21
 
   tailwindcss@3.4.17:
     dependencies:

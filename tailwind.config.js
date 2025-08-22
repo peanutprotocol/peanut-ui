@@ -310,7 +310,6 @@ module.exports = {
     plugins: [
         require('@headlessui/tailwindcss')({ prefix: 'ui' }),
         require('tailwind-scrollbar'),
-        require('tailwindcss-tooltip-arrow-after')(),
         plugin(function ({ addBase, addComponents, addUtilities }) {
             addBase({
                 html: {

@@ -34,12 +34,14 @@ export const VerifiedUserLabel = ({
     className,
     iconSize = 14,
     haveSentMoneyToUser = false,
+    isAuthenticatedUserVerified = false,
 }: {
     name: string
     isVerified: boolean | undefined
     className?: HTMLDivElement['className']
     iconSize?: number
     haveSentMoneyToUser?: boolean
+    isAuthenticatedUserVerified?: boolean
 }) => {
     // determine badge and tooltip content based on verification status
     let badge = null
@@ -48,7 +50,7 @@ export const VerifiedUserLabel = ({
     // A kyc-verified user always gets at least a single badge.
     if (isVerified) {
         badge = <Icon name="check" size={iconSize} className="text-success-1" />
-        tooltipContent = 'This is a verified user.'
+        tooltipContent = isAuthenticatedUserVerified ? "You're a verified user." : 'This is a verified user.'
     }
 
     // if they are also verified and the viewer has sent them money, it's upgraded to a double badge.
@@ -61,7 +63,7 @@ export const VerifiedUserLabel = ({
         <div className="flex items-center gap-1.5">
             <div className={twMerge('text-sm font-semibold md:text-base', className)}>{name}</div>
             {badge && (
-                <Tooltip content={tooltipContent} position="top">
+                <Tooltip id="verified-user-label" content={tooltipContent} position="top">
                     {badge}
                 </Tooltip>
             )}

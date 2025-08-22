@@ -9,6 +9,7 @@ import { twMerge } from 'tailwind-merge'
 import AvatarWithBadge from '../AvatarWithBadge'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { VerifiedUserLabel } from '@/components/UserHeader'
+import { useAuth } from '@/context/authContext'
 
 interface ProfileHeaderProps {
     name: string
@@ -27,6 +28,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     showShareButton = true,
     haveSentMoneyToUser = false,
 }) => {
+    const { user: authenticatedUser } = useAuth()
+    const isAuthenticatedUserVerified = authenticatedUser?.user.kycStatus === 'approved'
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     const profileUrl = `${BASE_URL}/${username}`
@@ -46,6 +49,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     className="text-2xl font-bold"
                     iconSize={20}
                     haveSentMoneyToUser={haveSentMoneyToUser}
+                    isAuthenticatedUserVerified={isAuthenticatedUserVerified}
                 />
                 {/* Username with share drawer */}
                 {showShareButton && (

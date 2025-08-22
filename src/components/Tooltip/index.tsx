@@ -12,6 +12,7 @@ interface TooltipProps {
     className?: string
     contentClassName?: string
     disabled?: boolean
+    id?: string
 }
 
 export const Tooltip = ({
@@ -21,6 +22,7 @@ export const Tooltip = ({
     className = '',
     contentClassName = '',
     disabled = false,
+    id,
 }: TooltipProps) => {
     const [visible, setVisible] = useState(false)
     const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, height: 0 })
@@ -73,7 +75,7 @@ export const Tooltip = ({
         <>
             <div
                 ref={triggerRef}
-                className={twMerge('inline-block', className)}
+                className={twMerge('inline-block cursor-pointer', className)}
                 onMouseEnter={showTooltip}
                 onMouseLeave={hideTooltip}
                 onFocus={showTooltip}
@@ -85,6 +87,7 @@ export const Tooltip = ({
                 visible &&
                 ReactDOM.createPortal(
                     <TooltipContent
+                        id={id}
                         content={content}
                         position={dynamicPosition}
                         coords={coords}
