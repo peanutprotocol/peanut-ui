@@ -1,6 +1,11 @@
 'use client'
 
-import { COUNTRY_SPECIFIC_METHODS, countryData, SpecificPaymentMethod } from '@/components/AddMoney/consts'
+import {
+    COUNTRY_SPECIFIC_METHODS,
+    countryCodeMap,
+    countryData,
+    SpecificPaymentMethod,
+} from '@/components/AddMoney/consts'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -11,7 +16,7 @@ import Image, { StaticImageData } from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { InitiateKYCModal } from '@/components/Kyc'
 import { DynamicBankAccountForm, IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount, updateUserById } from '@/app/actions/users'
@@ -22,6 +27,7 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { Account } from '@/interfaces'
 import PeanutLoading from '../Global/PeanutLoading'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -30,8 +36,13 @@ interface AddWithdrawCountriesListProps {
 const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const router = useRouter()
     const params = useParams()
+
+    // hooks
+    const { deviceType } = useDeviceType()
     const { user, fetchUser } = useAuth()
     const { setSelectedBankAccount, amountToWithdraw } = useWithdrawFlow()
+
+    // component level states
     const [view, setView] = useState<'list' | 'form'>('list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
@@ -166,6 +177,34 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         }
     }, [amountToWithdraw, router, flow])
 
+    const methods = useMemo(() => {
+        if (!currentCountry) return undefined
+
+        const countryMethods = COUNTRY_SPECIFIC_METHODS[currentCountry.id]
+        if (!countryMethods) return undefined
+
+        if (flow !== 'add') {
+            return countryMethods
+        }
+
+        // filter apple pay and google pay for add flow based on device type
+        const filteredAddMethods = (countryMethods.add || []).filter((method) => {
+            if (method.id === 'apple-pay-add') {
+                return deviceType === DeviceType.IOS || deviceType === DeviceType.WEB
+            }
+            if (method.id === 'google-pay-add') {
+                return deviceType === DeviceType.ANDROID || deviceType === DeviceType.WEB
+            }
+
+            return true
+        })
+
+        return {
+            ...countryMethods,
+            add: filteredAddMethods,
+        }
+    }, [currentCountry, flow, deviceType])
+
     if (!amountToWithdraw && flow === 'withdraw') {
         return (
             <div className="flex h-full w-full items-center justify-center md:min-h-[80vh]">
@@ -208,8 +247,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             </div>
         )
     }
-
-    const methods = COUNTRY_SPECIFIC_METHODS[currentCountry.id]
 
     const renderPaymentMethods = (title: string, paymentMethods: SpecificPaymentMethod[]) => {
         if (!paymentMethods || paymentMethods.length === 0) {

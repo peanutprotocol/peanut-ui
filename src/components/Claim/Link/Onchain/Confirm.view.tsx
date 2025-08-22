@@ -16,6 +16,7 @@ import {
     saveClaimedLinkToLocalStorage,
     printableAddress,
     areEvmAddressesEqual,
+    isStableCoin,
 } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState, useMemo } from 'react'
@@ -38,7 +39,7 @@ export const ConfirmClaimLinkView = ({
 }: _consts.IClaimScreenProps) => {
     const { address, fetchBalance } = useWallet()
     const { claimLinkXchain, claimLink } = useClaimLink()
-    const { selectedChainID, selectedTokenAddress } = useContext(tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, isXChain } = useContext(tokenSelectorContext)
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -58,16 +59,13 @@ export const ConfirmClaimLinkView = ({
         tokenSymbol: selectedRoute?.rawResponse.route.estimate.toToken.symbol ?? claimLinkData.tokenSymbol,
     })
 
-    // calculate minimum amount the user will receive after slippage
     const minReceived = useMemo<string>(() => {
-        let amountNumber: number
-
-        // manual 1% slippage calculation based on the deposited token amount
-        amountNumber = Number(formatUnits(BigInt(claimLinkData.amount), claimLinkData.tokenDecimals)) * 0.99 // subtract 1%
-
-        const formattedAmount = formatTokenAmount(amountNumber)
-
-        return `$ ${formattedAmount}`
+        if (!selectedRoute || !resolvedTokenSymbol) return ''
+        const amount = formatUnits(
+            BigInt(selectedRoute.rawResponse.route.estimate.toAmountMin),
+            selectedRoute.rawResponse.route.estimate.toToken.decimals
+        )
+        return isStableCoin(resolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${resolvedTokenSymbol}`
     }, [selectedRoute, resolvedTokenSymbol, claimLinkData])
 
     // Network fee display – always sponsored in this flow
@@ -209,8 +207,8 @@ export const ConfirmClaimLinkView = ({
                     icon="arrow-down"
                     shadowSize="4"
                     onClick={handleOnClaim}
-                    disabled={isLoading}
-                    loading={isLoading}
+                    disabled={isLoading || (isXChain && !selectedRoute)}
+                    loading={isLoading || (isXChain && !selectedRoute)}
                 >
                     Receive now
                 </Button>

@@ -1,4 +1,3 @@
-import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon, IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
@@ -13,7 +12,7 @@ import React from 'react'
 import AddressLink from '../Global/AddressLink'
 import { STABLE_COINS } from '@/constants'
 import Image from 'next/image'
-import StatusPill from '../Global/StatusPill'
+import StatusPill, { StatusPillType } from '../Global/StatusPill'
 
 export type TransactionType =
     | 'send'
@@ -29,7 +28,7 @@ interface TransactionCardProps {
     type: TransactionType
     name: string
     amount: number // For USD, this amount might come signed from mapTransactionDataForDrawer
-    status?: StatusType
+    status?: StatusPillType
     initials?: string
     position?: CardPosition
     transaction: TransactionDetails

@@ -398,6 +398,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         case ClaimBankFlowStep.BankCountryList:
             return (
                 <CountryListRouter
+                    flow="claim"
                     claimLinkData={claimLinkData}
                     inputTitle="Which country do you want to receive to?"
                 />
