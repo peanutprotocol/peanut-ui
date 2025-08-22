@@ -30,7 +30,6 @@ import {
     formatTokenAmount,
     getBridgeChainName,
     getBridgeTokenName,
-    saveRedirectUrl,
     printableAddress,
 } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
@@ -51,6 +50,7 @@ import { type PeanutCrossChainRoute, getRoute } from '@/services/swap'
 import { Button } from '@/components/0_Bruddle'
 import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const {
@@ -715,7 +715,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         </Button>
                     )}
                     {!isPeanutClaimOnlyMode && !claimToExternalWallet && (
-                        <ActionList claimLinkData={claimLinkData} isLoggedIn={!!user?.user.userId} />
+                        <ActionList flow="claim" claimLinkData={claimLinkData} isLoggedIn={!!user?.user.userId} />
                     )}
                 </div>
             </div>
@@ -761,39 +761,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />
-            <ActionModal
-                visible={showVerificationModal}
+            <GuestVerificationModal
+                secondaryCtaLabel="Claim with other method"
+                isOpen={showVerificationModal}
                 onClose={() => setShowVerificationModal(false)}
-                title="This method requires verification"
-                description="To receive funds on your bank account, you’ll create a free Peanut Wallet and complete a quick identity check (KYC)."
-                icon="alert"
-                iconContainerClassName="bg-yellow-400"
-                ctaClassName="md:flex-col gap-4"
-                ctas={[
-                    {
-                        text: 'Start verification',
-                        shadowSize: '4',
-                        className: 'md:py-2.5',
-                        onClick: () => {
-                            saveRedirectUrl()
-                            // push to setup page with redirect uri, to prevent the user from losing their claim context
-                            const redirectUri = encodeURIComponent(
-                                window.location.pathname + window.location.search + window.location.hash
-                            )
-                            router.push(`/setup?redirect_uri=${redirectUri}`)
-                        },
-                    },
-                    {
-                        text: 'Claim with other method',
-                        variant: 'transparent',
-                        className: 'w-full h-auto underline underline-offset-2',
-                        onClick: () => {
-                            setShowVerificationModal(false)
-                        },
-                    },
-                ]}
-                preventClose={false}
-                modalPanelClassName="max-w-md mx-8"
+                description="The sender isn't verified, so please create an account and verify your identity to have the funds deposited to your bank."
             />
         </div>
     )

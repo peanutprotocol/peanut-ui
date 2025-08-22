@@ -26,15 +26,20 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { GenericBanner } from '@/components/Global/Banner'
+import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
+import ExternalWalletFulfilManager from '@/components/Request/views/ExternalWalletFulfilManager'
+import ActionList from '@/components/Common/ActionList'
+import NavHeader from '@/components/Global/NavHeader'
+import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
 
 interface Props {
     recipient: string[]
-    flow?: 'request_pay' | 'add_money' | 'direct_pay' | 'withdraw'
+    flow?: 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 }
 
 export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) {
     const isDirectPay = flow === 'direct_pay'
-    const isAddMoneyFlow = flow === 'add_money'
+    const isExternalWalletFlow = flow === 'external_wallet'
     const dispatch = useAppDispatch()
     const { currentView, parsedPaymentData, chargeDetails, paymentDetails, usdAmount } = usePaymentStore()
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
@@ -53,6 +58,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const [currencyAmount, setCurrencyAmount] = useState<string>('')
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
+    const { showExternalWalletFulfilMethods, showRequestFulfilmentBankFlowManager } = useRequestFulfillmentFlow()
 
     const isMountedRef = useRef(true)
 
@@ -131,7 +137,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     !chargeId &&
                     !requestId &&
                     !isDirectPay &&
-                    !isAddMoneyFlow
+                    !isExternalWalletFlow
                 ) {
                     dispatch(paymentActions.setView('PUBLIC_PROFILE'))
                 } else {
@@ -308,7 +314,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
         }
 
-        if (isAddMoneyFlow) {
+        if (isExternalWalletFlow) {
             details.extraDataForDrawer = {
                 isLinkTransaction: false,
                 originalType: EHistoryEntryType.DEPOSIT,
@@ -320,13 +326,13 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
 
         return details as TransactionDetails
-    }, [chargeDetails, user?.user.userId, isAddMoneyFlow, user?.user.username, usdAmount, paymentDetails])
+    }, [chargeDetails, user?.user.userId, isExternalWalletFlow, user?.user.username, usdAmount, paymentDetails])
 
     useEffect(() => {
         if (!transactionForDrawer) return
 
         // if add money flow and in initial or confirm view, don't auto set status
-        if (isAddMoneyFlow && (currentView === 'INITIAL' || currentView === 'CONFIRM') && !chargeId) {
+        if (isExternalWalletFlow && (currentView === 'INITIAL' || currentView === 'CONFIRM') && !chargeId) {
             return
         }
 
@@ -336,10 +342,10 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
 
         // only open transaction details drawer if not add money flow
-        if (!isAddMoneyFlow) {
+        if (!isExternalWalletFlow) {
             openTransactionDetails(transactionForDrawer)
         }
-    }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isAddMoneyFlow, chargeId])
+    }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
 
     if (error) {
         return (
@@ -360,11 +366,21 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         )
     }
 
+    // render external wallet fulfilment methods
+    if (showExternalWalletFulfilMethods) {
+        return <ExternalWalletFulfilManager parsedPaymentData={parsedPaymentData as ParsedURL} />
+    }
+
+    // render request fulfilment bank flow manager
+    if (showRequestFulfilmentBankFlowManager) {
+        return <ReqFulfillBankFlowManager parsedPaymentData={parsedPaymentData as ParsedURL} />
+    }
+
     // render PUBLIC_PROFILE view
     if (
         currentView === 'PUBLIC_PROFILE' &&
         parsedPaymentData?.recipient?.recipientType === 'USERNAME' &&
-        !isAddMoneyFlow
+        !isExternalWalletFlow
     ) {
         const username = parsedPaymentData.recipient.identifier
         const handleSendClick = () => {
@@ -407,30 +423,39 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 </div>
             )}
             {currentView === 'INITIAL' && (
-                <InitialPaymentView
-                    key={`initial-${flow}`}
-                    {...(parsedPaymentData as ParsedURL)}
-                    isAddMoneyFlow={isAddMoneyFlow}
-                    isDirectUsdPayment={isDirectPay}
-                    currency={
-                        currencyCode
-                            ? {
-                                  code: currencyCode,
-                                  symbol: currencySymbol!,
-                                  price: currencyPrice!,
-                              }
-                            : undefined
-                    }
-                    setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
-                    currencyAmount={currencyAmount}
-                />
+                <div className="space-y-2">
+                    <InitialPaymentView
+                        key={`initial-${flow}`}
+                        {...(parsedPaymentData as ParsedURL)}
+                        isExternalWalletFlow={isExternalWalletFlow}
+                        isDirectUsdPayment={isDirectPay}
+                        currency={
+                            currencyCode
+                                ? {
+                                      code: currencyCode,
+                                      symbol: currencySymbol!,
+                                      price: currencyPrice!,
+                                  }
+                                : undefined
+                        }
+                        setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
+                        currencyAmount={currencyAmount}
+                    />
+                    <div>
+                        <ActionList
+                            flow="request"
+                            requestLinkData={parsedPaymentData as ParsedURL}
+                            isLoggedIn={!!user?.user.userId}
+                        />
+                    </div>
+                </div>
             )}
             {currentView === 'CONFIRM' && (
                 <ConfirmPaymentView
                     key={`confirm-${flow}`}
                     isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
                     currencyAmount={currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined}
-                    isAddMoneyFlow={isAddMoneyFlow}
+                    isExternalWalletFlow={isExternalWalletFlow}
                     isDirectUsdPayment={isDirectPay}
                 />
             )}
@@ -439,23 +464,27 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     {parsedPaymentData?.token?.symbol === 'PNT' ? (
                         <PintaReqPaySuccessView />
                     ) : isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
-                        <TransactionDetailsReceipt
-                            transaction={selectedTransaction}
-                            onClose={fetchChargeDetails}
-                            setIsLoading={setisLinkCancelling}
-                            isLoading={isLinkCancelling}
-                        />
+                        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+                            <NavHeader disableBackBtn={!user?.user.userId} title="Receipt" />
+                            <TransactionDetailsReceipt
+                                className="my-auto flex h-full flex-col justify-center space-y-4"
+                                transaction={selectedTransaction}
+                                onClose={fetchChargeDetails}
+                                setIsLoading={setisLinkCancelling}
+                                isLoading={isLinkCancelling}
+                            />
+                        </div>
                     ) : (
                         <DirectSuccessView
                             key={`success-${flow}`}
-                            headerTitle={isAddMoneyFlow ? 'Add Money' : 'Send'}
+                            headerTitle={isExternalWalletFlow ? 'Add Money' : 'Send'}
                             recipientType={parsedPaymentData?.recipient?.recipientType}
                             type="SEND"
                             currencyAmount={
                                 currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
                             }
-                            isAddMoneyFlow={isAddMoneyFlow}
-                            redirectTo={isAddMoneyFlow ? '/add-money' : '/send'}
+                            isExternalWalletFlow={isExternalWalletFlow}
+                            redirectTo={isExternalWalletFlow ? '/add-money' : '/send'}
                         />
                     )}
                 </>

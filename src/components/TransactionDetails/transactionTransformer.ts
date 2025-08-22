@@ -11,6 +11,7 @@ import {
     getTokenLogo,
     getChainLogo,
 } from '@/utils/general.utils'
+import { StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 
 /**
@@ -48,7 +49,7 @@ export interface TransactionDetails {
     currencySymbol?: string
     tokenSymbol?: string
     initials: string
-    status?: StatusType
+    status?: StatusPillType
     isVerified?: boolean
     date: string | Date
     fee?: number | string
@@ -137,7 +138,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     let direction: TransactionDirection
     let transactionCardType: TransactionCardType
     let nameForDetails = ''
-    let uiStatus: StatusType = 'pending'
+    let uiStatus: StatusPillType = 'pending'
     let isLinkTx = false
     let isPeerActuallyUser = false
 
@@ -319,8 +320,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                         'soon',
                         'processing',
                     ]
-                    if (entry.status && knownStatuses.includes(entry.status.toLowerCase() as StatusType)) {
-                        uiStatus = entry.status.toLowerCase() as StatusType
+                    if (entry.status && knownStatuses.includes(entry.status.toLowerCase() as StatusPillType)) {
+                        uiStatus = entry.status.toLowerCase() as StatusPillType
                     } else {
                         uiStatus = 'pending'
                     }
