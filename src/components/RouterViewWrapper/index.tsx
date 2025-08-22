@@ -4,7 +4,8 @@ import { SearchInput } from '@/components/SearchUsers/SearchInput'
 import { SearchResults } from '@/components/SearchUsers/SearchResults'
 import { useRecentUsers } from '@/hooks/useRecentUsers'
 import { useUserSearch } from '@/hooks/useUserSearch'
-import { useRef } from 'react'
+import { useUserInteractions } from '@/hooks/useUserInteractions'
+import { useRef, useMemo } from 'react'
 import { Button } from '../0_Bruddle'
 import Divider from '../0_Bruddle/Divider'
 import { Icon } from '../Global/Icons/Icon'
@@ -22,6 +23,16 @@ const RouterViewWrapper = ({ title, onPrev, linkCardTitle, onLinkCardClick, onUs
     const { searchTerm, setSearchTerm, searchResults, isSearching, error, showMinCharError, showNoResults } =
         useUserSearch()
     const recentTransactions = useRecentUsers()
+
+    // userids to check for interactions
+    const userIds = useMemo(() => {
+        const ids = new Set<string>()
+        searchResults.forEach((user) => ids.add(user.userId))
+        recentTransactions.forEach((user) => ids.add(user.userId))
+        return Array.from(ids)
+    }, [searchResults, recentTransactions])
+
+    const { interactions } = useUserInteractions(userIds)
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value)
@@ -53,6 +64,7 @@ const RouterViewWrapper = ({ title, onPrev, linkCardTitle, onLinkCardClick, onUs
                             showNoResults={showNoResults}
                             onUserSelect={onUserSelect}
                             recentTransactions={recentTransactions.slice(0, 3)}
+                            interactions={interactions}
                         />
 
                         {error && <div className="mt-2 text-sm text-error">{error}</div>}

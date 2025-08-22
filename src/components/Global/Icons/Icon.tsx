@@ -56,6 +56,7 @@ import { PendingIcon } from './pending'
 import { ProcessingIcon } from './processing'
 import { FailedIcon } from './failed'
 import { ChevronDownIcon } from './chevron-down'
+import { DoubleCheckIcon } from './double-check'
 
 // available icon names
 export type IconName =
@@ -72,6 +73,7 @@ export type IconName =
     | 'check-circle'
     | 'cancel'
     | 'download'
+    | 'double-check'
     | 'eye'
     | 'eye-slash'
     | 'exchange'
@@ -135,6 +137,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'chevron-up': ChevronUpIcon,
     download: DownloadIcon,
     dollar: DollarIcon,
+    'double-check': DoubleCheckIcon,
     eye: EyeIcon,
     'eye-slash': EyeSlashIcon,
     exchange: ExchangeIcon,

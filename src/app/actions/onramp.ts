@@ -11,6 +11,7 @@ export interface CreateOnrampGuestParams {
     amount: string
     country: CountryData
     userId: string
+    chargeId?: string
 }
 
 /**
@@ -84,6 +85,7 @@ export async function createOnrampForGuest(
             body: JSON.stringify({
                 amount: params.amount,
                 userId: params.userId,
+                chargeId: params.chargeId,
                 source: {
                     currency,
                     paymentRail,

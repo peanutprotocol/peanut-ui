@@ -4,13 +4,14 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 import { fetchTokenDetails, fetchTokenPrice } from '@/app/actions/tokens'
 import { StatusType } from '@/components/Global/Badges/StatusBadge'
-import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { TransactionDetails, REWARD_TOKENS } from '@/components/TransactionDetails/transactionTransformer'
 import * as consts from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
 import { ESendLinkStatus, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
@@ -62,6 +63,8 @@ export const Claim = ({}) => {
     const { address } = useWallet()
     const { user, isFetchingUser } = useAuth()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
+    const senderId = claimLinkData?.sender.userId
+    const { interactions } = useUserInteractions(senderId ? [senderId] : [])
 
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!claimLinkData) return null
@@ -119,10 +122,14 @@ export const Claim = ({}) => {
             peanutFeeDetails: {
                 amountDisplay: '$ 0.00',
             },
+            isVerified: claimLinkData.sender?.kycStatus === 'approved',
+            haveSentMoneyToUser: claimLinkData.sender?.userId
+                ? interactions[claimLinkData.sender.userId] || false
+                : false,
         }
 
         return details as TransactionDetails
-    }, [claimLinkData])
+    }, [claimLinkData, interactions])
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
