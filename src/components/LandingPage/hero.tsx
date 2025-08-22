@@ -55,11 +55,11 @@ export function Hero({ heading, marquee = { visible: false }, ctas, buttonVisibl
                 </Stack>
 
                 <Stack spacing={2} className="relative h-1/3 items-center justify-center px-4 text-center lg:h-full">
-                    <img
+                    {/* <img
                         src={AboutPeanut.src}
                         className="z-0 mx-auto w-full max-w-[1000px] object-contain pt-6 lg:w-[40%]"
                         alt="Buttery Smooth Global Money"
-                    />
+                    /> */}
 
                     <HeroImages />
                 </Stack>
