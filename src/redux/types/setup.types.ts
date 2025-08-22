@@ -6,4 +6,5 @@ export interface ISetupState {
     direction: number
     isLoading: boolean
     steps: ISetupStep[]
+    telegramHandle: string
 }

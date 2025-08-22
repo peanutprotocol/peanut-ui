@@ -1,7 +1,9 @@
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import { PEANUTMAN_MOBILE } from '@/assets'
+import peanutWithGlassesAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_06.gif'
+import happyPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
+import { PEANUTMAN_MOBILE, ThinkingPeanut } from '@/assets'
 import { ISetupStep } from '@/components/Setup/Setup.types'
-import { InstallPWA, SetupPasskey, SignupStep, WelcomeStep } from '@/components/Setup/Views'
+import { InstallPWA, SetupPasskey, SignupStep, WelcomeStep, JoinBetaStep } from '@/components/Setup/Views'
 
 export const setupSteps: ISetupStep[] = [
     {
@@ -56,8 +58,19 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: 'How should we call you?',
         description: "Choose your username. It'll be your ID to send and receive money.",
-        image: chillPeanutAnim.src,
+        image: ThinkingPeanut.src,
         component: SignupStep,
+        showBackButton: true,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
+    },
+    {
+        screenId: 'join-beta',
+        layoutType: 'signup',
+        title: 'In for the beta program?',
+        description: 'We’ll occasionally DM you on Telegram for feedback and early features.',
+        image: peanutWithGlassesAnim.src,
+        component: JoinBetaStep,
         showBackButton: true,
         showSkipButton: false,
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
@@ -67,7 +80,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: `Let's set up your passkey`,
         description: `Use your face or fingerprint to log in. No passwords, no hassle. Just you.`,
-        image: chillPeanutAnim.src,
+        image: happyPeanutAnim.src,
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,

@@ -22,10 +22,12 @@ interface AuthContextType {
         accountType,
         userId,
         connector,
+        telegramHandle,
     }: {
         accountIdentifier: string
         accountType: string
         userId: string
+        telegramHandle?: string
         connector?: {
             iconUrl: string
             name: string
@@ -78,6 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         userId,
         bridgeAccountId,
         connector,
+        telegramHandle,
     }: {
         accountIdentifier: string
         accountType: string
@@ -87,6 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             iconUrl: string
             name: string
         }
+        telegramHandle?: string
     }) => {
         const response = await fetchWithSentry('/api/peanut/user/add-account', {
             method: 'POST',
@@ -99,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 bridgeAccountId,
                 accountType,
                 connector,
+                telegramHandle,
             }),
         })
 

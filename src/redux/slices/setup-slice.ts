@@ -8,6 +8,7 @@ const initialState: ISetupState = {
     currentStep: 1,
     direction: 0,
     isLoading: false,
+    telegramHandle: '',
     steps: [],
 }
 
@@ -20,6 +21,7 @@ const setupSlice = createSlice({
         },
         resetSetup: (state) => {
             state.username = ''
+            state.telegramHandle = ''
             state.currentStep = 1
             state.direction = 0
             state.isLoading = false
@@ -43,6 +45,9 @@ const setupSlice = createSlice({
 
         setStep: (state, action: PayloadAction<number>) => {
             state.currentStep = action.payload
+        },
+        setTelegramHandle: (state, action: PayloadAction<string>) => {
+            state.telegramHandle = action.payload
         },
     },
 })
