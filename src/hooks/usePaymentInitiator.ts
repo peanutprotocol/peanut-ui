@@ -752,11 +752,9 @@ export const usePaymentInitiator = () => {
             try {
                 console.log('handleDaimoPayment', payload)
                 let determinedChargeDetails: TRequestChargeResponse | null = null
-                let chargeCreated = false
-                const { chargeDetails, chargeCreated: created } = await determineChargeDetails(payload)
+                const { chargeDetails } = await determineChargeDetails(payload)
 
                 determinedChargeDetails = chargeDetails
-                chargeCreated = created
                 console.log('Proceeding with charge details:', determinedChargeDetails.uuid)
                 return { status: 'Charge Created', charge: determinedChargeDetails, success: false }
             } catch (err) {

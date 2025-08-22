@@ -621,8 +621,7 @@ export const PaymentForm = ({
 
     console.log(isPeanutWalletConnected)
 
-    const guestAction = () => {
-        if (isPeanutWalletConnected || user) return null
+    const daimoButton = () => {
         return (
             <DaimoPayButton.Custom
                 appId={
@@ -879,7 +878,6 @@ export const PaymentForm = ({
                 )}
 
                 <div className="space-y-4">
-                    {guestAction()}
                     {isPeanutWalletConnected && (!error || isInsufficientBalanceError) && (
                         <Button
                             variant="purple"
@@ -920,6 +918,7 @@ export const PaymentForm = ({
                             }
                         />
                     )}
+                    {daimoButton()}
                 </div>
             </div>
             <ActionModal

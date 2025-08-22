@@ -53,10 +53,10 @@ export default function AddMoneyCryptoDirectPage() {
             }
         } catch (error) {
             console.error('Error updating depositor address:', error)
+        } finally {
+            setIsUpdatingDepositStatus(false)
+            setisPaymentSuccess(true)
         }
-
-        setIsUpdatingDepositStatus(false)
-        setisPaymentSuccess(true)
     }
 
     if (isUpdatingDepositStatus) {

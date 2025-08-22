@@ -15,6 +15,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Slider } from '@/components/Slider'
+import { PEANUT_WALLET_CHAIN } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -34,8 +35,8 @@ const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCry
     const [selectedSource, setSelectedSource] = useState<CryptoSource | null>(CRYPTO_EXCHANGES[3])
     const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(DEPOSIT_CRYPTO_TOKENS[0])
     const [selectedNetwork, setSelectedNetwork] = useState<SelectedNetwork | null>({
-        chainId: '42161',
-        name: 'Arbitrum',
+        chainId: PEANUT_WALLET_CHAIN.id.toString(),
+        name: PEANUT_WALLET_CHAIN.name,
         iconUrl: ARBITRUM_ICON,
     })
     const [isRiskAccepted, setIsRiskAccepted] = useState(false)
@@ -83,16 +84,6 @@ const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCry
     const handleBackToNetworkSelectionFromRisk = () => {
         setCurrentStep('networkSelection')
         setIsRiskAccepted(false)
-    }
-
-    const handleBackToNetworkSelectionFromQR = () => {
-        router.back()
-
-        // if (selectedSource?.type === 'exchange') {
-        //     setCurrentStep('sourceSelection')
-        // } else {
-        //     setCurrentStep('networkSelection')
-        // }
     }
 
     if (currentStep === 'tokenSelection' && selectedSource) {
@@ -147,7 +138,7 @@ const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCry
                 tokenName={selectedToken.symbol}
                 chainName={selectedNetwork.name}
                 depositAddress={depositAddress ?? peanutWalletAddress}
-                onBack={handleBackToNetworkSelectionFromQR}
+                onBack={() => router.back()}
             />
         )
     }
