@@ -24,6 +24,8 @@ import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import useClaimLink from '../../useClaimLink'
 import { PINTA_WALLET_TOKEN } from '@/constants'
+import { useAuth } from '@/context/authContext'
+import { sendLinksApi } from '@/services/sendLinks'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -38,6 +40,7 @@ export const ConfirmClaimLinkView = ({
     selectedRoute,
 }: _consts.IClaimScreenProps) => {
     const { address, fetchBalance } = useWallet()
+    const { user } = useAuth()
     const { claimLinkXchain, claimLink } = useClaimLink()
     const { selectedChainID, selectedTokenAddress, isXChain } = useContext(tokenSelectorContext)
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
@@ -100,6 +103,16 @@ export const ConfirmClaimLinkView = ({
                 setClaimType('claim')
             }
             if (claimTxHash) {
+                // if a user is logged in, we tell the backend to link this claim to their account so it shows up in their activity
+                // this is only for external claims, as internal claims are already associated with the user.
+                if (user) {
+                    try {
+                        await sendLinksApi.associateClaim(claimTxHash)
+                    } catch (e) {
+                        Sentry.captureException(e)
+                        console.error('Failed to associate claim', e)
+                    }
+                }
                 saveClaimedLinkToLocalStorage({
                     address: recipient ? recipient.address : (address ?? ''),
                     data: {

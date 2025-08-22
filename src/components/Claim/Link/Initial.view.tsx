@@ -196,6 +196,17 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         setClaimType('claim')
                     }
 
+                    // if a user is logged in, we tell the backend to link this claim to their account so it shows up in their activity
+                    // this is only for external claims, as internal claims are already associated with the user.
+                    if (user && claimTxHash) {
+                        try {
+                            await sendLinksApi.associateClaim(claimTxHash)
+                        } catch (e) {
+                            Sentry.captureException(e)
+                            console.error('Failed to associate claim', e)
+                        }
+                    }
+
                     setTransactionHash(claimTxHash)
                     onCustom('SUCCESS')
                     queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
