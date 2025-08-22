@@ -196,8 +196,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         setClaimType('claim')
                     }
 
-                    // if a user is logged in, we tell the backend to link this claim to their account so it shows up in their activity
-                    // this is only for external claims, as internal claims are already associated with the user.
+                    // associate the claim with the user so it shows up in their activity
                     if (user && claimTxHash) {
                         try {
                             await sendLinksApi.associateClaim(claimTxHash)
