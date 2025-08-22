@@ -37,7 +37,10 @@ export const tokenSelectorContext = createContext({
     setIsXChain: (value: boolean) => {},
     selectedTokenData: undefined as ITokenPriceData | undefined,
     isFetchingTokenData: false as boolean,
-    supportedSquidChainsAndTokens: {} as Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>,
+    supportedSquidChainsAndTokens: {} as Record<
+        string,
+        interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
+    >,
     selectedTokenBalance: undefined as string | undefined,
     setSelectedTokenBalance: (balance: string | undefined) => {},
 })
@@ -92,7 +95,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     )
     const [selectedTokenBalance, setSelectedTokenBalance] = useState<string | undefined>(undefined)
     const [supportedSquidChainsAndTokens, setSupportedSquidChainsAndTokens] = useState<
-        Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>
+        Record<string, interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }>
     >({})
 
     const updateSelectedChainID = (chainID: string) => {

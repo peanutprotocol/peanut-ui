@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-        const { userId, bridgeAccountId, accountType, accountIdentifier, connector } = body
+        const { userId, bridgeAccountId, accountType, accountIdentifier, connector, telegramHandle } = body
 
         const apiKey = process.env.PEANUT_API_KEY!
 
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
                 accountType,
                 accountIdentifier,
                 connector,
+                telegramHandle,
             }),
         })
 

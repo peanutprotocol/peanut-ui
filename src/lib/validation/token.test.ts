@@ -2,7 +2,10 @@ import { ChainValidationError } from '@/lib/url-parser/errors'
 import { getChainDetails, getTokenAndChainDetails } from '@/lib/validation/token'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 
-const mockSquidChains: Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }> = {
+const mockSquidChains: Record<
+    string,
+    interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
+> = {
     '1': {
         chainId: '1',
         axelarChainName: 'Ethereum',

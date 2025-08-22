@@ -35,12 +35,12 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
             .filter((chain) => allowedChainIds.has(String(chain.chainId)))
             .filter(
                 (chain) =>
-                    chain.axelarChainName?.toLowerCase().includes(lowerSearchValue) ||
+                    chain.networkName?.toLowerCase().includes(lowerSearchValue) ||
                     chain.chainName?.toLowerCase().includes(lowerSearchValue)
             )
             .map((chain) => ({
                 chainId: chain.chainId,
-                name: chain.axelarChainName || chain.chainName,
+                name: chain.networkName || chain.chainName,
                 iconUrl: chain.chainIconURI,
                 isComingSoon: false,
             }))

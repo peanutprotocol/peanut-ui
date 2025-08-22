@@ -1,6 +1,5 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -31,26 +30,27 @@ import {
     formatTokenAmount,
     getBridgeChainName,
     getBridgeTokenName,
-    saveRedirectUrl,
     printableAddress,
 } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
 import { IClaimScreenProps } from '../Claim.consts'
+import ActionList from '@/components/Common/ActionList'
+import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import useClaimLink from '../useClaimLink'
-import GuestActionList from '@/components/GuestActions/MethodList'
-import { useGuestFlow } from '@/context/GuestFlowContext'
 import ActionModal from '@/components/Global/ActionModal'
 import { Slider } from '@/components/Slider'
-import Image from 'next/image'
-import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { BankFlowManager } from './views/BankFlowManager.view'
 import { type PeanutCrossChainRoute, getRoute } from '@/services/swap'
+import { Button } from '@/components/0_Bruddle'
+import Image from 'next/image'
+import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const {
@@ -86,13 +86,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     const {
         claimToExternalWallet,
-        resetGuestFlow,
-        showGuestActionsList,
-        guestFlowStep,
+        flowStep: claimBankFlowStep,
         showVerificationModal,
         setShowVerificationModal,
         setClaimToExternalWallet,
-    } = useGuestFlow()
+        resetFlow: resetClaimBankFlow,
+    } = useClaimBankFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
         selectedChainID,
@@ -110,6 +109,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const { user } = useAuth()
     const queryClient = useQueryClient()
     const searchParams = useSearchParams()
+    const prevRecipientType = useRef<string | null>(null)
 
     const resetSelectedToken = useCallback(() => {
         if (isPeanutWallet) {
@@ -140,9 +140,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setIsXChain(true)
             }
         } else {
-            setSelectedChainID(claimLinkData.chainId)
-            setSelectedTokenAddress(claimLinkData.tokenAddress)
+            if (prevRecipientType.current === 'username') {
+                setSelectedChainID(claimLinkData.chainId)
+                setSelectedTokenAddress(claimLinkData.tokenAddress)
+            }
         }
+        prevRecipientType.current = recipientType
     }, [recipientType, claimLinkData.chainId, isPeanutChain, claimLinkData.tokenAddress])
 
     const handleClaimLink = useCallback(
@@ -229,8 +232,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     )
 
     useEffect(() => {
-        if (isPeanutWallet) resetSelectedToken()
-    }, [resetSelectedToken, isPeanutWallet])
+        if (isPeanutWallet && !claimToExternalWallet) resetSelectedToken()
+    }, [resetSelectedToken, isPeanutWallet, claimToExternalWallet])
 
     const handleIbanRecipient = async () => {
         try {
@@ -471,10 +474,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     )
 
     useEffect(() => {
-        if (guestFlowStep?.startsWith('bank-')) {
+        if (claimBankFlowStep) {
             resetSelectedToken()
         }
-    }, [guestFlowStep, resetSelectedToken])
+    }, [claimBankFlowStep, resetSelectedToken])
 
     useEffect(() => {
         let isMounted = true
@@ -557,10 +560,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         selectedRoute,
         recipient.address,
         isValidRecipient,
+        hasFetchedRoute,
     ])
 
     const getButtonText = () => {
-        if (isPeanutWallet) {
+        if (isPeanutWallet && !claimToExternalWallet) {
             return (
                 <div className="flex items-center gap-1">
                     <div>Receive on </div>
@@ -571,6 +575,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 </div>
             )
         }
+
         if (selectedRoute || (isXChain && hasFetchedRoute)) {
             return 'Review'
         }
@@ -583,7 +588,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     const handleClaimAction = () => {
-        if (isPeanutWallet && !isPeanutChain) {
+        if (claimToExternalWallet) {
+            if (isXChain) {
+                setRefetchXchainRoute(true)
+            }
+            onNext()
+        } else if (isPeanutWallet && !isPeanutChain) {
             setRefetchXchainRoute(true)
             onNext()
         } else if (recipientType === 'iban' || recipientType === 'us') {
@@ -595,46 +605,19 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }
 
-    const guestAction = () => {
-        if (!!user?.user.userId || claimToExternalWallet) return null
-        return (
-            <div className="space-y-4">
-                {!showGuestActionsList && (
-                    <Button
-                        shadowSize="4"
-                        onClick={() => {
-                            saveRedirectUrl()
-                            router.push('/setup')
-                        }}
-                        className="flex w-full items-center gap-1"
-                    >
-                        <div>Continue with </div>
-                        <div className="flex items-center gap-1">
-                            <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
-                            <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
-                        </div>
-                    </Button>
-                )}
-                {!isPeanutClaimOnlyMode && <GuestActionList claimLinkData={claimLinkData} />}
-            </div>
-        )
-    }
-
-    if (guestFlowStep?.startsWith('bank-')) {
+    if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            {!!user?.user.userId || showGuestActionsList ? (
-                <div className="md:hidden">
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+            {!!user?.user.userId || claimBankFlowStep || claimToExternalWallet ? (
+                <div>
                     <NavHeader
                         title="Receive"
                         onPrev={() => {
                             if (claimToExternalWallet) {
                                 setClaimToExternalWallet(false)
-                            } else if (showGuestActionsList) {
-                                resetGuestFlow()
                             } else {
                                 router.push('/home')
                             }
@@ -667,11 +650,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 {/* Token Selector
                  * We don't want to show this if we're claiming to peanut wallet. Else its okay
                  */}
-                {!isPeanutWallet &&
-                    recipientType !== 'iban' &&
+                {recipientType !== 'iban' &&
                     recipientType !== 'us' &&
                     !isPeanutClaimOnlyMode &&
-                    guestFlowStep !== 'bank-country-selection' &&
+                    claimBankFlowStep !== ClaimBankFlowStep.BankCountryList &&
                     !!claimToExternalWallet && (
                         <TokenSelector viewType="claim" disabled={recipientType === 'username'} />
                     )}
@@ -681,7 +663,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     {!isPeanutClaimOnlyMode && (
                         <>
                             {/* Manual Input Section - Always visible in non-peanut-only mode */}
-                            {!isPeanutWallet && !!claimToExternalWallet && (
+                            {!!claimToExternalWallet && (
                                 <GeneralRecipientInput
                                     placeholder="Enter a username, an address or ENS"
                                     recipient={recipient}
@@ -713,9 +695,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     )}
                 </div>
 
-                <div className="space-y-4">
-                    {guestAction()}
-                    {(!!claimToExternalWallet || !!user?.user.userId) && (
+                <div className="space-y-2">
+                    {!!(claimToExternalWallet || !!user?.user.userId) && (
                         <Button
                             icon={'arrow-down'}
                             shadowSize="4"
@@ -733,6 +714,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                             {getButtonText()}
                         </Button>
                     )}
+                    {!isPeanutClaimOnlyMode && !claimToExternalWallet && (
+                        <ActionList flow="claim" claimLinkData={claimLinkData} isLoggedIn={!!user?.user.userId} />
+                    )}
                 </div>
             </div>
             <ActionModal
@@ -742,13 +726,13 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 description={
                     <div className="space-y-2">
                         <p>Only claim to an address that support the selected network and token.</p>
-                        <p className="font-bold">Incorrect transfers may be lost.</p>
+                        <p className="font-bold">Incorrect transfers may be lost. If you're unsure, do not proceed.</p>
                     </div>
                 }
                 icon="alert"
                 iconContainerClassName="bg-yellow-400"
                 footer={
-                    <div className="w-full">
+                    <div className="w-full space-y-3">
                         <Slider
                             onValueChange={(v) => {
                                 if (!v) return
@@ -762,40 +746,26 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                 }
                             }}
                         />
+                        <Button
+                            variant="transparent"
+                            className="h-fit p-0 text-sm underline"
+                            onClick={() => {
+                                setShowConfirmationModal(false)
+                                setClaimToExternalWallet(false)
+                            }}
+                        >
+                            Not sure? Claim to peanut instead
+                        </Button>
                     </div>
                 }
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />
-            <ActionModal
-                visible={showVerificationModal}
+            <GuestVerificationModal
+                secondaryCtaLabel="Claim with other method"
+                isOpen={showVerificationModal}
                 onClose={() => setShowVerificationModal(false)}
-                title="This method requires verification"
-                description="To receive funds on your bank account, you’ll create a free Peanut Wallet and complete a quick identity check (KYC)."
-                icon="alert"
-                iconContainerClassName="bg-yellow-400"
-                ctaClassName="md:flex-col gap-4"
-                ctas={[
-                    {
-                        text: 'Start verification',
-                        shadowSize: '4',
-                        className: 'md:py-2.5',
-                        onClick: () => {
-                            saveRedirectUrl()
-                            router.push('/setup')
-                        },
-                    },
-                    {
-                        text: 'Claim with other method',
-                        variant: 'transparent',
-                        className: 'w-full h-auto underline underline-offset-2',
-                        onClick: () => {
-                            setShowVerificationModal(false)
-                        },
-                    },
-                ]}
-                preventClose={false}
-                modalPanelClassName="max-w-md mx-8"
+                description="The sender isn't verified, so please create an account and verify your identity to have the funds deposited to your bank."
             />
         </div>
     )

@@ -8,7 +8,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
-import { formatIban, shortenAddress } from '@/utils/general.utils'
+import { formatIban, shortenAddress, shortenAddressLong } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -25,6 +25,7 @@ import CopyToClipboard from '../Global/CopyToClipboard'
 import MoreInfo from '../Global/MoreInfo'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { Drawer, DrawerContent } from '../Global/Drawer'
+import { twMerge } from 'tailwind-merge'
 
 interface TransactionDetailsDrawerProps {
     isOpen: boolean
@@ -99,6 +100,7 @@ export const TransactionDetailsReceipt = ({
     transactionAmount,
     showCancelLinkModal,
     setShowCancelLinkModal,
+    className,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
@@ -108,6 +110,7 @@ export const TransactionDetailsReceipt = ({
     transactionAmount?: string // dollarized amount of the transaction
     showCancelLinkModal?: boolean
     setShowCancelLinkModal?: (show: boolean) => void
+    className?: HTMLDivElement['className']
 }) => {
     // ref for the main content area to calculate dynamic height
     const { user } = useUserStore()
@@ -210,7 +213,7 @@ export const TransactionDetailsReceipt = ({
     }
 
     return (
-        <div ref={contentRef} className="space-y-4">
+        <div ref={contentRef} className={twMerge('space-y-4', className)}>
             {/* show qr code at the top if applicable */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
                 <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
@@ -249,39 +252,75 @@ export const TransactionDetailsReceipt = ({
                         />
                     )}
 
-                    {transaction.tokenDisplayDetails && transaction.sourceView === 'history' && (
-                        <PaymentInfoRow
-                            label="Token and network"
-                            value={
-                                <div className="flex items-center gap-2">
-                                    <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
-                                        {/* Main token icon */}
-                                        <DisplayIcon
-                                            iconUrl={transaction.tokenDisplayDetails.tokenIconUrl}
-                                            altText={transaction.tokenDisplayDetails.tokenSymbol || 'token'}
-                                            fallbackName={transaction.tokenDisplayDetails.tokenSymbol || 'T'}
-                                            sizeClass="h-6 w-6"
-                                        />
-                                        {/* Smaller chain icon, absolutely positioned */}
-                                        {transaction.tokenDisplayDetails.chainIconUrl && (
-                                            <div className="absolute -bottom-1 -right-1">
-                                                <DisplayIcon
-                                                    iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
-                                                    altText={transaction.tokenDisplayDetails.chainName || 'chain'}
-                                                    fallbackName={transaction.tokenDisplayDetails.chainName || 'C'}
-                                                    sizeClass="h-3.5 w-3.5"
-                                                    className="rounded-full border-2 border-white dark:border-grey-4"
-                                                />
-                                            </div>
-                                        )}
+                    {['add', 'withdraw'].includes(transaction.direction) &&
+                        transaction.tokenDisplayDetails &&
+                        transaction.sourceView === 'history' && (
+                            <PaymentInfoRow
+                                label="Token and network"
+                                value={
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                            {/* Main token icon */}
+                                            <DisplayIcon
+                                                iconUrl={transaction.tokenDisplayDetails.tokenIconUrl}
+                                                altText={transaction.tokenDisplayDetails.tokenSymbol || 'token'}
+                                                fallbackName={transaction.tokenDisplayDetails.tokenSymbol || 'T'}
+                                                sizeClass="h-6 w-6"
+                                            />
+                                            {/* Smaller chain icon, absolutely positioned */}
+                                            {transaction.tokenDisplayDetails.chainIconUrl && (
+                                                <div className="absolute -bottom-1 -right-1">
+                                                    <DisplayIcon
+                                                        iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
+                                                        altText={transaction.tokenDisplayDetails.chainName || 'chain'}
+                                                        fallbackName={transaction.tokenDisplayDetails.chainName || 'C'}
+                                                        sizeClass="h-3.5 w-3.5"
+                                                        className="rounded-full border-2 border-white dark:border-grey-4"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span>
+                                            {transaction.tokenDisplayDetails.tokenSymbol} on{' '}
+                                            {transaction.tokenDisplayDetails.chainName}
+                                        </span>
                                     </div>
-                                    <span>
-                                        {transaction.tokenDisplayDetails.tokenSymbol} on{' '}
-                                        {transaction.tokenDisplayDetails.chainName}
-                                    </span>
-                                </div>
+                                }
+                                hideBottomBorder={
+                                    !transaction.networkFeeDetails &&
+                                    !transaction.peanutFeeDetails &&
+                                    !transaction.explorerUrl
+                                }
+                            />
+                        )}
+
+                    {transaction.direction === 'add' && transaction.extraDataForDrawer?.addressExplorerUrl && (
+                        <PaymentInfoRow
+                            label="Depositor Address"
+                            value={
+                                <a
+                                    href={transaction.extraDataForDrawer.addressExplorerUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    {shortenAddressLong(transaction.userName)}{' '}
+                                    <Icon className="inline" name="external-link" size={16} />
+                                </a>
                             }
-                            hideBottomBorder={!transaction.networkFeeDetails && !transaction.peanutFeeDetails}
+                            hideBottomBorder={false}
+                        />
+                    )}
+
+                    {['add', 'withdraw'].includes(transaction.direction) && transaction.explorerUrl && (
+                        <PaymentInfoRow
+                            label="TX ID"
+                            value={
+                                <a href={transaction.explorerUrl} target="_blank" rel="noreferrer">
+                                    {shortenAddressLong(transaction.txHash)}{' '}
+                                    <Icon className="inline" name="external-link" size={16} />
+                                </a>
+                            }
+                            hideBottomBorder={false}
                         />
                     )}
 
@@ -792,7 +831,7 @@ export const TransactionDetailsReceipt = ({
             )}
 
             {isPendingRequestee && setIsLoading && onClose && (
-                <div className="space-y-2">
+                <div className="space-y-2 pr-1">
                     <Button
                         onClick={() => {
                             window.location.href = transaction.extraDataForDrawer?.link ?? ''
@@ -838,7 +877,9 @@ export const TransactionDetailsReceipt = ({
             )}
 
             {shouldShowShareReceipt && transaction.extraDataForDrawer?.link && (
-                <ShareButton url={transaction.extraDataForDrawer.link}>Share Receipt</ShareButton>
+                <div className="pr-1">
+                    <ShareButton url={transaction.extraDataForDrawer.link}>Share Receipt</ShareButton>
+                </div>
             )}
 
             {/* Cancel deposit button for bridge_onramp transactions in awaiting_funds state */}

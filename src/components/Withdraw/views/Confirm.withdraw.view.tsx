@@ -20,7 +20,7 @@ import { ROUTE_NOT_FOUND_ERROR } from '@/constants'
 interface WithdrawConfirmViewProps {
     amount: string
     token: ITokenPriceData
-    chain: interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }
+    chain: interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
     toAddress: string
     networkFee?: number
     peanutFee?: string
@@ -138,7 +138,7 @@ export default function ConfirmWithdrawView({
                                 )}
                                 <span>
                                     {resolvedTokenSymbol || token.symbol} on{' '}
-                                    <span className="capitalize">{resolvedChainName || chain.axelarChainName}</span>
+                                    <span className="capitalize">{resolvedChainName || chain.networkName}</span>
                                 </span>
                             </div>
                         }

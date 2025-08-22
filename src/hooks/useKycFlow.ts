@@ -20,7 +20,8 @@ interface PersonaEvent extends Event {
 
 interface UseKycFlowOptions {
     onKycSuccess?: () => void
-    flow?: 'add' | 'withdraw'
+    flow?: 'add' | 'withdraw' | 'request_fulfillment'
+    onManualClose?: () => void
 }
 
 export type KycHistoryEntry = {
@@ -34,7 +35,7 @@ export const isKycStatusItem = (entry: object): entry is KycHistoryEntry => {
     return 'isKyc' in entry && entry.isKyc === true
 }
 
-export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
+export const useKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFlowOptions = {}) => {
     const { user } = useUserStore()
     const router = useRouter()
     const isMounted = useRef(false)
@@ -112,7 +113,7 @@ export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
                     setError(errorMsg)
                     return { success: false, error: errorMsg }
                 }
-                return { success: true }
+                return { success: true, data: response.data }
             }
         } catch (e: any) {
             setError(e.message)
@@ -126,26 +127,39 @@ export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
         (source: 'completed' | 'manual' | 'tos_accepted' = 'manual') => {
             const wasShowingTos = iframeOptions.src === apiResponse?.tosLink
 
-            // if we just closed the tos link after it was accepted, open the kyc link next.
-            if (wasShowingTos && source === 'tos_accepted' && apiResponse?.kycLink) {
-                const kycUrl = convertPersonaUrl(apiResponse.kycLink)
+            // handle tos acceptance: only act if the tos iframe is currently shown.
+            if (source === 'tos_accepted') {
+                if (wasShowingTos && apiResponse?.kycLink) {
+                    const kycUrl = convertPersonaUrl(apiResponse.kycLink)
+                    setIframeOptions({
+                        src: kycUrl,
+                        visible: true,
+                        closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
+                    })
+                }
+                // ignore late ToS events when KYC is already open
+                return
+            }
 
-                setIframeOptions({
-                    src: kycUrl,
-                    visible: true,
-                    closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
-                })
-            } else if (source === 'completed') {
-                // if we just closed the kyc link after completion, open the "in progress" modal.
+            // When KYC signals completion, close iframe and show progress modal
+            if (source === 'completed') {
                 setIframeOptions((prev) => ({ ...prev, visible: false }))
                 setIsVerificationProgressModalOpen(true)
-            } else if (source === 'manual' && flow === 'add') {
-                router.push('/add-money')
+                return
             }
-            // if user is in withdraw flow, and they close on the ToS acceptance page
-            else {
+
+            // manual abort: close modal; optionally redirect in add flow
+            if (source === 'manual') {
                 setIframeOptions((prev) => ({ ...prev, visible: false }))
+                if (flow === 'add') {
+                    router.push('/add-money')
+                } else if (flow === 'request_fulfillment') {
+                    onManualClose?.()
+                }
+                return
             }
+
+            // for any other sources, do nothing
         },
         [iframeOptions.src, apiResponse, flow, router]
     )

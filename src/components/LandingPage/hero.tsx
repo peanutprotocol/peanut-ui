@@ -1,5 +1,4 @@
 import { ButterySmoothGlobalMoney, PeanutGuyGIF, Sparkle } from '@/assets'
-import { Stack } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'

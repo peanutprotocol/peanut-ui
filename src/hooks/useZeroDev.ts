@@ -6,7 +6,7 @@ import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { saveToLocalStorage } from '@/utils'
+import { saveToCookie, saveToLocalStorage } from '@/utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -56,6 +56,7 @@ export const useZeroDev = () => {
 
             setWebAuthnKey(webAuthnKey)
             saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
+            saveToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey, 90)
         } catch (e) {
             if ((e as Error).message.includes('pending')) {
                 return
@@ -86,6 +87,7 @@ export const useZeroDev = () => {
 
             setWebAuthnKey(webAuthnKey)
             saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
+            saveToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey, 90)
         } catch (e) {
             const error = e as Error
             if (error.name === 'NotAllowedError') {

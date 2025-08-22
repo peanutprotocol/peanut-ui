@@ -147,6 +147,81 @@ export const getFromLocalStorage = (key: string) => {
     }
 }
 
+export const saveToCookie = (key: string, data: any, expiryDays?: number) => {
+    if (typeof document === 'undefined') return
+    try {
+        // Convert the data to a string before storing it in cookies
+        const serializedData = jsonStringify(data)
+
+        let cookieString = `${key}=${encodeURIComponent(serializedData)}`
+
+        if (expiryDays) {
+            const expiryDate = new Date(new Date().getTime() + expiryDays * 24 * 60 * 60 * 1000)
+            cookieString += `; expires=${expiryDate.toUTCString()}`
+        }
+
+        // Add default cookie attributes for security
+        cookieString += '; path=/; SameSite=Lax'
+
+        document.cookie = cookieString
+        console.log(`Saved ${key} to cookie:`, data)
+    } catch (error) {
+        Sentry.captureException(error)
+        console.error('Error saving to cookie:', error)
+    }
+}
+
+export const getFromCookie = (key: string) => {
+    if (typeof document === 'undefined') return
+    try {
+        const cookies = document.cookie.split(';')
+        const targetCookie = cookies.find((cookie) => {
+            const [cookieKey] = cookie.trim().split('=')
+            return cookieKey === key
+        })
+
+        if (!targetCookie) {
+            console.log(`No data found in cookie for ${key}`)
+            return null
+        }
+
+        const [, ...cookieValueParts] = targetCookie.split('=')
+        const cookieValue = cookieValueParts.join('=') // Handle cases where value contains '='
+        const decodedValue = decodeURIComponent(cookieValue)
+
+        const parsedData = jsonParse(decodedValue)
+        console.log(`Retrieved ${key} from cookie:`, parsedData)
+        return parsedData
+    } catch (error) {
+        Sentry.captureException(error)
+        console.error('Error getting data from cookie:', error)
+        return null
+    }
+}
+
+export const removeFromCookie = (key: string) => {
+    if (typeof document === 'undefined') return
+    try {
+        // Set cookie with past expiry date to remove it
+        document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax`
+        console.log(`Removed ${key} from cookie`)
+    } catch (error) {
+        Sentry.captureException(error)
+        console.error('Error removing cookie:', error)
+    }
+}
+
+// for backward compatibility - save localstorage data in cookie if it does not exist
+export const syncLocalStorageToCookie = (key: string) => {
+    const localStorageData = getFromLocalStorage(key)
+    const cookieData = getFromCookie(key)
+
+    if (localStorageData && !cookieData) {
+        saveToCookie(key, localStorageData, 90)
+        console.log('Data synced successfully')
+    }
+}
+
 export const getAllLinksFromLocalStorage = ({ address }: { address: string }) => {
     try {
         if (typeof localStorage === 'undefined') return
@@ -1216,4 +1291,8 @@ export function isAndroid(): boolean {
 export function isTxReverted(receipt: TransactionReceipt): boolean {
     if (receipt.status === 'reverted') return true
     return receipt.logs.some((log) => log.topics[0] === USER_OPERATION_REVERT_REASON_TOPIC)
+}
+
+export function checkIfInternalNavigation(): boolean {
+    return !!document.referrer && new URL(document.referrer).origin === window.location.origin
 }
