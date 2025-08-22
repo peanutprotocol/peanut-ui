@@ -51,6 +51,7 @@ export interface TransactionDetails {
     initials: string
     status?: StatusPillType
     isVerified?: boolean
+    haveSentMoneyToUser?: boolean
     date: string | Date
     fee?: number | string
     memo?: string
@@ -66,6 +67,8 @@ export interface TransactionDetails {
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
         rewardData?: RewardData
+        fulfillmentType?: 'bridge' | 'wallet'
+        bridgeTransferId?: string
         depositInstructions?: {
             amount: string
             currency: string
@@ -182,14 +185,22 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             }
             break
         case EHistoryEntryType.REQUEST:
-            if (entry.userRole === EHistoryUserRole.RECIPIENT) {
+            if (entry.extraData?.fulfillmentType === 'bridge' && entry.userRole === EHistoryUserRole.SENDER) {
+                transactionCardType = 'bank_request_fulfillment'
+                direction = 'bank_request_fulfillment'
+                nameForDetails = entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
+                isPeerActuallyUser = !!entry.recipientAccount?.isUser || !!entry.senderAccount?.isUser
+            } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
                 direction = 'request_sent'
                 transactionCardType = 'request'
                 nameForDetails =
                     entry.senderAccount?.username || entry.senderAccount?.identifier || 'Requested via Link'
                 isPeerActuallyUser = !!entry.senderAccount?.isUser
             } else {
-                if (entry.status?.toUpperCase() === 'NEW' || entry.status?.toUpperCase() === 'PENDING') {
+                if (
+                    entry.status?.toUpperCase() === 'NEW' ||
+                    (entry.status?.toUpperCase() === 'PENDING' && !entry.extraData?.fulfillmentType)
+                ) {
                     direction = 'request_received'
                     transactionCardType = 'request'
                     nameForDetails =
@@ -225,7 +236,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             nameForDetails = 'Bank Account'
             isPeerActuallyUser = false
             break
-        case EHistoryEntryType.BRIDGE_GUEST_OFFRAMP:
+        case EHistoryEntryType.BANK_SEND_LINK_CLAIM:
             direction = 'bank_claim'
             transactionCardType = 'bank_withdraw'
             nameForDetails = 'Claimed to Bank'
@@ -261,7 +272,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     if (
         entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
         entry.type === EHistoryEntryType.BRIDGE_ONRAMP ||
-        entry.type === EHistoryEntryType.BRIDGE_GUEST_OFFRAMP
+        entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM ||
+        entry.extraData?.fulfillmentType === 'bridge'
     ) {
         switch (entry.status?.toUpperCase()) {
             case 'AWAITING_FUNDS':
@@ -377,7 +389,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
         initials: getInitialsFromName(nameForDetails),
         status: uiStatus,
-        isVerified: entry.recipientAccount?.isUser || entry.senderAccount?.isUser || false,
+        isVerified: entry.isVerified,
         date: new Date(entry.timestamp),
         fee: undefined,
         memo: entry.memo?.trim(),
@@ -394,13 +406,17 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             isLinkTransaction: isLinkTx,
             transactionCardType,
             rewardData,
+            fulfillmentType: entry.extraData?.fulfillmentType,
+            bridgeTransferId: entry.extraData?.bridgeTransferId,
             depositInstructions:
-                entry.type === EHistoryEntryType.BRIDGE_ONRAMP ? entry.extraData?.depositInstructions : undefined,
+                entry.type === EHistoryEntryType.BRIDGE_ONRAMP || entry.extraData?.fulfillmentType === 'bridge'
+                    ? entry.extraData?.depositInstructions
+                    : undefined,
             receipt: entry.extraData?.receipt,
         },
         sourceView: 'history',
         bankAccountDetails:
-            entry.type === EHistoryEntryType.BRIDGE_OFFRAMP || entry.type === EHistoryEntryType.BRIDGE_GUEST_OFFRAMP
+            entry.type === EHistoryEntryType.BRIDGE_OFFRAMP || entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM
                 ? {
                       identifier: entry.recipientAccount.identifier,
                       type: entry.recipientAccount.type,
@@ -409,6 +425,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         claimedAt: entry.claimedAt,
         createdAt: entry.createdAt,
         completedAt: entry.completedAt,
+        haveSentMoneyToUser: entry.extraData?.haveSentMoneyToUser as boolean,
     }
 
     return {

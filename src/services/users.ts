@@ -25,9 +25,12 @@ export type ApiUser = {
     fullName: string
     firstName: string
     lastName: string
-    totalUsdSent: string
-    totalUsdReceived: string
+    totalUsdSentToCurrentUser: string
+    totalUsdReceivedFromCurrentUser: string
+    kycStatus: string
 }
+
+export type RecentUser = Pick<ApiUser, 'userId' | 'username' | 'fullName' | 'kycStatus'>
 
 export interface UserSearchResponse {
     users: Array<ApiUser>
@@ -40,6 +43,19 @@ export const usersApi = {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${Cookies.get('jwt-token')}`,
             },
+        })
+        return await response.json()
+    },
+
+    getInteractionStatus: async (userIds: string[]): Promise<Record<string, boolean>> => {
+        // returns a map of userIds to booleans indicating if the current user has sent money to them
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/interaction-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+            },
+            body: JSON.stringify({ userIds }),
         })
         return await response.json()
     },

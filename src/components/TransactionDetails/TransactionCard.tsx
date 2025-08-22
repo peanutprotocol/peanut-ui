@@ -9,10 +9,10 @@ import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHisto
 import { formatNumberForDisplay } from '@/utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import React from 'react'
-import AddressLink from '../Global/AddressLink'
 import { STABLE_COINS } from '@/constants'
 import Image from 'next/image'
 import StatusPill, { StatusPillType } from '../Global/StatusPill'
+import { VerifiedUserLabel } from '../UserHeader'
 
 export type TransactionType =
     | 'send'
@@ -23,6 +23,7 @@ export type TransactionType =
     | 'receive'
     | 'bank_withdraw'
     | 'bank_deposit'
+    | 'bank_request_fulfillment'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -33,6 +34,7 @@ interface TransactionCardProps {
     position?: CardPosition
     transaction: TransactionDetails
     isPending?: boolean
+    haveSentMoneyToUser?: boolean
 }
 
 /**
@@ -49,6 +51,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     position = 'middle',
     transaction,
     isPending = false,
+    haveSentMoneyToUser = false,
 }) => {
     // hook to manage the state of the details drawer (open/closed, selected transaction)
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
@@ -67,7 +70,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const defaultDisplayDecimals = actualCurrencyCode === 'JPY' ? 0 : 2 // JPY has 0, others default to 2
 
     // Special handling for bank_deposit transactions with non-USD currency
-    if (type === 'bank_deposit' && actualCurrencyCode && actualCurrencyCode.toUpperCase() !== 'USD') {
+    if (
+        (type === 'bank_deposit' || type === 'bank_request_fulfillment') &&
+        actualCurrencyCode &&
+        actualCurrencyCode.toUpperCase() !== 'USD'
+    ) {
         const isCompleted = transaction.status === 'completed'
 
         if (isCompleted) {
@@ -166,7 +173,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             <div className="flex flex-row items-center gap-2">
                                 {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
                                 <div className="max-w-40 truncate font-roboto text-[16px] font-medium">
-                                    <AddressLink address={name} isLink={false} />
+                                    <VerifiedUserLabel
+                                        name={name}
+                                        isVerified={transaction.isVerified}
+                                        haveSentMoneyToUser={haveSentMoneyToUser}
+                                    />
+                                    {/* <AddressLink address={name} isLink={false} /> */}
                                 </div>
                             </div>
                             {/* display the action icon and type text */}
@@ -225,6 +237,9 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
             iconName = 'arrow-down'
             iconSize = 8
             break
+        case 'bank_request_fulfillment':
+            iconName = 'arrow-up-right'
+            break
         default:
             return null
     }
@@ -239,6 +254,9 @@ function getActionText(type: TransactionType): string {
             break
         case 'bank_deposit':
             actionText = 'Add'
+            break
+        case 'bank_request_fulfillment':
+            actionText = 'Request pay via Bank'
             break
     }
     return actionText

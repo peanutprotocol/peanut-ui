@@ -49,7 +49,7 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
                         onError={() => setChainImageError(true)}
                     />
                 ) : (
-                    <AvatarWithBadge size="extra-small" name={chainName} achievementsBadgeSize="extra-small" />
+                    <AvatarWithBadge size="extra-small" name={chainName} />
                 )}
             </div>
             <span className="text-sm font-medium">{isSearch ? 'more' : chainName}</span>
