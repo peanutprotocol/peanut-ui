@@ -28,6 +28,7 @@ import { Account } from '@/interfaces'
 import PeanutLoading from '../Global/PeanutLoading'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -47,6 +48,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(user?.user?.kycStatus as KYCStatus)
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     useWebSocket({
         username: user?.user.username ?? undefined,
@@ -295,6 +297,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                 if (flow === 'withdraw') {
                                     handleWithdrawMethodClick(method)
                                 } else if (method.path) {
+                                    if (method.id === 'crypto-add') {
+                                        setIsDrawerOpen(true)
+                                        return
+                                    }
                                     router.push(method.path)
                                 }
                             }}
@@ -332,6 +338,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     methods?.withdraw &&
                     renderPaymentMethods('Choose withdrawing method', methods.withdraw)}
             </div>
+            {flow === 'add' && (
+                <CryptoMethodDrawer isDrawerOpen={isDrawerOpen} closeDrawer={() => setIsDrawerOpen(false)} />
+            )}
             <InitiateKYCModal
                 isOpen={isKycModalOpen}
                 onClose={() => setIsKycModalOpen(false)}
