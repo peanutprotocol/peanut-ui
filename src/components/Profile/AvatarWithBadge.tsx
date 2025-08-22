@@ -2,7 +2,6 @@ import { getInitialsFromName } from '@/utils'
 import { getColorForUsername } from '@/utils/color.utils'
 import React, { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
-import AchievementsBadge, { AchievementsBadgeSize } from '../Global/Badges/AchievementsBadge'
 import { Icon, IconName } from '../Global/Icons/Icon'
 import StatusPill, { StatusPillType } from '../Global/StatusPill'
 
@@ -14,10 +13,8 @@ export type AvatarSize = 'extra-small' | 'small' | 'medium' | 'large'
 interface AvatarWithBadgeProps {
     name?: string
     icon?: IconName
-    isVerified?: boolean
     className?: string
     size?: AvatarSize
-    achievementsBadgeSize?: AchievementsBadgeSize
     inlineStyle?: React.CSSProperties // for dynamic background colors based on username (hex codes)
     textColor?: string
     iconFillColor?: string
@@ -32,10 +29,8 @@ interface AvatarWithBadgeProps {
 const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     name,
     icon,
-    isVerified = false,
     className,
     size = 'medium',
-    achievementsBadgeSize = 'small',
     inlineStyle,
     textColor,
     iconFillColor,
@@ -88,8 +83,6 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                     initials
                 )}
             </div>
-            {/* display verification badge if isverified is true */}
-            {isVerified && <AchievementsBadge size={achievementsBadgeSize} />}
 
             {showStatusPill && statusPillStatus && <StatusPill status={statusPillStatus} />}
         </div>

@@ -144,6 +144,7 @@ export interface Payment {
         type: string
         user: {
             username: string
+            kycStatus?: string
         } | null
     }
 }
@@ -198,30 +199,12 @@ export interface TRequestChargeResponse {
             userId: string
             identifier: string
             type: string
+            username?: string
+            kycStatus?: string
             user: {
                 username: string
+                kycStatus?: string
             }
-        }
-    }
-}
-
-// create payment response
-export interface PaymentResponse {
-    uuid: string
-    paidTokenAddress: string
-    payerChainId: string
-    payerTransactionHash: string
-    requestCharge: {
-        uuid: string
-        chainId: string
-        createdAt: string
-        tokenAddress: string
-        tokenAmount: string
-        tokenDecimals: number
-        requestLink: {
-            recipientAddress: string
-            reference?: string
-            attachmentUrl?: string
         }
     }
 }

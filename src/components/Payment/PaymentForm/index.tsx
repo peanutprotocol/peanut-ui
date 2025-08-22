@@ -42,6 +42,8 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { formatUnits, getAddress } from 'viem'
 import { arbitrum } from 'viem/chains'
 import { useAccount } from 'wagmi'
+import { useUserInteractions } from '@/hooks/useUserInteractions'
+import { useUserByUsername } from '@/hooks/useUserByUsername'
 
 export type PaymentFlowProps = {
     isPintaReq?: boolean
@@ -84,7 +86,16 @@ export const PaymentForm = ({
         attachmentOptions,
     } = usePaymentStore()
     const { setShowExternalWalletFulfilMethods, setExternalWalletFulfilMethod } = useRequestFulfillmentFlow()
+    const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
+    const { user: recipientUser } = useUserByUsername(recipientUsername)
 
+    const recipientUserId =
+        requestDetails?.recipientAccount?.userId ||
+        chargeDetails?.requestLink.recipientAccount.userId ||
+        recipientUser?.userId
+    const recipientKycStatus = chargeDetails?.requestLink.recipientAccount.user?.kycStatus || recipientUser?.kycStatus
+
+    const { interactions } = useUserInteractions(recipientUserId ? [recipientUserId] : [])
     const { isConnected: isPeanutWalletConnected, balance } = useWallet()
     const { isConnected: isExternalWalletConnected, status } = useAccount()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
@@ -92,6 +103,7 @@ export const PaymentForm = ({
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
     )
 
+    // states
     const [disconnectWagmiModal, setDisconnectWagmiModal] = useState<boolean>(false)
     const [inputUsdValue, setInputUsdValue] = useState<string>('')
     const [usdValue, setUsdValue] = useState<string>('')
@@ -827,6 +839,8 @@ export const PaymentForm = ({
                         size="small"
                         message={requestDetails?.reference || chargeDetails?.requestLink?.reference || ''}
                         fileUrl={requestDetails?.attachmentUrl || chargeDetails?.requestLink?.attachmentUrl || ''}
+                        isVerified={recipientKycStatus === 'approved'}
+                        haveSentMoneyToUser={recipientUserId ? interactions[recipientUserId] || false : false}
                     />
                 )}
 

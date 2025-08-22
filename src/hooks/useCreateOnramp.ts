@@ -6,6 +6,7 @@ import { CountryData } from '@/components/AddMoney/consts'
 export interface CreateOnrampParams {
     amount: string
     country: CountryData
+    chargeId?: string
 }
 
 export interface UseCreateOnrampReturn {
@@ -21,7 +22,7 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const createOnramp = useCallback(async ({ amount, country }: CreateOnrampParams) => {
+    const createOnramp = useCallback(async ({ amount, country, chargeId }: CreateOnrampParams) => {
         setIsLoading(true)
         setError(null)
 
@@ -40,6 +41,7 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
                 },
                 body: JSON.stringify({
                     amount,
+                    chargeId,
                     source: {
                         currency,
                         paymentRail,
