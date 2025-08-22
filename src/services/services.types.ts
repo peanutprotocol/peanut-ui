@@ -144,6 +144,7 @@ export interface Payment {
         type: string
         user: {
             username: string
+            kycStatus?: string
         } | null
     }
 }
@@ -198,8 +199,11 @@ export interface TRequestChargeResponse {
             userId: string
             identifier: string
             type: string
+            username?: string
+            kycStatus?: string
             user: {
                 username: string
+                kycStatus?: string
             }
         }
     }

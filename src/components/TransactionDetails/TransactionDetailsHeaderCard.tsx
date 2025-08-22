@@ -9,6 +9,7 @@ import React from 'react'
 import { isAddress as isWalletAddress } from 'viem'
 import Card from '../Global/Card'
 import { Icon, IconName } from '../Global/Icons/Icon'
+import { VerifiedUserLabel } from '../UserHeader'
 
 export type TransactionDirection =
     | 'send'
@@ -32,6 +33,7 @@ interface TransactionDetailsHeaderCardProps {
     isLinkTransaction?: boolean
     transactionType?: TransactionType
     avatarUrl?: string
+    haveSentMoneyToUser?: boolean
 }
 
 const getTitle = (
@@ -104,7 +106,7 @@ const getTitle = (
         }
     }
 
-    return <span className="flex items-center gap-1">{titleText}</span>
+    return titleText
 }
 
 const getIcon = (direction: TransactionDirection, isLinkTransaction?: boolean): IconName | undefined => {
@@ -141,6 +143,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     isLinkTransaction = false,
     transactionType,
     avatarUrl,
+    haveSentMoneyToUser = false,
 }) => {
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
@@ -159,7 +162,6 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         initials={initials}
                         userName={userName}
                         isLinkTransaction={isLinkTransaction}
-                        isVerified={isVerified}
                         transactionType={typeForAvatar}
                         context="header"
                         size="medium"
@@ -168,7 +170,13 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                 <div className="space-y-1">
                     <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
                         {icon && <Icon name={icon} size={10} />}
-                        {getTitle(direction, userName, isLinkTransaction, status)}
+                        <VerifiedUserLabel
+                            name={getTitle(direction, userName, isLinkTransaction, status) as string}
+                            isVerified={isVerified}
+                            className="flex items-center gap-1"
+                            haveSentMoneyToUser={haveSentMoneyToUser}
+                            iconSize={18}
+                        />
                     </h2>
                     <h1
                         className={`text-3xl font-extrabold md:text-4xl ${status === 'cancelled' ? 'text-grey-1 line-through' : ''}`}

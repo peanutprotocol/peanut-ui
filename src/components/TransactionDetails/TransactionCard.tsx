@@ -9,10 +9,10 @@ import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHisto
 import { formatNumberForDisplay } from '@/utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import React from 'react'
-import AddressLink from '../Global/AddressLink'
 import { STABLE_COINS } from '@/constants'
 import Image from 'next/image'
 import StatusPill, { StatusPillType } from '../Global/StatusPill'
+import { VerifiedUserLabel } from '../UserHeader'
 
 export type TransactionType =
     | 'send'
@@ -34,6 +34,7 @@ interface TransactionCardProps {
     position?: CardPosition
     transaction: TransactionDetails
     isPending?: boolean
+    haveSentMoneyToUser?: boolean
 }
 
 /**
@@ -50,6 +51,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     position = 'middle',
     transaction,
     isPending = false,
+    haveSentMoneyToUser = false,
 }) => {
     // hook to manage the state of the details drawer (open/closed, selected transaction)
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
@@ -171,7 +173,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             <div className="flex flex-row items-center gap-2">
                                 {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
                                 <div className="max-w-40 truncate font-roboto text-[16px] font-medium">
-                                    <AddressLink address={name} isLink={false} />
+                                    <VerifiedUserLabel
+                                        name={name}
+                                        isVerified={transaction.isVerified}
+                                        haveSentMoneyToUser={haveSentMoneyToUser}
+                                    />
+                                    {/* <AddressLink address={name} isLink={false} /> */}
                                 </div>
                             </div>
                             {/* display the action icon and type text */}

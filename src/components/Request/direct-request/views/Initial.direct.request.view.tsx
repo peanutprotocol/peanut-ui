@@ -13,11 +13,13 @@ import { loadingStateContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { IAttachmentOptions } from '@/redux/types/send-flow.types'
-import { ApiUser, usersApi } from '@/services/users'
+import { usersApi } from '@/services/users'
 import { formatAmount, printableUsdc } from '@/utils'
 import { captureException } from '@sentry/nextjs'
 import { useRouter } from 'next/navigation'
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useUserInteractions } from '@/hooks/useUserInteractions'
+import { useUserByUsername } from '@/hooks/useUserByUsername'
 
 interface DirectRequestInitialViewProps {
     username: string
@@ -27,7 +29,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const router = useRouter()
     const { user: authUser } = useUserStore()
     const { balance, address } = useWallet()
-    const [user, setUser] = useState<ApiUser | null>(null)
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
         fileUrl: undefined,
@@ -45,8 +46,14 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [validationError, setValidationError] = useState<ValidationErrorViewProps | null>(null)
-    const [isLoading, setIsLoading] = useState<boolean>(true)
-    const lastProcessedUsernameRef = useRef<string | null>(null)
+
+    const {
+        user: recipientUser,
+        isLoading: isRecipientUserLoading,
+        error: recipientUserError,
+    } = useUserByUsername(username)
+
+    const { interactions } = useUserInteractions(recipientUser ? [recipientUser.userId] : [])
 
     const resetRequestState = () => {
         setView('initial')
@@ -70,8 +77,8 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         const parsedAmount = parseFloat(currentInputValue)
         const isAmountInvalid = isNaN(parsedAmount) || parsedAmount <= 0
         const isIdentityLogicMissing = !!authUser?.user.userId ? !address : !recipient.address
-        return !user?.username || isAmountInvalid || isIdentityLogicMissing
-    }, [user?.username, currentInputValue, address, recipient.address, authUser?.user.userId])
+        return !recipientUser?.username || isAmountInvalid || isIdentityLogicMissing
+    }, [recipientUser?.username, currentInputValue, address, recipient.address, authUser?.user.userId])
 
     const isButtonLoading = useContext(loadingStateContext).isLoading
 
@@ -84,7 +91,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         setErrorState({ showError: false, errorMessage: '' })
         try {
             await usersApi.requestByUsername({
-                username: user!.username,
+                username: recipientUser!.username,
                 amount: currentInputValue,
                 toAddress: authUser?.user.userId ? address : recipient.address,
                 attachment: attachmentOptions,
@@ -99,7 +106,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         }
     }, [
         isButtonDisabled,
-        user?.username,
+        recipientUser?.username,
         currentInputValue,
         address,
         attachmentOptions,
@@ -110,12 +117,9 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     ])
 
     useEffect(() => {
-        if (authUser === undefined) {
-            setIsLoading(true)
+        if (isRecipientUserLoading || authUser === undefined) {
             return
         }
-
-        const effectUsername = username
 
         const getValidationErrorObject = (
             title: 'Invalid Recipient' | 'Missing Recipient',
@@ -136,63 +140,20 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             }
         }
 
-        if (!effectUsername) {
-            if (lastProcessedUsernameRef.current !== null || isLoading) {
-                setValidationError(getValidationErrorObject('Missing Recipient'))
-                setUser(null)
-                setIsLoading(false)
-            }
-            lastProcessedUsernameRef.current = null
+        if (!username) {
+            setValidationError(getValidationErrorObject('Missing Recipient'))
             return
         }
 
-        if (lastProcessedUsernameRef.current !== effectUsername) {
-            setIsLoading(true)
-            lastProcessedUsernameRef.current = effectUsername
-
-            usersApi
-                .getByUsername(effectUsername)
-                .then((response) => {
-                    if (lastProcessedUsernameRef.current !== effectUsername) return
-
-                    if (response && response.username) {
-                        setUser(response)
-                        setValidationError(null)
-                    } else {
-                        setUser(null)
-                        setValidationError(
-                            getValidationErrorObject(
-                                'Invalid Recipient',
-                                'You can only request funds from Peanut users. Please check the username and try again.'
-                            )
-                        )
-                    }
-                })
-                .catch((error) => {
-                    if (lastProcessedUsernameRef.current !== effectUsername) return
-                    console.error('Failed to fetch user by username:', error)
-                    setUser(null)
-                    setValidationError(getValidationErrorObject('Invalid Recipient'))
-                })
-                .finally(() => {
-                    if (lastProcessedUsernameRef.current === effectUsername) {
-                        setIsLoading(false)
-                    }
-                })
-        } else {
-            if (validationError) {
-                setValidationError(
-                    getValidationErrorObject(
-                        validationError.title as 'Invalid Recipient' | 'Missing Recipient',
-                        validationError.message
-                    )
-                )
-            }
-            setIsLoading(false)
+        if (recipientUserError || !recipientUser) {
+            setValidationError(getValidationErrorObject('Invalid Recipient'))
+            return
         }
-    }, [username, authUser])
 
-    if (isLoading) {
+        setValidationError(null)
+    }, [username, authUser, recipientUser, recipientUserError, isRecipientUserLoading])
+
+    if (isRecipientUserLoading || authUser === undefined) {
         return (
             <div className="flex min-h-[inherit] w-full items-center justify-center">
                 <PeanutLoading />
@@ -212,7 +173,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     }
 
     if (view === 'success') {
-        if (!user) return null
+        if (!recipientUser) return null
         return (
             <div className="flex min-h-[inherit] flex-col justify-between gap-8">
                 {!!authUser?.user.userId ? (
@@ -223,7 +184,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
 
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <DirectSuccessView
-                        user={user}
+                        user={recipientUser}
                         amount={formatAmount(currentInputValue)}
                         message={attachmentOptions.message}
                         type="REQUEST"
@@ -243,7 +204,14 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             )}
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <UserCard type="request" username={user?.username || username} fullName={user?.fullName} />
+                <UserCard
+                    type="request"
+                    recipientType={'USERNAME'}
+                    username={recipientUser?.username || username}
+                    fullName={recipientUser?.fullName}
+                    isVerified={recipientUser?.kycStatus === 'approved'}
+                    haveSentMoneyToUser={recipientUser?.userId ? interactions[recipientUser.userId] || false : false}
+                />
 
                 <div className="space-y-4">
                     <TokenAmountInput

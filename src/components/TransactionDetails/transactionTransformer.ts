@@ -51,6 +51,7 @@ export interface TransactionDetails {
     initials: string
     status?: StatusPillType
     isVerified?: boolean
+    haveSentMoneyToUser?: boolean
     date: string | Date
     fee?: number | string
     memo?: string
@@ -388,7 +389,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
         initials: getInitialsFromName(nameForDetails),
         status: uiStatus,
-        isVerified: entry.recipientAccount?.isUser || entry.senderAccount?.isUser || false,
+        isVerified: entry.isVerified,
         date: new Date(entry.timestamp),
         fee: undefined,
         memo: entry.memo?.trim(),
@@ -424,6 +425,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         claimedAt: entry.claimedAt,
         createdAt: entry.createdAt,
         completedAt: entry.completedAt,
+        haveSentMoneyToUser: entry.extraData?.haveSentMoneyToUser as boolean,
     }
 
     return {

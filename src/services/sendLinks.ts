@@ -31,8 +31,10 @@ export type SendLink = {
         userId: string
         username: string
         fullName: string
+        kycStatus: string
         accounts: {
             identifier: string
+            type: string
         }[]
     }
     claim?: {
@@ -41,10 +43,13 @@ export type SendLink = {
         tokenAddress: string
         recipientAddress?: string
         recipient?: {
+            userId: string
             username: string
             fullName: string
+            kycStatus: string
             accounts: {
                 identifier: string
+                type: string
             }[]
         }
     }

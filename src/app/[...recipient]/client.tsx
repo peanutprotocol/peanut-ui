@@ -14,6 +14,7 @@ import { useAuth } from '@/context/authContext'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { EParseUrlError, parsePaymentURL, ParseUrlError } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
@@ -59,6 +60,18 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
     const { showExternalWalletFulfilMethods, showRequestFulfilmentBankFlowManager } = useRequestFulfillmentFlow()
+
+    // determine if the current user is the recipient of the transaction
+    const isCurrentUserRecipient = chargeDetails?.requestLink.recipientAccount?.userId === user?.user.userId
+
+    // determine the counterparty of the transaction
+    const payer = chargeDetails?.payments && chargeDetails?.payments.length > 0 ? chargeDetails.payments[0] : null
+    const counterpartyUserId = isCurrentUserRecipient
+        ? payer?.payerAccount?.userId
+        : chargeDetails?.requestLink.recipientAccount?.userId
+
+    // fetch interactions for the counterparty
+    const { interactions } = useUserInteractions(counterpartyUserId ? [counterpartyUserId] : [])
 
     const isMountedRef = useRef(true)
 
@@ -280,14 +293,26 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
 
         const recipientAccount = chargeDetails.requestLink.recipientAccount
         const isCurrentUser = recipientAccount?.userId === user?.user.userId
+
         if (status === 'pending' && !isCurrentUser) {
             return null
         }
 
+        const payerAccount =
+            chargeDetails.payments && chargeDetails.payments.length > 0 ? chargeDetails.payments[0].payerAccount : null
+
+        // determine who the counterparty is.
+        // if the current user is the recipient of the funds, the counterparty is the one who paid.
+        // otherwise, the counterparty is the one who will receive the funds.
+        const counterparty = isCurrentUser ? payerAccount : recipientAccount
+
         const username =
-            recipientAccount?.user?.username ||
-            recipientAccount?.identifier ||
-            chargeDetails.requestLink.recipientAddress
+            counterparty?.user?.username ||
+            counterparty?.identifier ||
+            (isCurrentUser && chargeDetails.payments.length > 0
+                ? chargeDetails.payments[0].payerAddress
+                : chargeDetails.requestLink.recipientAddress)
+
         const originalUserRole = isCurrentUser ? EHistoryUserRole.RECIPIENT : EHistoryUserRole.SENDER
         let details: Partial<TransactionDetails> = {
             id: chargeDetails.uuid,
@@ -312,6 +337,8 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 amountDisplay: '$ 0.00',
             },
             currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
+            isVerified: counterparty?.user?.kycStatus === 'approved',
+            haveSentMoneyToUser: counterparty?.userId ? interactions[counterparty.userId] || false : false,
         }
 
         if (isExternalWalletFlow) {
@@ -326,7 +353,15 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
 
         return details as TransactionDetails
-    }, [chargeDetails, user?.user.userId, isExternalWalletFlow, user?.user.username, usdAmount, paymentDetails])
+    }, [
+        chargeDetails,
+        user?.user.userId,
+        isExternalWalletFlow,
+        user?.user.username,
+        usdAmount,
+        paymentDetails,
+        interactions,
+    ])
 
     useEffect(() => {
         if (!transactionForDrawer) return
@@ -388,12 +423,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
         return (
             <div className={twMerge('mx-auto h-full w-full space-y-8 self-start')}>
-                <PublicProfile
-                    username={username}
-                    isVerified={user?.user.kycStatus === 'approved'}
-                    isLoggedIn={!!user}
-                    onSendClick={handleSendClick}
-                />
+                <PublicProfile username={username} isLoggedIn={!!user} onSendClick={handleSendClick} />
             </div>
         )
     }
