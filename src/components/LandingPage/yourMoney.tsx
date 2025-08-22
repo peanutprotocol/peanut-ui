@@ -1,51 +1,6 @@
-import iphoneYourMoney1 from '@/assets/iphone-ss/iphone-your-money-1.png'
-import iphoneYourMoney2 from '@/assets/iphone-ss/iphone-your-money-2.png'
-import iphoneYourMoney3 from '@/assets/iphone-ss/iphone-your-money-3.png'
-import freeGlobalTransfers from '@/assets/illustrations/free-global-transfers.svg'
-import payAnyoneAnywhere from '@/assets/illustrations/pay-anyone-anywhere.svg'
-import getPaidWorldwide from '@/assets/illustrations/get-paid-worldwide.svg'
 import Image from 'next/image'
 import { LandingCountries } from '@/assets'
 import { Button } from '../0_Bruddle'
-
-interface Feature {
-    id: number
-    title: string
-    titleSvg: any
-    description: string
-    imageSrc: any
-    imageAlt: string
-}
-
-const features: Feature[] = [
-    {
-        id: 1,
-        title: 'FREE GLOBAL TRANSFERS',
-        titleSvg: freeGlobalTransfers,
-        description:
-            'Move money between your own accounts in 140+ countries and 50+ currencies, no fees, live FX rates.',
-        imageSrc: iphoneYourMoney1,
-        imageAlt: 'iPhone showing global transfer screen',
-    },
-    {
-        id: 2,
-        title: 'PAY ANYONE, ANYWHERE',
-        titleSvg: payAnyoneAnywhere,
-        description:
-            'Send funds in seconds through WhatsApp, a phone number, or a QR code. No bank details, no friction.',
-        imageSrc: iphoneYourMoney2,
-        imageAlt: 'iPhone showing payment options screen',
-    },
-    {
-        id: 3,
-        title: 'GET PAID WORLDWIDE',
-        titleSvg: getPaidWorldwide,
-        description:
-            'Get paid by clients in 140+ countries, direct to your account, and settle in the currency you prefer.',
-        imageSrc: iphoneYourMoney3,
-        imageAlt: 'iPhone showing payment request screen',
-    },
-]
 
 export function YourMoney() {
     return (
@@ -57,9 +12,11 @@ export function YourMoney() {
                         <br /> ANYWHERE
                     </h1>
 
-                    <h2 className="text-xl md:text-3xl">140+ countries · 50+ currencies · 0% fees</h2>
+                    <h2 className="font-roboto-flex text-lg md:text-4xl md:font-medium">
+                        140+ countries · 50+ currencies · 0% fees
+                    </h2>
 
-                    <p className="text-left text-base md:text-2xl">
+                    <p className="font-roboto-flex text-left text-xl font-light md:text-4xl md:font-normal">
                         Peanut turns the entire planet into one seamless wallet, moving funds in real time across the
                         world with zero hidden spreads or hoops to jump through.
                     </p>

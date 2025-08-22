@@ -15,6 +15,7 @@ import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
 import Card from '@/components/Global/Card'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import { checkIfInternalNavigation } from '@/utils'
 
 interface PublicProfileProps {
     username: string
@@ -60,10 +61,13 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                 ) : (
                     <NavHeader
                         onPrev={() => {
-                            if (window.history.length > 1) {
+                            // Check if the referrer is from the same domain (internal navigation)
+                            const isInternalReferrer = checkIfInternalNavigation()
+
+                            if (isInternalReferrer && window.history.length > 1) {
                                 router.back()
                             } else {
-                                router.push('/')
+                                router.push('/home')
                             }
                         }}
                         hideLabel

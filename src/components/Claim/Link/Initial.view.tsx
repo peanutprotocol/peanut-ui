@@ -30,14 +30,13 @@ import {
     formatTokenAmount,
     getBridgeChainName,
     getBridgeTokenName,
-    saveRedirectUrl,
     printableAddress,
 } from '@/utils'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
 import { formatUnits } from 'viem'
 import type { Address } from 'viem'
 import { IClaimScreenProps } from '../Claim.consts'
@@ -51,6 +50,7 @@ import { type PeanutCrossChainRoute, getRoute } from '@/services/swap'
 import { Button } from '@/components/0_Bruddle'
 import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const {
@@ -109,6 +109,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const { user } = useAuth()
     const queryClient = useQueryClient()
     const searchParams = useSearchParams()
+    const prevRecipientType = useRef<string | null>(null)
 
     const resetSelectedToken = useCallback(() => {
         if (isPeanutWallet) {
@@ -139,9 +140,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setIsXChain(true)
             }
         } else {
-            setSelectedChainID(claimLinkData.chainId)
-            setSelectedTokenAddress(claimLinkData.tokenAddress)
+            if (prevRecipientType.current === 'username') {
+                setSelectedChainID(claimLinkData.chainId)
+                setSelectedTokenAddress(claimLinkData.tokenAddress)
+            }
         }
+        prevRecipientType.current = recipientType
     }, [recipientType, claimLinkData.chainId, isPeanutChain, claimLinkData.tokenAddress])
 
     const handleClaimLink = useCallback(
@@ -556,6 +560,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         selectedRoute,
         recipient.address,
         isValidRecipient,
+        hasFetchedRoute,
     ])
 
     const getButtonText = () => {
@@ -583,7 +588,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     const handleClaimAction = () => {
-        if (isPeanutWallet && !isPeanutChain) {
+        if (claimToExternalWallet) {
+            if (isXChain) {
+                setRefetchXchainRoute(true)
+            }
+            onNext()
+        } else if (isPeanutWallet && !isPeanutChain) {
             setRefetchXchainRoute(true)
             onNext()
         } else if (recipientType === 'iban' || recipientType === 'us') {
@@ -600,9 +610,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8 ">
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
             {!!user?.user.userId || claimBankFlowStep || claimToExternalWallet ? (
-                <div className="md:hidden">
+                <div>
                     <NavHeader
                         title="Receive"
                         onPrev={() => {
@@ -705,7 +715,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         </Button>
                     )}
                     {!isPeanutClaimOnlyMode && !claimToExternalWallet && (
-                        <ActionList claimLinkData={claimLinkData} isLoggedIn={!!user?.user.userId} />
+                        <ActionList flow="claim" claimLinkData={claimLinkData} isLoggedIn={!!user?.user.userId} />
                     )}
                 </div>
             </div>
@@ -751,35 +761,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />
-            <ActionModal
-                visible={showVerificationModal}
+            <GuestVerificationModal
+                secondaryCtaLabel="Claim with other method"
+                isOpen={showVerificationModal}
                 onClose={() => setShowVerificationModal(false)}
-                title="This method requires verification"
-                description="To receive funds on your bank account, you’ll create a free Peanut Wallet and complete a quick identity check (KYC)."
-                icon="alert"
-                iconContainerClassName="bg-yellow-400"
-                ctaClassName="md:flex-col gap-4"
-                ctas={[
-                    {
-                        text: 'Start verification',
-                        shadowSize: '4',
-                        className: 'md:py-2.5',
-                        onClick: () => {
-                            saveRedirectUrl()
-                            router.push('/setup')
-                        },
-                    },
-                    {
-                        text: 'Claim with other method',
-                        variant: 'transparent',
-                        className: 'w-full h-auto underline underline-offset-2',
-                        onClick: () => {
-                            setShowVerificationModal(false)
-                        },
-                    },
-                ]}
-                preventClose={false}
-                modalPanelClassName="max-w-md mx-8"
+                description="The sender isn't verified, so please create an account and verify your identity to have the funds deposited to your bank."
             />
         </div>
     )

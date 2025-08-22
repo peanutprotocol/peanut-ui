@@ -70,7 +70,7 @@ export default function AddMoneyCryptoDirectPage() {
                 headerTitle={'Add Money'}
                 type="SEND"
                 currencyAmount={`$ ${inputTokenAmount}`}
-                isAddMoneyFlow={true}
+                isWithdrawFlow={false}
                 redirectTo={'/add-money'}
             />
         )

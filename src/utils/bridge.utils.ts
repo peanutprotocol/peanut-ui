@@ -11,7 +11,7 @@ export type BridgeOperationType = 'onramp' | 'offramp'
  * Payment rails differ between onramp and offramp operations
  */
 export const getCurrencyConfig = (countryId: string, operationType: BridgeOperationType): CurrencyConfig => {
-    if (countryId === 'US') {
+    if (countryId === 'US' || countryId === 'USA') {
         return {
             currency: 'usd',
             paymentRail: operationType === 'onramp' ? 'ach_push' : 'ach',

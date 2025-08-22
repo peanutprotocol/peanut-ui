@@ -54,12 +54,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const [showBicField, setShowBicField] = useState(false)
-        const { country: countryName } = useParams()
+        const { country: countryNameParams } = useParams()
         const { amountToWithdraw } = useWithdrawFlow()
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
         const lastName = lastNameParts.join(' ')
 
-        let selectedCountry = (countryNameFromProps ?? (countryName as string)).toLowerCase()
+        let selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
 
         const {
             control,
@@ -151,6 +151,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 const result = await onSuccess(payload as AddBankAccountPayload, {
                     ...data,
                     iban: isIban ? data.accountNumber : undefined,
+                    accountNumber: isIban ? '' : data.accountNumber,
+                    bic: bic,
                     country,
                     firstName: data.firstName.trim(),
                     lastName: data.lastName.trim(),
@@ -192,6 +194,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 placeholder={placeholder}
                                 className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
                                 onBlur={async (e) => {
+                                    // remove any whitespace from the input field
+                                    // note: @dev not a great fix, this should also be fixed in the backend
+                                    if (typeof field.value === 'string') {
+                                        field.onChange(field.value.trim())
+                                    }
                                     field.onBlur()
                                     if (onBlur) {
                                         await onBlur(field)

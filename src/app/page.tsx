@@ -10,9 +10,9 @@ import {
     SecurityBuiltIn,
     SendInSeconds,
     YourMoney,
+    RegulatedRails,
 } from '@/components/LandingPage'
 import Footer from '@/components/LandingPage/Footer'
-import { RegulatedRails } from '@/components/LandingPage/RegulatedRails'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef } from 'react'
 
@@ -179,12 +179,7 @@ export default function LandingPage() {
 
     return (
         <Layout className="enable-select !m-0 w-full !p-0">
-            <Hero
-                heading={hero.heading}
-                primaryCta={hero.primaryCta}
-                buttonVisible={buttonVisible}
-                buttonScale={buttonScale}
-            />
+            <Hero primaryCta={hero.primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
             <Marquee {...marqueeProps} />
             <NoFees />
             <Marquee {...marqueeProps} />

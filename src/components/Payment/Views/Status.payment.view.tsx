@@ -1,10 +1,10 @@
 'use client'
 import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
-import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import { StatusPillType } from '@/components/Global/StatusPill'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS, BASE_URL } from '@/constants'
@@ -29,7 +29,7 @@ type DirectSuccessViewProps = {
     type?: 'SEND' | 'REQUEST'
     headerTitle?: string
     currencyAmount?: string
-    isAddMoneyFlow?: boolean
+    isExternalWalletFlow?: boolean
     isWithdrawFlow?: boolean
     redirectTo?: string
 }
@@ -42,7 +42,7 @@ const DirectSuccessView = ({
     type,
     headerTitle,
     currencyAmount,
-    isAddMoneyFlow,
+    isExternalWalletFlow,
     isWithdrawFlow,
     redirectTo = '/home',
 }: DirectSuccessViewProps) => {
@@ -101,9 +101,10 @@ const DirectSuccessView = ({
         let details: Partial<TransactionDetails> = {
             id: paymentDetails?.payerTransactionHash,
             txHash: paymentDetails?.payerTransactionHash,
-            status: 'completed' as StatusType,
+            status: 'completed' as StatusPillType,
             amount: parseFloat(amountValue),
-            date: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
+            createdAt: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
+            completedAt: new Date(),
             tokenSymbol: chargeDetails.tokenSymbol,
             direction: 'send', // only showing receipt for send txns
             initials: getInitialsFromName(recipientName),
@@ -167,7 +168,7 @@ const DirectSuccessView = ({
     }
 
     const getTitle = () => {
-        if (isAddMoneyFlow) return 'You successfully added'
+        if (isExternalWalletFlow) return 'You successfully added'
         if (isWithdrawFlow) return 'You just withdrew'
         if (type === 'SEND') return 'You sent '
         if (type === 'REQUEST') return 'You requested '
@@ -201,7 +202,7 @@ const DirectSuccessView = ({
                     <div className="space-y-1">
                         <h1 className="text-sm font-normal text-grey-1">
                             {getTitle()}
-                            {!isAddMoneyFlow &&
+                            {!isExternalWalletFlow &&
                                 !isWithdrawFlow &&
                                 (recipientType !== 'USERNAME' ? (
                                     <AddressLink
@@ -231,7 +232,7 @@ const DirectSuccessView = ({
                             Create Account
                         </Button>
                     )}
-                    {type === 'SEND' && !isAddMoneyFlow && !isWithdrawFlow && (
+                    {type === 'SEND' && !isExternalWalletFlow && !isWithdrawFlow && (
                         <Button
                             variant="primary-soft"
                             shadowSize="4"

@@ -21,7 +21,13 @@ import { useEffect, useState } from 'react'
 
 type AddMoneyCryptoStep = 'sourceSelection' | 'tokenSelection' | 'networkSelection' | 'riskModal' | 'qrScreen'
 
-const AddMoneyCryptoPage = () => {
+interface AddMoneyCryptoPageProps {
+    headerTitle?: string
+    onBack?: () => void
+    depositAddress?: string
+}
+
+const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCryptoPageProps) => {
     const router = useRouter()
     const { address: peanutWalletAddress } = useWallet()
     const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('qrScreen')
@@ -90,13 +96,23 @@ const AddMoneyCryptoPage = () => {
     }
 
     if (currentStep === 'tokenSelection' && selectedSource) {
-        return <TokenSelectionView onTokenSelect={handleTokenSelected} onBack={handleBackToSourceSelection} />
+        return (
+            <TokenSelectionView
+                headerTitle={headerTitle}
+                onTokenSelect={handleTokenSelected}
+                onBack={onBack ?? handleBackToSourceSelection}
+            />
+        )
     }
 
     if ((currentStep === 'networkSelection' || currentStep === 'riskModal') && selectedSource && selectedToken) {
         return (
             <>
-                <NetworkSelectionView onNetworkSelect={handleNetworkSelected} onBack={handleBackToTokenSelection} />
+                <NetworkSelectionView
+                    headerTitle={headerTitle}
+                    onNetworkSelect={handleNetworkSelected}
+                    onBack={handleBackToTokenSelection}
+                />
                 {currentStep === 'riskModal' && selectedToken && selectedNetwork && (
                     <ActionModal
                         visible={true}
@@ -130,7 +146,7 @@ const AddMoneyCryptoPage = () => {
             <CryptoDepositQR
                 tokenName={selectedToken.symbol}
                 chainName={selectedNetwork.name}
-                depositAddress={peanutWalletAddress}
+                depositAddress={depositAddress ?? peanutWalletAddress}
                 onBack={handleBackToNetworkSelectionFromQR}
             />
         )
@@ -138,7 +154,7 @@ const AddMoneyCryptoPage = () => {
 
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
-            <NavHeader title="Add Money" onPrev={() => router.back()} />
+            <NavHeader title={'Add Money'} onPrev={() => router.back()} />
             <div className="flex flex-col gap-2 px-1">
                 <h2 className="text-base font-bold">Where are you adding from?</h2>
 

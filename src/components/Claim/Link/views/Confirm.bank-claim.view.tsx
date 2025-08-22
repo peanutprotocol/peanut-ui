@@ -53,8 +53,8 @@ export function ConfirmBankClaimView({
     }, [bankDetails.country])
 
     return (
-        <div className="flex flex-col justify-between gap-8">
-            <div className="md:hidden">
+        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+            <div>
                 <NavHeader title="Receive" onPrev={onBack} />
             </div>
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
@@ -73,6 +73,13 @@ export function ConfirmBankClaimView({
                     <PaymentInfoRow label="Full name" value={displayedFullName} />
                     {bankDetails.iban && <PaymentInfoRow label="IBAN" value={bankDetails.iban.toUpperCase()} />}
                     {bankDetails.bic && <PaymentInfoRow label="BIC" value={bankDetails.bic.toUpperCase()} />}
+                    {bankDetails.clabe && <PaymentInfoRow label="CLABE" value={bankDetails.clabe.toUpperCase()} />}
+                    {bankDetails.accountNumber && (
+                        <PaymentInfoRow label="Account Number" value={bankDetails.accountNumber.toUpperCase()} />
+                    )}
+                    {bankDetails.routingNumber && (
+                        <PaymentInfoRow label="Routing Number" value={bankDetails.routingNumber.toUpperCase()} />
+                    )}
                     <ExchangeRate accountType={accountType} />
                     <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                 </Card>

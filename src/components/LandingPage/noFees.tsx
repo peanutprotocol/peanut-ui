@@ -23,7 +23,7 @@ export function NoFees() {
     // Get values from URL or use defaults
     const sourceCurrency = searchParams.get('from') || 'USD'
     const destinationCurrency = searchParams.get('to') || 'EUR'
-    const urlSourceAmount = parseFloat(searchParams.get('amount') || '10') || 10
+    const urlSourceAmount = searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : 10
 
     // Exchange rate hook handles all the conversion logic
     const {
@@ -141,7 +141,7 @@ export function NoFees() {
                 />
             </div>
 
-            <div className="relative mx-auto max-w-3xl text-center">
+            <div className="relative mx-auto w-full max-w-3xl text-center">
                 {/* Animated stars */}
                 <motion.img
                     src={Star.src}
