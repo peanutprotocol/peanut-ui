@@ -4,6 +4,7 @@ import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { StatusPillType } from '@/components/Global/StatusPill'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -176,6 +177,7 @@ const DirectSuccessView = ({
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <SoundPlayer sound="success" />
             {type === 'SEND' && (
                 <div className="md:hidden">
                     <NavHeader
