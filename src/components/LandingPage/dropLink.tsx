@@ -1,3 +1,4 @@
+'use client'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Button } from '../0_Bruddle'

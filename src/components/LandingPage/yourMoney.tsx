@@ -1,3 +1,5 @@
+import Image from 'next/image'
+import { LandingCountries } from '@/assets'
 import { Button } from '../0_Bruddle'
 
 export function YourMoney() {
@@ -21,7 +23,7 @@ export function YourMoney() {
                 </div>
 
                 <div className="relative w-full md:w-1/2">
-                    <video src="/currencies.webm" autoPlay loop muted playsInline className="h-auto w-full" />
+                    <Image src={LandingCountries} alt="countries" />
                     <a
                         href="/setup"
                         target="_blank"

@@ -3,8 +3,16 @@ import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import { TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { EHistoryEntryType, EHistoryUserRole, HistoryEntry } from '@/hooks/useTransactionHistory'
-import { getExplorerUrl, getInitialsFromName } from '@/utils/general.utils'
+import {
+    getExplorerUrl,
+    getInitialsFromName,
+    getTokenDetails,
+    getChainName,
+    getTokenLogo,
+    getChainLogo,
+} from '@/utils/general.utils'
 import { StatusPillType } from '../Global/StatusPill'
+import type { Address } from 'viem'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -51,6 +59,7 @@ export interface TransactionDetails {
     txHash?: string
     explorerUrl?: string
     extraDataForDrawer?: {
+        addressExplorerUrl?: string
         originalType: EHistoryEntryType
         originalUserRole: EHistoryUserRole
         link?: string
@@ -328,10 +337,30 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
 
     // construct explorer url if possible
     let explorerUrlWithTx: string | undefined = undefined
-    if (entry.txHash && entry.chainId) {
-        const baseUrl = getExplorerUrl(entry.chainId)
-        if (baseUrl) {
+    let addressExplorerUrl: string | undefined = undefined
+    const baseUrl = getExplorerUrl(entry.chainId)
+    if (baseUrl) {
+        if (entry.senderAccount?.identifier) {
+            addressExplorerUrl = `${baseUrl}/address/${entry.senderAccount.identifier}`
+        }
+        if (entry.txHash && entry.chainId) {
             explorerUrlWithTx = `${baseUrl}/tx/${entry.txHash}`
+        }
+    }
+
+    let tokenDisplayDetails
+    if (entry.tokenAddress && entry.chainId) {
+        const tokenDetails = getTokenDetails({
+            tokenAddress: entry.tokenAddress as Address,
+            chainId: entry.chainId,
+        })
+        const chainName = getChainName(entry.chainId)
+        const tokenSymbol = entry.tokenSymbol ?? tokenDetails?.symbol
+        tokenDisplayDetails = {
+            tokenSymbol,
+            tokenIconUrl: tokenSymbol ? getTokenLogo(tokenSymbol) : undefined,
+            chainName,
+            chainIconUrl: chainName ? getChainLogo(chainName) : undefined,
         }
     }
 
@@ -356,7 +385,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         cancelledDate: entry.cancelledAt,
         txHash: entry.txHash,
         explorerUrl: explorerUrlWithTx,
+        tokenDisplayDetails,
         extraDataForDrawer: {
+            addressExplorerUrl,
             originalType: entry.type as EHistoryEntryType,
             originalUserRole: entry.userRole as EHistoryUserRole,
             link: entry.extraData?.link,
