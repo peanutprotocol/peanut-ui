@@ -13,7 +13,6 @@ import GuestLoginCta from '@/components/Global/GuestLoginCta'
 import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import BeerInput from '@/components/PintaReqPay/BeerInput'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import UserCard from '@/components/User/UserCard'
@@ -620,60 +619,51 @@ export const PaymentForm = ({
         return undefined
     }
 
+    console.log(isPeanutWalletConnected)
+
     const guestAction = () => {
         if (isPeanutWalletConnected || user) return null
         return (
-            <div className="space-y-4">
-                <Button
-                    disabled={isProcessing}
-                    variant="purple"
-                    shadowSize="4"
-                    onClick={() => router.push('/setup')}
-                    className="w-full"
-                >
-                    Sign In
-                </Button>
-                <DaimoPayButton.Custom
-                    appId={
-                        process.env.NEXT_PUBLIC_DAIMO_APP_ID ??
-                        (() => {
-                            throw new Error('Daimo APP ID is required')
-                        })()
-                    }
-                    intent="Deposit"
-                    toChain={arbitrum.id}
-                    toUnits={inputTokenAmount.replace(/,/g, '')}
-                    toAddress={getAddress(recipient.resolvedAddress)}
-                    toToken={getAddress(PEANUT_WALLET_TOKEN)} // USDC on arbitrum
-                    onPaymentCompleted={(e) => {
-                        handleCompleteDaimoPayment(e)
-                    }}
-                    closeOnSuccess
-                    onClose={() => {
-                        setLoadingStep('Idle')
-                    }}
-                >
-                    {({ show }) => (
-                        <Button
-                            loading={isProcessing}
-                            variant="primary-soft"
-                            shadowSize="4"
-                            onClick={async () => {
-                                const res = await handleInitiateDaimoPayment()
-                                if (res) {
-                                    await resetPayment({
-                                        toUnits: inputTokenAmount.replace(/,/g, ''),
-                                    })
-                                    show()
-                                }
-                            }}
-                            className="w-full"
-                        >
-                            Send money
-                        </Button>
-                    )}
-                </DaimoPayButton.Custom>
-            </div>
+            <DaimoPayButton.Custom
+                appId={
+                    process.env.NEXT_PUBLIC_DAIMO_APP_ID ??
+                    (() => {
+                        throw new Error('Daimo APP ID is required')
+                    })()
+                }
+                intent="Deposit"
+                toChain={arbitrum.id}
+                toUnits={inputTokenAmount.replace(/,/g, '')}
+                toAddress={getAddress(recipient.resolvedAddress)}
+                toToken={getAddress(PEANUT_WALLET_TOKEN)} // USDC on arbitrum
+                onPaymentCompleted={(e) => {
+                    handleCompleteDaimoPayment(e)
+                }}
+                closeOnSuccess
+                onClose={() => {
+                    setLoadingStep('Idle')
+                }}
+            >
+                {({ show }) => (
+                    <Button
+                        loading={isProcessing}
+                        variant="primary-soft"
+                        shadowSize="4"
+                        onClick={async () => {
+                            const res = await handleInitiateDaimoPayment()
+                            if (res) {
+                                await resetPayment({
+                                    toUnits: inputTokenAmount.replace(/,/g, ''),
+                                })
+                                show()
+                            }
+                        }}
+                        className="w-full"
+                    >
+                        Pay using exchange or wallet
+                    </Button>
+                )}
+            </DaimoPayButton.Custom>
         )
     }
 
