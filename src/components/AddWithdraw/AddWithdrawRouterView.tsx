@@ -204,7 +204,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 <Button icon="plus" className="mb-5" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
                     Select new method
                 </Button>
-                <CryptoMethodDrawer isDrawerOpen={isDrawerOpen} closeDrawer={() => setIsDrawerOpen(false)} />
+                <CryptoMethodDrawer
+                    isDrawerOpen={isDrawerOpen}
+                    setisDrawerOpen={setIsDrawerOpen}
+                    closeDrawer={() => setIsDrawerOpen(false)}
+                />
             </div>
         )
     }
@@ -242,7 +246,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 }}
                 flow={flow}
             />
-            <CryptoMethodDrawer isDrawerOpen={isDrawerOpen} closeDrawer={() => setIsDrawerOpen(false)} />
+            <CryptoMethodDrawer
+                isDrawerOpen={isDrawerOpen}
+                setisDrawerOpen={setIsDrawerOpen}
+                closeDrawer={() => setIsDrawerOpen(false)}
+            />
         </div>
     )
 }

@@ -339,7 +339,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     renderPaymentMethods('Choose withdrawing method', methods.withdraw)}
             </div>
             {flow === 'add' && (
-                <CryptoMethodDrawer isDrawerOpen={isDrawerOpen} closeDrawer={() => setIsDrawerOpen(false)} />
+                <CryptoMethodDrawer
+                    isDrawerOpen={isDrawerOpen}
+                    setisDrawerOpen={setIsDrawerOpen}
+                    closeDrawer={() => setIsDrawerOpen(false)}
+                />
             )}
             <InitiateKYCModal
                 isOpen={isKycModalOpen}
