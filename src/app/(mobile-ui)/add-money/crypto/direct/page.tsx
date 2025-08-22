@@ -2,6 +2,7 @@
 
 import { updateDepositorAddress } from '@/app/actions/addMoney'
 import { Button } from '@/components/0_Bruddle'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
@@ -21,6 +22,7 @@ export default function AddMoneyCryptoDirectPage() {
     const { resetPayment } = useDaimoPayUI()
     const [isPaymentSuccess, setisPaymentSuccess] = useState(false)
     const [isUpdatingDepositStatus, setIsUpdatingDepositStatus] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const resetPaymentAmount = async () => {
         await resetPayment({
@@ -105,6 +107,15 @@ export default function AddMoneyCryptoDirectPage() {
                         {({ show }) => (
                             <Button
                                 onClick={async () => {
+                                    const formattedAmount = parseFloat(inputTokenAmount.replace(/,/g, ''))
+                                    if (formattedAmount <= 0.1) {
+                                        setError('Minimum deposit is $0.10.')
+                                        return
+                                    } else if (formattedAmount > 4000) {
+                                        setError('Maximum deposit is $4000.')
+                                        return
+                                    }
+                                    setError(null)
                                     await resetPaymentAmount()
                                     show()
                                 }}
@@ -120,6 +131,8 @@ export default function AddMoneyCryptoDirectPage() {
                         )}
                     </DaimoPayButton.Custom>
                 )}
+
+                {error && <ErrorAlert description={error} />}
             </div>
         </div>
     )
