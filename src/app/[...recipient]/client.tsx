@@ -293,11 +293,12 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             id: chargeDetails.uuid,
             status,
             amount: Number(chargeDetails.tokenAmount),
-            date: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
+            createdAt: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
             tokenSymbol: chargeDetails.tokenSymbol,
             initials: getInitialsFromName(username ?? ''),
             memo: chargeDetails.requestLink.reference ?? undefined,
             attachmentUrl: chargeDetails.requestLink.attachmentUrl ?? undefined,
+            completedAt: status === 'completed' ? new Date(chargeDetails.timeline[0].time) : undefined,
             cancelledDate: status === 'cancelled' ? new Date(chargeDetails.timeline[0].time) : undefined,
             extraDataForDrawer: {
                 isLinkTransaction: originalUserRole === EHistoryUserRole.SENDER && isCurrentUser,
