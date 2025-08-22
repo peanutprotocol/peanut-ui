@@ -103,7 +103,8 @@ const DirectSuccessView = ({
             txHash: paymentDetails?.payerTransactionHash,
             status: 'completed' as StatusPillType,
             amount: parseFloat(amountValue),
-            date: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
+            createdAt: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
+            completedAt: new Date(),
             tokenSymbol: chargeDetails.tokenSymbol,
             direction: 'send', // only showing receipt for send txns
             initials: getInitialsFromName(recipientName),

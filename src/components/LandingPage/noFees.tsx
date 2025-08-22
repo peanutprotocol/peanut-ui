@@ -141,7 +141,7 @@ export function NoFees() {
                 />
             </div>
 
-            <div className="relative mx-auto max-w-3xl text-center">
+            <div className="relative mx-auto w-full max-w-3xl text-center">
                 {/* Animated stars */}
                 <motion.img
                     src={Star.src}

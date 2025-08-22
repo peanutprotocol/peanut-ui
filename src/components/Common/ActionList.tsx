@@ -162,7 +162,11 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     shadowSize="4"
                     onClick={() => {
                         saveRedirectUrl()
-                        router.push('/setup')
+                        // push to setup page with redirect uri, to prevent the user from losing the flow context
+                        const redirectUri = encodeURIComponent(
+                            window.location.pathname + window.location.search + window.location.hash
+                        )
+                        router.push(`/setup?redirect_uri=${redirectUri}`)
                     }}
                     className="flex w-full items-center gap-1"
                 >
