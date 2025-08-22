@@ -123,7 +123,7 @@ export default function AddMoneyCryptoDirectPage() {
                             <Button
                                 onClick={async () => {
                                     const formattedAmount = parseFloat(inputTokenAmount.replace(/,/g, ''))
-                                    if (formattedAmount <= 0.1) {
+                                    if (formattedAmount < 0.1) {
                                         setError('Minimum deposit is $0.10.')
                                         return
                                     } else if (formattedAmount > 4000) {
