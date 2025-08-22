@@ -1,6 +1,5 @@
 'use client'
 
-import { updateDepositorAddress } from '@/app/actions/addMoney'
 import { Button } from '@/components/0_Bruddle'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
@@ -35,11 +34,27 @@ export default function AddMoneyCryptoDirectPage() {
         // 6 second delay to ensure the payment is indexed in the backend
         await new Promise((resolve) => setTimeout(resolve, 6000))
 
-        // Update the depositor address
-        await updateDepositorAddress({
-            txHash: e.txHash,
-            payerAddress: e.payment.source?.payerAddress,
-        })
+        // Update the depositor address via API
+        try {
+            const response = await fetch('/api/deposit', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    txHash: e.txHash,
+                    payerAddress: e.payment.source?.payerAddress,
+                }),
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                console.error('Failed to update depositor address:', errorData)
+            }
+        } catch (error) {
+            console.error('Error updating depositor address:', error)
+        }
+
         setIsUpdatingDepositStatus(false)
         setisPaymentSuccess(true)
     }
