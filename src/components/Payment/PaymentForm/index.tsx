@@ -6,6 +6,7 @@ import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { Button } from '@/components/0_Bruddle'
 import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
+import DaimoPayButton from '@/components/Global/DaimoPayButton'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import FlowHeader from '@/components/Global/FlowHeader'
@@ -34,13 +35,12 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, ErrorHandler, formatAmount } from '@/utils'
-import { DaimoPayButton, useDaimoPayUI } from '@daimo/pay'
+import { useDaimoPayUI } from '@daimo/pay'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { formatUnits, getAddress } from 'viem'
-import { arbitrum } from 'viem/chains'
+import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
@@ -109,7 +109,7 @@ export const PaymentForm = ({
     const [usdValue, setUsdValue] = useState<string>('')
     const [requestedTokenPrice, setRequestedTokenPrice] = useState<number>(0)
     const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
-    const { resetPayment } = useDaimoPayUI()
+    const [daimoError, setDaimoError] = useState<string | null>(null)
 
     const {
         initiatePayment,
@@ -482,7 +482,7 @@ export const PaymentForm = ({
         if (!inputTokenAmount || parseFloat(inputTokenAmount) <= 0) {
             console.error('Invalid amount entered')
             dispatch(paymentActions.setError('Please enter a valid amount'))
-            return
+            return false
         }
 
         if (inputUsdValue && parseFloat(inputUsdValue) > 0) {
@@ -631,50 +631,22 @@ export const PaymentForm = ({
         return undefined
     }
 
-    console.log(isPeanutWalletConnected)
-
     const daimoButton = () => {
         return (
-            <DaimoPayButton.Custom
-                appId={
-                    process.env.NEXT_PUBLIC_DAIMO_APP_ID ??
-                    (() => {
-                        throw new Error('Daimo APP ID is required')
-                    })()
-                }
-                intent="Deposit"
-                toChain={arbitrum.id}
-                toUnits={inputTokenAmount.replace(/,/g, '')}
-                toAddress={getAddress(recipient.resolvedAddress)}
-                toToken={getAddress(PEANUT_WALLET_TOKEN)} // USDC on arbitrum
-                onPaymentCompleted={(e) => {
-                    handleCompleteDaimoPayment(e)
-                }}
-                closeOnSuccess
-                onClose={() => {
-                    setLoadingStep('Idle')
-                }}
+            <DaimoPayButton
+                amount={inputTokenAmount}
+                toAddress={recipient.resolvedAddress}
+                onPaymentCompleted={handleCompleteDaimoPayment}
+                onClose={() => setLoadingStep('Idle')}
+                onBeforeShow={handleInitiateDaimoPayment}
+                variant="primary-soft"
+                loading={isProcessing}
+                minAmount={0.1}
+                maxAmount={4000}
+                onValidationError={setDaimoError}
             >
-                {({ show }) => (
-                    <Button
-                        loading={isProcessing}
-                        variant="primary-soft"
-                        shadowSize="4"
-                        onClick={async () => {
-                            const res = await handleInitiateDaimoPayment()
-                            if (res) {
-                                await resetPayment({
-                                    toUnits: inputTokenAmount.replace(/,/g, ''),
-                                })
-                                show()
-                            }
-                        }}
-                        className="w-full"
-                    >
-                        Pay using exchange or wallet
-                    </Button>
-                )}
-            </DaimoPayButton.Custom>
+                Pay using exchange or wallet
+            </DaimoPayButton>
         )
     }
 
@@ -933,6 +905,7 @@ export const PaymentForm = ({
                         />
                     )}
                     {daimoButton()}
+                    {daimoError && <ErrorAlert description={daimoError} />}
                 </div>
             </div>
             <ActionModal

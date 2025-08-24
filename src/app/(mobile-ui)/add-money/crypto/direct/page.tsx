@@ -1,33 +1,22 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import DaimoPayButton from '@/components/Global/DaimoPayButton'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
-import { PEANUT_WALLET_TOKEN } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { DaimoPayButton, useDaimoPayUI } from '@daimo/pay'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { getAddress } from 'viem'
-import { arbitrum } from 'viem/chains'
 
 export default function AddMoneyCryptoDirectPage() {
     const router = useRouter()
     const { address } = useWallet()
     const [inputTokenAmount, setInputTokenAmount] = useState<string>('')
-    const { resetPayment } = useDaimoPayUI()
     const [isPaymentSuccess, setisPaymentSuccess] = useState(false)
     const [isUpdatingDepositStatus, setIsUpdatingDepositStatus] = useState(false)
     const [error, setError] = useState<string | null>(null)
-
-    const resetPaymentAmount = async () => {
-        await resetPayment({
-            toUnits: inputTokenAmount.replace(/,/g, ''),
-        })
-    }
 
     const onPaymentCompleted = async (e: any) => {
         setIsUpdatingDepositStatus(true)
@@ -104,47 +93,19 @@ export default function AddMoneyCryptoDirectPage() {
                 />
 
                 {address && (
-                    <DaimoPayButton.Custom
-                        appId={
-                            process.env.NEXT_PUBLIC_DAIMO_APP_ID ??
-                            (() => {
-                                throw new Error('Daimo APP ID is required')
-                            })()
-                        }
-                        intent="Deposit"
-                        toChain={arbitrum.id}
-                        toUnits={inputTokenAmount.replace(/,/g, '')}
-                        toAddress={getAddress(address)}
-                        toToken={getAddress(PEANUT_WALLET_TOKEN)} // USDC on arbitrum
+                    <DaimoPayButton
+                        amount={inputTokenAmount}
+                        toAddress={address}
                         onPaymentCompleted={onPaymentCompleted}
-                        closeOnSuccess
+                        variant="purple"
+                        icon="plus"
+                        iconSize={16}
+                        minAmount={0.1}
+                        maxAmount={4000}
+                        onValidationError={setError}
                     >
-                        {({ show }) => (
-                            <Button
-                                onClick={async () => {
-                                    const formattedAmount = parseFloat(inputTokenAmount.replace(/,/g, ''))
-                                    if (formattedAmount < 0.1) {
-                                        setError('Minimum deposit is $0.10.')
-                                        return
-                                    } else if (formattedAmount > 4000) {
-                                        setError('Maximum deposit is $4000.')
-                                        return
-                                    }
-                                    setError(null)
-                                    await resetPaymentAmount()
-                                    show()
-                                }}
-                                variant="purple"
-                                shadowSize="4"
-                                disabled={inputTokenAmount.length == 0}
-                                className="w-full"
-                                icon={'plus'}
-                                iconSize={16}
-                            >
-                                Add Money
-                            </Button>
-                        )}
-                    </DaimoPayButton.Custom>
+                        Add Money
+                    </DaimoPayButton>
                 )}
 
                 {error && <ErrorAlert description={error} />}
