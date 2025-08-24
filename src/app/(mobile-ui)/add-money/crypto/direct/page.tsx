@@ -58,7 +58,7 @@ export default function AddMoneyCryptoDirectPage() {
                 key={`success-add-money}`}
                 headerTitle={'Add Money'}
                 type="SEND"
-                currencyAmount={`$ ${inputTokenAmount}`}
+                currencyAmount={`$${inputTokenAmount}`}
                 isWithdrawFlow={false}
                 redirectTo={'/add-money'}
             />
