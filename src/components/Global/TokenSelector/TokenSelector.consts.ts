@@ -1,6 +1,7 @@
 import { SOLANA_ICON, TRON_ICON } from '@/assets'
 import { networks } from '@/config'
 import * as interfaces from '@/interfaces'
+import { celo, linea, worldchain } from 'viem/chains'
 
 interface CombinedType extends interfaces.IPeanutChainDetails {
     tokens: interfaces.IToken[]
@@ -68,5 +69,9 @@ export const TOKEN_SELECTOR_POPULAR_NETWORK_IDS = [
     },
 ]
 
+const networksToExclude: readonly number[] = [celo.id, linea.id, worldchain.id] as const
+
 // supported network ids for the network list, getting this from reown appkit config
-export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks.map((network) => network.id.toString())
+export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks
+    .filter((network) => !networksToExclude.includes(Number(network.id)))
+    .map((network) => network.id.toString())
