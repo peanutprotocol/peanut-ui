@@ -126,8 +126,8 @@ export async function saveDepositAddress(txHash: string, payerAddress: string): 
             throw new Error('Missing required fields: txHash and payerAddress')
         }
 
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/history/deposit`, {
-            method: 'PUT',
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/track-transaction`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'api-key': API_KEY,

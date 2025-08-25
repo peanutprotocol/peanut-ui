@@ -21,8 +21,6 @@ export default function AddMoneyCryptoDirectPage() {
 
     const onPaymentCompleted = async (e: any) => {
         setIsUpdatingDepositStatus(true)
-        // 6 second delay to ensure the payment is indexed in the backend
-        await new Promise((resolve) => setTimeout(resolve, 6000))
 
         // Update the depositor address via API
         try {
