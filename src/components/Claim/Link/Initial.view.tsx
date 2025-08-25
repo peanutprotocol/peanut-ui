@@ -196,6 +196,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         setClaimType('claim')
                     }
 
+                    // associate the claim with the user so it shows up in their activity
+                    if (user && claimTxHash) {
+                        try {
+                            await sendLinksApi.associateClaim(claimTxHash)
+                        } catch (e) {
+                            Sentry.captureException(e)
+                            console.error('Failed to associate claim', e)
+                        }
+                    }
+
                     setTransactionHash(claimTxHash)
                     onCustom('SUCCESS')
                     queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
