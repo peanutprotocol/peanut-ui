@@ -30,7 +30,7 @@ interface AddMoneyCryptoPageProps {
 
 const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCryptoPageProps) => {
     const router = useRouter()
-    const { address: peanutWalletAddress } = useWallet()
+    const { address: peanutWalletAddress, isConnected } = useWallet()
     const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('qrScreen')
     const [selectedSource, setSelectedSource] = useState<CryptoSource | null>(CRYPTO_EXCHANGES[3])
     const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(DEPOSIT_CRYPTO_TOKENS[0])
@@ -130,8 +130,13 @@ const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCry
     }
 
     if (currentStep === 'qrScreen' && selectedSource && selectedToken && selectedNetwork) {
-        if (!peanutWalletAddress) {
+        if (!isConnected) {
             return <PeanutLoading />
+        }
+
+        if (isConnected && !peanutWalletAddress) {
+            router.push('/')
+            return null
         }
         return (
             <CryptoDepositQR
