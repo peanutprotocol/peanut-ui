@@ -160,7 +160,7 @@ export const fetchTokenDetails = unstable_cache(
         console.log('chain id', chainId)
         const tokenDetails = getTokenDetails({ tokenAddress: tokenAddress as Address, chainId: chainId! })
         if (tokenDetails) return tokenDetails
-        const client = await getPublicClient(Number(chainId) as ChainId)
+        const client = getPublicClient(Number(chainId) as ChainId)
         console.log('token address', tokenAddress)
         const [symbol, name, decimals] = await Promise.all([
             client.readContract({
@@ -193,7 +193,7 @@ export const fetchTokenDetails = unstable_cache(
  */
 const getCachedGasPrice = unstable_cache(
     async (chainId: string) => {
-        const client = await getPublicClient(Number(chainId) as ChainId)
+        const client = getPublicClient(Number(chainId) as ChainId)
         const gasPrice = await client.getGasPrice()
         return gasPrice.toString()
     },
@@ -208,7 +208,7 @@ const getCachedGasPrice = unstable_cache(
  */
 const getCachedGasEstimate = unstable_cache(
     async (fromAddress: Address, contractAddress: Address, data: Hex, chainId: string) => {
-        const client = await getPublicClient(Number(chainId) as ChainId)
+        const client = getPublicClient(Number(chainId) as ChainId)
         const gasEstimate = await client.estimateGas({
             account: fromAddress,
             to: contractAddress,
