@@ -86,7 +86,7 @@ const GeneralRecipientInput = ({
 
     const onInputUpdate = useCallback(
         (update: InputUpdate) => {
-            let sanitizedValue =
+            const sanitizedValue =
                 recipientType.current === 'iban' || recipientType.current === 'us'
                     ? sanitizeBankAccount(update.value)
                     : update.value.trim().replace(`${BASE_URL}/`, '')
