@@ -749,12 +749,65 @@ export const usePaymentInitiator = () => {
         setLoadingStep('Error')
     }, [setError, setLoadingStep])
 
+    const initiateDaimoPayment = useCallback(
+        async (payload: InitiatePaymentPayload) => {
+            try {
+                console.log('handleDaimoPayment', payload)
+                let determinedChargeDetails: TRequestChargeResponse | null = null
+                const { chargeDetails } = await determineChargeDetails(payload)
+
+                determinedChargeDetails = chargeDetails
+                console.log('Proceeding with charge details:', determinedChargeDetails.uuid)
+                return { status: 'Charge Created', charge: determinedChargeDetails, success: false }
+            } catch (err) {
+                return handleError(err, loadingStep)
+            }
+        },
+        [determineChargeDetails, setLoadingStep, setPaymentDetails]
+    )
+
+    const completeDaimoPayment = useCallback(
+        async ({
+            chargeDetails,
+            sourceChainId,
+            txHash,
+            payerAddress,
+        }: {
+            chargeDetails: TRequestChargeResponse
+            txHash: string
+            sourceChainId: number
+            payerAddress: string
+        }) => {
+            try {
+                setLoadingStep('Updating Payment Status')
+                const payment = await chargesApi.createPayment({
+                    chargeId: chargeDetails.uuid,
+                    chainId: sourceChainId.toString(),
+                    hash: txHash,
+                    tokenAddress: chargeDetails.tokenAddress,
+                    payerAddress,
+                })
+
+                setPaymentDetails(payment)
+                dispatch(paymentActions.setPaymentDetails(payment))
+
+                setLoadingStep('Success')
+                console.log('Daimo payment successful.')
+                return { status: 'Success', charge: chargeDetails, payment, txHash, success: true }
+            } catch (err) {
+                return handleError(err, loadingStep)
+            }
+        },
+        [determineChargeDetails, setLoadingStep, setPaymentDetails]
+    )
+
     return {
         initiatePayment,
         prepareTransactionDetails,
         isProcessing,
         isPreparingTx,
         loadingStep,
+        setLoadingStep,
         error,
         activeChargeDetails,
         transactionHash,
@@ -772,5 +825,7 @@ export const usePaymentInitiator = () => {
         cancelOperation,
         xChainRoute,
         reset,
+        completeDaimoPayment,
+        initiateDaimoPayment,
     }
 }

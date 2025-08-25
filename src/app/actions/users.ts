@@ -119,3 +119,35 @@ export async function getUserById(userId: string): Promise<User | null> {
         return null
     }
 }
+
+export async function trackDaimoDepositTransactionHash(txHash: string, payerAddress: string): Promise<{ data?: any }> {
+    try {
+        if (!txHash || !payerAddress) {
+            throw new Error('Missing required fields: txHash and payerAddress')
+        }
+
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/track-transaction`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': API_KEY,
+            },
+            body: JSON.stringify({
+                txHash,
+                payerAddress,
+            }),
+        })
+
+        const responseJson = await response.json()
+        if (!response.ok) {
+            throw new Error(
+                responseJson.message ||
+                    responseJson.error ||
+                    `Failed to save deposit address with status: ${response.status}`
+            )
+        }
+        return { data: responseJson }
+    } catch (e: any) {
+        throw new Error(e.message || e.toString() || 'An unexpected error occurred')
+    }
+}

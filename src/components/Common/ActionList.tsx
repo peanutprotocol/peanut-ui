@@ -179,7 +179,12 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
             )}
             <Divider text="or" />
             <div className="space-y-2">
-                {ACTION_METHODS.map((method) => {
+                {ACTION_METHODS.filter((method) => {
+                    if (flow === 'request') {
+                        return method.id !== 'exchange-or-wallet'
+                    }
+                    return true
+                }).map((method) => {
                     return (
                         <MethodCard
                             onClick={() => handleMethodClick(method)}

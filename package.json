@@ -26,6 +26,7 @@
         "@chakra-ui/react": "^2.10.4",
         "@chakra-ui/react-context": "^2.1.0",
         "@chakra-ui/shared-utils": "^2.0.4",
+        "@daimo/pay": "^1.15.0",
         "@dicebear/collection": "^9.2.2",
         "@dicebear/core": "^9.2.2",
         "@headlessui/react": "^1.7.19",
@@ -45,7 +46,7 @@
         "@tanstack/react-query": "5.8.4",
         "@typeform/embed-react": "^3.20.0",
         "@vercel/analytics": "^1.4.1",
-        "@wagmi/core": "2.14.3",
+        "@wagmi/core": "2.19.0",
         "@zerodev/passkey-validator": "^5.5.0",
         "@zerodev/sdk": "5.4.0",
         "auto-text-size": "^0.2.3",
@@ -78,8 +79,8 @@
         "uuid": "^10.0.0",
         "validator": "^13.12.0",
         "vaul": "^1.1.2",
-        "viem": "^2.21.48",
-        "wagmi": "2.8.6",
+        "viem": "^2.22.0",
+        "wagmi": "2.16.3",
         "web-push": "^3.6.7",
         "yup": "^1.4.0"
     },
@@ -153,9 +154,10 @@
         ]
     },
     "resolutions": {
-        "@wagmi/core": "2.14.3",
-        "viem": "^2.21.48",
-        "wagmi": "2.8.6"
+        "@wagmi/core": "2.19.0",
+        "viem": "^2.22.0",
+        "wagmi": "2.16.3",
+        "ox": "0.6.5"
     },
     "size-limit": [
         {

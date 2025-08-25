@@ -6,6 +6,7 @@ import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { Button } from '@/components/0_Bruddle'
 import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
+import DaimoPayButton from '@/components/Global/DaimoPayButton'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import FlowHeader from '@/components/Global/FlowHeader'
@@ -13,7 +14,6 @@ import GuestLoginCta from '@/components/Global/GuestLoginCta'
 import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import BeerInput from '@/components/PintaReqPay/BeerInput'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import UserCard from '@/components/User/UserCard'
@@ -35,6 +35,7 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, ErrorHandler, formatAmount } from '@/utils'
+import { useDaimoPayUI } from '@daimo/pay'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -108,8 +109,16 @@ export const PaymentForm = ({
     const [usdValue, setUsdValue] = useState<string>('')
     const [requestedTokenPrice, setRequestedTokenPrice] = useState<number>(0)
     const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
+    const [daimoError, setDaimoError] = useState<string | null>(null)
 
-    const { initiatePayment, isProcessing, error: initiatorError } = usePaymentInitiator()
+    const {
+        initiatePayment,
+        isProcessing,
+        error: initiatorError,
+        setLoadingStep,
+        initiateDaimoPayment,
+        completeDaimoPayment,
+    } = usePaymentInitiator()
 
     const peanutWalletBalance = useMemo(() => {
         return balance !== undefined ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
@@ -469,6 +478,109 @@ export const PaymentForm = ({
         requestedTokenPrice,
     ])
 
+    const handleInitiateDaimoPayment = useCallback(async () => {
+        if (!inputTokenAmount || parseFloat(inputTokenAmount) <= 0) {
+            console.error('Invalid amount entered')
+            dispatch(paymentActions.setError('Please enter a valid amount'))
+            return false
+        }
+
+        if (inputUsdValue && parseFloat(inputUsdValue) > 0) {
+            dispatch(paymentActions.setUsdAmount(inputUsdValue))
+        }
+
+        // clear error state
+        dispatch(paymentActions.setError(null))
+
+        const requestedToken = chargeDetails?.tokenAddress ?? requestDetails?.tokenAddress
+        const requestedChain = chargeDetails?.chainId ?? requestDetails?.chainId
+
+        let tokenAmount = inputTokenAmount
+        if (
+            requestedToken &&
+            requestedTokenPrice &&
+            (requestedChain !== selectedChainID || !areEvmAddressesEqual(requestedToken, selectedTokenAddress))
+        ) {
+            tokenAmount = (parseFloat(inputUsdValue) / requestedTokenPrice).toString()
+        }
+
+        const payload: InitiatePaymentPayload = {
+            recipient: recipient,
+            tokenAmount,
+            isPintaReq: false, // explicitly set to false for non-PINTA requests
+            requestId: requestId ?? undefined,
+            chargeId: chargeDetails?.uuid,
+            currency,
+            currencyAmount,
+            isExternalWalletFlow: !!isExternalWalletFlow,
+            transactionType: isExternalWalletFlow
+                ? 'DEPOSIT'
+                : isDirectUsdPayment || !requestId
+                  ? 'DIRECT_SEND'
+                  : 'REQUEST',
+            attachmentOptions: attachmentOptions,
+        }
+
+        console.log('Initiating Daimo payment', payload)
+
+        const result = await initiateDaimoPayment(payload)
+
+        if (result.status === 'Charge Created') {
+            console.log('Charge created!!')
+            return true
+        } else if (result.status === 'Error') {
+            dispatch(paymentActions.setError('Something went wrong. Please try again.'))
+            console.error('Payment initiation failed:', result)
+            return false
+        } else {
+            console.warn('Unexpected status from usePaymentInitiator:', result.status)
+            dispatch(paymentActions.setError('Something went wrong. Please try again.'))
+            return false
+        }
+    }, [
+        inputTokenAmount,
+        dispatch,
+        inputUsdValue,
+        chargeDetails,
+        requestDetails,
+        requestedTokenPrice,
+        selectedChainID,
+        selectedTokenAddress,
+        recipient,
+        requestId,
+        currency,
+        currencyAmount,
+        isExternalWalletFlow,
+        isDirectUsdPayment,
+        attachmentOptions,
+        initiateDaimoPayment,
+    ])
+
+    const handleCompleteDaimoPayment = useCallback(
+        async (daimoPaymentResponse: any) => {
+            console.log('handleCompleteDaimoPayment called')
+            if (chargeDetails) {
+                const result = await completeDaimoPayment({
+                    chargeDetails: chargeDetails,
+                    txHash: daimoPaymentResponse.txHash as string,
+                    sourceChainId: daimoPaymentResponse.payment.source.chainId,
+                    payerAddress: daimoPaymentResponse.payment.source.payerAddress,
+                })
+
+                if (result.status === 'Success') {
+                    dispatch(paymentActions.setView('STATUS'))
+                } else if (result.status === 'Charge Created') {
+                    dispatch(paymentActions.setView('CONFIRM'))
+                } else if (result.status === 'Error') {
+                    console.error('Payment initiation failed:', result.error)
+                } else {
+                    console.warn('Unexpected status from usePaymentInitiator:', result.status)
+                }
+            }
+        },
+        [chargeDetails, completeDaimoPayment, dispatch]
+    )
+
     const getButtonText = () => {
         if (!isExternalWalletConnected && isExternalWalletFlow) {
             return 'Connect Wallet'
@@ -519,12 +631,22 @@ export const PaymentForm = ({
         return undefined
     }
 
-    const guestAction = () => {
-        if (isConnected || user) return null
+    const daimoButton = () => {
         return (
-            <Button variant="purple" shadowSize="4" onClick={() => openReownModal()} className="w-full">
-                Connect Wallet
-            </Button>
+            <DaimoPayButton
+                amount={inputTokenAmount}
+                toAddress={recipient.resolvedAddress}
+                onPaymentCompleted={handleCompleteDaimoPayment}
+                onClose={() => setLoadingStep('Idle')}
+                onBeforeShow={handleInitiateDaimoPayment}
+                variant="primary-soft"
+                loading={isProcessing}
+                minAmount={0.1}
+                maxAmount={4000}
+                onValidationError={setDaimoError}
+            >
+                Pay using exchange or wallet
+            </DaimoPayButton>
         )
     }
 
@@ -713,7 +835,8 @@ export const PaymentForm = ({
                     select a token if it's not included in the url
                     From other wallets we always need to select a token
                 */}
-                {!(chain && isPeanutWalletConnected) && isConnected && !isExternalWalletFlow && (
+                {/* we dont need this as daimo will handle token selection */}
+                {/* {!(chain && isPeanutWalletConnected) && isConnected && !isAddMoneyFlow && (
                     <div className="space-y-2">
                         {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
                             <div className="text-sm font-bold">Select token and chain to receive</div>
@@ -725,11 +848,11 @@ export const PaymentForm = ({
                             </div>
                         )}
                     </div>
-                )}
+                )} */}
 
-                {isExternalWalletConnected && isExternalWalletFlow && (
-                    <TokenSelector viewType="add" disabled={!isExternalWalletConnected && isExternalWalletFlow} />
-                )}
+                {/* {isExternalWalletConnected && isAddMoneyFlow && (
+                    <TokenSelector viewType="add" disabled={!isExternalWalletConnected && isAddMoneyFlow} />
+                )} */}
 
                 {isDirectUsdPayment && (
                     <FileUploadInput
@@ -741,8 +864,7 @@ export const PaymentForm = ({
                 )}
 
                 <div className="space-y-4">
-                    {isExternalWalletFlow && guestAction()}
-                    {isConnected && (!error || isInsufficientBalanceError) && (
+                    {isPeanutWalletConnected && (!error || isInsufficientBalanceError) && (
                         <Button
                             variant="purple"
                             loading={isProcessing}
@@ -756,7 +878,7 @@ export const PaymentForm = ({
                             {getButtonText()}
                         </Button>
                     )}
-                    {isConnected && error && !isInsufficientBalanceError && (
+                    {isPeanutWalletConnected && error && !isInsufficientBalanceError && (
                         <Button
                             variant="purple"
                             loading={isProcessing}
@@ -782,6 +904,8 @@ export const PaymentForm = ({
                             }
                         />
                     )}
+                    {daimoButton()}
+                    {daimoError && <ErrorAlert description={daimoError} />}
                 </div>
             </div>
             <ActionModal
