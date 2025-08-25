@@ -44,11 +44,20 @@ const GeneralRecipientInput = ({
 
     const checkAddress = useCallback(async (recipient: string): Promise<boolean> => {
         try {
-            // strip off the Peanut ENS domain from the input if it exists
-            recipient = recipient.replace(`.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN}`, '')
             let isValid = false
             let type: interfaces.RecipientType = 'address'
-            const trimmedInput = recipient.trim().replace(`${BASE_URL}/`, '')
+
+            // First trim the input, then strip off the Peanut ENS domain from the end if it exists
+            let processedInput = recipient.trim().replace(`${BASE_URL}/`, '')
+
+            if (process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN) {
+                const domainSuffix = `.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN}`
+                //regex to safely remove domain from end only (e.g., ".testvc.eth" from "user.testvc.eth")
+                const domainRegex = new RegExp(domainSuffix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i')
+                processedInput = processedInput.replace(domainRegex, '')
+            }
+
+            const trimmedInput = processedInput
             const sanitizedInput = sanitizeBankAccount(trimmedInput)
 
             if (isIBAN(sanitizedInput)) {
