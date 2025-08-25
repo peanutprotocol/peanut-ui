@@ -9,6 +9,7 @@ import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { saveDepositAddress } from '@/app/actions/users'
 
 export default function AddMoneyCryptoDirectPage() {
     const router = useRouter()
@@ -25,21 +26,7 @@ export default function AddMoneyCryptoDirectPage() {
 
         // Update the depositor address via API
         try {
-            const response = await fetch('/api/deposit', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    txHash: e.txHash,
-                    payerAddress: e.payment.source?.payerAddress,
-                }),
-            })
-
-            if (!response.ok) {
-                const errorData = await response.json()
-                console.error('Failed to update depositor address:', errorData)
-            }
+            await saveDepositAddress(e.txHash, e.payment.source.payerAddress)
         } catch (error) {
             console.error('Error updating depositor address:', error)
         } finally {
