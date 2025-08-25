@@ -44,6 +44,7 @@ const GeneralRecipientInput = ({
 
     const checkAddress = useCallback(async (recipient: string): Promise<boolean> => {
         try {
+            // strip off the Peanut ENS domain from the input if it exists
             recipient = recipient.replace(`.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN}`, '')
             let isValid = false
             let type: interfaces.RecipientType = 'address'
