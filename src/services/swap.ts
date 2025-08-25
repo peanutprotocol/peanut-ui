@@ -191,7 +191,7 @@ async function checkTokenAllowance(
     spenderAddress: Address,
     chainId: string
 ): Promise<bigint> {
-    const client = await getPublicClient(Number(chainId) as ChainId)
+    const client = getPublicClient(Number(chainId) as ChainId)
 
     const allowance = await client.readContract({
         address: tokenAddress,

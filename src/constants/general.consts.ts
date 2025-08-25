@@ -22,8 +22,6 @@ export const rpcUrls: Record<number, string[]> = {
     [polygon.id]: [infuraUrl('polygon-mainnet'), alchemyUrl('polygon-mainnet')].filter(Boolean) as string[],
     [optimism.id]: [infuraUrl('optimism-mainnet'), alchemyUrl('opt-mainnet')].filter(Boolean) as string[],
     [base.id]: [infuraUrl('base-mainnet'), alchemyUrl('base-mainnet')].filter(Boolean) as string[],
-    // Infura is returning weird estimations for BSC @2025-05-14
-    //[bsc.id]: `https://bsc-mainnet.infura.io/v3/${INFURA_API_KEY}`,
     [bsc.id]: ['https://bsc-dataseed.bnbchain.org', infuraUrl('bsc-mainnet'), alchemyUrl('bsc-mainnet')].filter(
         Boolean
     ) as string[],

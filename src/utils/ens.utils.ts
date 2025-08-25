@@ -1,7 +1,6 @@
 import { JustaName } from '@justaname.id/sdk'
 import { rpcUrls } from '@/constants/general.consts'
 import { mainnet } from 'viem/chains'
-import { ethers } from 'ethers'
 
 /**
  * Resolves an Ethereum address to its username using JustaName ENS resolution
@@ -11,7 +10,7 @@ import { ethers } from 'ethers'
  */
 export async function resolveAddressToUsername(address: string, siteUrl: string): Promise<string | null> {
     try {
-        const mainnetRpcUrl = rpcUrls[mainnet.id]?.[0] ?? ethers.getDefaultProvider('mainnet')
+        const mainnetRpcUrl = rpcUrls[mainnet.id]?.[0]!
 
         const ensDomain = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN
 
@@ -23,7 +22,7 @@ export async function resolveAddressToUsername(address: string, siteUrl: string)
             networks: [
                 {
                     chainId: 1, // Ethereum Mainnet
-                    providerUrl: mainnetRpcUrl || 'https://eth.llamarpc.com',
+                    providerUrl: mainnetRpcUrl,
                 },
             ],
             ensDomains: [
