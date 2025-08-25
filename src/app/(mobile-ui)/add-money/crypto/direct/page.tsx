@@ -93,7 +93,7 @@ export default function AddMoneyCryptoDirectPage() {
                     </DaimoPayButton>
                 )}
 
-                {error && <ErrorAlert description={error} />}
+                <div className="min-h-[20px]">{error && <ErrorAlert description={error} />}</div>
             </div>
         </div>
     )
