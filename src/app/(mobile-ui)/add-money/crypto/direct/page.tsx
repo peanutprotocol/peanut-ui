@@ -9,7 +9,7 @@ import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { saveDepositAddress } from '@/app/actions/users'
+import { trackDaimoDepositTransactionHash } from '@/app/actions/users'
 
 export default function AddMoneyCryptoDirectPage() {
     const router = useRouter()
@@ -22,9 +22,9 @@ export default function AddMoneyCryptoDirectPage() {
     const onPaymentCompleted = async (e: any) => {
         setIsUpdatingDepositStatus(true)
 
-        // Update the depositor address via API
+        // Save deposit txn hash in the backend to track the user's deposit
         try {
-            await saveDepositAddress(e.txHash, e.payment.source.payerAddress)
+            await trackDaimoDepositTransactionHash(e.txHash, e.payment.source.payerAddress)
         } catch (error) {
             console.error('Error updating depositor address:', error)
         } finally {

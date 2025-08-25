@@ -120,7 +120,7 @@ export async function getUserById(userId: string): Promise<User | null> {
     }
 }
 
-export async function saveDepositAddress(txHash: string, payerAddress: string): Promise<{ data?: any }> {
+export async function trackDaimoDepositTransactionHash(txHash: string, payerAddress: string): Promise<{ data?: any }> {
     try {
         if (!txHash || !payerAddress) {
             throw new Error('Missing required fields: txHash and payerAddress')
