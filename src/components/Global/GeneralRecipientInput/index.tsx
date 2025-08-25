@@ -44,9 +44,9 @@ const GeneralRecipientInput = ({
 
     const checkAddress = useCallback(async (recipient: string): Promise<boolean> => {
         try {
+            recipient = recipient.replace(`.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN}`, '')
             let isValid = false
             let type: interfaces.RecipientType = 'address'
-
             const trimmedInput = recipient.trim().replace(`${BASE_URL}/`, '')
             const sanitizedInput = sanitizeBankAccount(trimmedInput)
 
@@ -85,7 +85,7 @@ const GeneralRecipientInput = ({
 
     const onInputUpdate = useCallback(
         (update: InputUpdate) => {
-            const sanitizedValue =
+            let sanitizedValue =
                 recipientType.current === 'iban' || recipientType.current === 'us'
                     ? sanitizeBankAccount(update.value)
                     : update.value.trim().replace(`${BASE_URL}/`, '')
