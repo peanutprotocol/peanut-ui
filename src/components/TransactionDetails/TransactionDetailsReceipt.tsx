@@ -310,18 +310,14 @@ export const TransactionDetailsReceipt = ({
                         </>
                     )}
 
-                    {transaction.status === 'completed' &&
-                        transaction.completedAt &&
-                        transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND && (
-                            <>
-                                {transaction.completedAt && (
-                                    <PaymentInfoRow
-                                        label={getLabelText(transaction)}
-                                        value={formatDate(new Date(transaction.completedAt))}
-                                    />
-                                )}
-                            </>
-                        )}
+                    {transaction.status === 'completed' && transaction.completedAt && (
+                        <>
+                            <PaymentInfoRow
+                                label={getLabelText(transaction)}
+                                value={formatDate(new Date(transaction.completedAt))}
+                            />
+                        </>
+                    )}
 
                     {transaction.fee !== undefined && (
                         <PaymentInfoRow
