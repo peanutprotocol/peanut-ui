@@ -26,6 +26,7 @@ const ActionListDaimoPayButton = () => {
     const handleInitiateDaimoPayment = useCallback(async () => {
         if (!usdAmount || parseFloat(usdAmount) <= 0) {
             console.error('Invalid amount entered')
+            dispatch(paymentActions.setError('Invalid amount'))
             return false
         }
 
@@ -90,8 +91,8 @@ const ActionListDaimoPayButton = () => {
 
     const handleCompleteDaimoPayment = useCallback(
         async (daimoPaymentResponse: any) => {
-            dispatch(paymentActions.setIsDaimoPaymentProcessing(true))
             if (chargeDetails) {
+                dispatch(paymentActions.setIsDaimoPaymentProcessing(true))
                 try {
                     const result = await completeDaimoPayment({
                         chargeDetails: chargeDetails,

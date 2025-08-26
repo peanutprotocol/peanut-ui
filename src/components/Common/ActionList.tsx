@@ -181,7 +181,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
             <Divider text="or" />
             <div className="space-y-2">
                 {ACTION_METHODS.map((method) => {
-                    if (method.id === 'exchange-or-wallet') {
+                    if (flow === 'request' && method.id === 'exchange-or-wallet') {
                         return <ActionListDaimoPayButton key={method.id} />
                     }
 
