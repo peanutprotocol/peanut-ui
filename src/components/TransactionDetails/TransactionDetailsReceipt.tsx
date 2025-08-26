@@ -14,7 +14,7 @@ import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import React, { useMemo, useState } from 'react'
+import React, { Dispatch, SetStateAction, useMemo, useState } from 'react'
 import { Button } from '../0_Bruddle'
 import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
@@ -37,17 +37,7 @@ const getBankAccountLabel = (type: string) => {
     }
 }
 
-export const TransactionDetailsReceipt = ({
-    transaction,
-    onClose,
-    isLoading,
-    setIsLoading,
-    contentRef,
-    transactionAmount,
-    showCancelLinkModal,
-    setShowCancelLinkModal,
-    className,
-}: {
+interface TransactionDetailsReceiptProps {
     transaction: TransactionDetails | null
     onClose?: () => void
     isLoading?: boolean
@@ -55,8 +45,20 @@ export const TransactionDetailsReceipt = ({
     contentRef?: React.RefObject<HTMLDivElement>
     transactionAmount?: string // dollarized amount of the transaction
     showCancelLinkModal?: boolean
-    setShowCancelLinkModal?: (show: boolean) => void
-    className?: HTMLDivElement['className']
+    setShowCancelLinkModal?: Dispatch<SetStateAction<boolean>>
+    className?: string
+}
+
+export const TransactionDetailsReceipt: React.FC<TransactionDetailsReceiptProps> = ({
+    transaction,
+    onClose,
+    isLoading,
+    setIsLoading,
+    contentRef,
+    transactionAmount,
+    showCancelLinkModal = false,
+    setShowCancelLinkModal = () => {},
+    className,
 }) => {
     // ref for the main content area to calculate dynamic height
     const { user } = useUserStore()
