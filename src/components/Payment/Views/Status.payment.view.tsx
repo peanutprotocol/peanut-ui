@@ -173,7 +173,7 @@ const DirectSuccessView = ({
         if (isWithdrawFlow) return 'You just withdrew'
         if (type === 'SEND') return 'You sent '
         if (type === 'REQUEST') return 'You requested '
-        if (type === 'DEPOSIT') return 'You deposited '
+        if (type === 'DEPOSIT') return 'You successfully added '
     }
 
     return (
