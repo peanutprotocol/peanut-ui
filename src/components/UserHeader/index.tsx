@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 import { Tooltip } from '../Tooltip'
+import { useMemo } from 'react'
+import { isAddress } from 'viem'
+import { printableAddress } from '@/utils'
 
 interface UserHeaderProps {
     username: string
@@ -59,9 +62,15 @@ export const VerifiedUserLabel = ({
         tooltipContent = "This is a verified user and you've sent them money before."
     }
 
+    const isCryptoAddress = useMemo(() => {
+        return isAddress(name)
+    }, [name])
+
     return (
         <div className="flex items-center gap-1.5">
-            <div className={twMerge('text-sm font-semibold md:text-base', className)}>{name}</div>
+            <div className={twMerge('text-sm font-semibold md:text-base', className)}>
+                {isCryptoAddress ? printableAddress(name, 4, 4) : name}
+            </div>
             {badge && (
                 <Tooltip id="verified-user-label" content={tooltipContent} position="top">
                     {badge}

@@ -86,7 +86,7 @@ export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClic
                         <div className="mb-2">
                             <SearchResultCard
                                 key="crypto"
-                                title="Crypto"
+                                title={flow === 'withdraw' ? 'Crypto' : 'Crypto Deposit'}
                                 description={
                                     flow === 'add'
                                         ? 'Use an exchange or your wallet'

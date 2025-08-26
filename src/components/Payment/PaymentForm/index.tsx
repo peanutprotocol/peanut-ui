@@ -110,6 +110,7 @@ export const PaymentForm = ({
     const [requestedTokenPrice, setRequestedTokenPrice] = useState<number>(0)
     const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
     const [daimoError, setDaimoError] = useState<string | null>(null)
+    const [isCompletingDaimoPayment, setIsCompletingDaimoPayment] = useState(false)
 
     const {
         initiatePayment,
@@ -560,6 +561,7 @@ export const PaymentForm = ({
         async (daimoPaymentResponse: any) => {
             console.log('handleCompleteDaimoPayment called')
             if (chargeDetails) {
+                setIsCompletingDaimoPayment(true)
                 const result = await completeDaimoPayment({
                     chargeDetails: chargeDetails,
                     txHash: daimoPaymentResponse.txHash as string,
@@ -576,6 +578,7 @@ export const PaymentForm = ({
                 } else {
                     console.warn('Unexpected status from usePaymentInitiator:', result.status)
                 }
+                setIsCompletingDaimoPayment(false)
             }
         },
         [chargeDetails, completeDaimoPayment, dispatch]
@@ -640,7 +643,7 @@ export const PaymentForm = ({
                 onClose={() => setLoadingStep('Idle')}
                 onBeforeShow={handleInitiateDaimoPayment}
                 variant="primary-soft"
-                loading={isProcessing}
+                loading={isProcessing || isCompletingDaimoPayment}
                 minAmount={0.1}
                 maxAmount={4000}
                 onValidationError={setDaimoError}
@@ -683,7 +686,7 @@ export const PaymentForm = ({
     }, [error])
 
     const isButtonDisabled = useMemo(() => {
-        if (isProcessing) return true
+        if (isProcessing || isCompletingDaimoPayment) return true
         if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) return false
         if (!!error) return true
 
@@ -724,6 +727,7 @@ export const PaymentForm = ({
         isConnected,
         isActivePeanutWallet,
         isPintaReq,
+        isCompletingDaimoPayment,
     ])
 
     if (isPintaReq) {
@@ -741,7 +745,7 @@ export const PaymentForm = ({
                                 variant="purple"
                                 onClick={handleInitiatePayment}
                                 disabled={beerQuantity === 0 || isProcessing}
-                                loading={isProcessing}
+                                loading={isProcessing || isCompletingDaimoPayment}
                                 className="w-full"
                             >
                                 {getButtonText()}

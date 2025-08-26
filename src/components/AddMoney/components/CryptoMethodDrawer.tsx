@@ -24,7 +24,7 @@ const CryptoMethodDrawer = ({
     return (
         <>
             <Drawer open={isDrawerOpen} onOpenChange={showRiskModal ? undefined : closeDrawer}>
-                <DrawerContent className="p-5">
+                <DrawerContent className="p-5 pb-14">
                     <div className="mx-auto space-y-4 md:max-w-2xl">
                         <h2 className="text-base font-bold">Select a deposit method</h2>
 
