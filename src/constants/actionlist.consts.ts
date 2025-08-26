@@ -1,9 +1,16 @@
 import { MERCADO_PAGO_ICON } from '@/assets'
 import { METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import binanceIcon from '@/assets/exchanges/binance.svg'
-import { Method } from '@/components/Common/ActionList'
 
-export const ACTION_METHODS: Method[] = [
+export interface PaymentMethod {
+    id: string
+    title: string
+    description: string
+    icons: any[]
+    soon: boolean
+}
+
+export const ACTION_METHODS: PaymentMethod[] = [
     {
         id: 'bank',
         title: 'Bank',

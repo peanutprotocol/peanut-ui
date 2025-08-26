@@ -23,15 +23,7 @@ import { usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 import ActionListDaimoPayButton from './ActionListDaimoPayButton'
-import { ACTION_METHODS } from '@/constants/actionlist.consts'
-
-export interface Method {
-    id: string
-    title: string
-    description: string
-    icons: any[]
-    soon: boolean
-}
+import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -65,7 +57,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
 
-    const handleMethodClick = async (method: Method) => {
+    const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
             const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
             if (method.id === 'bank' && amountInUsd < 1) {
@@ -191,7 +183,7 @@ export const MethodCard = ({
     onClick,
     requiresVerification,
 }: {
-    method: Method
+    method: PaymentMethod
     onClick: () => void
     requiresVerification?: boolean
 }) => {
