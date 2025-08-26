@@ -6,7 +6,6 @@ import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { Button } from '@/components/0_Bruddle'
 import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
-import DaimoPayButton from '@/components/Global/DaimoPayButton'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import FlowHeader from '@/components/Global/FlowHeader'
@@ -35,7 +34,6 @@ import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, ErrorHandler, formatAmount } from '@/utils'
-import { useDaimoPayUI } from '@daimo/pay'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -110,16 +108,8 @@ export const PaymentForm = ({
     const [usdValue, setUsdValue] = useState<string>('')
     const [requestedTokenPrice, setRequestedTokenPrice] = useState<number>(0)
     const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
-    const [isCompletingDaimoPayment, setIsCompletingDaimoPayment] = useState(false)
 
-    const {
-        initiatePayment,
-        isProcessing,
-        error: initiatorError,
-        setLoadingStep,
-        initiateDaimoPayment,
-        completeDaimoPayment,
-    } = usePaymentInitiator()
+    const { initiatePayment, isProcessing, error: initiatorError } = usePaymentInitiator()
 
     const peanutWalletBalance = useMemo(() => {
         return balance !== undefined ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
@@ -481,111 +471,6 @@ export const PaymentForm = ({
         requestedTokenPrice,
     ])
 
-    const handleInitiateDaimoPayment = useCallback(async () => {
-        if (!inputTokenAmount || parseFloat(inputTokenAmount) <= 0) {
-            console.error('Invalid amount entered')
-            dispatch(paymentActions.setError('Please enter a valid amount'))
-            return false
-        }
-
-        if (inputUsdValue && parseFloat(inputUsdValue) > 0) {
-            dispatch(paymentActions.setUsdAmount(inputUsdValue))
-        }
-
-        // clear error state
-        dispatch(paymentActions.setError(null))
-
-        const requestedToken = chargeDetails?.tokenAddress ?? requestDetails?.tokenAddress
-        const requestedChain = chargeDetails?.chainId ?? requestDetails?.chainId
-
-        let tokenAmount = inputTokenAmount
-        if (
-            requestedToken &&
-            requestedTokenPrice &&
-            (requestedChain !== selectedChainID || !areEvmAddressesEqual(requestedToken, selectedTokenAddress))
-        ) {
-            tokenAmount = (parseFloat(inputUsdValue) / requestedTokenPrice).toString()
-        }
-
-        const payload: InitiatePaymentPayload = {
-            recipient: recipient,
-            tokenAmount,
-            isPintaReq: false, // explicitly set to false for non-PINTA requests
-            requestId: requestId ?? undefined,
-            chargeId: chargeDetails?.uuid,
-            currency,
-            currencyAmount,
-            isExternalWalletFlow: !!isExternalWalletFlow,
-            transactionType: isExternalWalletFlow
-                ? 'DEPOSIT'
-                : isDirectUsdPayment || !requestId
-                  ? 'DIRECT_SEND'
-                  : 'REQUEST',
-            attachmentOptions: attachmentOptions,
-        }
-
-        console.log('Initiating Daimo payment', payload)
-
-        const result = await initiateDaimoPayment(payload)
-
-        if (result.status === 'Charge Created') {
-            console.log('Charge created!!')
-            return true
-        } else if (result.status === 'Error') {
-            dispatch(paymentActions.setError('Something went wrong. Please try again.'))
-            console.error('Payment initiation failed:', result)
-            return false
-        } else {
-            console.warn('Unexpected status from usePaymentInitiator:', result.status)
-            dispatch(paymentActions.setError('Something went wrong. Please try again.'))
-            return false
-        }
-    }, [
-        inputTokenAmount,
-        dispatch,
-        inputUsdValue,
-        chargeDetails,
-        requestDetails,
-        requestedTokenPrice,
-        selectedChainID,
-        selectedTokenAddress,
-        recipient,
-        requestId,
-        currency,
-        currencyAmount,
-        isExternalWalletFlow,
-        isDirectUsdPayment,
-        attachmentOptions,
-        initiateDaimoPayment,
-    ])
-
-    const handleCompleteDaimoPayment = useCallback(
-        async (daimoPaymentResponse: any) => {
-            console.log('handleCompleteDaimoPayment called')
-            if (chargeDetails) {
-                setIsCompletingDaimoPayment(true)
-                const result = await completeDaimoPayment({
-                    chargeDetails: chargeDetails,
-                    txHash: daimoPaymentResponse.txHash as string,
-                    sourceChainId: daimoPaymentResponse.payment.source.chainId,
-                    payerAddress: daimoPaymentResponse.payment.source.payerAddress,
-                })
-
-                if (result.status === 'Success') {
-                    dispatch(paymentActions.setView('STATUS'))
-                } else if (result.status === 'Charge Created') {
-                    dispatch(paymentActions.setView('CONFIRM'))
-                } else if (result.status === 'Error') {
-                    console.error('Payment initiation failed:', result.error)
-                } else {
-                    console.warn('Unexpected status from usePaymentInitiator:', result.status)
-                }
-                setIsCompletingDaimoPayment(false)
-            }
-        },
-        [chargeDetails, completeDaimoPayment, dispatch]
-    )
-
     const getButtonText = () => {
         if (!isExternalWalletConnected && isExternalWalletFlow) {
             return 'Connect Wallet'
@@ -636,25 +521,6 @@ export const PaymentForm = ({
         return undefined
     }
 
-    // const daimoButton = () => {
-    //     return (
-    //         <DaimoPayButton
-    //             amount={inputTokenAmount}
-    //             toAddress={recipient.resolvedAddress}
-    //             onPaymentCompleted={handleCompleteDaimoPayment}
-    //             onClose={() => setLoadingStep('Idle')}
-    //             onBeforeShow={handleInitiateDaimoPayment}
-    //             variant="primary-soft"
-    //             loading={isProcessing || isCompletingDaimoPayment}
-    //             minAmount={0.1}
-    //             maxAmount={4000}
-    //             onValidationError={setDaimoError}
-    //         >
-    //             Pay using exchange or wallet
-    //         </DaimoPayButton>
-    //     )
-    // }
-
     useEffect(() => {
         if (isPintaReq && inputTokenAmount) {
             dispatch(paymentActions.setBeerQuantity(Number(inputTokenAmount)))
@@ -692,7 +558,7 @@ export const PaymentForm = ({
     }, [error])
 
     const isButtonDisabled = useMemo(() => {
-        if (isProcessing || isCompletingDaimoPayment) return true
+        if (isProcessing) return true
         if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) return false
         if (!!error) return true
 
@@ -733,7 +599,6 @@ export const PaymentForm = ({
         isConnected,
         isActivePeanutWallet,
         isPintaReq,
-        isCompletingDaimoPayment,
     ])
 
     if (isPintaReq) {
@@ -751,7 +616,7 @@ export const PaymentForm = ({
                                 variant="purple"
                                 onClick={handleInitiatePayment}
                                 disabled={beerQuantity === 0 || isProcessing}
-                                loading={isProcessing || isCompletingDaimoPayment}
+                                loading={isProcessing}
                                 className="w-full"
                             >
                                 {getButtonText()}
