@@ -1,5 +1,5 @@
 export const DAIMO_THEME = {
-    '--ck-font-family': '"Roboto", "Inter"',
+    '--ck-font-family': 'var(--font-roboto-flex-bold)',
     '--ck-border-radius': '10px',
     '--ck-connectbutton-font-size': '17px',
     '--ck-connectbutton-color': '#000000',
