@@ -37,34 +37,29 @@ const getBankAccountLabel = (type: string) => {
     }
 }
 
-interface TransactionDetailsReceiptProps {
-    transaction: TransactionDetails | null
-    onClose?: () => void
-    isLoading?: boolean
-    setIsLoading?: (isLoading: boolean) => void
-    contentRef?: React.RefObject<HTMLDivElement>
-    transactionAmount?: string // dollarized amount of the transaction
-    showCancelLinkModal?: boolean
-    setShowCancelLinkModal?: Dispatch<SetStateAction<boolean>>
-    className?: string
-}
-
-export const TransactionDetailsReceipt: React.FC<TransactionDetailsReceiptProps> = ({
+export const TransactionDetailsReceipt = ({
     transaction,
     onClose,
     isLoading,
     setIsLoading,
     contentRef,
     transactionAmount,
-    showCancelLinkModal = false,
-    setShowCancelLinkModal = () => {},
     className,
+}: {
+    transaction: TransactionDetails | null
+    onClose?: () => void
+    isLoading?: boolean
+    setIsLoading?: (isLoading: boolean) => void
+    contentRef?: React.RefObject<HTMLDivElement>
+    transactionAmount?: string // dollarized amount of the transaction
+    className?: HTMLDivElement['className']
 }) => {
     // ref for the main content area to calculate dynamic height
     const { user } = useUserStore()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const [showBankDetails, setShowBankDetails] = useState(false)
+    const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
 
     const isGuestBankClaim = useMemo(() => {
         if (!transaction) return false
@@ -735,7 +730,7 @@ export const TransactionDetailsReceipt: React.FC<TransactionDetailsReceiptProps>
                         onClose && (
                             <Button
                                 disabled={isLoading}
-                                onClick={() => setShowCancelLinkModal?.(true)}
+                                onClick={() => setShowCancelLinkModal(true)}
                                 loading={isLoading}
                                 variant={'primary-soft'}
                                 className="flex w-full items-center gap-1"
@@ -948,9 +943,9 @@ export const TransactionDetailsReceipt: React.FC<TransactionDetailsReceiptProps>
 
             {/* Cancel Link Modal  */}
 
-            {setIsLoading && onClose && setShowCancelLinkModal && (
+            {setIsLoading && onClose && (
                 <CancelSendLinkModal
-                    showCancelLinkModal={showCancelLinkModal || false}
+                    showCancelLinkModal={showCancelLinkModal}
                     setshowCancelLinkModal={setShowCancelLinkModal}
                     amount={amountDisplay}
                     onClick={() => {
