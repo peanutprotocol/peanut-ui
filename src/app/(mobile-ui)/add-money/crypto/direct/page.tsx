@@ -45,7 +45,7 @@ export default function AddMoneyCryptoDirectPage() {
     if (isPaymentSuccess) {
         return (
             <DirectSuccessView
-                key={`success-add-money}`}
+                key={`success-add-money`}
                 headerTitle={'Add Money'}
                 type="DEPOSIT"
                 currencyAmount={`$${inputTokenAmount}`}

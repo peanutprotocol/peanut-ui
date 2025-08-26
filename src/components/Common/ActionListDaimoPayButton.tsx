@@ -21,7 +21,7 @@ const ActionListDaimoPayButton = () => {
     } = useCurrency(searchParams.get('currency'))
     const requestId = searchParams.get('id')
 
-    const { isProcessing, setLoadingStep, initiateDaimoPayment, completeDaimoPayment } = usePaymentInitiator()
+    const { isProcessing, initiateDaimoPayment, completeDaimoPayment } = usePaymentInitiator()
 
     const handleInitiateDaimoPayment = useCallback(async () => {
         if (!usdAmount || parseFloat(usdAmount) <= 0) {
@@ -39,8 +39,6 @@ const ActionListDaimoPayButton = () => {
         dispatch(paymentActions.setDaimoError(null))
         let tokenAmount = usdAmount
 
-        setLoadingStep('Creating Charge')
-
         const payload: InitiatePaymentPayload = {
             recipient: parsedPaymentData?.recipient,
             tokenAmount,
@@ -50,8 +48,8 @@ const ActionListDaimoPayButton = () => {
             currency: currencyCode
                 ? {
                       code: currencyCode,
-                      symbol: currencySymbol!,
-                      price: currencyPrice!,
+                      symbol: currencySymbol || '',
+                      price: currencyPrice || 0,
                   }
                 : undefined,
             currencyAmount: usdAmount,
@@ -85,13 +83,15 @@ const ActionListDaimoPayButton = () => {
         parsedPaymentData,
         attachmentOptions,
         initiateDaimoPayment,
+        currencyCode,
+        currencySymbol,
+        currencyPrice,
     ])
 
     const handleCompleteDaimoPayment = useCallback(
         async (daimoPaymentResponse: any) => {
             dispatch(paymentActions.setIsDaimoPaymentProcessing(true))
             if (chargeDetails) {
-                setLoadingStep('Confirming Transaction')
                 const result = await completeDaimoPayment({
                     chargeDetails: chargeDetails,
                     txHash: daimoPaymentResponse.txHash as string,
@@ -108,7 +108,6 @@ const ActionListDaimoPayButton = () => {
                 } else {
                     console.warn('Unexpected status from usePaymentInitiator:', result.status)
                 }
-                setLoadingStep('Success')
                 dispatch(paymentActions.setIsDaimoPaymentProcessing(false))
             }
         },
@@ -127,7 +126,6 @@ const ActionListDaimoPayButton = () => {
             minAmount={0.1}
             maxAmount={4000}
             loading={isProcessing}
-            onClose={() => setLoadingStep('Idle')}
             onValidationError={(error) => {
                 dispatch(paymentActions.setDaimoError(error))
             }}

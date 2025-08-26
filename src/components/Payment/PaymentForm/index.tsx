@@ -484,7 +484,7 @@ export const PaymentForm = ({
             return 'Send'
         }
 
-        if (isActivePeanutWallet && (isInsufficientBalanceError || isDaimoError) && !isExternalWalletFlow) {
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
             return (
                 <div className="flex items-center gap-1">
                     <div>Add funds to </div>
@@ -551,10 +551,6 @@ export const PaymentForm = ({
 
     const isInsufficientBalanceError = useMemo(() => {
         return error?.includes("You don't have enough balance.")
-    }, [error])
-
-    const isDaimoError = useMemo(() => {
-        return error?.includes('Maximum deposit is') || error?.includes('Minimum deposit is')
     }, [error])
 
     const isButtonDisabled = useMemo(() => {
@@ -742,7 +738,7 @@ export const PaymentForm = ({
                 )}
 
                 <div className="space-y-4">
-                    {isPeanutWalletConnected && (!error || isInsufficientBalanceError || isDaimoError) && (
+                    {isPeanutWalletConnected && (!error || isInsufficientBalanceError) && (
                         <Button
                             variant="purple"
                             loading={isProcessing}

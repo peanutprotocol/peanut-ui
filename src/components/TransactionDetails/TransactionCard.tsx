@@ -172,7 +172,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             {/* display formatted name (address or username) */}
                             <div className="flex flex-row items-center gap-2">
                                 {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
-                                <div className="w-full truncate font-roboto text-[16px] font-medium">
+                                <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                     <VerifiedUserLabel
                                         name={name}
                                         isVerified={transaction.isVerified}

@@ -119,7 +119,15 @@ export const DaimoPayButton = ({
             onClose={onClose}
         >
             {({ show }) => {
+                // Compute robust disabled state once
+                const isDisabled = disabled || amount.length === 0
+
                 const handleButtonClick = async () => {
+                    // Short-circuit if disabled to prevent opening modal with invalid input
+                    if (isDisabled) {
+                        return
+                    }
+
                     const canShow = await handleClick()
                     if (canShow) {
                         show()
@@ -130,7 +138,7 @@ export const DaimoPayButton = ({
                 if (typeof children === 'function') {
                     const customElement = children({
                         onClick: handleButtonClick,
-                        disabled: disabled || amount.length === 0,
+                        disabled: isDisabled,
                         loading,
                     })
 
@@ -148,7 +156,7 @@ export const DaimoPayButton = ({
                         onClick={handleButtonClick}
                         variant={variant}
                         shadowSize={shadowSize}
-                        disabled={disabled || amount.length === 0}
+                        disabled={isDisabled}
                         loading={loading}
                         className={className}
                         icon={icon}
