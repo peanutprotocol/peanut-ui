@@ -3,9 +3,6 @@
 import { SearchResultCard } from '../SearchUsers/SearchResultCard'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import IconStack from '../Global/IconStack'
-import mercadoPagoIcon from '@/assets/payment-apps/mercado-pago.svg'
-import binanceIcon from '@/assets/exchanges/binance.svg'
-import { METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
@@ -26,6 +23,7 @@ import { usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 import ActionListDaimoPayButton from './ActionListDaimoPayButton'
+import { ACTION_METHODS } from '@/constants/actionlist.consts'
 
 export interface Method {
     id: string
@@ -34,34 +32,6 @@ export interface Method {
     icons: any[]
     soon: boolean
 }
-
-export const ACTION_METHODS: Method[] = [
-    {
-        id: 'bank',
-        title: 'Bank',
-        description: 'EUR, USD, ARS (more coming soon)',
-        icons: [
-            'https://flagcdn.com/w160/ar.png',
-            'https://flagcdn.com/w160/de.png',
-            'https://flagcdn.com/w160/us.png',
-        ],
-        soon: false,
-    },
-    {
-        id: 'mercadopago',
-        title: 'Mercado Pago',
-        description: 'Instant transfers',
-        icons: [mercadoPagoIcon],
-        soon: true,
-    },
-    {
-        id: 'exchange-or-wallet',
-        title: 'Exchange or Wallet',
-        description: 'Binance, Coinbase, Metamask and more',
-        icons: [binanceIcon, TRUST_WALLET_SMALL_LOGO, METAMASK_LOGO],
-        soon: false,
-    },
-]
 
 interface IActionListProps {
     flow: 'claim' | 'request'

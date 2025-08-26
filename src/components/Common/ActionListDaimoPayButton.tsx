@@ -1,6 +1,5 @@
 import React, { useCallback } from 'react'
 import { SearchResultCard } from '../SearchUsers/SearchResultCard'
-import { ACTION_METHODS } from './ActionList'
 import IconStack from '../Global/IconStack'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
@@ -8,6 +7,7 @@ import { useCurrency } from '@/hooks/useCurrency'
 import { useSearchParams } from 'next/navigation'
 import { InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import DaimoPayButton from '../Global/DaimoPayButton'
+import { ACTION_METHODS } from '@/constants/actionlist.consts'
 
 const ActionListDaimoPayButton = () => {
     const dispatch = useAppDispatch()
