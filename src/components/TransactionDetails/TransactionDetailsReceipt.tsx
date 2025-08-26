@@ -44,8 +44,6 @@ export const TransactionDetailsReceipt = ({
     setIsLoading,
     contentRef,
     transactionAmount,
-    showCancelLinkModal,
-    setShowCancelLinkModal,
     className,
 }: {
     transaction: TransactionDetails | null
@@ -54,8 +52,6 @@ export const TransactionDetailsReceipt = ({
     setIsLoading?: (isLoading: boolean) => void
     contentRef?: React.RefObject<HTMLDivElement>
     transactionAmount?: string // dollarized amount of the transaction
-    showCancelLinkModal?: boolean
-    setShowCancelLinkModal?: (show: boolean) => void
     className?: HTMLDivElement['className']
 }) => {
     // ref for the main content area to calculate dynamic height
@@ -63,6 +59,7 @@ export const TransactionDetailsReceipt = ({
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const [showBankDetails, setShowBankDetails] = useState(false)
+    const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
 
     const isGuestBankClaim = useMemo(() => {
         if (!transaction) return false
@@ -733,7 +730,7 @@ export const TransactionDetailsReceipt = ({
                         onClose && (
                             <Button
                                 disabled={isLoading}
-                                onClick={() => setShowCancelLinkModal?.(true)}
+                                onClick={() => setShowCancelLinkModal(true)}
                                 loading={isLoading}
                                 variant={'primary-soft'}
                                 className="flex w-full items-center gap-1"
@@ -946,9 +943,9 @@ export const TransactionDetailsReceipt = ({
 
             {/* Cancel Link Modal  */}
 
-            {setIsLoading && onClose && setShowCancelLinkModal && (
+            {setIsLoading && onClose && (
                 <CancelSendLinkModal
-                    showCancelLinkModal={showCancelLinkModal || false}
+                    showCancelLinkModal={showCancelLinkModal}
                     setshowCancelLinkModal={setShowCancelLinkModal}
                     amount={amountDisplay}
                     onClick={() => {
