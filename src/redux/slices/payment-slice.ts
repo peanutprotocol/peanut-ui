@@ -23,6 +23,7 @@ const initialState: IPaymentState = {
     beerQuantity: 0,
     usdAmount: null,
     daimoError: null,
+    isDaimoPaymentProcessing: false,
 }
 
 const paymentSlice = createSlice({
@@ -65,11 +66,14 @@ const paymentSlice = createSlice({
         setUsdAmount: (state, action: PayloadAction<string | null>) => {
             state.usdAmount = action.payload
         },
-        resetPaymentState: (state) => {
-            return initialState
-        },
         setDaimoError: (state, action: PayloadAction<string | null>) => {
             state.daimoError = action.payload
+        },
+        setIsDaimoPaymentProcessing: (state, action: PayloadAction<boolean>) => {
+            state.isDaimoPaymentProcessing = action.payload
+        },
+        resetPaymentState: (state) => {
+            return initialState
         },
     },
 })

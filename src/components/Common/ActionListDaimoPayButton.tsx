@@ -89,7 +89,7 @@ const ActionListDaimoPayButton = () => {
 
     const handleCompleteDaimoPayment = useCallback(
         async (daimoPaymentResponse: any) => {
-            console.log('handleCompleteDaimoPayment called')
+            dispatch(paymentActions.setIsDaimoPaymentProcessing(true))
             if (chargeDetails) {
                 setLoadingStep('Confirming Transaction')
                 const result = await completeDaimoPayment({
@@ -109,6 +109,7 @@ const ActionListDaimoPayButton = () => {
                     console.warn('Unexpected status from usePaymentInitiator:', result.status)
                 }
                 setLoadingStep('Success')
+                dispatch(paymentActions.setIsDaimoPaymentProcessing(false))
             }
         },
         [chargeDetails, completeDaimoPayment, dispatch]

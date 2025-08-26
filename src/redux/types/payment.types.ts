@@ -18,4 +18,5 @@ export interface IPaymentState {
     beerQuantity: number
     usdAmount: string | null
     daimoError: string | null
+    isDaimoPaymentProcessing: boolean
 }
