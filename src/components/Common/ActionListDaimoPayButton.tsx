@@ -92,23 +92,28 @@ const ActionListDaimoPayButton = () => {
         async (daimoPaymentResponse: any) => {
             dispatch(paymentActions.setIsDaimoPaymentProcessing(true))
             if (chargeDetails) {
-                const result = await completeDaimoPayment({
-                    chargeDetails: chargeDetails,
-                    txHash: daimoPaymentResponse.txHash as string,
-                    sourceChainId: daimoPaymentResponse.payment.source.chainId,
-                    payerAddress: daimoPaymentResponse.payment.source.payerAddress,
-                })
+                try {
+                    const result = await completeDaimoPayment({
+                        chargeDetails: chargeDetails,
+                        txHash: daimoPaymentResponse.txHash as string,
+                        sourceChainId: daimoPaymentResponse.payment.source.chainId,
+                        payerAddress: daimoPaymentResponse.payment.source.payerAddress,
+                    })
 
-                if (result.status === 'Success') {
-                    dispatch(paymentActions.setView('STATUS'))
-                } else if (result.status === 'Charge Created') {
-                    dispatch(paymentActions.setView('CONFIRM'))
-                } else if (result.status === 'Error') {
-                    console.error('Payment initiation failed:', result.error)
-                } else {
-                    console.warn('Unexpected status from usePaymentInitiator:', result.status)
+                    if (result.status === 'Success') {
+                        dispatch(paymentActions.setView('STATUS'))
+                    } else if (result.status === 'Charge Created') {
+                        dispatch(paymentActions.setView('CONFIRM'))
+                    } else if (result.status === 'Error') {
+                        console.error('Payment initiation failed:', result.error)
+                    } else {
+                        console.warn('Unexpected status from usePaymentInitiator:', result.status)
+                    }
+                } catch (e) {
+                    console.error('Error completing daimo payment:', e)
+                } finally {
+                    dispatch(paymentActions.setIsDaimoPaymentProcessing(false))
                 }
-                dispatch(paymentActions.setIsDaimoPaymentProcessing(false))
             }
         },
         [chargeDetails, completeDaimoPayment, dispatch]
