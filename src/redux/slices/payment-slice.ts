@@ -22,6 +22,7 @@ const initialState: IPaymentState = {
     error: null,
     beerQuantity: 0,
     usdAmount: null,
+    daimoError: null,
 }
 
 const paymentSlice = createSlice({
@@ -66,6 +67,9 @@ const paymentSlice = createSlice({
         },
         resetPaymentState: (state) => {
             return initialState
+        },
+        setDaimoError: (state, action: PayloadAction<string | null>) => {
+            state.daimoError = action.payload
         },
     },
 })

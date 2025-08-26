@@ -13,21 +13,26 @@ export interface DaimoPayButtonProps {
     amount: string
     /** The recipient address */
     toAddress: string
-    /** Button text */
-    children: React.ReactNode
-    /** Button variant */
+    /**
+     * Render function that receives click handler and other props
+     * OR React node for backwards compatibility
+     */
+    children:
+        | React.ReactNode
+        | ((props: { onClick: () => Promise<void>; disabled: boolean; loading: boolean }) => React.ReactElement | null)
+    /** Button variant (only used with default button) */
     variant?: 'purple' | 'primary-soft' | 'stroke'
-    /** Button icon */
+    /** Button icon (only used with default button) */
     icon?: IconName
-    /** Icon size */
+    /** Icon size (only used with default button) */
     iconSize?: number
     /** Whether the button is disabled */
     disabled?: boolean
     /** Whether the button is loading */
     loading?: boolean
-    /** Additional button className */
+    /** Additional button className (only used with default button) */
     className?: string
-    /** Shadow size for the button */
+    /** Shadow size for the button (only used with default button) */
     shadowSize?: '4' | '6' | '8'
     /** Callback when payment is completed */
     onPaymentCompleted: (paymentResponse: any) => void
@@ -69,12 +74,12 @@ export const DaimoPayButton = ({
 
         // Validate amount range if specified
         if (minAmount !== undefined && formattedAmount < minAmount) {
-            onValidationError?.(`Minimum deposit is $${minAmount.toFixed(2)}.`)
+            onValidationError?.(`Minimum deposit using crypto is $${minAmount.toFixed(2)}.`)
             return false
         }
 
         if (maxAmount !== undefined && formattedAmount > maxAmount) {
-            onValidationError?.(`Maximum deposit is $${maxAmount.toFixed(2)}.`)
+            onValidationError?.(`Maximum deposit using crypto is $${maxAmount.toFixed(2)}.`)
             return false
         }
 
@@ -113,25 +118,46 @@ export const DaimoPayButton = ({
             closeOnSuccess
             onClose={onClose}
         >
-            {({ show }) => (
-                <Button
-                    onClick={async () => {
-                        const canShow = await handleClick()
-                        if (canShow) {
-                            show()
-                        }
-                    }}
-                    variant={variant}
-                    shadowSize={shadowSize}
-                    disabled={disabled || amount.length === 0}
-                    loading={loading}
-                    className={className}
-                    icon={icon}
-                    iconSize={iconSize}
-                >
-                    {children}
-                </Button>
-            )}
+            {({ show }) => {
+                const handleButtonClick = async () => {
+                    const canShow = await handleClick()
+                    if (canShow) {
+                        show()
+                    }
+                }
+
+                // If children is a function, call it with the necessary props
+                if (typeof children === 'function') {
+                    const customElement = children({
+                        onClick: handleButtonClick,
+                        disabled: disabled || amount.length === 0,
+                        loading,
+                    })
+
+                    // Ensure we return a valid React element
+                    if (!customElement) {
+                        return <div />
+                    }
+
+                    return customElement as React.ReactElement
+                }
+
+                // Otherwise, render the default Button (backwards compatibility)
+                return (
+                    <Button
+                        onClick={handleButtonClick}
+                        variant={variant}
+                        shadowSize={shadowSize}
+                        disabled={disabled || amount.length === 0}
+                        loading={loading}
+                        className={className}
+                        icon={icon}
+                        iconSize={iconSize}
+                    >
+                        {children}
+                    </Button>
+                )
+            }}
         </DaimoPayButtonSDK.Custom>
     )
 }

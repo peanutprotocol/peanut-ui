@@ -82,6 +82,7 @@ export const PaymentForm = ({
         requestDetails,
         chargeDetails,
         beerQuantity,
+        daimoError,
         error: paymentStoreError,
         attachmentOptions,
     } = usePaymentStore()
@@ -109,7 +110,6 @@ export const PaymentForm = ({
     const [usdValue, setUsdValue] = useState<string>('')
     const [requestedTokenPrice, setRequestedTokenPrice] = useState<number>(0)
     const [_isFetchingTokenPrice, setIsFetchingTokenPrice] = useState<boolean>(false)
-    const [daimoError, setDaimoError] = useState<string | null>(null)
     const [isCompletingDaimoPayment, setIsCompletingDaimoPayment] = useState(false)
 
     const {
@@ -189,10 +189,12 @@ export const PaymentForm = ({
     // reset error when component mounts or recipient changes
     useEffect(() => {
         dispatch(paymentActions.setError(null))
+        dispatch(paymentActions.setDaimoError(null))
     }, [dispatch, recipient])
 
     useEffect(() => {
         dispatch(paymentActions.setError(null))
+        dispatch(paymentActions.setDaimoError(null))
 
         const currentInputAmountStr = String(inputTokenAmount)
         const parsedInputAmount = parseFloat(currentInputAmountStr.replace(/,/g, ''))
@@ -597,7 +599,7 @@ export const PaymentForm = ({
             return 'Send'
         }
 
-        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
+        if (isActivePeanutWallet && (isInsufficientBalanceError || isDaimoError) && !isExternalWalletFlow) {
             return (
                 <div className="flex items-center gap-1">
                     <div>Add funds to </div>
@@ -634,24 +636,24 @@ export const PaymentForm = ({
         return undefined
     }
 
-    const daimoButton = () => {
-        return (
-            <DaimoPayButton
-                amount={inputTokenAmount}
-                toAddress={recipient.resolvedAddress}
-                onPaymentCompleted={handleCompleteDaimoPayment}
-                onClose={() => setLoadingStep('Idle')}
-                onBeforeShow={handleInitiateDaimoPayment}
-                variant="primary-soft"
-                loading={isProcessing || isCompletingDaimoPayment}
-                minAmount={0.1}
-                maxAmount={4000}
-                onValidationError={setDaimoError}
-            >
-                Pay using exchange or wallet
-            </DaimoPayButton>
-        )
-    }
+    // const daimoButton = () => {
+    //     return (
+    //         <DaimoPayButton
+    //             amount={inputTokenAmount}
+    //             toAddress={recipient.resolvedAddress}
+    //             onPaymentCompleted={handleCompleteDaimoPayment}
+    //             onClose={() => setLoadingStep('Idle')}
+    //             onBeforeShow={handleInitiateDaimoPayment}
+    //             variant="primary-soft"
+    //             loading={isProcessing || isCompletingDaimoPayment}
+    //             minAmount={0.1}
+    //             maxAmount={4000}
+    //             onValidationError={setDaimoError}
+    //         >
+    //             Pay using exchange or wallet
+    //         </DaimoPayButton>
+    //     )
+    // }
 
     useEffect(() => {
         if (isPintaReq && inputTokenAmount) {
@@ -683,6 +685,10 @@ export const PaymentForm = ({
 
     const isInsufficientBalanceError = useMemo(() => {
         return error?.includes("You don't have enough balance.")
+    }, [error])
+
+    const isDaimoError = useMemo(() => {
+        return error?.includes('Maximum deposit is') || error?.includes('Minimum deposit is')
     }, [error])
 
     const isButtonDisabled = useMemo(() => {
@@ -824,7 +830,10 @@ export const PaymentForm = ({
                 <TokenAmountInput
                     tokenValue={inputTokenAmount}
                     setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
-                    setUsdValue={(value: string) => setInputUsdValue(value)}
+                    setUsdValue={(value: string) => {
+                        setInputUsdValue(value)
+                        dispatch(paymentActions.setUsdAmount(value))
+                    }}
                     setCurrencyAmount={setCurrencyAmount}
                     className="w-full"
                     disabled={!isExternalWalletFlow && (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)}
@@ -868,7 +877,7 @@ export const PaymentForm = ({
                 )}
 
                 <div className="space-y-4">
-                    {isPeanutWalletConnected && (!error || isInsufficientBalanceError) && (
+                    {isPeanutWalletConnected && (!error || isInsufficientBalanceError || isDaimoError) && (
                         <Button
                             variant="purple"
                             loading={isProcessing}
@@ -898,8 +907,9 @@ export const PaymentForm = ({
                             Retry
                         </Button>
                     )}
+                    {daimoError && <ErrorAlert description={daimoError} />}
 
-                    {error && (
+                    {!daimoError && error && (
                         <ErrorAlert
                             description={
                                 error.includes("You don't have enough balance.")
@@ -908,8 +918,6 @@ export const PaymentForm = ({
                             }
                         />
                     )}
-                    {daimoButton()}
-                    {daimoError && <ErrorAlert description={daimoError} />}
                 </div>
             </div>
             <ActionModal

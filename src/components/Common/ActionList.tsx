@@ -25,6 +25,7 @@ import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
+import ActionListDaimoPayButton from './ActionListDaimoPayButton'
 
 export interface Method {
     id: string
@@ -34,7 +35,7 @@ export interface Method {
     soon: boolean
 }
 
-const ACTION_METHODS: Method[] = [
+export const ACTION_METHODS: Method[] = [
     {
         id: 'bank',
         title: 'Bank',
@@ -122,7 +123,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     break
             }
         } else if (flow === 'request' && requestLinkData) {
-            const amountInUsd = parseFloat(usdAmount ?? '0')
+            const amountInUsd = usdAmount ? parseFloat(usdAmount) : 0
             if (method.id === 'bank' && amountInUsd < 1) {
                 setShowMinAmountError(true)
                 return
@@ -179,12 +180,11 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
             )}
             <Divider text="or" />
             <div className="space-y-2">
-                {ACTION_METHODS.filter((method) => {
-                    if (flow === 'request') {
-                        return method.id !== 'exchange-or-wallet'
+                {ACTION_METHODS.map((method) => {
+                    if (method.id === 'exchange-or-wallet') {
+                        return <ActionListDaimoPayButton key={method.id} />
                     }
-                    return true
-                }).map((method) => {
+
                     return (
                         <MethodCard
                             onClick={() => handleMethodClick(method)}
