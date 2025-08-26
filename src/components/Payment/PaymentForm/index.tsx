@@ -184,7 +184,6 @@ export const PaymentForm = ({
 
     useEffect(() => {
         dispatch(paymentActions.setError(null))
-        dispatch(paymentActions.setDaimoError(null))
 
         const currentInputAmountStr = String(inputTokenAmount)
         const parsedInputAmount = parseFloat(currentInputAmountStr.replace(/,/g, ''))
