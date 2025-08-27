@@ -1,5 +1,6 @@
 'use client'
 import { forwardRef, useImperativeHandle, useMemo, useState, useEffect } from 'react'
+import { forwardRef, useImperativeHandle, useMemo, useState, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -66,6 +67,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             handleSubmit,
             setValue,
             getValues,
+            getValues,
             formState: { errors, isValid, isValidating, touchedFields },
         } = useForm<IBankAccountDetails>({
             defaultValues: {
@@ -84,6 +86,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             },
             mode: 'onBlur',
             reValidateMode: 'onSubmit',
+            reValidateMode: 'onSubmit',
         })
 
         useImperativeHandle(ref, () => ({
@@ -97,7 +100,25 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             }
         }, [isValid, submissionError, showBicField, getValues])
 
+        // Clear submission error when form becomes valid and BIC field is filled (if shown)
+        useEffect(() => {
+            if (submissionError && isValid && (!showBicField || getValues('bic'))) {
+                setSubmissionError(null)
+            }
+        }, [isValid, submissionError, showBicField, getValues])
+
         const onSubmit = async (data: IBankAccountDetails) => {
+            // If validation is still running, don't proceed
+            if (isValidating) {
+                console.log('Validation still checking, skipping submission')
+                return
+            }
+
+            // Clear any existing submission errors before starting
+            if (submissionError) {
+                setSubmissionError(null)
+            }
+
             // If validation is still running, don't proceed
             if (isValidating) {
                 console.log('Validation still checking, skipping submission')
@@ -124,6 +145,38 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 const accountNumber = isMx ? data.clabe : data.accountNumber
 
                 const { firstName, lastName } = data
+                let bic = data.bic || getValues('bic')
+                const iban = data.iban || getValues('iban')
+
+                // for IBAN countries, ensure BIC is available
+                if (isIban) {
+                    // if BIC field is shown but empty, don't proceed
+                    if (showBicField && !bic) {
+                        setIsSubmitting(false)
+                        setSubmissionError('BIC is required')
+                        return
+                    }
+
+                    // if BIC field is not shown and no BIC available, try to get it automatically
+                    if (!showBicField && !bic) {
+                        try {
+                            const autoBic = await getBicFromIban(accountNumber)
+                            if (autoBic) {
+                                bic = autoBic
+                                // set the BIC value in the form without showing the field
+                                setValue('bic', autoBic, { shouldValidate: false })
+                            } else {
+                                setShowBicField(true)
+                                setIsSubmitting(false)
+                                setSubmissionError('BIC is required')
+                                return
+                            }
+                        } catch (error) {
+                            setShowBicField(true)
+                            setIsSubmitting(false)
+                            setSubmissionError('BIC is required')
+                            return
+                        }
                 let bic = data.bic || getValues('bic')
                 const iban = data.iban || getValues('iban')
 
@@ -268,6 +321,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 <div className="space-y-4">
                     <h3 className="text-base font-bold">Enter bank account details</h3>
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                         {flow === 'claim' && !user?.user.userId && (
                             <div className="w-full space-y-4">
                                 {renderInput('firstName', 'First Name', { required: 'First name is required' })}
@@ -361,6 +415,25 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     }
                                 }
                             )}
+                            renderInput(
+                                'bic',
+                                'BIC',
+                                {
+                                    required: 'BIC is required',
+                                    validate: async (value: string) => {
+                                        if (!value || value.trim().length === 0) return 'BIC is required'
+                                        const isValid = await validateBic(value.trim())
+                                        return isValid || 'Invalid BIC code'
+                                    },
+                                },
+                                'text',
+                                undefined,
+                                (field) => {
+                                    if (field.value && field.value.trim().length > 0 && submissionError) {
+                                        setSubmissionError(null)
+                                    }
+                                }
+                            )}
                         {isUs &&
                             renderInput('routingNumber', 'Routing Number', {
                                 required: 'Routing number is required',
@@ -388,6 +461,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             variant="purple"
                             shadowSize="4"
                             className="!mt-4 w-full"
+                            loading={isSubmitting}
+                            disabled={isSubmitting || !isValid}
                             loading={isSubmitting}
                             disabled={isSubmitting || !isValid}
                         >
