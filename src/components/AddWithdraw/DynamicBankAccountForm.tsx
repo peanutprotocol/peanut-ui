@@ -32,7 +32,7 @@ export type IBankAccountDetails = {
     city: string
     state: string
     postalCode: string
-    iban?: string
+    iban: string
     country: string
 }
 
@@ -185,7 +185,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                 const result = await onSuccess(payload as AddBankAccountPayload, {
                     ...data,
-                    iban: isIban ? data.accountNumber || iban : undefined,
+                    iban: isIban ? data.accountNumber || iban || '' : '',
                     accountNumber: isIban ? '' : data.accountNumber,
                     bic: bic,
                     country,
