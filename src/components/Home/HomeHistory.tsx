@@ -216,12 +216,6 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 
                             // determine card position for styling (first, middle, last, single)
                             const position = getCardPosition(index, pendingRequests.length)
-                            const haveSentMoneyToUser =
-                                item.userRole === 'SENDER'
-                                    ? interactions[item.recipientAccount.userId]
-                                    : item.senderAccount?.userId
-                                      ? interactions[item.senderAccount.userId]
-                                      : false
 
                             return (
                                 <TransactionCard
@@ -234,7 +228,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                                     transaction={transactionDetails}
                                     position={position}
                                     isPending={true}
-                                    haveSentMoneyToUser={haveSentMoneyToUser}
+                                    haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
                                 />
                             )
                         })}

@@ -161,6 +161,7 @@ const HistoryPage = () => {
                                             initials={transactionDetails.initials}
                                             transaction={transactionDetails}
                                             position={position}
+                                            haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
                                         />
                                     )
                                 })()

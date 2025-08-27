@@ -173,15 +173,29 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                 isPeerActuallyUser = !!entry.recipientAccount?.isUser
                 isLinkTx = !isPeerActuallyUser
             } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
-                direction = 'receive'
-                transactionCardType = 'receive'
-                nameForDetails = entry.senderAccount?.username || entry.senderAccount?.identifier || 'Received via Link'
-                isPeerActuallyUser = !!entry.senderAccount?.isUser
-                isLinkTx = !isPeerActuallyUser
+                // if the recipient is not a peanut user, it's an external claim
+                if (entry.recipientAccount && !entry.recipientAccount.isUser) {
+                    direction = 'claim_external'
+                    transactionCardType = 'claim_external'
+                    nameForDetails = entry.recipientAccount.identifier
+                    isPeerActuallyUser = false
+                    isLinkTx = true
+                } else {
+                    direction = 'receive'
+                    transactionCardType = 'receive'
+                    nameForDetails =
+                        entry.senderAccount?.username || entry.senderAccount?.identifier || 'Received via Link'
+                    isPeerActuallyUser = !!entry.senderAccount?.isUser
+                    isLinkTx = !isPeerActuallyUser
+                }
             } else if (entry.userRole === EHistoryUserRole.BOTH) {
                 isPeerActuallyUser = true
                 uiStatus = 'cancelled'
                 nameForDetails = 'Sent via Link'
+            } else {
+                direction = 'claim_external'
+                transactionCardType = 'claim_external'
+                nameForDetails = entry.recipientAccount?.username || entry.recipientAccount?.identifier
             }
             break
         case EHistoryEntryType.REQUEST:
@@ -389,7 +403,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
         initials: getInitialsFromName(nameForDetails),
         status: uiStatus,
-        isVerified: entry.isVerified,
+        isVerified: entry.isVerified && isPeerActuallyUser,
+        // only show verification badge if the other person is a peanut user
         date: new Date(entry.timestamp),
         fee: undefined,
         memo: entry.memo?.trim(),

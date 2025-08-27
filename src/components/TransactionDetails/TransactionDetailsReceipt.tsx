@@ -8,7 +8,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
-import { formatIban, shortenAddress } from '@/utils/general.utils'
+import { formatIban, printableAddress, shortenAddress, shortenAddressLong } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -25,6 +25,7 @@ import CopyToClipboard from '../Global/CopyToClipboard'
 import MoreInfo from '../Global/MoreInfo'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
+import { isAddress } from 'viem'
 
 const getBankAccountLabel = (type: string) => {
     switch (type.toLowerCase()) {
@@ -83,60 +84,56 @@ export const TransactionDetailsReceipt = ({
         )
     }, [transaction])
 
-    const shouldHideCreatedRowBorder = useMemo(() => {
-        if (!transaction) return true
+    // config to determine which rows are visible in the receipt
+    // this helps in managing layout and borders
+    const rowVisibilityConfig = useMemo(() => {
+        if (!transaction) return {}
 
-        // the border for the 'Created' row should be hidden if it is the last item in the details card.
-        // this logic checks for the presence of any other detail rows that might be displayed below it.
-        // if any of the following conditions are met, a row will be displayed, and the border should NOT be hidden.
-
-        const hasTokenDetails = transaction.tokenDisplayDetails && transaction.sourceView === 'history'
-        const hasCancellationDate = transaction.status === 'cancelled' && transaction.cancelledDate
-        const hasClaimDate = transaction.status === 'completed' && transaction.claimedAt
-        const hasCompletionDate =
-            transaction.status === 'completed' &&
-            transaction.completedAt &&
-            transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
-        const hasFee = transaction.fee !== undefined
-        const hasExchangeRateInfo =
-            transaction.direction === 'bank_deposit' &&
-            transaction.status === 'completed' &&
-            transaction.currency?.code &&
-            transaction.currency.code.toUpperCase() !== 'USD'
-        const hasBankAccountDetails = transaction.bankAccountDetails && transaction.bankAccountDetails.identifier
-        const hasTransferId =
-            transaction.id && (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim')
-        const hasDepositInstructions =
-            (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_ONRAMP ||
-                (isPendingBankRequest &&
-                    transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER)) &&
-            transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.depositInstructions &&
-            transaction.extraDataForDrawer.depositInstructions.bank_name
-        const hasMemo = !!transaction.memo?.trim()
-        const hasNetworkFee = transaction.networkFeeDetails && transaction.sourceView === 'status'
-        const hasAttachment = !!transaction.attachmentUrl
-
-        const isNonPendingTransaction = transaction.status !== 'pending'
-
-        // if any of these are true, it means there's another row below "Created", so we should NOT hide the border.
-        const hasFollowingRows =
-            hasTokenDetails ||
-            hasCancellationDate ||
-            hasClaimDate ||
-            hasCompletionDate ||
-            hasFee ||
-            hasExchangeRateInfo ||
-            hasBankAccountDetails ||
-            hasTransferId ||
-            hasDepositInstructions ||
-            hasMemo ||
-            hasNetworkFee ||
-            hasAttachment ||
-            isNonPendingTransaction
-
-        return !hasFollowingRows
+        return {
+            createdAt: !!transaction.createdAt,
+            to: transaction.direction === 'claim_external',
+            tokenAndNetwork: transaction.tokenDisplayDetails && transaction.sourceView === 'history',
+            txId: transaction.txHash && transaction.explorerUrl,
+            cancelled: transaction.status === 'cancelled' && transaction.cancelledDate,
+            claimed: transaction.status === 'completed' && transaction.claimedAt,
+            completed:
+                transaction.status === 'completed' &&
+                transaction.completedAt &&
+                transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND,
+            fee: transaction.fee !== undefined,
+            exchangeRate:
+                transaction.direction === 'bank_deposit' &&
+                transaction.status === 'completed' &&
+                transaction.currency?.code &&
+                transaction.currency.code.toUpperCase() !== 'USD',
+            bankAccountDetails: transaction.bankAccountDetails && transaction.bankAccountDetails.identifier,
+            transferId:
+                transaction.id && (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim'),
+            depositInstructions:
+                (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_ONRAMP ||
+                    (isPendingBankRequest &&
+                        transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER)) &&
+                transaction.status === 'pending' &&
+                transaction.extraDataForDrawer?.depositInstructions &&
+                transaction.extraDataForDrawer.depositInstructions.bank_name,
+            peanutFee: transaction.status !== 'pending',
+            comment: !!transaction.memo?.trim(),
+            networkFee: transaction.networkFeeDetails && transaction.sourceView === 'status',
+            attachment: !!transaction.attachmentUrl,
+        }
     }, [transaction, isPendingBankRequest])
+
+    const visibleRows = useMemo(() => {
+        return Object.keys(rowVisibilityConfig).filter(
+            (key) => rowVisibilityConfig[key as keyof typeof rowVisibilityConfig]
+        )
+    }, [rowVisibilityConfig])
+
+    // helper to hide border for the last visible row
+    const shouldHideBorder = (rowKey: string) => {
+        const currentIndex = visibleRows.indexOf(rowKey)
+        return currentIndex === visibleRows.length - 1
+    }
 
     const isPendingRequestee = useMemo(() => {
         if (!transaction) return false
@@ -252,15 +249,32 @@ export const TransactionDetailsReceipt = ({
             {/* details card (date, fee, memo) and more */}
             <Card position={shouldShowQrShare ? 'first' : 'single'} className="px-4 py-0" border={true}>
                 <div className="space-y-0">
-                    {transaction.createdAt && (
+                    {rowVisibilityConfig.createdAt && (
                         <PaymentInfoRow
                             label={'Created'}
-                            value={formatDate(new Date(transaction.createdAt?.toString()))}
-                            hideBottomBorder={shouldHideCreatedRowBorder}
+                            value={formatDate(new Date(transaction.createdAt!.toString()))}
+                            hideBottomBorder={shouldHideBorder('createdAt')}
                         />
                     )}
 
-                    {transaction.tokenDisplayDetails && transaction.sourceView === 'history' && (
+                    {rowVisibilityConfig.to && (
+                        <PaymentInfoRow
+                            label={'To'}
+                            value={
+                                <div className="flex items-center gap-2">
+                                    <span>
+                                        {isAddress(transaction.userName)
+                                            ? printableAddress(transaction.userName)
+                                            : transaction.userName}
+                                    </span>
+                                    <CopyToClipboard textToCopy={transaction.userName} iconSize="4" />
+                                </div>
+                            }
+                            hideBottomBorder={shouldHideBorder('to')}
+                        />
+                    )}
+
+                    {rowVisibilityConfig.tokenAndNetwork && transaction.tokenDisplayDetails && (
                         <PaymentInfoRow
                             label="Token and network"
                             value={
@@ -292,84 +306,91 @@ export const TransactionDetailsReceipt = ({
                                     </span>
                                 </div>
                             }
-                            hideBottomBorder={!transaction.networkFeeDetails && !transaction.peanutFeeDetails}
+                            hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
                         />
                     )}
 
-                    {transaction.status === 'cancelled' && transaction.cancelledDate && (
+                    {rowVisibilityConfig.txId && transaction.txHash && (
+                        <PaymentInfoRow
+                            label="TX ID"
+                            value={
+                                <Link
+                                    href={transaction.explorerUrl!}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-2 hover:underline"
+                                >
+                                    <span>{shortenAddressLong(transaction.txHash)}</span>
+                                    <Icon name="external-link" size={12} />
+                                </Link>
+                            }
+                            hideBottomBorder={shouldHideBorder('txId')}
+                        />
+                    )}
+
+                    {rowVisibilityConfig.cancelled && (
                         <>
                             {transaction.cancelledDate && (
                                 <PaymentInfoRow
                                     label="Cancelled"
                                     value={formatDate(transaction.cancelledDate as Date)}
+                                    hideBottomBorder={shouldHideBorder('cancelled')}
                                 />
                             )}
                         </>
                     )}
 
-                    {transaction.status === 'completed' && transaction.claimedAt && (
+                    {rowVisibilityConfig.claimed && (
                         <>
                             {transaction.claimedAt && (
-                                <PaymentInfoRow label="Claimed" value={formatDate(new Date(transaction.claimedAt))} />
+                                <PaymentInfoRow
+                                    label="Claimed"
+                                    value={formatDate(new Date(transaction.claimedAt))}
+                                    hideBottomBorder={shouldHideBorder('claimed')}
+                                />
                             )}
                         </>
                     )}
 
-                    {transaction.status === 'completed' && transaction.completedAt && (
+                    {rowVisibilityConfig.completed && (
                         <>
                             <PaymentInfoRow
                                 label={getLabelText(transaction)}
-                                value={formatDate(new Date(transaction.completedAt))}
+                                value={formatDate(new Date(transaction.completedAt!))}
+                                hideBottomBorder={shouldHideBorder('completed')}
                             />
                         </>
                     )}
 
-                    {transaction.fee !== undefined && (
-                        <PaymentInfoRow
-                            label="Fee"
-                            value={feeDisplay}
-                            hideBottomBorder={
-                                !transaction.memo &&
-                                !transaction.attachmentUrl &&
-                                !(
-                                    transaction.direction === 'bank_deposit' &&
-                                    transaction.status === 'completed' &&
-                                    transaction.currency?.code &&
-                                    transaction.currency.code.toUpperCase() !== 'USD'
-                                )
-                            }
-                        />
+                    {rowVisibilityConfig.fee && (
+                        <PaymentInfoRow label="Fee" value={feeDisplay} hideBottomBorder={shouldHideBorder('fee')} />
                     )}
 
                     {/* Exchange rate and original currency for completed bank_deposit transactions */}
-                    {transaction.direction === 'bank_deposit' &&
-                        transaction.status === 'completed' &&
-                        transaction.currency?.code &&
-                        transaction.currency.code.toUpperCase() !== 'USD' && (
-                            <>
+                    {rowVisibilityConfig.exchangeRate && (
+                        <>
+                            <PaymentInfoRow
+                                label="Original amount"
+                                value={(() => {
+                                    const currencyAmount = transaction.currency?.amount || transaction.amount.toString()
+                                    const currencySymbol = getDisplayCurrencySymbol(transaction.currency!.code)
+                                    return `${currencySymbol} ${formatAmount(Number(currencyAmount))}`
+                                })()}
+                                hideBottomBorder={false}
+                            />
+                            {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                                 <PaymentInfoRow
-                                    label="Original amount"
-                                    value={(() => {
-                                        const currencyAmount =
-                                            transaction.currency?.amount || transaction.amount.toString()
-                                        const currencySymbol = getDisplayCurrencySymbol(transaction.currency.code)
-                                        return `${currencySymbol} ${formatAmount(Number(currencyAmount))}`
-                                    })()}
-                                    hideBottomBorder={false}
+                                    label="Exchange rate"
+                                    value={`1 ${transaction.currency!.code?.toUpperCase()} = $${formatAmount(Number(transaction.extraDataForDrawer.receipt.exchange_rate))}`}
+                                    hideBottomBorder={shouldHideBorder('exchangeRate')}
                                 />
-                                {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
-                                    <PaymentInfoRow
-                                        label="Exchange rate"
-                                        value={`1 ${transaction.currency.code?.toUpperCase()} = $${formatAmount(Number(transaction.extraDataForDrawer.receipt.exchange_rate))}`}
-                                        hideBottomBorder={false}
-                                    />
-                                )}
-                            </>
-                        )}
+                            )}
+                        </>
+                    )}
 
-                    {transaction.bankAccountDetails && transaction.bankAccountDetails.identifier && (
+                    {rowVisibilityConfig.bankAccountDetails && transaction.bankAccountDetails && (
                         <PaymentInfoRow
-                            label={getBankAccountLabel(transaction.bankAccountDetails.type)}
+                            label={getBankAccountLabel(transaction.bankAccountDetails!.type)}
                             value={
                                 <div className="flex items-center gap-2">
                                     <span>
@@ -385,233 +406,225 @@ export const TransactionDetailsReceipt = ({
                                     )}
                                 </div>
                             }
-                            hideBottomBorder={
-                                !(
-                                    transaction.id &&
-                                    (transaction.direction === 'bank_withdraw' ||
-                                        transaction.direction === 'bank_claim')
-                                ) &&
-                                !(transaction.direction === 'bank_deposit' && transaction.status === 'pending') &&
-                                !transaction.memo &&
-                                !transaction.attachmentUrl &&
-                                !transaction.networkFeeDetails &&
-                                transaction.status === 'pending'
-                            }
+                            hideBottomBorder={shouldHideBorder('bankAccountDetails')}
                         />
                     )}
-                    {transaction.id &&
-                        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') && (
-                            <PaymentInfoRow
-                                label="Transfer ID"
-                                value={
-                                    <div className="flex items-center gap-2">
-                                        <span>{shortenAddress(transaction.id.toUpperCase(), 20)}</span>
-                                        <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
-                                    </div>
-                                }
-                                hideBottomBorder={
-                                    !transaction.status ||
-                                    (!transaction.memo &&
-                                        !transaction.attachmentUrl &&
-                                        !transaction.networkFeeDetails &&
-                                        transaction.status === 'pending')
-                                }
-                            />
-                        )}
+                    {rowVisibilityConfig.transferId && (
+                        <PaymentInfoRow
+                            label="Transfer ID"
+                            value={
+                                <div className="flex items-center gap-2">
+                                    <span>{shortenAddress(transaction.id.toUpperCase(), 20)}</span>
+                                    <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
+                                </div>
+                            }
+                            hideBottomBorder={shouldHideBorder('transferId')}
+                        />
+                    )}
 
                     {/* Onramp deposit instructions for bridge_onramp transactions */}
-                    {(transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_ONRAMP ||
-                        (isPendingBankRequest &&
-                            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER)) &&
-                        transaction.status === 'pending' &&
-                        transaction.extraDataForDrawer?.depositInstructions &&
-                        transaction.extraDataForDrawer.depositInstructions.bank_name && (
-                            <>
-                                <PaymentInfoRow
-                                    label={
-                                        <div className="flex items-center gap-1">
-                                            <span>Deposit Message</span>
-                                            <MoreInfo text="Make sure you enter this exact message as the transfer concept or description. If it's not included, the deposit can't be processed." />
-                                        </div>
-                                    }
-                                    value={
-                                        <div className="flex items-center gap-2">
-                                            <span>
-                                                {transaction.extraDataForDrawer.depositInstructions.deposit_message}
-                                            </span>
-                                            <CopyToClipboard
-                                                textToCopy={
-                                                    transaction.extraDataForDrawer.depositInstructions.deposit_message
+                    {rowVisibilityConfig.depositInstructions && transaction.extraDataForDrawer?.depositInstructions && (
+                        <>
+                            <PaymentInfoRow
+                                label={
+                                    <div className="flex items-center gap-1">
+                                        <span>Deposit Message</span>
+                                        <MoreInfo text="Make sure you enter this exact message as the transfer concept or description. If it's not included, the deposit can't be processed." />
+                                    </div>
+                                }
+                                value={
+                                    <div className="flex items-center gap-2">
+                                        <span>
+                                            {transaction.extraDataForDrawer.depositInstructions.deposit_message}
+                                        </span>
+                                        <CopyToClipboard
+                                            textToCopy={
+                                                transaction.extraDataForDrawer.depositInstructions.deposit_message
+                                            }
+                                            iconSize="4"
+                                        />
+                                    </div>
+                                }
+                                hideBottomBorder={shouldHideBorder('depositInstructions')}
+                            />
+
+                            {/* Toggle button for bank details */}
+                            <div className="border-grey-11 border-b pb-3">
+                                <button
+                                    onClick={() => setShowBankDetails(!showBankDetails)}
+                                    className="flex w-full items-center justify-between py-3 text-left text-sm font-medium text-black underline transition-colors"
+                                >
+                                    <span>{showBankDetails ? 'Hide bank details' : 'See bank details'}</span>
+                                    <Icon
+                                        name="chevron-up"
+                                        className={`h-4 w-4 transition-transform ${!showBankDetails ? 'rotate-180' : ''}`}
+                                    />
+                                </button>
+                            </div>
+
+                            {/* Collapsible bank details */}
+                            {showBankDetails && (
+                                <>
+                                    <PaymentInfoRow
+                                        label="Bank Name"
+                                        value={
+                                            <div className="flex items-center gap-2">
+                                                <span>
+                                                    {transaction.extraDataForDrawer.depositInstructions.bank_name}
+                                                </span>
+                                                <CopyToClipboard
+                                                    textToCopy={
+                                                        transaction.extraDataForDrawer.depositInstructions.bank_name
+                                                    }
+                                                    iconSize="4"
+                                                />
+                                            </div>
+                                        }
+                                        hideBottomBorder={false}
+                                    />
+                                    <PaymentInfoRow
+                                        label="Bank Address"
+                                        value={
+                                            <div className="flex items-center gap-2">
+                                                <span>
+                                                    {transaction.extraDataForDrawer.depositInstructions.bank_address}
+                                                </span>
+                                                <CopyToClipboard
+                                                    textToCopy={
+                                                        transaction.extraDataForDrawer.depositInstructions.bank_address
+                                                    }
+                                                    iconSize="4"
+                                                />
+                                            </div>
+                                        }
+                                        hideBottomBorder={false}
+                                    />
+
+                                    {/* European format (IBAN/BIC) */}
+                                    {transaction.extraDataForDrawer.depositInstructions.iban &&
+                                    transaction.extraDataForDrawer.depositInstructions.bic ? (
+                                        <>
+                                            <PaymentInfoRow
+                                                label="IBAN"
+                                                value={
+                                                    <div className="flex items-center gap-2">
+                                                        <span>
+                                                            {formatIban(
+                                                                transaction.extraDataForDrawer.depositInstructions.iban
+                                                            )}
+                                                        </span>
+                                                        <CopyToClipboard
+                                                            textToCopy={formatIban(
+                                                                transaction.extraDataForDrawer.depositInstructions.iban
+                                                            )}
+                                                            iconSize="4"
+                                                        />
+                                                    </div>
                                                 }
-                                                iconSize="4"
+                                                hideBottomBorder={false}
                                             />
-                                        </div>
-                                    }
-                                    hideBottomBorder={false}
-                                />
-
-                                {/* Toggle button for bank details */}
-                                <div className="border-grey-11 border-b pb-3">
-                                    <button
-                                        onClick={() => setShowBankDetails(!showBankDetails)}
-                                        className="flex w-full items-center justify-between py-3 text-left text-sm font-medium text-black underline transition-colors"
-                                    >
-                                        <span>{showBankDetails ? 'Hide bank details' : 'See bank details'}</span>
-                                        <Icon
-                                            name="chevron-up"
-                                            className={`h-4 w-4 transition-transform ${!showBankDetails ? 'rotate-180' : ''}`}
-                                        />
-                                    </button>
-                                </div>
-
-                                {/* Collapsible bank details */}
-                                {showBankDetails && (
-                                    <>
-                                        <PaymentInfoRow
-                                            label="Bank Name"
-                                            value={
-                                                <div className="flex items-center gap-2">
-                                                    <span>
-                                                        {transaction.extraDataForDrawer.depositInstructions.bank_name}
-                                                    </span>
-                                                    <CopyToClipboard
-                                                        textToCopy={
-                                                            transaction.extraDataForDrawer.depositInstructions.bank_name
-                                                        }
-                                                        iconSize="4"
-                                                    />
-                                                </div>
-                                            }
-                                            hideBottomBorder={false}
-                                        />
-                                        <PaymentInfoRow
-                                            label="Bank Address"
-                                            value={
-                                                <div className="flex items-center gap-2">
-                                                    <span>
-                                                        {
-                                                            transaction.extraDataForDrawer.depositInstructions
-                                                                .bank_address
-                                                        }
-                                                    </span>
-                                                    <CopyToClipboard
-                                                        textToCopy={
-                                                            transaction.extraDataForDrawer.depositInstructions
-                                                                .bank_address
-                                                        }
-                                                        iconSize="4"
-                                                    />
-                                                </div>
-                                            }
-                                            hideBottomBorder={false}
-                                        />
-
-                                        {/* European format (IBAN/BIC) */}
-                                        {transaction.extraDataForDrawer.depositInstructions.iban &&
-                                        transaction.extraDataForDrawer.depositInstructions.bic ? (
-                                            <>
+                                            <PaymentInfoRow
+                                                label="BIC"
+                                                value={
+                                                    <div className="flex items-center gap-2">
+                                                        <span>
+                                                            {transaction.extraDataForDrawer.depositInstructions.bic}
+                                                        </span>
+                                                        <CopyToClipboard
+                                                            textToCopy={
+                                                                transaction.extraDataForDrawer.depositInstructions.bic
+                                                            }
+                                                            iconSize="4"
+                                                        />
+                                                    </div>
+                                                }
+                                                hideBottomBorder={false}
+                                            />
+                                            {transaction.extraDataForDrawer.depositInstructions.account_holder_name && (
                                                 <PaymentInfoRow
-                                                    label="IBAN"
-                                                    value={
-                                                        <div className="flex items-center gap-2">
-                                                            <span>
-                                                                {formatIban(
-                                                                    transaction.extraDataForDrawer.depositInstructions
-                                                                        .iban
-                                                                )}
-                                                            </span>
-                                                            <CopyToClipboard
-                                                                textToCopy={formatIban(
-                                                                    transaction.extraDataForDrawer.depositInstructions
-                                                                        .iban
-                                                                )}
-                                                                iconSize="4"
-                                                            />
-                                                        </div>
-                                                    }
-                                                    hideBottomBorder={false}
-                                                />
-                                                <PaymentInfoRow
-                                                    label="BIC"
-                                                    value={
-                                                        <div className="flex items-center gap-2">
-                                                            <span>
-                                                                {transaction.extraDataForDrawer.depositInstructions.bic}
-                                                            </span>
-                                                            <CopyToClipboard
-                                                                textToCopy={
-                                                                    transaction.extraDataForDrawer.depositInstructions
-                                                                        .bic
-                                                                }
-                                                                iconSize="4"
-                                                            />
-                                                        </div>
-                                                    }
-                                                    hideBottomBorder={false}
-                                                />
-                                                {transaction.extraDataForDrawer.depositInstructions
-                                                    .account_holder_name && (
-                                                    <PaymentInfoRow
-                                                        label="Account Holder Name"
-                                                        value={
-                                                            <div className="flex items-center gap-2">
-                                                                <span>
-                                                                    {
-                                                                        transaction.extraDataForDrawer
-                                                                            .depositInstructions.account_holder_name
-                                                                    }
-                                                                </span>
-                                                                <CopyToClipboard
-                                                                    textToCopy={
-                                                                        transaction.extraDataForDrawer
-                                                                            .depositInstructions.account_holder_name
-                                                                    }
-                                                                    iconSize="4"
-                                                                />
-                                                            </div>
-                                                        }
-                                                        hideBottomBorder={true}
-                                                    />
-                                                )}
-                                            </>
-                                        ) : (
-                                            /* US format (Account Number/Routing Number) */
-                                            <>
-                                                <PaymentInfoRow
-                                                    label="Account Number"
+                                                    label="Account Holder Name"
                                                     value={
                                                         <div className="flex items-center gap-2">
                                                             <span>
                                                                 {
                                                                     transaction.extraDataForDrawer.depositInstructions
-                                                                        .bank_account_number
+                                                                        .account_holder_name
                                                                 }
                                                             </span>
                                                             <CopyToClipboard
                                                                 textToCopy={
                                                                     transaction.extraDataForDrawer.depositInstructions
-                                                                        .bank_account_number!
+                                                                        .account_holder_name
                                                                 }
                                                                 iconSize="4"
                                                             />
                                                         </div>
                                                     }
-                                                    hideBottomBorder={false}
+                                                    hideBottomBorder={true}
                                                 />
+                                            )}
+                                        </>
+                                    ) : (
+                                        /* US format (Account Number/Routing Number) */
+                                        <>
+                                            <PaymentInfoRow
+                                                label="Account Number"
+                                                value={
+                                                    <div className="flex items-center gap-2">
+                                                        <span>
+                                                            {
+                                                                transaction.extraDataForDrawer.depositInstructions
+                                                                    .bank_account_number
+                                                            }
+                                                        </span>
+                                                        <CopyToClipboard
+                                                            textToCopy={
+                                                                transaction.extraDataForDrawer.depositInstructions
+                                                                    .bank_account_number!
+                                                            }
+                                                            iconSize="4"
+                                                        />
+                                                    </div>
+                                                }
+                                                hideBottomBorder={false}
+                                            />
+                                            <PaymentInfoRow
+                                                label="Routing Number"
+                                                value={
+                                                    <div className="flex items-center gap-2">
+                                                        <span>
+                                                            {
+                                                                transaction.extraDataForDrawer.depositInstructions
+                                                                    .bank_routing_number
+                                                            }
+                                                        </span>
+                                                        <CopyToClipboard
+                                                            textToCopy={
+                                                                transaction.extraDataForDrawer.depositInstructions
+                                                                    .bank_routing_number!
+                                                            }
+                                                            iconSize="4"
+                                                        />
+                                                    </div>
+                                                }
+                                                hideBottomBorder={false}
+                                            />
+                                            {transaction.extraDataForDrawer.depositInstructions
+                                                .bank_beneficiary_name && (
                                                 <PaymentInfoRow
-                                                    label="Routing Number"
+                                                    label="Beneficiary Name"
                                                     value={
                                                         <div className="flex items-center gap-2">
                                                             <span>
                                                                 {
                                                                     transaction.extraDataForDrawer.depositInstructions
-                                                                        .bank_routing_number
+                                                                        .bank_beneficiary_name
                                                                 }
                                                             </span>
                                                             <CopyToClipboard
                                                                 textToCopy={
                                                                     transaction.extraDataForDrawer.depositInstructions
-                                                                        .bank_routing_number!
+                                                                        .bank_beneficiary_name
                                                                 }
                                                                 iconSize="4"
                                                             />
@@ -619,90 +632,63 @@ export const TransactionDetailsReceipt = ({
                                                     }
                                                     hideBottomBorder={false}
                                                 />
-                                                {transaction.extraDataForDrawer.depositInstructions
-                                                    .bank_beneficiary_name && (
-                                                    <PaymentInfoRow
-                                                        label="Beneficiary Name"
-                                                        value={
-                                                            <div className="flex items-center gap-2">
-                                                                <span>
-                                                                    {
-                                                                        transaction.extraDataForDrawer
-                                                                            .depositInstructions.bank_beneficiary_name
-                                                                    }
-                                                                </span>
-                                                                <CopyToClipboard
-                                                                    textToCopy={
-                                                                        transaction.extraDataForDrawer
-                                                                            .depositInstructions.bank_beneficiary_name
-                                                                    }
-                                                                    iconSize="4"
-                                                                />
-                                                            </div>
-                                                        }
-                                                        hideBottomBorder={false}
-                                                    />
-                                                )}
-                                                {transaction.extraDataForDrawer.depositInstructions
-                                                    .bank_beneficiary_address && (
-                                                    <PaymentInfoRow
-                                                        label="Beneficiary Address"
-                                                        value={
-                                                            <div className="flex items-center gap-2">
-                                                                <span>
-                                                                    {
-                                                                        transaction.extraDataForDrawer
-                                                                            .depositInstructions
-                                                                            .bank_beneficiary_address
-                                                                    }
-                                                                </span>
-                                                                <CopyToClipboard
-                                                                    textToCopy={
-                                                                        transaction.extraDataForDrawer
-                                                                            .depositInstructions
-                                                                            .bank_beneficiary_address
-                                                                    }
-                                                                    iconSize="4"
-                                                                />
-                                                            </div>
-                                                        }
-                                                        hideBottomBorder={true}
-                                                    />
-                                                )}
-                                            </>
-                                        )}
-                                    </>
-                                )}
-                            </>
-                        )}
+                                            )}
+                                            {transaction.extraDataForDrawer.depositInstructions
+                                                .bank_beneficiary_address && (
+                                                <PaymentInfoRow
+                                                    label="Beneficiary Address"
+                                                    value={
+                                                        <div className="flex items-center gap-2">
+                                                            <span>
+                                                                {
+                                                                    transaction.extraDataForDrawer.depositInstructions
+                                                                        .bank_beneficiary_address
+                                                                }
+                                                            </span>
+                                                            <CopyToClipboard
+                                                                textToCopy={
+                                                                    transaction.extraDataForDrawer.depositInstructions
+                                                                        .bank_beneficiary_address
+                                                                }
+                                                                iconSize="4"
+                                                            />
+                                                        </div>
+                                                    }
+                                                    hideBottomBorder={true}
+                                                />
+                                            )}
+                                        </>
+                                    )}
+                                </>
+                            )}
+                        </>
+                    )}
 
-                    {transaction.status !== 'pending' && (
+                    {rowVisibilityConfig.peanutFee && (
                         <PaymentInfoRow
                             label="Peanut fee"
                             value={'$ 0'}
-                            hideBottomBorder={
-                                !transaction.memo && !transaction.attachmentUrl && !transaction.networkFeeDetails
-                            }
+                            hideBottomBorder={shouldHideBorder('peanutFee')}
                         />
                     )}
-                    {transaction.memo?.trim() && (
+                    {rowVisibilityConfig.comment && (
                         <PaymentInfoRow
                             label="Comment"
                             value={transaction.memo}
-                            hideBottomBorder={!transaction.attachmentUrl && !transaction.networkFeeDetails}
+                            hideBottomBorder={shouldHideBorder('comment')}
                         />
                     )}
 
-                    {transaction.networkFeeDetails && transaction.sourceView === 'status' && (
+                    {rowVisibilityConfig.networkFee && (
                         <PaymentInfoRow
                             label="Network fee"
-                            value={transaction.networkFeeDetails.amountDisplay}
-                            moreInfoText={transaction.networkFeeDetails.moreInfoText}
-                            hideBottomBorder={!transaction.attachmentUrl}
+                            value={transaction.networkFeeDetails!.amountDisplay}
+                            moreInfoText={transaction.networkFeeDetails!.moreInfoText}
+                            hideBottomBorder={shouldHideBorder('networkFee')}
                         />
                     )}
 
-                    {transaction.attachmentUrl && (
+                    {rowVisibilityConfig.attachment && transaction.attachmentUrl && (
                         <PaymentInfoRow
                             label="Attachment"
                             value={
