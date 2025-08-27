@@ -26,7 +26,7 @@
         "@chakra-ui/react": "^2.10.4",
         "@chakra-ui/react-context": "^2.1.0",
         "@chakra-ui/shared-utils": "^2.0.4",
-        "@daimo/pay": "^1.15.0",
+        "@daimo/pay": "^1.16.5",
         "@dicebear/collection": "^9.2.2",
         "@dicebear/core": "^9.2.2",
         "@headlessui/react": "^1.7.19",
