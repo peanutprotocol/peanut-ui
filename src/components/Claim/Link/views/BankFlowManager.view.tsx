@@ -315,7 +315,23 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     throw new Error('Failed to create external account')
                 }
 
-                const finalBankDetails = { ...rawData, ...(externalAccountResponse as object) }
+                // merge the external account details with the user's details
+                const finalBankDetails = {
+                    name: externalAccountResponse.bank_name ?? rawData.name,
+                    firstName: externalAccountResponse.first_name ?? rawData.firstName,
+                    lastName: externalAccountResponse.last_name ?? rawData.lastName,
+                    email: rawData.email,
+                    accountNumber: externalAccountResponse.account_number ?? rawData.accountNumber,
+                    bic: externalAccountResponse?.iban?.bic ?? rawData.bic,
+                    routingNumber: externalAccountResponse?.account?.routing_number ?? rawData.routingNumber,
+                    clabe: externalAccountResponse?.clabe?.account_number ?? rawData.clabe,
+                    street: externalAccountResponse?.address?.street_line_1 ?? rawData.street,
+                    city: externalAccountResponse?.address?.city ?? rawData.city,
+                    state: externalAccountResponse?.address?.state ?? rawData.state,
+                    postalCode: externalAccountResponse?.address?.postal_code ?? rawData.postalCode,
+                    iban: externalAccountResponse?.iban?.account_number ?? rawData.iban,
+                    country: externalAccountResponse?.iban?.country ?? rawData.country,
+                }
                 setLocalBankDetails(finalBankDetails)
                 setBankDetails(finalBankDetails)
                 setReceiverFullName(payload.accountOwnerName.firstName + ' ' + payload.accountOwnerName.lastName)

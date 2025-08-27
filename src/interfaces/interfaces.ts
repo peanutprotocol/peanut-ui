@@ -182,82 +182,39 @@ interface KYCResponse {
 export interface IBridgeAccount {
     id: string
     customer_id: string
-    created_at: string
-    updated_at: string
-    bank_name: string | null
-    account_name: string | null
+    last_4: string
+    currency?: 'usd' | 'eur' | 'mxn'
+    bank_name?: string
     account_owner_name: string
-    active: boolean
-    currency: string
-    account_owner_type: string | null
-    account_type: 'iban' | 'us'
-    first_name: string | null
-    last_name: string | null
-    business_name: string | null
-    beneficiary_address_valid?: boolean // Optional, only present in US account
-    last_4: string
-
-    // Use a union type for the account-specific details
-    account_details: IBridgeIbanDetails | IBridgeUsAccountDetails
-}
-
-export interface IBridgeIbanDetails {
-    type: 'iban'
-    last_4: string
-    bic: string
-    country: string
-}
-
-interface IBridgeUsAccountDetails {
-    type: 'us'
-    last_4: string
-    routing_number: string
-}
-
-interface IBridgeDepositInstructions {
-    payment_rail: string
-    amount: string
-    currency: string
-    from_address: string
-    to_address: string
-}
-
-interface IBridgeSource {
-    payment_rail: string
-    currency: string
-    from_address: string
-}
-
-interface IBridgeDestination {
-    payment_rail: string
-    currency: string
-    external_account_id: string
-}
-
-interface IBridgeReceipt {
-    initial_amount: string
-    developer_fee: string
-    exchange_fee: string
-    subtotal_amount: string
-    gas_fee: string
-    final_amount: string
-    exchange_rate?: string
-}
-
-interface IBridgeTransaction {
-    id: string
-    client_reference_id: string | null
-    state: string
-    on_behalf_of: string
-    source_deposit_instructions: IBridgeDepositInstructions
-    currency: string
-    amount: string
-    developer_fee: string
-    source: IBridgeSource
-    destination: IBridgeDestination
-    receipt: IBridgeReceipt
-    created_at: string
-    updated_at: string
+    account_number?: string
+    routing_number?: string
+    account_type: 'iban' | 'us' | 'clabe'
+    iban?: {
+        account_number: string
+        bic?: string
+        country: string
+    }
+    clabe?: {
+        account_number: string
+    }
+    account?: {
+        account_number: string
+        routing_number: string
+        checking_or_savings?: string
+    }
+    account_owner_type: 'individual' | 'business'
+    first_name?: string
+    last_name?: string
+    business_name?: string
+    address?: {
+        street_line_1: string
+        street_line_2?: string
+        city: string
+        country: string
+        state?: string
+        postal_code?: string
+    }
+    beneficiary_address_valid: boolean
 }
 
 export interface IBridgeLiquidationAddress {
