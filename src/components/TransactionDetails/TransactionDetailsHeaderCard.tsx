@@ -22,6 +22,7 @@ export type TransactionDirection =
     | 'bank_claim'
     | 'bank_deposit'
     | 'bank_request_fulfillment'
+    | 'claim_external'
 
 interface TransactionDetailsHeaderCardProps {
     direction: TransactionDirection
@@ -100,6 +101,15 @@ const getTitle = (
             case 'bank_deposit':
                 titleText = `${status === 'completed' ? 'Added' : 'Adding'} from ${displayName}`
                 break
+            case 'claim_external':
+                if (status === 'completed') {
+                    titleText = `Claimed to ${displayName}`
+                } else if (status === 'failed') {
+                    titleText = `Claim to ${displayName}`
+                } else {
+                    titleText = `Claiming to ${displayName}`
+                }
+                break
             default:
                 titleText = displayName
                 break
@@ -124,6 +134,7 @@ const getIcon = (direction: TransactionDirection, isLinkTransaction?: boolean): 
             return 'arrow-down-left'
         case 'withdraw':
         case 'bank_claim':
+        case 'claim_external':
             return 'arrow-up'
         case 'add':
         case 'bank_deposit':

@@ -6,13 +6,14 @@ import { TransactionDirection } from '@/components/TransactionDetails/Transactio
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { formatNumberForDisplay } from '@/utils'
+import { formatNumberForDisplay, printableAddress } from '@/utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import React from 'react'
 import { STABLE_COINS } from '@/constants'
 import Image from 'next/image'
 import StatusPill, { StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
+import { isAddress } from 'viem'
 
 export type TransactionType =
     | 'send'
@@ -24,6 +25,7 @@ export type TransactionType =
     | 'bank_withdraw'
     | 'bank_deposit'
     | 'bank_request_fulfillment'
+    | 'claim_external'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -174,11 +176,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
                                 <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                     <VerifiedUserLabel
-                                        name={name}
+                                        name={isAddress(name) ? printableAddress(name) : name}
                                         isVerified={transaction.isVerified}
                                         haveSentMoneyToUser={haveSentMoneyToUser}
                                     />
-                                    {/* <AddressLink address={name} isLink={false} /> */}
                                 </div>
                             </div>
                             {/* display the action icon and type text */}
@@ -229,6 +230,7 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
         case 'withdraw':
         case 'bank_withdraw':
         case 'cashout':
+        case 'claim_external':
             iconName = 'arrow-up'
             iconSize = 8
             break
@@ -251,6 +253,9 @@ function getActionText(type: TransactionType): string {
     switch (type) {
         case 'bank_withdraw':
             actionText = 'Withdraw'
+            break
+        case 'claim_external':
+            actionText = 'Claim'
             break
         case 'bank_deposit':
             actionText = 'Add'
