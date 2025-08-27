@@ -15,9 +15,9 @@ import * as Sentry from '@sentry/nextjs'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { SiweMessage } from 'siwe'
 import type { Address, TransactionReceipt } from 'viem'
-import { getAddress, isAddress } from 'viem'
+import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
-import { getSDKProvider } from './sdk.utils'
+import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
 
 export function urlBase64ToUint8Array(base64String: string) {
@@ -1056,16 +1056,13 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
     let tokenSymbol = getTokenSymbol(tokenAddress, chainId)
     if (!tokenSymbol) {
         try {
-            const provider = await getSDKProvider({ chainId })
-            if (!provider) {
-                console.error(`Failed to get provider for chain ID ${chainId}`)
-                return undefined
-            }
-            const contract = await peanut.getTokenContractDetails({
-                address: tokenAddress,
-                provider: provider,
-            })
-            tokenSymbol = contract?.symbol?.toUpperCase()
+            const client = getPublicClient(Number(chainId) as ChainId)
+            tokenSymbol = (await client.readContract({
+                address: tokenAddress as Address,
+                abi: erc20Abi,
+                functionName: 'symbol',
+                args: [],
+            })) as string
         } catch (error) {
             Sentry.captureException(error)
             console.error('Error fetching token symbol:', error)
