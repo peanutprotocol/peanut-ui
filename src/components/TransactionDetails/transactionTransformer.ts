@@ -321,7 +321,10 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                 uiStatus = 'pending'
                 break
             case 'COMPLETED':
-                uiStatus = EHistoryEntryType.SEND_LINK === entry.type ? 'pending' : 'completed'
+                uiStatus =
+                    EHistoryEntryType.SEND_LINK === entry.type && direction !== 'claim_external'
+                        ? 'pending'
+                        : 'completed'
                 break
             case 'SUCCESSFUL':
             case 'CLAIMED':
