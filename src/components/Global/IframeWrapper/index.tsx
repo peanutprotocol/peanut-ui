@@ -81,7 +81,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 },
             ],
         }
-    }, [modalVariant, copied])
+    }, [modalVariant, copied, src, router])
 
     // Reset showCloseConfirmMessage when visibility changes or src changes
     useEffect(() => {
@@ -211,7 +211,6 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     </div>
                 </div>
             )}
-            {/* {isHelpModalOpen && ( */}
             <ActionModal
                 visible={isHelpModalOpen}
                 onClose={() => setIsHelpModalOpen(false)}
@@ -225,7 +224,6 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 preventClose={true}
                 ctas={modalDetails.ctas}
             />
-            {/* )} */}
         </Modal>
     )
 }
