@@ -14,7 +14,7 @@ import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import React, { Dispatch, SetStateAction, useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { Button } from '../0_Bruddle'
 import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
@@ -45,6 +45,8 @@ export const TransactionDetailsReceipt = ({
     contentRef,
     transactionAmount,
     className,
+    isModalOpen = false,
+    setIsModalOpen,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
@@ -53,13 +55,19 @@ export const TransactionDetailsReceipt = ({
     contentRef?: React.RefObject<HTMLDivElement>
     transactionAmount?: string // dollarized amount of the transaction
     className?: HTMLDivElement['className']
+    isModalOpen?: boolean
+    setIsModalOpen?: (isModalOpen: boolean) => void
 }) => {
     // ref for the main content area to calculate dynamic height
     const { user } = useUserStore()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const [showBankDetails, setShowBankDetails] = useState(false)
-    const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
+    const [showCancelLinkModal, setShowCancelLinkModal] = useState(isModalOpen)
+
+    useEffect(() => {
+        setIsModalOpen?.(showCancelLinkModal)
+    }, [showCancelLinkModal])
 
     const isGuestBankClaim = useMemo(() => {
         if (!transaction) return false
