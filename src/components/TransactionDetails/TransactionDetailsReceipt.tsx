@@ -26,17 +26,7 @@ import MoreInfo from '../Global/MoreInfo'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
-
-const getBankAccountLabel = (type: string) => {
-    switch (type.toLowerCase()) {
-        case 'iban':
-            return 'IBAN'
-        case 'clabe':
-            return 'CLABE'
-        default:
-            return 'Account Number'
-    }
-}
+import { getBankAccountLabel, TransactionDetailsRowKey, transactionDetailsRowKeys } from './transaction-details.utils'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -85,54 +75,68 @@ export const TransactionDetailsReceipt = ({
     }, [transaction])
 
     // config to determine which rows are visible in the receipt
-    // this helps in managing layout and borders
-    const rowVisibilityConfig = useMemo(() => {
-        if (!transaction) return {}
+    // this helps in managing layout and borders without repeating code
+    const rowVisibilityConfig = useMemo((): Record<TransactionDetailsRowKey, boolean> => {
+        if (!transaction) {
+            // if no transaction, return all false
+            return transactionDetailsRowKeys.reduce(
+                (acc, key) => {
+                    acc[key] = false
+                    return acc
+                },
+                {} as Record<TransactionDetailsRowKey, boolean>
+            )
+        }
 
+        // if transaction exists, calculate visibility for each row
         return {
             createdAt: !!transaction.createdAt,
             to: transaction.direction === 'claim_external',
-            tokenAndNetwork: transaction.tokenDisplayDetails && transaction.sourceView === 'history',
-            txId: transaction.txHash && transaction.explorerUrl,
-            cancelled: transaction.status === 'cancelled' && transaction.cancelledDate,
-            claimed: transaction.status === 'completed' && transaction.claimedAt,
-            completed:
+            tokenAndNetwork: !!(transaction.tokenDisplayDetails && transaction.sourceView === 'history'),
+            txId: !!transaction.txHash,
+            cancelled: !!(transaction.status === 'cancelled' && transaction.cancelledDate),
+            claimed: !!(transaction.status === 'completed' && transaction.claimedAt),
+            completed: !!(
                 transaction.status === 'completed' &&
                 transaction.completedAt &&
-                transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND,
+                transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
+            ),
             fee: transaction.fee !== undefined,
-            exchangeRate:
+            exchangeRate: !!(
                 transaction.direction === 'bank_deposit' &&
                 transaction.status === 'completed' &&
                 transaction.currency?.code &&
-                transaction.currency.code.toUpperCase() !== 'USD',
-            bankAccountDetails: transaction.bankAccountDetails && transaction.bankAccountDetails.identifier,
-            transferId:
-                transaction.id && (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim'),
-            depositInstructions:
+                transaction.currency.code.toUpperCase() !== 'USD'
+            ),
+            bankAccountDetails: !!(transaction.bankAccountDetails && transaction.bankAccountDetails.identifier),
+            transferId: !!(
+                transaction.id &&
+                (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim')
+            ),
+            depositInstructions: !!(
                 (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_ONRAMP ||
                     (isPendingBankRequest &&
                         transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER)) &&
                 transaction.status === 'pending' &&
                 transaction.extraDataForDrawer?.depositInstructions &&
-                transaction.extraDataForDrawer.depositInstructions.bank_name,
+                transaction.extraDataForDrawer.depositInstructions.bank_name
+            ),
             peanutFee: transaction.status !== 'pending',
             comment: !!transaction.memo?.trim(),
-            networkFee: transaction.networkFeeDetails && transaction.sourceView === 'status',
+            networkFee: !!(transaction.networkFeeDetails && transaction.sourceView === 'status'),
             attachment: !!transaction.attachmentUrl,
         }
     }, [transaction, isPendingBankRequest])
 
     const visibleRows = useMemo(() => {
-        return Object.keys(rowVisibilityConfig).filter(
-            (key) => rowVisibilityConfig[key as keyof typeof rowVisibilityConfig]
-        )
+        // filter rowkeys to only include visible rows, maintaining the order
+        return transactionDetailsRowKeys.filter((key) => rowVisibilityConfig[key])
     }, [rowVisibilityConfig])
 
     // helper to hide border for the last visible row
-    const shouldHideBorder = (rowKey: string) => {
-        const currentIndex = visibleRows.indexOf(rowKey)
-        return currentIndex === visibleRows.length - 1
+    const shouldHideBorder = (rowKey: TransactionDetailsRowKey) => {
+        const lastVisibleRow = visibleRows[visibleRows.length - 1]
+        return rowKey === lastVisibleRow
     }
 
     const isPendingRequestee = useMemo(() => {
@@ -314,15 +318,22 @@ export const TransactionDetailsReceipt = ({
                         <PaymentInfoRow
                             label="TX ID"
                             value={
-                                <Link
-                                    href={transaction.explorerUrl!}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="flex items-center gap-2 hover:underline"
-                                >
-                                    <span>{shortenAddressLong(transaction.txHash)}</span>
-                                    <Icon name="external-link" size={12} />
-                                </Link>
+                                transaction.explorerUrl ? (
+                                    <Link
+                                        href={transaction.explorerUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 hover:underline"
+                                    >
+                                        <span>{shortenAddressLong(transaction.txHash)}</span>
+                                        <Icon name="external-link" size={12} />
+                                    </Link>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <span>{shortenAddressLong(transaction.txHash)}</span>
+                                        <CopyToClipboard textToCopy={transaction.txHash} iconSize="4" />
+                                    </div>
+                                )
                             }
                             hideBottomBorder={shouldHideBorder('txId')}
                         />
