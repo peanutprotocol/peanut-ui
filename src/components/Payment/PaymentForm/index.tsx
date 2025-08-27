@@ -701,6 +701,8 @@ export const PaymentForm = ({
             )
         }
 
+        if (flow === 'request_pay') return false
+
         // logic for non-AddMoneyFlow / non-Pinta (Pinta has its own button logic)
         if (!isPintaReq) {
             if (!isConnected) return true // if not connected at all, disable (covers guest non-Peanut scenarios)
