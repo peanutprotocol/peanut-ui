@@ -16,14 +16,7 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import BeerInput from '@/components/PintaReqPay/BeerInput'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import UserCard from '@/components/User/UserCard'
-import {
-    PEANUT_WALLET_CHAIN,
-    PEANUT_WALLET_TOKEN,
-    PEANUT_WALLET_TOKEN_DECIMALS,
-    PEANUT_WALLET_TOKEN_SYMBOL,
-    PINTA_WALLET_CHAIN,
-    PINTA_WALLET_TOKEN,
-} from '@/constants'
+import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, PINTA_WALLET_CHAIN, PINTA_WALLET_TOKEN } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
@@ -42,6 +35,7 @@ import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
+import { PaymentFlow } from '@/app/[...recipient]/client'
 
 export type PaymentFlowProps = {
     isPintaReq?: boolean
@@ -56,6 +50,7 @@ export type PaymentFlowProps = {
     currencyAmount?: string
     setCurrencyAmount?: (currencyvalue: string | undefined) => void
     headerTitle?: string
+    flow?: PaymentFlow
 }
 
 export type PaymentFormProps = ParsedURL & PaymentFlowProps
@@ -72,6 +67,7 @@ export const PaymentForm = ({
     isExternalWalletFlow,
     isDirectUsdPayment,
     headerTitle,
+    flow,
 }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -575,6 +571,8 @@ export const PaymentForm = ({
             )
         }
 
+        if (flow === 'request_pay') return false
+
         // logic for non-AddMoneyFlow / non-Pinta (Pinta has its own button logic)
         if (!isPintaReq) {
             if (!isConnected) return true // if not connected at all, disable (covers guest non-Peanut scenarios)
@@ -627,13 +625,6 @@ export const PaymentForm = ({
     const recipientDisplayName = useMemo(() => {
         return recipient ? recipient.identifier : 'Unknown Recipient'
     }, [recipient])
-
-    const isPeanutWalletUSDC = useMemo(() => {
-        return (
-            selectedTokenData?.symbol === PEANUT_WALLET_TOKEN_SYMBOL &&
-            Number(selectedChainID) === PEANUT_WALLET_CHAIN.id
-        )
-    }, [selectedTokenData, selectedChainID])
 
     const handleGoBack = () => {
         if (isExternalWalletFlow) {

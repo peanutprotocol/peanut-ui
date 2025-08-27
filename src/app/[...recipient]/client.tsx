@@ -33,9 +33,10 @@ import ActionList from '@/components/Common/ActionList'
 import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
 
+export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
     recipient: string[]
-    flow?: 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
+    flow?: PaymentFlow
 }
 
 export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) {
@@ -457,6 +458,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             {currentView === 'INITIAL' && (
                 <div className="space-y-2">
                     <InitialPaymentView
+                        flow={flow}
                         key={`initial-${flow}`}
                         {...(parsedPaymentData as ParsedURL)}
                         isExternalWalletFlow={isExternalWalletFlow}
@@ -474,11 +476,13 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                         currencyAmount={currencyAmount}
                     />
                     <div>
-                        <ActionList
-                            flow="request"
-                            requestLinkData={parsedPaymentData as ParsedURL}
-                            isLoggedIn={!!user?.user.userId}
-                        />
+                        {flow !== 'direct_pay' && (
+                            <ActionList
+                                flow="request"
+                                requestLinkData={parsedPaymentData as ParsedURL}
+                                isLoggedIn={!!user?.user.userId}
+                            />
+                        )}
                     </div>
                 </div>
             )}
