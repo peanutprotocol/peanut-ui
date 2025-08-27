@@ -43,7 +43,8 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const isDirectPay = flow === 'direct_pay'
     const isExternalWalletFlow = flow === 'external_wallet'
     const dispatch = useAppDispatch()
-    const { currentView, parsedPaymentData, chargeDetails, paymentDetails, usdAmount } = usePaymentStore()
+    const { currentView, parsedPaymentData, chargeDetails, paymentDetails, usdAmount, isDaimoPaymentProcessing } =
+        usePaymentStore()
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
     const [isRequestDetailsFetching, setIsRequestDetailsFetching] = useState(false)
@@ -391,8 +392,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         )
     }
 
-    // show loading until URL is parsed and req/charge data is loaded
-    const isLoading = !isUrlParsed || (chargeId && !chargeDetails) || isRequestDetailsFetching
+    // show loading until URL is parsed and req/charge data is loaded or daimo payment is processing
+    const isLoading =
+        !isUrlParsed || (chargeId && !chargeDetails) || isRequestDetailsFetching || isDaimoPaymentProcessing
 
     if (isLoading) {
         return (

@@ -120,7 +120,17 @@ export async function getUserById(userId: string): Promise<User | null> {
     }
 }
 
-export async function trackDaimoDepositTransactionHash(txHash: string, payerAddress: string): Promise<{ data?: any }> {
+export async function trackDaimoDepositTransactionHash({
+    txHash,
+    payerAddress,
+    sourceChainId,
+    sourceTokenAddress,
+}: {
+    txHash: string
+    payerAddress: string
+    sourceChainId: string
+    sourceTokenAddress: string
+}): Promise<{ data?: any }> {
     try {
         if (!txHash || !payerAddress) {
             throw new Error('Missing required fields: txHash and payerAddress')
@@ -135,6 +145,8 @@ export async function trackDaimoDepositTransactionHash(txHash: string, payerAddr
             body: JSON.stringify({
                 txHash,
                 payerAddress,
+                sourceChainId,
+                sourceTokenAddress,
             }),
         })
 

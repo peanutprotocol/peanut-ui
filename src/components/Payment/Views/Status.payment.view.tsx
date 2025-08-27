@@ -27,7 +27,7 @@ type DirectSuccessViewProps = {
     amount?: string
     message?: string | ReactNode
     recipientType?: RecipientType
-    type?: 'SEND' | 'REQUEST'
+    type?: 'SEND' | 'REQUEST' | 'DEPOSIT'
     headerTitle?: string
     currencyAmount?: string
     isExternalWalletFlow?: boolean
@@ -173,12 +173,13 @@ const DirectSuccessView = ({
         if (isWithdrawFlow) return 'You just withdrew'
         if (type === 'SEND') return 'You sent '
         if (type === 'REQUEST') return 'You requested '
+        if (type === 'DEPOSIT') return 'You successfully added '
     }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
-            {type === 'SEND' && (
+            {(type === 'SEND' || type === 'DEPOSIT') && (
                 <div className="md:hidden">
                     <NavHeader
                         icon="cancel"

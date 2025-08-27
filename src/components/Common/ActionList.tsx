@@ -3,9 +3,6 @@
 import { SearchResultCard } from '../SearchUsers/SearchResultCard'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import IconStack from '../Global/IconStack'
-import mercadoPagoIcon from '@/assets/payment-apps/mercado-pago.svg'
-import binanceIcon from '@/assets/exchanges/binance.svg'
-import { METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
@@ -25,42 +22,8 @@ import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
-
-export interface Method {
-    id: string
-    title: string
-    description: string
-    icons: any[]
-    soon: boolean
-}
-
-const ACTION_METHODS: Method[] = [
-    {
-        id: 'bank',
-        title: 'Bank',
-        description: 'EUR, USD, ARS (more coming soon)',
-        icons: [
-            'https://flagcdn.com/w160/ar.png',
-            'https://flagcdn.com/w160/de.png',
-            'https://flagcdn.com/w160/us.png',
-        ],
-        soon: false,
-    },
-    {
-        id: 'mercadopago',
-        title: 'Mercado Pago',
-        description: 'Instant transfers',
-        icons: [mercadoPagoIcon],
-        soon: true,
-    },
-    {
-        id: 'exchange-or-wallet',
-        title: 'Exchange or Wallet',
-        description: 'Binance, Coinbase, Metamask and more',
-        icons: [binanceIcon, TRUST_WALLET_SMALL_LOGO, METAMASK_LOGO],
-        soon: false,
-    },
-]
+import ActionListDaimoPayButton from './ActionListDaimoPayButton'
+import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -94,7 +57,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
 
-    const handleMethodClick = async (method: Method) => {
+    const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
             const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
             if (method.id === 'bank' && amountInUsd < 1) {
@@ -122,7 +85,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     break
             }
         } else if (flow === 'request' && requestLinkData) {
-            const amountInUsd = parseFloat(usdAmount ?? '0')
+            const amountInUsd = usdAmount ? parseFloat(usdAmount) : 0
             if (method.id === 'bank' && amountInUsd < 1) {
                 setShowMinAmountError(true)
                 return
@@ -179,12 +142,11 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
             )}
             <Divider text="or" />
             <div className="space-y-2">
-                {ACTION_METHODS.filter((method) => {
-                    if (flow === 'request') {
-                        return method.id !== 'exchange-or-wallet'
+                {ACTION_METHODS.map((method) => {
+                    if (flow === 'request' && method.id === 'exchange-or-wallet') {
+                        return <ActionListDaimoPayButton key={method.id} />
                     }
-                    return true
-                }).map((method) => {
+
                     return (
                         <MethodCard
                             onClick={() => handleMethodClick(method)}
@@ -221,7 +183,7 @@ export const MethodCard = ({
     onClick,
     requiresVerification,
 }: {
-    method: Method
+    method: PaymentMethod
     onClick: () => void
     requiresVerification?: boolean
 }) => {

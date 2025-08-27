@@ -24,7 +24,12 @@ export default function AddMoneyCryptoDirectPage() {
 
         // Save deposit txn hash in the backend to track the user's deposit
         try {
-            await trackDaimoDepositTransactionHash(e.txHash, e.payment.source.payerAddress)
+            await trackDaimoDepositTransactionHash({
+                txHash: e.txHash,
+                payerAddress: e.payment.source.payerAddress,
+                sourceChainId: e.payment.source.chainId,
+                sourceTokenAddress: e.payment.source.tokenAddress,
+            })
         } catch (error) {
             console.error('Error updating depositor address:', error)
         } finally {
@@ -40,9 +45,9 @@ export default function AddMoneyCryptoDirectPage() {
     if (isPaymentSuccess) {
         return (
             <DirectSuccessView
-                key={`success-add-money}`}
+                key={`success-add-money`}
                 headerTitle={'Add Money'}
-                type="SEND"
+                type="DEPOSIT"
                 currencyAmount={`$${inputTokenAmount}`}
                 isWithdrawFlow={false}
                 redirectTo={'/add-money'}
