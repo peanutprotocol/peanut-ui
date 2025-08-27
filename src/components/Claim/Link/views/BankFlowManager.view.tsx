@@ -246,12 +246,16 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         name: addBankAccountResponse.data.details.accountOwnerName || user?.user.fullName || '',
                         iban:
                             addBankAccountResponse.data.type === 'iban'
-                                ? addBankAccountResponse.data.identifier
-                                : undefined,
+                                ? addBankAccountResponse.data.identifier || ''
+                                : '',
                         clabe:
-                            addBankAccountResponse.data.type === 'clabe' ? addBankAccountResponse.data.identifier : '',
+                            addBankAccountResponse.data.type === 'clabe'
+                                ? addBankAccountResponse.data.identifier || ''
+                                : '',
                         accountNumber:
-                            addBankAccountResponse.data.type === 'us' ? addBankAccountResponse.data.identifier : '',
+                            addBankAccountResponse.data.type === 'us'
+                                ? addBankAccountResponse.data.identifier || ''
+                                : '',
                         country: addBankAccountResponse.data.details.countryCode,
                         id: addBankAccountResponse.data.id,
                         bridgeAccountId: addBankAccountResponse.data.bridgeAccountId,
@@ -360,9 +364,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
                         const bankDetails: IBankAccountDetails & { id?: string; bridgeAccountId?: string } = {
                             name: account.details.accountOwnerName || user?.user.fullName || '',
-                            iban: account.type === 'iban' ? account.identifier : undefined,
-                            clabe: account.type === 'clabe' ? account.identifier : '',
-                            accountNumber: account.type === 'us' ? account.identifier : '',
+                            iban: account.type === 'iban' ? account.identifier || '' : '',
+                            clabe: account.type === 'clabe' ? account.identifier || '' : '',
+                            accountNumber: account.type === 'us' ? account.identifier || '' : '',
                             country: account.details.countryCode,
                             id: account.id,
                             bridgeAccountId: account.bridgeAccountId,
