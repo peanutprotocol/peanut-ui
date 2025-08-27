@@ -1,5 +1,5 @@
 'use client'
-import { forwardRef, useImperativeHandle, useMemo, useState } from 'react'
+import { forwardRef, useImperativeHandle, useMemo, useState, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -65,6 +65,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             control,
             handleSubmit,
             setValue,
+            getValues,
             formState: { errors, isValid, isValidating, touchedFields },
         } = useForm<IBankAccountDetails>({
             defaultValues: {
@@ -82,15 +83,33 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 ...initialData,
             },
             mode: 'onBlur',
+            reValidateMode: 'onSubmit',
         })
 
         useImperativeHandle(ref, () => ({
             handleSubmit: handleSubmit(onSubmit),
         }))
 
+        // Clear submission error when form becomes valid and BIC field is filled (if shown)
+        useEffect(() => {
+            if (submissionError && isValid && (!showBicField || getValues('bic'))) {
+                setSubmissionError(null)
+            }
+        }, [isValid, submissionError, showBicField, getValues])
+
         const onSubmit = async (data: IBankAccountDetails) => {
+            // If validation is still running, don't proceed
+            if (isValidating) {
+                console.log('Validation still checking, skipping submission')
+                return
+            }
+
+            // Clear any existing submission errors before starting
+            if (submissionError) {
+                setSubmissionError(null)
+            }
+
             setIsSubmitting(true)
-            setSubmissionError(null)
             try {
                 const isUs = country.toUpperCase() === 'USA'
                 const isMx = country.toUpperCase() === 'MX'
@@ -105,22 +124,38 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 const accountNumber = isMx ? data.clabe : data.accountNumber
 
                 const { firstName, lastName } = data
-                let bic = data.bic
+                let bic = data.bic || getValues('bic')
+                const iban = data.iban || getValues('iban')
 
-                if (isIban && !bic) {
-                    try {
-                        bic = await getBicFromIban(accountNumber)
-                        if (!bic) {
+                // for IBAN countries, ensure BIC is available
+                if (isIban) {
+                    // if BIC field is shown but empty, don't proceed
+                    if (showBicField && !bic) {
+                        setIsSubmitting(false)
+                        setSubmissionError('BIC is required')
+                        return
+                    }
+
+                    // if BIC field is not shown and no BIC available, try to get it automatically
+                    if (!showBicField && !bic) {
+                        try {
+                            const autoBic = await getBicFromIban(accountNumber)
+                            if (autoBic) {
+                                bic = autoBic
+                                // set the BIC value in the form without showing the field
+                                setValue('bic', autoBic, { shouldValidate: false })
+                            } else {
+                                setShowBicField(true)
+                                setIsSubmitting(false)
+                                setSubmissionError('BIC is required')
+                                return
+                            }
+                        } catch (error) {
                             setShowBicField(true)
                             setIsSubmitting(false)
                             setSubmissionError('BIC is required')
                             return
                         }
-                    } catch (error) {
-                        setShowBicField(true)
-                        setIsSubmitting(false)
-                        setSubmissionError('BIC is required')
-                        return
                     }
                 }
 
@@ -150,7 +185,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                 const result = await onSuccess(payload as AddBankAccountPayload, {
                     ...data,
-                    iban: isIban ? data.accountNumber : undefined,
+                    iban: isIban ? data.accountNumber || iban : undefined,
                     accountNumber: isIban ? '' : data.accountNumber,
                     bic: bic,
                     country,
@@ -164,7 +199,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 }
             } catch (error: any) {
                 setSubmissionError(error.message)
-            } finally {
                 setIsSubmitting(false)
             }
         }
@@ -233,13 +267,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                 <div className="space-y-4">
                     <h3 className="text-base font-bold">Enter bank account details</h3>
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault()
-                            handleSubmit(onSubmit)()
-                        }}
-                        className="space-y-4"
-                    >
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                         {flow === 'claim' && !user?.user.userId && (
                             <div className="w-full space-y-4">
                                 {renderInput('firstName', 'First Name', { required: 'First name is required' })}
@@ -314,10 +342,25 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                         {isIban &&
                             showBicField &&
-                            renderInput('bic', 'BIC', {
-                                required: 'BIC is required',
-                                validate: async (value: string) => (await validateBic(value)) || 'Invalid BIC code',
-                            })}
+                            renderInput(
+                                'bic',
+                                'BIC',
+                                {
+                                    required: 'BIC is required',
+                                    validate: async (value: string) => {
+                                        if (!value || value.trim().length === 0) return 'BIC is required'
+                                        const isValid = await validateBic(value.trim())
+                                        return isValid || 'Invalid BIC code'
+                                    },
+                                },
+                                'text',
+                                undefined,
+                                (field) => {
+                                    if (field.value && field.value.trim().length > 0 && submissionError) {
+                                        setSubmissionError(null)
+                                    }
+                                }
+                            )}
                         {isUs &&
                             renderInput('routingNumber', 'Routing Number', {
                                 required: 'Routing number is required',
@@ -345,8 +388,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             variant="purple"
                             shadowSize="4"
                             className="!mt-4 w-full"
-                            loading={isSubmitting || isValidating}
-                            disabled={isSubmitting || !isValid || isValidating}
+                            loading={isSubmitting}
+                            disabled={isSubmitting || !isValid}
                         >
                             Review
                         </Button>
