@@ -59,6 +59,7 @@ export interface TransactionDetails {
     cancelledDate?: string | Date
     txHash?: string
     explorerUrl?: string
+    tokenAddress?: string
     extraDataForDrawer?: {
         addressExplorerUrl?: string
         originalType: EHistoryEntryType
@@ -416,6 +417,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         txHash: entry.txHash,
         explorerUrl: explorerUrlWithTx,
         tokenDisplayDetails,
+        tokenAddress: entry.tokenAddress,
         extraDataForDrawer: {
             addressExplorerUrl,
             originalType: entry.type as EHistoryEntryType,
