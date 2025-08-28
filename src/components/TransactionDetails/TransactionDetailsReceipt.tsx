@@ -179,6 +179,45 @@ export const TransactionDetailsReceipt = ({
         return false
     }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
 
+    useEffect(() => {
+        const getTokenDetails = async () => {
+            if (!transaction) {
+                setIsTokenDataLoading(false)
+                return
+            }
+
+            if (transaction.tokenDisplayDetails?.tokenIconUrl && transaction.tokenDisplayDetails.tokenSymbol) {
+                setTokenData({
+                    symbol: transaction.tokenDisplayDetails.tokenSymbol,
+                    icon: transaction.tokenDisplayDetails.tokenIconUrl,
+                })
+                setIsTokenDataLoading(false)
+                return
+            }
+
+            try {
+                const res = await fetch(
+                    `https://api.coingecko.com/api/v3/coins/${transaction.tokenDisplayDetails?.chainName}/contract/${transaction.tokenAddress}`
+                )
+                const tokenDetails = await res.json()
+                setTokenData({
+                    symbol: tokenDetails.symbol,
+                    icon: tokenDetails.image.large,
+                })
+            } catch (e) {
+                console.error(e)
+                setTokenData({
+                    symbol: '',
+                    icon: '',
+                })
+            } finally {
+                setIsTokenDataLoading(false)
+            }
+        }
+
+        getTokenDetails()
+    }, [])
+
     if (!transaction) return null
 
     // format data for display
@@ -233,40 +272,6 @@ export const TransactionDetailsReceipt = ({
             return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
         }
     }
-
-    useEffect(() => {
-        const getTokenDetails = async () => {
-            if (transaction.tokenDisplayDetails?.tokenIconUrl && transaction.tokenDisplayDetails.tokenSymbol) {
-                setTokenData({
-                    symbol: transaction.tokenDisplayDetails.tokenSymbol,
-                    icon: transaction.tokenDisplayDetails.tokenIconUrl,
-                })
-                setIsTokenDataLoading(false)
-                return
-            }
-
-            try {
-                const res = await fetch(
-                    `https://api.coingecko.com/api/v3/coins/${transaction.tokenDisplayDetails?.chainName}/contract/${transaction.tokenAddress}`
-                )
-                const tokenDetails = await res.json()
-                setTokenData({
-                    symbol: tokenDetails.symbol,
-                    icon: tokenDetails.image.large,
-                })
-            } catch (e) {
-                console.error(e)
-                setTokenData({
-                    symbol: '',
-                    icon: '',
-                })
-            } finally {
-                setIsTokenDataLoading(false)
-            }
-        }
-
-        getTokenDetails()
-    }, [])
 
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
