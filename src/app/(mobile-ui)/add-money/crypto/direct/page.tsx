@@ -47,7 +47,8 @@ export default function AddMoneyCryptoDirectPage() {
             <DirectSuccessView
                 key={`success-add-money`}
                 headerTitle={'Add Money'}
-                type="DEPOSIT"
+                type="SEND"
+                isExternalWalletFlow
                 currencyAmount={`$${inputTokenAmount}`}
                 isWithdrawFlow={false}
                 redirectTo={'/add-money'}
