@@ -108,6 +108,7 @@ export const DaimoPayButton = ({
 
     return (
         <DaimoPayButtonSDK.Custom
+            resetOnSuccess // resets the daimo payment state after payment is successfully completed
             appId={daimoAppId}
             intent="Deposit"
             toChain={arbitrum.id}
