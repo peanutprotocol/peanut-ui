@@ -1,5 +1,6 @@
 'use client'
 
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useEffect, useRef } from 'react'
 
 const soundMap = {
@@ -17,6 +18,13 @@ type SoundPlayerProps = {
  */
 export const SoundPlayer = ({ sound }: SoundPlayerProps) => {
     const audioRef = useRef<HTMLAudioElement | null>(null)
+
+    const { deviceType } = useDeviceType()
+
+    // Early return for iOS devices - completely disable sound
+    if (deviceType === DeviceType.IOS) {
+        return null
+    }
 
     useEffect(() => {
         const audioSrc = soundMap[sound]
