@@ -55,7 +55,10 @@ export const TransactionDetailsReceipt = ({
     const { fetchBalance } = useWallet()
     const [showBankDetails, setShowBankDetails] = useState(false)
     const [showCancelLinkModal, setShowCancelLinkModal] = useState(isModalOpen)
-    const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
+    const [tokenData, setTokenData] = useState<{ symbol: string; icon: string }>({
+        symbol: '',
+        icon: '',
+    })
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
 
     useEffect(() => {
@@ -325,9 +328,9 @@ export const TransactionDetailsReceipt = ({
                                         <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
                                             {/* Main token icon */}
                                             <DisplayIcon
-                                                iconUrl={tokenData?.icon}
-                                                altText={tokenData?.symbol || 'token'}
-                                                fallbackName={tokenData?.symbol || 'T'}
+                                                iconUrl={tokenData.icon}
+                                                altText={tokenData.symbol || 'token'}
+                                                fallbackName={tokenData.symbol || 'T'}
                                                 sizeClass="h-6 w-6"
                                             />
                                             {/* Smaller chain icon, absolutely positioned */}
@@ -344,7 +347,7 @@ export const TransactionDetailsReceipt = ({
                                             )}
                                         </div>
                                         <span>
-                                            {tokenData?.symbol.toUpperCase()} on{' '}
+                                            {tokenData.symbol.toUpperCase()} on{' '}
                                             {transaction.tokenDisplayDetails.chainName}
                                         </span>
                                     </div>
