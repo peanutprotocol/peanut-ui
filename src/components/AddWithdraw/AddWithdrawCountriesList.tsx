@@ -204,6 +204,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     country={getCountryCodeForWithdraw(currentCountry.id)}
                     onSuccess={handleFormSubmit}
                     initialData={{}}
+                    error={null}
                 />
                 <InitiateKYCModal
                     isOpen={isKycModalOpen}
