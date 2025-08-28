@@ -47,7 +47,8 @@ export default function AddMoneyCryptoDirectPage() {
             <DirectSuccessView
                 key={`success-add-money`}
                 headerTitle={'Add Money'}
-                type="DEPOSIT"
+                type="SEND"
+                isExternalWalletFlow
                 currencyAmount={`$${inputTokenAmount}`}
                 isWithdrawFlow={false}
                 redirectTo={'/add-money'}
@@ -93,6 +94,7 @@ export default function AddMoneyCryptoDirectPage() {
                         minAmount={0.1}
                         maxAmount={4000}
                         onValidationError={setError}
+                        disabled={inputTokenAmount === '0.00'}
                     >
                         Add Money
                     </DaimoPayButton>
