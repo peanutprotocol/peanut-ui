@@ -43,11 +43,20 @@ interface DynamicBankAccountFormProps {
     initialData?: Partial<IBankAccountDetails>
     flow?: 'claim' | 'withdraw'
     actionDetailsProps?: Partial<PeanutActionDetailsCardProps>
+    error: string | null
 }
 
 export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, DynamicBankAccountFormProps>(
     (
-        { country, onSuccess, initialData, flow = 'withdraw', actionDetailsProps, countryName: countryNameFromProps },
+        {
+            country,
+            onSuccess,
+            initialData,
+            flow = 'withdraw',
+            actionDetailsProps,
+            countryName: countryNameFromProps,
+            error,
+        },
         ref
     ) => {
         const { user } = useAuth()
@@ -394,6 +403,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             Review
                         </Button>
                         {submissionError && <ErrorAlert description={submissionError} />}
+                        {error && <ErrorAlert description={error} />}
                     </form>
                 </div>
             </div>
