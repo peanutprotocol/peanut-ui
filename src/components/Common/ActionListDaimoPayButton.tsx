@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation'
 import { InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import DaimoPayButton from '../Global/DaimoPayButton'
 import { ACTION_METHODS } from '@/constants/actionlist.consts'
+import { useWallet } from '@/hooks/wallet/useWallet'
 
 const ActionListDaimoPayButton = () => {
     const dispatch = useAppDispatch()
@@ -20,6 +21,7 @@ const ActionListDaimoPayButton = () => {
         price: currencyPrice,
     } = useCurrency(searchParams.get('currency'))
     const requestId = searchParams.get('id')
+    const { address: peanutWalletAddress } = useWallet()
 
     const { isProcessing, initiateDaimoPayment, completeDaimoPayment } = usePaymentInitiator()
 
@@ -97,8 +99,8 @@ const ActionListDaimoPayButton = () => {
                     const result = await completeDaimoPayment({
                         chargeDetails: chargeDetails,
                         txHash: daimoPaymentResponse.txHash as string,
-                        sourceChainId: daimoPaymentResponse.payment.source.chainId,
-                        payerAddress: daimoPaymentResponse.payment.source.payerAddress,
+                        destinationchainId: daimoPaymentResponse.payment.destination.chainId,
+                        payerAddress: peanutWalletAddress ?? daimoPaymentResponse.payment.source.payerAddress,
                     })
 
                     if (result.status === 'Success') {

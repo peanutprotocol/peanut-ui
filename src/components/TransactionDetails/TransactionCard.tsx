@@ -109,6 +109,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             arsSign = '+'
         }
         finalDisplayAmount = `${arsSign}${getDisplayCurrencySymbol('ARS')}${formatNumberForDisplay(transaction.currency.amount, { maxDecimals: defaultDisplayDecimals })}`
+    }
+    // keep currency as $ because we will always receive in USDC
+    else if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.DEPOSIT) {
+        finalDisplayAmount = `+$${formatNumberForDisplay(Math.abs(amount).toString(), { maxDecimals: defaultDisplayDecimals })}`
     } else {
         const isStableCoin = transaction.tokenSymbol && STABLE_COINS.includes(transaction.tokenSymbol)
         const displaySymbol =

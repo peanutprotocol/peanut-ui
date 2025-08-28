@@ -769,20 +769,20 @@ export const usePaymentInitiator = () => {
     const completeDaimoPayment = useCallback(
         async ({
             chargeDetails,
-            sourceChainId,
+            destinationchainId,
             txHash,
             payerAddress,
         }: {
             chargeDetails: TRequestChargeResponse
             txHash: string
-            sourceChainId: number
+            destinationchainId: number
             payerAddress: string
         }) => {
             try {
                 setLoadingStep('Updating Payment Status')
                 const payment = await chargesApi.createPayment({
                     chargeId: chargeDetails.uuid,
-                    chainId: sourceChainId.toString(),
+                    chainId: destinationchainId.toString(),
                     hash: txHash,
                     tokenAddress: chargeDetails.tokenAddress,
                     payerAddress,
