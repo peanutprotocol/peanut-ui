@@ -74,12 +74,12 @@ export const DaimoPayButton = ({
 
         // Validate amount range if specified
         if (minAmount !== undefined && formattedAmount < minAmount) {
-            onValidationError?.(`Minimum deposit using crypto is $${minAmount.toFixed(2)}.`)
+            onValidationError?.(`Minimum deposit using crypto is $${minAmount}.`)
             return false
         }
 
         if (maxAmount !== undefined && formattedAmount > maxAmount) {
-            onValidationError?.(`Maximum deposit using crypto is $${maxAmount.toFixed(2)}.`)
+            onValidationError?.(`Maximum deposit using crypto is $${maxAmount}.`)
             return false
         }
 
