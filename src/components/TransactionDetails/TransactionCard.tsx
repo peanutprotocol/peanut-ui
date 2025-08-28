@@ -112,7 +112,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
     // keep currency as $ because we will always receive in USDC
     else if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.DEPOSIT) {
-        finalDisplayAmount = `+$${transaction.amount}`
+        finalDisplayAmount = `+$${formatNumberForDisplay(Math.abs(amount).toString(), { maxDecimals: defaultDisplayDecimals })}`
     } else {
         const isStableCoin = transaction.tokenSymbol && STABLE_COINS.includes(transaction.tokenSymbol)
         const displaySymbol =
