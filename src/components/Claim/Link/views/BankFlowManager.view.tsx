@@ -209,6 +209,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         payload: AddBankAccountPayload,
         rawData: IBankAccountDetails
     ): Promise<{ error?: string }> => {
+        //clean any error from previous step
+        setError(null)
+
         // scenario 1: receiver needs KYC
         if (bankClaimType === BankClaimType.ReceiverKycNeeded && !justCompletedKyc) {
             // update user's name and email if they are not present
@@ -456,6 +459,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             tokenSymbol: claimLinkData.tokenSymbol,
                         }}
                         initialData={{}}
+                        error={error}
                     />
                     <InitiateKYCModal
                         isOpen={isKycModalOpen}
