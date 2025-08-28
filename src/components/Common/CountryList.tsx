@@ -39,7 +39,6 @@ export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClic
     }, [viewMode])
 
     // sort countries based on user's geo location, fallback to alphabetical order
-    // sort countries based on user's geo location, fallback to alphabetical order
     const sortedCountries = useMemo(() => {
         if (isGeoLoading) return []
 
