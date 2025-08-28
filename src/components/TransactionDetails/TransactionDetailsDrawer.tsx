@@ -199,6 +199,16 @@ export const TransactionDetailsReceipt = ({
             (transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST &&
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
+    const getLabelText = (transaction: TransactionDetails) => {
+        if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.WITHDRAW) {
+            return 'Completed'
+        } else if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.DEPOSIT) {
+            return 'Completed'
+        } else {
+            return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
+        }
+    }
+
     return (
         <div ref={contentRef} className="space-y-4">
             {/* show qr code at the top if applicable */}
@@ -300,11 +310,7 @@ export const TransactionDetailsReceipt = ({
                             <>
                                 {transaction.completedAt && (
                                     <PaymentInfoRow
-                                        label={
-                                            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
-                                                ? 'Sent'
-                                                : 'Received'
-                                        }
+                                        label={getLabelText(transaction)}
                                         value={formatDate(new Date(transaction.completedAt))}
                                     />
                                 )}
