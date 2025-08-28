@@ -21,12 +21,9 @@ export const SoundPlayer = ({ sound }: SoundPlayerProps) => {
 
     const { deviceType } = useDeviceType()
 
-    // Early return for iOS devices - completely disable sound
-    if (deviceType === DeviceType.IOS) {
-        return null
-    }
-
     useEffect(() => {
+        if (!deviceType || deviceType === DeviceType.IOS) return
+
         const audioSrc = soundMap[sound]
         if (!audioSrc) return
 
@@ -98,7 +95,7 @@ export const SoundPlayer = ({ sound }: SoundPlayerProps) => {
             }
             audioRef.current = null
         }
-    }, [sound])
+    }, [sound, deviceType])
 
     return null
 }
