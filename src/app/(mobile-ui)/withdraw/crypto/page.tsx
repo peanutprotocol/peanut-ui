@@ -24,16 +24,18 @@ import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, ROUTE_NOT_FOUND_ERROR } from '@/constants'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { captureMessage } from '@sentry/nextjs'
 import type { Address } from 'viem'
 import { Slider } from '@/components/Slider'
+import { tokenSelectorContext } from '@/context'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
     const dispatch = useAppDispatch()
     const { chargeDetails: activeChargeDetailsFromStore } = usePaymentStore()
     const { isConnected: isPeanutWallet, address } = useWallet()
+    const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
         amountToWithdraw,
         usdAmount,
@@ -225,6 +227,7 @@ export default function WithdrawCryptoPage() {
 
         if (result.success && result.txHash) {
             setCurrentView('STATUS')
+            resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
         } else {
             console.error('Withdrawal execution failed:', result.error)
             const errMsg = result.error || 'Withdrawal processing failed.'
