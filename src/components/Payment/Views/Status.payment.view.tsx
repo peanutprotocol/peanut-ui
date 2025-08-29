@@ -81,10 +81,10 @@ const DirectSuccessView = ({
         if (currencyAmount) return currencyAmount
 
         // 2. usdAmount - comes from charge response
-        if (usdAmount) return `$ ${formatAmount(Number(usdAmount))}`
+        if (usdAmount) return `$${formatAmount(Number(usdAmount))}`
 
         // 3. fallback: we only know the raw amount which is USD
-        return `$ ${formatAmount(amountValue)}`
+        return `$${formatAmount(amountValue)}`
     }, [amountValue, currencyAmount, usdAmount])
 
     // construct transaction details for the drawer
