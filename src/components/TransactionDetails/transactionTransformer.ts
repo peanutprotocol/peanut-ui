@@ -13,6 +13,7 @@ import {
 } from '@/utils/general.utils'
 import { StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
+import { PEANUT_WALLET_CHAIN } from '@/constants'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -368,12 +369,16 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // construct explorer url if possible
     let explorerUrlWithTx: string | undefined = undefined
     let addressExplorerUrl: string | undefined = undefined
-    const baseUrl = getExplorerUrl(entry.chainId)
+
+    // for deposits, explicitly set arbitrum as chain id for explorer url
+    const explorerUrlChainID =
+        entry.type === EHistoryEntryType.DEPOSIT ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
+    const baseUrl = getExplorerUrl(explorerUrlChainID)
     if (baseUrl) {
         if (entry.senderAccount?.identifier) {
             addressExplorerUrl = `${baseUrl}/address/${entry.senderAccount.identifier}`
         }
-        if (entry.txHash && entry.chainId) {
+        if (entry.txHash && explorerUrlChainID) {
             explorerUrlWithTx = `${baseUrl}/tx/${entry.txHash}`
         }
     }
