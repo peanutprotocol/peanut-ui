@@ -39,7 +39,7 @@ export const Profile = () => {
                 <ProfileHeader
                     name={fullName || username}
                     username={username}
-                    isVerified={user?.user.kycStatus === 'approved'}
+                    isVerified={user?.user.bridgeKycStatus === 'approved'}
                 />
                 <div className="space-y-4">
                     {/* Menu Item - Invite Entry */}

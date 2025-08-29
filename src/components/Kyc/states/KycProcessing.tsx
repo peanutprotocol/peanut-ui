@@ -5,16 +5,16 @@ import { useMemo } from 'react'
 import { formatDate } from '@/utils'
 
 // this component shows the kyc status while it's being processed.
-export const KycProcessing = ({ kycStartedAt }: { kycStartedAt?: string }) => {
+export const KycProcessing = ({ bridgeKycStartedAt }: { bridgeKycStartedAt?: string }) => {
     const submittedOn = useMemo(() => {
-        if (!kycStartedAt) return 'N/A'
+        if (!bridgeKycStartedAt) return 'N/A'
         try {
-            return formatDate(new Date(kycStartedAt))
+            return formatDate(new Date(bridgeKycStartedAt))
         } catch (error) {
-            console.error('Failed to parse kycStartedAt date:', error)
+            console.error('Failed to parse bridgeKycStartedAt date:', error)
             return 'N/A'
         }
-    }, [kycStartedAt])
+    }, [bridgeKycStartedAt])
 
     return (
         <div className="space-y-4">

@@ -5,16 +5,16 @@ import { useMemo } from 'react'
 import { formatDate } from '@/utils'
 
 // this component shows the kyc status when it's completed/approved.
-export const KycCompleted = ({ kycApprovedAt }: { kycApprovedAt?: string }) => {
+export const KycCompleted = ({ bridgeKycApprovedAt }: { bridgeKycApprovedAt?: string }) => {
     const verifiedOn = useMemo(() => {
-        if (!kycApprovedAt) return 'N/A'
+        if (!bridgeKycApprovedAt) return 'N/A'
         try {
-            return formatDate(new Date(kycApprovedAt))
+            return formatDate(new Date(bridgeKycApprovedAt))
         } catch (error) {
             console.error('Failed to parse kycCompletedAt date:', error)
             return 'N/A'
         }
-    }, [kycApprovedAt])
+    }, [bridgeKycApprovedAt])
 
     return (
         <div className="space-y-4">

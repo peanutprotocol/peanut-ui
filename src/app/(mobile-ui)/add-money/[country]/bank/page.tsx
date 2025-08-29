@@ -10,7 +10,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { InitiateKYCModal } from '@/components/Kyc'
-import { KYCStatus } from '@/utils/bridge-accounts.utils'
+import { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/context/authContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
@@ -37,7 +37,7 @@ export default function OnrampBankPage() {
     const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
 
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
-    const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(undefined)
+    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(undefined)
     const { amountToOnramp: amountFromContext, setAmountToOnramp, setError, error, setOnrampData } = useOnrampFlow()
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isUpdatingUser, setIsUpdatingUser] = useState(false)
@@ -58,15 +58,15 @@ export default function OnrampBankPage() {
         username: user?.user.username ?? undefined,
         autoConnect: !!user?.user.username,
         onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as KYCStatus)
+            setLiveKycStatus(newStatus as BridgeKycStatus)
         },
     })
 
     useEffect(() => {
-        if (user?.user.kycStatus) {
-            setLiveKycStatus(user.user.kycStatus as KYCStatus)
+        if (user?.user.bridgeKycStatus) {
+            setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
         }
-    }, [user?.user.kycStatus])
+    }, [user?.user.bridgeKycStatus])
 
     useEffect(() => {
         fetchUser()
@@ -84,7 +84,7 @@ export default function OnrampBankPage() {
     useEffect(() => {
         if (user === null) return // wait for user to be fetched
         if (step === 'loading') {
-            const currentKycStatus = liveKycStatus || user?.user.kycStatus
+            const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
             const isUserKycVerified = currentKycStatus === 'approved'
 
             if (!isUserKycVerified) {
