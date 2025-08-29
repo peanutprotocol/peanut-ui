@@ -159,6 +159,44 @@ export interface IDirectSendDetails {
     txHash: string
 }
 
+export interface IBridgeAccount {
+    id: string
+    customer_id: string
+    last_4: string
+    currency?: 'usd' | 'eur' | 'mxn'
+    bank_name?: string
+    account_owner_name: string
+    account_number?: string
+    routing_number?: string
+    account_type: 'iban' | 'us' | 'clabe'
+    iban?: {
+        account_number: string
+        bic?: string
+        country: string
+    }
+    clabe?: {
+        account_number: string
+    }
+    account?: {
+        account_number: string
+        routing_number: string
+        checking_or_savings?: string
+    }
+    account_owner_type: 'individual' | 'business'
+    first_name?: string
+    last_name?: string
+    business_name?: string
+    address?: {
+        street_line_1: string
+        street_line_2?: string
+        city: string
+        country: string
+        state?: string
+        postal_code?: string
+    }
+    beneficiary_address_valid: boolean
+}
+
 interface Transaction {
     tx_hash: string
     chain_id: string

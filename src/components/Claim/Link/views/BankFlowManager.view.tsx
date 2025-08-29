@@ -29,6 +29,13 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { KYCStatus } from '@/utils/bridge-accounts.utils'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 
+type BankAccountWithId = IBankAccountDetails &
+    (
+        | { id: string; bridgeAccountId: string }
+        | { id: string; bridgeAccountId?: string }
+        | { id?: string; bridgeAccountId: string }
+    )
+
 /**
  * @name BankFlowManager
  * @description This component manages the entire bank claim flow, acting as a state machine.
@@ -60,7 +67,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const { claimLink } = useClaimLink()
 
     // local states for this component
-    const [localBankDetails, setLocalBankDetails] = useState<IBankAccountDetails | null>(null)
+    const [localBankDetails, setLocalBankDetails] = useState<BankAccountWithId | null>(null)
     const [receiverFullName, setReceiverFullName] = useState<string>('')
     const [error, setError] = useState<string | null>(null)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
@@ -113,9 +120,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
      * @name handleCreateOfframpAndClaim
      * @description creates an off-ramp transfer for the user, either as a guest or a logged-in user.
      */
-    const handleCreateOfframpAndClaim = async (
-        account: IBankAccountDetails & { id?: string; bridgeAccountId?: string }
-    ) => {
+    const handleCreateOfframpAndClaim = async (account: BankAccountWithId) => {
         try {
             setLoadingState('Executing transaction')
             setError(null)
@@ -150,9 +155,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             const contractVersion = params.contractVersion
             const peanutContractAddress = peanut.getContractAddress(chainId, contractVersion) as Address
 
-            const externalAccountId = account?.bridgeAccountId ?? account?.id
-
-            if (!externalAccountId) throw new Error('External account ID not found')
+            const externalAccountId = (account.bridgeAccountId ?? account.id) as string
 
             const destination = getOfframpCurrencyConfig(account.country ?? selectedCountry!.id)
 
@@ -206,6 +209,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         payload: AddBankAccountPayload,
         rawData: IBankAccountDetails
     ): Promise<{ error?: string }> => {
+        //clean any error from previous step
+        setError(null)
+
         // scenario 1: receiver needs KYC
         if (bankClaimType === BankClaimType.ReceiverKycNeeded && !justCompletedKyc) {
             // update user's name and email if they are not present
@@ -242,16 +248,20 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     return { error: addBankAccountResponse.error }
                 }
                 if (addBankAccountResponse.data?.id) {
-                    const bankDetails: IBankAccountDetails & { id?: string; bridgeAccountId?: string } = {
+                    const bankDetails = {
                         name: addBankAccountResponse.data.details.accountOwnerName || user?.user.fullName || '',
                         iban:
                             addBankAccountResponse.data.type === 'iban'
-                                ? addBankAccountResponse.data.identifier
-                                : undefined,
+                                ? addBankAccountResponse.data.identifier || ''
+                                : '',
                         clabe:
-                            addBankAccountResponse.data.type === 'clabe' ? addBankAccountResponse.data.identifier : '',
+                            addBankAccountResponse.data.type === 'clabe'
+                                ? addBankAccountResponse.data.identifier || ''
+                                : '',
                         accountNumber:
-                            addBankAccountResponse.data.type === 'us' ? addBankAccountResponse.data.identifier : '',
+                            addBankAccountResponse.data.type === 'us'
+                                ? addBankAccountResponse.data.identifier || ''
+                                : '',
                         country: addBankAccountResponse.data.details.countryCode,
                         id: addBankAccountResponse.data.id,
                         bridgeAccountId: addBankAccountResponse.data.bridgeAccountId,
@@ -311,7 +321,25 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     throw new Error('Failed to create external account')
                 }
 
-                const finalBankDetails = { ...rawData, ...(externalAccountResponse as object) }
+                // merge the external account details with the user's details
+                const finalBankDetails = {
+                    id: externalAccountResponse.id,
+                    bridgeAccountId: externalAccountResponse.id,
+                    name: externalAccountResponse.bank_name ?? rawData.name,
+                    firstName: externalAccountResponse.first_name ?? rawData.firstName,
+                    lastName: externalAccountResponse.last_name ?? rawData.lastName,
+                    email: rawData.email,
+                    accountNumber: externalAccountResponse.account_number ?? rawData.accountNumber,
+                    bic: externalAccountResponse?.iban?.bic ?? rawData.bic,
+                    routingNumber: externalAccountResponse?.account?.routing_number ?? rawData.routingNumber,
+                    clabe: externalAccountResponse?.clabe?.account_number ?? rawData.clabe,
+                    street: externalAccountResponse?.address?.street_line_1 ?? rawData.street,
+                    city: externalAccountResponse?.address?.city ?? rawData.city,
+                    state: externalAccountResponse?.address?.state ?? rawData.state,
+                    postalCode: externalAccountResponse?.address?.postal_code ?? rawData.postalCode,
+                    iban: externalAccountResponse?.iban?.account_number ?? rawData.iban,
+                    country: externalAccountResponse?.iban?.country ?? rawData.country,
+                }
                 setLocalBankDetails(finalBankDetails)
                 setBankDetails(finalBankDetails)
                 setReceiverFullName(payload.accountOwnerName.firstName + ' ' + payload.accountOwnerName.lastName)
@@ -358,11 +386,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         ).split(' ')
                         const lastName = lastNameParts.join(' ')
 
-                        const bankDetails: IBankAccountDetails & { id?: string; bridgeAccountId?: string } = {
+                        const bankDetails = {
                             name: account.details.accountOwnerName || user?.user.fullName || '',
-                            iban: account.type === 'iban' ? account.identifier : undefined,
-                            clabe: account.type === 'clabe' ? account.identifier : '',
-                            accountNumber: account.type === 'us' ? account.identifier : '',
+                            iban: account.type === 'iban' ? account.identifier || '' : '',
+                            clabe: account.type === 'clabe' ? account.identifier || '' : '',
+                            accountNumber: account.type === 'us' ? account.identifier || '' : '',
                             country: account.details.countryCode,
                             id: account.id,
                             bridgeAccountId: account.bridgeAccountId,
@@ -432,6 +460,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             tokenSymbol: claimLinkData.tokenSymbol,
                         }}
                         initialData={{}}
+                        error={error}
                     />
                     <InitiateKYCModal
                         isOpen={isKycModalOpen}

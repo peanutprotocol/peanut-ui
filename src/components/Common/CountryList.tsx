@@ -111,7 +111,6 @@ export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClic
                                 ['US', 'MX', ...Object.keys(countryCodeMap), ...Object.values(countryCodeMap)].includes(
                                     country.id
                                 )
-
                             return (
                                 <SearchResultCard
                                     key={country.id}
