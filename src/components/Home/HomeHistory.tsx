@@ -159,7 +159,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     if (isLoading) {
         return (
             <div className="space-y-2">
-                <h2 className="text-base font-bold">Transactions</h2>
+                <h2 className="text-base font-bold">Activity</h2>
                 <div className="flex flex-col">
                     {Array.from({ length: 5 }).map((_, index) => (
                         <HistorySkeleton key={index} position={getCardPosition(index, 5)} />
