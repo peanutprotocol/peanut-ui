@@ -2,6 +2,7 @@
 
 import { fetchWithSentry } from '@/utils'
 import { AddBankAccountPayload } from './types/users.types'
+import { IBridgeAccount } from '@/interfaces'
 
 const API_KEY = process.env.PEANUT_API_KEY!
 const API_URL = process.env.PEANUT_API_URL!
@@ -9,7 +10,7 @@ const API_URL = process.env.PEANUT_API_URL!
 export async function createBridgeExternalAccountForGuest(
     customerId: string,
     accountDetails: AddBankAccountPayload
-): Promise<{ id: string } | { error: string }> {
+): Promise<IBridgeAccount | { error: string }> {
     try {
         const response = await fetchWithSentry(`${API_URL}/bridge/customers/${customerId}/external-accounts`, {
             method: 'POST',
