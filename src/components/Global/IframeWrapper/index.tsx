@@ -15,7 +15,6 @@ export type IFrameWrapperProps = {
 
 const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWrapperProps) => {
     const enableConfirmationPrompt = closeConfirmMessage !== undefined
-    const [showCloseConfirmMessage, setShowCloseConfirmMessage] = useState(false)
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
     const [modalVariant, setModalVariant] = useState<'stop-verification' | 'trouble'>('trouble')
     const [copied, setCopied] = useState(false)
@@ -83,13 +82,6 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
         }
     }, [modalVariant, copied, src, router])
 
-    // Reset showCloseConfirmMessage when visibility changes or src changes
-    useEffect(() => {
-        if (!visible || src === '') {
-            setShowCloseConfirmMessage(false)
-        }
-    }, [visible, src])
-
     // track completed event from iframe and close the modal
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
@@ -120,7 +112,6 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     onClose('manual')
                     return
                 }
-                setShowCloseConfirmMessage(true)
             }}
             classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
             classOverlay={`bg-black bg-opacity-50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
@@ -134,46 +125,6 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 <StartVerificationView onStartVerification={() => setIsVerificationStarted(true)} />
             ) : (
                 <div className="flex h-full flex-col gap-2 p-0">
-                    <div className="w-full flex-shrink-0">
-                        {showCloseConfirmMessage ? (
-                            <div className="flex w-full flex-col justify-between gap-3 border-b border-n-1 p-4 md:h-14 md:flex-row md:items-center">
-                                <p className="text-sm">{closeConfirmMessage}</p>
-                                <div className="flex flex-row items-center gap-2">
-                                    <button
-                                        className="btn-stroke h-10"
-                                        onClick={() => {
-                                            setShowCloseConfirmMessage(false)
-                                        }}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        className="btn-purple h-10"
-                                        onClick={() => {
-                                            onClose('manual')
-                                            setShowCloseConfirmMessage(false)
-                                        }}
-                                    >
-                                        Close
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <button
-                                className="btn-purple h-14 w-full rounded-none border-b border-n-1"
-                                onClick={() => {
-                                    // only show confirmation for kyc step, otherwise close immediately
-                                    if (enableConfirmationPrompt && !src.includes('tos')) {
-                                        setShowCloseConfirmMessage(true)
-                                    } else {
-                                        onClose('manual')
-                                    }
-                                }}
-                            >
-                                CLOSE
-                            </button>
-                        )}
-                    </div>
                     <div className="h-full w-full flex-grow overflow-scroll">
                         <iframe
                             key={src}
