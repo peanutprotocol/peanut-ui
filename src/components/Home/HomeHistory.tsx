@@ -15,7 +15,7 @@ import Card, { CardPosition, getCardPosition } from '../Global/Card'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem } from '../Kyc/KycStatusItem'
 import { isKycStatusItem, KycHistoryEntry } from '@/hooks/useKycFlow'
-import { KYCStatus } from '@/utils'
+import { BridgeKycStatus } from '@/utils'
 import { useWallet } from '@/hooks/wallet/useWallet'
 
 /**
@@ -35,7 +35,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
         isError,
         error,
     } = useTransactionHistory({ mode, limit, username, filterMutualTxs, enabled: isLoggedIn })
-    const kycStatus: KYCStatus = user?.user?.kycStatus || 'not_started'
+    const bridgeKycStatus: BridgeKycStatus = user?.user?.bridgeKycStatus || 'not_started'
     // check if the username is the same as the current user
     const isSameUser = username === user?.user.username
     const { fetchBalance, getRewardWalletBalance } = useWallet()
@@ -99,14 +99,14 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
             // and the user is viewing their own history
             if (
                 isSameUser &&
-                user?.user?.kycStatus &&
-                user.user.kycStatus !== 'not_started' &&
-                user.user.kycStartedAt &&
+                user?.user?.bridgeKycStatus &&
+                user.user.bridgeKycStatus !== 'not_started' &&
+                user.user.bridgeKycStartedAt &&
                 !isPublic
             ) {
                 entries.push({
                     isKyc: true,
-                    timestamp: user.user.kycStartedAt,
+                    timestamp: user.user.bridgeKycStartedAt,
                     uuid: 'kyc-status-item',
                 })
             }
@@ -164,7 +164,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     if (!combinedEntries.length) {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                {isSameUser && kycStatus !== 'not_started' && (
+                {isSameUser && bridgeKycStatus !== 'not_started' && (
                     <div className="space-y-3">
                         <h2 className="text-base font-bold">Activity</h2>
                         <KycStatusItem position="single" />

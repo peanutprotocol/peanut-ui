@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation'
 import { IFrameWrapperProps } from '@/components/Global/IframeWrapper'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
-import { KYCStatus, convertPersonaUrl } from '@/utils'
+import { BridgeKycStatus, convertPersonaUrl } from '@/utils'
 import { InitiateKycResponse } from '@/app/actions/types/users.types'
 import { getKycDetails } from '@/app/actions/users'
 
@@ -42,7 +42,9 @@ export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [apiResponse, setApiResponse] = useState<InitiateKycResponse | null>(null)
-    const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(user?.user?.kycStatus as KYCStatus)
+    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(
+        user?.user?.bridgeKycStatus as BridgeKycStatus
+    )
 
     const [iframeOptions, setIframeOptions] = useState<Omit<IFrameWrapperProps, 'onClose'>>({
         src: '',
@@ -56,7 +58,7 @@ export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
         username: user?.user.username ?? undefined,
         autoConnect: true,
         onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as KYCStatus)
+            setLiveKycStatus(newStatus as BridgeKycStatus)
         },
         onTosUpdate: (data) => {
             if (data.accepted) {
