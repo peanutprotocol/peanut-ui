@@ -143,6 +143,7 @@ export interface CountryData {
     currency?: string
     description?: string
     path: string
+    iso2?: string
 }
 
 export interface DepositMethods extends CountryData {
@@ -777,6 +778,7 @@ export const countryData: CountryData[] = [
         title: 'United Kingdom',
         currency: 'GBP',
         path: 'united-kingdom',
+        iso2: 'GB',
     },
     {
         id: 'GD',

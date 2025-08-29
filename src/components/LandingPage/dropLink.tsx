@@ -1,3 +1,4 @@
+'use client'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Button } from '../0_Bruddle'
@@ -27,7 +28,7 @@ export function DropLink() {
                         className="mx-auto mt-8 block md:mt-0 md:hidden"
                     />
 
-                    <p className="text-left text-xl md:pr-24 md:text-2xl">
+                    <p className="font-roboto-flex text-left text-xl md:pr-24 md:text-2xl">
                         Send or request funds in seconds through WhatsApp, a phone number, or a QR code. No bank
                         details, no friction.
                     </p>

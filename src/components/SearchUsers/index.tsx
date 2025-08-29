@@ -1,6 +1,6 @@
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useUserSearch } from '@/hooks/useUserSearch'
-import { ApiUser } from '@/services/users'
+import { RecentUser } from '@/services/users'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '../0_Bruddle'
@@ -8,10 +8,12 @@ import { SearchInput } from './SearchInput'
 import { SearchResults } from './SearchResults'
 import { useRecentUsers } from '@/hooks/useRecentUsers'
 import { useRouter } from 'next/navigation'
+import { useUserInteractions } from '@/hooks/useUserInteractions'
+import { useMemo } from 'react'
 
 interface SearchContentProps {
     closePortal: () => void
-    recentTransactions: Pick<ApiUser, 'userId' | 'username' | 'fullName'>[]
+    recentTransactions: RecentUser[]
 }
 
 const SearchContent = ({ closePortal, recentTransactions }: SearchContentProps) => {
@@ -19,6 +21,15 @@ const SearchContent = ({ closePortal, recentTransactions }: SearchContentProps) 
     const { searchTerm, setSearchTerm, searchResults, isSearching, error, showMinCharError, showNoResults } =
         useUserSearch()
     const router = useRouter()
+
+    const userIds = useMemo(() => {
+        const ids = new Set<string>()
+        searchResults.forEach((user) => ids.add(user.userId))
+        recentTransactions.forEach((user) => ids.add(user.userId))
+        return Array.from(ids)
+    }, [searchResults, recentTransactions])
+
+    const { interactions } = useUserInteractions(userIds)
 
     const handleSearchChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,6 +70,7 @@ const SearchContent = ({ closePortal, recentTransactions }: SearchContentProps) 
                     showNoResults={showNoResults}
                     recentTransactions={recentTransactions}
                     onUserSelect={(username) => router.push(`/${username}`)}
+                    interactions={interactions}
                 />
 
                 {error && <div className="mt-2 text-sm text-error">{error}</div>}

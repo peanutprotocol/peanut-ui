@@ -8,12 +8,13 @@ import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
-import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useAuth } from '@/context/authContext'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { EParseUrlError, parsePaymentURL, ParseUrlError } from '@/lib/url-parser/parser'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
@@ -26,17 +27,24 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { GenericBanner } from '@/components/Global/Banner'
+import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
+import ExternalWalletFulfilManager from '@/components/Request/views/ExternalWalletFulfilManager'
+import ActionList from '@/components/Common/ActionList'
+import NavHeader from '@/components/Global/NavHeader'
+import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
 
+export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
     recipient: string[]
-    flow?: 'request_pay' | 'add_money' | 'direct_pay' | 'withdraw'
+    flow?: PaymentFlow
 }
 
 export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) {
     const isDirectPay = flow === 'direct_pay'
-    const isAddMoneyFlow = flow === 'add_money'
+    const isExternalWalletFlow = flow === 'external_wallet'
     const dispatch = useAppDispatch()
-    const { currentView, parsedPaymentData, chargeDetails, paymentDetails, usdAmount } = usePaymentStore()
+    const { currentView, parsedPaymentData, chargeDetails, paymentDetails, usdAmount, isDaimoPaymentProcessing } =
+        usePaymentStore()
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
     const [isRequestDetailsFetching, setIsRequestDetailsFetching] = useState(false)
@@ -53,6 +61,19 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const [currencyAmount, setCurrencyAmount] = useState<string>('')
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
+    const { showExternalWalletFulfilMethods, showRequestFulfilmentBankFlowManager } = useRequestFulfillmentFlow()
+
+    // determine if the current user is the recipient of the transaction
+    const isCurrentUserRecipient = chargeDetails?.requestLink.recipientAccount?.userId === user?.user.userId
+
+    // determine the counterparty of the transaction
+    const payer = chargeDetails?.payments && chargeDetails?.payments.length > 0 ? chargeDetails.payments[0] : null
+    const counterpartyUserId = isCurrentUserRecipient
+        ? payer?.payerAccount?.userId
+        : chargeDetails?.requestLink.recipientAccount?.userId
+
+    // fetch interactions for the counterparty
+    const { interactions } = useUserInteractions(counterpartyUserId ? [counterpartyUserId] : [])
 
     const isMountedRef = useRef(true)
 
@@ -131,7 +152,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     !chargeId &&
                     !requestId &&
                     !isDirectPay &&
-                    !isAddMoneyFlow
+                    !isExternalWalletFlow
                 ) {
                     dispatch(paymentActions.setView('PUBLIC_PROFILE'))
                 } else {
@@ -274,24 +295,37 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
 
         const recipientAccount = chargeDetails.requestLink.recipientAccount
         const isCurrentUser = recipientAccount?.userId === user?.user.userId
+
         if (status === 'pending' && !isCurrentUser) {
             return null
         }
 
+        const payerAccount =
+            chargeDetails.payments && chargeDetails.payments.length > 0 ? chargeDetails.payments[0].payerAccount : null
+
+        // determine who the counterparty is.
+        // if the current user is the recipient of the funds, the counterparty is the one who paid.
+        // otherwise, the counterparty is the one who will receive the funds.
+        const counterparty = isCurrentUser ? payerAccount : recipientAccount
+
         const username =
-            recipientAccount?.user?.username ||
-            recipientAccount?.identifier ||
-            chargeDetails.requestLink.recipientAddress
+            counterparty?.user?.username ||
+            counterparty?.identifier ||
+            (isCurrentUser && chargeDetails.payments.length > 0
+                ? chargeDetails.payments[0].payerAddress
+                : chargeDetails.requestLink.recipientAddress)
+
         const originalUserRole = isCurrentUser ? EHistoryUserRole.RECIPIENT : EHistoryUserRole.SENDER
         let details: Partial<TransactionDetails> = {
             id: chargeDetails.uuid,
             status,
             amount: Number(chargeDetails.tokenAmount),
-            date: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
+            createdAt: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
             tokenSymbol: chargeDetails.tokenSymbol,
             initials: getInitialsFromName(username ?? ''),
             memo: chargeDetails.requestLink.reference ?? undefined,
             attachmentUrl: chargeDetails.requestLink.attachmentUrl ?? undefined,
+            completedAt: status === 'completed' ? new Date(chargeDetails.timeline[0].time) : undefined,
             cancelledDate: status === 'cancelled' ? new Date(chargeDetails.timeline[0].time) : undefined,
             extraDataForDrawer: {
                 isLinkTransaction: originalUserRole === EHistoryUserRole.SENDER && isCurrentUser,
@@ -305,9 +339,11 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 amountDisplay: '$ 0.00',
             },
             currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
+            isVerified: counterparty?.user?.kycStatus === 'approved',
+            haveSentMoneyToUser: counterparty?.userId ? interactions[counterparty.userId] || false : false,
         }
 
-        if (isAddMoneyFlow) {
+        if (isExternalWalletFlow) {
             details.extraDataForDrawer = {
                 isLinkTransaction: false,
                 originalType: EHistoryEntryType.DEPOSIT,
@@ -319,13 +355,21 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
 
         return details as TransactionDetails
-    }, [chargeDetails, user?.user.userId, isAddMoneyFlow, user?.user.username, usdAmount, paymentDetails])
+    }, [
+        chargeDetails,
+        user?.user.userId,
+        isExternalWalletFlow,
+        user?.user.username,
+        usdAmount,
+        paymentDetails,
+        interactions,
+    ])
 
     useEffect(() => {
         if (!transactionForDrawer) return
 
         // if add money flow and in initial or confirm view, don't auto set status
-        if (isAddMoneyFlow && (currentView === 'INITIAL' || currentView === 'CONFIRM') && !chargeId) {
+        if (isExternalWalletFlow && (currentView === 'INITIAL' || currentView === 'CONFIRM') && !chargeId) {
             return
         }
 
@@ -335,10 +379,10 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
 
         // only open transaction details drawer if not add money flow
-        if (!isAddMoneyFlow) {
+        if (!isExternalWalletFlow) {
             openTransactionDetails(transactionForDrawer)
         }
-    }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isAddMoneyFlow, chargeId])
+    }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
 
     if (error) {
         return (
@@ -348,8 +392,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         )
     }
 
-    // show loading until URL is parsed and req/charge data is loaded
-    const isLoading = !isUrlParsed || (chargeId && !chargeDetails) || isRequestDetailsFetching
+    // show loading until URL is parsed and req/charge data is loaded or daimo payment is processing
+    const isLoading =
+        !isUrlParsed || (chargeId && !chargeDetails) || isRequestDetailsFetching || isDaimoPaymentProcessing
 
     if (isLoading) {
         return (
@@ -359,11 +404,21 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         )
     }
 
+    // render external wallet fulfilment methods
+    if (showExternalWalletFulfilMethods) {
+        return <ExternalWalletFulfilManager parsedPaymentData={parsedPaymentData as ParsedURL} />
+    }
+
+    // render request fulfilment bank flow manager
+    if (showRequestFulfilmentBankFlowManager) {
+        return <ReqFulfillBankFlowManager parsedPaymentData={parsedPaymentData as ParsedURL} />
+    }
+
     // render PUBLIC_PROFILE view
     if (
         currentView === 'PUBLIC_PROFILE' &&
         parsedPaymentData?.recipient?.recipientType === 'USERNAME' &&
-        !isAddMoneyFlow
+        !isExternalWalletFlow
     ) {
         const username = parsedPaymentData.recipient.identifier
         const handleSendClick = () => {
@@ -371,12 +426,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
         return (
             <div className={twMerge('mx-auto h-full w-full space-y-8 self-start')}>
-                <PublicProfile
-                    username={username}
-                    isVerified={user?.user.bridgeKycStatus === 'approved'}
-                    isLoggedIn={!!user}
-                    onSendClick={handleSendClick}
-                />
+                <PublicProfile username={username} isLoggedIn={!!user} onSendClick={handleSendClick} />
             </div>
         )
     }
@@ -406,30 +456,42 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 </div>
             )}
             {currentView === 'INITIAL' && (
-                <InitialPaymentView
-                    key={`initial-${flow}`}
-                    {...(parsedPaymentData as ParsedURL)}
-                    isAddMoneyFlow={isAddMoneyFlow}
-                    isDirectUsdPayment={isDirectPay}
-                    currency={
-                        currencyCode
-                            ? {
-                                  code: currencyCode,
-                                  symbol: currencySymbol!,
-                                  price: currencyPrice!,
-                              }
-                            : undefined
-                    }
-                    setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
-                    currencyAmount={currencyAmount}
-                />
+                <div className="space-y-2">
+                    <InitialPaymentView
+                        flow={flow}
+                        key={`initial-${flow}`}
+                        {...(parsedPaymentData as ParsedURL)}
+                        isExternalWalletFlow={isExternalWalletFlow}
+                        isDirectUsdPayment={isDirectPay}
+                        currency={
+                            currencyCode
+                                ? {
+                                      code: currencyCode,
+                                      symbol: currencySymbol!,
+                                      price: currencyPrice!,
+                                  }
+                                : undefined
+                        }
+                        setCurrencyAmount={(value: string | undefined) => setCurrencyAmount(value || '')}
+                        currencyAmount={currencyAmount}
+                    />
+                    <div>
+                        {flow !== 'direct_pay' && (
+                            <ActionList
+                                flow="request"
+                                requestLinkData={parsedPaymentData as ParsedURL}
+                                isLoggedIn={!!user?.user.userId}
+                            />
+                        )}
+                    </div>
+                </div>
             )}
             {currentView === 'CONFIRM' && (
                 <ConfirmPaymentView
                     key={`confirm-${flow}`}
                     isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
                     currencyAmount={currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined}
-                    isAddMoneyFlow={isAddMoneyFlow}
+                    isExternalWalletFlow={isExternalWalletFlow}
                     isDirectUsdPayment={isDirectPay}
                 />
             )}
@@ -438,23 +500,27 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     {parsedPaymentData?.token?.symbol === 'PNT' ? (
                         <PintaReqPaySuccessView />
                     ) : isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
-                        <TransactionDetailsReceipt
-                            transaction={selectedTransaction}
-                            onClose={fetchChargeDetails}
-                            setIsLoading={setisLinkCancelling}
-                            isLoading={isLinkCancelling}
-                        />
+                        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+                            <NavHeader disableBackBtn={!user?.user.userId} title="Receipt" />
+                            <TransactionDetailsReceipt
+                                className="my-auto flex h-full flex-col justify-center space-y-4"
+                                transaction={selectedTransaction}
+                                onClose={fetchChargeDetails}
+                                setIsLoading={setisLinkCancelling}
+                                isLoading={isLinkCancelling}
+                            />
+                        </div>
                     ) : (
                         <DirectSuccessView
                             key={`success-${flow}`}
-                            headerTitle={isAddMoneyFlow ? 'Add Money' : 'Send'}
+                            headerTitle={isExternalWalletFlow ? 'Add Money' : 'Send'}
                             recipientType={parsedPaymentData?.recipient?.recipientType}
                             type="SEND"
                             currencyAmount={
                                 currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
                             }
-                            isAddMoneyFlow={isAddMoneyFlow}
-                            redirectTo={isAddMoneyFlow ? '/add-money' : '/send'}
+                            isExternalWalletFlow={isExternalWalletFlow}
+                            redirectTo={isExternalWalletFlow ? '/add-money' : '/send'}
                         />
                     )}
                 </>

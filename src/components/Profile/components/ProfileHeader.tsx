@@ -4,10 +4,12 @@ import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import AvatarWithBadge from '../AvatarWithBadge'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
+import { VerifiedUserLabel } from '@/components/UserHeader'
+import { useAuth } from '@/context/authContext'
 
 interface ProfileHeaderProps {
     name: string
@@ -15,6 +17,7 @@ interface ProfileHeaderProps {
     isVerified?: boolean
     className?: string
     showShareButton?: boolean
+    haveSentMoneyToUser?: boolean
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -23,21 +26,31 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     isVerified = false,
     className,
     showShareButton = true,
+    haveSentMoneyToUser = false,
 }) => {
+    const { user: authenticatedUser } = useAuth()
+    const isAuthenticatedUserVerified = authenticatedUser?.user.kycStatus === 'approved'
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-    const contentRef = useRef<HTMLDivElement>(null)
 
     const profileUrl = `${BASE_URL}/${username}`
+
+    console.log('isVerified', isVerified)
 
     return (
         <>
             <div className={twMerge('flex flex-col items-center space-y-2', className)}>
                 {/* Avatar with initials */}
-                <AvatarWithBadge isVerified={isVerified} name={name || username} />
+                <AvatarWithBadge name={name || username} />
 
                 {/* Name */}
-                <h1 className="mb-4 text-2xl font-bold">{name}</h1>
-
+                <VerifiedUserLabel
+                    name={name}
+                    isVerified={isVerified}
+                    className="text-2xl font-bold"
+                    iconSize={20}
+                    haveSentMoneyToUser={haveSentMoneyToUser}
+                    isAuthenticatedUserVerified={isAuthenticatedUserVerified}
+                />
                 {/* Username with share drawer */}
                 {showShareButton && (
                     <Button

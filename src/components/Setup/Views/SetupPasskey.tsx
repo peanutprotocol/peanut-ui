@@ -15,7 +15,7 @@ import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager
 
 const SetupPasskey = () => {
     const dispatch = useAppDispatch()
-    const { username } = useSetupStore()
+    const { username, telegramHandle } = useSetupStore()
     const { isLoading } = useSetupFlow()
     const { handleRegister, address } = useZeroDev()
     const { user } = useAuth()
@@ -29,6 +29,7 @@ const SetupPasskey = () => {
                 accountIdentifier: address,
                 accountType: WalletProviderType.PEANUT,
                 userId: user?.user.userId as string,
+                telegramHandle: telegramHandle.length > 0 ? telegramHandle : undefined,
             })
                 .then(() => {
                     const localStorageRedirect = getFromLocalStorage('redirect')

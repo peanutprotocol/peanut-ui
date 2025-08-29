@@ -20,7 +20,8 @@ interface PersonaEvent extends Event {
 
 interface UseKycFlowOptions {
     onKycSuccess?: () => void
-    flow?: 'add' | 'withdraw'
+    flow?: 'add' | 'withdraw' | 'request_fulfillment'
+    onManualClose?: () => void
 }
 
 export type KycHistoryEntry = {
@@ -34,7 +35,7 @@ export const isKycStatusItem = (entry: object): entry is KycHistoryEntry => {
     return 'isKyc' in entry && entry.isKyc === true
 }
 
-export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
+export const useKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFlowOptions = {}) => {
     const { user } = useUserStore()
     const router = useRouter()
     const isMounted = useRef(false)
@@ -114,7 +115,7 @@ export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
                     setError(errorMsg)
                     return { success: false, error: errorMsg }
                 }
-                return { success: true }
+                return { success: true, data: response.data }
             }
         } catch (e: any) {
             setError(e.message)
@@ -154,6 +155,8 @@ export const useKycFlow = ({ onKycSuccess, flow }: UseKycFlowOptions = {}) => {
                 setIframeOptions((prev) => ({ ...prev, visible: false }))
                 if (flow === 'add') {
                     router.push('/add-money')
+                } else if (flow === 'request_fulfillment') {
+                    onManualClose?.()
                 }
                 return
             }

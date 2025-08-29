@@ -2,8 +2,17 @@
 
 import { cookies } from 'next/headers'
 import { fetchWithSentry } from '@/utils'
+import { CountryData } from '@/components/AddMoney/consts'
+import { getCurrencyConfig } from '@/utils/onramp.utils'
 
 const API_KEY = process.env.PEANUT_API_KEY!
+
+export interface CreateOnrampGuestParams {
+    amount: string
+    country: CountryData
+    userId: string
+    chargeId?: string
+}
 
 /**
  * Server Action to cancel an on-ramp transfer.
@@ -47,6 +56,53 @@ export async function cancelOnramp(transferId: string): Promise<{ data?: { succe
         return { data: { success: true } }
     } catch (error) {
         console.error('Error calling cancel on-ramp API:', error)
+        if (error instanceof Error) {
+            return { error: error.message }
+        }
+        return { error: 'An unexpected error occurred.' }
+    }
+}
+
+export async function createOnrampForGuest(
+    params: CreateOnrampGuestParams
+): Promise<{ data?: { success: boolean }; error?: string }> {
+    const apiUrl = process.env.PEANUT_API_URL
+
+    if (!apiUrl || !API_KEY) {
+        console.error('API URL or API Key is not configured.')
+        return { error: 'Server configuration error.' }
+    }
+
+    try {
+        const { currency, paymentRail } = getCurrencyConfig(params.country.id)
+
+        const response = await fetchWithSentry(`${apiUrl}/bridge/onramp/create-for-guest`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': API_KEY,
+            },
+            body: JSON.stringify({
+                amount: params.amount,
+                userId: params.userId,
+                chargeId: params.chargeId,
+                source: {
+                    currency,
+                    paymentRail,
+                },
+            }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+            console.log('error', response)
+            return { error: data.error || 'Failed to create on-ramp transfer for guest.' }
+        }
+
+        return { data }
+    } catch (error) {
+        console.error('Error calling create on-ramp for guest API:', error)
         if (error instanceof Error) {
             return { error: error.message }
         }
