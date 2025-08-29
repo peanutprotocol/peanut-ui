@@ -227,7 +227,6 @@ export default function WithdrawCryptoPage() {
 
         if (result.success && result.txHash) {
             setCurrentView('STATUS')
-            resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
         } else {
             console.error('Withdrawal execution failed:', result.error)
             const errMsg = result.error || 'Withdrawal processing failed.'
@@ -284,6 +283,7 @@ export default function WithdrawCryptoPage() {
         return () => {
             resetWithdrawFlow()
             resetPaymentInitiator()
+            resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
         }
     }, [resetWithdrawFlow, resetPaymentInitiator])
 
