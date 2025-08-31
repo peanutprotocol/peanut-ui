@@ -6,7 +6,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType } from '@/app/actions/types/users.types'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { countryCodeMap } from '@/components/AddMoney/consts'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-accounts.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
@@ -64,9 +64,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const [showBicField, setShowBicField] = useState(false)
         const { country: countryNameParams } = useParams()
-        const { amountToWithdraw } = useWithdrawFlow()
+        const { amountToWithdraw, setSelectedBankAccount } = useWithdrawFlow()
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
         const lastName = lastNameParts.join(' ')
+        const router = useRouter()
 
         let selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
 
@@ -101,7 +102,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
         // Clear submission error when form becomes valid and BIC field is filled (if shown)
         useEffect(() => {
-            if (submissionError && isValid && (!showBicField || getValues('bic'))) {
+            if (submissionError?.includes('BIC is required') && isValid && (!showBicField || getValues('bic'))) {
                 setSubmissionError(null)
             }
         }, [isValid, submissionError, showBicField, getValues])
@@ -120,6 +121,17 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
             setIsSubmitting(true)
             try {
+                const existingAccount = user?.accounts.find(
+                    (account) => account.identifier === (data.accountNumber.toLowerCase() || data.clabe.toLowerCase())
+                )
+
+                // Skip adding account if the account already exists for the logged in user
+                if (existingAccount) {
+                    setSelectedBankAccount(existingAccount)
+                    router.push(`/withdraw/${country}/bank`)
+                    return
+                }
+
                 const isUs = country.toUpperCase() === 'USA'
                 const isMx = country.toUpperCase() === 'MX'
                 const isIban = isUs || isMx ? false : isIBANCountry(country)
@@ -203,6 +215,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     name: data.name,
                 })
                 if (result.error) {
+                    console.log(result)
                     setSubmissionError(result.error)
                     setIsSubmitting(false)
                 }
@@ -260,6 +273,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const countryCodeForFlag = useMemo(() => {
             return countryCodeMap[country.toUpperCase()] ?? country.toUpperCase()
         }, [country])
+
+        console.log(submissionError)
 
         return (
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
