@@ -1,11 +1,6 @@
 'use client'
 
-import {
-    COUNTRY_SPECIFIC_METHODS,
-    countryCodeMap,
-    countryData,
-    SpecificPaymentMethod,
-} from '@/components/AddMoney/consts'
+import { COUNTRY_SPECIFIC_METHODS, countryData, SpecificPaymentMethod } from '@/components/AddMoney/consts'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
