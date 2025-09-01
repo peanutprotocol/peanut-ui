@@ -40,6 +40,7 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
+import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -50,6 +51,7 @@ export default function Home() {
     const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
+    const { deviceType } = useDeviceType()
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
         return prefs?.balanceHidden ?? false
@@ -89,6 +91,7 @@ export default function Home() {
     }, [resetClaimBankFlow, resetWithdrawFlow])
 
     useEffect(() => {
+        if (isFetchingUser) return
         // We have some users that didn't have the peanut wallet created
         // correctly, so we need to create it
         if (address && user && !user.accounts.some((a) => a.type === AccountType.PEANUT_WALLET)) {
@@ -98,7 +101,7 @@ export default function Home() {
                 userId: user.user.userId,
             })
         }
-    }, [user, address, addAccount])
+    }, [user, address, isFetchingUser])
 
     // always reset external wallet connection on home page
     useEffect(() => {
@@ -110,9 +113,7 @@ export default function Home() {
     // effect for showing iOS PWA Install modal
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const isIOS =
-                /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+            const isIOS = deviceType === DeviceType.IOS
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
             const hasSeenModalThisSession = sessionStorage.getItem('hasSeenIOSPWAPromptThisSession')
             const redirectUrl = getFromLocalStorage('redirect')
@@ -131,7 +132,7 @@ export default function Home() {
                 setShowIOSPWAInstallModal(false)
             }
         }
-    }, [user?.hasPwaInstalled, isPostSignupActionModalVisible])
+    }, [user?.hasPwaInstalled, isPostSignupActionModalVisible, deviceType])
 
     // effect for showing balance warning modal
     useEffect(() => {
