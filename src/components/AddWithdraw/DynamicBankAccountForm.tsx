@@ -14,6 +14,7 @@ import PeanutActionDetailsCard, { PeanutActionDetailsCardProps } from '../Global
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { getCountryFromIban, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
+import { useDebounce } from '@/hooks/useDebounce'
 
 const isIBANCountry = (country: string) => {
     return countryCodeMap[country.toUpperCase()] !== undefined
@@ -67,6 +68,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const { amountToWithdraw } = useWithdrawFlow()
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
         const lastName = lastNameParts.join(' ')
+        const [isCheckingBICValid, setisCheckingBICValid] = useState(false)
 
         let selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
 
@@ -75,6 +77,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             handleSubmit,
             setValue,
             getValues,
+            watch,
             formState: { errors, isValid, isValidating, touchedFields },
         } = useForm<IBankAccountDetails>({
             defaultValues: {
@@ -95,6 +98,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             reValidateMode: 'onSubmit',
         })
 
+        // Watch BIC field value for debouncing
+        const bicValue = watch('bic')
+        const debouncedBicValue = useDebounce(bicValue, 500) // 500ms delay
+
         useImperativeHandle(ref, () => ({
             handleSubmit: handleSubmit(onSubmit),
         }))
@@ -105,6 +112,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 setSubmissionError(null)
             }
         }, [isValid, submissionError, showBicField, getValues])
+
+        // Trigger BIC validation when debounced value changes
+        useEffect(() => {
+            if (showBicField && debouncedBicValue && debouncedBicValue.trim().length > 0) {
+                // Trigger validation for the BIC field
+                setValue('bic', debouncedBicValue, { shouldValidate: true })
+            }
+        }, [debouncedBicValue, showBicField, setValue])
 
         const onSubmit = async (data: IBankAccountDetails) => {
             // If validation is still running, don't proceed
@@ -364,7 +379,15 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     required: 'BIC is required',
                                     validate: async (value: string) => {
                                         if (!value || value.trim().length === 0) return 'BIC is required'
+
+                                        // Only validate if the value matches the debounced value (to prevent API calls on every keystroke)
+                                        if (value.trim() !== debouncedBicValue?.trim()) {
+                                            return true // Skip validation until debounced value is ready
+                                        }
+
+                                        setisCheckingBICValid(true)
                                         const isValid = await validateBic(value.trim())
+                                        setisCheckingBICValid(false)
                                         return isValid || 'Invalid BIC code'
                                     },
                                 },
@@ -403,8 +426,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             variant="purple"
                             shadowSize="4"
                             className="!mt-4 w-full"
-                            loading={isSubmitting}
-                            disabled={isSubmitting || !isValid}
+                            loading={isSubmitting || isCheckingBICValid}
+                            disabled={isSubmitting || !isValid || isCheckingBICValid}
                         >
                             Review
                         </Button>
