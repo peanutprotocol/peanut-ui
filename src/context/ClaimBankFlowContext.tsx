@@ -5,7 +5,7 @@ import { CountryData } from '../components/AddMoney/consts'
 import { TCreateOfframpResponse } from '@/services/services.types'
 import { Account, User } from '@/interfaces'
 import { IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
-import { KYCStatus } from '@/utils/bridge-accounts.utils'
+import { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 
 export enum ClaimBankFlowStep {
     SavedAccountsList = 'saved-accounts-list',
@@ -38,8 +38,8 @@ interface ClaimBankFlowContextType {
     setSavedAccounts: (accounts: Account[]) => void
     selectedBankAccount: Account | null
     setSelectedBankAccount: (account: Account | null) => void
-    senderKycStatus?: KYCStatus
-    setSenderKycStatus: (status?: KYCStatus) => void
+    senderKycStatus?: BridgeKycStatus
+    setSenderKycStatus: (status?: BridgeKycStatus) => void
     justCompletedKyc: boolean
     setJustCompletedKyc: (status: boolean) => void
 }
@@ -58,7 +58,7 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
     const [bankDetails, setBankDetails] = useState<IBankAccountDetails | null>(null)
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
-    const [senderKycStatus, setSenderKycStatus] = useState<KYCStatus | undefined>()
+    const [senderKycStatus, setSenderKycStatus] = useState<BridgeKycStatus | undefined>()
     const [justCompletedKyc, setJustCompletedKyc] = useState(false)
 
     const resetFlow = useCallback(() => {

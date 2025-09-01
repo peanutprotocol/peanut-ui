@@ -65,10 +65,14 @@ const HistoryPage = () => {
     const combinedAndSortedEntries = useMemo(() => {
         const entries: Array<any> = [...allEntries]
 
-        if (user?.user?.kycStatus && user.user.kycStatus !== 'not_started' && user.user.kycStartedAt) {
+        if (
+            user?.user?.bridgeKycStatus &&
+            user.user.bridgeKycStatus !== 'not_started' &&
+            user.user.bridgeKycStartedAt
+        ) {
             entries.push({
                 isKyc: true,
-                timestamp: user.user.kycStartedAt,
+                timestamp: user.user.bridgeKycStartedAt,
                 uuid: 'kyc-status-item',
             })
         }
