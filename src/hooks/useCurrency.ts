@@ -4,6 +4,8 @@ import { getCurrencyPrice } from '@/app/actions/currency'
 const SIMBOLS_BY_CURRENCY_CODE: Record<string, string> = {
     ARS: 'AR$',
     USD: '$',
+    EUR: '€',
+    MXN: 'MX$',
 }
 
 export const useCurrency = (currencyCode: string | null) => {
@@ -20,8 +22,7 @@ export const useCurrency = (currencyCode: string | null) => {
             return
         }
 
-        // First iterations only pesos
-        if (code !== 'ARS') {
+        if (!Object.keys(SIMBOLS_BY_CURRENCY_CODE).includes(code)) {
             setCode(null)
             return
         }

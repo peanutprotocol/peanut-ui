@@ -33,14 +33,6 @@ export const getCurrencyConfig = (countryId: string, operationType: BridgeOperat
 }
 
 /**
- * Legacy function for backwards compatibility with existing onramp code
- * @deprecated Use getCurrencyConfig with operationType parameter instead
- */
-export const getOnrampCurrencyConfig = (countryId: string): CurrencyConfig => {
-    return getCurrencyConfig(countryId, 'onramp')
-}
-
-/**
  * Get currency configuration specifically for offramp operations
  */
 export const getOfframpCurrencyConfig = (countryId: string): CurrencyConfig => {
