@@ -1,5 +1,5 @@
 'use client'
-import { forwardRef, useImperativeHandle, useMemo, useState, useEffect } from 'react'
+import { forwardRef, useImperativeHandle, useMemo, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -133,7 +133,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 if (isIban) {
                     // if BIC field is shown but empty, don't proceed
                     if (showBicField && !bic) {
-                        setIsSubmitting(false)
                         setSubmissionError('BIC is required')
                         return
                     }
@@ -148,13 +147,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 setValue('bic', autoBic, { shouldValidate: false })
                             } else {
                                 setShowBicField(true)
-                                setIsSubmitting(false)
                                 setSubmissionError('BIC is required')
                                 return
                             }
                         } catch (error) {
                             setShowBicField(true)
-                            setIsSubmitting(false)
                             setSubmissionError('BIC is required')
                             return
                         }
@@ -197,10 +194,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 })
                 if (result.error) {
                     setSubmissionError(result.error)
-                    setIsSubmitting(false)
                 }
             } catch (error: any) {
                 setSubmissionError(error.message)
+            } finally {
                 setIsSubmitting(false)
             }
         }
