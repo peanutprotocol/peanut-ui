@@ -13,7 +13,7 @@ import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { formatAmount } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import type { Hex, Address } from 'viem'
 import { erc20Abi, formatUnits, parseUnits, encodeFunctionData, getAddress } from 'viem'
 import { useZeroDev } from '../useZeroDev'
@@ -24,6 +24,7 @@ export const useWallet = () => {
     const [isFetchingBalance, setIsFetchingBalance] = useState(true)
     const [isFetchingRewardBalance, setIsFetchingRewardBalance] = useState(true)
     const { balance } = useWalletStore()
+    const eventListenerRef = useRef<(() => void) | null>(null)
 
     const sendMoney = useCallback(
         async (toAddress: Address, amountInUsd: string) => {
@@ -103,11 +104,74 @@ export const useWallet = () => {
             })
     }, [address, dispatch])
 
+    // Set up real-time balance monitoring via contract events
+    const setupBalanceMonitoring = useCallback(() => {
+        if (!address) return
+
+        // Clean up previous event listener
+        eventListenerRef.current?.()
+
+        try {
+            // Create two separate watchers for incoming and outgoing transfers
+            // Watch for incoming transfers (to: address)
+            const watchIncoming = peanutPublicClient.watchContractEvent({
+                address: PEANUT_WALLET_TOKEN,
+                abi: erc20Abi,
+                eventName: 'Transfer',
+                args: {
+                    to: address as `0x${string}`,
+                },
+                onLogs: () => {
+                    fetchBalance()
+                },
+                onError: (error) => {
+                    console.error('Contract event listener error (incoming):', error)
+                    setTimeout(() => setupBalanceMonitoring(), 5000)
+                },
+            })
+
+            // Watch for outgoing transfers (from: address)
+            const watchOutgoing = peanutPublicClient.watchContractEvent({
+                address: PEANUT_WALLET_TOKEN,
+                abi: erc20Abi,
+                eventName: 'Transfer',
+                args: {
+                    from: address as `0x${string}`,
+                },
+                onLogs: () => {
+                    fetchBalance()
+                },
+                onError: (error) => {
+                    console.error('Contract event listener error (outgoing):', error)
+                    setTimeout(() => setupBalanceMonitoring(), 5000)
+                },
+            })
+
+            // Store cleanup function that cleans up both watchers
+            eventListenerRef.current = () => {
+                watchIncoming()
+                watchOutgoing()
+            }
+        } catch (error) {
+            console.error('Failed to setup balance monitoring:', error)
+        }
+    }, [address, fetchBalance])
+
     useEffect(() => {
         if (!address) return
+
+        // Initial balance fetch
         fetchBalance()
         getRewardWalletBalance()
-    }, [address, fetchBalance, getRewardWalletBalance])
+
+        // Setup real-time monitoring
+        setupBalanceMonitoring()
+
+        // Cleanup on unmount or address change
+        return () => {
+            eventListenerRef.current?.()
+        }
+    }, [address, fetchBalance, getRewardWalletBalance, setupBalanceMonitoring])
 
     return {
         address: address!,
