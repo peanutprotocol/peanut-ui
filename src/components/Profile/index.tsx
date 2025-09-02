@@ -57,12 +57,12 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="shield"
                             label="Identity Verification"
-                            href="/profile/indentity-verification"
+                            href="/profile/identity-verification"
                             onClick={() => {
                                 if (isKycApproved) {
                                     setIsKycApprovedModalOpen(true)
                                 } else {
-                                    router.push('/profile/indentity-verification')
+                                    router.push('/profile/identity-verification')
                                 }
                             }}
                             position="middle"

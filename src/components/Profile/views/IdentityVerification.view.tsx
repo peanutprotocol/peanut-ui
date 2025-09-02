@@ -24,6 +24,8 @@ const IdentityVerificationView = () => {
         handleIframeClose,
         isVerificationProgressModalOpen,
         closeVerificationProgressModal,
+        error: kycError,
+        isLoading: isKycLoading,
     } = useKycFlow()
 
     const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
@@ -78,17 +80,17 @@ const IdentityVerificationView = () => {
 
                 <Button
                     onClick={() => formRef.current?.handleSubmit()}
-                    loading={isUpdatingUser}
+                    loading={isUpdatingUser || isKycLoading}
                     variant="purple"
                     shadowSize="4"
                     className="mt-3 w-full"
-                    disabled={!isUserDetailsFormValid || isUpdatingUser}
+                    disabled={!isUserDetailsFormValid || isUpdatingUser || isKycLoading}
                     icon="check-circle"
                 >
                     Verify now
                 </Button>
 
-                {userUpdateError && <ErrorAlert description={userUpdateError} />}
+                {(userUpdateError || kycError) && <ErrorAlert description={userUpdateError ?? kycError ?? ''} />}
 
                 <IframeWrapper {...iframeOptions} onClose={handleIframeClose} />
 
