@@ -25,6 +25,8 @@ export const useWallet = () => {
     const [isFetchingRewardBalance, setIsFetchingRewardBalance] = useState(true)
     const { balance } = useWalletStore()
     const eventListenerRef = useRef<(() => void) | null>(null)
+    const retryTimerRef = useRef<NodeJS.Timeout | null>(null)
+    const TIMEOUT_INTERVAL = 2000
 
     const sendMoney = useCallback(
         async (toAddress: Address, amountInUsd: string) => {
@@ -108,8 +110,12 @@ export const useWallet = () => {
     const setupBalanceMonitoring = useCallback(() => {
         if (!address) return
 
-        // Clean up previous event listener
+        // Clean up previous event listener and retry timer
         eventListenerRef.current?.()
+        if (retryTimerRef.current) {
+            clearTimeout(retryTimerRef.current)
+            retryTimerRef.current = null
+        }
 
         try {
             // Create two separate watchers for incoming and outgoing transfers
@@ -126,7 +132,10 @@ export const useWallet = () => {
                 },
                 onError: (error) => {
                     console.error('Contract event listener error (incoming):', error)
-                    setTimeout(() => setupBalanceMonitoring(), 5000)
+                    if (retryTimerRef.current) {
+                        clearTimeout(retryTimerRef.current)
+                    }
+                    retryTimerRef.current = setTimeout(() => setupBalanceMonitoring(), TIMEOUT_INTERVAL)
                 },
             })
 
@@ -143,7 +152,10 @@ export const useWallet = () => {
                 },
                 onError: (error) => {
                     console.error('Contract event listener error (outgoing):', error)
-                    setTimeout(() => setupBalanceMonitoring(), 5000)
+                    if (retryTimerRef.current) {
+                        clearTimeout(retryTimerRef.current)
+                    }
+                    retryTimerRef.current = setTimeout(() => setupBalanceMonitoring(), TIMEOUT_INTERVAL)
                 },
             })
 
@@ -170,6 +182,10 @@ export const useWallet = () => {
         // Cleanup on unmount or address change
         return () => {
             eventListenerRef.current?.()
+            if (retryTimerRef.current) {
+                clearTimeout(retryTimerRef.current)
+                retryTimerRef.current = null
+            }
         }
     }, [address, fetchBalance, getRewardWalletBalance, setupBalanceMonitoring])
 
