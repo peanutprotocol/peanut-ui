@@ -65,12 +65,18 @@ export const chargesApi = {
         hash,
         tokenAddress,
         payerAddress,
+        sourceChainId,
+        sourceTokenAddress,
+        sourceTokenSymbol,
     }: {
         chargeId: string
         chainId: string
         hash: string
         tokenAddress: string
         payerAddress: string
+        sourceChainId?: string
+        sourceTokenAddress?: string
+        sourceTokenSymbol?: string
     }): Promise<PaymentCreationResponse> => {
         const response = await fetchWithSentry(`/api/proxy/charges/${chargeId}/payments`, {
             method: 'POST',
@@ -82,6 +88,9 @@ export const chargesApi = {
                 hash,
                 tokenAddress,
                 payerAddress,
+                sourceChainId,
+                sourceTokenAddress,
+                sourceTokenSymbol,
             }),
         })
 

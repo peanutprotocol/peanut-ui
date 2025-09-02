@@ -26,6 +26,7 @@ export type TransactionType =
     | 'bank_deposit'
     | 'bank_request_fulfillment'
     | 'claim_external'
+    | 'bank_claim'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -235,6 +236,7 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
         case 'bank_withdraw':
         case 'cashout':
         case 'claim_external':
+        case 'bank_claim':
             iconName = 'arrow-up'
             iconSize = 8
             break
@@ -258,6 +260,7 @@ function getActionText(type: TransactionType): string {
         case 'bank_withdraw':
             actionText = 'Withdraw'
             break
+        case 'bank_claim':
         case 'claim_external':
             actionText = 'Claim'
             break
