@@ -18,11 +18,11 @@ jobs:
               with:
                   version: 10
 
-            - name: Check formatting
-              run: pnpm prettier --check .
-
             - name: Install Dependencies
               run: pnpm install
+
+            - name: Check formatting
+              run: pnpm prettier --check .
 
             - name: Run Tests
               run: pnpm test
