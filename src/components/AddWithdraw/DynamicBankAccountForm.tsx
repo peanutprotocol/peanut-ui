@@ -221,6 +221,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         lastName: data.lastName.trim(),
                     }
                     dispatch(bankFormActions.setFormData(formDataToSave))
+                    setIsSubmitting(false)
                 }
             } catch (error: any) {
                 setSubmissionError(error.message)

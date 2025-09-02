@@ -12,7 +12,7 @@ const bankFormSlice = createSlice({
     initialState,
     reducers: {
         setFormData(state, action: PayloadAction<Partial<IBankAccountDetails>>) {
-            state.formData = { ...state.formData, ...action.payload }
+            state.formData = { ...(state.formData ?? {}), ...action.payload }
         },
         updateFormField(
             state,
