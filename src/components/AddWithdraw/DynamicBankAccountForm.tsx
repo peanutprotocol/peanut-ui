@@ -206,7 +206,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     setSubmissionError(result.error)
                     setIsSubmitting(false)
                 } else {
-                    // Save form data to Redux before submission
+                    // Save form data to Redux after successful submission
                     const formDataToSave = {
                         ...data,
                         country,
