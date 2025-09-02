@@ -60,10 +60,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         },
         ref
     ) => {
+        const isMx = country.toUpperCase() === 'MX'
+        const isUs = country.toUpperCase() === 'USA' || country.toUpperCase() === 'US'
+        const isIban = isUs || isMx ? false : isIBANCountry(country)
         const { user } = useAuth()
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
-        const [showBicField, setShowBicField] = useState(false)
         const { country: countryNameParams } = useParams()
         const { amountToWithdraw } = useWithdrawFlow()
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
@@ -108,18 +110,18 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
         // Clear submission error when form becomes valid and BIC field is filled (if shown)
         useEffect(() => {
-            if (submissionError && isValid && (!showBicField || getValues('bic'))) {
+            if (submissionError && isValid && (!isIban || getValues('bic'))) {
                 setSubmissionError(null)
             }
-        }, [isValid, submissionError, showBicField, getValues])
+        }, [isValid, submissionError, isIban, getValues])
 
         // Trigger BIC validation when debounced value changes
         useEffect(() => {
-            if (showBicField && debouncedBicValue && debouncedBicValue.trim().length > 0) {
+            if (isIban && debouncedBicValue && debouncedBicValue.trim().length > 0) {
                 // Trigger validation for the BIC field
                 setValue('bic', debouncedBicValue, { shouldValidate: true })
             }
-        }, [debouncedBicValue, showBicField, setValue])
+        }, [debouncedBicValue, isIban, setValue])
 
         const onSubmit = async (data: IBankAccountDetails) => {
             // If validation is still running, don't proceed
@@ -150,35 +152,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 const { firstName, lastName } = data
                 let bic = data.bic || getValues('bic')
                 const iban = data.iban || getValues('iban')
-
-                // for IBAN countries, ensure BIC is available
-                if (isIban) {
-                    // if BIC field is shown but empty, don't proceed
-                    if (showBicField && !bic) {
-                        setSubmissionError('BIC is required')
-                        return
-                    }
-
-                    // if BIC field is not shown and no BIC available, try to get it automatically
-                    if (!showBicField && !bic) {
-                        try {
-                            const autoBic = await getBicFromIban(accountNumber)
-                            if (autoBic) {
-                                bic = autoBic
-                                // set the BIC value in the form without showing the field
-                                setValue('bic', autoBic, { shouldValidate: false })
-                            } else {
-                                setShowBicField(true)
-                                setSubmissionError('BIC is required')
-                                return
-                            }
-                        } catch (error) {
-                            setShowBicField(true)
-                            setSubmissionError('BIC is required')
-                            return
-                        }
-                    }
-                }
 
                 const payload: Partial<AddBankAccountPayload> = {
                     accountType,
@@ -223,10 +196,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 setIsSubmitting(false)
             }
         }
-
-        const isMx = country.toUpperCase() === 'MX'
-        const isUs = country.toUpperCase() === 'USA'
-        const isIban = isUs || isMx ? false : isIBANCountry(country)
 
         const renderInput = (
             name: keyof IBankAccountDetails,
@@ -354,6 +323,17 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     undefined,
                                     async (field) => {
                                         if (!field.value || field.value.trim().length === 0) return
+                                        const isValidIban = await validateIban(field.value)
+                                        if (isValidIban) {
+                                            try {
+                                                const autoBic = await getBicFromIban(field.value)
+                                                if (autoBic) {
+                                                    setValue('bic', autoBic)
+                                                }
+                                            } catch (e) {
+                                                console.log('Could not fetch BIC automatically.')
+                                            }
+                                        }
                                     }
                                 )
                               : renderInput(
@@ -368,7 +348,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 )}
 
                         {isIban &&
-                            showBicField &&
                             renderInput(
                                 'bic',
                                 'BIC',
