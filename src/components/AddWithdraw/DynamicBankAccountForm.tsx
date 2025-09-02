@@ -14,6 +14,7 @@ import PeanutActionDetailsCard, { PeanutActionDetailsCardProps } from '../Global
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { getCountryFromIban, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
+import useSavedAccounts from '@/hooks/useSavedAccounts'
 
 const isIBANCountry = (country: string) => {
     return countryCodeMap[country.toUpperCase()] !== undefined
@@ -68,6 +69,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
         const lastName = lastNameParts.join(' ')
         const router = useRouter()
+        const savedAccounts = useSavedAccounts()
 
         let selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
 
@@ -114,7 +116,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
             setIsSubmitting(true)
             try {
-                const existingAccount = user?.accounts.find(
+                const existingAccount = savedAccounts.find(
                     (account) => account.identifier === (data.accountNumber.toLowerCase() || data.clabe.toLowerCase())
                 )
 
@@ -208,7 +210,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     name: data.name,
                 })
                 if (result.error) {
-                    console.log(result)
                     setSubmissionError(result.error)
                     setIsSubmitting(false)
                 }
@@ -266,8 +267,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const countryCodeForFlag = useMemo(() => {
             return countryCodeMap[country.toUpperCase()] ?? country.toUpperCase()
         }, [country])
-
-        console.log(submissionError)
 
         return (
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
