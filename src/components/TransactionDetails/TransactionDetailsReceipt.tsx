@@ -97,7 +97,15 @@ export const TransactionDetailsReceipt = ({
         return {
             createdAt: !!transaction.createdAt,
             to: transaction.direction === 'claim_external',
-            tokenAndNetwork: !!(transaction.tokenDisplayDetails && transaction.sourceView === 'history'),
+            tokenAndNetwork: !!(
+                transaction.tokenDisplayDetails &&
+                transaction.sourceView === 'history' &&
+                // hide token and network for send links in acitvity drawer for sender
+                !(
+                    transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
+                    transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
+                )
+            ),
             txId: !!transaction.txHash,
             cancelled: !!(transaction.status === 'cancelled' && transaction.cancelledDate),
             claimed: !!(transaction.status === 'completed' && transaction.claimedAt),

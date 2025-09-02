@@ -118,6 +118,18 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
         return false
     }, [claimType, requestType, flow])
 
+    const sortedActionMethods = useMemo(() => {
+        return [...ACTION_METHODS].sort((a, b) => {
+            const aIsUnavailable = a.soon || (a.id === 'bank' && requiresVerification)
+            const bIsUnavailable = b.soon || (b.id === 'bank' && requiresVerification)
+
+            if (aIsUnavailable === bIsUnavailable) {
+                return 0
+            }
+            return aIsUnavailable ? 1 : -1
+        })
+    }, [requiresVerification])
+
     return (
         <div className="space-y-2">
             {!isLoggedIn && (
@@ -142,7 +154,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
             )}
             <Divider text="or" />
             <div className="space-y-2">
-                {ACTION_METHODS.map((method) => {
+                {sortedActionMethods.map((method) => {
                     if (flow === 'request' && method.id === 'exchange-or-wallet') {
                         return <ActionListDaimoPayButton key={method.id} />
                     }

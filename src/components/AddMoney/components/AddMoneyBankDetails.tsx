@@ -13,7 +13,7 @@ import { countryCodeMap, CountryData, countryData } from '@/components/AddMoney/
 import { formatCurrencyAmount } from '@/utils/currency'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
 import Icon from '@/components/Global/Icon'
-import { getCurrencyConfig, getCurrencySymbol, getOnrampCurrencyConfig } from '@/utils/bridge.utils'
+import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { usePaymentStore } from '@/redux/hooks'
 import { formatAmount, printableAddress } from '@/utils'
@@ -53,7 +53,7 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
     const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
 
     const currencySymbolBasedOnCountry = useMemo(() => {
-        return getCurrencySymbol(getOnrampCurrencyConfig(requestFulfilmentSelectedCountry?.id ?? 'US').currency)
+        return getCurrencySymbol(getCurrencyConfig(requestFulfilmentSelectedCountry?.id ?? 'US', 'onramp').currency)
     }, [requestFulfilmentSelectedCountry])
 
     const amountBasedOnCurrencyExchangeRate = useCallback(

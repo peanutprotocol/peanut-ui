@@ -28,6 +28,7 @@ import { InitiateKYCModal } from '@/components/Kyc'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { KYCStatus } from '@/utils/bridge-accounts.utils'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
+import { sendLinksApi } from '@/services/sendLinks'
 
 type BankAccountWithId = IBankAccountDetails &
     (
@@ -102,6 +103,16 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     address: details.depositInstructions.toAddress,
                     link: claimLinkData.link,
                 })
+                // if a user is logged in, associate the claim with their account.
+                // this helps track their activity correctly.
+                if (user && claimTx) {
+                    try {
+                        await sendLinksApi.associateClaim(claimTx)
+                    } catch (e) {
+                        Sentry.captureException(e)
+                        console.error('Failed to associate claim', e)
+                    }
+                }
                 setTransactionHash(claimTx)
                 await confirmOfframp(details.transferId, claimTx)
                 if (setClaimType) setClaimType('claim-bank')
@@ -113,7 +124,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 throw e
             }
         },
-        [claimLink, claimLinkData.link, setTransactionHash, setClaimType, onCustom]
+        [claimLink, claimLinkData.link, setTransactionHash, setClaimType, onCustom, user]
     )
 
     /**

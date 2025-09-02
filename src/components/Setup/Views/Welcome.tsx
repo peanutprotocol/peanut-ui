@@ -18,7 +18,15 @@ const WelcomeStep = () => {
     const toast = useToast()
 
     useEffect(() => {
-        if (!!user) push('/home')
+        if (!!user) {
+            const localStorageRedirect = getFromLocalStorage('redirect')
+            if (localStorageRedirect) {
+                localStorage.removeItem('redirect')
+                push(localStorageRedirect)
+            } else {
+                push('/home')
+            }
+        }
     }, [user, push])
 
     const handleError = (error: any) => {
@@ -45,17 +53,9 @@ const WelcomeStep = () => {
                     className="h-11"
                     variant="primary-soft"
                     onClick={() => {
-                        handleLogin()
-                            .then(() => {
-                                const localStorageRedirect = getFromLocalStorage('redirect')
-                                if (localStorageRedirect) {
-                                    localStorage.removeItem('redirect') // Clear the redirect URL
-                                    push(localStorageRedirect)
-                                }
-                            })
-                            .catch((e) => {
-                                handleError(e)
-                            })
+                        handleLogin().catch((e) => {
+                            handleError(e)
+                        })
                     }}
                 >
                     Log In

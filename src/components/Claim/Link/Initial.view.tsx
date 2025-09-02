@@ -110,6 +110,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const queryClient = useQueryClient()
     const searchParams = useSearchParams()
     const prevRecipientType = useRef<string | null>(null)
+    const prevUser = useRef(user)
+
+    useEffect(() => {
+        if (!prevUser.current && user) {
+            resetClaimBankFlow()
+        }
+        prevUser.current = user
+    }, [user, resetClaimBankFlow])
 
     const resetSelectedToken = useCallback(() => {
         if (isPeanutWallet) {
@@ -773,7 +781,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             />
             <GuestVerificationModal
                 secondaryCtaLabel="Claim with other method"
-                isOpen={showVerificationModal}
+                isOpen={showVerificationModal && !user}
                 onClose={() => setShowVerificationModal(false)}
                 description="The sender isn't verified, so please create an account and verify your identity to have the funds deposited to your bank."
             />
