@@ -122,7 +122,10 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             hideOverlay={false}
         >
             {!isVerificationStarted ? (
-                <StartVerificationView onStartVerification={() => setIsVerificationStarted(true)} />
+                <StartVerificationView
+                    onClose={() => onClose('manual')}
+                    onStartVerification={() => setIsVerificationStarted(true)}
+                />
             ) : (
                 <div className="flex h-full flex-col gap-2 p-0">
                     <div className="h-full w-full flex-grow overflow-scroll">
