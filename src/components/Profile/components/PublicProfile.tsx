@@ -31,6 +31,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
     const router = useRouter()
     const { user } = useAuth()
+    const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
 
     // Handle send button click
     const handleSend = () => {
@@ -94,7 +95,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 />
 
                 {/* Action Buttons */}
-                {user?.user.username !== username && (
+                {!isSelfProfile && (
                     <div className="flex items-center justify-normal gap-4">
                         <Button
                             onClick={handleSend}
