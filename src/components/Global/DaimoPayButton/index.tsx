@@ -4,7 +4,7 @@ import { Button } from '@/components/0_Bruddle'
 import { IconName } from '@/components/Global/Icons/Icon'
 import { PEANUT_WALLET_TOKEN } from '@/constants'
 import { DaimoPayButton as DaimoPayButtonSDK, useDaimoPayUI } from '@daimo/pay'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { getAddress } from 'viem'
 import { arbitrum } from 'viem/chains'
 
@@ -105,6 +105,25 @@ export const DaimoPayButton = ({
     if (!daimoAppId) {
         throw new Error('Daimo APP ID is required')
     }
+
+    useEffect(() => {
+        const hideButton = () => {
+            document.querySelectorAll('button').forEach((btn) => {
+                if (btn.textContent?.includes('Pay with wallet')) {
+                    ;(btn as HTMLElement).style.display = 'none'
+                }
+            })
+        }
+
+        // Run once
+        hideButton()
+
+        // Watch for future renders
+        const observer = new MutationObserver(hideButton)
+        observer.observe(document.body, { childList: true, subtree: true })
+
+        return () => observer.disconnect()
+    }, [])
 
     return (
         <DaimoPayButtonSDK.Custom
