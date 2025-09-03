@@ -462,6 +462,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         countryName={selectedCountry?.title ?? ''}
                         onSuccess={handleSuccess}
                         flow={'claim'}
+                        hideEmailInput={bankClaimType === BankClaimType.GuestBankClaim}
                         actionDetailsProps={{
                             transactionType: 'CLAIM_LINK_BANK_ACCOUNT',
                             recipientType: 'BANK_ACCOUNT',

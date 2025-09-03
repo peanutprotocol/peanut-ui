@@ -45,6 +45,7 @@ interface DynamicBankAccountFormProps {
     flow?: 'claim' | 'withdraw'
     actionDetailsProps?: Partial<PeanutActionDetailsCardProps>
     error: string | null
+    hideEmailInput?: boolean
 }
 
 export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, DynamicBankAccountFormProps>(
@@ -57,6 +58,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             actionDetailsProps,
             countryName: countryNameFromProps,
             error,
+            hideEmailInput = false,
         },
         ref
     ) => {
@@ -279,6 +281,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         {flow === 'claim' &&
                             user?.user.userId &&
                             !user.user.email &&
+                            !hideEmailInput &&
                             renderInput('email', 'E-mail', {
                                 required: 'Email is required',
                             })}
@@ -289,6 +292,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             </div>
                         )}
                         {flow !== 'claim' &&
+                            !hideEmailInput &&
                             !user?.user?.email &&
                             renderInput('email', 'E-mail', {
                                 required: 'Email is required',
