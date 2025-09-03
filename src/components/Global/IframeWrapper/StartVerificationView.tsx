@@ -4,8 +4,15 @@ import { ThinkingPeanut } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import Image from 'next/image'
+import NavHeader from '../NavHeader'
 
-const StartVerificationView = ({ onStartVerification }: { onStartVerification: () => void }) => {
+const StartVerificationView = ({
+    onStartVerification,
+    onClose,
+}: {
+    onStartVerification: () => void
+    onClose: () => void
+}) => {
     return (
         <div className="flex h-full w-full flex-col">
             <div className="relative flex h-[45%] items-center justify-center bg-secondary-3/100">
@@ -17,6 +24,9 @@ const StartVerificationView = ({ onStartVerification }: { onStartVerification: (
                     height={100}
                     width={100}
                 />
+                <div className="absolute right-5 top-5">
+                    <NavHeader icon="cancel" onPrev={onClose} />
+                </div>
             </div>
 
             <div className="flex h-[55%] flex-col bg-white p-4">

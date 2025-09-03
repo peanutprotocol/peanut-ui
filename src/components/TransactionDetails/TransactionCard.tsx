@@ -268,7 +268,7 @@ function getActionText(type: TransactionType): string {
             actionText = 'Add'
             break
         case 'bank_request_fulfillment':
-            actionText = 'Request pay via Bank'
+            actionText = 'Request paid via bank'
             break
     }
     return actionText
