@@ -400,7 +400,7 @@ export const TransactionDetailsReceipt = ({
                             {transaction.cancelledDate && (
                                 <PaymentInfoRow
                                     label="Cancelled"
-                                    value={formatDate(transaction.cancelledDate as Date)}
+                                    value={formatDate(new Date(transaction.cancelledDate))}
                                     hideBottomBorder={shouldHideBorder('cancelled')}
                                 />
                             )}
