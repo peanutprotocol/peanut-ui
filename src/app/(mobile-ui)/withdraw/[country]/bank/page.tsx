@@ -34,7 +34,7 @@ export default function WithdrawBankPage() {
     const params = useParams()
     const country = params.country as string
 
-    const nonEruoCurrency = countryCurrencyMappings.find(
+    const nonEuroCurrency = countryCurrencyMappings.find(
         (currency) =>
             country.toLowerCase() === currency.country.toLowerCase() ||
             currency.path?.toLowerCase() === country.toLowerCase()
@@ -235,7 +235,7 @@ export default function WithdrawBankPage() {
                                 <PaymentInfoRow label={'Routing Number'} value={getBicAndRoutingNumber()} />
                             </>
                         )}
-                        <ExchangeRate accountType={bankAccount.type} nonEruoCurrency={nonEruoCurrency} />
+                        <ExchangeRate accountType={bankAccount.type} nonEuroCurrency={nonEuroCurrency} />
                         <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                     </Card>
                     {error.showError ? (

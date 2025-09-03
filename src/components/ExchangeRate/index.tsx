@@ -4,16 +4,16 @@ import useGetExchangeRate, { IExchangeRate } from '@/hooks/useGetExchangeRate'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 
 interface IExchangeRateProps extends Omit<IExchangeRate, 'enabled'> {
-    nonEruoCurrency?: string
+    nonEuroCurrency?: string
 }
 
-const ExchangeRate = ({ accountType, nonEruoCurrency }: IExchangeRateProps) => {
-    const { exchangeRate, isFetchingRate } = useGetExchangeRate({ accountType, enabled: !nonEruoCurrency })
+const ExchangeRate = ({ accountType, nonEuroCurrency }: IExchangeRateProps) => {
+    const { exchangeRate, isFetchingRate } = useGetExchangeRate({ accountType, enabled: !nonEuroCurrency })
     const { exchangeRate: nonEruoExchangeRate, isLoading } = useExchangeRate({
         sourceCurrency: 'USD',
-        destinationCurrency: nonEruoCurrency || 'EUR',
+        destinationCurrency: nonEuroCurrency || 'EUR',
         initialSourceAmount: 1,
-        enabled: !!nonEruoCurrency,
+        enabled: !!nonEuroCurrency,
     })
 
     const toCurrency = accountType === AccountType.IBAN ? 'EUR' : accountType === AccountType.CLABE ? 'MXN' : 'USD'
@@ -26,9 +26,9 @@ const ExchangeRate = ({ accountType, nonEruoCurrency }: IExchangeRateProps) => {
     let isLoadingRate = false
     let moreInfoText = ''
 
-    if (nonEruoCurrency) {
+    if (nonEuroCurrency) {
         displayValue = nonEruoExchangeRate
-            ? `1 USD = ${parseFloat(nonEruoExchangeRate.toString()).toFixed(4)} ${nonEruoCurrency}`
+            ? `1 USD = ${parseFloat(nonEruoExchangeRate.toString()).toFixed(4)} ${nonEuroCurrency}`
             : '-'
         isLoadingRate = isLoading
         moreInfoText =
