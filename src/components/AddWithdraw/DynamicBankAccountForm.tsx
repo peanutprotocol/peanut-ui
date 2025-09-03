@@ -61,7 +61,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         ref
     ) => {
         const isMx = country.toUpperCase() === 'MX'
-        const isUs = country.toUpperCase() === 'USA' || country.toUpperCase() === 'US'
+        const isUs = country.toUpperCase() === 'USA'
         const isIban = isUs || isMx ? false : isIBANCountry(country)
         const { user } = useAuth()
         const [isSubmitting, setIsSubmitting] = useState(false)
@@ -327,10 +327,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                         if (isValidIban) {
                                             try {
                                                 const autoBic = await getBicFromIban(field.value)
-                                                if (autoBic) {
-                                                    setValue('bic', autoBic)
+                                                if (autoBic && !getValues('bic')) {
+                                                    setValue('bic', autoBic, { shouldValidate: true })
                                                 }
-                                            } catch (e) {
+                                            } catch {
                                                 console.log('Could not fetch BIC automatically.')
                                             }
                                         }
