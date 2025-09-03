@@ -40,6 +40,7 @@ export interface ActionModalProps {
     descriptionClassName?: string
     buttonProps?: ButtonProps
     footer?: React.ReactNode
+    customContent?: React.ReactNode
 }
 
 const ActionModal: React.FC<ActionModalProps> = ({
@@ -64,6 +65,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     descriptionClassName,
     buttonProps,
     footer,
+    customContent,
 }) => {
     const defaultModalPanelClasses = 'max-w-[85%]'
     const defaultIconContainerClassName = 'bg-primary-1' // default pink background
@@ -128,6 +130,8 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         </div>
                     )}
                 </div>
+
+                {customContent && customContent}
 
                 {(checkbox || (ctas && ctas.length > 0)) && (
                     <div className="w-full space-y-4">

@@ -772,6 +772,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 modalPanelClassName="max-w-md mx-8"
             />
             <GuestVerificationModal
+                shouldShowVerificationModalOnSignup
                 secondaryCtaLabel="Claim with other method"
                 isOpen={showVerificationModal}
                 onClose={() => {

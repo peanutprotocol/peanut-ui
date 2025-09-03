@@ -47,11 +47,11 @@ const WelcomeStep = () => {
                     onClick={() => {
                         handleLogin()
                             .then(() => {
-                                const localStorageRedirect = getFromLocalStorage('redirect')
-                                if (localStorageRedirect) {
-                                    localStorage.removeItem('redirect') // Clear the redirect URL
-                                    push(localStorageRedirect)
-                                }
+                                // const localStorageRedirect = getFromLocalStorage('redirect')
+                                // if (localStorageRedirect) {
+                                //     localStorage.removeItem('redirect') // Clear the redirect URL
+                                //     push(localStorageRedirect)
+                                // }
                             })
                             .catch((e) => {
                                 handleError(e)

@@ -5,9 +5,9 @@ export const POST_SIGNUP_ACTIONS = [
         // this regex will match any path that contains the word "claim", this helps in determing if the user is coming from a claim link
         pathPattern: /claim/,
         config: {
-            title: 'Claim your money',
-            description: `You're almost done! Tap Claim Funds to move the money into your new Peanut Wallet.`,
-            cta: 'Claim Funds',
+            title: 'Identity verification required',
+            description: `To claim money to your bank account, you’ll need to complete a quick identity verification.`,
+            cta: 'Start verification',
             icon: 'dollar' as IconName,
         },
     },

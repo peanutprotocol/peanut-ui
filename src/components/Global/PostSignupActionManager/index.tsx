@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import ActionModal from '../ActionModal'
 import { POST_SIGNUP_ACTIONS } from './post-signup-action.consts'
 import { IconName } from '../Icons/Icon'
+import { KycFlow } from '@/components/Kyc/KycFlow'
 
 export const PostSignupActionManager = ({
     onActionModalVisibilityChange,
@@ -24,7 +25,8 @@ export const PostSignupActionManager = ({
 
     useEffect(() => {
         const redirectUrl = getFromLocalStorage('redirect')
-        if (redirectUrl) {
+        const showVerificationModal = localStorage.getItem('showVerificationModal')
+        if (redirectUrl && showVerificationModal === 'true') {
             const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(redirectUrl))
 
             if (matchedAction) {
@@ -53,18 +55,20 @@ export const PostSignupActionManager = ({
             onClose={() => {
                 setShowModal(false)
                 localStorage.removeItem('redirect')
+                localStorage.removeItem('showVerificationModal')
             }}
             title={actionConfig.title}
             description={actionConfig.description}
             icon={actionConfig.icon as IconName}
-            ctas={[
-                {
-                    text: actionConfig.cta,
-                    onClick: actionConfig.action,
-                    variant: 'purple',
-                    shadowSize: '4',
-                },
-            ]}
+            customContent={<KycFlow />}
+            // ctas={[
+            //     {
+            //         text: actionConfig.cta,
+            //         onClick: actionConfig.action,
+            //         variant: 'purple',
+            //         shadowSize: '4',
+            //     },
+            // ]}
         />
     )
 }

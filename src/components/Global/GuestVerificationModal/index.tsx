@@ -9,6 +9,7 @@ interface GuestVerificationModalProps {
     isOpen: boolean
     onClose: () => void
     secondaryCtaLabel: string
+    shouldShowVerificationModalOnSignup?: boolean
 }
 
 export const GuestVerificationModal = ({
@@ -16,6 +17,7 @@ export const GuestVerificationModal = ({
     onClose,
     description,
     secondaryCtaLabel,
+    shouldShowVerificationModalOnSignup,
 }: GuestVerificationModalProps) => {
     const router = useRouter()
     return (
@@ -34,6 +36,9 @@ export const GuestVerificationModal = ({
                     className: 'md:py-2.5',
                     onClick: () => {
                         saveRedirectUrl()
+                        if (shouldShowVerificationModalOnSignup) {
+                            localStorage.setItem('showVerificationModal', 'true')
+                        }
                         router.push('/setup')
                     },
                 },

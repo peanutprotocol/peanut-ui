@@ -102,7 +102,7 @@ const useClaimLink = () => {
         params.set('step', 'bank')
 
         const hash = window.location.hash
-        router.replace(`${pathname}?${params.toString()}${hash}`)
+        router.replace(`${pathname}?${params.toString()}${hash}`, { scroll: false })
     }
 
     const removeParamStep = () => {
