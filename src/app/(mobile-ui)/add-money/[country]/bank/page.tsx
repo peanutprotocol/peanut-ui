@@ -25,6 +25,7 @@ import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { getOnrampCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
+import MercadoPagoDepositDetails from '@/components/AddMoney/components/RegionalMethods/MercadoPago/MercadoPagoDepositDetails'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -316,6 +317,9 @@ export default function OnrampBankPage() {
     }
 
     if (step === 'showDetails') {
+        if (selectedCountry.id === 'AR') {
+            return <MercadoPagoDepositDetails />
+        }
         return <AddMoneyBankDetails />
     }
 

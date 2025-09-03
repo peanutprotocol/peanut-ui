@@ -2017,7 +2017,7 @@ export const countryCodeMap: { [key: string]: string } = {
     USA: 'US',
 }
 
-const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX'])
+const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX', 'AR'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes
@@ -2110,6 +2110,9 @@ countryData.forEach((country) => {
             } else if (newMethod.id === 'crypto-add') {
                 newMethod.path = `/add-money/crypto`
                 newMethod.isSoon = false
+            } else if (newMethod.id === 'mercado-pago-add' && countryCode === 'AR') {
+                newMethod.isSoon = false
+                newMethod.path = `/add-money/${country.path}/mercadopago`
             } else {
                 newMethod.isSoon = true
             }
