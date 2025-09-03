@@ -103,7 +103,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         isXChain,
         setIsXChain,
     } = useContext(tokenSelectorContext)
-    const { claimLink, claimLinkXchain } = useClaimLink()
+    const { claimLink, claimLinkXchain, removeParamStep } = useClaimLink()
     const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
     const router = useRouter()
     const { user } = useAuth()
@@ -774,7 +774,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             <GuestVerificationModal
                 secondaryCtaLabel="Claim with other method"
                 isOpen={showVerificationModal}
-                onClose={() => setShowVerificationModal(false)}
+                onClose={() => {
+                    removeParamStep()
+                    setShowVerificationModal(false)
+                }}
                 description="The sender isn't verified, so please create an account and verify your identity to have the funds deposited to your bank."
             />
         </div>

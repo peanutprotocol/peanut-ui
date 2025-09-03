@@ -1213,6 +1213,7 @@ export function isStableCoin(tokenSymbol: string): boolean {
 
 export const saveRedirectUrl = () => {
     const currentUrl = new URL(window.location.href)
+    const relativeUrl = currentUrl.href.replace(currentUrl.origin, '')
     saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
 }
 

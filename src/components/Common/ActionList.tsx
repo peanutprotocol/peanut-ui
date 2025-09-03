@@ -13,7 +13,7 @@ import { Button } from '../0_Bruddle'
 import { PEANUT_LOGO_BLACK } from '@/assets/illustrations'
 import Image from 'next/image'
 import { saveRedirectUrl } from '@/utils'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
@@ -24,6 +24,7 @@ import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermi
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 import ActionListDaimoPayButton from './ActionListDaimoPayButton'
 import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
+import useClaimLink from '../Claim/useClaimLink'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -50,6 +51,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     const { requestType } = useDetermineBankRequestType(requesterUserId)
     const savedAccounts = useSavedAccounts()
     const { usdAmount } = usePaymentStore()
+    const { addParamStep } = useClaimLink()
     const {
         setShowRequestFulfilmentBankFlowManager,
         setShowExternalWalletFulfilMethods,
@@ -68,6 +70,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 case 'bank':
                     {
                         if (claimType === BankClaimType.GuestKycNeeded) {
+                            addParamStep()
                             setShowVerificationModal(true)
                         } else {
                             if (savedAccounts.length) {
