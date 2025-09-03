@@ -8,7 +8,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
-import { formatIban, printableAddress, shortenAddress, shortenAddressLong } from '@/utils/general.utils'
+import { formatIban, printableAddress, shortenAddress, shortenAddressLong, slugify } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -204,8 +204,9 @@ export const TransactionDetailsReceipt = ({
             }
 
             try {
+                const chainName = slugify(transaction.tokenDisplayDetails?.chainName ?? '')
                 const res = await fetch(
-                    `https://api.coingecko.com/api/v3/coins/${transaction.tokenDisplayDetails?.chainName}/contract/${transaction.tokenAddress}`
+                    `https://api.coingecko.com/api/v3/coins/${chainName}/contract/${transaction.tokenAddress}`
                 )
                 const tokenDetails = await res.json()
                 setTokenData({
