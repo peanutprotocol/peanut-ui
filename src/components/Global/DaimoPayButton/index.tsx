@@ -107,19 +107,28 @@ export const DaimoPayButton = ({
     }
 
     useEffect(() => {
-        const hideButton = () => {
-            document.querySelectorAll('button').forEach((btn) => {
-                if (btn.textContent?.includes('Pay with wallet')) {
-                    ;(btn as HTMLElement).style.display = 'none'
-                }
-            })
+        if (typeof document === 'undefined') return
+
+        const hideIfWalletBtn = (el: Element) => {
+            if (el instanceof HTMLButtonElement && /pay with wallet/i.test(el.textContent ?? '')) {
+                if (el.style.display !== 'none') el.style.display = 'none'
+            }
         }
 
-        // Run once
-        hideButton()
+        // Initial pass (keep broad but cheap)
+        document.querySelectorAll('button').forEach(hideIfWalletBtn)
 
-        // Watch for future renders
-        const observer = new MutationObserver(hideButton)
+        // Observe only added nodes; scan their subtree
+        const observer = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                if (m.type !== 'childList') continue
+                m.addedNodes.forEach((node) => {
+                    if (!(node instanceof Element)) return
+                    if (node.matches('button')) hideIfWalletBtn(node)
+                    node.querySelectorAll('button').forEach(hideIfWalletBtn)
+                })
+            }
+        })
         observer.observe(document.body, { childList: true, subtree: true })
 
         return () => observer.disconnect()
