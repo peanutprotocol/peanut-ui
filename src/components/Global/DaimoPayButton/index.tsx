@@ -94,7 +94,7 @@ export const DaimoPayButton = ({
 
         // Reset payment amount for Daimo
         await resetPayment({
-            toUnits: amount.replace(/,/g, ''),
+            toUnits: formattedAmount.toString(),
         })
 
         return true
