@@ -18,11 +18,6 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/home', request.url))
     }
 
-    // redirect /pints -> /adag1o/1
-    if (request.nextUrl.pathname === '/pints') {
-        return NextResponse.redirect(new URL('/adag1o/1', request.url))
-    }
-
     // Handle promo link redirection
     if (isPromoLink(url)) {
         const fragment = url.searchParams.toString()
@@ -51,5 +46,5 @@ const isPromoLink = (url: URL) => {
 
 // Updated matcher to include root path
 export const config = {
-    matcher: ['/', '/pints', '/claim/:path*', '/api/:path*'],
+    matcher: ['/', '/claim/:path*', '/api/:path*'],
 }
