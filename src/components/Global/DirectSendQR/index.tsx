@@ -294,9 +294,13 @@ export default function DirectSendQr({
                 }
                 break
             case EQrType.MERCADO_PAGO:
+            case EQrType.PIX:
+                {
+                    redirectUrl = `/qr-pay?qrCode=${data}`
+                }
+                break
             case EQrType.BITCOIN_ONCHAIN:
             case EQrType.BITCOIN_INVOICE:
-            case EQrType.PIX:
             case EQrType.TRON_ADDRESS:
             case EQrType.SOLANA_ADDRESS:
             case EQrType.XRP_ADDRESS: {
