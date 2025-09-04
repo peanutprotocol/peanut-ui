@@ -3,7 +3,8 @@
 import { cookies } from 'next/headers'
 import { fetchWithSentry } from '@/utils'
 import { CountryData } from '@/components/AddMoney/consts'
-import { getCurrencyConfig } from '@/utils/onramp.utils'
+import { getCurrencyConfig } from '@/utils/bridge.utils'
+import { getCurrencyPrice } from '@/app/actions/currency'
 
 const API_KEY = process.env.PEANUT_API_KEY!
 
@@ -74,7 +75,9 @@ export async function createOnrampForGuest(
     }
 
     try {
-        const { currency, paymentRail } = getCurrencyConfig(params.country.id)
+        const { currency, paymentRail } = getCurrencyConfig(params.country.id, 'onramp')
+        const price = await getCurrencyPrice(currency)
+        const amount = (Number(params.amount) * price).toFixed(2)
 
         const response = await fetchWithSentry(`${apiUrl}/bridge/onramp/create-for-guest`, {
             method: 'POST',
@@ -83,7 +86,7 @@ export async function createOnrampForGuest(
                 'api-key': API_KEY,
             },
             body: JSON.stringify({
-                amount: params.amount,
+                amount,
                 userId: params.userId,
                 chargeId: params.chargeId,
                 source: {

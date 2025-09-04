@@ -1,5 +1,5 @@
 'use client'
-import { forwardRef, useImperativeHandle, useMemo, useState, useEffect } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -15,6 +15,9 @@ import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { getCountryFromIban, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
+import { useAppDispatch, useAppSelector } from '@/redux/hooks'
+import { bankFormActions } from '@/redux/slices/bank-form-slice'
+import { useDebounce } from '@/hooks/useDebounce'
 
 const isIBANCountry = (country: string) => {
     return countryCodeMap[country.toUpperCase()] !== undefined
@@ -45,6 +48,7 @@ interface DynamicBankAccountFormProps {
     flow?: 'claim' | 'withdraw'
     actionDetailsProps?: Partial<PeanutActionDetailsCardProps>
     error: string | null
+    hideEmailInput?: boolean
 }
 
 export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, DynamicBankAccountFormProps>(
@@ -57,27 +61,36 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             actionDetailsProps,
             countryName: countryNameFromProps,
             error,
+            hideEmailInput = false,
         },
         ref
     ) => {
+        const isMx = country.toUpperCase() === 'MX'
+        const isUs = country.toUpperCase() === 'USA'
+        const isIban = isUs || isMx ? false : isIBANCountry(country)
         const { user } = useAuth()
+        const dispatch = useAppDispatch()
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
-        const [showBicField, setShowBicField] = useState(false)
         const { country: countryNameParams } = useParams()
         const { amountToWithdraw, setSelectedBankAccount } = useWithdrawFlow()
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
         const lastName = lastNameParts.join(' ')
         const router = useRouter()
         const savedAccounts = useSavedAccounts()
+        const [isCheckingBICValid, setisCheckingBICValid] = useState(false)
 
         let selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
+
+        // Get persisted form data from Redux
+        const persistedFormData = useAppSelector((state) => state.bankForm.formData)
 
         const {
             control,
             handleSubmit,
             setValue,
             getValues,
+            watch,
             formState: { errors, isValid, isValidating, touchedFields },
         } = useForm<IBankAccountDetails>({
             defaultValues: {
@@ -93,14 +106,34 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 state: '',
                 postalCode: '',
                 ...initialData,
+                ...persistedFormData, // Redux persisted data takes precedence
             },
             mode: 'onBlur',
             reValidateMode: 'onSubmit',
         })
 
+        // Watch BIC field value for debouncing
+        const bicValue = watch('bic')
+        const debouncedBicValue = useDebounce(bicValue, 500) // 500ms delay
+
         useImperativeHandle(ref, () => ({
             handleSubmit: handleSubmit(onSubmit),
         }))
+
+        // Clear submission error when form becomes valid and BIC field is filled (if shown)
+        useEffect(() => {
+            if (submissionError && isValid && (!isIban || getValues('bic'))) {
+                setSubmissionError(null)
+            }
+        }, [isValid, submissionError, isIban, getValues])
+
+        // Trigger BIC validation when debounced value changes
+        useEffect(() => {
+            if (isIban && debouncedBicValue && debouncedBicValue.trim().length > 0) {
+                // Trigger validation for the BIC field
+                setValue('bic', debouncedBicValue, { shouldValidate: true })
+            }
+        }, [debouncedBicValue, isIban, setValue])
 
         const onSubmit = async (data: IBankAccountDetails) => {
             // If validation is still running, don't proceed
@@ -143,38 +176,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 let bic = data.bic || getValues('bic')
                 const iban = data.iban || getValues('iban')
 
-                // for IBAN countries, ensure BIC is available
-                if (isIban) {
-                    // if BIC field is shown but empty, don't proceed
-                    if (showBicField && !bic) {
-                        setIsSubmitting(false)
-                        setSubmissionError('BIC is required')
-                        return
-                    }
-
-                    // if BIC field is not shown and no BIC available, try to get it automatically
-                    if (!showBicField && !bic) {
-                        try {
-                            const autoBic = await getBicFromIban(accountNumber)
-                            if (autoBic) {
-                                bic = autoBic
-                                // set the BIC value in the form without showing the field
-                                setValue('bic', autoBic, { shouldValidate: false })
-                            } else {
-                                setShowBicField(true)
-                                setIsSubmitting(false)
-                                setSubmissionError('BIC is required')
-                                return
-                            }
-                        } catch (error) {
-                            setShowBicField(true)
-                            setIsSubmitting(false)
-                            setSubmissionError('BIC is required')
-                            return
-                        }
-                    }
-                }
-
                 const payload: Partial<AddBankAccountPayload> = {
                     accountType,
                     accountNumber: accountNumber.replace(/\s/g, ''),
@@ -212,16 +213,23 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 if (result.error) {
                     setSubmissionError(result.error)
                     setIsSubmitting(false)
+                } else {
+                    // Save form data to Redux after successful submission
+                    const formDataToSave = {
+                        ...data,
+                        country,
+                        firstName: data.firstName.trim(),
+                        lastName: data.lastName.trim(),
+                    }
+                    dispatch(bankFormActions.setFormData(formDataToSave))
+                    setIsSubmitting(false)
                 }
             } catch (error: any) {
                 setSubmissionError(error.message)
+            } finally {
                 setIsSubmitting(false)
             }
         }
-
-        const isMx = country.toUpperCase() === 'MX'
-        const isUs = country.toUpperCase() === 'USA'
-        const isIban = isUs || isMx ? false : isIBANCountry(country)
 
         const renderInput = (
             name: keyof IBankAccountDetails,
@@ -305,6 +313,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         {flow === 'claim' &&
                             user?.user.userId &&
                             !user.user.email &&
+                            !hideEmailInput &&
                             renderInput('email', 'E-mail', {
                                 required: 'Email is required',
                             })}
@@ -315,6 +324,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             </div>
                         )}
                         {flow !== 'claim' &&
+                            !hideEmailInput &&
                             !user?.user?.email &&
                             renderInput('email', 'E-mail', {
                                 required: 'Email is required',
@@ -349,6 +359,17 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     undefined,
                                     async (field) => {
                                         if (!field.value || field.value.trim().length === 0) return
+                                        const isValidIban = await validateIban(field.value)
+                                        if (isValidIban) {
+                                            try {
+                                                const autoBic = await getBicFromIban(field.value)
+                                                if (autoBic && !getValues('bic')) {
+                                                    setValue('bic', autoBic, { shouldValidate: true })
+                                                }
+                                            } catch {
+                                                console.log('Could not fetch BIC automatically.')
+                                            }
+                                        }
                                     }
                                 )
                               : renderInput(
@@ -363,7 +384,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 )}
 
                         {isIban &&
-                            showBicField &&
                             renderInput(
                                 'bic',
                                 'BIC',
@@ -371,7 +391,15 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     required: 'BIC is required',
                                     validate: async (value: string) => {
                                         if (!value || value.trim().length === 0) return 'BIC is required'
+
+                                        // Only validate if the value matches the debounced value (to prevent API calls on every keystroke)
+                                        if (value.trim() !== debouncedBicValue?.trim()) {
+                                            return true // Skip validation until debounced value is ready
+                                        }
+
+                                        setisCheckingBICValid(true)
                                         const isValid = await validateBic(value.trim())
+                                        setisCheckingBICValid(false)
                                         return isValid || 'Invalid BIC code'
                                     },
                                 },
@@ -410,8 +438,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             variant="purple"
                             shadowSize="4"
                             className="!mt-4 w-full"
-                            loading={isSubmitting}
-                            disabled={isSubmitting || !isValid}
+                            loading={isSubmitting || isCheckingBICValid}
+                            disabled={isSubmitting || !isValid || isCheckingBICValid}
                         >
                             Review
                         </Button>
