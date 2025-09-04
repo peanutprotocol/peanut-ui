@@ -1,5 +1,5 @@
 'use client'
-import MercadoPagoDepositDetails from '@/components/AddMoney/components/RegionalMethods/MercadoPago/MercadoPagoDepositDetails'
+import MercadoPago from '@/components/AddMoney/components/RegionalMethods/MercadoPago'
 import { useParams } from 'next/navigation'
 
 export default function AddMoneyRegionalMethodPage() {
@@ -8,7 +8,7 @@ export default function AddMoneyRegionalMethodPage() {
     const method = params['regional-method'] as string
 
     if (country === 'argentina' && method === 'mercadopago') {
-        return <MercadoPagoDepositDetails />
+        return <MercadoPago />
     }
 
     return <div>Unsupported Method</div>
