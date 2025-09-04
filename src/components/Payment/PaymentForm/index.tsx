@@ -1,6 +1,8 @@
 'use client'
 
 import { fetchTokenPrice } from '@/app/actions/tokens'
+import { PEANUT_LOGO_BLACK } from '@/assets'
+import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { Button } from '@/components/0_Bruddle'
 import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
@@ -11,20 +13,13 @@ import GuestLoginCta from '@/components/Global/GuestLoginCta'
 import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import BeerInput from '@/components/PintaReqPay/BeerInput'
 import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import UserCard from '@/components/User/UserCard'
-import {
-    PEANUT_WALLET_CHAIN,
-    PEANUT_WALLET_TOKEN,
-    PEANUT_WALLET_TOKEN_DECIMALS,
-    PEANUT_WALLET_TOKEN_SYMBOL,
-    PINTA_WALLET_CHAIN,
-    PINTA_WALLET_TOKEN,
-} from '@/constants'
+import { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, PINTA_WALLET_CHAIN, PINTA_WALLET_TOKEN } from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
+import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { InitiatePaymentPayload, usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
@@ -33,14 +28,18 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, ErrorHandler, formatAmount } from '@/utils'
 import { useAppKit, useDisconnect } from '@reown/appkit/react'
+import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
+import { useUserInteractions } from '@/hooks/useUserInteractions'
+import { useUserByUsername } from '@/hooks/useUserByUsername'
+import { PaymentFlow } from '@/app/[...recipient]/client'
 
 export type PaymentFlowProps = {
     isPintaReq?: boolean
-    isAddMoneyFlow?: boolean
+    isExternalWalletFlow?: boolean
     /** Whether this is a direct USD payment flow (bypasses token conversion) */
     isDirectUsdPayment?: boolean
     currency?: {
@@ -50,6 +49,8 @@ export type PaymentFlowProps = {
     }
     currencyAmount?: string
     setCurrencyAmount?: (currencyvalue: string | undefined) => void
+    headerTitle?: string
+    flow?: PaymentFlow
 }
 
 export type PaymentFormProps = ParsedURL & PaymentFlowProps
@@ -63,8 +64,10 @@ export const PaymentForm = ({
     currency,
     currencyAmount,
     setCurrencyAmount,
-    isAddMoneyFlow,
+    isExternalWalletFlow,
     isDirectUsdPayment,
+    headerTitle,
+    flow,
 }: PaymentFormProps) => {
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -73,9 +76,21 @@ export const PaymentForm = ({
         requestDetails,
         chargeDetails,
         beerQuantity,
+        daimoError,
         error: paymentStoreError,
         attachmentOptions,
     } = usePaymentStore()
+    const { setShowExternalWalletFulfilMethods, setExternalWalletFulfilMethod } = useRequestFulfillmentFlow()
+    const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
+    const { user: recipientUser } = useUserByUsername(recipientUsername)
+
+    const recipientUserId =
+        requestDetails?.recipientAccount?.userId ||
+        chargeDetails?.requestLink.recipientAccount.userId ||
+        recipientUser?.userId
+    const recipientKycStatus = chargeDetails?.requestLink.recipientAccount.user?.kycStatus || recipientUser?.kycStatus
+
+    const { interactions } = useUserInteractions(recipientUserId ? [recipientUserId] : [])
     const { isConnected: isPeanutWalletConnected, balance } = useWallet()
     const { isConnected: isExternalWalletConnected, status } = useAccount()
     const [initialSetupDone, setInitialSetupDone] = useState(false)
@@ -83,6 +98,7 @@ export const PaymentForm = ({
         chargeDetails?.tokenAmount || requestDetails?.tokenAmount || amount || ''
     )
 
+    // states
     const [disconnectWagmiModal, setDisconnectWagmiModal] = useState<boolean>(false)
     const [inputUsdValue, setInputUsdValue] = useState<string>('')
     const [usdValue, setUsdValue] = useState<string>('')
@@ -119,8 +135,8 @@ export const PaymentForm = ({
     const isDepositRequest = searchParams.get('action') === 'deposit'
 
     const isUsingExternalWallet = useMemo(() => {
-        return isAddMoneyFlow || !isPeanutWalletConnected
-    }, [isPeanutWalletConnected, isAddMoneyFlow])
+        return isExternalWalletFlow || !isPeanutWalletConnected
+    }, [isPeanutWalletConnected, isExternalWalletFlow])
 
     const isConnected = useMemo<boolean>(() => {
         return isPeanutWalletConnected || isExternalWalletConnected
@@ -159,6 +175,7 @@ export const PaymentForm = ({
     // reset error when component mounts or recipient changes
     useEffect(() => {
         dispatch(paymentActions.setError(null))
+        dispatch(paymentActions.setDaimoError(null))
     }, [dispatch, recipient])
 
     useEffect(() => {
@@ -173,7 +190,7 @@ export const PaymentForm = ({
         }
 
         try {
-            if (isAddMoneyFlow) {
+            if (isExternalWalletFlow) {
                 // ADD MONEY FLOW: Strictly check external wallet if connected
                 if (isExternalWalletConnected && selectedTokenData && selectedTokenBalance !== undefined) {
                     if (selectedTokenData.decimals === undefined) {
@@ -244,7 +261,7 @@ export const PaymentForm = ({
         dispatch,
         selectedTokenData,
         isExternalWalletConnected,
-        isAddMoneyFlow,
+        isExternalWalletFlow,
     ])
 
     // fetch token price
@@ -309,7 +326,12 @@ export const PaymentForm = ({
     ])
 
     const handleInitiatePayment = useCallback(async () => {
-        if (!isExternalWalletConnected && isAddMoneyFlow) {
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
+            router.push('/add-money')
+            return
+        }
+
+        if (!isExternalWalletConnected && isExternalWalletFlow) {
             openReownModal()
             return
         }
@@ -402,8 +424,12 @@ export const PaymentForm = ({
             chargeId: chargeDetails?.uuid,
             currency,
             currencyAmount,
-            isAddMoneyFlow: !!isAddMoneyFlow,
-            transactionType: isAddMoneyFlow ? 'DEPOSIT' : isDirectUsdPayment || !requestId ? 'DIRECT_SEND' : 'REQUEST',
+            isExternalWalletFlow: !!isExternalWalletFlow,
+            transactionType: isExternalWalletFlow
+                ? 'DEPOSIT'
+                : isDirectUsdPayment || !requestId
+                  ? 'DIRECT_SEND'
+                  : 'REQUEST',
             attachmentOptions: attachmentOptions,
         }
 
@@ -432,7 +458,7 @@ export const PaymentForm = ({
         initiatePayment,
         beerQuantity,
         chargeDetails,
-        isAddMoneyFlow,
+        isExternalWalletFlow,
         requestDetails,
         selectedTokenAddress,
         selectedChainID,
@@ -441,11 +467,11 @@ export const PaymentForm = ({
     ])
 
     const getButtonText = () => {
-        if (!isExternalWalletConnected && isAddMoneyFlow) {
+        if (!isExternalWalletConnected && isExternalWalletFlow) {
             return 'Connect Wallet'
         }
 
-        if (isAddMoneyFlow) {
+        if (isExternalWalletFlow) {
             return 'Review'
         }
 
@@ -453,33 +479,41 @@ export const PaymentForm = ({
             return 'Send'
         }
 
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) {
+            return (
+                <div className="flex items-center gap-1">
+                    <div>Add funds to </div>
+                    <div className="flex items-center gap-1">
+                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                    </div>
+                </div>
+            )
+        }
+
         if (isActivePeanutWallet) {
-            return 'Send'
+            return (
+                <div className="flex items-center gap-1">
+                    <div>Send with </div>
+                    <div className="flex items-center gap-1">
+                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                    </div>
+                </div>
+            )
         }
 
         return 'Review'
     }
 
     const getButtonIcon = (): IconName | undefined => {
-        if (!isExternalWalletConnected && isAddMoneyFlow) return 'wallet-outline'
+        if (!isExternalWalletConnected && isExternalWalletFlow) return 'wallet-outline'
 
-        if (!isProcessing && isActivePeanutWallet && !isAddMoneyFlow) return 'arrow-up-right'
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) return 'arrow-down'
+
+        if (!isProcessing && isActivePeanutWallet && !isExternalWalletFlow) return 'arrow-up-right'
 
         return undefined
-    }
-
-    const guestAction = () => {
-        if (isConnected || user) return null
-        return (
-            <div className="space-y-4">
-                <Button variant="purple" shadowSize="4" onClick={() => router.push('/setup')} className="w-full">
-                    Sign In
-                </Button>
-                <Button variant="primary-soft" shadowSize="4" onClick={() => openReownModal()} className="w-full">
-                    Connect Wallet
-                </Button>
-            </div>
-        )
     }
 
     useEffect(() => {
@@ -510,17 +544,22 @@ export const PaymentForm = ({
         }
     }, [isPintaReq, inputTokenAmount])
 
+    const isInsufficientBalanceError = useMemo(() => {
+        return error?.includes("You don't have enough balance.")
+    }, [error])
+
     const isButtonDisabled = useMemo(() => {
         if (isProcessing) return true
+        if (isActivePeanutWallet && isInsufficientBalanceError && !isExternalWalletFlow) return false
         if (!!error) return true
 
         // ensure inputTokenAmount is a valid positive number before allowing payment
         const numericAmount = parseFloat(inputTokenAmount)
         if (isNaN(numericAmount) || numericAmount <= 0) {
-            if (!isAddMoneyFlow) return true
+            if (!isExternalWalletFlow) return true
         }
 
-        if (isAddMoneyFlow) {
+        if (isExternalWalletFlow) {
             if (!isExternalWalletConnected) return false // "Connect Wallet" button should be active
             return (
                 !inputTokenAmount ||
@@ -531,6 +570,8 @@ export const PaymentForm = ({
                 isProcessing
             )
         }
+
+        if (flow === 'request_pay') return false
 
         // logic for non-AddMoneyFlow / non-Pinta (Pinta has its own button logic)
         if (!isPintaReq) {
@@ -544,7 +585,7 @@ export const PaymentForm = ({
         isProcessing,
         error,
         inputTokenAmount,
-        isAddMoneyFlow,
+        isExternalWalletFlow,
         isExternalWalletConnected,
         selectedTokenAddress,
         selectedChainID,
@@ -585,29 +626,21 @@ export const PaymentForm = ({
         return recipient ? recipient.identifier : 'Unknown Recipient'
     }, [recipient])
 
-    const isPeanutWalletUSDC = useMemo(() => {
-        return (
-            selectedTokenData?.symbol === PEANUT_WALLET_TOKEN_SYMBOL &&
-            Number(selectedChainID) === PEANUT_WALLET_CHAIN.id
-        )
-    }, [selectedTokenData, selectedChainID])
-
-    const isInsufficientBalanceError = useMemo(() => {
-        return error?.includes("You don't have enough balance.")
-    }, [error])
+    const handleGoBack = () => {
+        if (isExternalWalletFlow) {
+            setShowExternalWalletFulfilMethods(true)
+            setExternalWalletFulfilMethod(null)
+            return
+        } else if (window.history.length > 1) {
+            router.back()
+        } else {
+            router.push('/')
+        }
+    }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader
-                onPrev={() => {
-                    if (window.history.length > 1) {
-                        router.back()
-                    } else {
-                        router.push('/')
-                    }
-                }}
-                title={isAddMoneyFlow ? 'Add Money' : 'Send'}
-            />
+            <NavHeader onPrev={handleGoBack} title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Send')} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {isExternalWalletConnected && isUsingExternalWallet && (
                     <Button
@@ -631,7 +664,7 @@ export const PaymentForm = ({
                     </Button>
                 )}
                 {/* Recipient Info Card */}
-                {recipient && !isAddMoneyFlow && (
+                {recipient && !isExternalWalletFlow && (
                     <UserCard
                         type="send"
                         username={recipientDisplayName}
@@ -639,6 +672,8 @@ export const PaymentForm = ({
                         size="small"
                         message={requestDetails?.reference || chargeDetails?.requestLink?.reference || ''}
                         fileUrl={requestDetails?.attachmentUrl || chargeDetails?.requestLink?.attachmentUrl || ''}
+                        isVerified={recipientKycStatus === 'approved'}
+                        haveSentMoneyToUser={recipientUserId ? interactions[recipientUserId] || false : false}
                     />
                 )}
 
@@ -646,13 +681,16 @@ export const PaymentForm = ({
                 <TokenAmountInput
                     tokenValue={inputTokenAmount}
                     setTokenValue={(value: string | undefined) => setInputTokenAmount(value || '')}
-                    setUsdValue={(value: string) => setInputUsdValue(value)}
+                    setUsdValue={(value: string) => {
+                        setInputUsdValue(value)
+                        dispatch(paymentActions.setUsdAmount(value))
+                    }}
                     setCurrencyAmount={setCurrencyAmount}
                     className="w-full"
-                    disabled={!isAddMoneyFlow && (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)}
+                    disabled={!isExternalWalletFlow && (!!requestDetails?.tokenAmount || !!chargeDetails?.tokenAmount)}
                     walletBalance={isActivePeanutWallet ? peanutWalletBalance : undefined}
                     currency={currency}
-                    hideBalance={isAddMoneyFlow}
+                    hideBalance={isExternalWalletFlow}
                 />
 
                 {/*
@@ -661,7 +699,8 @@ export const PaymentForm = ({
                     select a token if it's not included in the url
                     From other wallets we always need to select a token
                 */}
-                {!(chain && isPeanutWalletConnected) && isConnected && !isAddMoneyFlow && (
+                {/* we dont need this as daimo will handle token selection */}
+                {/* {!(chain && isPeanutWalletConnected) && isConnected && !isAddMoneyFlow && (
                     <div className="space-y-2">
                         {!isPeanutWalletUSDC && !selectedTokenAddress && !selectedChainID && (
                             <div className="text-sm font-bold">Select token and chain to receive</div>
@@ -673,11 +712,11 @@ export const PaymentForm = ({
                             </div>
                         )}
                     </div>
-                )}
+                )} */}
 
-                {isExternalWalletConnected && isAddMoneyFlow && (
+                {/* {isExternalWalletConnected && isAddMoneyFlow && (
                     <TokenSelector viewType="add" disabled={!isExternalWalletConnected && isAddMoneyFlow} />
-                )}
+                )} */}
 
                 {isDirectUsdPayment && (
                     <FileUploadInput
@@ -689,8 +728,7 @@ export const PaymentForm = ({
                 )}
 
                 <div className="space-y-4">
-                    {guestAction()}
-                    {isConnected && (!error || isInsufficientBalanceError) && (
+                    {isPeanutWalletConnected && (!error || isInsufficientBalanceError) && (
                         <Button
                             variant="purple"
                             loading={isProcessing}
@@ -704,7 +742,7 @@ export const PaymentForm = ({
                             {getButtonText()}
                         </Button>
                     )}
-                    {isConnected && error && !isInsufficientBalanceError && (
+                    {isPeanutWalletConnected && error && !isInsufficientBalanceError && (
                         <Button
                             variant="purple"
                             loading={isProcessing}
@@ -720,8 +758,17 @@ export const PaymentForm = ({
                             Retry
                         </Button>
                     )}
+                    {daimoError && <ErrorAlert description={daimoError} />}
 
-                    {error && <ErrorAlert description={error} />}
+                    {!daimoError && error && (
+                        <ErrorAlert
+                            description={
+                                error.includes("You don't have enough balance.")
+                                    ? 'Not enough balance to fulfill this request with Peanut'
+                                    : error
+                            }
+                        />
+                    )}
                 </div>
             </div>
             <ActionModal

@@ -6,11 +6,11 @@ import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { saveToLocalStorage } from '@/utils'
+import { saveToCookie, saveToLocalStorage } from '@/utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
-import type { TransactionReceipt } from 'viem'
-import { Hex } from 'viem'
+import type { TransactionReceipt, Hex, Hash } from 'viem'
+import { captureException } from '@sentry/nextjs'
 
 // types
 type UserOpEncodedParams = {
@@ -56,6 +56,7 @@ export const useZeroDev = () => {
 
             setWebAuthnKey(webAuthnKey)
             saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
+            saveToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey, 90)
         } catch (e) {
             if ((e as Error).message.includes('pending')) {
                 return
@@ -86,6 +87,7 @@ export const useZeroDev = () => {
 
             setWebAuthnKey(webAuthnKey)
             saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
+            saveToCookie(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey, 90)
         } catch (e) {
             const error = e as Error
             if (error.name === 'NotAllowedError') {
@@ -102,29 +104,46 @@ export const useZeroDev = () => {
     }
 
     const handleSendUserOpEncoded = useCallback(
-        async (calls: UserOpEncodedParams[], chainId: string): Promise<TransactionReceipt> => {
+        async (
+            calls: UserOpEncodedParams[],
+            chainId: string
+        ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
             const client = getClientForChain(chainId)
             dispatch(zerodevActions.setIsSendingUserOp(true))
 
+            let userOpHash: Hash
             try {
-                const userOpHash = await client.sendUserOperation({
+                userOpHash = await client.sendUserOperation({
                     account: client.account,
                     callData: await client.account!.encodeCalls(calls),
                 })
-
-                setLoadingState('Executing transaction')
-                const receipt = await client.waitForUserOperationReceipt({
-                    hash: userOpHash,
-                })
-
-                setLoadingState('Idle')
-                dispatch(zerodevActions.setIsSendingUserOp(false))
-
-                return receipt.receipt
             } catch (error) {
-                console.error('Error sending encoded UserOp:', error)
+                console.error('Error sending UserOp:', error)
                 dispatch(zerodevActions.setIsSendingUserOp(false))
                 throw error
+            }
+            setLoadingState('Executing transaction')
+            let userOpReceipt: Awaited<ReturnType<typeof client.waitForUserOperationReceipt>>
+            try {
+                userOpReceipt = await client.waitForUserOperationReceipt({
+                    hash: userOpHash,
+                })
+            } catch (error) {
+                console.error('Error waiting for UserOp receipt:', error)
+                captureException(error)
+                dispatch(zerodevActions.setIsSendingUserOp(false))
+                return {
+                    userOpHash,
+                    receipt: null,
+                }
+            }
+
+            setLoadingState('Idle')
+            dispatch(zerodevActions.setIsSendingUserOp(false))
+
+            return {
+                userOpHash,
+                receipt: userOpReceipt.receipt,
             }
         },
         [getClientForChain]

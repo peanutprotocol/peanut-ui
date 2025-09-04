@@ -31,8 +31,10 @@ export type SendLink = {
         userId: string
         username: string
         fullName: string
+        kycStatus: string
         accounts: {
             identifier: string
+            type: string
         }[]
     }
     claim?: {
@@ -41,10 +43,13 @@ export type SendLink = {
         tokenAddress: string
         recipientAddress?: string
         recipient?: {
+            userId: string
             username: string
             fullName: string
+            kycStatus: string
             accounts: {
                 identifier: string
+                type: string
             }[]
         }
     }
@@ -198,5 +203,26 @@ export const sendLinksApi = {
         const params = getParamsFromLink(link)
         const pubKey = generateKeysFromString(params.password).address
         return await claimSendLink(pubKey, recipient, params.password)
+    },
+
+    /**
+     * associates a logged-in user with a claim transaction.
+     * this is called after an external wallet claim is successful.
+     * it helps the backend link the claim to the user's history.
+     * @param txhash - the transaction hash of the successful claim.
+     */
+    associateClaim: async (txHash: string): Promise<void> => {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links/claim/${txHash}/associate-user`, {
+            method: 'PATCH',
+            headers: {
+                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+            },
+        })
+
+        if (!response.ok) {
+            const errorText = await response.text()
+            console.error('Failed to associate user with claim:', errorText)
+            // not throwing error because the claim itself was successful.
+        }
     },
 }

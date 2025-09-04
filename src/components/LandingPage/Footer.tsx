@@ -1,6 +1,5 @@
 import { GITHUB_WHITE_ICON, PEANUT_LOGO, TELEGRAM_ICON, TWITTER_ICON } from '@/assets'
 import Image from 'next/image'
-import React from 'react'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'
 import handPeace from '@/assets/illustrations/hand-peace.svg'

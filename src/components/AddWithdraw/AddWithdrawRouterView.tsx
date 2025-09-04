@@ -14,6 +14,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { CountryList } from '../Common/CountryList'
 import PeanutLoading from '../Global/PeanutLoading'
 import SavedAccountsView from '../Common/SavedAccountsView'
+import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -39,6 +40,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     // local flag only for add flow; for withdraw we derive from context
     const [localShowAllMethods, setLocalShowAllMethods] = useState<boolean>(false)
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     // determine if we should show the full list of methods (countries/crypto) instead of the default view
     const shouldShowAllMethods = flow === 'withdraw' ? showAllWithdrawMethods : localShowAllMethods
@@ -80,6 +82,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         // Handle "From Bank" specially for add flow
         if (flow === 'add' && method.id === 'bank-transfer-add') {
             setFromBankSelected(true)
+            return
+        }
+
+        if (flow === 'add' && method.id === 'crypto') {
+            setIsDrawerOpen(true)
             return
         }
 
@@ -197,6 +204,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 <Button icon="plus" className="mb-5" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
                     Select new method
                 </Button>
+                <CryptoMethodDrawer
+                    isDrawerOpen={isDrawerOpen}
+                    setisDrawerOpen={setIsDrawerOpen}
+                    closeDrawer={() => setIsDrawerOpen(false)}
+                />
             </div>
         )
     }
@@ -225,10 +237,19 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     router.push(countryPath)
                 }}
                 onCryptoClick={() => {
-                    const cryptoPath = `${baseRoute}/crypto`
-                    router.push(cryptoPath)
+                    if (flow === 'add') {
+                        setIsDrawerOpen(true)
+                    } else {
+                        const cryptoPath = `${baseRoute}/crypto`
+                        router.push(cryptoPath)
+                    }
                 }}
                 flow={flow}
+            />
+            <CryptoMethodDrawer
+                isDrawerOpen={isDrawerOpen}
+                setisDrawerOpen={setIsDrawerOpen}
+                closeDrawer={() => setIsDrawerOpen(false)}
             />
         </div>
     )

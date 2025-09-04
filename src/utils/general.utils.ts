@@ -15,9 +15,9 @@ import * as Sentry from '@sentry/nextjs'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { SiweMessage } from 'siwe'
 import type { Address, TransactionReceipt } from 'viem'
-import { getAddress, isAddress } from 'viem'
+import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
-import { getSDKProvider } from './sdk.utils'
+import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
 
 export function urlBase64ToUint8Array(base64String: string) {
@@ -144,6 +144,81 @@ export const getFromLocalStorage = (key: string) => {
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
+    }
+}
+
+export const saveToCookie = (key: string, data: any, expiryDays?: number) => {
+    if (typeof document === 'undefined') return
+    try {
+        // Convert the data to a string before storing it in cookies
+        const serializedData = jsonStringify(data)
+
+        let cookieString = `${key}=${encodeURIComponent(serializedData)}`
+
+        if (expiryDays) {
+            const expiryDate = new Date(new Date().getTime() + expiryDays * 24 * 60 * 60 * 1000)
+            cookieString += `; expires=${expiryDate.toUTCString()}`
+        }
+
+        // Add default cookie attributes for security
+        cookieString += '; path=/; SameSite=Lax'
+
+        document.cookie = cookieString
+        console.log(`Saved ${key} to cookie:`, data)
+    } catch (error) {
+        Sentry.captureException(error)
+        console.error('Error saving to cookie:', error)
+    }
+}
+
+export const getFromCookie = (key: string) => {
+    if (typeof document === 'undefined') return
+    try {
+        const cookies = document.cookie.split(';')
+        const targetCookie = cookies.find((cookie) => {
+            const [cookieKey] = cookie.trim().split('=')
+            return cookieKey === key
+        })
+
+        if (!targetCookie) {
+            console.log(`No data found in cookie for ${key}`)
+            return null
+        }
+
+        const [, ...cookieValueParts] = targetCookie.split('=')
+        const cookieValue = cookieValueParts.join('=') // Handle cases where value contains '='
+        const decodedValue = decodeURIComponent(cookieValue)
+
+        const parsedData = jsonParse(decodedValue)
+        console.log(`Retrieved ${key} from cookie:`, parsedData)
+        return parsedData
+    } catch (error) {
+        Sentry.captureException(error)
+        console.error('Error getting data from cookie:', error)
+        return null
+    }
+}
+
+export const removeFromCookie = (key: string) => {
+    if (typeof document === 'undefined') return
+    try {
+        // Set cookie with past expiry date to remove it
+        document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax`
+        console.log(`Removed ${key} from cookie`)
+    } catch (error) {
+        Sentry.captureException(error)
+        console.error('Error removing cookie:', error)
+    }
+}
+
+// for backward compatibility - save localstorage data in cookie if it does not exist
+export const syncLocalStorageToCookie = (key: string) => {
+    const localStorageData = getFromLocalStorage(key)
+    const cookieData = getFromCookie(key)
+
+    if (localStorageData && !cookieData) {
+        saveToCookie(key, localStorageData, 90)
+        console.log('Data synced successfully')
     }
 }
 
@@ -981,16 +1056,13 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
     let tokenSymbol = getTokenSymbol(tokenAddress, chainId)
     if (!tokenSymbol) {
         try {
-            const provider = await getSDKProvider({ chainId })
-            if (!provider) {
-                console.error(`Failed to get provider for chain ID ${chainId}`)
-                return undefined
-            }
-            const contract = await peanut.getTokenContractDetails({
-                address: tokenAddress,
-                provider: provider,
-            })
-            tokenSymbol = contract?.symbol?.toUpperCase()
+            const client = getPublicClient(Number(chainId) as ChainId)
+            tokenSymbol = (await client.readContract({
+                address: tokenAddress as Address,
+                abi: erc20Abi,
+                functionName: 'symbol',
+                args: [],
+            })) as string
         } catch (error) {
             Sentry.captureException(error)
             console.error('Error fetching token symbol:', error)
@@ -1220,4 +1292,18 @@ export function isTxReverted(receipt: TransactionReceipt): boolean {
 
 export function checkIfInternalNavigation(): boolean {
     return !!document.referrer && new URL(document.referrer).origin === window.location.origin
+}
+
+/**
+ * Converts a string into a URL-friendly slug
+ * @param text - The string to slugify
+ * @returns A slugified string with lowercase letters, hyphens, and no special characters
+ */
+export function slugify(text: string): string {
+    return text
+        .toLowerCase() // Convert to lowercase
+        .trim() // Remove leading/trailing whitespace
+        .replace(/[^\w\s-]/g, '') // Remove special characters except word chars, spaces, and hyphens
+        .replace(/[\s_-]+/g, '-') // Replace spaces, underscores, and multiple hyphens with single hyphen
+        .replace(/^-+|-+$/g, '') // Remove leading and trailing hyphens
 }

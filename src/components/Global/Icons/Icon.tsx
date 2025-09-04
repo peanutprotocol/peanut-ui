@@ -56,6 +56,8 @@ import { PendingIcon } from './pending'
 import { ProcessingIcon } from './processing'
 import { FailedIcon } from './failed'
 import { ChevronDownIcon } from './chevron-down'
+import { DoubleCheckIcon } from './double-check'
+import { QuestionMarkIcon } from './question-mark'
 
 // available icon names
 export type IconName =
@@ -72,6 +74,7 @@ export type IconName =
     | 'check-circle'
     | 'cancel'
     | 'download'
+    | 'double-check'
     | 'eye'
     | 'eye-slash'
     | 'exchange'
@@ -116,6 +119,7 @@ export type IconName =
     | 'processing'
     | 'failed'
     | 'chevron-down'
+    | 'question-mark'
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
@@ -135,6 +139,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'chevron-up': ChevronUpIcon,
     download: DownloadIcon,
     dollar: DollarIcon,
+    'double-check': DoubleCheckIcon,
     eye: EyeIcon,
     'eye-slash': EyeSlashIcon,
     exchange: ExchangeIcon,
@@ -181,6 +186,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     processing: ProcessingIcon,
     failed: FailedIcon,
     'chevron-down': ChevronDownIcon,
+    'question-mark': QuestionMarkIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
