@@ -5,7 +5,7 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { saveRedirectUrl } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 
 interface GuestLoginCtaProps {
@@ -18,6 +18,7 @@ const GuestLoginCta = ({ hideConnectWallet = false, view }: GuestLoginCtaProps) 
     const toast = useToast()
     const router = useRouter()
     const { open: openReownModal } = useAppKit()
+    const searchParams = useSearchParams()
 
     // If user already has a passkey address, auto-redirect to avoid double prompting
     useEffect(() => {
@@ -39,6 +40,10 @@ const GuestLoginCta = ({ hideConnectWallet = false, view }: GuestLoginCtaProps) 
 
         try {
             await handleLogin()
+            const redirect_uri = searchParams.get('redirect_uri')
+            if (redirect_uri) {
+                router.push(redirect_uri)
+            }
         } catch (e) {
             toast.error('Error logging in')
             Sentry.captureException(e)

@@ -11,7 +11,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { isTestnetChain } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useAccount } from 'wagmi'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 const useClaimLink = () => {
     const { fetchBalance } = useWallet()
@@ -19,7 +19,6 @@ const useClaimLink = () => {
     const { switchChainAsync } = useSwitchChain()
     const pathname = usePathname()
     const searchParams = useSearchParams()
-    const router = useRouter()
 
     const { setLoadingState } = useContext(loadingStateContext)
 
@@ -97,19 +96,21 @@ const useClaimLink = () => {
         }
     }
 
-    const addParamStep = () => {
+    const addParamStep = (step: 'bank' | 'claim') => {
         const params = new URLSearchParams(searchParams)
-        params.set('step', 'bank')
+        params.set('step', step)
 
         const hash = window.location.hash
-        router.replace(`${pathname}?${params.toString()}${hash}`, { scroll: false })
+        const newUrl = `${pathname}?${params.toString()}${hash}`
+        window.history.replaceState(null, '', newUrl)
     }
 
     const removeParamStep = () => {
         const params = new URLSearchParams(searchParams)
         params.delete('step')
         const queryString = params.toString()
-        router.replace(`${pathname}${queryString ? `?${queryString}` : ''}${window.location.hash}`, { scroll: false })
+        const newUrl = `${pathname}${queryString ? `?${queryString}` : ''}${window.location.hash}`
+        window.history.replaceState(null, '', newUrl)
     }
 
     return {

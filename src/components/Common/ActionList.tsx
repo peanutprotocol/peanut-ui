@@ -70,7 +70,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 case 'bank':
                     {
                         if (claimType === BankClaimType.GuestKycNeeded) {
-                            addParamStep()
+                            addParamStep('bank')
                             setShowVerificationModal(true)
                         } else {
                             if (savedAccounts.length) {
@@ -139,7 +139,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 <Button
                     shadowSize="4"
                     onClick={() => {
-                        saveRedirectUrl()
+                        addParamStep('claim')
                         // push to setup page with redirect uri, to prevent the user from losing the flow context
                         const redirectUri = encodeURIComponent(
                             window.location.pathname + window.location.search + window.location.hash

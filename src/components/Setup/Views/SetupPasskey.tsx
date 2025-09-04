@@ -5,7 +5,7 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import * as Sentry from '@sentry/nextjs'
 import { WalletProviderType } from '@/interfaces'
 import { WebAuthnError } from '@simplewebauthn/browser'
@@ -22,6 +22,7 @@ const SetupPasskey = () => {
     const { addAccount } = useAuth()
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
+    const searchParams = useSearchParams()
 
     useEffect(() => {
         if (address && user) {
@@ -32,6 +33,12 @@ const SetupPasskey = () => {
                 telegramHandle: telegramHandle.length > 0 ? telegramHandle : undefined,
             })
                 .then(() => {
+                    const redirect_uri = searchParams.get('redirect_uri')
+                    if (redirect_uri) {
+                        router.push(redirect_uri)
+                        return
+                    }
+
                     const localStorageRedirect = getFromLocalStorage('redirect')
                     // redirect based on post signup action config
                     if (localStorageRedirect) {

@@ -615,6 +615,13 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }
 
+    useEffect(() => {
+        const stepFromURL = searchParams.get('step')
+        if (user && claimLinkData.status !== 'CLAIMED' && stepFromURL === 'claim') {
+            handleClaimLink()
+        }
+    }, [user, searchParams])
+
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
     }
