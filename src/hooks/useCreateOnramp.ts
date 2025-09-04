@@ -45,7 +45,7 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
                 if (usdAmount) {
                     // Get currency configuration for the country
                     const price = await getCurrencyPrice(currency)
-                    amount = (Number(amount) * price).toFixed(2)
+                    amount = (Number(usdAmount) * price).toFixed(2)
                 }
 
                 // Call backend to create onramp via proxy route
