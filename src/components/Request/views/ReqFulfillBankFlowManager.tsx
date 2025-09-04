@@ -18,6 +18,8 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Button } from '@/components/0_Bruddle'
 import { updateUserById } from '@/app/actions/users'
 import { Address } from 'viem'
+import { getCurrencyConfig, getMinimumAmount } from '@/utils/bridge.utils'
+import { getCurrencyPrice } from '@/app/actions/currency'
 
 /**
  * @name ReqFulfillBankFlowManager
@@ -32,7 +34,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
     const { chargeDetails } = usePaymentStore()
     const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
     const [isUpdatingUser, setIsUpdatingUser] = useState(false)
-    const [userUpdateError, setUserUpdateError] = useState<string | null>(null)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isUserDetailsFormValid, setIsUserDetailsFormValid] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
@@ -54,9 +56,24 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
         }
     }, [showVerificationModal])
 
+    useEffect(() => {
+        if (!chargeDetails || !selectedCountry) return
+        const { currency } = getCurrencyConfig(selectedCountry.id, 'onramp')
+        const usdAmount = chargeDetails.tokenAmount
+        const minAmount = getMinimumAmount(selectedCountry.id)
+        getCurrencyPrice(currency).then((price) => {
+            const currencyAmount = Number(usdAmount) * price
+            if (currencyAmount < minAmount) {
+                setErrorMessage(`Minimum amount is ${minAmount.toFixed(2)} ${currency}`)
+            } else {
+                setErrorMessage(null)
+            }
+        })
+    }, [chargeDetails, selectedCountry])
+
     const handleOnrampConfirmation = async () => {
         if (!selectedCountry) return
-
+        setErrorMessage(null)
         try {
             let onrampDataResponse
 
@@ -95,6 +112,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
             setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
         }
     }
+
     const handleKycSuccess = () => {
         setShowVerificationModal(false)
         setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
@@ -103,7 +121,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
 
     const handleUserDetailsSubmit = async (data: UserDetailsFormData) => {
         setIsUpdatingUser(true)
-        setUserUpdateError(null)
+        setErrorMessage(null)
         try {
             if (!user?.user.userId) throw new Error('User not found')
             const result = await updateUserById({
@@ -117,7 +135,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
             await fetchUser()
             setShowVerificationModal(true)
         } catch (error: any) {
-            setUserUpdateError(error.message)
+            setErrorMessage(error.message)
             return { error: error.message }
         } finally {
             setIsUpdatingUser(false)
@@ -199,11 +217,11 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
                             variant="purple"
                             shadowSize="4"
                             className="w-full"
-                            disabled={!isUserDetailsFormValid || isUpdatingUser}
+                            disabled={!isUserDetailsFormValid || isUpdatingUser || !!errorMessage}
                         >
                             Continue
                         </Button>
-                        {userUpdateError && <ErrorAlert description={userUpdateError} />}
+                        {errorMessage && <ErrorAlert description={errorMessage} />}
                     </div>
                 </div>
             )
