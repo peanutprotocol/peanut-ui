@@ -14,6 +14,8 @@ import PeanutActionDetailsCard, { PeanutActionDetailsCardProps } from '../Global
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { getCountryFromIban, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
+import { useAppDispatch, useAppSelector } from '@/redux/hooks'
+import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { useDebounce } from '@/hooks/useDebounce'
 
 const isIBANCountry = (country: string) => {
@@ -66,6 +68,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const isUs = country.toUpperCase() === 'USA'
         const isIban = isUs || isMx ? false : isIBANCountry(country)
         const { user } = useAuth()
+        const dispatch = useAppDispatch()
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const { country: countryNameParams } = useParams()
@@ -75,6 +78,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [isCheckingBICValid, setisCheckingBICValid] = useState(false)
 
         let selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
+
+        // Get persisted form data from Redux
+        const persistedFormData = useAppSelector((state) => state.bankForm.formData)
 
         const {
             control,
@@ -97,6 +103,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 state: '',
                 postalCode: '',
                 ...initialData,
+                ...persistedFormData, // Redux persisted data takes precedence
             },
             mode: 'onBlur',
             reValidateMode: 'onSubmit',
@@ -191,6 +198,17 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 })
                 if (result.error) {
                     setSubmissionError(result.error)
+                    setIsSubmitting(false)
+                } else {
+                    // Save form data to Redux after successful submission
+                    const formDataToSave = {
+                        ...data,
+                        country,
+                        firstName: data.firstName.trim(),
+                        lastName: data.lastName.trim(),
+                    }
+                    dispatch(bankFormActions.setFormData(formDataToSave))
+                    setIsSubmitting(false)
                 }
             } catch (error: any) {
                 setSubmissionError(error.message)
