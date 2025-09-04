@@ -7,9 +7,21 @@ interface MantecaDepositCardProps {
     countryCodeForFlag: string
     currencySymbol: string
     amount: string
+    cbu?: string
+    alias?: string
+    depositAddress?: string
+    pixKey?: string
 }
 
-const MantecaDepositCard = ({ countryCodeForFlag, currencySymbol, amount }: MantecaDepositCardProps) => {
+const MantecaDepositCard = ({
+    countryCodeForFlag,
+    currencySymbol,
+    amount,
+    cbu,
+    alias,
+    depositAddress,
+    pixKey,
+}: MantecaDepositCardProps) => {
     return (
         <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
             <PeanutActionDetailsCard
@@ -25,9 +37,10 @@ const MantecaDepositCard = ({ countryCodeForFlag, currencySymbol, amount }: Mant
 
             <h2 className="font-bold">Account details</h2>
             <Card className="rounded-sm">
-                <PaymentInfoRow label={'CBU'} value={'[CBU_NUMBER]'} allowCopy={true} />
-                <PaymentInfoRow label={'Full name'} value={'Manuel Rodríguez Roldán'} />
-                <PaymentInfoRow label={'[CUIL/CUIT]'} value={'20-39951628-6'} hideBottomBorder />
+                {cbu && <PaymentInfoRow label={'CBU'} value={cbu} allowCopy={true} />}
+                {alias && <PaymentInfoRow label={'Alias'} value={alias} hideBottomBorder />}
+                {depositAddress && <PaymentInfoRow label={'Deposit Address'} value={depositAddress} hideBottomBorder />}
+                {pixKey && <PaymentInfoRow label={'Pix Key'} value={pixKey} hideBottomBorder />}
             </Card>
         </div>
     )

@@ -2122,13 +2122,22 @@ countryData.forEach((country) => {
         // Add country-specific add methods (same as withdraw methods for consistency)
         if (specificMethodDetails && specificMethodDetails.length > 0) {
             specificMethodDetails.forEach((method) => {
-                currentAddMethods.push({
+                const currMethod = {
                     id: `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-add`,
                     icon: method.icon ?? undefined,
                     title: method.title,
                     description: method.description,
                     isSoon: true,
-                })
+                    path: '',
+                }
+
+                // TODO: Check with Jota regarding Brazil manteca support
+
+                // if (method.title === 'Pix' && countryCode === 'BR') {
+                //     currMethod.path = `/add-money/${country.path}/pix`
+                //     currMethod.isSoon = false
+                // }
+                currentAddMethods.push(currMethod)
             })
         }
 

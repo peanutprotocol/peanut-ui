@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { fetchWithSentry } from '@/utils'
 import { CountryData } from '@/components/AddMoney/consts'
 import { getCurrencyConfig } from '@/utils/onramp.utils'
+import { MantecaDepositDetails } from '@/types/manteca.types'
 
 const API_KEY = process.env.PEANUT_API_KEY!
 
@@ -117,7 +118,7 @@ interface CreateMantecaOnrampParams {
 
 export async function createMantecaOnramp(
     params: CreateMantecaOnrampParams
-): Promise<{ data?: { success: boolean }; error?: string }> {
+): Promise<{ data?: MantecaDepositDetails; error?: string }> {
     const apiUrl = process.env.PEANUT_API_URL
     const cookieStore = cookies()
     const jwtToken = (await cookieStore).get('jwt-token')?.value

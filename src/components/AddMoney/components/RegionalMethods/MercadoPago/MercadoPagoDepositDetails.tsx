@@ -6,8 +6,9 @@ import React, { useMemo } from 'react'
 import { countryCodeMap, countryData } from '../../../consts'
 import MantecaDepositCard from '../../MantecaDepositCard'
 import ShareButton from '@/components/Global/ShareButton'
+import { MantecaDepositDetails } from '@/types/manteca.types'
 
-const MercadoPagoDepositDetails = () => {
+const MercadoPagoDepositDetails = ({ depositDetails }: { depositDetails: MantecaDepositDetails }) => {
     const router = useRouter()
     const params = useParams()
     const currentCountryName = params.country as string
@@ -33,7 +34,13 @@ const MercadoPagoDepositDetails = () => {
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
             <NavHeader title={'Add Money'} onPrev={() => router.back()} />
 
-            <MantecaDepositCard countryCodeForFlag={countryCodeForFlag} currencySymbol={'ARS'} amount="124" />
+            <MantecaDepositCard
+                countryCodeForFlag={countryCodeForFlag}
+                currencySymbol={currentCountryDetails?.currency || 'ARS'}
+                amount={depositDetails.depositAmount}
+                cbu={depositDetails.depositAddress}
+                alias={depositDetails.depositAlias}
+            />
 
             <ShareButton
                 generateText={async () => {

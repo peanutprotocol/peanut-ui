@@ -11,5 +11,9 @@ export default function AddMoneyRegionalMethodPage() {
         return <MercadoPago />
     }
 
+    if (country === 'brazil' && method === 'pix') {
+        return <MercadoPago />
+    }
+
     return <div>Unsupported Method</div>
 }
