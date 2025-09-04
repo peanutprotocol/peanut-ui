@@ -58,6 +58,7 @@ import { FailedIcon } from './failed'
 import { ChevronDownIcon } from './chevron-down'
 import { DoubleCheckIcon } from './double-check'
 import { ShieldIcon } from './shield'
+import { QuestionMarkIcon } from './question-mark'
 
 // available icon names
 export type IconName =
@@ -120,6 +121,7 @@ export type IconName =
     | 'failed'
     | 'chevron-down'
     | 'shield'
+    | 'question-mark'
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
@@ -187,6 +189,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     failed: FailedIcon,
     'chevron-down': ChevronDownIcon,
     shield: ShieldIcon,
+    'question-mark': QuestionMarkIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {
