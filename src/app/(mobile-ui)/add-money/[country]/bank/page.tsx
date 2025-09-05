@@ -23,7 +23,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
-import { getOnrampCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
+import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
@@ -333,8 +333,10 @@ export default function OnrampBankPage() {
                         currency={
                             selectedCountry
                                 ? {
-                                      code: getOnrampCurrencyConfig(selectedCountry.id).currency,
-                                      symbol: getCurrencySymbol(getOnrampCurrencyConfig(selectedCountry.id).currency),
+                                      code: getCurrencyConfig(selectedCountry.id, 'onramp').currency,
+                                      symbol: getCurrencySymbol(
+                                          getCurrencyConfig(selectedCountry.id, 'onramp').currency
+                                      ),
                                       price: 1,
                                   }
                                 : undefined

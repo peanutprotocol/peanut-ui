@@ -772,11 +772,17 @@ export const usePaymentInitiator = () => {
             destinationchainId,
             txHash,
             payerAddress,
+            sourceChainId,
+            sourceTokenAddress,
+            sourceTokenSymbol,
         }: {
             chargeDetails: TRequestChargeResponse
             txHash: string
             destinationchainId: number
             payerAddress: string
+            sourceChainId: number
+            sourceTokenAddress: string
+            sourceTokenSymbol: string
         }) => {
             try {
                 setLoadingStep('Updating Payment Status')
@@ -786,6 +792,9 @@ export const usePaymentInitiator = () => {
                     hash: txHash,
                     tokenAddress: chargeDetails.tokenAddress,
                     payerAddress,
+                    sourceChainId: sourceChainId?.toString(),
+                    sourceTokenAddress,
+                    sourceTokenSymbol,
                 })
 
                 setPaymentDetails(payment)

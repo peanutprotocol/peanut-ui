@@ -101,6 +101,9 @@ const ActionListDaimoPayButton = () => {
                         txHash: daimoPaymentResponse.txHash as string,
                         destinationchainId: daimoPaymentResponse.payment.destination.chainId,
                         payerAddress: peanutWalletAddress ?? daimoPaymentResponse.payment.source.payerAddress,
+                        sourceChainId: daimoPaymentResponse.payment.source.chainId,
+                        sourceTokenAddress: daimoPaymentResponse.payment.source.tokenAddress,
+                        sourceTokenSymbol: daimoPaymentResponse.payment.source.tokenSymbol,
                     })
 
                     if (result.status === 'Success') {

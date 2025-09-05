@@ -1,4 +1,4 @@
-import { MERCADO_PAGO_ICON } from '@/assets'
+import { MERCADO_PAGO } from '@/assets'
 import { METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import binanceIcon from '@/assets/exchanges/binance.svg'
 
@@ -26,7 +26,7 @@ export const ACTION_METHODS: PaymentMethod[] = [
         id: 'mercadopago',
         title: 'Mercado Pago',
         description: 'Instant transfers',
-        icons: [MERCADO_PAGO_ICON],
+        icons: [MERCADO_PAGO],
         soon: true,
     },
     {

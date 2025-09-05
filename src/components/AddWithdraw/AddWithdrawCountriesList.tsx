@@ -1,11 +1,6 @@
 'use client'
 
-import {
-    COUNTRY_SPECIFIC_METHODS,
-    countryCodeMap,
-    countryData,
-    SpecificPaymentMethod,
-} from '@/components/AddMoney/consts'
+import { COUNTRY_SPECIFIC_METHODS, countryData, SpecificPaymentMethod } from '@/components/AddMoney/consts'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -29,6 +24,8 @@ import PeanutLoading from '../Global/PeanutLoading'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
+import { useAppDispatch } from '@/redux/hooks'
+import { bankFormActions } from '@/redux/slices/bank-form-slice'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -42,6 +39,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const { deviceType } = useDeviceType()
     const { user, fetchUser } = useAuth()
     const { setSelectedBankAccount, amountToWithdraw } = useWithdrawFlow()
+    const dispatch = useAppDispatch()
 
     // component level states
     const [view, setView] = useState<'list' | 'form'>('list')
@@ -232,6 +230,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 <NavHeader
                     title={flow === 'withdraw' ? 'Withdraw' : 'Add money'}
                     onPrev={() => {
+                        // clear DynamicBankAccountForm data
+                        dispatch(bankFormActions.clearFormData())
                         // ensure kyc modal isn't open so late success events don't flip view
                         setIsKycModalOpen(false)
                         setView('list')
