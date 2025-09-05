@@ -30,6 +30,22 @@ const MercadoPagoDepositDetails = ({ depositDetails }: { depositDetails: Manteca
         return countryCode?.toLowerCase() || 'ar'
     }, [currentCountryDetails])
 
+    const generateShareText = () => {
+        const textParts = []
+        const currencySymbol = currentCountryDetails?.currency || 'ARS'
+
+        textParts.push(`Amount: ${currencySymbol} ${depositDetails.depositAmount}`)
+
+        if (depositDetails.depositAddress) {
+            textParts.push(`CBU: ${depositDetails.depositAddress}`)
+        }
+        if (depositDetails.depositAlias) {
+            textParts.push(`Alias: ${depositDetails.depositAlias}`)
+        }
+
+        return textParts.join('\n')
+    }
+
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
             <NavHeader title={'Add Money'} onPrev={() => router.back()} />
@@ -43,9 +59,7 @@ const MercadoPagoDepositDetails = ({ depositDetails }: { depositDetails: Manteca
             />
 
             <ShareButton
-                generateText={async () => {
-                    return `CBU: [CBU_NUMBER]\nFull name: Manuel Rodríguez Roldán\n[CUIL/CUIT]: 20-39951628-6`
-                }}
+                generateText={async () => generateShareText()}
                 title="Bank Transfer Details"
                 variant="purple"
                 className="w-full"
