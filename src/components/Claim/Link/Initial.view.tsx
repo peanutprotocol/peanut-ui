@@ -625,11 +625,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
-        if (user && claimLinkData.status !== 'CLAIMED' && stepFromURL === 'claim') {
+        if (user && claimLinkData.status !== 'CLAIMED' && stepFromURL === 'claim' && isPeanutWallet) {
             removeParamStep()
             handleClaimLink()
         }
-    }, [user, searchParams])
+    }, [user, searchParams, isPeanutWallet])
 
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
