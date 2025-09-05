@@ -8,6 +8,7 @@ interface UseExchangeRateProps {
     sourceCurrency: string
     destinationCurrency: string
     initialSourceAmount?: number
+    enabled?: boolean
 }
 
 interface UseExchangeRateReturn {
@@ -26,6 +27,7 @@ export function useExchangeRate({
     sourceCurrency,
     destinationCurrency,
     initialSourceAmount = 10,
+    enabled = true,
 }: UseExchangeRateProps): UseExchangeRateReturn {
     // State
     const [sourceAmount, setSourceAmount] = useState<InputValue>(initialSourceAmount)
@@ -89,6 +91,7 @@ export function useExchangeRate({
         staleTime: 2 * 60 * 1000, // 2 minutes
         gcTime: 10 * 60 * 1000, // garbage collect after 10 minutes
         refetchOnWindowFocus: false,
+        enabled: enabled && !!sourceCurrency && !!destinationCurrency,
     })
 
     const exchangeRate = rateData?.rate ?? 0
