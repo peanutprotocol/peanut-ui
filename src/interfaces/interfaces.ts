@@ -221,6 +221,8 @@ interface ReferralConnection {
     account_identifier: string
 }
 
+export type MantecaKycStatus = 'ONBOARDING' | 'ACTIVE' | 'INACTIVE'
+
 export interface User {
     userId: string
     email: string
@@ -230,6 +232,9 @@ export interface User {
     bridgeKycStartedAt?: string
     bridgeKycApprovedAt?: string
     bridgeKycRejectedAt?: string
+    mantecaKycStatus: MantecaKycStatus
+    mantecaKycStartedAt?: string
+    mantecaKycApprovedAt?: string
     tosStatus?: string
     tosAcceptedAt?: string
     bridgeCustomerId: string | null
