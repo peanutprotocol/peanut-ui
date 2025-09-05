@@ -2,7 +2,7 @@ import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useZeroDev } from '@/hooks/useZeroDev'
-import { saveRedirectUrl } from '@/utils'
+import { sanitizeRedirectURL, saveRedirectUrl } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -42,7 +42,8 @@ const GuestLoginCta = ({ hideConnectWallet = false, view }: GuestLoginCtaProps) 
             await handleLogin()
             const redirect_uri = searchParams.get('redirect_uri')
             if (redirect_uri) {
-                router.push(redirect_uri)
+                const sanitizedRedirectUrl = sanitizeRedirectURL(redirect_uri)
+                router.push(sanitizedRedirectUrl)
             }
         } catch (e) {
             toast.error('Error logging in')

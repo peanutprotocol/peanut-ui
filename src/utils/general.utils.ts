@@ -1217,6 +1217,20 @@ export const saveRedirectUrl = () => {
     saveToLocalStorage('redirect', relativeUrl)
 }
 
+export const sanitizeRedirectURL = (redirectUrl: string): string => {
+    try {
+        const u = new URL(redirectUrl, window.location.origin)
+        if (u.origin === window.location.origin) {
+            return u.pathname + u.search + u.hash
+        }
+    } catch {
+        if (redirectUrl.startsWith('/')) {
+            return redirectUrl
+        }
+    }
+    return redirectUrl
+}
+
 export const formatPaymentStatus = (status: string): string => {
     switch (status.toUpperCase()) {
         case 'NEW':

@@ -10,7 +10,7 @@ import * as Sentry from '@sentry/nextjs'
 import { WalletProviderType } from '@/interfaces'
 import { WebAuthnError } from '@simplewebauthn/browser'
 import Link from 'next/link'
-import { getFromLocalStorage } from '@/utils'
+import { getFromLocalStorage, sanitizeRedirectURL } from '@/utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
 
 const SetupPasskey = () => {
@@ -35,7 +35,8 @@ const SetupPasskey = () => {
                 .then(() => {
                     const redirect_uri = searchParams.get('redirect_uri')
                     if (redirect_uri) {
-                        router.push(redirect_uri)
+                        const sanitizedRedirectUrl = sanitizeRedirectURL(redirect_uri)
+                        router.push(sanitizedRedirectUrl)
                         return
                     }
 
