@@ -35,7 +35,7 @@ export const isKycStatusItem = (entry: object): entry is KycHistoryEntry => {
     return 'isKyc' in entry && entry.isKyc === true
 }
 
-export const useKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFlowOptions = {}) => {
+export const useBridgeKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFlowOptions = {}) => {
     const { user } = useUserStore()
     const router = useRouter()
     const isMounted = useRef(false)

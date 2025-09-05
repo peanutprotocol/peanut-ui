@@ -1,5 +1,5 @@
 import ActionModal from '@/components/Global/ActionModal'
-import { useKycFlow } from '@/hooks/useKycFlow'
+import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { KycVerificationInProgressModal } from './KycVerificationInProgressModal'
 import { IconName } from '@/components/Global/Icons/Icon'
@@ -21,7 +21,7 @@ export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess, onManualClose,
         handleInitiateKyc,
         handleIframeClose,
         closeVerificationProgressModal,
-    } = useKycFlow({ onKycSuccess, flow, onManualClose })
+    } = useBridgeKycFlow({ onKycSuccess, flow, onManualClose })
 
     const handleVerifyClick = async () => {
         const result = await handleInitiateKyc()

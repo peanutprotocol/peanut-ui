@@ -13,7 +13,7 @@ import { useUserStore } from '@/redux/hooks'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname } from 'next/navigation'
-import { isKycStatusItem } from '@/hooks/useKycFlow'
+import { isKycStatusItem } from '@/hooks/useBridgeKycFlow'
 import React, { useEffect, useMemo, useRef } from 'react'
 
 /**

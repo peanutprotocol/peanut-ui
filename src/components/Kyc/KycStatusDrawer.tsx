@@ -6,7 +6,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Drawer, DrawerContent } from '../Global/Drawer'
 import { BridgeKycStatus } from '@/utils'
 import { getKycDetails } from '@/app/actions/users'
-import { useKycFlow } from '@/hooks/useKycFlow'
+import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
 import IFrameWrapper from '../Global/IframeWrapper'
 
 // a helper to categorize the kyc status from the user object
@@ -54,7 +54,7 @@ export const KycStatusDrawer = ({
         iframeOptions,
         handleIframeClose,
         isLoading: isKycFlowLoading,
-    } = useKycFlow({ onKycSuccess: onClose })
+    } = useBridgeKycFlow({ onKycSuccess: onClose })
 
     const statusCategory = getKycStatusCategory(bridgeKycStatus)
 
