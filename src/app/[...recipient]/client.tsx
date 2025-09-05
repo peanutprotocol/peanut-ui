@@ -339,7 +339,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 amountDisplay: '$ 0.00',
             },
             currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
-            isVerified: counterparty?.user?.kycStatus === 'approved',
+            isVerified: counterparty?.user?.bridgeKycStatus === 'approved',
             haveSentMoneyToUser: counterparty?.userId ? interactions[counterparty.userId] || false : false,
         }
 

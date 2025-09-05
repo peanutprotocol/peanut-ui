@@ -1,5 +1,5 @@
 import * as consts from '@/constants'
-import { fetchWithSentry, KYCStatus } from '@/utils'
+import { fetchWithSentry, BridgeKycStatus } from '@/utils'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -7,7 +7,7 @@ type UserPayload = {
     userId: string
     username?: string
     bridge_customer_id?: string
-    kycStatus?: KYCStatus
+    bridgeKycStatus?: BridgeKycStatus
     telegramUsername?: string
     email?: string
     pushSubscriptionId?: string
@@ -15,7 +15,7 @@ type UserPayload = {
 }
 
 export async function POST(request: NextRequest) {
-    const { userId, username, bridge_customer_id, kycStatus, telegram, email, pushSubscriptionId, fullName } =
+    const { userId, username, bridge_customer_id, bridgeKycStatus, telegram, email, pushSubscriptionId, fullName } =
         await request.json()
 
     const apiKey = process.env.PEANUT_API_KEY
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
             userId,
             username,
             bridge_customer_id,
-            kycStatus,
+            bridgeKycStatus: bridgeKycStatus,
         }
 
         if (telegram) {

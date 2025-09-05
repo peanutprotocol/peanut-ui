@@ -216,7 +216,7 @@ export default function Home() {
                     <UserHeader
                         username={username!}
                         fullName={userFullName}
-                        isVerified={user?.user.kycStatus === 'approved'}
+                        isVerified={user?.user.bridgeKycStatus === 'approved'}
                     />
                     <SearchUsers />
                 </div>
