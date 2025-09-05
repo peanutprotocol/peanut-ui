@@ -9,7 +9,7 @@ import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerification
 import { useAuth } from '@/context/authContext'
 import { useKycFlow } from '@/hooks/useKycFlow'
 import { useRouter } from 'next/navigation'
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 const IdentityVerificationView = () => {
     const { user, fetchUser } = useAuth()
@@ -64,6 +64,13 @@ const IdentityVerificationView = () => {
         }
         return {}
     }
+
+    // if kyc is already approved, redirect to profile
+    useEffect(() => {
+        if (user?.user.kycStatus === 'approved') {
+            router.replace('/profile')
+        }
+    }, [user])
 
     return (
         <div className="flex min-h-[inherit] flex-col">
