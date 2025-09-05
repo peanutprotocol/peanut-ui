@@ -18,7 +18,15 @@ const WelcomeStep = () => {
     const toast = useToast()
 
     useEffect(() => {
-        if (!!user) push('/home')
+        if (!!user) {
+            const localStorageRedirect = getFromLocalStorage('redirect')
+            if (localStorageRedirect) {
+                localStorage.removeItem('redirect')
+                push(localStorageRedirect)
+            } else {
+                push('/home')
+            }
+        }
     }, [user, push])
 
     const handleError = (error: any) => {

@@ -110,6 +110,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const queryClient = useQueryClient()
     const searchParams = useSearchParams()
     const prevRecipientType = useRef<string | null>(null)
+    const prevUser = useRef(user)
+
+    useEffect(() => {
+        if (!prevUser.current && user) {
+            resetClaimBankFlow()
+        }
+        prevUser.current = user
+    }, [user, resetClaimBankFlow])
 
     const resetSelectedToken = useCallback(() => {
         if (isPeanutWallet) {

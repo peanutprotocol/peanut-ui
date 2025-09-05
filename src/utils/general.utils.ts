@@ -1294,3 +1294,17 @@ export function isTxReverted(receipt: TransactionReceipt): boolean {
 export function checkIfInternalNavigation(): boolean {
     return !!document.referrer && new URL(document.referrer).origin === window.location.origin
 }
+
+/**
+ * Converts a string into a URL-friendly slug
+ * @param text - The string to slugify
+ * @returns A slugified string with lowercase letters, hyphens, and no special characters
+ */
+export function slugify(text: string): string {
+    return text
+        .toLowerCase() // Convert to lowercase
+        .trim() // Remove leading/trailing whitespace
+        .replace(/[^\w\s-]/g, '') // Remove special characters except word chars, spaces, and hyphens
+        .replace(/[\s_-]+/g, '-') // Replace spaces, underscores, and multiple hyphens with single hyphen
+        .replace(/^-+|-+$/g, '') // Remove leading and trailing hyphens
+}

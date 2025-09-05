@@ -28,6 +28,8 @@ import { InitiateKYCModal } from '@/components/Kyc'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { KYCStatus } from '@/utils/bridge-accounts.utils'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
+import { useAppDispatch } from '@/redux/hooks'
+import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
 
 type BankAccountWithId = IBankAccountDetails &
@@ -66,6 +68,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const savedAccounts = useSavedAccounts()
     const { isLoading, setLoadingState } = useContext(loadingStateContext)
     const { claimLink } = useClaimLink()
+    const dispatch = useAppDispatch()
 
     // local states for this component
     const [localBankDetails, setLocalBankDetails] = useState<BankAccountWithId | null>(null)
@@ -448,11 +451,12 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     <div>
                         <NavHeader
                             title="Receive"
-                            onPrev={() =>
+                            onPrev={() => {
+                                dispatch(bankFormActions.clearFormData()) // clear DynamicBankAccountForm data
                                 savedAccounts.length > 0
                                     ? setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
                                     : setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
-                            }
+                            }}
                         />
                     </div>
                     <DynamicBankAccountForm
@@ -462,6 +466,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         countryName={selectedCountry?.title ?? ''}
                         onSuccess={handleSuccess}
                         flow={'claim'}
+                        hideEmailInput={bankClaimType === BankClaimType.GuestBankClaim}
                         actionDetailsProps={{
                             transactionType: 'CLAIM_LINK_BANK_ACCOUNT',
                             recipientType: 'BANK_ACCOUNT',
