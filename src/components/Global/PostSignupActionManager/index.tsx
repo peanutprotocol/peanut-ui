@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import ActionModal from '../ActionModal'
 import { POST_SIGNUP_ACTIONS } from './post-signup-action.consts'
 import { IconName } from '../Icons/Icon'
-import { KycFlow } from '@/components/Kyc/KycFlow'
+import { useAuth } from '@/context/authContext'
 
 export const PostSignupActionManager = ({
     onActionModalVisibilityChange,
@@ -22,13 +22,12 @@ export const PostSignupActionManager = ({
         action: () => void
     } | null>(null)
     const router = useRouter()
+    const { user } = useAuth()
 
-    useEffect(() => {
+    const checkClaimModalAfterKYC = () => {
         const redirectUrl = getFromLocalStorage('redirect')
-        const showVerificationModal = localStorage.getItem('showVerificationModal')
-        if (redirectUrl && showVerificationModal === 'true') {
+        if (user?.user.kycStatus === 'approved' && redirectUrl) {
             const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(redirectUrl))
-
             if (matchedAction) {
                 setActionConfig({
                     ...matchedAction.config,
@@ -41,7 +40,11 @@ export const PostSignupActionManager = ({
                 setShowModal(true)
             }
         }
-    }, [router])
+    }
+
+    useEffect(() => {
+        checkClaimModalAfterKYC()
+    }, [router, user])
 
     useEffect(() => {
         onActionModalVisibilityChange(showModal)
@@ -55,20 +58,18 @@ export const PostSignupActionManager = ({
             onClose={() => {
                 setShowModal(false)
                 localStorage.removeItem('redirect')
-                localStorage.removeItem('showVerificationModal')
             }}
             title={actionConfig.title}
             description={actionConfig.description}
             icon={actionConfig.icon as IconName}
-            customContent={<KycFlow />}
-            // ctas={[
-            //     {
-            //         text: actionConfig.cta,
-            //         onClick: actionConfig.action,
-            //         variant: 'purple',
-            //         shadowSize: '4',
-            //     },
-            // ]}
+            ctas={[
+                {
+                    text: actionConfig.cta,
+                    onClick: actionConfig.action,
+                    variant: 'purple',
+                    shadowSize: '4',
+                },
+            ]}
         />
     )
 }

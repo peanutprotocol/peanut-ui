@@ -7,7 +7,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { getFromLocalStorage } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 
 const WelcomeStep = () => {
@@ -16,6 +16,7 @@ const WelcomeStep = () => {
     const { user } = useAuth()
     const { push } = useRouter()
     const toast = useToast()
+    const searchParams = useSearchParams()
 
     useEffect(() => {
         if (!!user) {
@@ -55,11 +56,10 @@ const WelcomeStep = () => {
                     onClick={() => {
                         handleLogin()
                             .then(() => {
-                                // const localStorageRedirect = getFromLocalStorage('redirect')
-                                // if (localStorageRedirect) {
-                                //     localStorage.removeItem('redirect') // Clear the redirect URL
-                                //     push(localStorageRedirect)
-                                // }
+                                const redirect_uri = searchParams.get('redirect_uri')
+                                if (redirect_uri) {
+                                    push(redirect_uri)
+                                }
                             })
                             .catch((e) => {
                                 handleError(e)

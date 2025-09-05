@@ -37,7 +37,8 @@ export const GuestVerificationModal = ({
                     onClick: () => {
                         saveRedirectUrl()
                         if (shouldShowVerificationModalOnSignup) {
-                            localStorage.setItem('showVerificationModal', 'true')
+                            router.push('/setup?redirect_uri=/profile/identity-verification')
+                            return
                         }
                         router.push('/setup')
                     },
