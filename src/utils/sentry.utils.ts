@@ -8,6 +8,21 @@ const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
     return 'info'
 }
 
+const sanitizeHeaders = (headers: any): any => {
+    if (!headers) return headers
+
+    const sanitized = { ...headers }
+    const sensitiveHeaders = ['authorization', 'cookie', 'x-auth-token', 'api-key']
+
+    for (const key of Object.keys(sanitized)) {
+        if (sensitiveHeaders.includes(key.toLowerCase())) {
+            sanitized[key] = '[REDACTED]'
+        }
+    }
+
+    return sanitized
+}
+
 export const fetchWithSentry = async (url: string, options: RequestInit = {}): Promise<Response> => {
     // Sanitize URL for fingerprinting by replacing IDs with placeholders
     const sanitizeUrl = (url: string) => {
@@ -42,7 +57,7 @@ export const fetchWithSentry = async (url: string, options: RequestInit = {}): P
                     extra: {
                         url,
                         method,
-                        requestHeaders: options.headers || {},
+                        requestHeaders: sanitizeHeaders(options.headers || {}),
                         requestBody: options.body || null,
                         status: response.status,
                         response: errorContent,
@@ -75,7 +90,7 @@ export const fetchWithSentry = async (url: string, options: RequestInit = {}): P
                 extra: {
                     url,
                     method: options.method || 'GET',
-                    requestHeaders: options.headers || {},
+                    requestHeaders: sanitizeHeaders(options.headers || {}),
                     requestBody: options.body || null,
                     errorMessage,
                     errorName,

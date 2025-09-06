@@ -88,7 +88,8 @@ export const PaymentForm = ({
         requestDetails?.recipientAccount?.userId ||
         chargeDetails?.requestLink.recipientAccount.userId ||
         recipientUser?.userId
-    const recipientKycStatus = chargeDetails?.requestLink.recipientAccount.user?.kycStatus || recipientUser?.kycStatus
+    const recipientKycStatus =
+        chargeDetails?.requestLink.recipientAccount.user?.bridgeKycStatus || recipientUser?.bridgeKycStatus
 
     const { interactions } = useUserInteractions(recipientUserId ? [recipientUserId] : [])
     const { isConnected: isPeanutWalletConnected, balance } = useWallet()

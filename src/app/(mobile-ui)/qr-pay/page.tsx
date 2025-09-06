@@ -148,7 +148,6 @@ export default function QRPayPage() {
         }
     }, [paymentData])
 
-
     const payQR = useCallback(async () => {
         if (!paymentData || !usdAmount) return
         const { userOpHash, receipt } = await sendMoney(paymentData.qrPayment.details.depositAddress, usdAmount)
@@ -245,19 +244,19 @@ export default function QRPayPage() {
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* Merchant Card */}
                 {paymentData && (
-                <Card className="p-4">
-                    <div className="flex items-center space-x-3">
-                        <div className="flex items-center justify-center rounded-full bg-white">
-                            <Image src={methodIcon} alt="Mercado Pago" width={50} height={50} />
+                    <Card className="p-4">
+                        <div className="flex items-center space-x-3">
+                            <div className="flex items-center justify-center rounded-full bg-white">
+                                <Image src={methodIcon} alt="Mercado Pago" width={50} height={50} />
+                            </div>
+                            <div>
+                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                    <Icon name="arrow-up-right" size={10} /> You're paying
+                                </p>
+                                <p className="text-xl font-semibold">{paymentData.qrPayment.details.merchant.name}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="flex items-center text-center gap-1 text-sm text-gray-600">
-                            <Icon name="arrow-up-right" size={10} /> You're paying
-                            </p>
-                            <p className="text-xl font-semibold">{paymentData.qrPayment.details.merchant.name}</p>
-                        </div>
-                    </div>
-                </Card>
+                    </Card>
                 )}
 
                 {/* Amount Card */}

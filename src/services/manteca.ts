@@ -44,7 +44,7 @@ export interface QrPaymentResponse {
 }
 
 export const mantecaApi = {
-    initiateQrPayment: async (data: QrPaymentRequest): Promise<QrPaymentResponse | {paymentAsset: string}> => {
+    initiateQrPayment: async (data: QrPaymentRequest): Promise<QrPaymentResponse | { paymentAsset: string }> => {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/qr-payment`, {
             method: 'POST',
             headers: {

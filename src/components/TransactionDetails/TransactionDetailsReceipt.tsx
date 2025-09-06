@@ -8,7 +8,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
-import { formatIban, printableAddress, shortenAddress, shortenAddressLong } from '@/utils/general.utils'
+import { formatIban, printableAddress, shortenAddress, shortenAddressLong, slugify } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -55,10 +55,7 @@ export const TransactionDetailsReceipt = ({
     const { fetchBalance } = useWallet()
     const [showBankDetails, setShowBankDetails] = useState(false)
     const [showCancelLinkModal, setShowCancelLinkModal] = useState(isModalOpen)
-    const [tokenData, setTokenData] = useState<{ symbol: string; icon: string }>({
-        symbol: '',
-        icon: '',
-    })
+    const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
 
     useEffect(() => {
@@ -204,8 +201,9 @@ export const TransactionDetailsReceipt = ({
             }
 
             try {
+                const chainName = slugify(transaction.tokenDisplayDetails?.chainName ?? '')
                 const res = await fetch(
-                    `https://api.coingecko.com/api/v3/coins/${transaction.tokenDisplayDetails?.chainName}/contract/${transaction.tokenAddress}`
+                    `https://api.coingecko.com/api/v3/coins/${chainName}/contract/${transaction.tokenAddress}`
                 )
                 const tokenDetails = await res.json()
                 setTokenData({
@@ -214,10 +212,7 @@ export const TransactionDetailsReceipt = ({
                 })
             } catch (e) {
                 console.error(e)
-                setTokenData({
-                    symbol: '',
-                    icon: '',
-                })
+                setTokenData(null)
             } finally {
                 setIsTokenDataLoading(false)
             }
@@ -330,45 +325,52 @@ export const TransactionDetailsReceipt = ({
                         />
                     )}
 
-                    {rowVisibilityConfig.tokenAndNetwork && transaction.tokenDisplayDetails && (
-                        <PaymentInfoRow
-                            label="Token and network"
-                            value={
-                                isTokenDataLoading ? (
-                                    <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
-                                ) : (
-                                    <div className="flex items-center gap-2">
-                                        <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
-                                            {/* Main token icon */}
-                                            <DisplayIcon
-                                                iconUrl={tokenData.icon}
-                                                altText={tokenData.symbol || 'token'}
-                                                fallbackName={tokenData.symbol || 'T'}
-                                                sizeClass="h-6 w-6"
-                                            />
-                                            {/* Smaller chain icon, absolutely positioned */}
-                                            {transaction.tokenDisplayDetails.chainIconUrl && (
-                                                <div className="absolute -bottom-1 -right-1">
-                                                    <DisplayIcon
-                                                        iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
-                                                        altText={transaction.tokenDisplayDetails.chainName || 'chain'}
-                                                        fallbackName={transaction.tokenDisplayDetails.chainName || 'C'}
-                                                        sizeClass="h-3.5 w-3.5 text-[7px]"
-                                                        className="rounded-full border-2 border-white dark:border-grey-4"
-                                                    />
-                                                </div>
-                                            )}
+                    {rowVisibilityConfig.tokenAndNetwork &&
+                        transaction.tokenDisplayDetails &&
+                        tokenData?.icon &&
+                        tokenData?.symbol && (
+                            <PaymentInfoRow
+                                label="Token and network"
+                                value={
+                                    isTokenDataLoading ? (
+                                        <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                                {/* Main token icon */}
+                                                <DisplayIcon
+                                                    iconUrl={tokenData.icon}
+                                                    altText={tokenData.symbol || 'token'}
+                                                    fallbackName={tokenData.symbol || 'T'}
+                                                    sizeClass="h-6 w-6"
+                                                />
+                                                {/* Smaller chain icon, absolutely positioned */}
+                                                {transaction.tokenDisplayDetails.chainIconUrl && (
+                                                    <div className="absolute -bottom-1 -right-1">
+                                                        <DisplayIcon
+                                                            iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
+                                                            altText={
+                                                                transaction.tokenDisplayDetails.chainName || 'chain'
+                                                            }
+                                                            fallbackName={
+                                                                transaction.tokenDisplayDetails.chainName || 'C'
+                                                            }
+                                                            sizeClass="h-3.5 w-3.5 text-[7px]"
+                                                            className="rounded-full border-2 border-white dark:border-grey-4"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <span>
+                                                {tokenData.symbol.toUpperCase()} on{' '}
+                                                {transaction.tokenDisplayDetails.chainName}
+                                            </span>
                                         </div>
-                                        <span>
-                                            {tokenData.symbol.toUpperCase()} on{' '}
-                                            {transaction.tokenDisplayDetails.chainName}
-                                        </span>
-                                    </div>
-                                )
-                            }
-                            hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
-                        />
-                    )}
+                                    )
+                                }
+                                hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
+                            />
+                        )}
 
                     {rowVisibilityConfig.txId && transaction.txHash && (
                         <PaymentInfoRow
@@ -400,7 +402,7 @@ export const TransactionDetailsReceipt = ({
                             {transaction.cancelledDate && (
                                 <PaymentInfoRow
                                     label="Cancelled"
-                                    value={formatDate(transaction.cancelledDate as Date)}
+                                    value={formatDate(new Date(transaction.cancelledDate))}
                                     hideBottomBorder={shouldHideBorder('cancelled')}
                                 />
                             )}

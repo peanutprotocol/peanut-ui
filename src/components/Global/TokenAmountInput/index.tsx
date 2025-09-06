@@ -173,7 +173,7 @@ const TokenAmountInput = ({
     useEffect(() => {
         if (inputRef.current) {
             if (displayValue?.length !== 0) {
-                inputRef.current.style.width = `${(displayValue?.length ?? 0) + 1}ch`
+                inputRef.current.style.width = `${displayValue?.length ?? 0}ch`
             } else {
                 inputRef.current.style.width = `4ch`
             }

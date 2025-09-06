@@ -122,7 +122,7 @@ export const Claim = ({}) => {
             peanutFeeDetails: {
                 amountDisplay: '$ 0.00',
             },
-            isVerified: claimLinkData.sender?.kycStatus === 'approved',
+            isVerified: claimLinkData.sender?.bridgeKycStatus === 'approved',
             haveSentMoneyToUser: claimLinkData.sender?.userId
                 ? interactions[claimLinkData.sender.userId] || false
                 : false,

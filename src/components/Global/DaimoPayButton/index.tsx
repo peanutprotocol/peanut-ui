@@ -4,7 +4,7 @@ import { Button } from '@/components/0_Bruddle'
 import { IconName } from '@/components/Global/Icons/Icon'
 import { PEANUT_WALLET_TOKEN } from '@/constants'
 import { DaimoPayButton as DaimoPayButtonSDK, useDaimoPayUI } from '@daimo/pay'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { getAddress } from 'viem'
 import { arbitrum } from 'viem/chains'
 
@@ -94,7 +94,7 @@ export const DaimoPayButton = ({
 
         // Reset payment amount for Daimo
         await resetPayment({
-            toUnits: amount.replace(/,/g, ''),
+            toUnits: formattedAmount.toString(),
         })
 
         return true
@@ -105,6 +105,34 @@ export const DaimoPayButton = ({
     if (!daimoAppId) {
         throw new Error('Daimo APP ID is required')
     }
+
+    useEffect(() => {
+        if (typeof document === 'undefined') return
+
+        const hideIfWalletBtn = (el: Element) => {
+            if (el instanceof HTMLButtonElement && /pay with wallet/i.test(el.textContent ?? '')) {
+                if (el.style.display !== 'none') el.style.display = 'none'
+            }
+        }
+
+        // Initial pass (keep broad but cheap)
+        document.querySelectorAll('button').forEach(hideIfWalletBtn)
+
+        // Observe only added nodes; scan their subtree
+        const observer = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                if (m.type !== 'childList') continue
+                m.addedNodes.forEach((node) => {
+                    if (!(node instanceof Element)) return
+                    if (node.matches('button')) hideIfWalletBtn(node)
+                    node.querySelectorAll('button').forEach(hideIfWalletBtn)
+                })
+            }
+        })
+        observer.observe(document.body, { childList: true, subtree: true })
+
+        return () => observer.disconnect()
+    }, [])
 
     return (
         <DaimoPayButtonSDK.Custom
