@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useContext } from 'react'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -23,6 +23,7 @@ import { getCurrencyPrice } from '@/app/actions/currency'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { loadingStateContext } from '@/context'
 
 export default function QRPayPage() {
     const searchParams = useSearchParams()
@@ -38,6 +39,7 @@ export default function QRPayPage() {
     const [paymentLock, setPaymentLock] = useState<QrPaymentLock | null>(null)
     const [currency, setCurrency] = useState<{ code: string; symbol: string; price: number } | undefined>(undefined)
     const { openTransactionDetails, selectedTransaction } = useTransactionDetailsDrawer()
+    const { isLoading, loadingState } = useContext(loadingStateContext)
 
     const {
         data: paymentResponse,
@@ -294,10 +296,10 @@ export default function QRPayPage() {
                     icon="arrow-up-right"
                     iconSize={10}
                     shadowSize="4"
-                    loading={isFetching}
-                    disabled={isErrorInitiatingPayment || !!errorMessage || isFetching || !amount}
+                    loading={isFetching || isLoading}
+                    disabled={isErrorInitiatingPayment || !!errorMessage || isFetching || !amount || isLoading}
                 >
-                    {qrPayment ? 'Send' : 'Confirm Amount'}
+                    {isLoading ? loadingState : qrPayment ? 'Send' : 'Confirm Amount'}
                 </Button>
 
                 {/* Error State */}
