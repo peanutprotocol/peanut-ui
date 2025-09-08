@@ -53,13 +53,14 @@ export const Profile = () => {
                     {/* Menu Items - First Group */}
                     <div>
                         <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
-                        <ProfileMenuItem
+                        {/* Enable with Account Management project. */}
+                        {/* <ProfileMenuItem
                             icon="bank"
                             label="Bank accounts"
                             href="/profile/bank-accounts"
                             position="middle"
                             comingSoon
-                        />
+                        /> */}
                         <ProfileMenuItem icon="achievements" label="Achievements" position="last" comingSoon />
                     </div>
                     {/* Menu Items - Second Group */}
