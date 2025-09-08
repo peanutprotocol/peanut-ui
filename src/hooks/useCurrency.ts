@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getCurrencyPrice } from '@/app/actions/currency'
 
-const SIMBOLS_BY_CURRENCY_CODE: Record<string, string> = {
+const SYMBOLS_BY_CURRENCY_CODE: Record<string, string> = {
     ARS: 'AR$',
     USD: '$',
     EUR: '€',
@@ -27,7 +27,7 @@ export const useCurrency = (currencyCode: string | null) => {
             return
         }
 
-        if (!Object.keys(SIMBOLS_BY_CURRENCY_CODE).includes(code)) {
+        if (!Object.keys(SYMBOLS_BY_CURRENCY_CODE).includes(code)) {
             setCode(null)
             setIsLoading(false)
             return
@@ -36,7 +36,7 @@ export const useCurrency = (currencyCode: string | null) => {
         setIsLoading(true)
         getCurrencyPrice(code)
             .then((price) => {
-                setSymbol(SIMBOLS_BY_CURRENCY_CODE[code])
+                setSymbol(SYMBOLS_BY_CURRENCY_CODE[code])
                 setPrice(price)
                 setIsLoading(false)
             })

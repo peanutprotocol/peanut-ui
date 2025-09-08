@@ -38,6 +38,7 @@ export const TransactionDetailsReceipt = ({
     className,
     isModalOpen = false,
     setIsModalOpen,
+    avatarUrl,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
@@ -48,6 +49,7 @@ export const TransactionDetailsReceipt = ({
     className?: HTMLDivElement['className']
     isModalOpen?: boolean
     setIsModalOpen?: (isModalOpen: boolean) => void
+    avatarUrl?: string
 }) => {
     // ref for the main content area to calculate dynamic height
     const { user } = useUserStore()
@@ -293,7 +295,7 @@ export const TransactionDetailsReceipt = ({
                 isVerified={transaction.isVerified}
                 isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
-                avatarUrl={transaction.extraDataForDrawer?.rewardData?.avatarUrl}
+                avatarUrl={avatarUrl}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
             />
 

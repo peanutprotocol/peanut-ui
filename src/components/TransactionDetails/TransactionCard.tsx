@@ -6,7 +6,7 @@ import { TransactionDirection } from '@/components/TransactionDetails/Transactio
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { formatNumberForDisplay, printableAddress } from '@/utils'
+import { formatNumberForDisplay, printableAddress, getAvatarUrl } from '@/utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import React from 'react'
 import { STABLE_COINS } from '@/constants'
@@ -66,7 +66,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
     const userNameForAvatar = transaction.userName
-    const avatarUrl = transaction.extraDataForDrawer?.rewardData?.avatarUrl
+    const avatarUrl = getAvatarUrl(transaction)
 
     let finalDisplayAmount = ''
     const actualCurrencyCode = transaction.currency?.code
@@ -149,15 +149,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
                         {avatarUrl ? (
-                            <div
-                                className={
-                                    'relative flex h-12 w-12 items-center justify-center rounded-full border border-black bg-white py-2.5 pl-3.5 pr-0.5'
-                                }
-                            >
+                            <div className={'relative flex h-12 w-12 items-center justify-center rounded-full'}>
                                 <Image
                                     src={avatarUrl}
                                     alt="Icon"
-                                    className="size-6 object-contain"
+                                    className="size-12 object-contain"
                                     width={30}
                                     height={30}
                                 />
@@ -208,6 +204,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 onClose={closeTransactionDetails}
                 transaction={selectedTransaction}
                 transactionAmount={finalDisplayAmount}
+                avatarUrl={avatarUrl}
             />
         </>
     )
