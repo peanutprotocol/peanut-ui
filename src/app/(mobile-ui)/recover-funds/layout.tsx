@@ -7,6 +7,6 @@ export const metadata = generateMetadata({
     description: 'Recover funds that were mistakenly sent to your address in other tokens',
 })
 
-export default function QRPayLayout({ children }: { children: React.ReactNode }) {
+export default function RecoverFundsLayout({ children }: { children: React.ReactNode }) {
     return <PageContainer>{children}</PageContainer>
 }
