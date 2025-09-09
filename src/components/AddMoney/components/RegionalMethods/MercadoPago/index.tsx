@@ -26,6 +26,7 @@ const MercadoPago: FC<MercadoPagoProps> = ({ source }) => {
 
     const handleAmountSubmit = async () => {
         if (!selectedCountry?.currency) return
+        if (isCreatingDeposit) return
 
         try {
             setError(null)
@@ -42,7 +43,7 @@ const MercadoPago: FC<MercadoPagoProps> = ({ source }) => {
             setStep('depositDetails')
         } catch (error) {
             console.log(error)
-            setError(error as string)
+            setError(error instanceof Error ? error.message : String(error))
         } finally {
             setIsCreatingDeposit(false)
         }
