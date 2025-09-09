@@ -82,6 +82,18 @@ export function SecurityBuiltIn() {
                                 >
                                     {feature.description}
                                 </p>
+                                {feature.id === 3 && (
+                                    <div className="mt-6">
+                                        <a href="/support">
+                                            <Button
+                                                shadowSize="4"
+                                                className="bg-white px-6 py-3 text-base font-extrabold text-n-1 hover:bg-white/90"
+                                            >
+                                                Talk to Support
+                                            </Button>
+                                        </a>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}
