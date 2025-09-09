@@ -218,6 +218,7 @@ export const sendLinksApi = {
             const pubKey = generateKeysFromString(params.password).address
             const response = await fetch(`/api/auto-claim`, {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     pubKey,
                     recipient,
@@ -226,10 +227,12 @@ export const sendLinksApi = {
             })
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
+                const errText = await response.text()
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errText}`)
             }
 
-            const result = await response.json()
+            const text = await response.text()
+            const result: SendLink = jsonParse(text)
             return result
         } catch (error) {
             console.error('Failed to automatically claim link:', error)
