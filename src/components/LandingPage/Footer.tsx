@@ -60,6 +60,12 @@ const Footer = () => {
                     </a>
                     <a
                         className="text-xl font-bold text-white"
+                        href="/support"
+                    >
+                        Support
+                    </a>
+                    <a
+                        className="text-xl font-bold text-white"
                         href="https://peanutprotocol.notion.site/Privacy-Policy-37debda366c941f2bbb8db8c113d8c8b"
                         rel="noopener noreferrer"
                         target="_blank"
