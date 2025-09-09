@@ -11,6 +11,7 @@ import { Icon, IconName } from '../Icons/Icon'
 import RouteExpiryTimer from '../RouteExpiryTimer'
 import Image from 'next/image'
 import Loading from '../Loading'
+import { StaticImport } from 'next/dist/shared/lib/get-img-props'
 
 export type PeanutActionDetailsCardTransactionType =
     | 'REQUEST'
@@ -47,6 +48,7 @@ export interface PeanutActionDetailsCardProps {
     disableTimerRefetch?: boolean
     timerError?: string | null
     isLoading?: boolean
+    logo?: StaticImport
 }
 
 export default function PeanutActionDetailsCard({
@@ -70,6 +72,7 @@ export default function PeanutActionDetailsCard({
     countryCodeForFlag,
     currencySymbol,
     isLoading = false,
+    logo,
 }: PeanutActionDetailsCardProps) {
     const renderRecipient = () => {
         if (recipientType === 'ADDRESS') return printableAddress(recipientName)
@@ -158,12 +161,13 @@ export default function PeanutActionDetailsCard({
     const isClaimLinkBankAccount = transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
 
     const withdrawBankIcon = () => {
+        const imgSrc = logo ? logo : `https://flagcdn.com/w320/${countryCodeForFlag}.png`
         if (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount)
             return (
                 <div className="relative mr-1 h-12 w-12">
                     {countryCodeForFlag && (
                         <Image
-                            src={`https://flagcdn.com/w320/${countryCodeForFlag}.png`}
+                            src={imgSrc}
                             alt={`${countryCodeForFlag} flag`}
                             width={160}
                             height={160}

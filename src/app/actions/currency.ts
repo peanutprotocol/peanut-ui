@@ -4,15 +4,6 @@ import { fetchWithSentry } from '@/utils'
 import { getExchangeRate } from './exchange-rate'
 import { AccountType } from '@/interfaces'
 
-const SUPPORTED_CURRENCIES_DETAILS = {
-    ARS: {
-        apiURL: 'https://dolarapi.com/v1/dolares/cripto',
-    },
-    BRL: {
-        apiURL: 'https://br.dolarapi.com/v1/cotacoes/usd',
-    },
-}
-
 export const getCurrencyPrice = unstable_cache(
     async (currencyCode: string): Promise<number> => {
         let price: number

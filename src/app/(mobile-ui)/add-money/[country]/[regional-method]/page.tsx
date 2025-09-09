@@ -8,11 +8,7 @@ export default function AddMoneyRegionalMethodPage() {
     const method = params['regional-method'] as string
 
     if (country === 'argentina' && method === 'mercadopago') {
-        return <MercadoPago />
-    }
-
-    if (country === 'brazil' && method === 'pix') {
-        return <MercadoPago />
+        return <MercadoPago source="regionalMethod" />
     }
 
     return <div>Unsupported Method</div>

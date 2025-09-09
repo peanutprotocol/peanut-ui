@@ -2599,30 +2599,6 @@ countryData.forEach((country) => {
             return newMethod
         })
 
-        // TODO: Test this flow properly
-
-        // Add country-specific add methods (same as withdraw methods for consistency)
-        // if (UPDATED_DEFAULT_ADD_MONEY_METHODS && UPDATED_DEFAULT_ADD_MONEY_METHODS.length > 0) {
-        //     UPDATED_DEFAULT_ADD_MONEY_METHODS.forEach((method) => {
-        //         const currMethod = {
-        //             id: `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-add`,
-        //             icon: method.icon ?? undefined,
-        //             title: method.title,
-        //             description: method.description,
-        //             isSoon: true,
-        //             path: '',
-        //         }
-
-        //         // TODO: Check with Jota regarding Brazil manteca support
-
-        //         // if (method.title === 'Pix' && countryCode === 'BR') {
-        //         //     currMethod.path = `/add-money/${country.path}/pix`
-        //         //     currMethod.isSoon = false
-        //         // }
-        //         currentAddMethods.push(currMethod)
-        //     })
-        // }
-
         COUNTRY_SPECIFIC_METHODS[countryCode] = {
             add: currentAddMethods,
             withdraw: withdrawList,

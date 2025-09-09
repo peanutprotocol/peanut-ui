@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { FC, useMemo, useState } from 'react'
 import MercadoPagoDepositDetails from './MercadoPagoDepositDetails'
 import InputAmountStep from '../../InputAmountStep'
 import { createMantecaOnramp } from '@/app/actions/onramp'
@@ -6,7 +6,11 @@ import { useParams } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'
 import { MantecaDepositDetails } from '@/types/manteca.types'
 
-const MercadoPago = () => {
+interface MercadoPagoProps {
+    source: 'bank' | 'regionalMethod'
+}
+
+const MercadoPago: FC<MercadoPagoProps> = ({ source }) => {
     const params = useParams()
     const [step, setStep] = useState('inputAmount')
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
@@ -61,7 +65,7 @@ const MercadoPago = () => {
     }
 
     if (step === 'depositDetails' && depositDetails) {
-        return <MercadoPagoDepositDetails depositDetails={depositDetails} />
+        return <MercadoPagoDepositDetails source={source} depositDetails={depositDetails} />
     }
 
     return null

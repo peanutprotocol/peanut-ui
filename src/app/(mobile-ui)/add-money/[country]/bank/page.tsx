@@ -317,10 +317,12 @@ export default function OnrampBankPage() {
     }
 
     if (step === 'showDetails') {
-        if (selectedCountry.id === 'AR' || selectedCountry.id === 'BR') {
-            return <MercadoPago />
-        }
         return <AddMoneyBankDetails />
+    }
+
+    // Show Mercado Pago flow for Argentina bank transfers
+    if (step === 'inputAmount' && selectedCountry.id === 'AR') {
+        return <MercadoPago source="bank" />
     }
 
     if (step === 'inputAmount') {
