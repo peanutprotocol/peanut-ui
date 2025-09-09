@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 
 export default function PaymentError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     const router = useRouter()
-    
+
     useEffect(() => {
         console.error(error)
     }, [error])
@@ -23,11 +23,7 @@ export default function PaymentError({ error, reset }: { error: Error & { digest
                 <Button onClick={reset} variant="purple">
                     Try again
                 </Button>
-                <Button 
-                    onClick={() => router.push('/support')} 
-                    variant="transparent"
-                    className="text-sm underline"
-                >
+                <Button onClick={() => router.push('/support')} variant="transparent" className="text-sm underline">
                     Contact Support
                 </Button>
             </Card.Content>
