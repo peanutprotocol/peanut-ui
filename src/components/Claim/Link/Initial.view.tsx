@@ -157,7 +157,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }, [recipientType, claimLinkData.chainId, isPeanutChain, claimLinkData.tokenAddress])
 
     const handleClaimLink = useCallback(
-        async (bypassModal = false) => {
+        async (bypassModal = false, autoClaim = false) => {
             if (!isPeanutWallet && !bypassModal) {
                 setShowConfirmationModal(true)
                 return
@@ -175,8 +175,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             try {
                 setLoadingState('Executing transaction')
                 if (isPeanutWallet) {
-                    await sendLinksApi.claim(user?.user.username ?? address, claimLinkData.link)
-
+                    if (autoClaim) {
+                        await sendLinksApi.autoClaimLink(user?.user.username ?? address, claimLinkData.link)
+                    } else {
+                        await sendLinksApi.claim(user?.user.username ?? address, claimLinkData.link)
+                    }
                     setClaimType('claim')
                     onCustom('SUCCESS')
                     fetchBalance()
@@ -627,7 +630,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         const stepFromURL = searchParams.get('step')
         if (user && claimLinkData.status !== 'CLAIMED' && stepFromURL === 'claim' && isPeanutWallet) {
             removeParamStep()
-            handleClaimLink()
+            handleClaimLink(false, true)
         }
     }, [user, searchParams, isPeanutWallet])
 
