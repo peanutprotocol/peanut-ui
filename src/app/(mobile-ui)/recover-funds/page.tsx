@@ -134,7 +134,7 @@ export default function RecoverFundsPage() {
 
                         <div className="space-y-1">
                             <h1 className="text-sm font-normal text-grey-1">
-                                You will receive to <AddressLink address={recipient.address} />
+                                Sent to <AddressLink address={recipient.address} />
                             </h1>
                             <h2 className="text-2xl font-extrabold">
                                 {selectedBalance!.amount} {selectedBalance!.symbol} in Arbitrum
