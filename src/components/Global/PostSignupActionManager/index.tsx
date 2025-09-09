@@ -54,6 +54,7 @@ export const PostSignupActionManager = ({
                 setShowModal(false)
                 localStorage.removeItem('redirect')
             }}
+            preventClose
             title={actionConfig.title}
             description={actionConfig.description}
             icon={actionConfig.icon as IconName}
