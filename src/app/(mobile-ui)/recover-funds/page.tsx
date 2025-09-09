@@ -22,6 +22,7 @@ import type { Address, Hash, TransactionReceipt } from 'viem'
 import { useRouter } from 'next/navigation'
 import { loadingStateContext } from '@/context'
 import Icon from '@/components/Global/Icon'
+import { captureException } from '@sentry/nextjs'
 
 export default function RecoverFundsPage() {
     const [tokenBalances, setTokenBalances] = useState<IUserBalance[]>([])
@@ -71,6 +72,7 @@ export default function RecoverFundsPage() {
     const recoverFunds = useCallback(async () => {
         if (!selectedBalance || !recipient.address) return
         setIsSigning(true)
+        setErrorMessage('')
         const amount = parseUnits(selectedBalance.amount.toString(), selectedBalance.decimals)
         const data = encodeFunctionData({
             abi: erc20Abi,
@@ -85,16 +87,18 @@ export default function RecoverFundsPage() {
             userOpHash = result.userOpHash
         } catch (error) {
             setErrorMessage('Error sending transaction, please try again')
+            setIsSigning(false)
             return
         }
         if (receipt !== null && isTxReverted(receipt)) {
             setErrorMessage('Transaction reverted, please try again')
+            setIsSigning(false)
             return
         }
         setTxHash(receipt?.transactionHash ?? userOpHash)
         setStatus('final')
         setIsSigning(false)
-    }, [selectedBalance, recipient.address])
+    }, [selectedBalance, recipient.address, sendTransactions])
 
     if (!peanutAddress) return null
 
@@ -103,7 +107,9 @@ export default function RecoverFundsPage() {
     }
 
     if (status === 'review' && (!selectedBalance || !recipient.address)) {
-        throw new Error('Invalid state, review without selected balance or recipient address')
+        captureException(new Error('Invalid state, review without selected balance or recipient address'))
+        reset()
+        return null
     } else if (status === 'review') {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
