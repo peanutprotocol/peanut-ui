@@ -339,7 +339,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 amountDisplay: '$ 0.00',
             },
             currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
-            isVerified: counterparty?.user?.kycStatus === 'approved',
+            isVerified: counterparty?.user?.bridgeKycStatus === 'approved',
             haveSentMoneyToUser: counterparty?.userId ? interactions[counterparty.userId] || false : false,
         }
 
@@ -383,6 +383,12 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             openTransactionDetails(transactionForDrawer)
         }
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
+
+    let showActionList = flow !== 'direct_pay'
+
+    if (flow === 'direct_pay' && !user) {
+        showActionList = true
+    }
 
     if (error) {
         return (
@@ -476,7 +482,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                         currencyAmount={currencyAmount}
                     />
                     <div>
-                        {flow !== 'direct_pay' && (
+                        {showActionList && (
                             <ActionList
                                 flow="request"
                                 requestLinkData={parsedPaymentData as ParsedURL}

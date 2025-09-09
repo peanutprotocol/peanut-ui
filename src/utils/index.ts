@@ -4,13 +4,11 @@ export * from './bridge-accounts.utils'
 export * from './balance.utils'
 export * from './sentry.utils'
 export * from './token.utils'
-export * from './onramp.utils'
 export * from './ens.utils'
 
 // Bridge utils - explicit exports to avoid naming conflicts
 export {
     getCurrencyConfig as getBridgeCurrencyConfig,
-    getOnrampCurrencyConfig,
     getOfframpCurrencyConfig,
     getCurrencySymbol,
     getPaymentRailDisplayName,
