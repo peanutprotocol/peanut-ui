@@ -41,11 +41,16 @@ import { PostSignupActionManager } from '@/components/Global/PostSignupActionMan
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
+import SetupNotifcationsModal from '@/components/Notifications/SetupNotifcationsModal'
+import NotificationBanner from '@/components/Notifications/NotificationBanner'
+import { useNotifications } from '@/hooks/useNotifications'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
 
 export default function Home() {
+    const { showPermissionModal, showReminderBanner, requestPermission, closeReminderBanner, afterPermissionAttempt } =
+        useNotifications()
     const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
     const { rewardWalletBalance } = useWalletStore()
     const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
@@ -245,6 +250,19 @@ export default function Home() {
                         />
                     </ActionButtonGroup>
                 </div>
+
+                {showPermissionModal && <SetupNotifcationsModal />}
+                {showReminderBanner && (
+                    <NotificationBanner
+                        onClick={async () => {
+                            await requestPermission()
+                            await afterPermissionAttempt()
+                        }}
+                        onClose={() => {
+                            closeReminderBanner()
+                        }}
+                    />
+                )}
 
                 {/* Rewards Card - only shows if balance is non-zero */}
                 <div onClick={() => setIsRewardsModalOpen(true)} className="cursor-pointer">

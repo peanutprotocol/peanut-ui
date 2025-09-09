@@ -69,6 +69,7 @@
         "react-fast-marquee": "^1.6.5",
         "react-ga4": "^2.1.0",
         "react-hook-form": "^7.53.2",
+        "react-onesignal": "^3.2.3",
         "react-qr-code": "^2.0.15",
         "react-redux": "^9.2.0",
         "react-tooltip": "^5.28.0",
