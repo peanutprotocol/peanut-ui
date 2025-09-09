@@ -67,13 +67,15 @@ export default function RecoverFundsPage() {
         setTxHash('')
         setStatus('init')
         setRecipient({ address: '', name: '' })
+        setSelectedTokenAddress('')
     }, [])
 
     const recoverFunds = useCallback(async () => {
         if (!selectedBalance || !recipient.address) return
         setIsSigning(true)
         setErrorMessage('')
-        const amount = parseUnits(selectedBalance.amount.toString(), selectedBalance.decimals)
+        const amountStr = selectedBalance.amount.toFixed(selectedBalance.decimals)
+        const amount = parseUnits(amountStr, selectedBalance.decimals)
         const data = encodeFunctionData({
             abi: erc20Abi,
             functionName: 'transfer',
@@ -259,7 +261,13 @@ export default function RecoverFundsPage() {
                     onClick={() => {
                         setStatus('review')
                     }}
-                    disabled={!!errorMessage || inputChanging || !recipient.address || selectedTokenAddress === ''}
+                    disabled={
+                        !!errorMessage ||
+                        inputChanging ||
+                        !recipient.address ||
+                        !selectedBalance ||
+                        selectedBalance.amount <= 0
+                    }
                     loading={false}
                     className="w-full"
                 >
