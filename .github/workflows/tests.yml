@@ -14,12 +14,15 @@ jobs:
               with:
                   node-version: '21.1.0'
 
-            - uses: pnpm/action-setup@v2
+            - uses: pnpm/action-setup@v4
               with:
-                  version: 8
+                  version: 10
 
             - name: Install Dependencies
               run: pnpm install
+
+            - name: Check formatting
+              run: pnpm prettier --check .
 
             - name: Run Tests
               run: pnpm test

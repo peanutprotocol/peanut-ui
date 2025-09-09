@@ -1,6 +1,7 @@
 export * from './Blog'
 export * from './Claim'
 export * from './CrispChat'
+export * from './Global/DaimoPayButton'
 export * from './Global/UnderMaintenance'
 export * from './Jobs'
 export * from './Privacy'

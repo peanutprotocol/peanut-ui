@@ -10,19 +10,24 @@ import Card from '../Card'
 import { Icon, IconName } from '../Icons/Icon'
 import RouteExpiryTimer from '../RouteExpiryTimer'
 import Image from 'next/image'
+import Loading from '../Loading'
+
+export type PeanutActionDetailsCardTransactionType =
+    | 'REQUEST'
+    | 'RECEIVED_LINK'
+    | 'CLAIM_LINK'
+    | 'CLAIM_LINK_BANK_ACCOUNT'
+    | 'REQUEST_PAYMENT'
+    | 'ADD_MONEY'
+    | 'WITHDRAW'
+    | 'WITHDRAW_BANK_ACCOUNT'
+    | 'ADD_MONEY_BANK_ACCOUNT'
+
+export type PeanutActionDetailsCardRecipientType = RecipientType | 'BANK_ACCOUNT'
 
 export interface PeanutActionDetailsCardProps {
-    transactionType:
-        | 'REQUEST'
-        | 'RECEIVED_LINK'
-        | 'CLAIM_LINK'
-        | 'CLAIM_LINK_BANK_ACCOUNT'
-        | 'REQUEST_PAYMENT'
-        | 'ADD_MONEY'
-        | 'WITHDRAW'
-        | 'WITHDRAW_BANK_ACCOUNT'
-        | 'ADD_MONEY_BANK_ACCOUNT'
-    recipientType: RecipientType | 'BANK_ACCOUNT'
+    transactionType: PeanutActionDetailsCardTransactionType
+    recipientType: PeanutActionDetailsCardRecipientType
     recipientName: string
     message?: string
     amount: string
@@ -41,6 +46,7 @@ export interface PeanutActionDetailsCardProps {
     onTimerExpired?: () => void
     disableTimerRefetch?: boolean
     timerError?: string | null
+    isLoading?: boolean
 }
 
 export default function PeanutActionDetailsCard({
@@ -63,6 +69,7 @@ export default function PeanutActionDetailsCard({
     timerError = null,
     countryCodeForFlag,
     currencySymbol,
+    isLoading = false,
 }: PeanutActionDetailsCardProps) {
     const renderRecipient = () => {
         if (recipientType === 'ADDRESS') return printableAddress(recipientName)
@@ -192,26 +199,32 @@ export default function PeanutActionDetailsCard({
 
                 <div className="w-full space-y-1">
                     {getTitle()}
-                    <h2 className="text-2xl font-extrabold">
-                        {(transactionType === 'ADD_MONEY' || isAddBankAccount) && currencySymbol
-                            ? `${currencySymbol} `
-                            : tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() ||
-                                (transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && viewType === 'SUCCESS')
-                              ? '$ '
-                              : ''}
-                        {amount}
+                    {isLoading ? (
+                        <Loading />
+                    ) : (
+                        <h2 className="text-2xl font-extrabold">
+                            {(transactionType === 'ADD_MONEY' || isAddBankAccount || isClaimLinkBankAccount) &&
+                            currencySymbol
+                                ? `${currencySymbol}`
+                                : tokenSymbol.toLowerCase() === PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() ||
+                                    (transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && viewType === 'SUCCESS')
+                                  ? '$'
+                                  : ''}
+                            {amount}
 
-                        {tokenSymbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() &&
-                            transactionType !== 'ADD_MONEY' &&
-                            !(transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && viewType === 'SUCCESS') &&
-                            ` ${
-                                tokenSymbol.toLowerCase() === 'pnt'
-                                    ? Number(amount) === 1
-                                        ? 'Beer'
-                                        : 'Beers'
-                                    : tokenSymbol
-                            }`}
-                    </h2>
+                            {tokenSymbol.toLowerCase() !== PEANUT_WALLET_TOKEN_SYMBOL.toLowerCase() &&
+                                transactionType !== 'ADD_MONEY' &&
+                                !isClaimLinkBankAccount &&
+                                !(transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && viewType === 'SUCCESS') &&
+                                ` ${
+                                    tokenSymbol.toLowerCase() === 'pnt'
+                                        ? Number(amount) === 1
+                                            ? 'Beer'
+                                            : 'Beers'
+                                        : tokenSymbol
+                                }`}
+                        </h2>
+                    )}
 
                     <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
                     {showTimer && (

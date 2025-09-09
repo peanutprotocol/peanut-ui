@@ -1,6 +1,5 @@
-import { DISCORD_ICON, GITHUB_WHITE_ICON, PEANUT_LOGO, TWITTER_ICON } from '@/assets'
+import { GITHUB_WHITE_ICON, PEANUT_LOGO, TELEGRAM_ICON, TWITTER_ICON } from '@/assets'
 import Image from 'next/image'
-import React from 'react'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'
 import handPeace from '@/assets/illustrations/hand-peace.svg'
@@ -23,13 +22,21 @@ const Footer = () => {
 
             <section className="absolute left-1/2 top-5 flex -translate-x-1/2 flex-col items-center gap-4 md:static md:translate-x-0">
                 <div className="flex gap-2">
-                    <a
+                    {/* <a
                         href="https://discord.gg/B99T9mQqBv"
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="Join us on Discord"
                     >
                         <Image src={DISCORD_ICON} alt="Discord" width={20} height={20} />
+                    </a> */}
+                    <a
+                        href="https://t.me/clubpeanut"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Join us on Telegram"
+                    >
+                        <Image src={TELEGRAM_ICON} alt="Telegram" width={20} height={20} />
                     </a>
                     <a
                         href="https://x.com/PeanutProtocol"

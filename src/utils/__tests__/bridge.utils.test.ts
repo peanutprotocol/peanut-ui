@@ -1,6 +1,5 @@
 import {
     getCurrencyConfig,
-    getOnrampCurrencyConfig,
     getOfframpCurrencyConfig,
     getCurrencySymbol,
     getPaymentRailDisplayName,
@@ -66,7 +65,7 @@ describe('bridge.utils', () => {
 
     describe('getOnrampCurrencyConfig', () => {
         it('should return correct onramp configuration for US', () => {
-            const config = getOnrampCurrencyConfig('US')
+            const config = getCurrencyConfig('US', 'onramp')
             expect(config).toEqual({
                 currency: 'usd',
                 paymentRail: 'ach_push',
@@ -74,7 +73,7 @@ describe('bridge.utils', () => {
         })
 
         it('should return correct onramp configuration for Mexico', () => {
-            const config = getOnrampCurrencyConfig('MX')
+            const config = getCurrencyConfig('MX', 'onramp')
             expect(config).toEqual({
                 currency: 'mxn',
                 paymentRail: 'spei',
@@ -82,7 +81,7 @@ describe('bridge.utils', () => {
         })
 
         it('should return correct onramp configuration for other countries', () => {
-            const config = getOnrampCurrencyConfig('DE')
+            const config = getCurrencyConfig('DE', 'onramp')
             expect(config).toEqual({
                 currency: 'eur',
                 paymentRail: 'sepa',

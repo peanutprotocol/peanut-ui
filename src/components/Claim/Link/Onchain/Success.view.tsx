@@ -1,6 +1,7 @@
 import { Button } from '@/components/0_Bruddle'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
+import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
@@ -137,6 +138,7 @@ export const SuccessClaimLinkView = ({
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <SoundPlayer sound="success" />
             <div className="md:hidden">
                 <NavHeader
                     icon="cancel"

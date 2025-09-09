@@ -159,26 +159,6 @@ export interface IDirectSendDetails {
     txHash: string
 }
 
-export interface KYCData {
-    id: string
-    full_name: string
-    email: string
-    type: string
-    kyc_link: string
-    tos_link: string
-    kyc_status: string
-    rejection_reasons: string[]
-    tos_status: string
-    created_at: string
-    customer_id: string | null
-    persona_inquiry_type: string
-}
-
-interface KYCResponse {
-    count: number
-    data: KYCData[]
-}
-
 export interface IBridgeAccount {
     id: string
     customer_id: string
@@ -217,20 +197,6 @@ export interface IBridgeAccount {
     beneficiary_address_valid: boolean
 }
 
-export interface IBridgeLiquidationAddress {
-    id: string
-    chain: string
-    external_account_id: string
-    currency: string
-    address: string
-    destination_wire_message?: string // for wire
-    destination_sepa_reference?: string // for sepa
-    destination_payment_rail: string
-    destination_currency: string
-    created_at: string
-    updated_at: string
-}
-
 interface Transaction {
     tx_hash: string
     chain_id: string
@@ -253,12 +219,6 @@ interface ReferralConnection {
     user_id: string
     referrer: string
     account_identifier: string
-}
-
-interface PointsPerReferral {
-    address: string
-    points: number
-    totalReferrals: number
 }
 
 export interface User {
@@ -289,27 +249,6 @@ export enum AccountType {
     PEANUT_WALLET = 'peanut-wallet',
     BRIDGE = 'bridgeBankAccount',
 }
-
-// these types should always be the same as ChainId defined in
-// src/constants/general.consts.ts -> supportedWalletconnectChains
-// previously defined here:
-// https://github.com/peanutprotocol/peanut-ui/blob/195c4a71111389b50034842e3a150fc82d827ef3/src/constants/general.consts.ts#L18
-export type ChainIdType =
-    | '1'
-    | '10'
-    | '56'
-    | '100'
-    | '137'
-    | '324'
-    | '1101'
-    | '5000'
-    | '8217'
-    | '8453'
-    | '42161'
-    | '42220'
-    | '43114'
-    | '7777777'
-    | '1313161554'
 
 export interface Account {
     id: string
