@@ -7,7 +7,7 @@ import { useAuth } from '@/context/authContext'
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import * as Sentry from '@sentry/nextjs'
-import { WalletProviderType } from '@/interfaces'
+import { WalletProviderType, AccountType } from '@/interfaces'
 import { WebAuthnError } from '@simplewebauthn/browser'
 import Link from 'next/link'
 import { getFromLocalStorage, sanitizeRedirectURL } from '@/utils'
@@ -18,13 +18,15 @@ const SetupPasskey = () => {
     const { username, telegramHandle } = useSetupStore()
     const { isLoading } = useSetupFlow()
     const { handleRegister, address } = useZeroDev()
-    const { user } = useAuth()
+    const { user, isFetchingUser } = useAuth()
     const { addAccount } = useAuth()
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
     const searchParams = useSearchParams()
 
     useEffect(() => {
+        // Dont try to double add the account
+        if (isFetchingUser || user?.accounts.some((a) => a.type === AccountType.PEANUT_WALLET)) return
         if (address && user) {
             addAccount({
                 accountIdentifier: address,
@@ -65,15 +67,15 @@ const SetupPasskey = () => {
                     dispatch(setupActions.setLoading(false))
                 })
         }
-    }, [address, user])
+    }, [address, user, isFetchingUser])
 
     return (
         <div>
             <div className="flex h-full flex-col justify-between gap-11 p-0 md:min-h-32">
                 <div className="flex h-full flex-col justify-end gap-2 text-center">
                     <Button
-                        loading={isLoading}
-                        disabled={isLoading}
+                        loading={isLoading || isFetchingUser}
+                        disabled={isLoading || isFetchingUser}
                         onClick={async () => {
                             dispatch(setupActions.setLoading(true))
                             try {

@@ -31,7 +31,7 @@ export type SendLink = {
         userId: string
         username: string
         fullName: string
-        kycStatus: string
+        bridgeKycStatus: string
         accounts: {
             identifier: string
             type: string
@@ -46,7 +46,7 @@ export type SendLink = {
             userId: string
             username: string
             fullName: string
-            kycStatus: string
+            bridgeKycStatus: string
             accounts: {
                 identifier: string
                 type: string

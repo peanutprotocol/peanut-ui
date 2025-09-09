@@ -23,7 +23,7 @@ export const Profile = () => {
     const fullName = user?.user.fullName || user?.user?.username || 'Anonymous User'
     const username = user?.user.username || 'anonymous'
 
-    const isKycApproved = user?.user.kycStatus === 'approved'
+    const isKycApproved = user?.user.bridgeKycStatus === 'approved'
 
     return (
         <div className="h-full w-full bg-background">

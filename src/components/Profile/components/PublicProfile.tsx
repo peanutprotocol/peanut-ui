@@ -45,7 +45,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     useEffect(() => {
         usersApi.getByUsername(username).then((user) => {
             if (user?.fullName) setFullName(user.fullName)
-            if (user?.kycStatus === 'approved') setIsKycVerified(true)
+            if (user?.bridgeKycStatus === 'approved') setIsKycVerified(true)
             // to check if the logged in user has sent money to the profile user,
             // we check the amount that the profile user has received from the logged in user.
             if (user?.totalUsdReceivedFromCurrentUser) {

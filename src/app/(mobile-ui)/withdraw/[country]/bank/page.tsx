@@ -12,7 +12,7 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, Account } from '@/interfaces'
 import { formatIban, shortenAddressLong, isTxReverted } from '@/utils/general.utils'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
 import { ErrorHandler, getBridgeChainName } from '@/utils'
@@ -20,6 +20,7 @@ import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 import ExchangeRate from '@/components/ExchangeRate'
+import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -30,6 +31,14 @@ export default function WithdrawBankPage() {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [view, setView] = useState<View>('INITIAL')
+    const params = useParams()
+    const country = params.country as string
+
+    const nonEuroCurrency = countryCurrencyMappings.find(
+        (currency) =>
+            country.toLowerCase() === currency.country.toLowerCase() ||
+            currency.path?.toLowerCase() === country.toLowerCase()
+    )?.currencyCode
 
     useEffect(() => {
         if (!bankAccount) {
@@ -226,7 +235,7 @@ export default function WithdrawBankPage() {
                                 <PaymentInfoRow label={'Routing Number'} value={getBicAndRoutingNumber()} />
                             </>
                         )}
-                        <ExchangeRate accountType={bankAccount.type} />
+                        <ExchangeRate accountType={bankAccount.type} nonEuroCurrency={nonEuroCurrency} />
                         <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                     </Card>
                     {error.showError ? (
