@@ -2497,7 +2497,7 @@ export const countryCodeMap: { [key: string]: string } = {
     USA: 'US',
 }
 
-const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX'])
+const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX', 'AR'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes
@@ -2590,24 +2590,14 @@ countryData.forEach((country) => {
             } else if (newMethod.id === 'crypto-add') {
                 newMethod.path = `/add-money/crypto`
                 newMethod.isSoon = false
+            } else if (newMethod.id === 'mercado-pago-add' && countryCode === 'AR') {
+                newMethod.isSoon = false
+                newMethod.path = `/add-money/${country.path}/mercadopago`
             } else {
                 newMethod.isSoon = true
             }
             return newMethod
         })
-
-        // Add country-specific add methods (same as withdraw methods for consistency)
-        if (specificMethodDetails && specificMethodDetails.length > 0) {
-            specificMethodDetails.forEach((method) => {
-                currentAddMethods.push({
-                    id: `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-add`,
-                    icon: method.icon ?? undefined,
-                    title: method.title,
-                    description: method.description,
-                    isSoon: true,
-                })
-            })
-        }
 
         COUNTRY_SPECIFIC_METHODS[countryCode] = {
             add: currentAddMethods,
