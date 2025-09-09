@@ -26,7 +26,7 @@ export const PostSignupActionManager = ({
 
     const checkClaimModalAfterKYC = () => {
         const redirectUrl = getFromLocalStorage('redirect')
-        if (user?.user.kycStatus === 'approved' && redirectUrl) {
+        if (user?.user.bridgeKycStatus === 'approved' && redirectUrl) {
             const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(redirectUrl))
             if (matchedAction) {
                 setActionConfig({

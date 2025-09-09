@@ -67,7 +67,7 @@ const IdentityVerificationView = () => {
 
     // if kyc is already approved, redirect to profile
     useEffect(() => {
-        if (user?.user.kycStatus === 'approved') {
+        if (user?.user.bridgeKycStatus === 'approved') {
             router.replace('/profile')
         }
     }, [user])

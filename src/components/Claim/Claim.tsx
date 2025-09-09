@@ -262,7 +262,7 @@ export const Claim = ({}) => {
     // redirect to bank flow if user is KYC approved and step is bank
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
-        if (user?.user.kycStatus === 'approved' && stepFromURL === 'bank') {
+        if (user?.user.bridgeKycStatus === 'approved' && stepFromURL === 'bank') {
             setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
         }
     }, [user])
