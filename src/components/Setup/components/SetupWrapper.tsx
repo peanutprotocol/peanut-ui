@@ -39,6 +39,7 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
     signup: 'min-h-[55dvh] md:min-h-full', // signup view has larger container height
     standard: 'min-h-[50dvh] md:min-h-full', // rest all views has medium container height
     'android-initial-pwa-install': 'min-h-[60dvh] md:min-h-full',
+    'notification-permission': 'min-h-[50dvh] md:min-h-full',
 }
 
 // define animated star decorations positions and sizes
@@ -88,27 +89,32 @@ const Navigation = memo(
  * ImageSection component handles the illustrations and animations
  * renders differently based on layout type with optional animated decorations
  */
-const ImageSection = ({
+export const SetupImageSection = ({
     layoutType,
     image,
     screenId,
     imageClassName,
-}: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName'>) => {
+    customContainerClass,
+}: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName'> & {
+    customContainerClass?: string
+}) => {
     if (!image) return null
 
     const isSignup = layoutType === 'signup'
+    const isNotificationPermission = layoutType === 'notification-permission'
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
     const imageClass = !!imageClassName
         ? imageClassName
         : 'w-full max-w-[80%] md:max-w-[75%] lg:max-w-xl object-contain relative'
 
     // special rendering for welcome/signup screens with animated decorations
-    if (isSignup) {
+    if (isSignup || isNotificationPermission) {
         return (
             <div
                 className={twMerge(
                     containerClass,
-                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-secondary-3/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-secondary-3/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6',
+                    customContainerClass
                 )}
             >
                 {/* render animated star decorations */}
@@ -198,7 +204,7 @@ export const SetupWrapper = memo(
                 {/* content container */}
                 <div className="mx-auto flex w-full flex-grow flex-col md:flex-row">
                     {/* illustration section */}
-                    <ImageSection
+                    <SetupImageSection
                         imageClassName={imageClassName}
                         screenId={screenId}
                         layoutType={layoutType}

@@ -11,7 +11,7 @@ export type ScreenId =
     | 'unsupported-browser'
     | 'join-beta'
 
-export type LayoutType = 'signup' | 'standard' | 'android-initial-pwa-install'
+export type LayoutType = 'signup' | 'standard' | 'android-initial-pwa-install' | 'notification-permission'
 
 export type ScreenProps = {
     welcome: undefined
