@@ -10,9 +10,11 @@ interface MercadoPagoProps {
     source: 'bank' | 'regionalMethod'
 }
 
+type stepType = 'inputAmount' | 'depositDetails'
+
 const MercadoPago: FC<MercadoPagoProps> = ({ source }) => {
     const params = useParams()
-    const [step, setStep] = useState('inputAmount')
+    const [step, setStep] = useState<stepType>('inputAmount')
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
     const [tokenAmount, setTokenAmount] = useState('')
     const [tokenUSDAmount, setTokenUSDAmount] = useState('')
