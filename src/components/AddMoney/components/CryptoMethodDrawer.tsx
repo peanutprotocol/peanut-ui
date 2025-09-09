@@ -2,12 +2,11 @@
 
 import { ARBITRUM_ICON, OTHER_CHAINS_ICON } from '@/assets'
 import { Card } from '@/components/0_Bruddle'
-import ActionModal from '@/components/Global/ActionModal'
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
-import { Slider } from '@/components/Slider'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import React, { Dispatch, SetStateAction, useState } from 'react'
+import TokenAndNetworkConfirmationModal from '@/components/Global/TokenAndNetworkConfirmationModal'
 
 const CryptoMethodDrawer = ({
     isDrawerOpen,
@@ -83,28 +82,15 @@ const CryptoMethodDrawer = ({
                     </div>
                 </DrawerContent>
             </Drawer>
-            <ActionModal
-                visible={showRiskModal}
+            <TokenAndNetworkConfirmationModal
                 onClose={() => {
                     setShowRiskModal(false)
                     setisDrawerOpen(true)
                 }}
-                icon={'alert'}
-                iconContainerClassName="bg-yellow-1"
-                modalClassName="z-[9999]"
-                title={`Only send USDC on Arbitrum`}
-                description={
-                    <span className="text-sm">
-                        Sending funds via any other network will result in a <b>permanent loss.</b>
-                    </span>
-                }
-                footer={
-                    <div className="w-full">
-                        <Slider onValueChange={(v) => v && router.push('/add-money/crypto')} />
-                    </div>
-                }
-                ctas={[]}
-                modalPanelClassName="max-w-xs"
+                onAccept={() => {
+                    router.push('/add-money/crypto')
+                }}
+                isVisible={showRiskModal}
             />
         </>
     )
