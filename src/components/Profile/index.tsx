@@ -69,13 +69,14 @@ export const Profile = () => {
                             endIcon={isKycApproved ? 'check' : undefined}
                             endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
                         />
-                        <ProfileMenuItem
+                        {/* Enable with Account Management project. */}
+                        {/* <ProfileMenuItem
                             icon="bank"
                             label="Bank accounts"
                             href="/profile/bank-accounts"
                             position="middle"
                             comingSoon
-                        />
+                        /> */}
                         <ProfileMenuItem icon="achievements" label="Achievements" position="last" comingSoon />
                     </div>
                     {/* Menu Items - Second Group */}
