@@ -3,3 +3,9 @@ export interface MantecaDepositDetails {
     depositAlias: string
     depositAmount: string
 }
+
+export enum MercadoPagoStep {
+    DETAILS = 'details',
+    REVIEW = 'review',
+    SUCCESS = 'success',
+}

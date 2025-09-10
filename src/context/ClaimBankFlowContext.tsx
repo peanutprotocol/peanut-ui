@@ -42,6 +42,8 @@ interface ClaimBankFlowContextType {
     setSenderKycStatus: (status?: BridgeKycStatus) => void
     justCompletedKyc: boolean
     setJustCompletedKyc: (status: boolean) => void
+    claimToMercadoPago: boolean
+    setClaimToMercadoPago: (claimToMercadoPago: boolean) => void
 }
 
 const ClaimBankFlowContext = createContext<ClaimBankFlowContextType | undefined>(undefined)
@@ -60,6 +62,7 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
     const [senderKycStatus, setSenderKycStatus] = useState<BridgeKycStatus | undefined>()
     const [justCompletedKyc, setJustCompletedKyc] = useState(false)
+    const [claimToMercadoPago, setClaimToMercadoPago] = useState(false)
 
     const resetFlow = useCallback(() => {
         setClaimToExternalWallet(false)
@@ -75,6 +78,7 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
         setSelectedBankAccount(null)
         setSenderKycStatus(undefined)
         setJustCompletedKyc(false)
+        setClaimToMercadoPago(false)
     }, [])
 
     const value = useMemo(
@@ -106,6 +110,8 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             setSenderKycStatus,
             justCompletedKyc,
             setJustCompletedKyc,
+            claimToMercadoPago,
+            setClaimToMercadoPago,
         }),
         [
             claimToExternalWallet,
@@ -122,6 +128,8 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             selectedBankAccount,
             senderKycStatus,
             justCompletedKyc,
+            claimToMercadoPago,
+            setClaimToMercadoPago,
         ]
     )
 

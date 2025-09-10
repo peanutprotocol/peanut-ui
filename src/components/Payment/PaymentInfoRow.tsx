@@ -4,6 +4,16 @@ import { Icon } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
 import CopyToClipboard from '../Global/CopyToClipboard'
 
+export interface PaymentInfoRowProps {
+    label: string | React.ReactNode
+    value: number | string | React.ReactNode
+    moreInfoText?: string
+    loading?: boolean
+    hideBottomBorder?: boolean
+    allowCopy?: boolean
+    copyValue?: string
+}
+
 export const PaymentInfoRow = ({
     label,
     value,
@@ -12,15 +22,7 @@ export const PaymentInfoRow = ({
     hideBottomBorder,
     allowCopy,
     copyValue,
-}: {
-    label: string | React.ReactNode
-    value: number | string | React.ReactNode
-    moreInfoText?: string
-    loading?: boolean
-    hideBottomBorder?: boolean
-    allowCopy?: boolean
-    copyValue?: string
-}) => {
+}: PaymentInfoRowProps) => {
     const [showMoreInfo, setShowMoreInfo] = useState(false)
     const tooltipId = useId()
 

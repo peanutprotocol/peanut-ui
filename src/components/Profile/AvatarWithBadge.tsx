@@ -4,6 +4,8 @@ import React, { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon, IconName } from '../Global/Icons/Icon'
 import StatusPill, { StatusPillType } from '../Global/StatusPill'
+import { StaticImport } from 'next/dist/shared/lib/get-img-props'
+import Image from 'next/image'
 
 export type AvatarSize = 'extra-small' | 'small' | 'medium' | 'large'
 
@@ -20,6 +22,7 @@ interface AvatarWithBadgeProps {
     iconFillColor?: string
     showStatusPill?: boolean
     statusPillStatus?: StatusPillType
+    logo?: StaticImport
 }
 
 /**
@@ -36,6 +39,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     iconFillColor,
     showStatusPill,
     statusPillStatus,
+    logo,
 }) => {
     const sizeClasses: Record<AvatarSize, string> = {
         'extra-small': 'h-8 w-8 text-xs',
@@ -58,6 +62,28 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
         return ''
     }, [name])
 
+    if (logo) {
+        return (
+            <div className={'relative'}>
+                <div
+                    className={twMerge(
+                        `flex items-center justify-center rounded-full font-bold`,
+                        sizeClasses[size],
+                        className
+                    )}
+                >
+                    <Image
+                        src={logo}
+                        alt={''}
+                        width={160}
+                        height={160}
+                        className={`size-full rounded-full object-cover`}
+                    />
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className={'relative'}>
             {/* the main avatar circle */}
@@ -76,6 +102,15 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                     ...inlineStyle,
                 }}
             >
+                {logo && (
+                    <Image
+                        src={logo}
+                        alt={''}
+                        width={160}
+                        height={160}
+                        className={`size-[${iconSizeMap[size]}] rounded-full object-cover`}
+                    />
+                )}
                 {/* display icon if provided, otherwise display initials */}
                 {icon ? (
                     <Icon name={icon} size={iconSizeMap[size]} fill={iconFillColor} style={{ color: textColor }} />

@@ -23,6 +23,7 @@ export type PeanutActionDetailsCardTransactionType =
     | 'WITHDRAW'
     | 'WITHDRAW_BANK_ACCOUNT'
     | 'ADD_MONEY_BANK_ACCOUNT'
+    | 'REGIONAL_METHOD_CLAIM'
 
 export type PeanutActionDetailsCardRecipientType = RecipientType | 'BANK_ACCOUNT'
 
@@ -85,7 +86,12 @@ export default function PeanutActionDetailsCard({
         if (transactionType === 'ADD_MONEY' || transactionType === 'CLAIM_LINK_BANK_ACCOUNT') return 'arrow-down'
         if (transactionType === 'REQUEST' || transactionType === 'RECEIVED_LINK') return 'arrow-down-left'
         if (transactionType === 'CLAIM_LINK') return viewType !== 'SUCCESS' ? 'arrow-down' : undefined
-        if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT') return 'arrow-up'
+        if (
+            transactionType === 'WITHDRAW' ||
+            transactionType === 'WITHDRAW_BANK_ACCOUNT' ||
+            transactionType === 'REGIONAL_METHOD_CLAIM'
+        )
+            return 'arrow-up'
     }
 
     const getTitle = () => {
@@ -107,6 +113,7 @@ export default function PeanutActionDetailsCard({
                 title = `You're about to receive`
             }
         }
+        if (transactionType === 'REGIONAL_METHOD_CLAIM') title = recipientName // Render the string as is for regional method
         return (
             <h1 className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap text-base font-normal text-grey-1">
                 {icon && <Icon name={icon} size={10} className="min-w-fit" />} {title}
@@ -197,6 +204,7 @@ export default function PeanutActionDetailsCard({
                                 backgroundColor: getAvatarBackgroundColor(),
                                 color: getAvatarTextColor(),
                             }}
+                            logo={logo}
                         />
                     )}
                 </div>
