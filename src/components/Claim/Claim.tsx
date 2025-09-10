@@ -316,7 +316,7 @@ export const Claim = ({}) => {
                 />
             )}
 
-            <SupportCTA />
+            {linkState !== _consts.claimLinkStateType.LOADING && <SupportCTA />}
         </PageContainer>
     )
 }
