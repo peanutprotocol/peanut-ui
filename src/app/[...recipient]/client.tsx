@@ -49,7 +49,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
     const [isRequestDetailsFetching, setIsRequestDetailsFetching] = useState(false)
-    const { user } = useAuth()
+    const { user, isFetchingUser } = useAuth()
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
     const requestId = searchParams.get('id')
@@ -533,7 +533,8 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 </>
             )}
 
-            <SupportCTA />
+            {/* Show only to guest users */}
+            {!user && !isFetchingUser && <SupportCTA />}
         </div>
     )
 }

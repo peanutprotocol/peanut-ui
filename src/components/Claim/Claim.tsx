@@ -316,7 +316,8 @@ export const Claim = ({}) => {
                 />
             )}
 
-            {linkState !== _consts.claimLinkStateType.LOADING && <SupportCTA />}
+            {/* Show only to guest users */}
+            {linkState !== _consts.claimLinkStateType.LOADING && !user && !isFetchingUser && <SupportCTA />}
         </PageContainer>
     )
 }
