@@ -32,6 +32,7 @@ import ExternalWalletFulfilManager from '@/components/Request/views/ExternalWall
 import ActionList from '@/components/Common/ActionList'
 import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
+import SupportCTA from '@/components/Global/SupportCTA'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
@@ -531,6 +532,8 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     )}
                 </>
             )}
+
+            <SupportCTA />
         </div>
     )
 }
