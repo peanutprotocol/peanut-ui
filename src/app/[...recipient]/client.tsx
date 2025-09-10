@@ -384,12 +384,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
 
-    let showActionList = flow !== 'direct_pay'
-
-    if (flow === 'direct_pay' && !user) {
-        showActionList = true
-    }
-
     if (error) {
         return (
             <div className="mx-auto h-full w-full space-y-8 self-center md:w-6/12">
@@ -482,13 +476,11 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                         currencyAmount={currencyAmount}
                     />
                     <div>
-                        {showActionList && (
-                            <ActionList
-                                flow="request"
-                                requestLinkData={parsedPaymentData as ParsedURL}
-                                isLoggedIn={!!user?.user.userId}
-                            />
-                        )}
+                        <ActionList
+                            flow="request"
+                            requestLinkData={parsedPaymentData as ParsedURL}
+                            isLoggedIn={!!user?.user.userId}
+                        />
                     </div>
                 </div>
             )}
