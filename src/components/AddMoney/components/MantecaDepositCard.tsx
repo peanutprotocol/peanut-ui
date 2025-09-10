@@ -1,7 +1,6 @@
 import { MERCADO_PAGO } from '@/assets'
-import Card from '@/components/Global/Card'
+import MantecaDetailsCard from '@/components/Global/MantecaDetailsCard'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
-import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 
 interface MantecaDepositCardProps {
@@ -40,12 +39,16 @@ const MantecaDepositCard = ({
             />
 
             <h2 className="font-bold">Account details</h2>
-            <Card className="rounded-sm">
-                {cbu && <PaymentInfoRow label={'CBU'} value={cbu} allowCopy={true} />}
-                {alias && <PaymentInfoRow label={'Alias'} value={alias} hideBottomBorder />}
-                {depositAddress && <PaymentInfoRow label={'Deposit Address'} value={depositAddress} hideBottomBorder />}
-                {pixKey && <PaymentInfoRow label={'Pix Key'} value={pixKey} hideBottomBorder />}
-            </Card>
+            <MantecaDetailsCard
+                rows={[
+                    ...(cbu ? [{ key: 'cbu', label: 'CBU', value: cbu, allowCopy: true }] : []),
+                    ...(alias ? [{ key: 'alias', label: 'Alias', value: alias, hideBottomBorder: true }] : []),
+                    ...(depositAddress
+                        ? [{ key: 'deposit', label: 'Deposit Address', value: depositAddress, hideBottomBorder: true }]
+                        : []),
+                    ...(pixKey ? [{ key: 'pix', label: 'Pix Key', value: pixKey, hideBottomBorder: true }] : []),
+                ]}
+            />
         </div>
     )
 }
