@@ -59,6 +59,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
         setShowRequestFulfilmentBankFlowManager,
         setShowExternalWalletFulfilMethods,
         setFlowStep: setRequestFulfilmentBankFlowStep,
+        setFulfilUsingManteca,
     } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
 
@@ -106,7 +107,8 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     }
                     break
                 case 'mercadopago':
-                    break // soon tag, so no action needed
+                    setFulfilUsingManteca(true)
+                    break
                 case 'exchange-or-wallet':
                     setShowExternalWalletFulfilMethods(true)
                     break

@@ -61,7 +61,8 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const [currencyAmount, setCurrencyAmount] = useState<string>('')
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
-    const { showExternalWalletFulfilMethods, showRequestFulfilmentBankFlowManager } = useRequestFulfillmentFlow()
+    const { showExternalWalletFulfilMethods, showRequestFulfilmentBankFlowManager, fulfilUsingManteca } =
+        useRequestFulfillmentFlow()
 
     // determine if the current user is the recipient of the transaction
     const isCurrentUserRecipient = chargeDetails?.requestLink.recipientAccount?.userId === user?.user.userId
@@ -482,7 +483,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                         currencyAmount={currencyAmount}
                     />
                     <div>
-                        {showActionList && (
+                        {!fulfilUsingManteca && showActionList && (
                             <ActionList
                                 flow="request"
                                 requestLinkData={parsedPaymentData as ParsedURL}
