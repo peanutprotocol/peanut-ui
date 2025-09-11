@@ -104,7 +104,7 @@ const SetupPasskey = () => {
                             rel="noopener noreferrer"
                             target="_blank"
                             className="underline underline-offset-2"
-                            href="https://docs.peanut.to/passkeys"
+                            href="https://docs.peanut.me/passkeys"
                         >
                             Learn more about what Passkeys are
                         </Link>{' '}
