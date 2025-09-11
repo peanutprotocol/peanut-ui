@@ -21,7 +21,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 
-const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$)/
+// Allow access to some public paths without authentication
+const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
@@ -80,7 +81,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         }
     }, [])
 
-    if (!isReady || (isFetchingUser && !user && !hasToken)) {
+    // Allow access to public paths without authentication
+    const isPublicPath = publicPathRegex.test(pathName)
+
+    if (!isReady || (isFetchingUser && !user && !hasToken && !isPublicPath)) {
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                 <PeanutLoading />

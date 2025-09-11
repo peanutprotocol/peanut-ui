@@ -11,14 +11,13 @@ import {
 import { CryptoDepositQR } from '@/components/AddMoney/views/CryptoDepositQR.view'
 import NetworkSelectionView, { SelectedNetwork } from '@/components/AddMoney/views/NetworkSelection.view'
 import TokenSelectionView from '@/components/AddMoney/views/TokenSelection.view'
-import ActionModal from '@/components/Global/ActionModal'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { Slider } from '@/components/Slider'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import TokenAndNetworkConfirmationModal from '@/components/Global/TokenAndNetworkConfirmationModal'
 
 type AddMoneyCryptoStep = 'sourceSelection' | 'tokenSelection' | 'networkSelection' | 'riskModal' | 'qrScreen'
 
@@ -105,24 +104,11 @@ const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCry
                     onBack={handleBackToTokenSelection}
                 />
                 {currentStep === 'riskModal' && selectedToken && selectedNetwork && (
-                    <ActionModal
-                        visible={true}
+                    <TokenAndNetworkConfirmationModal
+                        token={selectedToken}
+                        network={selectedNetwork}
                         onClose={handleBackToNetworkSelectionFromRisk}
-                        icon={'alert'}
-                        iconContainerClassName="bg-yellow-1"
-                        title={`Only send ${selectedToken.symbol} on ${selectedNetwork.name}`}
-                        description={
-                            <span className="text-sm">
-                                Sending funds via any other network will result in a <b>permanent loss.</b>
-                            </span>
-                        }
-                        footer={
-                            <div className="w-full">
-                                <Slider onValueChange={(v) => v && setIsRiskAccepted(true)} />
-                            </div>
-                        }
-                        ctas={[]}
-                        modalPanelClassName="max-w-xs"
+                        onAccept={() => setIsRiskAccepted(true)}
                     />
                 )}
             </>
