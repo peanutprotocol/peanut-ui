@@ -25,6 +25,8 @@ import * as _consts from './Claim.consts'
 import FlowManager from './Link/FlowManager'
 import { type PeanutCrossChainRoute } from '@/services/swap'
 import { NotFoundClaimLink, WrongPasswordClaimLink, ClaimedView } from './Generic'
+import SupportCTA from '../Global/SupportCTA'
+import { twMerge } from 'tailwind-merge'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useSearchParams } from 'next/navigation'
 
@@ -268,7 +270,10 @@ export const Claim = ({}) => {
     }, [user])
 
     return (
-        <PageContainer alignItems="center">
+        <PageContainer
+            alignItems="center"
+            className={twMerge('flex flex-col', !user && !isFetchingUser && 'min-h-[calc(100dvh-110px)]')}
+        >
             {linkState === _consts.claimLinkStateType.LOADING && <PeanutLoading />}
             {linkState === _consts.claimLinkStateType.CLAIM && (
                 <FlowManager
@@ -327,6 +332,9 @@ export const Claim = ({}) => {
                     onClose={() => checkLink(window.location.href)}
                 />
             )}
+
+            {/* Show only to guest users */}
+            {linkState !== _consts.claimLinkStateType.LOADING && !user && !isFetchingUser && <SupportCTA />}
         </PageContainer>
     )
 }
