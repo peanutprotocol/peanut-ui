@@ -4,17 +4,21 @@ import { getCurrencyPrice } from '@/app/actions/currency'
 const SIMBOLS_BY_CURRENCY_CODE: Record<string, string> = {
     ARS: 'AR$',
     USD: '$',
-    BRL: 'R$',
+    EUR: '€',
+    MXN: 'MX$',
 }
 
 export const useCurrency = (currencyCode: string | null) => {
     const [code, setCode] = useState<string | null>(currencyCode?.toUpperCase() ?? null)
     const [symbol, setSymbol] = useState<string | null>(null)
     const [price, setPrice] = useState<number | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState<boolean>(true)
 
     useEffect(() => {
-        if (!code) return
+        if (!code) {
+            setIsLoading(false)
+            return
+        }
 
         if (code === 'USD') {
             setSymbol('$')
@@ -23,20 +27,23 @@ export const useCurrency = (currencyCode: string | null) => {
             return
         }
 
-        // First iterations only pesos
-        if (code !== 'ARS' && code !== 'BRL') {
+        if (!Object.keys(SIMBOLS_BY_CURRENCY_CODE).includes(code)) {
             setCode(null)
             setIsLoading(false)
             return
         }
 
+        setIsLoading(true)
         getCurrencyPrice(code)
             .then((price) => {
                 setSymbol(SIMBOLS_BY_CURRENCY_CODE[code])
                 setPrice(price)
+                setIsLoading(false)
             })
-            .catch(console.error)
-            .finally(() => setIsLoading(false))
+            .catch((err) => {
+                console.error(err)
+                setIsLoading(false)
+            })
     }, [code])
 
     return {

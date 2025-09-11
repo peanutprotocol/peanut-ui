@@ -253,10 +253,32 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             isPeerActuallyUser = false
             break
         case EHistoryEntryType.BANK_SEND_LINK_CLAIM:
-            direction = 'bank_claim'
-            transactionCardType = 'bank_withdraw'
-            nameForDetails = 'Claimed to Bank'
-            isPeerActuallyUser = false
+            // this handles how a bank claim is displayed in the transaction history.
+            if (entry.userRole === EHistoryUserRole.SENDER || entry.userRole === EHistoryUserRole.BOTH) {
+                // from the sender's perspective (or when sender claims their own link).
+                if (entry.recipientAccount.isUser) {
+                    // cases 1 & 2: claimed by a peanut user (kyc'd or not). show as direct send.
+                    direction = 'send'
+                    transactionCardType = 'send'
+                    nameForDetails =
+                        entry.recipientAccount?.username ??
+                        entry.recipientAccount?.fullName ??
+                        entry.recipientAccount?.identifier
+                    isPeerActuallyUser = true
+                } else {
+                    // case 3: claimed by a guest. show as generic bank claim.
+                    direction = 'bank_claim'
+                    transactionCardType = 'bank_claim'
+                    nameForDetails = 'Claimed to Bank'
+                    isPeerActuallyUser = false
+                }
+            } else {
+                // from the claimant's perspective, it's always a bank claim.
+                direction = 'bank_claim'
+                transactionCardType = 'bank_claim'
+                nameForDetails = 'Claimed to Bank'
+                isPeerActuallyUser = false
+            }
             break
         case EHistoryEntryType.BRIDGE_ONRAMP:
             direction = 'bank_deposit'
@@ -441,7 +463,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         },
         sourceView: 'history',
         bankAccountDetails:
-            entry.type === EHistoryEntryType.BRIDGE_OFFRAMP || entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM
+            entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
+            (entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM && entry.userRole === EHistoryUserRole.RECIPIENT)
                 ? {
                       identifier: entry.recipientAccount.identifier,
                       type: entry.recipientAccount.type,

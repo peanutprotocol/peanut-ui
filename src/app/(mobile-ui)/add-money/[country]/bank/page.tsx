@@ -23,7 +23,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { UserDetailsForm, type UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
-import { getOnrampCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
+import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
 import MercadoPago from '@/components/AddMoney/components/RegionalMethods/MercadoPago'
 
@@ -317,10 +317,12 @@ export default function OnrampBankPage() {
     }
 
     if (step === 'showDetails') {
-        if (selectedCountry.id === 'AR' || selectedCountry.id === 'BR') {
-            return <MercadoPago />
-        }
         return <AddMoneyBankDetails />
+    }
+
+    // Show Mercado Pago flow for Argentina bank transfers
+    if (step === 'inputAmount' && selectedCountry.id === 'AR') {
+        return <MercadoPago source="bank" />
     }
 
     if (step === 'inputAmount') {
@@ -337,8 +339,10 @@ export default function OnrampBankPage() {
                         currency={
                             selectedCountry
                                 ? {
-                                      code: getOnrampCurrencyConfig(selectedCountry.id).currency,
-                                      symbol: getCurrencySymbol(getOnrampCurrencyConfig(selectedCountry.id).currency),
+                                      code: getCurrencyConfig(selectedCountry.id, 'onramp').currency,
+                                      symbol: getCurrencySymbol(
+                                          getCurrencyConfig(selectedCountry.id, 'onramp').currency
+                                      ),
                                       price: 1,
                                   }
                                 : undefined

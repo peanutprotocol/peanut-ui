@@ -1,3 +1,4 @@
+import { MERCADO_PAGO } from '@/assets'
 import Card from '@/components/Global/Card'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -11,6 +12,7 @@ interface MantecaDepositCardProps {
     alias?: string
     depositAddress?: string
     pixKey?: string
+    isMercadoPago: boolean
 }
 
 const MantecaDepositCard = ({
@@ -21,6 +23,7 @@ const MantecaDepositCard = ({
     alias,
     depositAddress,
     pixKey,
+    isMercadoPago,
 }: MantecaDepositCardProps) => {
     return (
         <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
@@ -33,6 +36,7 @@ const MantecaDepositCard = ({
                 tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
                 countryCodeForFlag={countryCodeForFlag}
                 currencySymbol={currencySymbol}
+                logo={isMercadoPago ? MERCADO_PAGO : undefined}
             />
 
             <h2 className="font-bold">Account details</h2>

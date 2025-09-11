@@ -32,9 +32,14 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
         if (modalVariant === 'trouble') {
             return {
                 title: 'Having trouble verifying?',
-                description:
-                    'If the verification isn’t loading here, you can finish it in your browser. Just copy this link and open it there.',
-                icon: 'info' as IconName,
+                description: (
+                    <p>
+                        If the verification isn&apos;t loading here, you can finish it in your browser.
+                        <br />
+                        Just copy this link and open it there.
+                    </p>
+                ),
+                icon: 'question-mark' as IconName,
                 iconContainerClassName: 'bg-primary-1',
                 ctas: [
                     {
@@ -51,7 +56,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         icon: 'peanut-support' as IconName,
                         onClick: () => router.push('/support'),
                         variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-sm font-medium w-full fill-none',
+                        className: 'underline text-sm font-medium w-full fill-none h-fit mt-3',
                     },
                 ],
             }
@@ -60,7 +65,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
         return {
             title: 'Stop verification?',
             description: 'If you exit now, your verification won’t be completed and you’ll need to start again later.',
-            icon: 'info' as IconName,
+            icon: 'alert' as IconName,
             iconContainerClassName: 'bg-secondary-1',
             ctas: [
                 {
@@ -76,7 +81,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     text: 'Continue verifying',
                     onClick: () => setIsHelpModalOpen(false),
                     variant: 'transparent' as ButtonVariant,
-                    className: 'underline text-sm font-medium w-full',
+                    className: 'underline text-sm font-medium w-full h-fit mt-3',
                 },
             ],
         }
@@ -122,7 +127,10 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             hideOverlay={false}
         >
             {!isVerificationStarted ? (
-                <StartVerificationView onStartVerification={() => setIsVerificationStarted(true)} />
+                <StartVerificationView
+                    onClose={() => onClose('manual')}
+                    onStartVerification={() => setIsVerificationStarted(true)}
+                />
             ) : (
                 <div className="flex h-full flex-col gap-2 p-0">
                     <div className="h-full w-full flex-grow overflow-scroll">
@@ -171,6 +179,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 iconContainerClassName={modalDetails.iconContainerClassName}
                 modalPanelClassName="max-w-full pointer-events-auto"
                 ctaClassName="grid grid-cols-1 gap-3"
+                contentContainerClassName="px-6 py-6"
                 modalClassName="!z-[10001] pointer-events-auto"
                 preventClose={true}
                 ctas={modalDetails.ctas}

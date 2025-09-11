@@ -67,7 +67,7 @@ const InputAmountStep = ({
                     variant="purple"
                     shadowSize="4"
                     onClick={onSubmit}
-                    disabled={!parseFloat(tokenAmount.replace(/,/g, ''))}
+                    disabled={isLoading || !parseFloat(tokenAmount.replace(/,/g, ''))}
                     className="w-full"
                     loading={isLoading}
                 >

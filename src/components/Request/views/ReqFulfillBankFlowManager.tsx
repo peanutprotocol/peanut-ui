@@ -17,7 +17,9 @@ import NavHeader from '@/components/Global/NavHeader'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Button } from '@/components/0_Bruddle'
 import { updateUserById } from '@/app/actions/users'
-import { useRouter } from 'next/navigation'
+import { Address } from 'viem'
+import { getCurrencyConfig, getMinimumAmount } from '@/utils/bridge.utils'
+import { getCurrencyPrice } from '@/app/actions/currency'
 
 /**
  * @name ReqFulfillBankFlowManager
@@ -28,27 +30,24 @@ import { useRouter } from 'next/navigation'
 export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPaymentData: ParsedURL }) => {
     // props and basic setup
     const { user, fetchUser } = useAuth()
-    const { createOnramp, isLoading: isCreatingOnramp, error: onrampError } = useCreateOnramp()
+    const { createOnramp } = useCreateOnramp()
     const { chargeDetails } = usePaymentStore()
     const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
     const [isUpdatingUser, setIsUpdatingUser] = useState(false)
-    const [userUpdateError, setUserUpdateError] = useState<string | null>(null)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isUserDetailsFormValid, setIsUserDetailsFormValid] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
-    const router = useRouter()
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
 
     // state from the centralized context
     const {
         flowStep: requestFulfilmentBankFlowStep,
         setFlowStep: setRequestFulfilmentBankFlowStep,
-        setShowRequestFulfilmentBankFlowManager,
         selectedCountry,
         setOnrampData,
         requesterDetails,
         showVerificationModal,
         setShowVerificationModal,
-        resetFlow,
     } = useRequestFulfillmentFlow()
 
     useEffect(() => {
@@ -57,9 +56,24 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
         }
     }, [showVerificationModal])
 
+    useEffect(() => {
+        if (!chargeDetails || !selectedCountry) return
+        const { currency } = getCurrencyConfig(selectedCountry.id, 'onramp')
+        const usdAmount = chargeDetails.tokenAmount
+        const minAmount = getMinimumAmount(selectedCountry.id)
+        getCurrencyPrice(currency).then((price) => {
+            const currencyAmount = Number(usdAmount) * price
+            if (currencyAmount < minAmount) {
+                setErrorMessage(`Minimum amount is ${minAmount.toFixed(2)} ${currency}`)
+            } else {
+                setErrorMessage(null)
+            }
+        })
+    }, [chargeDetails, selectedCountry])
+
     const handleOnrampConfirmation = async () => {
         if (!selectedCountry) return
-
+        setErrorMessage(null)
         try {
             let onrampDataResponse
 
@@ -72,9 +86,10 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
                 })
             } else {
                 onrampDataResponse = await createOnramp({
-                    amount: chargeDetails?.tokenAmount ?? '0',
+                    usdAmount: chargeDetails?.tokenAmount ?? '0',
                     country: selectedCountry,
                     chargeId: chargeDetails?.uuid,
+                    recipientAddress: parsedPaymentData.recipient.resolvedAddress as Address,
                 })
             }
 
@@ -97,6 +112,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
             setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
         }
     }
+
     const handleKycSuccess = () => {
         setShowVerificationModal(false)
         setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
@@ -105,7 +121,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
 
     const handleUserDetailsSubmit = async (data: UserDetailsFormData) => {
         setIsUpdatingUser(true)
-        setUserUpdateError(null)
+        setErrorMessage(null)
         try {
             if (!user?.user.userId) throw new Error('User not found')
             const result = await updateUserById({
@@ -119,7 +135,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
             await fetchUser()
             setShowVerificationModal(true)
         } catch (error: any) {
-            setUserUpdateError(error.message)
+            setErrorMessage(error.message)
             return { error: error.message }
         } finally {
             setIsUpdatingUser(false)
@@ -160,11 +176,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
     switch (requestFulfilmentBankFlowStep) {
         case RequestFulfillmentBankFlowStep.BankCountryList:
             return (
-                <CountryListRouter
-                    flow="request"
-                    requestLinkData={parsedPaymentData}
-                    inputTitle="Which country do you want to receive to?"
-                />
+                <CountryListRouter flow="request" requestLinkData={parsedPaymentData} inputTitle="Where to pay from?" />
             )
         case RequestFulfillmentBankFlowStep.OnrampConfirmation:
             return (
@@ -205,11 +217,11 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
                             variant="purple"
                             shadowSize="4"
                             className="w-full"
-                            disabled={!isUserDetailsFormValid || isUpdatingUser}
+                            disabled={!isUserDetailsFormValid || isUpdatingUser || !!errorMessage}
                         >
                             Continue
                         </Button>
-                        {userUpdateError && <ErrorAlert description={userUpdateError} />}
+                        {errorMessage && <ErrorAlert description={errorMessage} />}
                     </div>
                 </div>
             )
