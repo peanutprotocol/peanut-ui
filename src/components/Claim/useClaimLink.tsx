@@ -11,11 +11,14 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { isTestnetChain } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
 import { useAccount } from 'wagmi'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 const useClaimLink = () => {
     const { fetchBalance } = useWallet()
     const { chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
 
     const { setLoadingState } = useContext(loadingStateContext)
 
@@ -93,10 +96,29 @@ const useClaimLink = () => {
         }
     }
 
+    const addParamStep = (step: 'bank' | 'claim') => {
+        const params = new URLSearchParams(searchParams)
+        params.set('step', step)
+
+        const hash = window.location.hash
+        const newUrl = `${pathname}?${params.toString()}${hash}`
+        window.history.replaceState(null, '', newUrl)
+    }
+
+    const removeParamStep = () => {
+        const params = new URLSearchParams(searchParams)
+        params.delete('step')
+        const queryString = params.toString()
+        const newUrl = `${pathname}${queryString ? `?${queryString}` : ''}${window.location.hash}`
+        window.history.replaceState(null, '', newUrl)
+    }
+
     return {
         claimLink,
         claimLinkXchain,
         switchNetwork,
+        addParamStep,
+        removeParamStep,
     }
 }
 
