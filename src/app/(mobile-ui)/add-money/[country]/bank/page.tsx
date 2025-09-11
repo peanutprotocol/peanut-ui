@@ -25,6 +25,7 @@ import { updateUserById } from '@/app/actions/users'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
+import MercadoPago from '@/components/AddMoney/components/RegionalMethods/MercadoPago'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -317,6 +318,11 @@ export default function OnrampBankPage() {
 
     if (step === 'showDetails') {
         return <AddMoneyBankDetails />
+    }
+
+    // Show Mercado Pago flow for Argentina bank transfers
+    if (step === 'inputAmount' && selectedCountry.id === 'AR') {
+        return <MercadoPago source="bank" />
     }
 
     if (step === 'inputAmount') {
