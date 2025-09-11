@@ -6,7 +6,7 @@ import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import noHiddenFees from '@/assets/illustrations/no-hidden-fees.svg'
 import { Star } from '@/assets'
 import Image from 'next/image'
-import ExchangeRateWiget from '../Global/ExchangeRateWidget'
+import ExchangeRateWidget from '../Global/ExchangeRateWidget'
 import { useRouter } from 'next/navigation'
 
 export function NoFees() {
@@ -124,7 +124,7 @@ export function NoFees() {
                     />
                 </div>
 
-                <ExchangeRateWiget
+                <ExchangeRateWidget
                     ctaIcon="arrow-up-right"
                     ctaLabel="Send Money"
                     ctaAction={() => router.push('/setup')}

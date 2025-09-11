@@ -1,5 +1,5 @@
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
-import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
+import { countryCurrencyMappings } from '@/constants/countryCurrencyMapping'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import Image from 'next/image'
@@ -14,14 +14,16 @@ interface IExchangeRateWidgetProps {
     ctaAction: () => void
 }
 
-const ExchangeRateWiget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction }) => {
+const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction }) => {
     const searchParams = useSearchParams()
     const router = useRouter()
 
     // Get values from URL or use defaults
     const sourceCurrency = searchParams.get('from') || 'USD'
     const destinationCurrency = searchParams.get('to') || 'EUR'
-    const urlSourceAmount = searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : 10
+    const rawAmount = searchParams.get('amount')
+    const parsedAmount = rawAmount !== null ? Number(rawAmount) : 10
+    const urlSourceAmount = Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : 10
 
     // Exchange rate hook handles all the conversion logic
     const {
@@ -231,4 +233,4 @@ const ExchangeRateWiget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ct
     )
 }
 
-export default ExchangeRateWiget
+export default ExchangeRateWidget
