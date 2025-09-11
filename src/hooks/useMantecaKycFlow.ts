@@ -4,14 +4,16 @@ import { mantecaApi } from '@/services/manteca'
 import { useAuth } from '@/context/authContext'
 import { CountryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import { BASE_URL } from '@/constants'
+import { MantecaKycStatus } from '@/interfaces'
 
 type UseMantecaKycFlowOptions = {
     onClose?: () => void
     onSuccess?: () => void
     onManualClose?: () => void
+    country: CountryData
 }
 
-export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose }: UseMantecaKycFlowOptions = {}) => {
+export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose, country }: UseMantecaKycFlowOptions) => {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [iframeOptions, setIframeOptions] = useState<Omit<IFrameWrapperProps, 'onClose'>>({
@@ -20,20 +22,38 @@ export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose }: UseMant
         closeConfirmMessage: undefined,
     })
     const { user } = useAuth()
-    const [isMantecaKycRequired, setNeedsMantecaKyc] = useState<boolean>(
-        !user?.user?.mantecaKycStatus || user.user.mantecaKycStatus !== 'ACTIVE'
-    )
+    const [isMantecaKycRequired, setNeedsMantecaKyc] = useState<boolean>(false)
+
+    const userKycVerifications = user?.user?.kycVerifications
 
     useEffect(() => {
-        setNeedsMantecaKyc(!user?.user?.mantecaKycStatus || user.user.mantecaKycStatus !== 'ACTIVE')
-    }, [user?.user?.mantecaKycStatus])
+        // determine if manteca kyc is required based on geo data available in kycVerifications
+        const selectedGeo = country?.id
 
-    const openMantecaKyc = useCallback(async (country?: CountryData) => {
+        if (selectedGeo && Array.isArray(userKycVerifications) && userKycVerifications.length > 0) {
+            const isuserActiveForSelectedGeo = userKycVerifications.some(
+                (v) =>
+                    v.provider === 'MANTECA' &&
+                    (v.mantecaGeo || '').toUpperCase() === selectedGeo.toUpperCase() &&
+                    v.status === MantecaKycStatus.ACTIVE
+            )
+            setNeedsMantecaKyc(!isuserActiveForSelectedGeo)
+            return
+        }
+
+        // if no verifications data available, keep as null (undetermined)
+        // only set to true if we have user data but no matching verification
+        if (user && userKycVerifications !== undefined) {
+            setNeedsMantecaKyc(true)
+        }
+    }, [userKycVerifications, country?.id, user])
+
+    const openMantecaKyc = useCallback(async (countryParam?: CountryData) => {
         setIsLoading(true)
         setError(null)
         try {
-            const exchange = country?.id
-                ? MantecaSupportedExchanges[country.id as keyof typeof MantecaSupportedExchanges]
+            const exchange = countryParam?.id
+                ? MantecaSupportedExchanges[countryParam.id as keyof typeof MantecaSupportedExchanges]
                 : MantecaSupportedExchanges.AR
             const returnUrl = BASE_URL + '/kyc/success'
             const { url } = await mantecaApi.initiateOnboarding({ returnUrl, exchange })
@@ -42,9 +62,10 @@ export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose }: UseMant
                 visible: true,
             })
             return { success: true as const }
-        } catch (e: any) {
-            setError(e?.message ?? 'Failed to initiate onboarding')
-            return { success: false as const, error: e?.message as string }
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : 'Failed to initiate onboarding'
+            setError(message)
+            return { success: false as const, error: message }
         } finally {
             setIsLoading(false)
         }

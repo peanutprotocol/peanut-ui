@@ -3,7 +3,7 @@ import MercadoPagoDepositDetails from './MercadoPagoDepositDetails'
 import InputAmountStep from '../../InputAmountStep'
 import { createMantecaOnramp } from '@/app/actions/onramp'
 import { useParams, useRouter } from 'next/navigation'
-import { countryData } from '@/components/AddMoney/consts'
+import { CountryData, countryData } from '@/components/AddMoney/consts'
 import { MantecaDepositDetails } from '@/types/manteca.types'
 import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
@@ -26,7 +26,7 @@ const MercadoPago = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
-    const { isMantecaKycRequired } = useMantecaKycFlow()
+    const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry as CountryData })
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     const { user, fetchUser } = useAuth()
 
@@ -42,12 +42,6 @@ const MercadoPago = () => {
         },
     })
 
-    useEffect(() => {
-        if (isMantecaKycRequired) {
-            setIsKycModalOpen(true)
-        }
-    }, [isMantecaKycRequired])
-
     const handleKycCancel = () => {
         setIsKycModalOpen(false)
         if (selectedCountry?.path) {
@@ -58,7 +52,13 @@ const MercadoPago = () => {
     const handleAmountSubmit = async () => {
         if (!selectedCountry?.currency) return
 
-        if (isMantecaKycRequired) {
+        // check if we still need to determine KYC status
+        if (isMantecaKycRequired === null) {
+            // still loading/determining KYC status, don't proceed yet
+            return
+        }
+
+        if (isMantecaKycRequired === true) {
             setIsKycModalOpen(true)
             return
         }
@@ -83,6 +83,13 @@ const MercadoPago = () => {
             setIsCreatingDeposit(false)
         }
     }
+
+    // handle verification modal opening
+    useEffect(() => {
+        if (isMantecaKycRequired) {
+            setIsKycModalOpen(true)
+        }
+    }, [isMantecaKycRequired, countryData])
 
     if (!selectedCountry) return null
 

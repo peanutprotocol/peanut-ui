@@ -15,7 +15,7 @@ export default function KycSuccessPage() {
     }, [])
 
     return (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-4">
+        <div className="flex h-screen min-h-full w-full flex-col items-center justify-center gap-4">
             <Image src={HandThumbsUp} alt="Peanut HandThumbsUp" className="size-34" />
             <div className="space-y-2">
                 <p className="text-lg font-semibold">Verification successful!</p>

@@ -9,7 +9,7 @@ interface Props {
     onClose: () => void
     onKycSuccess?: () => void
     onManualClose?: () => void
-    country?: CountryData
+    country: CountryData
 }
 
 export const InitiateMantecaKYCModal = ({ isOpen, onClose, onKycSuccess, onManualClose, country }: Props) => {
@@ -17,6 +17,7 @@ export const InitiateMantecaKYCModal = ({ isOpen, onClose, onKycSuccess, onManua
         onClose: onManualClose, // any non-success close from iframe is a manual close in case of Manteca KYC
         onSuccess: onKycSuccess,
         onManualClose,
+        country,
     })
 
     return (
