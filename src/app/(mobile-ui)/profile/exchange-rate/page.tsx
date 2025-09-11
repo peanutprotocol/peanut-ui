@@ -10,7 +10,7 @@ export default function ExchangeRatePage() {
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title="Exchange rate & fees" />
+            <NavHeader title="Exchange rate & fees" onPrev={() => router.replace('/profile')} />
             <div className="m-auto">
                 <ExchangeRateWiget
                     ctaIcon="arrow-down"
