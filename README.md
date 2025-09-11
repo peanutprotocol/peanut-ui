@@ -1,4 +1,4 @@
-Live at: [peanut.to](https://peanut.me) | [staging.peanut.me](https://staging.peanut.to)
+Live at: [peanut.me](https://peanut.me) | [staging.peanut.me](https://staging.peanut.me)
 
 ## Getting Started
 
