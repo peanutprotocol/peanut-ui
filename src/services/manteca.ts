@@ -3,7 +3,11 @@ import { fetchWithSentry } from '@/utils'
 import Cookies from 'js-cookie'
 
 export const mantecaApi = {
-    initiateOnboarding: async (params: { returnUrl: string; failureUrl?: string }): Promise<{ url: string }> => {
+    initiateOnboarding: async (params: {
+        returnUrl: string
+        failureUrl?: string
+        exchange?: string
+    }): Promise<{ url: string }> => {
         const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/initiate-onboarding`, {
             method: 'POST',
             headers: {

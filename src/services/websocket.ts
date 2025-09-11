@@ -1,7 +1,13 @@
 import { HistoryEntry } from '@/hooks/useTransactionHistory'
 
 export type WebSocketMessage = {
-    type: 'ping' | 'pong' | 'history_entry' | 'kyc_status_update' | 'persona_tos_status_update'
+    type:
+        | 'ping'
+        | 'pong'
+        | 'history_entry'
+        | 'kyc_status_update'
+        | 'manteca_kyc_status_update'
+        | 'persona_tos_status_update'
     data?: HistoryEntry
 }
 
@@ -110,6 +116,12 @@ export class PeanutWebSocket {
                     }
                     break
 
+                case 'manteca_kyc_status_update':
+                    if (message.data && 'status' in (message.data as object)) {
+                        this.emit('manteca_kyc_status_update', message.data)
+                    }
+                    break
+
                 case 'persona_tos_status_update':
                     if (message.data && 'status' in (message.data as object)) {
                         this.emit('persona_tos_status_update', message.data)
@@ -204,8 +216,14 @@ let websocketInstance: PeanutWebSocket | null = null
 
 export const getWebSocketInstance = (username?: string): PeanutWebSocket => {
     if (!websocketInstance && typeof window !== 'undefined') {
-        const wsUrl = process.env.NEXT_PUBLIC_PEANUT_WS_URL || ''
+        let wsUrl = process.env.NEXT_PUBLIC_PEANUT_WS_URL || ''
         const path = username ? `/ws/charges/${username}` : '/ws/charges'
+
+        // use ws:// for local development to avoid SSL issues
+        if (window.location.hostname === 'localhost' && wsUrl.startsWith('wss://')) {
+            wsUrl = wsUrl.replace('wss://', 'ws://')
+        }
+
         websocketInstance = new PeanutWebSocket(wsUrl, path)
     }
 

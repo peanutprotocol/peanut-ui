@@ -5,34 +5,33 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useRouter } from 'next/navigation'
-import { CountryData } from '../consts'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useCurrency } from '@/hooks/useCurrency'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 
+type ICurrency = ReturnType<typeof useCurrency>
 interface InputAmountStepProps {
     onSubmit: () => void
-    selectedCountry: CountryData
     isLoading: boolean
     tokenAmount: string
     setTokenAmount: React.Dispatch<React.SetStateAction<string>>
     setTokenUSDAmount: React.Dispatch<React.SetStateAction<string>>
     error: string | null
+    currencyData?: ICurrency
 }
 
 const InputAmountStep = ({
     tokenAmount,
     setTokenAmount,
     onSubmit,
-    selectedCountry,
     isLoading,
     error,
     setTokenUSDAmount,
+    currencyData,
 }: InputAmountStepProps) => {
     const router = useRouter()
-    const currencyData = useCurrency(selectedCountry.currency ?? 'ARS')
 
-    if (currencyData.isLoading) {
+    if (currencyData?.isLoading) {
         return <PeanutLoading />
     }
 
@@ -49,7 +48,7 @@ const InputAmountStep = ({
                     hideCurrencyToggle
                     setUsdValue={(e) => setTokenUSDAmount(e)}
                     currency={
-                        currencyData
+                        currencyData && currencyData.price && currencyData.price > 0
                             ? {
                                   code: currencyData.code!,
                                   symbol: currencyData.symbol!,

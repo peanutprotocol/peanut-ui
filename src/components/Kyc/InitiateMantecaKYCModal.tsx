@@ -2,15 +2,17 @@ import ActionModal from '@/components/Global/ActionModal'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { IconName } from '@/components/Global/Icons/Icon'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
+import { CountryData } from '@/components/AddMoney/consts'
 
 interface Props {
     isOpen: boolean
     onClose: () => void
     onKycSuccess?: () => void
     onManualClose?: () => void
+    country?: CountryData
 }
 
-export const InitiateMantecaKYCModal = ({ isOpen, onClose, onKycSuccess, onManualClose }: Props) => {
+export const InitiateMantecaKYCModal = ({ isOpen, onClose, onKycSuccess, onManualClose, country }: Props) => {
     const { isLoading, iframeOptions, openMantecaKyc, handleIframeClose } = useMantecaKycFlow({
         onClose: onManualClose, // any non-success close from iframe is a manual close in case of Manteca KYC
         onSuccess: onKycSuccess,
@@ -30,7 +32,7 @@ export const InitiateMantecaKYCModal = ({ isOpen, onClose, onKycSuccess, onManua
                 ctas={[
                     {
                         text: isLoading ? 'Loading...' : 'Verify now',
-                        onClick: () => openMantecaKyc(),
+                        onClick: () => openMantecaKyc(country),
                         variant: 'purple',
                         disabled: isLoading,
                         shadowSize: '4',

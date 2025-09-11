@@ -7,6 +7,9 @@ import { countryData } from '@/components/AddMoney/consts'
 import { MantecaDepositDetails } from '@/types/manteca.types'
 import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
+import { useCurrency } from '@/hooks/useCurrency'
+import { useAuth } from '@/context/authContext'
+import { useWebSocket } from '@/hooks/useWebSocket'
 
 const MercadoPago = () => {
     const params = useParams()
@@ -24,6 +27,20 @@ const MercadoPago = () => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
     const { isMantecaKycRequired } = useMantecaKycFlow()
+    const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
+    const { user, fetchUser } = useAuth()
+
+    useWebSocket({
+        username: user?.user.username ?? undefined,
+        autoConnect: !!user?.user.username,
+        onMantecaKycStatusUpdate: (newStatus) => {
+            // listen for manteca kyc status updates, either when the user is approved or when the widget is finished to continue with the flow
+            if (newStatus === 'ACTIVE' || newStatus === 'WIDGET_FINISHED') {
+                fetchUser()
+                setIsKycModalOpen(false)
+            }
+        },
+    })
 
     useEffect(() => {
         if (isMantecaKycRequired) {
@@ -40,6 +57,11 @@ const MercadoPago = () => {
 
     const handleAmountSubmit = async () => {
         if (!selectedCountry?.currency) return
+
+        if (isMantecaKycRequired) {
+            setIsKycModalOpen(true)
+            return
+        }
 
         try {
             setError(null)
@@ -71,10 +93,10 @@ const MercadoPago = () => {
                     tokenAmount={tokenAmount}
                     setTokenAmount={setTokenAmount}
                     onSubmit={handleAmountSubmit}
-                    selectedCountry={selectedCountry}
                     isLoading={isCreatingDeposit}
                     error={error}
                     setTokenUSDAmount={setTokenUSDAmount}
+                    currencyData={currencyData}
                 />
                 {isKycModalOpen && (
                     <InitiateMantecaKYCModal
@@ -84,7 +106,9 @@ const MercadoPago = () => {
                         onKycSuccess={() => {
                             // close the modal and let the user continue with amount input
                             setIsKycModalOpen(false)
+                            fetchUser()
                         }}
+                        country={selectedCountry}
                     />
                 )}
             </>

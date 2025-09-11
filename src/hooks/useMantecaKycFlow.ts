@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import type { IFrameWrapperProps } from '@/components/Global/IframeWrapper'
 import { mantecaApi } from '@/services/manteca'
 import { useAuth } from '@/context/authContext'
+import { CountryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
+import { BASE_URL } from '@/constants'
 
 type UseMantecaKycFlowOptions = {
     onClose?: () => void
@@ -26,11 +28,15 @@ export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose }: UseMant
         setNeedsMantecaKyc(!user?.user?.mantecaKycStatus || user.user.mantecaKycStatus !== 'ACTIVE')
     }, [user?.user?.mantecaKycStatus])
 
-    const openMantecaKyc = useCallback(async () => {
+    const openMantecaKyc = useCallback(async (country?: CountryData) => {
         setIsLoading(true)
         setError(null)
         try {
-            const { url } = await mantecaApi.initiateOnboarding({ returnUrl: window.location.href })
+            const exchange = country?.id
+                ? MantecaSupportedExchanges[country.id as keyof typeof MantecaSupportedExchanges]
+                : MantecaSupportedExchanges.AR
+            const returnUrl = BASE_URL + '/kyc/success'
+            const { url } = await mantecaApi.initiateOnboarding({ returnUrl, exchange })
             setIframeOptions({
                 src: url,
                 visible: true,
