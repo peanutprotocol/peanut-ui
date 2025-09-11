@@ -44,13 +44,14 @@ export const Profile = () => {
                 <ProfileHeader name={fullName || username} username={username} isVerified={isKycApproved} />
                 <div className="space-y-4">
                     {/* Menu Item - Invite Entry */}
-                    <ProfileMenuItem
+                    {/* Enable with Invites project. */}
+                    {/* <ProfileMenuItem
                         icon="smile"
                         label="Invite friends to Peanut"
                         href="https://docs.peanut.to/how-to-use-peanut-links/referrals"
                         position="single"
                         isExternalLink
-                    />
+                    /> */}
                     {/* Menu Items - First Group */}
                     <div>
                         <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
@@ -91,7 +92,7 @@ export const Profile = () => {
                         <ProfileMenuItem icon="currency" label="Currency" position="middle" comingSoon />
                         <ProfileMenuItem
                             icon="exchange"
-                            label="Exchange rates"
+                            label="Exchange rates and fees"
                             href="/profile/exchange-rate"
                             position="last"
                         />
