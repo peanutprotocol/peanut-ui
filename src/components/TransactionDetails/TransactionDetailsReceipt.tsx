@@ -27,6 +27,7 @@ import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
 import { getBankAccountLabel, TransactionDetailsRowKey, transactionDetailsRowKeys } from './transaction-details.utils'
+import { useSupportModalContext } from '@/context/SupportModalContext'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -57,6 +58,7 @@ export const TransactionDetailsReceipt = ({
     const [showCancelLinkModal, setShowCancelLinkModal] = useState(isModalOpen)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
+    const { setIsSupportModalOpen } = useSupportModalContext()
 
     useEffect(() => {
         setIsModalOpen?.(showCancelLinkModal)
@@ -996,13 +998,13 @@ export const TransactionDetailsReceipt = ({
                 )}
 
             {/* support link section */}
-            <Link
-                href={'/support'}
-                className="flex items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+            <button
+                onClick={() => setIsSupportModalOpen(true)}
+                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
             >
                 <Icon name="peanut-support" size={16} className="text-grey-1" />
                 Issues with this transaction?
-            </Link>
+            </button>
 
             {/* Cancel Link Modal  */}
 
