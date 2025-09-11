@@ -92,9 +92,8 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="exchange"
                             label="Exchange rates"
-                            href="/profile/exchange-rates"
+                            href="/profile/exchange-rate"
                             position="last"
-                            comingSoon
                         />
                     </div>
                     {/* Logout Button */}

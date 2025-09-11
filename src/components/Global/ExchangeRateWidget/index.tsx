@@ -4,11 +4,17 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo } from 'react'
-import { Icon } from '../Icons/Icon'
+import { FC, useCallback, useEffect, useMemo } from 'react'
+import { Icon, IconName } from '../Icons/Icon'
 import { Button } from '@/components/0_Bruddle'
 
-const ExchangeRateWiget = () => {
+interface IExchangeRateWidgetProps {
+    ctaLabel: string
+    ctaIcon: IconName
+    ctaAction: () => void
+}
+
+const ExchangeRateWiget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction }) => {
     const searchParams = useSearchParams()
     const router = useRouter()
 
@@ -206,13 +212,13 @@ const ExchangeRateWiget = () => {
             )}
 
             <Button
-                onClick={() => router.push('/setup')}
-                icon="arrow-up-right"
+                onClick={ctaAction}
+                icon={ctaIcon}
                 iconSize={13}
                 shadowSize="4"
                 className="w-full text-base font-bold"
             >
-                Send Money
+                {ctaLabel}
             </Button>
 
             {typeof destinationAmount === 'number' && destinationAmount > 0 && (

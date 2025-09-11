@@ -7,9 +7,11 @@ import noHiddenFees from '@/assets/illustrations/no-hidden-fees.svg'
 import { Star } from '@/assets'
 import Image from 'next/image'
 import ExchangeRateWiget from '../Global/ExchangeRateWidget'
+import { useRouter } from 'next/navigation'
 
 export function NoFees() {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
+    const router = useRouter()
 
     useEffect(() => {
         const handleResize = () => {
@@ -122,7 +124,11 @@ export function NoFees() {
                     />
                 </div>
 
-                <ExchangeRateWiget />
+                <ExchangeRateWiget
+                    ctaIcon="arrow-up-right"
+                    ctaLabel="Send Money"
+                    ctaAction={() => router.push('/setup')}
+                />
             </div>
         </section>
     )
