@@ -145,7 +145,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                                         'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%-160px)]',
                                         alignStart && 'items-start',
                                         isSupport && 'h-full',
-                                        isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-110px)]'
+                                        isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]'
                                     )}
                                 >
                                     {children}

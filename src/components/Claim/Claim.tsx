@@ -26,6 +26,7 @@ import FlowManager from './Link/FlowManager'
 import { type PeanutCrossChainRoute } from '@/services/swap'
 import { NotFoundClaimLink, WrongPasswordClaimLink, ClaimedView } from './Generic'
 import SupportCTA from '../Global/SupportCTA'
+import { twMerge } from 'tailwind-merge'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -256,7 +257,10 @@ export const Claim = ({}) => {
     }, [linkState, transactionForDrawer])
 
     return (
-        <PageContainer alignItems="center" className="flex flex-col">
+        <PageContainer
+            alignItems="center"
+            className={twMerge('flex flex-col', !user && !isFetchingUser && 'min-h-[calc(100dvh-110px)]')}
+        >
             {linkState === _consts.claimLinkStateType.LOADING && <PeanutLoading />}
             {linkState === _consts.claimLinkStateType.CLAIM && (
                 <FlowManager
