@@ -405,7 +405,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
 
             setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
         }
-    }, [searchParams, parsedPaymentData, chargeDetails])
+    }, [searchParams, parsedPaymentData, chargeDetails, requestType])
 
     let showActionList = flow !== 'direct_pay'
 
