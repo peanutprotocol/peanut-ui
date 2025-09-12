@@ -95,7 +95,6 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
             }
             switch (method.id) {
                 case 'bank':
-                    console.log(requestType)
                     if (requestType === BankRequestType.GuestKycNeeded) {
                         addParamStep('bank')
                         setIsGuestVerificationModalOpen(true)

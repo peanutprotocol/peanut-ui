@@ -12,7 +12,7 @@ export const POST_SIGNUP_ACTIONS = [
         },
     },
     {
-        // this regex will match any path that contains the word "claim", this helps in determing if the user is coming from a claim link
+        // this regex will match any path that resembles the request link, this helps in determing if the user is coming from a request link
         pathPattern: /^\/[^\/]+\/[^\/\?]+\?.*chargeId=/,
         config: {
             title: 'Verification complete!',
