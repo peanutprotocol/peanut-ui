@@ -9,10 +9,13 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
+import useKycStatus from '@/hooks/useKycStatus'
 
 export const ProfileEditView = () => {
     const router = useRouter()
     const { user, fetchUser } = useAuth()
+    const { isUserBridgeKycApproved } = useKycStatus()
+
     const [isLoading, setIsLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
 
@@ -112,7 +115,7 @@ export const ProfileEditView = () => {
         <div className="space-y-8">
             <NavHeader title="Edit Profile" onPrev={() => router.push('/profile')} />
 
-            <ProfileHeader name={fullName} username={username} isVerified={user?.user.bridgeKycStatus === 'approved'} />
+            <ProfileHeader name={fullName} username={username} isVerified={isUserBridgeKycApproved} />
 
             <div className="space-y-4">
                 <ProfileEditField

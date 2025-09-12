@@ -51,6 +51,7 @@ import { Button } from '@/components/0_Bruddle'
 import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
+import useKycStatus from '@/hooks/useKycStatus'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const {
@@ -111,6 +112,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const searchParams = useSearchParams()
     const prevRecipientType = useRef<string | null>(null)
     const prevUser = useRef(user)
+    const { isUserBridgeKycApproved } = useKycStatus()
 
     useEffect(() => {
         if (!prevUser.current && user) {
@@ -329,7 +331,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     recipient: recipient.name ?? recipient.address,
                     password: '',
                 })
-                if (user?.user.bridgeKycStatus === 'approved') {
+                if (isUserBridgeKycApproved) {
                     const account = user.accounts.find(
                         (account) =>
                             account.identifier.replaceAll(/\s/g, '').toLowerCase() ===

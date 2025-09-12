@@ -10,6 +10,7 @@ import AvatarWithBadge from '../AvatarWithBadge'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
+import useKycStatus from '@/hooks/useKycStatus'
 
 interface ProfileHeaderProps {
     name: string
@@ -29,12 +30,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     haveSentMoneyToUser = false,
 }) => {
     const { user: authenticatedUser } = useAuth()
-    const isAuthenticatedUserVerified = authenticatedUser?.user.bridgeKycStatus === 'approved'
+    const { isUserBridgeKycApproved } = useKycStatus()
+    const isAuthenticatedUserVerified = isUserBridgeKycApproved && authenticatedUser?.user.username === username
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     const profileUrl = `${BASE_URL}/${username}`
-
-    console.log('isVerified', isVerified)
 
     return (
         <>

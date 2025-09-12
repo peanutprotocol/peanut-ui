@@ -10,7 +10,7 @@ type UseMantecaKycFlowOptions = {
     onClose?: () => void
     onSuccess?: () => void
     onManualClose?: () => void
-    country: CountryData
+    country?: CountryData
 }
 
 export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose, country }: UseMantecaKycFlowOptions) => {

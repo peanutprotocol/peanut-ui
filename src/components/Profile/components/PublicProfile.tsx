@@ -17,6 +17,7 @@ import Card from '@/components/Global/Card'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { checkIfInternalNavigation } from '@/utils'
 import { useAuth } from '@/context/authContext'
+import useKycStatus from '@/hooks/useKycStatus'
 
 interface PublicProfileProps {
     username: string
@@ -32,6 +33,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const router = useRouter()
     const { user } = useAuth()
     const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
+    const { isUserBridgeKycApproved } = useKycStatus()
 
     // Handle send button click
     const handleSend = () => {
@@ -45,7 +47,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     useEffect(() => {
         usersApi.getByUsername(username).then((user) => {
             if (user?.fullName) setFullName(user.fullName)
-            if (user?.bridgeKycStatus === 'approved') setIsKycVerified(true)
+            if (isUserBridgeKycApproved) setIsKycVerified(true)
             // to check if the logged in user has sent money to the profile user,
             // we check the amount that the profile user has received from the logged in user.
             if (user?.totalUsdReceivedFromCurrentUser) {

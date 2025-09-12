@@ -1,10 +1,10 @@
 'use client'
-import { countryCodeMap, CountryData, countryData } from '@/components/AddMoney/consts'
+import { countryCodeMap, CountryData, countryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { SearchInput } from '@/components/SearchUsers/SearchInput'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import Image from 'next/image'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { getCardPosition } from '../Global/Card'
 import { useGeoLocaion } from '@/hooks/useGeoLocaion'
 import { CountryListSkeleton } from './CountryListSkeleton'
@@ -13,10 +13,11 @@ import StatusBadge from '../Global/Badges/StatusBadge'
 
 interface CountryListViewProps {
     inputTitle: string
-    viewMode: 'claim-request' | 'add-withdraw'
+    viewMode: 'claim-request' | 'add-withdraw' | 'general-verification'
     onCountryClick: (country: CountryData) => void
     onCryptoClick?: (flow: 'add' | 'withdraw') => void
     flow?: 'add' | 'withdraw'
+    getRightContent?: (country: CountryData, isSupported: boolean) => ReactNode
 }
 
 /**
@@ -24,19 +25,26 @@ interface CountryListViewProps {
  *
  * @param {object} props
  * @param {string} props.inputTitle The title for the input
- * @param {string} props.viewMode The view mode of the list, either 'claim-request' or 'add-withdraw'
+ * @param {string} props.viewMode The view mode of the list, either 'claim-request' or 'add-withdraw' or 'general-verification'
  * @param {function} props.onCountryClick The function to call when a country is clicked
  * @param {function} props.onCryptoClick The function to call when the crypto button is clicked
  * @param {string} props.flow The flow of the list, either 'add' or 'withdraw', only required for 'add-withdraw' view mode
  * @returns {JSX.Element}
  */
-export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClick, flow }: CountryListViewProps) => {
+export const CountryList = ({
+    inputTitle,
+    viewMode,
+    onCountryClick,
+    onCryptoClick,
+    flow,
+    getRightContent,
+}: CountryListViewProps) => {
     const [searchTerm, setSearchTerm] = useState('')
     const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocaion()
 
     const supportedCountries = useMemo(() => {
         return countryData.filter((country) => country.type === 'country')
-    }, [viewMode])
+    }, [])
 
     // sort countries based on user's geo location, fallback to alphabetical order
     const sortedCountries = useMemo(() => {
@@ -105,17 +113,49 @@ export const CountryList = ({ inputTitle, viewMode, onCountryClick, onCryptoClic
                             const twoLetterCountryCode =
                                 countryCodeMap[country.id.toUpperCase()] ?? country.id.toLowerCase()
                             const position = getCardPosition(index, filteredCountries.length)
+
+                            const isBridgeSupportedCountry = [
+                                'US',
+                                'MX',
+                                ...Object.keys(countryCodeMap),
+                                ...Object.values(countryCodeMap),
+                            ].includes(country.id)
+                            const isMantecaSupportedCountry = Object.keys(MantecaSupportedExchanges).includes(
+                                country.id
+                            )
+
+                            // determine if country is supported based on view mode
+                            let isSupported = false
+
+                            if (viewMode === 'add-withdraw') {
+                                // all countries supported for claim-request
+                                isSupported = true
+                            } else if (viewMode === 'general-verification') {
+                                // support all bridge and manteca supported countries
+                                isSupported = isBridgeSupportedCountry || isMantecaSupportedCountry
+                            } else if (viewMode === 'claim-request') {
+                                // support all countries
+                                isSupported = isBridgeSupportedCountry
+                            } else {
+                                // support all countries
+                                isSupported = true
+                            }
+
                             // flag used to show soon badge based on the view mode, check country code map keys and values for supported countries
-                            const isSupported =
-                                viewMode === 'add-withdraw' ||
-                                ['US', 'MX', ...Object.keys(countryCodeMap), ...Object.values(countryCodeMap)].includes(
-                                    country.id
-                                )
+                            // const isSupported =
+                            //     viewMode === 'add-withdraw' ||
+                            //     viewMode === 'general-verification' ||
+                            //     ['US', 'MX', ...Object.keys(countryCodeMap), ...Object.values(countryCodeMap)].includes(
+                            //         country.id
+                            //     )
+
+                            const customRight = getRightContent ? getRightContent(country, isSupported) : undefined
+
                             return (
                                 <SearchResultCard
                                     key={country.id}
                                     title={country.title}
-                                    rightContent={!isSupported && <StatusBadge status="soon" />}
+                                    rightContent={customRight ?? (!isSupported && <StatusBadge status="soon" />)}
                                     description={country.currency}
                                     onClick={() => onCountryClick(country)}
                                     position={position}

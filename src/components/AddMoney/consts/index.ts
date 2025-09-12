@@ -13,7 +13,7 @@ export const MantecaSupportedExchanges = {
     PA: 'PANAMA',
     CR: 'COSTA_RICA',
     GT: 'GUATEMALA',
-    MX: 'MEXICO',
+    // MX: 'MEXICO', // manteca supports MEXICO, but mercado pago doesnt support qr payments for mexico
     PH: 'PHILIPPINES',
     BO: 'BOLIVIA',
 }
