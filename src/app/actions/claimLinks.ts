@@ -82,7 +82,7 @@ export async function getNextDepositIndex(contractVersion: string): Promise<numb
     })) as number
 }
 
-export async function claimSendLink(pubKey: string, recipient: string, password: string) {
+export async function claimSendLink(pubKey: string, recipient: string, password: string, destinationAddress?: string) {
     const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links/${pubKey}/claim`, {
         method: 'POST',
         headers: {
@@ -92,6 +92,7 @@ export async function claimSendLink(pubKey: string, recipient: string, password:
         body: JSON.stringify({
             recipient,
             password,
+            destinationAddress,
         }),
     })
     if (!response.ok) {

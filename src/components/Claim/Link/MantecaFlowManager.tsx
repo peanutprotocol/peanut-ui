@@ -9,6 +9,7 @@ import { MercadoPagoStep } from '@/types/manteca.types'
 import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle'
 import { useRouter } from 'next/navigation'
+import { MantecaWithdrawResponseData } from '@/app/actions/types/manteca.types'
 
 interface MantecaFlowManagerProps {
     claimLinkData: ClaimLinkData
@@ -20,15 +21,28 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     const { setClaimToMercadoPago } = useClaimBankFlow()
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
     const router = useRouter()
+    const [withdrawDetails, setWithdrawDetails] = useState<MantecaWithdrawResponseData | undefined>()
 
     const isSuccess = currentStep === MercadoPagoStep.SUCCESS
 
     const renderStepDetails = () => {
         if (currentStep === MercadoPagoStep.DETAILS) {
-            return <MantecaDetailsStep setCurrentStep={setCurrentStep} />
+            return (
+                <MantecaDetailsStep
+                    setCurrentStep={setCurrentStep}
+                    amount={amount}
+                    setWithdrawDetails={setWithdrawDetails}
+                />
+            )
         }
         if (currentStep === MercadoPagoStep.REVIEW) {
-            return <MantecaReviewStep setCurrentStep={setCurrentStep} />
+            return (
+                <MantecaReviewStep
+                    setCurrentStep={setCurrentStep}
+                    withdrawDetails={withdrawDetails}
+                    claimLink={claimLinkData.link}
+                />
+            )
         }
 
         if (currentStep === MercadoPagoStep.SUCCESS) {
