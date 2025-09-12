@@ -44,13 +44,14 @@ export const Profile = () => {
                 <ProfileHeader name={fullName || username} username={username} isVerified={isKycApproved} />
                 <div className="space-y-4">
                     {/* Menu Item - Invite Entry */}
-                    <ProfileMenuItem
+                    {/* Enable with Invites project. */}
+                    {/* <ProfileMenuItem
                         icon="smile"
                         label="Invite friends to Peanut"
                         href="https://docs.peanut.to/how-to-use-peanut-links/referrals"
                         position="single"
                         isExternalLink
-                    />
+                    /> */}
                     {/* Menu Items - First Group */}
                     <div>
                         <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
@@ -69,13 +70,14 @@ export const Profile = () => {
                             endIcon={isKycApproved ? 'check' : undefined}
                             endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
                         />
-                        <ProfileMenuItem
+                        {/* Enable with Account Management project. */}
+                        {/* <ProfileMenuItem
                             icon="bank"
                             label="Bank accounts"
                             href="/profile/bank-accounts"
                             position="middle"
                             comingSoon
-                        />
+                        /> */}
                         <ProfileMenuItem icon="achievements" label="Achievements" position="last" comingSoon />
                     </div>
                     {/* Menu Items - Second Group */}
@@ -90,10 +92,9 @@ export const Profile = () => {
                         <ProfileMenuItem icon="currency" label="Currency" position="middle" comingSoon />
                         <ProfileMenuItem
                             icon="exchange"
-                            label="Exchange rates"
-                            href="/profile/exchange-rates"
+                            label="Exchange rates and fees"
+                            href="/profile/exchange-rate"
                             position="last"
-                            comingSoon
                         />
                     </div>
                     {/* Logout Button */}

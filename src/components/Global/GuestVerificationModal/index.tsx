@@ -9,6 +9,7 @@ interface GuestVerificationModalProps {
     isOpen: boolean
     onClose: () => void
     secondaryCtaLabel: string
+    redirectToVerification?: boolean
 }
 
 export const GuestVerificationModal = ({
@@ -16,6 +17,7 @@ export const GuestVerificationModal = ({
     onClose,
     description,
     secondaryCtaLabel,
+    redirectToVerification,
 }: GuestVerificationModalProps) => {
     const router = useRouter()
     return (
@@ -34,6 +36,10 @@ export const GuestVerificationModal = ({
                     className: 'md:py-2.5',
                     onClick: () => {
                         saveRedirectUrl()
+                        if (redirectToVerification) {
+                            router.push('/setup?redirect_uri=/profile/identity-verification')
+                            return
+                        }
                         router.push('/setup')
                     },
                 },

@@ -92,7 +92,7 @@ export default function AddMoneyCryptoDirectPage() {
                         icon="plus"
                         iconSize={16}
                         minAmount={0.1}
-                        maxAmount={4000}
+                        maxAmount={30_000}
                         onValidationError={setError}
                         disabled={inputTokenAmount === '0.00'}
                     >

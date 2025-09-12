@@ -135,7 +135,7 @@ const ActionListDaimoPayButton = () => {
             onBeforeShow={handleInitiateDaimoPayment}
             disabled={!usdAmount}
             minAmount={0.1}
-            maxAmount={4000}
+            maxAmount={30_000}
             loading={isProcessing}
             onValidationError={(error) => {
                 dispatch(paymentActions.setDaimoError(error))

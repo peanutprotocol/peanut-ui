@@ -32,6 +32,7 @@ import ExternalWalletFulfilManager from '@/components/Request/views/ExternalWall
 import ActionList from '@/components/Common/ActionList'
 import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
+import SupportCTA from '@/components/Global/SupportCTA'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
@@ -48,7 +49,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
     const [isRequestDetailsFetching, setIsRequestDetailsFetching] = useState(false)
-    const { user } = useAuth()
+    const { user, isFetchingUser } = useAuth()
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
     const requestId = searchParams.get('id')
@@ -384,6 +385,12 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
 
+    let showActionList = flow !== 'direct_pay'
+
+    if (flow === 'direct_pay' && !user) {
+        showActionList = true
+    }
+
     if (error) {
         return (
             <div className="mx-auto h-full w-full space-y-8 self-center md:w-6/12">
@@ -476,7 +483,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                         currencyAmount={currencyAmount}
                     />
                     <div>
-                        {flow !== 'direct_pay' && (
+                        {showActionList && (
                             <ActionList
                                 flow="request"
                                 requestLinkData={parsedPaymentData as ParsedURL}
@@ -525,6 +532,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     )}
                 </>
             )}
+
+            {/* Show only to guest users */}
+            {!user && !isFetchingUser && <SupportCTA />}
         </div>
     )
 }

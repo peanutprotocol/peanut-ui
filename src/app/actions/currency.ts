@@ -7,14 +7,22 @@ import { AccountType } from '@/interfaces'
 export const getCurrencyPrice = unstable_cache(
     async (currencyCode: string): Promise<number> => {
         let price: number
-        switch (currencyCode.toUpperCase()) {
+        currencyCode = currencyCode.toUpperCase()
+        switch (currencyCode) {
             case 'USD':
                 price = 1
                 break
             case 'EUR':
             case 'MXN':
                 {
-                    const accountType = currencyCode === 'EUR' ? AccountType.IBAN : AccountType.CLABE
+                    let accountType: AccountType
+                    if (currencyCode === 'EUR') {
+                        accountType = AccountType.IBAN
+                    } else if (currencyCode === 'MXN') {
+                        accountType = AccountType.CLABE
+                    } else {
+                        throw new Error('Invalid currency code')
+                    }
                     const { data, error } = await getExchangeRate(accountType)
                     if (error) {
                         throw new Error('Failed to fetch exchange rate from bridge')
