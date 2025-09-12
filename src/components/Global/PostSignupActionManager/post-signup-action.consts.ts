@@ -11,4 +11,14 @@ export const POST_SIGNUP_ACTIONS = [
             icon: 'check' as IconName,
         },
     },
+    {
+        // this regex will match any path that contains the word "claim", this helps in determing if the user is coming from a claim link
+        pathPattern: /^\/[^\/]+\/[^\/\?]+\?.*chargeId=/,
+        config: {
+            title: 'Verification complete!',
+            description: `Your identity has been successfully verified. You can now send the money your friend requested!`,
+            cta: 'Send it!',
+            icon: 'check' as IconName,
+        },
+    },
 ]

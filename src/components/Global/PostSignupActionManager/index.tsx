@@ -27,7 +27,13 @@ export const PostSignupActionManager = ({
     const checkClaimModalAfterKYC = () => {
         const redirectUrl = getFromLocalStorage('redirect')
         if (user?.user.bridgeKycStatus === 'approved' && redirectUrl) {
-            const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(redirectUrl))
+            const matchedAction = POST_SIGNUP_ACTIONS.find((action) => {
+                const test = action.pathPattern.test(redirectUrl)
+                console.log(redirectUrl)
+                console.log(test)
+                return test
+            })
+            console.log(matchedAction)
             if (matchedAction) {
                 setActionConfig({
                     ...matchedAction.config,
@@ -59,6 +65,7 @@ export const PostSignupActionManager = ({
                 setShowModal(false)
                 localStorage.removeItem('redirect')
             }}
+            preventClose // Prevent closing the modal by clicking outside
             title={actionConfig.title}
             description={actionConfig.description}
             icon={actionConfig.icon as IconName}
