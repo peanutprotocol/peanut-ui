@@ -8,7 +8,13 @@ import MantecaDepositCard from '../../MantecaDepositCard'
 import ShareButton from '@/components/Global/ShareButton'
 import { MantecaDepositDetails } from '@/types/manteca.types'
 
-const MercadoPagoDepositDetails = ({ depositDetails }: { depositDetails: MantecaDepositDetails }) => {
+const MercadoPagoDepositDetails = ({
+    depositDetails,
+    source,
+}: {
+    depositDetails: MantecaDepositDetails
+    source: 'bank' | 'regionalMethod'
+}) => {
     const router = useRouter()
     const params = useParams()
     const currentCountryName = params.country as string
@@ -26,8 +32,7 @@ const MercadoPagoDepositDetails = ({ depositDetails }: { depositDetails: Manteca
 
     const countryCodeForFlag = useMemo(() => {
         const countryId = currentCountryDetails?.id || 'AR'
-        const countryCode = countryCodeMap[countryId] || countryId // if countryId is not in countryCodeMap, use countryId because for some countries countryId is of 2 digit and countryCodeMap is a mapping of 3 digit to 2 digit country codes
-        return countryCode?.toLowerCase() || 'ar'
+        return countryId.toLowerCase()
     }, [currentCountryDetails])
 
     const generateShareText = () => {
@@ -56,6 +61,7 @@ const MercadoPagoDepositDetails = ({ depositDetails }: { depositDetails: Manteca
                 amount={depositDetails.depositAmount}
                 cbu={depositDetails.depositAddress}
                 alias={depositDetails.depositAlias}
+                isMercadoPago={source === 'regionalMethod'}
             />
 
             <ShareButton

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { FC, useEffect, useMemo, useState } from 'react'
 import MercadoPagoDepositDetails from './MercadoPagoDepositDetails'
 import InputAmountStep from '../../InputAmountStep'
 import { createMantecaOnramp } from '@/app/actions/onramp'
@@ -11,10 +11,16 @@ import { useCurrency } from '@/hooks/useCurrency'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 
-const MercadoPago = () => {
+interface MercadoPagoProps {
+    source: 'bank' | 'regionalMethod'
+}
+
+type stepType = 'inputAmount' | 'depositDetails'
+
+const MercadoPago: FC<MercadoPagoProps> = ({ source }) => {
     const params = useParams()
     const router = useRouter()
-    const [step, setStep] = useState('inputAmount')
+    const [step, setStep] = useState<stepType>('inputAmount')
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
     const [tokenAmount, setTokenAmount] = useState('')
     const [tokenUSDAmount, setTokenUSDAmount] = useState('')
@@ -51,6 +57,7 @@ const MercadoPago = () => {
 
     const handleAmountSubmit = async () => {
         if (!selectedCountry?.currency) return
+        if (isCreatingDeposit) return
 
         // check if we still need to determine KYC status
         if (isMantecaKycRequired === null) {
@@ -78,7 +85,7 @@ const MercadoPago = () => {
             setStep('depositDetails')
         } catch (error) {
             console.log(error)
-            setError(error as string)
+            setError(error instanceof Error ? error.message : String(error))
         } finally {
             setIsCreatingDeposit(false)
         }
@@ -123,7 +130,7 @@ const MercadoPago = () => {
     }
 
     if (step === 'depositDetails' && depositDetails) {
-        return <MercadoPagoDepositDetails depositDetails={depositDetails} />
+        return <MercadoPagoDepositDetails source={source} depositDetails={depositDetails} />
     }
 
     return null

@@ -122,7 +122,7 @@ export const Claim = ({}) => {
             peanutFeeDetails: {
                 amountDisplay: '$ 0.00',
             },
-            isVerified: claimLinkData.sender?.kycStatus === 'approved',
+            isVerified: claimLinkData.sender?.bridgeKycStatus === 'approved',
             haveSentMoneyToUser: claimLinkData.sender?.userId
                 ? interactions[claimLinkData.sender.userId] || false
                 : false,
@@ -213,8 +213,9 @@ export const Claim = ({}) => {
                 }
                 if (0 < price) setTokenPrice(price)
 
-                // perform user related checks only after user is fetched
-                if (!isFetchingUser) {
+                // if there is no logged-in user, allow claiming immediately.
+                // otherwise, perform user-related checks after user fetch completes
+                if (!user || !isFetchingUser) {
                     if (user && user.user.userId === sendLink.sender?.userId) {
                         setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
                     } else {

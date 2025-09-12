@@ -1,7 +1,6 @@
 'use client'
 
 import { Banner } from '@/components/Global/Banner'
-import Footer from '@/components/Global/Footer'
 import { ThemeProvider } from '@/config'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { Widget } from '@typeform/embed-react'

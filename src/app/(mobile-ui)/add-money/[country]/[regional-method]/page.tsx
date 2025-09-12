@@ -15,11 +15,7 @@ export default function AddMoneyRegionalMethodPage() {
         MantecaSupportedExchanges[countryDetails?.id as keyof typeof MantecaSupportedExchanges] &&
         method === 'mercadopago'
     ) {
-        return <MercadoPago />
-    }
-
-    if (country === 'brazil' && method === 'pix') {
-        return <MercadoPago />
+        return <MercadoPago source="regionalMethod" />
     }
 
     return <div>Unsupported Method</div>

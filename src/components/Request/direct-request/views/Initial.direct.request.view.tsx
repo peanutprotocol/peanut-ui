@@ -209,7 +209,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     recipientType={'USERNAME'}
                     username={recipientUser?.username || username}
                     fullName={recipientUser?.fullName}
-                    isVerified={recipientUser?.kycStatus === 'approved'}
+                    isVerified={recipientUser?.bridgeKycStatus === 'approved'}
                     haveSentMoneyToUser={recipientUser?.userId ? interactions[recipientUser.userId] || false : false}
                 />
 
@@ -279,6 +279,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                             disabled={isButtonDisabled || isButtonLoading}
                             loading={isButtonLoading}
                             icon="arrow-down-left"
+                            iconSize={12}
                         >
                             {isButtonLoading ? loadingState : 'Request'}
                         </Button>
