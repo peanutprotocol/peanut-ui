@@ -23,8 +23,10 @@ export async function createBridgeExternalAccountForGuest(
 
         const data = await response.json()
 
-        if (data.code === 'invalid_parameters') {
-            return { error: data.message, source: data.source.key }
+        if (data?.code === 'invalid_parameters') {
+            const source =
+                typeof data.source === 'string' ? data.source : data?.source?.key
+            return { error: data?.message ?? 'Invalid parameters', source }
         }
 
         if (!response.ok) {
