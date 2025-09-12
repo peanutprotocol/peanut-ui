@@ -1,3 +1,4 @@
+'use client'
 import { FC, useEffect, useMemo, useState } from 'react'
 import MercadoPagoDepositDetails from './MercadoPagoDepositDetails'
 import InputAmountStep from '../../InputAmountStep'
