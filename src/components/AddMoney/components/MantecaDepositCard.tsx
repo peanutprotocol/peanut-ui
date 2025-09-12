@@ -39,16 +39,22 @@ const MantecaDepositCard = ({
             />
 
             <h2 className="font-bold">Account details</h2>
-            <MantecaDetailsCard
-                rows={[
-                    ...(cbu ? [{ key: 'cbu', label: 'CBU', value: cbu, allowCopy: true }] : []),
-                    ...(alias ? [{ key: 'alias', label: 'Alias', value: alias, hideBottomBorder: true }] : []),
-                    ...(depositAddress
-                        ? [{ key: 'deposit', label: 'Deposit Address', value: depositAddress, hideBottomBorder: true }]
+            {(() => {
+                const rows = [
+                    ...(cbu
+                        ? [{ key: 'cbu', label: 'CBU', value: cbu, allowCopy: true, hideBottomBorder: false }]
                         : []),
-                    ...(pixKey ? [{ key: 'pix', label: 'Pix Key', value: pixKey, hideBottomBorder: true }] : []),
-                ]}
-            />
+                    ...(alias ? [{ key: 'alias', label: 'Alias', value: alias, hideBottomBorder: false }] : []),
+                    ...(depositAddress
+                        ? [{ key: 'deposit', label: 'Deposit Address', value: depositAddress, hideBottomBorder: false }]
+                        : []),
+                    ...(pixKey ? [{ key: 'pix', label: 'Pix Key', value: pixKey, hideBottomBorder: false }] : []),
+                ]
+                if (rows.length) {
+                    rows[rows.length - 1].hideBottomBorder = true
+                }
+                return <MantecaDetailsCard rows={rows} />
+            })()}
         </div>
     )
 }

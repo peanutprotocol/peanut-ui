@@ -9,9 +9,8 @@ import Attachment from '../Attachment'
 import Card from '../Card'
 import { Icon, IconName } from '../Icons/Icon'
 import RouteExpiryTimer from '../RouteExpiryTimer'
-import Image from 'next/image'
+import Image, { type StaticImageData } from 'next/image'
 import Loading from '../Loading'
-import { StaticImport } from 'next/dist/shared/lib/get-img-props'
 
 export type PeanutActionDetailsCardTransactionType =
     | 'REQUEST'
@@ -49,7 +48,7 @@ export interface PeanutActionDetailsCardProps {
     disableTimerRefetch?: boolean
     timerError?: string | null
     isLoading?: boolean
-    logo?: StaticImport
+    logo?: StaticImageData
 }
 
 export default function PeanutActionDetailsCard({

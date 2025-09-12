@@ -46,7 +46,11 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
         }
 
         if (currentStep === MercadoPagoStep.SUCCESS) {
-            return <Button shadowSize="4">Back to home</Button>
+            return (
+                <Button onClick={() => router.push('/home')} shadowSize="4">
+                    Back to home
+                </Button>
+            )
         }
         return null
     }

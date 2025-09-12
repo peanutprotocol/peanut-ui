@@ -24,6 +24,7 @@ const MantecaFulfuilment = () => {
             }),
         refetchOnWindowFocus: false,
         staleTime: Infinity, // don't refetch the data
+        enabled: Boolean(chargeDetails?.uuid),
     })
 
     const generateShareText = () => {

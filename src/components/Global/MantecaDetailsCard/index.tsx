@@ -13,8 +13,8 @@ interface MantecaDetailsCardProps {
 const MantecaDetailsCard: FC<MantecaDetailsCardProps> = ({ rows }) => {
     return (
         <Card className="rounded-sm">
-            {rows.map((row) => (
-                <PaymentInfoRow {...row} />
+            {rows.map(({ key, ...row }) => (
+                <PaymentInfoRow key={key} {...row} />
             ))}
         </Card>
     )
