@@ -398,8 +398,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         >
                             Review
                         </Button>
-                        {submissionError && <ErrorAlert description={submissionError} />}
-                        {error && <ErrorAlert description={error} />}
+                        {submissionError ? (
+                            <ErrorAlert description={submissionError} />
+                        ) : (
+                            error && <ErrorAlert description={error} />
+                        )}
                     </form>
                 </div>
             </div>
