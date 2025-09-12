@@ -82,14 +82,7 @@ export const Profile = () => {
                     </div>
                     {/* Menu Items - Second Group */}
                     <div>
-                        <ProfileMenuItem
-                            icon="fees"
-                            label="Fees"
-                            href="https://docs.peanut.to/fees"
-                            position="first"
-                            isExternalLink
-                        />
-                        <ProfileMenuItem icon="currency" label="Currency" position="middle" comingSoon />
+                        <ProfileMenuItem icon="currency" label="Currency" position="first" comingSoon />
                         <ProfileMenuItem
                             icon="exchange"
                             label="Exchange rates and fees"
