@@ -62,7 +62,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
             const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
-            if (method.id === 'bank' && amountInUsd < 1) {
+            if (method.id === 'bank' && amountInUsd < 2) {
                 setShowMinAmountError(true)
                 return
             }
@@ -176,7 +176,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
                 title="Minimum Amount "
-                description={'The minimum amount for a bank transaction is $1. Please try a different method.'}
+                description={'The minimum amount for a bank transaction is $2. Please try a different method.'}
                 icon="alert"
                 ctas={[{ text: 'Close', shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
                 iconContainerClassName="bg-yellow-400"

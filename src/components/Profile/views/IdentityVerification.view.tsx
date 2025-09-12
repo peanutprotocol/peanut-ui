@@ -9,7 +9,7 @@ import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerification
 import { useAuth } from '@/context/authContext'
 import { useKycFlow } from '@/hooks/useKycFlow'
 import { useRouter } from 'next/navigation'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const IdentityVerificationView = () => {
     const { user, fetchUser } = useAuth()

@@ -48,7 +48,7 @@ export const Profile = () => {
                     {/* <ProfileMenuItem
                         icon="smile"
                         label="Invite friends to Peanut"
-                        href="https://docs.peanut.to/how-to-use-peanut-links/referrals"
+                        href="https://docs.peanut.me/how-to-use-peanut-links/referrals"
                         position="single"
                         isExternalLink
                     /> */}
@@ -71,6 +71,22 @@ export const Profile = () => {
                             endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
                         />
                         {/* Enable with Account Management project. */}
+
+                        <ProfileMenuItem
+                            icon="shield"
+                            label="Identity Verification"
+                            href="/profile/identity-verification"
+                            onClick={() => {
+                                if (isKycApproved) {
+                                    setIsKycApprovedModalOpen(true)
+                                } else {
+                                    router.push('/profile/identity-verification')
+                                }
+                            }}
+                            position="middle"
+                            endIcon={isKycApproved ? 'check' : undefined}
+                            endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
+                        />
                         {/* <ProfileMenuItem
                             icon="bank"
                             label="Bank accounts"
@@ -85,7 +101,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="fees"
                             label="Fees"
-                            href="https://docs.peanut.to/fees"
+                            href="https://docs.peanut.me/fees"
                             position="first"
                             isExternalLink
                         />
