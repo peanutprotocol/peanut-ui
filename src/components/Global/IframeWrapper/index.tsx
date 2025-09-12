@@ -138,11 +138,11 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             key={src}
                             src={src}
                             allow="camera;"
-                            style={{ width: '100%', height: '80%', border: 'none' }}
+                            style={{ width: '100%', height: '85%', border: 'none' }}
                             className="rounded-md"
                             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation"
                         />
-                        <div className="flex h-1/5 w-full flex-col items-center justify-center gap-4 px-5">
+                        <div className="flex h-[15%] w-full flex-col items-center justify-center gap-4 px-5">
                             <Button
                                 variant={'purple'}
                                 className={`max-w-md`}
