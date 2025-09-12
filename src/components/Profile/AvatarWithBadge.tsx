@@ -4,8 +4,7 @@ import React, { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon, IconName } from '../Global/Icons/Icon'
 import StatusPill, { StatusPillType } from '../Global/StatusPill'
-import { StaticImport } from 'next/dist/shared/lib/get-img-props'
-import Image from 'next/image'
+import Image, { type StaticImageData } from 'next/image'
 
 export type AvatarSize = 'extra-small' | 'small' | 'medium' | 'large'
 
@@ -22,7 +21,7 @@ interface AvatarWithBadgeProps {
     iconFillColor?: string
     showStatusPill?: boolean
     statusPillStatus?: StatusPillType
-    logo?: StaticImport
+    logo?: StaticImageData
 }
 
 /**
@@ -74,7 +73,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                 >
                     <Image
                         src={logo}
-                        alt={''}
+                        alt={name ? `${name} logo` : 'logo'}
                         width={160}
                         height={160}
                         className={`size-full rounded-full object-cover`}
