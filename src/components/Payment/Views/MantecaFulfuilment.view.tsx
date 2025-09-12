@@ -1,28 +1,41 @@
+import { createMantecaOnramp } from '@/app/actions/onramp'
 import { MERCADO_PAGO } from '@/assets'
-import MantecaDetailsCard, { MantecaCardRow } from '@/components/Global/MantecaDetailsCard'
+import ErrorAlert from '@/components/Global/ErrorAlert'
+import MantecaDetailsCard from '@/components/Global/MantecaDetailsCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import ShareButton from '@/components/Global/ShareButton'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { usePaymentStore } from '@/redux/hooks'
+import { useQuery } from '@tanstack/react-query'
 import React from 'react'
 
 const MantecaFulfuilment = () => {
     const { setFulfilUsingManteca } = useRequestFulfillmentFlow()
     const { requestDetails, chargeDetails } = usePaymentStore()
-
-    const rows: MantecaCardRow[] = [
-        { key: 'cbu', label: 'CBU', value: '[CVU/ALIAS]', allowCopy: true },
-        { key: 'alias', label: 'Alias', value: 'manurr.mp', hideBottomBorder: true },
-    ]
+    const { data: depositData, isLoading: isLoadingDeposit } = useQuery({
+        queryKey: ['manteca-deposit', chargeDetails?.uuid],
+        queryFn: () =>
+            createMantecaOnramp({
+                usdAmount: requestDetails?.tokenAmount || chargeDetails?.tokenAmount || '0',
+                currency: 'ARS',
+                chargeId: chargeDetails?.uuid,
+            }),
+        refetchOnWindowFocus: false,
+        staleTime: Infinity, // don't refetch the data
+    })
 
     const generateShareText = () => {
         const textParts = []
-        textParts.push(`CBU: ${rows[0].value}`)
-        textParts.push(`Alias: ${rows[1].value}`)
-        textParts.push(`Deposit Address: ${rows[2].value}`)
+        textParts.push(`CBU: ${depositData?.data?.depositAddress}`)
+        textParts.push(`Alias: ${depositData?.data?.depositAlias}`)
 
         return textParts.join('\n')
+    }
+
+    if (isLoadingDeposit) {
+        return <PeanutLoading coverFullScreen />
     }
 
     return (
@@ -40,25 +53,54 @@ const MantecaFulfuilment = () => {
                     transactionType="REQUEST_PAYMENT"
                     recipientType="USERNAME"
                     recipientName={requestDetails?.recipientAccount.user.username ?? ''}
-                    amount={requestDetails?.tokenAmount ?? '0'}
+                    amount={requestDetails?.tokenAmount || chargeDetails?.tokenAmount || '0'}
                     tokenSymbol={requestDetails?.tokenSymbol || 'USDC'}
                     message={requestDetails?.reference || chargeDetails?.requestLink?.reference || ''}
                     fileUrl={requestDetails?.attachmentUrl || chargeDetails?.requestLink?.attachmentUrl || ''}
                     logo={MERCADO_PAGO}
                 />
 
-                <p className="font-bold">Account details</p>
+                {depositData?.error && <ErrorAlert description={depositData.error} />}
 
-                <MantecaDetailsCard rows={rows} />
+                {depositData?.data && (
+                    <>
+                        <p className="font-bold">Account details</p>
 
-                <ShareButton
-                    generateText={async () => generateShareText()}
-                    title="Account Details"
-                    variant="purple"
-                    className="w-full"
-                >
-                    Share Details
-                </ShareButton>
+                        <MantecaDetailsCard
+                            rows={[
+                                ...(depositData?.data?.depositAddress
+                                    ? [
+                                          {
+                                              key: 'cbu',
+                                              label: 'CBU',
+                                              value: depositData.data.depositAddress,
+                                              allowCopy: true,
+                                          },
+                                      ]
+                                    : []),
+                                ...(depositData?.data?.depositAlias
+                                    ? [
+                                          {
+                                              key: 'alias',
+                                              label: 'Alias',
+                                              value: depositData.data.depositAlias,
+                                              hideBottomBorder: true,
+                                          },
+                                      ]
+                                    : []),
+                            ]}
+                        />
+
+                        <ShareButton
+                            generateText={async () => generateShareText()}
+                            title="Account Details"
+                            variant="purple"
+                            className="w-full"
+                        >
+                            Share Details
+                        </ShareButton>
+                    </>
+                )}
             </div>
         </div>
     )

@@ -117,6 +117,7 @@ export async function createOnrampForGuest(
 interface CreateMantecaOnrampParams {
     usdAmount: string
     currency: string
+    chargeId?: string
 }
 
 export async function createMantecaOnramp(
@@ -132,6 +133,7 @@ export async function createMantecaOnramp(
     }
 
     try {
+        console.log('called hahahahha')
         const response = await fetchWithSentry(`${apiUrl}/manteca/deposit`, {
             method: 'POST',
             headers: {
@@ -142,6 +144,7 @@ export async function createMantecaOnramp(
             body: JSON.stringify({
                 usdAmount: params.usdAmount,
                 currency: params.currency,
+                chargeId: params.chargeId,
             }),
         })
 
@@ -154,6 +157,7 @@ export async function createMantecaOnramp(
 
         return { data }
     } catch (error) {
+        console.log('error', error)
         console.error('Error calling create manteca on-ramp API:', error)
         if (error instanceof Error) {
             return { error: error.message }
