@@ -1,18 +1,28 @@
 import { useState, useEffect } from 'react'
 import { getCurrencyPrice } from '@/app/actions/currency'
 
-const SYMBOLS_BY_CURRENCY_CODE: Record<string, string> = {
+export const SYMBOLS_BY_CURRENCY_CODE: Record<string, string> = {
     ARS: 'AR$',
     USD: '$',
     EUR: '€',
     MXN: 'MX$',
+    BRL: 'R$',
+    COP: 'Col$',
+    CRC: '₡',
+    BOB: '$b',
+    PUSD: 'PUSD',
+    GTQ: 'Q',
+    PHP: '₱',
+    GBP: '£',
+    JPY: '¥',
+    CAD: 'CA$',
 }
 
 export const useCurrency = (currencyCode: string | null) => {
     const [code, setCode] = useState<string | null>(currencyCode?.toUpperCase() ?? null)
     const [symbol, setSymbol] = useState<string | null>(null)
-    const [price, setPrice] = useState<number | null>(null)
-    const [isLoading, setIsLoading] = useState<boolean>(true)
+    const [price, setPrice] = useState<{ buy: number; sell: number } | null>(null)
+    const [isLoading, setIsLoading] = useState<boolean>(false)
 
     useEffect(() => {
         if (!code) {
@@ -21,8 +31,8 @@ export const useCurrency = (currencyCode: string | null) => {
         }
 
         if (code === 'USD') {
-            setSymbol('$')
-            setPrice(1)
+            setSymbol(SYMBOLS_BY_CURRENCY_CODE[code])
+            setPrice({ buy: 1, sell: 1 })
             setIsLoading(false)
             return
         }

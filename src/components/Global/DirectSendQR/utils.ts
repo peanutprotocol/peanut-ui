@@ -50,7 +50,12 @@ const MP_AR_REGEX =
     /^000201((?!6304).)*(?:(?:26|27|28|29|30|31|35|43)\d{2}(?:0015com\.mercadopago|0016com\.mercadolibre)).*5303032.*5802AR((?!6304).)*6304[0-9A-F]{4}$/i
 
 /* PIX is also a emvco qr code */
-const PIX_REGEX = /^.*00020126.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
+const PIX_REGEX = /^.*000201.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
+
+export const QR_PAY_REGEXES: { [key in QrType]?: RegExp } = {
+    [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
+    [EQrType.PIX]: PIX_REGEX,
+}
 
 const EIP_681_REGEX = /^ethereum:(?:pay-)?([^@/?]+)(?:@([^/?]+))?(?:\/([^?]+))?(?:\?(.*))?$/i
 
@@ -86,6 +91,15 @@ export function recognizeQr(data: string): QrType | null {
         }
     }
     return null
+}
+
+export const isQRPay = (data: string): boolean => {
+    for (const [_type, regex] of Object.entries(QR_PAY_REGEXES)) {
+        if (regex.test(data)) {
+            return true
+        }
+    }
+    return false
 }
 
 /**

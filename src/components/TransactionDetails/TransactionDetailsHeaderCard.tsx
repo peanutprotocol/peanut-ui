@@ -23,6 +23,7 @@ export type TransactionDirection =
     | 'bank_deposit'
     | 'bank_request_fulfillment'
     | 'claim_external'
+    | 'qr_payment'
 
 interface TransactionDetailsHeaderCardProps {
     direction: TransactionDirection
@@ -110,6 +111,15 @@ const getTitle = (
                     titleText = `Claiming to ${displayName}`
                 }
                 break
+            case 'qr_payment':
+                if (status === 'completed') {
+                    titleText = `Paid to ${displayName}`
+                } else if (status === 'failed') {
+                    titleText = `Payment to ${displayName}`
+                } else {
+                    titleText = `Paying to ${displayName}`
+                }
+                break
             default:
                 titleText = displayName
                 break
@@ -127,6 +137,7 @@ const getIcon = (direction: TransactionDirection, isLinkTransaction?: boolean): 
     switch (direction) {
         case 'send':
         case 'bank_request_fulfillment':
+        case 'qr_payment':
             return 'arrow-up-right'
         case 'request_sent':
         case 'receive':

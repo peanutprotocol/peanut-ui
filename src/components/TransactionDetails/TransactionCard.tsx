@@ -27,6 +27,7 @@ export type TransactionType =
     | 'bank_request_fulfillment'
     | 'claim_external'
     | 'bank_claim'
+    | 'pay'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -89,8 +90,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             const currencySymbol = getDisplayCurrencySymbol(actualCurrencyCode.toUpperCase())
             finalDisplayAmount = `${currencySymbol}${formatNumberForDisplay(currencyAmount, { maxDecimals: defaultDisplayDecimals })}`
         }
-    } else if (actualCurrencyCode === 'ARS' && transaction.currency?.amount) {
-        let arsSign = ''
+    } else if (transaction.currency?.amount) {
+        let sign = ''
         const originalType = transaction.extraDataForDrawer?.originalType as EHistoryEntryType | undefined
         const originalUserRole = transaction.extraDataForDrawer?.originalUserRole as EHistoryUserRole | undefined
 
@@ -98,18 +99,20 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             originalUserRole === EHistoryUserRole.SENDER &&
             (originalType === EHistoryEntryType.SEND_LINK ||
                 originalType === EHistoryEntryType.DIRECT_SEND ||
-                originalType === EHistoryEntryType.CASHOUT)
+                originalType === EHistoryEntryType.CASHOUT ||
+                originalType === EHistoryEntryType.MANTECA_QR_PAYMENT)
         ) {
-            arsSign = '-'
+            sign = '-'
         } else if (
             originalUserRole === EHistoryUserRole.RECIPIENT &&
             (originalType === EHistoryEntryType.DEPOSIT ||
                 originalType === EHistoryEntryType.SEND_LINK ||
-                originalType === EHistoryEntryType.DIRECT_SEND)
+                originalType === EHistoryEntryType.DIRECT_SEND ||
+                originalType === EHistoryEntryType.MANTECA_QR_PAYMENT)
         ) {
-            arsSign = '+'
+            sign = '+'
         }
-        finalDisplayAmount = `${arsSign}${getDisplayCurrencySymbol('ARS')}${formatNumberForDisplay(transaction.currency.amount, { maxDecimals: defaultDisplayDecimals })}`
+        finalDisplayAmount = `${sign}${getDisplayCurrencySymbol(actualCurrencyCode)}${formatNumberForDisplay(transaction.currency.amount, { maxDecimals: defaultDisplayDecimals })}`
     }
     // keep currency as $ because we will always receive in USDC
     else if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.DEPOSIT) {
@@ -234,6 +237,7 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
         case 'cashout':
         case 'claim_external':
         case 'bank_claim':
+        case 'pay':
             iconName = 'arrow-up'
             iconSize = 8
             break

@@ -200,13 +200,15 @@ const TokenAmountInput = ({
     return (
         <form
             ref={formRef}
-            className={`relative cursor-text rounded-sm border border-n-1 bg-white px-2 py-4 dark:border-white ${className}`}
+            className={`relative cursor-text rounded-sm border border-n-1 bg-white p-2 dark:border-white ${className}`}
             action=""
             onClick={handleContainerClick}
         >
             <div className="flex h-full w-full flex-col items-center justify-center gap-1">
                 <div className="flex items-center gap-1 font-bold">
                     <label className={`text-2xl ${displayValue ? 'text-black' : 'text-gray-2'}`}>{displaySymbol}</label>
+
+                    {/* Input */}
                     <input
                         className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                         placeholder={'0.00'}
@@ -233,11 +235,15 @@ const TokenAmountInput = ({
                         disabled={disabled}
                     />
                 </div>
+
+                {/* Conversion */}
                 {showConversion && (
                     <label className="text-lg font-bold">
                         ≈ {alternativeDisplayValue} {alternativeDisplaySymbol}
                     </label>
                 )}
+
+                {/* Balance */}
                 {walletBalance && !hideBalance && (
                     <div className="text-center text-lg text-grey-1">
                         Balance: {displayMode === 'FIAT' && currency ? 'U$D ' : '$ '}
@@ -245,6 +251,8 @@ const TokenAmountInput = ({
                     </div>
                 )}
             </div>
+
+            {/* Conversion toggle */}
             {showConversion && (
                 <div
                     className="absolute right-0 top-1/2 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer"

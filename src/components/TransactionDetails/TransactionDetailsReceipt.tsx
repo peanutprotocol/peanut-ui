@@ -115,7 +115,7 @@ export const TransactionDetailsReceipt = ({
             ),
             fee: transaction.fee !== undefined,
             exchangeRate: !!(
-                transaction.direction === 'bank_deposit' &&
+                (transaction.direction === 'bank_deposit' || transaction.direction === 'qr_payment') &&
                 transaction.status === 'completed' &&
                 transaction.currency?.code &&
                 transaction.currency.code.toUpperCase() !== 'USD'
@@ -251,7 +251,7 @@ export const TransactionDetailsReceipt = ({
     } else {
         // default: use currency amount if provided, otherwise fallback to raw amount - never show token value, only USD
         if (transaction.currency?.amount) {
-            amountDisplay = `$ ${formatAmount(Number(transaction.currency.amount))}`
+            amountDisplay = `${transaction.currency.code} ${formatAmount(Number(transaction.currency.amount))}`
         } else {
             amountDisplay = `$ ${formatAmount(transaction.amount as number)}`
         }
@@ -295,7 +295,7 @@ export const TransactionDetailsReceipt = ({
                 isVerified={transaction.isVerified}
                 isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
-                avatarUrl={avatarUrl}
+                avatarUrl={avatarUrl ?? transaction.extraDataForDrawer?.avatarUrl}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
             />
 
@@ -440,15 +440,26 @@ export const TransactionDetailsReceipt = ({
                     {/* Exchange rate and original currency for completed bank_deposit transactions */}
                     {rowVisibilityConfig.exchangeRate && (
                         <>
-                            <PaymentInfoRow
-                                label="Original amount"
-                                value={(() => {
-                                    const currencyAmount = transaction.currency?.amount || transaction.amount.toString()
-                                    const currencySymbol = getDisplayCurrencySymbol(transaction.currency!.code)
-                                    return `${currencySymbol} ${formatAmount(Number(currencyAmount))}`
-                                })()}
-                                hideBottomBorder={false}
-                            />
+                            {transaction.direction !== 'qr_payment' && (
+                                <PaymentInfoRow
+                                    label="Original amount"
+                                    value={(() => {
+                                        const currencyAmount =
+                                            transaction.currency?.amount || transaction.amount.toString()
+                                        const currencySymbol = getDisplayCurrencySymbol(transaction.currency!.code)
+                                        return `${currencySymbol} ${formatAmount(Number(currencyAmount))}`
+                                    })()}
+                                    hideBottomBorder={false}
+                                />
+                            )}
+                            {transaction.direction === 'qr_payment' &&
+                                transaction.extraDataForDrawer?.receipt?.exchange_rate && (
+                                    <PaymentInfoRow
+                                        label="Value in USD"
+                                        value={`${formatAmount(transaction.amount.toString())} U$D`}
+                                    />
+                                )}
+                            {/* TODO: stop using snake_case!!!!! */}
                             {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                                 <PaymentInfoRow
                                     label="Exchange rate"
@@ -738,7 +749,7 @@ export const TransactionDetailsReceipt = ({
                     {rowVisibilityConfig.peanutFee && (
                         <PaymentInfoRow
                             label="Peanut fee"
-                            value={'$ 0'}
+                            value={'Sponsored by Peanut!'}
                             hideBottomBorder={shouldHideBorder('peanutFee')}
                         />
                     )}

@@ -6,86 +6,104 @@ import { Card } from '@/components/0_Bruddle/Card'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { mantecaApi } from '@/services/manteca'
-import type { QrPayment, QrPaymentCharge, QrPaymentLock } from '@/services/manteca'
+import type { QrPayment, QrPaymentLock } from '@/services/manteca'
 import NavHeader from '@/components/Global/NavHeader'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import Image from 'next/image'
-import { useQuery } from '@tanstack/react-query'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { isTxReverted } from '@/utils/general.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import { chargesApi } from '@/services/charges'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { formatUnits, parseUnits } from 'viem'
-import { getCurrencyPrice } from '@/app/actions/currency'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
+import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { loadingStateContext } from '@/context'
+import { getCurrencyPrice } from '@/app/actions/currency'
+import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { captureException } from '@sentry/nextjs'
+import { isQRPay } from '@/components/Global/DirectSendQR/utils'
+
+const MANTECA_DEPOSIT_ADDRESS = '0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053'
 
 export default function QRPayPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const qrCode = searchParams.get('qrCode')
-    const { balance, sendMoney, address } = useWallet()
+    const timestamp = searchParams.get('t')
+    const { balance, sendMoney } = useWallet()
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [isBalanceError, setIsBalanceError] = useState(false)
+    const [errorInitiatingPayment, setErrorInitiatingPayment] = useState<string | null>(null)
+    const [paymentLock, setPaymentLock] = useState<QrPaymentLock | null>(null)
+    const [isFirstLoad, setIsFirstLoad] = useState(true)
     const [amount, setAmount] = useState<string | undefined>(undefined)
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [qrPayment, setQrPayment] = useState<QrPayment | null>(null)
-    const [charge, setCharge] = useState<QrPaymentCharge | null>(null)
-    const [paymentLock, setPaymentLock] = useState<QrPaymentLock | null>(null)
     const [currency, setCurrency] = useState<{ code: string; symbol: string; price: number } | undefined>(undefined)
-    const { openTransactionDetails, selectedTransaction } = useTransactionDetailsDrawer()
-    const { isLoading, loadingState } = useContext(loadingStateContext)
-
-    const {
-        data: paymentResponse,
-        isFetching,
-        isError: isErrorInitiatingPayment,
-        error: errorInitiatingPayment,
-        refetch: refetchPayment,
-        dataUpdatedAt,
-    } = useQuery({
-        // DONT add amount to the key, we refetch manually
-        queryKey: ['qr-payment', qrCode],
-        queryFn: async () => {
-            if (!qrCode) {
-                throw new Error('No QR code found')
-            }
-            return await mantecaApi.initiateQrPayment({ qrCode, amount: currencyAmount })
-        },
-        enabled: !!qrCode,
-        staleTime: 1,
-        refetchOnMount: 'always',
-        retry: false,
-    })
+    const { openTransactionDetails, selectedTransaction, isDrawerOpen, closeTransactionDetails } =
+        useTransactionDetailsDrawer()
+    const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
 
     const resetState = () => {
         setIsSuccess(false)
         setErrorMessage(null)
+        setIsBalanceError(false)
+        setErrorInitiatingPayment(null)
+        setPaymentLock(null)
+        setIsFirstLoad(true)
         setAmount(undefined)
         setCurrencyAmount(undefined)
         setQrPayment(null)
-        setCharge(null)
-        setPaymentLock(null)
         setCurrency(undefined)
+        setLoadingState('Idle')
     }
 
+    // First fetch for qrcode info
     useEffect(() => {
         resetState()
-        if (!paymentResponse) return
+
+        if (!qrCode || !isQRPay(qrCode)) {
+            setErrorInitiatingPayment('Invalid QR code scanned')
+            return
+        }
+
+        mantecaApi
+            .initiateQrPayment({ qrCode })
+            .then((paymentLock) => {
+                setPaymentLock(paymentLock)
+            })
+            .catch((error) => {
+                setErrorInitiatingPayment(error.message)
+            })
+            .finally(() => {
+                setIsFirstLoad(false)
+            })
+        // Trigger on rescan
+    }, [timestamp])
+
+    // Get amount from payment lock
+    useEffect(() => {
+        if (!paymentLock) return
+        if (paymentLock.code !== '') {
+            setAmount(paymentLock.paymentAssetAmount)
+        }
+    }, [paymentLock?.code])
+
+    // Get currency object from payment lock
+    useEffect(() => {
+        if (!paymentLock) return
         const getCurrencyObject = async () => {
             let currencyCode: string
             let price: number
-            if ('qrPayment' in paymentResponse) {
-                currencyCode = paymentResponse.qrPayment.details.paymentAsset
-                price = Number(paymentResponse.qrPayment.details.paymentPrice)
+            currencyCode = paymentLock.paymentAsset
+            if (paymentLock.code === '') {
+                price = (await getCurrencyPrice(currencyCode)).sell
             } else {
-                currencyCode = paymentResponse.paymentLock.paymentAsset
-                price = await getCurrencyPrice(currencyCode)
+                price = Number(paymentLock.paymentPrice)
             }
             return {
                 code: currencyCode,
@@ -93,26 +111,21 @@ export default function QRPayPage() {
                 price,
             }
         }
-        if ('qrPayment' in paymentResponse) {
-            setQrPayment(paymentResponse.qrPayment)
-            setCharge(paymentResponse.charge)
-            setAmount(paymentResponse.qrPayment.details.paymentAssetAmount)
-        } else {
-            setPaymentLock(paymentResponse.paymentLock)
-        }
         getCurrencyObject().then(setCurrency)
-        // dataUpdatedAt is added because reference to paymeentResponse
-        // does not change on refetch or on mount but dataUpdatedAt does
-    }, [paymentResponse, dataUpdatedAt])
+    }, [paymentLock?.code])
 
     const usdAmount = useMemo(() => {
-        if (!qrPayment) return null
-        return qrPayment.details.paymentAgainstAmount
-    }, [qrPayment])
+        if (!paymentLock) return null
+        if (paymentLock.code === '') {
+            return amount
+        } else {
+            return paymentLock.paymentAgainstAmount
+        }
+    }, [paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
 
     const methodIcon = useMemo(() => {
-        if (!qrPayment && !paymentLock) return null
-        switch (qrPayment?.type ?? paymentLock!.type) {
+        if (!paymentLock) return null
+        switch (paymentLock.type) {
             case 'QR3_PAYMENT':
             case 'QR3':
                 return MERCADO_PAGO
@@ -121,48 +134,75 @@ export default function QRPayPage() {
             default:
                 return null
         }
-    }, [qrPayment, paymentLock])
+    }, [paymentLock])
 
     const merchantName = useMemo(() => {
-        if (!qrPayment && !paymentLock) return null
-        return qrPayment?.details.merchant.name ?? paymentLock!.paymentRecipientName
-    }, [qrPayment, paymentLock])
+        if (!paymentLock) return null
+        return paymentLock.paymentRecipientName
+    }, [paymentLock])
 
     const payQR = useCallback(async () => {
-        if (!qrPayment || !charge || !usdAmount) return
-        const { userOpHash, receipt } = await sendMoney(qrPayment.details.depositAddress, usdAmount)
+        if (!paymentLock || !qrCode || !currencyAmount) return
+        let finalPaymentLock = paymentLock
+        if (finalPaymentLock.code === '') {
+            setLoadingState('Fetching details')
+            try {
+                finalPaymentLock = await mantecaApi.initiateQrPayment({ qrCode, amount: currencyAmount })
+                setPaymentLock(finalPaymentLock)
+            } catch (error) {
+                captureException(error)
+                setErrorMessage('Could not initiate payment due to unexpected error. Please contact support')
+                setIsSuccess(false)
+                setLoadingState('Idle')
+                return
+            }
+        }
+        if (finalPaymentLock.code === '') {
+            finalPaymentLock
+            setErrorMessage('Could not fetch qr payment details')
+            setIsSuccess(false)
+            setLoadingState('Idle')
+            return
+        }
+        setLoadingState('Preparing transaction')
+        const { userOpHash, receipt } = await sendMoney(MANTECA_DEPOSIT_ADDRESS, finalPaymentLock.paymentAgainstAmount)
         if (receipt !== null && isTxReverted(receipt)) {
             setErrorMessage('Transaction reverted by the network.')
             setIsSuccess(false)
             return
         }
         const txHash = receipt?.transactionHash ?? userOpHash
-        chargesApi.createPayment({
-            chargeId: charge.uuid,
-            chainId: charge.chainId,
-            hash: txHash,
-            tokenAddress: charge.tokenAddress,
-            payerAddress: address,
-        })
-        setIsSuccess(true)
-    }, [qrPayment, charge, sendMoney, usdAmount])
+        setLoadingState('Paying')
+        try {
+            const qrPayment = await mantecaApi.completeQrPayment({ paymentLockCode: finalPaymentLock.code, txHash })
+            setQrPayment(qrPayment)
+            setIsSuccess(true)
+        } catch (error) {
+            captureException(error)
+            setErrorMessage('Could not complete payment due to unexpected error. Please contact support')
+            setIsSuccess(false)
+        } finally {
+            setLoadingState('Idle')
+        }
+    }, [paymentLock?.code, sendMoney, usdAmount, qrCode, currencyAmount])
 
     // Check user balance
     useEffect(() => {
-        if (!usdAmount || balance === undefined) return
-        if (parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS) > balance) {
-            setErrorMessage('Insufficient funds')
+        if (!usdAmount || balance === undefined) {
+            setIsBalanceError(false)
+            return
         }
-    }, [usdAmount, balance, setErrorMessage])
+        setIsBalanceError(parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS) > balance)
+    }, [usdAmount, balance])
 
-    if (isErrorInitiatingPayment) {
+    if (!!errorInitiatingPayment) {
         return (
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <Card className="shadow-4">
                     <Card.Header>
                         <Card.Title>Unable to get QR details</Card.Title>
                         <Card.Description>
-                            {errorInitiatingPayment.message || 'An error occurred while getting the QR details.'}
+                            {errorInitiatingPayment || 'An error occurred while getting the QR details.'}
                         </Card.Description>
                     </Card.Header>
                     <Card.Content>
@@ -175,20 +215,20 @@ export default function QRPayPage() {
         )
     }
 
-    if (isFetching || !paymentResponse || !currency) {
+    if (isFirstLoad || !paymentLock || !currency) {
         return <PeanutLoading />
     }
 
     //Success
     if (isSuccess && !qrPayment) {
         // This should never happen, if this happens there is dev error
-        throw new Error('Invalid state, successful payment but no QR payment data')
+        return null
     } else if (isSuccess) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
                 <NavHeader title="Pay" />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                    <Card className="flex items-center gap-3 p-4">
+                    <Card className="flex flex-row items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
                                 className={
@@ -203,15 +243,17 @@ export default function QRPayPage() {
                             <h1 className="text-sm font-normal text-grey-1">
                                 You paid {qrPayment!.details.merchant.name}
                             </h1>
-                            <h2 className="text-2xl font-extrabold">
-                                {currency.symbol} {amount}
-                            </h2>
+                            <div className="text-2xl font-extrabold">
+                                {currency.symbol} {qrPayment!.details.paymentAssetAmount}
+                            </div>
+                            <div className="text-lg font-bold">≈ {usdAmount} U$D</div>
                         </div>
                     </Card>
                     <div className="w-full space-y-5">
                         <Button
                             onClick={() => {
                                 router.push('/home')
+                                resetState()
                             }}
                             shadowSize="4"
                         >
@@ -222,22 +264,28 @@ export default function QRPayPage() {
                             shadowSize="4"
                             disabled={false}
                             onClick={() => {
+                                const now = new Date()
                                 openTransactionDetails({
                                     id: qrPayment!.id,
-                                    direction: 'send',
+                                    direction: 'qr_payment',
                                     userName: qrPayment!.details.merchant.name,
                                     amount: Number(usdAmount),
                                     currency: {
-                                        amount: amount!,
+                                        amount: qrPayment!.details.paymentAssetAmount,
                                         code: currency.code,
                                     },
                                     initials: 'QR',
                                     currencySymbol: currency.symbol,
                                     status: 'completed',
-                                    date: new Date(),
+                                    date: now,
+                                    createdAt: now,
                                     extraDataForDrawer: {
                                         originalType: EHistoryEntryType.MANTECA_QR_PAYMENT,
                                         originalUserRole: EHistoryUserRole.SENDER,
+                                        avatarUrl: methodIcon,
+                                        receipt: {
+                                            exchange_rate: currency.price.toString(),
+                                        },
                                     },
                                 })
                             }}
@@ -246,6 +294,11 @@ export default function QRPayPage() {
                         </Button>
                     </div>
                 </div>
+                <TransactionDetailsDrawer
+                    isOpen={isDrawerOpen}
+                    onClose={closeTransactionDetails}
+                    transaction={selectedTransaction}
+                />
             </div>
         )
     }
@@ -274,38 +327,39 @@ export default function QRPayPage() {
                 {/* Amount Card */}
                 {currency && (
                     <TokenAmountInput
-                        key={qrPayment?.id}
                         tokenValue={amount}
                         setTokenValue={setAmount}
                         currency={currency}
-                        disabled={!!qrPayment || isFetching}
+                        disabled={!!qrPayment || isLoading || paymentLock?.code !== ''}
                         walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
                         setCurrencyAmount={setCurrencyAmount}
+                        hideBalance
                     />
                 )}
+                {isBalanceError && <ErrorAlert description={'Not enough balance to complete payment. Add funds!'} />}
+
+                {/* Information Card */}
+                <Card className="space-y-0 px-4">
+                    <PaymentInfoRow
+                        label="Exchange Rate"
+                        value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
+                    />
+                    <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
+                </Card>
 
                 {/* Send Button */}
                 <Button
-                    onClick={() => {
-                        if (qrPayment) {
-                            payQR()
-                        } else {
-                            refetchPayment()
-                        }
-                    }}
-                    icon="arrow-up-right"
-                    iconSize={10}
+                    onClick={payQR}
                     shadowSize="4"
-                    loading={isFetching || isLoading}
-                    disabled={isErrorInitiatingPayment || !!errorMessage || isFetching || !amount || isLoading}
+                    loading={isLoading}
+                    disabled={!!errorInitiatingPayment || !!errorMessage || !amount || isLoading || isBalanceError}
                 >
-                    {isLoading ? loadingState : qrPayment ? 'Send' : 'Confirm Amount'}
+                    {isLoading ? loadingState : 'Pay'}
                 </Button>
 
                 {/* Error State */}
                 {errorMessage && <ErrorAlert description={errorMessage} />}
             </div>
-            <TransactionDetailsReceipt transaction={selectedTransaction} />
         </div>
     )
 }

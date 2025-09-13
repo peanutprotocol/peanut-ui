@@ -1,16 +1,18 @@
 'use server'
 import { unstable_cache } from 'next/cache'
-import { fetchWithSentry } from '@/utils'
 import { getExchangeRate } from './exchange-rate'
 import { AccountType } from '@/interfaces'
+import { mantecaApi } from '@/services/manteca'
 
 export const getCurrencyPrice = unstable_cache(
-    async (currencyCode: string): Promise<number> => {
-        let price: number
+    async (currencyCode: string): Promise<{ buy: number; sell: number }> => {
+        let buy: number
+        let sell: number
         currencyCode = currencyCode.toUpperCase()
         switch (currencyCode) {
             case 'USD':
-                price = 1
+                buy = 1
+                sell = 1
                 break
             case 'EUR':
             case 'MXN':
@@ -30,26 +32,28 @@ export const getCurrencyPrice = unstable_cache(
                     if (!data) {
                         throw new Error('No data returned from exchange rate API')
                     }
-                    price = parseFloat(data.buy_rate)
+                    buy = parseFloat(data.buy_rate)
+                    sell = parseFloat(data.sell_rate)
                 }
                 break
             case 'ARS':
+            case 'BRL':
+            case 'COP':
+            case 'CRC':
+            case 'PUSD':
+            case 'GTQ':
+            case 'PHP':
+            case 'BOB':
                 {
-                    const response = await fetchWithSentry('https://dolarapi.com/v1/dolares/cripto')
-                    const data = await response.json()
-
-                    if (!data.compra || !data.venta) {
-                        throw new Error('Invalid response from dolarapi')
-                    }
-
-                    // Average between buy and sell price
-                    price = (data.compra + data.venta) / 2
+                    const response = await mantecaApi.getPrices({ asset: 'USDC', against: currencyCode })
+                    buy = Number(response.effectiveBuy)
+                    sell = Number(response.effectiveSell)
                 }
                 break
             default:
                 throw new Error('Unsupported currency')
         }
-        return price
+        return { buy, sell }
     },
     ['getCurrencyPrice'],
     {

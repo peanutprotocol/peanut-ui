@@ -4,8 +4,7 @@ import React from 'react'
 
 export const metadata = generateMetadata({
     title: 'QR Payment | Peanut',
-    description:
-        'Process QR payments with Peanut. Support for PIX, QR 3.0, and CODI payments through Manteca integration.',
+    description: 'Use Peanut to pay Argentinian MercadoPago and Brazilian Pix QR codes',
 })
 
 export default function QRPayLayout({ children }: { children: React.ReactNode }) {

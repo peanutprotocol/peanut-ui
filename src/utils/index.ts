@@ -11,7 +11,6 @@ export * from './history.utils'
 export {
     getCurrencyConfig as getBridgeCurrencyConfig,
     getOfframpCurrencyConfig,
-    getCurrencySymbol,
     getPaymentRailDisplayName,
     getMinimumAmount,
 } from './bridge.utils'
