@@ -120,7 +120,7 @@ export const KycStatusDrawer = ({
     return (
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
-                <DrawerContent className="p-5">{renderContent()}</DrawerContent>
+                <DrawerContent className="p-5 pb-12">{renderContent()}</DrawerContent>
             </Drawer>
             <IFrameWrapper
                 visible={iframeOptions.visible || isKycFlowLoading}
