@@ -1,11 +1,13 @@
 import { PEANUT_LOGO } from '@/assets'
 import DirectSendQr from '@/components/Global/DirectSendQR'
 import { Icon, IconName, Icon as NavIcon } from '@/components/Global/Icons/Icon'
+import { useSupportModalContext } from '@/context/SupportModalContext'
 import { useUserStore } from '@/redux/hooks'
 import classNames from 'classnames'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 
 type NavPathProps = {
     name: string
@@ -61,38 +63,42 @@ type MobileNavProps = {
     pathName: string
 }
 
-const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => (
-    <div className="z-1 grid h-20 grid-cols-3 border-t border-black bg-background md:hidden">
-        {/* Home Link */}
-        <Link
-            href="/home"
-            translate="no"
-            className={classNames(
-                'notranslate mb-4 flex flex-col items-center justify-center object-contain hover:cursor-pointer',
-                { 'text-primary-1': pathName === '/home' }
-            )}
-        >
-            <NavIcon name="home" size={20} />
-            <span className="mx-auto mt-1 block text-center text-xs font-medium">Home</span>
-        </Link>
+const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
+    const { setIsSupportModalOpen } = useSupportModalContext()
 
-        {/* QR Button - Main Action */}
-        <DirectSendQr className="-translate-y-1/3 transform" />
+    return (
+        <div className="z-1 grid h-20 grid-cols-3 border-t border-black bg-background md:hidden">
+            {/* Home Link */}
+            <Link
+                href="/home"
+                translate="no"
+                className={classNames(
+                    'notranslate mb-4 flex flex-col items-center justify-center object-contain hover:cursor-pointer',
+                    { 'text-primary-1': pathName === '/home' }
+                )}
+            >
+                <NavIcon name="home" size={20} />
+                <span className="mx-auto mt-1 block text-center text-xs font-medium">Home</span>
+            </Link>
 
-        {/* Support Link */}
-        <Link
-            href="/support"
-            translate="no"
-            className={classNames(
-                'notranslate mb-4 flex flex-col items-center justify-center object-contain  hover:cursor-pointer',
-                { 'text-primary-1': pathName === '/support' }
-            )}
-        >
-            <NavIcon name="peanut-support" size={20} />
-            <span className="mx-auto mt-1 block pl-1 text-center text-xs font-medium">Support</span>
-        </Link>
-    </div>
-)
+            {/* QR Button - Main Action */}
+            <DirectSendQr className="-translate-y-1/3 transform" />
+
+            {/* Support Link */}
+            <button
+                onClick={() => setIsSupportModalOpen(true)}
+                translate="no"
+                className={classNames(
+                    'notranslate mb-4 flex flex-col items-center justify-center object-contain  hover:cursor-pointer',
+                    { 'text-primary-1': pathName === '/support' }
+                )}
+            >
+                <NavIcon name="peanut-support" size={20} />
+                <span className="mx-auto mt-1 block pl-1 text-center text-xs font-medium">Support</span>
+            </button>
+        </div>
+    )
+}
 
 const WalletNavigation: React.FC = () => {
     const pathName = usePathname()
