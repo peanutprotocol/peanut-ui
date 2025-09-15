@@ -72,21 +72,6 @@ export const Profile = () => {
                         />
                         {/* Enable with Account Management project. */}
 
-                        <ProfileMenuItem
-                            icon="shield"
-                            label="Identity Verification"
-                            href="/profile/identity-verification"
-                            onClick={() => {
-                                if (isKycApproved) {
-                                    setIsKycApprovedModalOpen(true)
-                                } else {
-                                    router.push('/profile/identity-verification')
-                                }
-                            }}
-                            position="middle"
-                            endIcon={isKycApproved ? 'check' : undefined}
-                            endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
-                        />
                         {/* <ProfileMenuItem
                             icon="bank"
                             label="Bank accounts"
