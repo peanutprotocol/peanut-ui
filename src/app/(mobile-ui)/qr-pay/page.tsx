@@ -27,6 +27,7 @@ import { captureException } from '@sentry/nextjs'
 import { isQRPay } from '@/components/Global/DirectSendQR/utils'
 
 const MANTECA_DEPOSIT_ADDRESS = '0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053'
+const MAX_QR_PAYMENT_AMOUNT = '200'
 
 export default function QRPayPage() {
     const searchParams = useSearchParams()
@@ -36,7 +37,7 @@ export default function QRPayPage() {
     const { balance, sendMoney } = useWallet()
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [isBalanceError, setIsBalanceError] = useState(false)
+    const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const [errorInitiatingPayment, setErrorInitiatingPayment] = useState<string | null>(null)
     const [paymentLock, setPaymentLock] = useState<QrPaymentLock | null>(null)
     const [isFirstLoad, setIsFirstLoad] = useState(true)
@@ -51,7 +52,7 @@ export default function QRPayPage() {
     const resetState = () => {
         setIsSuccess(false)
         setErrorMessage(null)
-        setIsBalanceError(false)
+        setBalanceErrorMessage(null)
         setErrorInitiatingPayment(null)
         setPaymentLock(null)
         setIsFirstLoad(true)
@@ -189,10 +190,17 @@ export default function QRPayPage() {
     // Check user balance
     useEffect(() => {
         if (!usdAmount || balance === undefined) {
-            setIsBalanceError(false)
+            setBalanceErrorMessage(null)
             return
         }
-        setIsBalanceError(parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS) > balance)
+        const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
+        if (paymentAmount > parseUnits(MAX_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setBalanceErrorMessage(`QR payment amount exceeds maximum limit of $${MAX_QR_PAYMENT_AMOUNT}`)
+        } else if (paymentAmount > balance) {
+            setBalanceErrorMessage('Not enough balance to complete payment. Add funds!')
+        } else {
+            setBalanceErrorMessage(null)
+        }
     }, [usdAmount, balance])
 
     if (!!errorInitiatingPayment) {
@@ -336,7 +344,7 @@ export default function QRPayPage() {
                         hideBalance
                     />
                 )}
-                {isBalanceError && <ErrorAlert description={'Not enough balance to complete payment. Add funds!'} />}
+                {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
 
                 {/* Information Card */}
                 <Card className="space-y-0 px-4">
@@ -352,7 +360,9 @@ export default function QRPayPage() {
                     onClick={payQR}
                     shadowSize="4"
                     loading={isLoading}
-                    disabled={!!errorInitiatingPayment || !!errorMessage || !amount || isLoading || isBalanceError}
+                    disabled={
+                        !!errorInitiatingPayment || !!errorMessage || !amount || isLoading || !!balanceErrorMessage
+                    }
                 >
                     {isLoading ? loadingState : 'Pay'}
                 </Button>
