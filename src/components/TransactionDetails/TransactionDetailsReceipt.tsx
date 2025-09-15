@@ -523,7 +523,7 @@ export const TransactionDetailsReceipt = ({
                             <div className="border-grey-11 border-b pb-3">
                                 <button
                                     onClick={() => setShowBankDetails(!showBankDetails)}
-                                    className="flex w-full items-center justify-between py-3 text-left text-sm font-medium text-black underline transition-colors"
+                                    className="flex w-full items-center justify-between py-3 text-left text-sm font-normal text-black underline transition-colors"
                                 >
                                     <span>{showBankDetails ? 'Hide bank details' : 'See bank details'}</span>
                                     <Icon

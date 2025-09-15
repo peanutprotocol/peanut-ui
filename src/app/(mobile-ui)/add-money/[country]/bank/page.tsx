@@ -246,8 +246,7 @@ export default function OnrampBankPage() {
 
     const initialUserDetails: Partial<UserDetailsFormData> = useMemo(
         () => ({
-            firstName: user?.user.fullName ? firstName : '',
-            lastName: user?.user.fullName ? lastName : '',
+            fullName: user?.user.fullName ?? '',
             email: user?.user.email ?? '',
         }),
         [user?.user.fullName, user?.user.email, firstName, lastName]
