@@ -24,7 +24,7 @@ import { loadingStateContext } from '@/context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { captureException } from '@sentry/nextjs'
-import { isQRPay } from '@/components/Global/DirectSendQR/utils'
+import { isPaymentProcessorQR } from '@/components/Global/DirectSendQR/utils'
 
 const MANTECA_DEPOSIT_ADDRESS = '0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053'
 const MAX_QR_PAYMENT_AMOUNT = '200'
@@ -67,7 +67,7 @@ export default function QRPayPage() {
     useEffect(() => {
         resetState()
 
-        if (!qrCode || !isQRPay(qrCode)) {
+        if (!qrCode || !isPaymentProcessorQR(qrCode)) {
             setErrorInitiatingPayment('Invalid QR code scanned')
             return
         }

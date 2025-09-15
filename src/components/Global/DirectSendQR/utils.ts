@@ -52,7 +52,7 @@ const MP_AR_REGEX =
 /* PIX is also a emvco qr code */
 const PIX_REGEX = /^.*000201.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
 
-export const QR_PAY_REGEXES: { [key in QrType]?: RegExp } = {
+export const PAYMENT_PROCESSOR_REGEXES: { [key in QrType]?: RegExp } = {
     [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
     [EQrType.PIX]: PIX_REGEX,
 }
@@ -93,8 +93,12 @@ export function recognizeQr(data: string): QrType | null {
     return null
 }
 
-export const isQRPay = (data: string): boolean => {
-    for (const [_type, regex] of Object.entries(QR_PAY_REGEXES)) {
+/**
+ * Returns true if the given string is a payment processor QR code.
+ * For example, Mercado Pago, Pix, etc.
+ */
+export const isPaymentProcessorQR = (data: string): boolean => {
+    for (const [_type, regex] of Object.entries(PAYMENT_PROCESSOR_REGEXES)) {
         if (regex.test(data)) {
             return true
         }
