@@ -1,4 +1,5 @@
 'use client'
+import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
@@ -18,6 +19,7 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
 import { formatAmount, getInitialsFromName, printableAddress } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { ReactNode, useEffect, useMemo } from 'react'
 import { useDispatch } from 'react-redux'
@@ -230,8 +232,13 @@ const DirectSuccessView = ({
                             Back to home
                         </Button>
                     ) : (
-                        <Button icon="user-plus" onClick={() => router.push('/setup')} shadowSize="4">
-                            Create Account
+                        <Button onClick={() => router.push('/setup')} shadowSize="4">
+                            <div>Create a</div>
+                            <div className="flex items-center gap-1">
+                                <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                                <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                            </div>
+                            <div>account</div>
                         </Button>
                     )}
                     {type === 'SEND' && !isExternalWalletFlow && !isWithdrawFlow && (
