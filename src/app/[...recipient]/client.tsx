@@ -497,7 +497,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                                 ? {
                                       code: currencyCode,
                                       symbol: currencySymbol!,
-                                      price: currencyPrice!,
+                                      price: currencyPrice!.buy,
                                   }
                                 : undefined
                         }

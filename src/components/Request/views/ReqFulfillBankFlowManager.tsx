@@ -62,7 +62,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
         const usdAmount = chargeDetails.tokenAmount
         const minAmount = getMinimumAmount(selectedCountry.id)
         getCurrencyPrice(currency).then((price) => {
-            const currencyAmount = Number(usdAmount) * price
+            const currencyAmount = Number(usdAmount) * price.buy
             if (currencyAmount < minAmount) {
                 setErrorMessage(`Minimum amount is ${minAmount.toFixed(2)} ${currency}`)
             } else {

@@ -71,6 +71,7 @@ export interface TransactionDetails {
         rewardData?: RewardData
         fulfillmentType?: 'bridge' | 'wallet'
         bridgeTransferId?: string
+        avatarUrl?: string
         depositInstructions?: {
             amount: string
             currency: string
@@ -292,6 +293,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             nameForDetails = entry.senderAccount?.identifier || 'Deposit Source'
             isPeerActuallyUser = false
             break
+        case EHistoryEntryType.MANTECA_QR_PAYMENT:
+            direction = 'qr_payment'
+            transactionCardType = 'pay'
+            nameForDetails = entry.recipientAccount?.identifier || 'Merchant'
+            isPeerActuallyUser = false
+            break
         default:
             direction = 'send'
             transactionCardType = 'send'
@@ -428,7 +435,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         id: entry.uuid,
         direction: direction,
         userName: nameForDetails,
-        amount: amount,
+        amount,
         currency: rewardData ? undefined : entry.currency,
         currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,

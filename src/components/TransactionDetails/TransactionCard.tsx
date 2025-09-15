@@ -6,7 +6,7 @@ import { TransactionDirection } from '@/components/TransactionDetails/Transactio
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { formatNumberForDisplay, printableAddress } from '@/utils'
+import { formatNumberForDisplay, printableAddress, getAvatarUrl } from '@/utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import React from 'react'
 import { STABLE_COINS } from '@/constants'
@@ -27,6 +27,7 @@ export type TransactionType =
     | 'bank_request_fulfillment'
     | 'claim_external'
     | 'bank_claim'
+    | 'pay'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -66,7 +67,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
     const userNameForAvatar = transaction.userName
-    const avatarUrl = transaction.extraDataForDrawer?.rewardData?.avatarUrl
+    const avatarUrl = getAvatarUrl(transaction)
 
     let finalDisplayAmount = ''
     const actualCurrencyCode = transaction.currency?.code
@@ -89,8 +90,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             const currencySymbol = getDisplayCurrencySymbol(actualCurrencyCode.toUpperCase())
             finalDisplayAmount = `${currencySymbol}${formatNumberForDisplay(currencyAmount, { maxDecimals: defaultDisplayDecimals })}`
         }
-    } else if (actualCurrencyCode === 'ARS' && transaction.currency?.amount) {
-        let arsSign = ''
+    } else if (transaction.currency?.amount) {
+        let sign = ''
         const originalType = transaction.extraDataForDrawer?.originalType as EHistoryEntryType | undefined
         const originalUserRole = transaction.extraDataForDrawer?.originalUserRole as EHistoryUserRole | undefined
 
@@ -98,18 +99,20 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             originalUserRole === EHistoryUserRole.SENDER &&
             (originalType === EHistoryEntryType.SEND_LINK ||
                 originalType === EHistoryEntryType.DIRECT_SEND ||
-                originalType === EHistoryEntryType.CASHOUT)
+                originalType === EHistoryEntryType.CASHOUT ||
+                originalType === EHistoryEntryType.MANTECA_QR_PAYMENT)
         ) {
-            arsSign = '-'
+            sign = '-'
         } else if (
             originalUserRole === EHistoryUserRole.RECIPIENT &&
             (originalType === EHistoryEntryType.DEPOSIT ||
                 originalType === EHistoryEntryType.SEND_LINK ||
-                originalType === EHistoryEntryType.DIRECT_SEND)
+                originalType === EHistoryEntryType.DIRECT_SEND ||
+                originalType === EHistoryEntryType.MANTECA_QR_PAYMENT)
         ) {
-            arsSign = '+'
+            sign = '+'
         }
-        finalDisplayAmount = `${arsSign}${getDisplayCurrencySymbol('ARS')}${formatNumberForDisplay(transaction.currency.amount, { maxDecimals: defaultDisplayDecimals })}`
+        finalDisplayAmount = `${sign}${getDisplayCurrencySymbol(actualCurrencyCode)}${formatNumberForDisplay(transaction.currency.amount, { maxDecimals: defaultDisplayDecimals })}`
     }
     // keep currency as $ because we will always receive in USDC
     else if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.DEPOSIT) {
@@ -149,15 +152,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
                         {avatarUrl ? (
-                            <div
-                                className={
-                                    'relative flex h-12 w-12 items-center justify-center rounded-full border border-black bg-white py-2.5 pl-3.5 pr-0.5'
-                                }
-                            >
+                            <div className={'relative flex h-12 w-12 items-center justify-center rounded-full'}>
                                 <Image
                                     src={avatarUrl}
                                     alt="Icon"
-                                    className="size-6 object-contain"
+                                    className="size-12 object-contain"
                                     width={30}
                                     height={30}
                                 />
@@ -208,6 +207,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 onClose={closeTransactionDetails}
                 transaction={selectedTransaction}
                 transactionAmount={finalDisplayAmount}
+                avatarUrl={avatarUrl}
             />
         </>
     )
@@ -237,6 +237,7 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
         case 'cashout':
         case 'claim_external':
         case 'bank_claim':
+        case 'pay':
             iconName = 'arrow-up'
             iconSize = 8
             break

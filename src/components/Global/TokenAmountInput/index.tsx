@@ -125,6 +125,10 @@ const TokenAmountInput = ({
         [displayMode, currency?.price, selectedTokenData?.price, calculateAlternativeValue]
     )
 
+    const showConversion = useMemo(() => {
+        return !hideCurrencyToggle && (displayMode === 'TOKEN' || displayMode === 'FIAT')
+    }, [hideCurrencyToggle, displayMode])
+
     // This is needed because if we change the token we selected the value
     // should change. This only depends on the price on purpose!! we don't want
     // to change when we change the display mode or the value (we already call
@@ -152,11 +156,11 @@ const TokenAmountInput = ({
             }
             case 'FIAT': {
                 if (isInputUsd) {
-                    setDisplaySymbol('$')
+                    setDisplaySymbol('USD')
                     setAlternativeDisplaySymbol(currency?.symbol || '')
                 } else {
                     setDisplaySymbol(currency?.symbol || '')
-                    setAlternativeDisplaySymbol('$')
+                    setAlternativeDisplaySymbol('USD')
                 }
                 break
             }
@@ -196,48 +200,62 @@ const TokenAmountInput = ({
     return (
         <form
             ref={formRef}
-            className={`relative cursor-text rounded-none border border-n-1 bg-white px-2 py-4 dark:border-white ${className}`}
+            className={`relative cursor-text rounded-sm border border-n-1 bg-white p-2 dark:border-white ${className}`}
             action=""
             onClick={handleContainerClick}
         >
-            <div className="flex h-14 w-full flex-row items-center justify-center gap-1">
-                <label className={`text-h1 ${displayValue ? 'text-black' : 'text-gray-2'}`}>{displaySymbol}</label>
-                <input
-                    className={`h-12 max-w-80 bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
-                    placeholder={'0.00'}
-                    onChange={(e) => {
-                        const value = formatAmountWithoutComma(e.target.value)
-                        onChange(value, isInputUsd)
-                    }}
-                    ref={inputRef}
-                    inputMode="decimal"
-                    type={inputType}
-                    value={displayValue}
-                    step="any"
-                    min="0"
-                    autoComplete="off"
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault()
-                            if (onSubmit) onSubmit()
-                        }
-                    }}
-                    onBlur={() => {
-                        if (onBlur) onBlur()
-                    }}
-                    disabled={disabled}
-                />
-            </div>
-            {walletBalance && !hideBalance && (
-                <div className="mt-0.5 text-center text-xs text-grey-1">
-                    Your balance: {displayMode === 'FIAT' && currency ? 'US$' : '$'}
-                    {walletBalance}
+            <div className="flex h-full w-full flex-col items-center justify-center gap-1">
+                <div className="flex items-center gap-1 font-bold">
+                    <label className={`text-2xl ${displayValue ? 'text-black' : 'text-gray-2'}`}>{displaySymbol}</label>
+
+                    {/* Input */}
+                    <input
+                        className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                        placeholder={'0.00'}
+                        onChange={(e) => {
+                            const value = formatAmountWithoutComma(e.target.value)
+                            onChange(value, isInputUsd)
+                        }}
+                        ref={inputRef}
+                        inputMode="decimal"
+                        type={inputType}
+                        value={displayValue}
+                        step="any"
+                        min="0"
+                        autoComplete="off"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault()
+                                if (onSubmit) onSubmit()
+                            }
+                        }}
+                        onBlur={() => {
+                            if (onBlur) onBlur()
+                        }}
+                        disabled={disabled}
+                    />
                 </div>
-            )}
-            {/* Show conversion line and toggle */}
-            {!hideCurrencyToggle && (displayMode === 'TOKEN' || displayMode === 'FIAT') && (
+
+                {/* Conversion */}
+                {showConversion && (
+                    <label className="text-lg font-bold">
+                        ≈ {alternativeDisplayValue} {alternativeDisplaySymbol}
+                    </label>
+                )}
+
+                {/* Balance */}
+                {walletBalance && !hideBalance && (
+                    <div className="text-center text-lg text-grey-1">
+                        Balance: {displayMode === 'FIAT' && currency ? 'USD ' : '$ '}
+                        {walletBalance}
+                    </div>
+                )}
+            </div>
+
+            {/* Conversion toggle */}
+            {showConversion && (
                 <div
-                    className={`flex w-full cursor-pointer flex-row items-center justify-center gap-1`}
+                    className="absolute right-0 top-1/2 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer"
                     onClick={(e) => {
                         e.preventDefault()
                         const currentValue = displayValue
@@ -246,10 +264,7 @@ const TokenAmountInput = ({
                         setIsInputUsd(!isInputUsd)
                     }}
                 >
-                    <label className="text-base text-grey-1">
-                        {alternativeDisplaySymbol} {alternativeDisplayValue}
-                    </label>
-                    <Icon name={'switch'} className="rotate-90 cursor-pointer fill-grey-1" />
+                    <Icon name={'switch'} className="ml-5 rotate-90 cursor-pointer" width={32} height={32} />
                 </div>
             )}
         </form>
