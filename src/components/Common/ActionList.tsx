@@ -95,6 +95,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
             switch (method.id) {
                 case 'bank':
                     if (requestType === BankRequestType.GuestKycNeeded) {
+                        addParamStep('bank')
                         setIsGuestVerificationModalOpen(true)
                     } else {
                         setShowRequestFulfilmentBankFlowManager(true)
@@ -187,6 +188,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 isOpen={isGuestVerificationModalOpen}
                 onClose={() => setIsGuestVerificationModalOpen(false)}
                 description="To fulfill this request using bank account, please create an account and verify your identity."
+                redirectToVerification
             />
         </div>
     )

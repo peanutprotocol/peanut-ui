@@ -71,22 +71,6 @@ export const Profile = () => {
                             endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
                         />
                         {/* Enable with Account Management project. */}
-
-                        <ProfileMenuItem
-                            icon="shield"
-                            label="Identity Verification"
-                            href="/profile/identity-verification"
-                            onClick={() => {
-                                if (isKycApproved) {
-                                    setIsKycApprovedModalOpen(true)
-                                } else {
-                                    router.push('/profile/identity-verification')
-                                }
-                            }}
-                            position="middle"
-                            endIcon={isKycApproved ? 'check' : undefined}
-                            endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
-                        />
                         {/* <ProfileMenuItem
                             icon="bank"
                             label="Bank accounts"
@@ -98,14 +82,7 @@ export const Profile = () => {
                     </div>
                     {/* Menu Items - Second Group */}
                     <div>
-                        <ProfileMenuItem
-                            icon="fees"
-                            label="Fees"
-                            href="https://docs.peanut.me/fees"
-                            position="first"
-                            isExternalLink
-                        />
-                        <ProfileMenuItem icon="currency" label="Currency" position="middle" comingSoon />
+                        <ProfileMenuItem icon="currency" label="Currency" position="first" comingSoon />
                         <ProfileMenuItem
                             icon="exchange"
                             label="Exchange rates and fees"
