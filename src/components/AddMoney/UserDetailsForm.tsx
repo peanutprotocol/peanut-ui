@@ -20,7 +20,6 @@ export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDeta
     ({ onSubmit, isSubmitting, onValidChange, initialData }, ref) => {
         const [submissionError, setSubmissionError] = useState<string | null>(null)
 
-        console.log(initialData)
         const {
             control,
             handleSubmit,
