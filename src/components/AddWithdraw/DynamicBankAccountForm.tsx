@@ -375,7 +375,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                         {!isIban && (
                             <>
-                                {renderInput('street', 'Your Street Address', { required: 'Bank address is required' })}
+                                {renderInput('street', 'Your Street Address', {
+                                    required: 'Street address is required',
+                                })}
 
                                 {renderInput('city', 'Your City', { required: 'City is required' })}
 
