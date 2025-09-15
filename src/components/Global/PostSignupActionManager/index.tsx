@@ -59,6 +59,7 @@ export const PostSignupActionManager = ({
                 setShowModal(false)
                 localStorage.removeItem('redirect')
             }}
+            preventClose // Prevent closing the modal by clicking outside
             title={actionConfig.title}
             description={actionConfig.description}
             icon={actionConfig.icon as IconName}
