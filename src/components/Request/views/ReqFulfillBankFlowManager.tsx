@@ -55,7 +55,6 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
             setIsKycModalOpen(true)
         }
     }, [showVerificationModal])
-    console.log('first')
 
     useEffect(() => {
         if (!chargeDetails || !selectedCountry) return
