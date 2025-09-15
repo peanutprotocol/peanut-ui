@@ -39,7 +39,7 @@ const Footer = () => {
                         <Image src={TELEGRAM_ICON} alt="Telegram" width={20} height={20} />
                     </a>
                     <a
-                        href="https://x.com/PeanutProtocol"
+                        href="https://x.com/joinpeanut"
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="Follow us on Twitter"

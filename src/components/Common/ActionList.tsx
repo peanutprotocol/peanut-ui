@@ -12,8 +12,7 @@ import Divider from '../0_Bruddle/Divider'
 import { Button } from '../0_Bruddle'
 import { PEANUT_LOGO_BLACK } from '@/assets/illustrations'
 import Image from 'next/image'
-import { saveRedirectUrl } from '@/utils'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
@@ -62,7 +61,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
             const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
-            if (method.id === 'bank' && amountInUsd < 1) {
+            if (method.id === 'bank' && amountInUsd < 5) {
                 setShowMinAmountError(true)
                 return
             }
@@ -177,7 +176,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
                 title="Minimum Amount "
-                description={'The minimum amount for a bank transaction is $1. Please try a different method.'}
+                description={'The minimum amount for a bank transaction is $5. Please try a different method.'}
                 icon="alert"
                 ctas={[{ text: 'Close', shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
                 iconContainerClassName="bg-yellow-400"
