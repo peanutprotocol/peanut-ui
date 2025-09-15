@@ -30,8 +30,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     haveSentMoneyToUser = false,
 }) => {
     const { user: authenticatedUser } = useAuth()
-    const { isUserBridgeKycApproved } = useKycStatus()
-    const isAuthenticatedUserVerified = isUserBridgeKycApproved && authenticatedUser?.user.username === username
+    const { isUserKycApproved } = useKycStatus()
+    const isAuthenticatedUserVerified = isUserKycApproved && authenticatedUser?.user.username === username
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     const profileUrl = `${BASE_URL}/${username}`
