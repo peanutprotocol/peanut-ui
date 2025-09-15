@@ -5,6 +5,7 @@ import { Icon, IconName } from '../Icons/Icon'
 import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import StartVerificationView from './StartVerificationView'
+import { useSupportModalContext } from '@/context/SupportModalContext'
 
 export type IFrameWrapperProps = {
     src: string
@@ -20,6 +21,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     const [copied, setCopied] = useState(false)
     const [isVerificationStarted, setIsVerificationStarted] = useState(false)
     const router = useRouter()
+    const { setIsSupportModalOpen } = useSupportModalContext()
 
     const handleCopy = (textToCopy: string) => {
         navigator.clipboard.writeText(textToCopy).then(() => {
@@ -54,7 +56,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     {
                         text: 'Chat with support',
                         icon: 'peanut-support' as IconName,
-                        onClick: () => router.push('/support'),
+                        onClick: () => setIsSupportModalOpen(true),
                         variant: 'transparent' as ButtonVariant,
                         className: 'underline text-sm font-medium w-full fill-none h-fit mt-3',
                     },

@@ -3,9 +3,11 @@
 import { Button, Card } from '@/components/0_Bruddle'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSupportModalContext } from '@/context/SupportModalContext'
 
 export default function PaymentError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     const router = useRouter()
+    const { setIsSupportModalOpen } = useSupportModalContext()
 
     useEffect(() => {
         console.error(error)
@@ -23,7 +25,7 @@ export default function PaymentError({ error, reset }: { error: Error & { digest
                 <Button onClick={reset} variant="purple">
                     Try again
                 </Button>
-                <Button onClick={() => router.push('/support')} variant="transparent" className="text-sm underline">
+                <Button onClick={() => setIsSupportModalOpen(true)} variant="transparent" className="text-sm underline">
                     Contact Support
                 </Button>
             </Card.Content>
