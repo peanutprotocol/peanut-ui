@@ -206,6 +206,41 @@ export const sendLinksApi = {
     },
 
     /**
+     * Automaticaly claim a send link without the need of the recipient to click the claim button - Calls the Next.js API route
+     *
+     * @param recipient - The recipient's address or username
+     * @param link - The link to claim
+     * @returns The claim link data
+     */
+    autoClaimLink: async (recipient: string, link: string): Promise<SendLink> => {
+        try {
+            const params = getParamsFromLink(link)
+            const pubKey = generateKeysFromString(params.password).address
+            const response = await fetch(`/api/auto-claim`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pubKey,
+                    recipient,
+                    password: params.password,
+                }),
+            })
+
+            if (!response.ok) {
+                const errText = await response.text()
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errText}`)
+            }
+
+            const text = await response.text()
+            const result: SendLink = jsonParse(text)
+            return result
+        } catch (error) {
+            console.error('Failed to automatically claim link:', error)
+            throw error
+        }
+    },
+
+    /**
      * associates a logged-in user with a claim transaction.
      * this is called after an external wallet claim is successful.
      * it helps the backend link the claim to the user's history.

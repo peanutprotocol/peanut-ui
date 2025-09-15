@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import ActionModal from '../ActionModal'
 import { POST_SIGNUP_ACTIONS } from './post-signup-action.consts'
 import { IconName } from '../Icons/Icon'
+import { useAuth } from '@/context/authContext'
 
 export const PostSignupActionManager = ({
     onActionModalVisibilityChange,
@@ -21,12 +22,12 @@ export const PostSignupActionManager = ({
         action: () => void
     } | null>(null)
     const router = useRouter()
+    const { user } = useAuth()
 
-    useEffect(() => {
+    const checkClaimModalAfterKYC = () => {
         const redirectUrl = getFromLocalStorage('redirect')
-        if (redirectUrl) {
+        if (user?.user.bridgeKycStatus === 'approved' && redirectUrl) {
             const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(redirectUrl))
-
             if (matchedAction) {
                 setActionConfig({
                     ...matchedAction.config,
@@ -39,7 +40,11 @@ export const PostSignupActionManager = ({
                 setShowModal(true)
             }
         }
-    }, [router])
+    }
+
+    useEffect(() => {
+        checkClaimModalAfterKYC()
+    }, [router, user])
 
     useEffect(() => {
         onActionModalVisibilityChange(showModal)
@@ -54,6 +59,7 @@ export const PostSignupActionManager = ({
                 setShowModal(false)
                 localStorage.removeItem('redirect')
             }}
+            preventClose // Prevent closing the modal by clicking outside
             title={actionConfig.title}
             description={actionConfig.description}
             icon={actionConfig.icon as IconName}
