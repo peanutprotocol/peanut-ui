@@ -456,7 +456,7 @@ export const TransactionDetailsReceipt = ({
                                 transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                                     <PaymentInfoRow
                                         label="Value in USD"
-                                        value={`${formatAmount(transaction.amount.toString())} U$D`}
+                                        value={`${formatAmount(transaction.amount.toString())} USD`}
                                     />
                                 )}
                             {/* TODO: stop using snake_case!!!!! */}

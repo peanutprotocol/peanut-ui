@@ -254,7 +254,7 @@ export default function QRPayPage() {
                             <div className="text-2xl font-extrabold">
                                 {currency.symbol} {qrPayment!.details.paymentAssetAmount}
                             </div>
-                            <div className="text-lg font-bold">≈ {usdAmount} U$D</div>
+                            <div className="text-lg font-bold">≈ {usdAmount} USD</div>
                         </div>
                     </Card>
                     <div className="w-full space-y-5">

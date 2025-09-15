@@ -156,11 +156,11 @@ const TokenAmountInput = ({
             }
             case 'FIAT': {
                 if (isInputUsd) {
-                    setDisplaySymbol('U$D')
+                    setDisplaySymbol('USD')
                     setAlternativeDisplaySymbol(currency?.symbol || '')
                 } else {
                     setDisplaySymbol(currency?.symbol || '')
-                    setAlternativeDisplaySymbol('U$D')
+                    setAlternativeDisplaySymbol('USD')
                 }
                 break
             }
@@ -246,7 +246,7 @@ const TokenAmountInput = ({
                 {/* Balance */}
                 {walletBalance && !hideBalance && (
                     <div className="text-center text-lg text-grey-1">
-                        Balance: {displayMode === 'FIAT' && currency ? 'U$D ' : '$ '}
+                        Balance: {displayMode === 'FIAT' && currency ? 'USD ' : '$ '}
                         {walletBalance}
                     </div>
                 )}
