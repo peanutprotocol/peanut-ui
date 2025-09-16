@@ -69,6 +69,8 @@ export const Profile = () => {
                             position="middle"
                             endIcon={isKycApproved ? 'check' : undefined}
                             endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
+                            showTooltip
+                            toolTipText="No need to verify unless you want to move money to or from your bank."
                         />
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem
