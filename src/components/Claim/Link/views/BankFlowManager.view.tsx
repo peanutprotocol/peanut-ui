@@ -260,7 +260,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             try {
                 const addBankAccountResponse = await addBankAccount(payload)
                 if (addBankAccountResponse.error) {
-                    setError(addBankAccountResponse.error)
                     return { error: addBankAccountResponse.error }
                 }
                 if (addBankAccountResponse.data?.id) {
@@ -321,9 +320,15 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 }
                 if (!senderInfo.bridgeCustomerId) throw new Error('Sender bridge customer ID not found')
 
+                const threeLetterCountryCode = getCountryCodeForWithdraw(selectedCountry.id)
                 const payloadWithCountry = {
                     ...payload,
-                    country: selectedCountry.id,
+                    countryCode: threeLetterCountryCode,
+                    address: {
+                        ...payload.address,
+                        country: threeLetterCountryCode,
+                    },
+                    country: threeLetterCountryCode,
                 }
 
                 const externalAccountResponse = await createBridgeExternalAccountForGuest(
@@ -363,7 +368,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 return {}
             } catch (e: any) {
                 const errorString = ErrorHandler(e)
-                setError(errorString)
                 Sentry.captureException(e)
                 return { error: errorString }
             } finally {

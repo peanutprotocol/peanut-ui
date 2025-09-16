@@ -39,7 +39,7 @@ const Footer = () => {
                         <Image src={TELEGRAM_ICON} alt="Telegram" width={20} height={20} />
                     </a>
                     <a
-                        href="https://x.com/PeanutProtocol"
+                        href="https://x.com/joinpeanut"
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="Follow us on Twitter"
@@ -57,6 +57,9 @@ const Footer = () => {
                 </div>
 
                 <div className="flex gap-2">
+                    <a className="text-xl font-bold text-white" href="/support">
+                        Support
+                    </a>
                     <a
                         className="text-xl font-bold text-white"
                         href="https://docs.peanut.me/"
@@ -64,14 +67,6 @@ const Footer = () => {
                         target="_blank"
                     >
                         Docs
-                    </a>
-                    <a
-                        className="text-xl font-bold text-white"
-                        href="https://peanutprotocol.notion.site/Privacy-Policy-37debda366c941f2bbb8db8c113d8c8b"
-                        rel="noopener noreferrer"
-                        target="_blank"
-                    >
-                        Privacy
                     </a>
                     <a
                         className="text-xl font-bold text-white"

@@ -104,7 +104,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         isXChain,
         setIsXChain,
     } = useContext(tokenSelectorContext)
-    const { claimLink, claimLinkXchain } = useClaimLink()
+    const { claimLink, claimLinkXchain, removeParamStep } = useClaimLink()
     const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
     const router = useRouter()
     const { user } = useAuth()
@@ -159,7 +159,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }, [recipientType, claimLinkData.chainId, isPeanutChain, claimLinkData.tokenAddress])
 
     const handleClaimLink = useCallback(
-        async (bypassModal = false) => {
+        async (bypassModal = false, autoClaim = false) => {
             if (!isPeanutWallet && !bypassModal) {
                 setShowConfirmationModal(true)
                 return
@@ -177,8 +177,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             try {
                 setLoadingState('Executing transaction')
                 if (isPeanutWallet) {
-                    await sendLinksApi.claim(user?.user.username ?? address, claimLinkData.link)
-
+                    if (autoClaim) {
+                        await sendLinksApi.autoClaimLink(user?.user.username ?? address, claimLinkData.link)
+                    } else {
+                        await sendLinksApi.claim(user?.user.username ?? address, claimLinkData.link)
+                    }
                     setClaimType('claim')
                     onCustom('SUCCESS')
                     fetchBalance()
@@ -625,6 +628,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }
 
+    useEffect(() => {
+        const stepFromURL = searchParams.get('step')
+        if (user && claimLinkData.status !== 'CLAIMED' && stepFromURL === 'claim' && isPeanutWallet) {
+            removeParamStep()
+            handleClaimLink(false, true)
+        }
+    }, [user, searchParams, isPeanutWallet])
+
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
     }
@@ -782,9 +793,13 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 modalPanelClassName="max-w-md mx-8"
             />
             <GuestVerificationModal
+                redirectToVerification
                 secondaryCtaLabel="Claim with other method"
-                isOpen={showVerificationModal && !user}
-                onClose={() => setShowVerificationModal(false)}
+                isOpen={showVerificationModal}
+                onClose={() => {
+                    removeParamStep()
+                    setShowVerificationModal(false)
+                }}
                 description="The sender isn't verified, so please create an account and verify your identity to have the funds deposited to your bank."
             />
         </div>

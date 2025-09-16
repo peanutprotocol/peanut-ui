@@ -157,7 +157,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
     return (
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
-                <DrawerContent className="p-5">{renderContent()}</DrawerContent>
+                <DrawerContent className="p-5 pb-12">{renderContent()}</DrawerContent>
             </Drawer>
             <IFrameWrapper {...bridgeIframeOptions} onClose={handleBridgeIframeClose} />
             <IFrameWrapper {...mantecaIframeOptions} onClose={handleMantecaIframeClose} />

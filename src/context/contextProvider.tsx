@@ -8,6 +8,7 @@ import { TokenContextProvider } from './tokenSelector.context'
 import { WithdrawFlowContextProvider } from './WithdrawFlowContext'
 import { ClaimBankFlowContextProvider } from './ClaimBankFlowContext'
 import { RequestFulfilmentFlowContextProvider } from './RequestFulfillmentFlowContext'
+import { SupportModalProvider } from './SupportModalContext'
 
 export const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return (
@@ -20,7 +21,9 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
                                 <ClaimBankFlowContextProvider>
                                     <RequestFulfilmentFlowContextProvider>
                                         <WithdrawFlowContextProvider>
-                                            <OnrampFlowContextProvider>{children}</OnrampFlowContextProvider>
+                                            <OnrampFlowContextProvider>
+                                                <SupportModalProvider>{children}</SupportModalProvider>
+                                            </OnrampFlowContextProvider>
                                         </WithdrawFlowContextProvider>
                                     </RequestFulfilmentFlowContextProvider>
                                 </ClaimBankFlowContextProvider>

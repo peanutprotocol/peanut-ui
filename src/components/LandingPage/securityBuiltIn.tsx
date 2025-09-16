@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { Button } from '@/components/0_Bruddle'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'
 import handPeace from '@/assets/illustrations/hand-peace.svg'
@@ -81,6 +82,18 @@ export function SecurityBuiltIn() {
                                 >
                                     {feature.description}
                                 </p>
+                                {feature.id === 3 && (
+                                    <div className="mt-6">
+                                        <a href="/support">
+                                            <Button
+                                                shadowSize="4"
+                                                className="bg-white px-6 py-3 text-base font-extrabold text-n-1 hover:bg-white/90"
+                                            >
+                                                Talk to Support
+                                            </Button>
+                                        </a>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}
