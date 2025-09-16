@@ -235,6 +235,8 @@ export interface IUserKycVerification {
     approvedAt?: string | null
     providerUserId?: string | null
     providerRawStatus?: string | null
+    createdAt: string
+    updatedAt: string
 }
 
 export interface User {
