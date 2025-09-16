@@ -1,6 +1,3 @@
-// THIS COMPONENT IS MODIFIED FOR TESTING PURPOSES.
-// PLEASE REVERT THE CHANGES AFTER TESTING.
-
 import { useState, useEffect } from 'react'
 import { KycCompleted } from './states/KycCompleted'
 import { KycFailed } from './states/KycFailed'
