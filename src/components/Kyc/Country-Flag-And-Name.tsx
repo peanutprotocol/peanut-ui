@@ -35,5 +35,3 @@ export const CountryFlagAndName = ({ countryCode, isBridgeRegion }: CountryFlagA
         </div>
     )
 }
-
-// this component is used for the completed state of the kyc

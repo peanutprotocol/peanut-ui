@@ -1,3 +1,6 @@
+// THIS COMPONENT IS MODIFIED FOR TESTING PURPOSES.
+// PLEASE REVERT THE CHANGES AFTER TESTING.
+
 import { useState, useEffect } from 'react'
 import { KycCompleted } from './states/KycCompleted'
 import { KycFailed } from './states/KycFailed'
@@ -6,10 +9,12 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Drawer, DrawerContent } from '../Global/Drawer'
 import { BridgeKycStatus } from '@/utils'
 import { getKycDetails } from '@/app/actions/users'
-import IFrameWrapper from '../Global/IframeWrapper'
 import { IUserKycVerification, MantecaKycStatus } from '@/interfaces'
 import { useUserStore } from '@/redux/hooks'
 import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
+import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
+import { CountryData, countryData } from '@/components/AddMoney/consts'
+import IFrameWrapper from '@/components/Global/IframeWrapper'
 
 // a helper to categorize the kyc status from the user object
 const getKycStatusCategory = (status: BridgeKycStatus | MantecaKycStatus): 'processing' | 'completed' | 'failed' => {
@@ -40,19 +45,43 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
     const [rejectionReason, setRejectionReason] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const { user } = useUserStore()
-    const {
-        handleInitiateKyc,
-        iframeOptions,
-        handleIframeClose,
-        isLoading: isKycFlowLoading,
-    } = useBridgeKycFlow({ onKycSuccess: onClose })
-    // todo: add retry option for manteca kyc
-    // const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry as CountryData })
 
     const status = verification ? verification.status : bridgeKycStatus
     const statusCategory = status ? getKycStatusCategory(status) : undefined
     const countryCode = verification ? verification.mantecaGeo || verification.bridgeGeo : null
     const isBridgeKyc = !verification && !!bridgeKycStatus
+    const provider = verification ? verification.provider : 'BRIDGE'
+
+    const {
+        handleInitiateKyc: initiateBridgeKyc,
+        iframeOptions: bridgeIframeOptions,
+        handleIframeClose: handleBridgeIframeClose,
+        isLoading: isBridgeLoading,
+    } = useBridgeKycFlow({ onKycSuccess: onClose, onManualClose: onClose })
+
+    const country = countryCode ? countryData.find((c) => c.id.toUpperCase() === countryCode.toUpperCase()) : undefined
+
+    const {
+        openMantecaKyc,
+        iframeOptions: mantecaIframeOptions,
+        handleIframeClose: handleMantecaIframeClose,
+        isLoading: isMantecaLoading,
+    } = useMantecaKycFlow({
+        onSuccess: onClose,
+        onClose: onClose,
+        onManualClose: onClose,
+        country: country as CountryData,
+    })
+
+    const onRetry = async () => {
+        if (provider === 'MANTECA') {
+            await openMantecaKyc(country as CountryData)
+        } else {
+            await initiateBridgeKyc()
+        }
+    }
+
+    const isLoadingKyc = isBridgeLoading || isMantecaLoading
 
     useEffect(() => {
         // if the drawer is open and the kyc has failed, fetch the reason
@@ -112,9 +141,10 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
                     <KycFailed
                         reason={rejectionReason}
                         bridgeKycRejectedAt={user?.user.bridgeKycRejectedAt}
-                        onRetry={handleInitiateKyc}
                         countryCode={countryCode ?? undefined}
                         isBridge={isBridgeKyc}
+                        onRetry={onRetry}
+                        isLoading={isLoadingKyc}
                     />
                 )
             default:
@@ -132,12 +162,8 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
             <Drawer open={isOpen} onOpenChange={onClose}>
                 <DrawerContent className="p-5">{renderContent()}</DrawerContent>
             </Drawer>
-            <IFrameWrapper
-                visible={iframeOptions.visible || isKycFlowLoading}
-                src={iframeOptions.src}
-                onClose={handleIframeClose}
-                closeConfirmMessage={iframeOptions.closeConfirmMessage}
-            />
+            <IFrameWrapper {...bridgeIframeOptions} onClose={handleBridgeIframeClose} />
+            <IFrameWrapper {...mantecaIframeOptions} onClose={handleMantecaIframeClose} />
         </>
     )
 }

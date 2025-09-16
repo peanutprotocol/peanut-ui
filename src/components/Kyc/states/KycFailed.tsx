@@ -11,15 +11,17 @@ import { CountryRegionRow } from '../CountryRegionRow'
 export const KycFailed = ({
     reason,
     bridgeKycRejectedAt,
-    onRetry,
     countryCode,
     isBridge,
+    onRetry,
+    isLoading,
 }: {
     reason: string | null
     bridgeKycRejectedAt?: string
-    onRetry: () => void
     countryCode?: string | null
     isBridge?: boolean
+    onRetry: () => void
+    isLoading?: boolean
 }) => {
     const rejectedOn = useMemo(() => {
         if (!bridgeKycRejectedAt) return 'N/A'
@@ -45,8 +47,15 @@ export const KycFailed = ({
                     hideBottomBorder
                 />
             </Card>
-            <Button icon="retry" variant="purple" className="w-full" shadowSize="4" onClick={onRetry}>
-                Retry verification
+            <Button
+                icon="retry"
+                variant="purple"
+                className="w-full"
+                shadowSize="4"
+                onClick={onRetry}
+                disabled={isLoading}
+            >
+                {isLoading ? 'Loading...' : 'Retry verification'}
             </Button>
         </div>
     )

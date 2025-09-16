@@ -12,7 +12,6 @@ import { useParams, useRouter } from 'next/navigation'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { InitiateKYCModal } from '@/components/Kyc'
 import { DynamicBankAccountForm, IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount, updateUserById } from '@/app/actions/users'
 import { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
@@ -26,6 +25,7 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
+import { InitiateBridgeKYCModal } from '../Kyc/InitiateBridgeKYCModal'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -244,7 +244,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     initialData={{}}
                     error={null}
                 />
-                <InitiateKYCModal
+                <InitiateBridgeKYCModal
                     isOpen={isKycModalOpen}
                     onClose={() => setIsKycModalOpen(false)}
                     onKycSuccess={handleKycSuccess}
@@ -348,7 +348,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     closeDrawer={() => setIsDrawerOpen(false)}
                 />
             )}
-            <InitiateKYCModal
+            <InitiateBridgeKYCModal
                 isOpen={isKycModalOpen}
                 onClose={() => setIsKycModalOpen(false)}
                 onKycSuccess={handleKycSuccess}
