@@ -1,42 +1,24 @@
-import { mantecaWithdraw } from '@/app/actions/manteca'
+'use client'
+
 import { Button } from '@/components/0_Bruddle'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { MantecaWithdrawResponseData, MercadoPagoStep } from '@/types/manteca.types'
-import { Dispatch, FC, SetStateAction, useCallback, useState } from 'react'
+import { MercadoPagoStep } from '@/types/manteca.types'
+import { Dispatch, FC, SetStateAction } from 'react'
 
 interface MantecaDetailsStepProps {
     setCurrentStep: Dispatch<SetStateAction<MercadoPagoStep>>
-    amount: string
-    setWithdrawDetails: Dispatch<SetStateAction<MantecaWithdrawResponseData | undefined>>
+    destinationAddress: string
+    setDestinationAddress: Dispatch<SetStateAction<string>>
 }
 
-const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({ setCurrentStep, amount, setWithdrawDetails }) => {
-    const [destinationAddress, setDestinationAddress] = useState('')
-    const [isSubmitting, setIsSubmitting] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-
-    const createMantecaWithdraw = async () => {
-        setError(null)
-        setIsSubmitting(true)
-        const response = await mantecaWithdraw({
-            amount,
-            destinationAddress,
-        })
-
-        if (response.error) {
-            console.error(response.error)
-            setError(response.error)
-            setIsSubmitting(false)
-            return
-        }
-
-        if (response.data) {
-            setWithdrawDetails(response.data)
-            setCurrentStep(MercadoPagoStep.REVIEW)
-        }
-        setIsSubmitting(false)
+const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
+    setCurrentStep,
+    destinationAddress,
+    setDestinationAddress,
+}) => {
+    const handleOnClick = async () => {
+        setCurrentStep(MercadoPagoStep.REVIEW)
     }
 
     return (
@@ -53,14 +35,7 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({ setCurrentStep, amoun
                 <span>You can only withdraw to accounts under your name.</span>
             </div>
 
-            {error && <ErrorAlert description={error} />}
-
-            <Button
-                loading={isSubmitting}
-                disabled={!destinationAddress || isSubmitting}
-                onClick={() => createMantecaWithdraw()}
-                shadowSize="4"
-            >
+            <Button disabled={!destinationAddress} onClick={() => handleOnClick()} shadowSize="4">
                 Review
             </Button>
         </>

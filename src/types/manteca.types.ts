@@ -13,6 +13,8 @@ export enum MercadoPagoStep {
 export type MantecaWithdrawData = {
     amount: string
     destinationAddress: string
+    txHash: string
+    currency: string
 }
 
 export type MantecaWithdrawResponseData = {
