@@ -3,6 +3,7 @@ import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
+import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
@@ -232,14 +233,7 @@ const DirectSuccessView = ({
                             Back to home
                         </Button>
                     ) : (
-                        <Button onClick={() => router.push('/setup')} shadowSize="4">
-                            <div>Create a</div>
-                            <div className="flex items-center gap-1">
-                                <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
-                                <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
-                            </div>
-                            <div>account</div>
-                        </Button>
+                        <CreateAccountButton onClick={() => router.push('/setup')} />
                     )}
                     {type === 'SEND' && !isExternalWalletFlow && !isWithdrawFlow && (
                         <Button

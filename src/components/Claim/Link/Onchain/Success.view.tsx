@@ -16,6 +16,7 @@ import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import CreateAccountButton from '@/components/Global/CreateAccountButton'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -131,16 +132,7 @@ export const SuccessClaimLinkView = ({
                 </Button>
             )
         }
-        return (
-            <Button onClick={() => router.push('/setup')} shadowSize="4">
-                <div>Create a</div>
-                <div className="flex items-center gap-1">
-                    <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
-                    <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
-                </div>
-                <div>account</div>
-            </Button>
-        )
+        return <CreateAccountButton onClick={() => router.push('/setup')} />
     }
 
     return (

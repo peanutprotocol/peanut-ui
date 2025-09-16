@@ -280,15 +280,14 @@ export const TransactionDetailsReceipt = ({
         }
     }
 
-    const showUserProfileButton = useMemo(() => {
-        return (
-            transaction.status === 'completed' &&
-            !isAddress(transaction.userName) &&
-            (transaction.extraDataForDrawer?.transactionCardType === 'send' ||
-                transaction.extraDataForDrawer?.transactionCardType === 'request' ||
-                transaction.extraDataForDrawer?.transactionCardType === 'receive')
-        )
-    }, [transaction])
+    const showUserProfileButton =
+        !!transaction &&
+        transaction.status === 'completed' &&
+        !!transaction.userName &&
+        !isAddress(transaction.userName) &&
+        (transaction.extraDataForDrawer?.transactionCardType === 'send' ||
+            transaction.extraDataForDrawer?.transactionCardType === 'request' ||
+            transaction.extraDataForDrawer?.transactionCardType === 'receive')
 
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
