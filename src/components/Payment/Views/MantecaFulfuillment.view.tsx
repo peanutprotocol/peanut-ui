@@ -1,4 +1,3 @@
-import { createMantecaOnramp } from '@/app/actions/onramp'
 import { MERCADO_PAGO } from '@/assets'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import MantecaDetailsCard from '@/components/Global/MantecaDetailsCard'
@@ -8,6 +7,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import ShareButton from '@/components/Global/ShareButton'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { usePaymentStore } from '@/redux/hooks'
+import { mantecaApi } from '@/services/manteca'
 import { useQuery } from '@tanstack/react-query'
 import React from 'react'
 
@@ -17,7 +17,7 @@ const MantecaFulfuillment = () => {
     const { data: depositData, isLoading: isLoadingDeposit } = useQuery({
         queryKey: ['manteca-deposit', chargeDetails?.uuid],
         queryFn: () =>
-            createMantecaOnramp({
+            mantecaApi.deposit({
                 usdAmount: requestDetails?.tokenAmount || chargeDetails?.tokenAmount || '0',
                 currency: 'ARS',
                 chargeId: chargeDetails?.uuid,

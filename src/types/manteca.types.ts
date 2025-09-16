@@ -67,3 +67,9 @@ export type MantecaWithdrawResponse = {
     data?: MantecaWithdrawResponseData
     error?: string
 }
+
+export interface CreateMantecaOnrampParams {
+    usdAmount: string
+    currency: string
+    chargeId?: string
+}
