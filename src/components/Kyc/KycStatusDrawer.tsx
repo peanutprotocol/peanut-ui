@@ -120,7 +120,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
             case 'processing':
                 return (
                     <KycProcessing
-                        bridgeKycStartedAt={user?.user.bridgeKycStartedAt}
+                        bridgeKycStartedAt={user?.user?.bridgeKycStartedAt}
                         countryCode={countryCode ?? undefined}
                         isBridge={isBridgeKyc}
                     />
@@ -128,7 +128,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
             case 'completed':
                 return (
                     <KycCompleted
-                        bridgeKycApprovedAt={verification?.approvedAt ?? user?.user.bridgeKycApprovedAt}
+                        bridgeKycApprovedAt={verification?.approvedAt ?? user?.user?.bridgeKycApprovedAt}
                         countryCode={countryCode ?? undefined}
                         isBridge={isBridgeKyc}
                     />
@@ -137,7 +137,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, verification, bridgeKycStatus
                 return (
                     <KycFailed
                         reason={rejectionReason}
-                        bridgeKycRejectedAt={user?.user.bridgeKycRejectedAt}
+                        bridgeKycRejectedAt={user?.user?.bridgeKycRejectedAt}
                         countryCode={countryCode ?? undefined}
                         isBridge={isBridgeKyc}
                         onRetry={onRetry}
