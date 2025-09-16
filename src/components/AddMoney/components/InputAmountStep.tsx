@@ -53,7 +53,7 @@ const InputAmountStep = ({
                             ? {
                                   code: currencyData.code!,
                                   symbol: currencyData.symbol!,
-                                  price: currencyData.price!,
+                                  price: currencyData.price!.buy,
                               }
                             : undefined
                     }

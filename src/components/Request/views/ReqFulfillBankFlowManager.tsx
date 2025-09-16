@@ -62,7 +62,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
         const usdAmount = chargeDetails.tokenAmount
         const minAmount = getMinimumAmount(selectedCountry.id)
         getCurrencyPrice(currency).then((price) => {
-            const currencyAmount = Number(usdAmount) * price
+            const currencyAmount = Number(usdAmount) * price.buy
             if (currencyAmount < minAmount) {
                 setErrorMessage(`Minimum amount is ${minAmount.toFixed(2)} ${currency}`)
             } else {
@@ -126,7 +126,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
             if (!user?.user.userId) throw new Error('User not found')
             const result = await updateUserById({
                 userId: user.user.userId,
-                fullName: `${data.firstName} ${data.lastName}`,
+                fullName: `${data.fullName}`,
                 email: data.email,
             })
             if (result.error) {

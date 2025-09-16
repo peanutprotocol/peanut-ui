@@ -2,8 +2,13 @@
 
 import { Button, Card } from '@/components/0_Bruddle'
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useSupportModalContext } from '@/context/SupportModalContext'
 
 export default function PaymentError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+    const router = useRouter()
+    const { setIsSupportModalOpen } = useSupportModalContext()
+
     useEffect(() => {
         console.error(error)
     }, [error])
@@ -16,9 +21,12 @@ export default function PaymentError({ error, reset }: { error: Error & { digest
                     {error.message || 'An error occurred while loading the payment page.'}
                 </Card.Description>
             </Card.Header>
-            <Card.Content>
+            <Card.Content className="flex flex-col gap-3">
                 <Button onClick={reset} variant="purple">
                     Try again
+                </Button>
+                <Button onClick={() => setIsSupportModalOpen(true)} variant="transparent" className="text-sm underline">
+                    Contact Support
                 </Button>
             </Card.Content>
         </Card>

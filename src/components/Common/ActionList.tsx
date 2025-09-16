@@ -12,7 +12,6 @@ import Divider from '../0_Bruddle/Divider'
 import { Button } from '../0_Bruddle'
 import { PEANUT_LOGO_BLACK } from '@/assets/illustrations'
 import Image from 'next/image'
-import { saveRedirectUrl } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
@@ -24,6 +23,7 @@ import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermi
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 import ActionListDaimoPayButton from './ActionListDaimoPayButton'
 import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
+import useClaimLink from '../Claim/useClaimLink'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -55,6 +55,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     const { requestType } = useDetermineBankRequestType(requesterUserId)
     const savedAccounts = useSavedAccounts()
     const { usdAmount } = usePaymentStore()
+    const { addParamStep } = useClaimLink()
     const {
         setShowRequestFulfilmentBankFlowManager,
         setShowExternalWalletFulfilMethods,
@@ -66,7 +67,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
             const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
-            if (method.id === 'bank' && amountInUsd < 1) {
+            if (method.id === 'bank' && amountInUsd < 5) {
                 setShowMinAmountError(true)
                 return
             }
@@ -74,6 +75,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 case 'bank':
                     {
                         if (claimType === BankClaimType.GuestKycNeeded) {
+                            addParamStep('bank')
                             setShowVerificationModal(true)
                         } else {
                             if (savedAccounts.length) {
@@ -100,6 +102,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
             switch (method.id) {
                 case 'bank':
                     if (requestType === BankRequestType.GuestKycNeeded) {
+                        addParamStep('bank')
                         setIsGuestVerificationModalOpen(true)
                     } else {
                         setShowRequestFulfilmentBankFlowManager(true)
@@ -144,7 +147,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 <Button
                     shadowSize="4"
                     onClick={() => {
-                        saveRedirectUrl()
+                        addParamStep('claim')
                         // push to setup page with redirect uri, to prevent the user from losing the flow context
                         const redirectUri = encodeURIComponent(
                             window.location.pathname + window.location.search + window.location.hash
@@ -181,7 +184,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
                 title="Minimum Amount "
-                description={'The minimum amount for a bank transaction is $1. Please try a different method.'}
+                description={'The minimum amount for a bank transaction is $5. Please try a different method.'}
                 icon="alert"
                 ctas={[{ text: 'Close', shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
                 iconContainerClassName="bg-yellow-400"
@@ -193,6 +196,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 isOpen={isGuestVerificationModalOpen}
                 onClose={() => setIsGuestVerificationModalOpen(false)}
                 description="To fulfill this request using bank account, please create an account and verify your identity."
+                redirectToVerification
             />
         </div>
     )

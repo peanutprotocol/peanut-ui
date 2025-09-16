@@ -27,11 +27,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { GenericBanner } from '@/components/Global/Banner'
-import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
+import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import ExternalWalletFulfilManager from '@/components/Request/views/ExternalWalletFulfilManager'
 import ActionList from '@/components/Common/ActionList'
 import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
+import SupportCTA from '@/components/Global/SupportCTA'
+import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
@@ -48,7 +50,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
     const [isRequestDetailsFetching, setIsRequestDetailsFetching] = useState(false)
-    const { user } = useAuth()
+    const { user, isFetchingUser } = useAuth()
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
     const requestId = searchParams.get('id')
@@ -61,8 +63,14 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const [currencyAmount, setCurrencyAmount] = useState<string>('')
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
-    const { showExternalWalletFulfilMethods, showRequestFulfilmentBankFlowManager, fulfillUsingManteca } =
-        useRequestFulfillmentFlow()
+    const {
+        showExternalWalletFulfilMethods,
+        showRequestFulfilmentBankFlowManager,
+        setShowRequestFulfilmentBankFlowManager,
+        setFlowStep: setRequestFulfilmentBankFlowStep,
+        fulfillUsingManteca,
+    } = useRequestFulfillmentFlow()
+    const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
 
     // determine if the current user is the recipient of the transaction
     const isCurrentUserRecipient = chargeDetails?.requestLink.recipientAccount?.userId === user?.user.userId
@@ -389,6 +397,20 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         flow !== 'direct_pay' || // Always show for non-direct-pay flows
         (flow === 'direct_pay' && !user) || // Show for direct-pay when user is not logged in
         !fulfillUsingManteca // Show when not fulfilling using Manteca
+    // Send to bank step if its mentioned in the URL and guest KYC is not needed
+    useEffect(() => {
+        const stepFromURL = searchParams.get('step')
+        if (
+            parsedPaymentData &&
+            chargeDetails &&
+            requestType !== BankRequestType.GuestKycNeeded &&
+            stepFromURL === 'bank'
+        ) {
+            setShowRequestFulfilmentBankFlowManager(true)
+
+            setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
+        }
+    }, [searchParams, parsedPaymentData, chargeDetails, requestType])
 
     if (error) {
         return (
@@ -474,7 +496,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                                 ? {
                                       code: currencyCode,
                                       symbol: currencySymbol!,
-                                      price: currencyPrice!,
+                                      price: currencyPrice!.buy,
                                   }
                                 : undefined
                         }
@@ -531,6 +553,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     )}
                 </>
             )}
+
+            {/* Show only to guest users */}
+            {!user && !isFetchingUser && <SupportCTA />}
         </div>
     )
 }
