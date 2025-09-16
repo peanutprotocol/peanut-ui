@@ -1,3 +1,5 @@
+'use client'
+
 import Card from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -28,6 +30,7 @@ import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
 import { getBankAccountLabel, TransactionDetailsRowKey, transactionDetailsRowKeys } from './transaction-details.utils'
 import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useRouter } from 'next/navigation'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -59,6 +62,7 @@ export const TransactionDetailsReceipt = ({
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
     const { setIsSupportModalOpen } = useSupportModalContext()
+    const router = useRouter()
 
     useEffect(() => {
         setIsModalOpen?.(showCancelLinkModal)
@@ -277,6 +281,16 @@ export const TransactionDetailsReceipt = ({
             return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
         }
     }
+
+    // Show profile button only if txn is completed, not to/by a guest user and its a send/request/receive txn
+    const showUserProfileButton =
+        !!transaction &&
+        transaction.status === 'completed' &&
+        !!transaction.userName &&
+        !isAddress(transaction.userName) &&
+        (transaction.extraDataForDrawer?.transactionCardType === 'send' ||
+            transaction.extraDataForDrawer?.transactionCardType === 'request' ||
+            transaction.extraDataForDrawer?.transactionCardType === 'receive')
 
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
@@ -911,6 +925,22 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
+            {showUserProfileButton && (
+                <div className="pr-1">
+                    <Button
+                        onClick={() => router.push(`/${transaction.userName}`)}
+                        shadowSize="4"
+                        variant={
+                            transaction.extraDataForDrawer?.transactionCardType === 'request'
+                                ? 'purple'
+                                : 'primary-soft'
+                        }
+                        className="flex w-full items-center gap-1"
+                    >
+                        Go to {transaction.userName} profile
+                    </Button>
+                </div>
+            )}
             {/* Cancel deposit button for bridge_onramp transactions in awaiting_funds state */}
             {transaction.direction === 'bank_deposit' &&
                 transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.REQUEST &&

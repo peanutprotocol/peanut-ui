@@ -14,6 +14,9 @@ import { useEffect, useMemo } from 'react'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
+import Image from 'next/image'
+import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import CreateAccountButton from '@/components/Global/CreateAccountButton'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -129,11 +132,7 @@ export const SuccessClaimLinkView = ({
                 </Button>
             )
         }
-        return (
-            <Button icon="user-plus" onClick={() => router.push('/setup')} shadowSize="4">
-                Create Account
-            </Button>
-        )
+        return <CreateAccountButton onClick={() => router.push('/setup')} />
     }
 
     return (
