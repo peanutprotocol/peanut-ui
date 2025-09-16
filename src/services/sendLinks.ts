@@ -197,6 +197,7 @@ export const sendLinksApi = {
      *
      * @param recipient - The recipient's address or username
      * @param link - The link to claim
+     * @param destinationAddress - The destination address to claim the link to (for manteca claims)
      * @returns The claim link data
      */
     claim: async (recipient: string, link: string): Promise<SendLink> => {

@@ -1,4 +1,10 @@
 import { PEANUT_API_URL, PEANUT_API_KEY } from '@/constants'
+import {
+    MantecaDepositDetails,
+    MantecaWithdrawData,
+    MantecaWithdrawResponse,
+    CreateMantecaOnrampParams,
+} from '@/types/manteca.types'
 import { fetchWithSentry } from '@/utils'
 import Cookies from 'js-cookie'
 import type { Address, Hash } from 'viem'
@@ -141,5 +147,65 @@ export const mantecaApi = {
         }
 
         return response.json()
+    },
+
+    deposit: async (params: CreateMantecaOnrampParams): Promise<{ data?: MantecaDepositDetails; error?: string }> => {
+        try {
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/deposit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                },
+                body: JSON.stringify({
+                    usdAmount: params.usdAmount,
+                    currency: params.currency,
+                    chargeId: params.chargeId,
+                }),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                console.log('error', response)
+                return { error: data.error || 'Failed to create on-ramp transfer for guest.' }
+            }
+
+            return { data }
+        } catch (error) {
+            console.log('error', error)
+            console.error('Error calling create manteca on-ramp API:', error)
+            if (error instanceof Error) {
+                return { error: error.message }
+            }
+            return { error: 'An unexpected error occurred.' }
+        }
+    },
+
+    withdraw: async (data: MantecaWithdrawData): Promise<MantecaWithdrawResponse> => {
+        try {
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/withdraw`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                },
+                body: JSON.stringify(data),
+            })
+
+            const result = await response.json()
+            if (!response.ok) {
+                return { error: result.error || 'Failed to create manteca withdraw.' }
+            }
+
+            return { data: result }
+        } catch (error) {
+            console.log('error', error)
+            console.error('Error calling create manteca withdraw API:', error)
+            if (error instanceof Error) {
+                return { error: error.message }
+            }
+            return { error: 'An unexpected error occurred.' }
+        }
     },
 }

@@ -68,6 +68,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         showRequestFulfilmentBankFlowManager,
         setShowRequestFulfilmentBankFlowManager,
         setFlowStep: setRequestFulfilmentBankFlowStep,
+        fulfillUsingManteca,
     } = useRequestFulfillmentFlow()
     const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
 
@@ -392,6 +393,10 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
 
+    const showActionList =
+        flow !== 'direct_pay' || // Always show for non-direct-pay flows
+        (flow === 'direct_pay' && !user) || // Show for direct-pay when user is not logged in
+        !fulfillUsingManteca // Show when not fulfilling using Manteca
     // Send to bank step if its mentioned in the URL and guest KYC is not needed
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
@@ -406,12 +411,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
         }
     }, [searchParams, parsedPaymentData, chargeDetails, requestType])
-
-    let showActionList = flow !== 'direct_pay'
-
-    if (flow === 'direct_pay' && !user) {
-        showActionList = true
-    }
 
     if (error) {
         return (

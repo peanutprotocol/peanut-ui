@@ -32,6 +32,8 @@ interface RequestFulfillmentFlowContextType {
     setShowVerificationModal: (show: boolean) => void
     requesterDetails: User | null
     setRequesterDetails: (details: User | null) => void
+    fulfillUsingManteca: boolean
+    setFulfillUsingManteca: (fulfillUsingManteca: boolean) => void
 }
 
 const RequestFulfillmentFlowContext = createContext<RequestFulfillmentFlowContextType | undefined>(undefined)
@@ -47,6 +49,7 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
     const [onrampData, setOnrampData] = useState<IOnrampData | null>(null)
     const [showVerificationModal, setShowVerificationModal] = useState(false)
     const [requesterDetails, setRequesterDetails] = useState<User | null>(null)
+    const [fulfillUsingManteca, setFulfillUsingManteca] = useState(false)
 
     const resetFlow = useCallback(() => {
         setExternalWalletFulfilMethod(null)
@@ -57,6 +60,7 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
         setOnrampData(null)
         setShowVerificationModal(false)
         setRequesterDetails(null)
+        setFulfillUsingManteca(false)
     }, [])
 
     const value = useMemo(
@@ -78,6 +82,8 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
             setShowVerificationModal,
             requesterDetails,
             setRequesterDetails,
+            fulfillUsingManteca,
+            setFulfillUsingManteca,
         }),
         [
             resetFlow,
@@ -89,6 +95,7 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
             onrampData,
             showVerificationModal,
             requesterDetails,
+            fulfillUsingManteca,
         ]
     )
 
