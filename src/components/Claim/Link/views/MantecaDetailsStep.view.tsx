@@ -1,10 +1,9 @@
 import { mantecaWithdraw } from '@/app/actions/manteca'
-import { MantecaWithdrawResponseData } from '@/app/actions/types/manteca.types'
 import { Button } from '@/components/0_Bruddle'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { MercadoPagoStep } from '@/types/manteca.types'
+import { MantecaWithdrawResponseData, MercadoPagoStep } from '@/types/manteca.types'
 import { Dispatch, FC, SetStateAction, useCallback, useState } from 'react'
 
 interface MantecaDetailsStepProps {

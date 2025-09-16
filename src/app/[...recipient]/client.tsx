@@ -61,7 +61,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const [currencyAmount, setCurrencyAmount] = useState<string>('')
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
-    const { showExternalWalletFulfilMethods, showRequestFulfilmentBankFlowManager, fulfilUsingManteca } =
+    const { showExternalWalletFulfilMethods, showRequestFulfilmentBankFlowManager, fulfillUsingManteca } =
         useRequestFulfillmentFlow()
 
     // determine if the current user is the recipient of the transaction
@@ -385,11 +385,10 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         }
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
 
-    let showActionList = flow !== 'direct_pay'
-
-    if (flow === 'direct_pay' && !user) {
-        showActionList = true
-    }
+    const showActionList =
+        flow !== 'direct_pay' || // Always show for non-direct-pay flows
+        (flow === 'direct_pay' && !user) || // Show for direct-pay when user is not logged in
+        !fulfillUsingManteca // Show when not fulfilling using Manteca
 
     if (error) {
         return (
@@ -483,7 +482,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                         currencyAmount={currencyAmount}
                     />
                     <div>
-                        {!fulfilUsingManteca && showActionList && (
+                        {showActionList && (
                             <ActionList
                                 flow="request"
                                 requestLinkData={parsedPaymentData as ParsedURL}

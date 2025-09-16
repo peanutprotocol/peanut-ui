@@ -1,8 +1,8 @@
 'use server'
 
+import { MantecaWithdrawData, MantecaWithdrawResponse } from '@/types/manteca.types'
 import { fetchWithSentry } from '@/utils'
 import { cookies } from 'next/headers'
-import { MantecaWithdrawData, MantecaWithdrawResponse } from './types/manteca.types'
 
 const API_KEY = process.env.PEANUT_API_KEY!
 

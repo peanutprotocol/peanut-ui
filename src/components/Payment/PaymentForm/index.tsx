@@ -36,7 +36,7 @@ import { useAccount } from 'wagmi'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { PaymentFlow } from '@/app/[...recipient]/client'
-import MantecaFulfuilment from '../Views/MantecaFulfuilment.view'
+import MantecaFulfuillment from '../Views/MantecaFulfuillment.view'
 
 export type PaymentFlowProps = {
     isPintaReq?: boolean
@@ -81,7 +81,7 @@ export const PaymentForm = ({
         error: paymentStoreError,
         attachmentOptions,
     } = usePaymentStore()
-    const { setShowExternalWalletFulfilMethods, setExternalWalletFulfilMethod, fulfilUsingManteca } =
+    const { setShowExternalWalletFulfilMethods, setExternalWalletFulfilMethod, fulfillUsingManteca } =
         useRequestFulfillmentFlow()
     const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
     const { user: recipientUser } = useUserByUsername(recipientUsername)
@@ -641,8 +641,8 @@ export const PaymentForm = ({
         }
     }
 
-    if (fulfilUsingManteca) {
-        return <MantecaFulfuilment />
+    if (fulfillUsingManteca) {
+        return <MantecaFulfuillment />
     }
 
     return (

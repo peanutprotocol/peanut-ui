@@ -133,7 +133,6 @@ export async function createMantecaOnramp(
     }
 
     try {
-        console.log('called hahahahha')
         const response = await fetchWithSentry(`${apiUrl}/manteca/deposit`, {
             method: 'POST',
             headers: {

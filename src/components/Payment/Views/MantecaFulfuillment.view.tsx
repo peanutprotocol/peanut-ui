@@ -11,8 +11,8 @@ import { usePaymentStore } from '@/redux/hooks'
 import { useQuery } from '@tanstack/react-query'
 import React from 'react'
 
-const MantecaFulfuilment = () => {
-    const { setFulfilUsingManteca } = useRequestFulfillmentFlow()
+const MantecaFulfuillment = () => {
+    const { setFulfillUsingManteca } = useRequestFulfillmentFlow()
     const { requestDetails, chargeDetails } = usePaymentStore()
     const { data: depositData, isLoading: isLoadingDeposit } = useQuery({
         queryKey: ['manteca-deposit', chargeDetails?.uuid],
@@ -44,7 +44,7 @@ const MantecaFulfuilment = () => {
             <NavHeader
                 title="Send"
                 onPrev={() => {
-                    setFulfilUsingManteca(false)
+                    setFulfillUsingManteca(false)
                 }}
             />
 
@@ -107,4 +107,4 @@ const MantecaFulfuilment = () => {
     )
 }
 
-export default MantecaFulfuilment
+export default MantecaFulfuillment

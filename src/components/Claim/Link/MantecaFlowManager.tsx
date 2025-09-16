@@ -5,11 +5,10 @@ import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { ClaimLinkData } from '@/services/sendLinks'
 import { FC, useState } from 'react'
 import MantecaDetailsStep from './views/MantecaDetailsStep.view'
-import { MercadoPagoStep } from '@/types/manteca.types'
+import { MantecaWithdrawResponseData, MercadoPagoStep } from '@/types/manteca.types'
 import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle'
 import { useRouter } from 'next/navigation'
-import { MantecaWithdrawResponseData } from '@/app/actions/types/manteca.types'
 
 interface MantecaFlowManagerProps {
     claimLinkData: ClaimLinkData
