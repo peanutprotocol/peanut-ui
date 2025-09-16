@@ -14,7 +14,6 @@ import { formatUnits } from 'viem'
 import ExchangeRate from '@/components/ExchangeRate'
 import { AccountType } from '@/interfaces'
 import { useCurrency } from '@/hooks/useCurrency'
-import { getCurrencySymbol } from '@/utils/bridge.utils'
 
 interface ConfirmBankClaimViewProps {
     onConfirm: () => void
@@ -72,15 +71,15 @@ export function ConfirmBankClaimView({
 
     // fallback if conversion fails
     const failedConversion = useMemo(() => {
-        return currencyCode !== 'USD' && !isLoadingCurrency && (!price || isNaN(price))
+        return currencyCode !== 'USD' && !isLoadingCurrency && (!price?.sell || isNaN(price.sell))
     }, [currencyCode, isLoadingCurrency, price])
 
     // display amount in local currency
     const displayAmount = useMemo(() => {
         if (currencyCode === 'USD') return usdAmount
         if (isLoadingCurrency) return '-'
-        if (!price || isNaN(price)) return usdAmount
-        const converted = (Number(usdAmount) * price).toFixed(2)
+        if (!price?.sell || isNaN(price.sell)) return usdAmount
+        const converted = (Number(usdAmount) * price.sell).toFixed(2)
         return converted
     }, [price, usdAmount, currencyCode, isLoadingCurrency])
 
@@ -88,7 +87,7 @@ export function ConfirmBankClaimView({
         if (currencyCode === 'USD') return '$'
         // fallback to $ if conversion fails
         if (failedConversion) return '$'
-        return resolvedSymbol ?? getCurrencySymbol(currencyCode)
+        return resolvedSymbol ?? currencyCode
     }, [currencyCode, resolvedSymbol, failedConversion])
 
     return (

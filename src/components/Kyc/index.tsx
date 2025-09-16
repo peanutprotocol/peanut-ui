@@ -3,6 +3,8 @@ import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { KycVerificationInProgressModal } from './KycVerificationInProgressModal'
 import { IconName } from '@/components/Global/Icons/Icon'
+import { saveRedirectUrl } from '@/utils'
+import useClaimLink from '../Claim/useClaimLink'
 
 interface KycModalFlowProps {
     isOpen: boolean
@@ -22,10 +24,13 @@ export const InitiateKYCModal = ({ isOpen, onClose, onKycSuccess, onManualClose,
         handleIframeClose,
         closeVerificationProgressModal,
     } = useBridgeKycFlow({ onKycSuccess, flow, onManualClose })
+    const { addParamStep } = useClaimLink()
 
     const handleVerifyClick = async () => {
+        addParamStep('bank')
         const result = await handleInitiateKyc()
         if (result?.success) {
+            saveRedirectUrl()
             onClose()
         }
     }

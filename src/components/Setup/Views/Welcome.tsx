@@ -5,9 +5,9 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useZeroDev } from '@/hooks/useZeroDev'
-import { getFromLocalStorage } from '@/utils'
+import { getFromLocalStorage, sanitizeRedirectURL } from '@/utils'
 import * as Sentry from '@sentry/nextjs'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 
 const WelcomeStep = () => {
@@ -16,11 +16,16 @@ const WelcomeStep = () => {
     const { user } = useAuth()
     const { push } = useRouter()
     const toast = useToast()
+    const searchParams = useSearchParams()
 
     useEffect(() => {
         if (!!user) {
             const localStorageRedirect = getFromLocalStorage('redirect')
-            if (localStorageRedirect) {
+            const redirect_uri = searchParams.get('redirect_uri')
+            if (redirect_uri) {
+                const sanitizedRedirectUrl = sanitizeRedirectURL(redirect_uri)
+                push(sanitizedRedirectUrl)
+            } else if (localStorageRedirect) {
                 localStorage.removeItem('redirect')
                 push(localStorageRedirect)
             } else {

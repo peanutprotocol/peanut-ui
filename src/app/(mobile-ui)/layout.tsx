@@ -20,8 +20,11 @@ import PullToRefresh from 'pulltorefreshjs'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
+import SupportDrawer from '@/components/Global/SupportDrawer'
+import { useSupportModalContext } from '@/context/SupportModalContext'
 
-const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$)/
+// Allow access to some public paths without authentication
+const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
@@ -30,7 +33,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const [isReady, setIsReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
     const isUserLoggedIn = !!user?.user.userId || false
-
+    const { setIsSupportModalOpen } = useSupportModalContext()
     const isHome = pathName === '/home'
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
@@ -80,7 +83,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         }
     }, [])
 
-    if (!isReady || (isFetchingUser && !user && !hasToken)) {
+    // Allow access to public paths without authentication
+    const isPublicPath = publicPathRegex.test(pathName)
+
+    if (!isReady || (isFetchingUser && !user && !hasToken && !isPublicPath)) {
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                 <PeanutLoading />
@@ -105,7 +111,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <div className="flex w-full flex-1 flex-col">
                     {/* Only show banner if not on landing page */}
                     {pathName !== '/' && (
-                        <button onClick={() => router.push('/support')} className="w-full cursor-pointer">
+                        <button onClick={() => setIsSupportModalOpen(true)} className="w-full cursor-pointer">
                             <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
                                 <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
                                     Peanut is in beta! Thank you for being an early user, share your feedback here
@@ -165,6 +171,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Modal */}
             <GuestLoginModal />
+
+            <SupportDrawer />
         </div>
     )
 }

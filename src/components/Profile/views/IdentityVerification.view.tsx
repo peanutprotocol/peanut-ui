@@ -51,8 +51,7 @@ const IdentityVerificationView = () => {
 
     const initialUserDetails: Partial<UserDetailsFormData> = useMemo(
         () => ({
-            firstName: user?.user.fullName ? firstName : '',
-            lastName: user?.user.fullName ? lastName : '',
+            fullName: user?.user.fullName ?? '',
             email: user?.user.email ?? '',
         }),
         [user?.user.fullName, user?.user.email, firstName, lastName]
@@ -65,7 +64,7 @@ const IdentityVerificationView = () => {
             if (!user?.user.userId) throw new Error('User not found')
             const result = await updateUserById({
                 userId: user.user.userId,
-                fullName: `${data.firstName} ${data.lastName}`,
+                fullName: data.fullName,
                 email: data.email,
             })
             if (result.error) {

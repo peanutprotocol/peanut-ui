@@ -306,3 +306,31 @@ export interface TCreateOfframpResponse {
     deposit_chain_id: number
     deposit_token_address: string
 }
+
+// manteca service types
+export interface CreateQrPaymentRequest {
+    qrCode: string
+    amount?: string
+}
+
+export interface QrPaymentDetails {
+    paymentAsset?: string
+    paymentAssetAmount?: string
+    paymentPrice?: string
+    priceExpireAt?: string
+}
+
+export interface QrPaymentResponse {
+    id: string
+    externalId: string
+    sessionId: string
+    status: string
+    currentStage: string
+    details?: QrPaymentDetails
+    stages?: any[]
+}
+
+export interface CreateQrPaymentResponse {
+    qrPayment: QrPaymentResponse
+    charge: TRequestChargeResponse
+}

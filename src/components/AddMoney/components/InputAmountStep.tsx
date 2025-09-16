@@ -48,11 +48,11 @@ const InputAmountStep = ({
                     hideCurrencyToggle
                     setUsdValue={(e) => setTokenUSDAmount(e)}
                     currency={
-                        currencyData && currencyData.price && currencyData.price > 0
+                        currencyData
                             ? {
                                   code: currencyData.code!,
                                   symbol: currencyData.symbol!,
-                                  price: currencyData.price!,
+                                  price: currencyData.price!.buy,
                               }
                             : undefined
                     }
