@@ -516,7 +516,7 @@ export const TransactionDetailsReceipt = ({
                                         />
                                     </div>
                                 }
-                                hideBottomBorder={shouldHideBorder('depositInstructions')}
+                                hideBottomBorder={false} // Always show the border for the deposit message
                             />
 
                             {/* Toggle button for bank details */}
