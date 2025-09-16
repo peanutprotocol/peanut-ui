@@ -82,7 +82,7 @@ export const Tooltip = ({
                 onBlur={hideTooltip}
                 onClick={(e) => {
                     e.stopPropagation()
-                    showTooltip()
+                    visible ? hideTooltip() : showTooltip()
                 }}
             >
                 {children}
