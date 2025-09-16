@@ -36,7 +36,7 @@ import { useAccount } from 'wagmi'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { PaymentFlow } from '@/app/[...recipient]/client'
-import MantecaFulfuillment from '../Views/MantecaFulfuillment.view'
+import MantecaFulfillment from '../Views/MantecaFulfillment.view'
 
 export type PaymentFlowProps = {
     isPintaReq?: boolean
@@ -642,7 +642,7 @@ export const PaymentForm = ({
     }
 
     if (fulfillUsingManteca) {
-        return <MantecaFulfuillment />
+        return <MantecaFulfillment />
     }
 
     return (

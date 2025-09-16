@@ -11,7 +11,7 @@ import { mantecaApi } from '@/services/manteca'
 import { useQuery } from '@tanstack/react-query'
 import React from 'react'
 
-const MantecaFulfuillment = () => {
+const MantecaFulfillment = () => {
     const { setFulfillUsingManteca } = useRequestFulfillmentFlow()
     const { requestDetails, chargeDetails } = usePaymentStore()
     const { data: depositData, isLoading: isLoadingDeposit } = useQuery({
@@ -107,4 +107,4 @@ const MantecaFulfuillment = () => {
     )
 }
 
-export default MantecaFulfuillment
+export default MantecaFulfillment
