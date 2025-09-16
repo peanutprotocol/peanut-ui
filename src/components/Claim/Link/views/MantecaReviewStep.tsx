@@ -43,17 +43,27 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({ setCurrentStep, claimLi
     const handleWithdraw = async () => {
         if (destinationAddress) {
             try {
+                setError(null)
                 setIsSubmitting(true)
                 const claimResponse = await sendLinksApi.claim(MANTECA_DEPOSIT_ADDRESS, claimLink)
-                await mantecaApi.withdraw({
-                    amount,
+                const txHash = claimResponse?.claim?.txHash
+                if (!txHash) {
+                    setError('Claim failed: missing transaction hash.')
+                    return
+                }
+                const { data, error: withdrawError } = await mantecaApi.withdraw({
+                    amount: amount.replace(/,/g, ''),
                     destinationAddress,
-                    txHash: claimResponse.claim?.txHash ?? '',
-                    currency: 'ARS',
+                    txHash,
+                    currency: 'ARS', // TODO: source-selected currency
                 })
+                if (withdrawError || !data) {
+                    setError(withdrawError || 'Something went wrong. Please contact Support')
+                    return
+                }
                 setCurrentStep(MercadoPagoStep.SUCCESS)
             } catch (error) {
-                setError(error instanceof Error ? error.message : 'Something went wrong')
+                setError(error instanceof Error ? error.message : 'Something went wrong. Please contact Support')
                 console.error('Error claiming link:', error)
             } finally {
                 setIsSubmitting(false)
