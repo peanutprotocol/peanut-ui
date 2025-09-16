@@ -1,3 +1,5 @@
+'use client'
+
 import { MERCADO_PAGO } from '@/assets'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
