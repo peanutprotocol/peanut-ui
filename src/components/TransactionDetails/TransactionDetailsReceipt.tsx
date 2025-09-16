@@ -280,6 +280,7 @@ export const TransactionDetailsReceipt = ({
         }
     }
 
+    // Show profile button only if txn is completed, not to/by a guest user and its a send/request/receive txn
     const showUserProfileButton =
         !!transaction &&
         transaction.status === 'completed' &&
