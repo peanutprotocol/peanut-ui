@@ -1,3 +1,5 @@
+'use client'
+
 import { useCallback, useState, useEffect } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
@@ -42,12 +44,16 @@ export function useQrKycGate(): QrKycGateResult {
         }
 
         if (currentUser.bridgeKycStatus === 'approved' && currentUser.bridgeCustomerId) {
-            const { countryCode } = await getBridgeCustomerCountry(currentUser.bridgeCustomerId)
-
-            if (countryCode && countryCode.toUpperCase() === 'AR') {
-                setKycGateState(QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER)
-            } else {
-                setKycGateState(QrKycState.PROCEED_TO_PAY)
+            try {
+                const { countryCode } = await getBridgeCustomerCountry(currentUser.bridgeCustomerId)
+                if (countryCode && countryCode.toUpperCase() === 'AR') {
+                    setKycGateState(QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER)
+                } else {
+                    setKycGateState(QrKycState.PROCEED_TO_PAY)
+                }
+            } catch {
+                // fail to require identity verification to avoid blocking pay due to rare outages
+                setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
             }
             return
         }
