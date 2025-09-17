@@ -44,13 +44,14 @@ export const Profile = () => {
                 <ProfileHeader name={fullName || username} username={username} isVerified={isKycApproved} />
                 <div className="space-y-4">
                     {/* Menu Item - Invite Entry */}
-                    <ProfileMenuItem
+                    {/* Enable with Invites project. */}
+                    {/* <ProfileMenuItem
                         icon="smile"
                         label="Invite friends to Peanut"
-                        href="https://docs.peanut.to/how-to-use-peanut-links/referrals"
+                        href="https://docs.peanut.me/how-to-use-peanut-links/referrals"
                         position="single"
                         isExternalLink
-                    />
+                    /> */}
                     {/* Menu Items - First Group */}
                     <div>
                         <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
@@ -68,6 +69,8 @@ export const Profile = () => {
                             position="middle"
                             endIcon={isKycApproved ? 'check' : undefined}
                             endIconClassName={isKycApproved ? 'text-success-3 size-4' : undefined}
+                            showTooltip
+                            toolTipText="No need to verify unless you want to move money to or from your bank."
                         />
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem
@@ -81,25 +84,18 @@ export const Profile = () => {
                     </div>
                     {/* Menu Items - Second Group */}
                     <div>
-                        <ProfileMenuItem
-                            icon="fees"
-                            label="Fees"
-                            href="https://docs.peanut.to/fees"
-                            position="first"
-                            isExternalLink
-                        />
-                        <ProfileMenuItem icon="currency" label="Currency" position="middle" comingSoon />
+                        <ProfileMenuItem icon="currency" label="Currency" position="first" comingSoon />
                         <ProfileMenuItem
                             icon="exchange"
-                            label="Exchange rates"
-                            href="/profile/exchange-rates"
+                            label="Exchange rates and fees"
+                            href="/profile/exchange-rate"
                             position="last"
-                            comingSoon
                         />
                     </div>
                     {/* Logout Button */}
                     <div className="w-full pb-10">
                         <Button
+                            loading={isLoggingOut}
                             disabled={isLoggingOut}
                             variant="primary-soft"
                             shadowSize="4"

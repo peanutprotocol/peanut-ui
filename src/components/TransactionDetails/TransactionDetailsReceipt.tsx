@@ -1,3 +1,5 @@
+'use client'
+
 import Card from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -27,6 +29,8 @@ import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
 import { getBankAccountLabel, TransactionDetailsRowKey, transactionDetailsRowKeys } from './transaction-details.utils'
+import { useSupportModalContext } from '@/context/SupportModalContext'
+import { useRouter } from 'next/navigation'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -57,6 +61,8 @@ export const TransactionDetailsReceipt = ({
     const [showCancelLinkModal, setShowCancelLinkModal] = useState(isModalOpen)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
+    const { setIsSupportModalOpen } = useSupportModalContext()
+    const router = useRouter()
 
     useEffect(() => {
         setIsModalOpen?.(showCancelLinkModal)
@@ -275,6 +281,16 @@ export const TransactionDetailsReceipt = ({
             return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
         }
     }
+
+    // Show profile button only if txn is completed, not to/by a guest user and its a send/request/receive txn
+    const showUserProfileButton =
+        !!transaction &&
+        transaction.status === 'completed' &&
+        !!transaction.userName &&
+        !isAddress(transaction.userName) &&
+        (transaction.extraDataForDrawer?.transactionCardType === 'send' ||
+            transaction.extraDataForDrawer?.transactionCardType === 'request' ||
+            transaction.extraDataForDrawer?.transactionCardType === 'receive')
 
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
@@ -514,14 +530,14 @@ export const TransactionDetailsReceipt = ({
                                         />
                                     </div>
                                 }
-                                hideBottomBorder={shouldHideBorder('depositInstructions')}
+                                hideBottomBorder={false} // Always show the border for the deposit message
                             />
 
                             {/* Toggle button for bank details */}
                             <div className="border-grey-11 border-b pb-3">
                                 <button
                                     onClick={() => setShowBankDetails(!showBankDetails)}
-                                    className="flex w-full items-center justify-between py-3 text-left text-sm font-medium text-black underline transition-colors"
+                                    className="flex w-full items-center justify-between py-3 text-left text-sm font-normal text-black underline transition-colors"
                                 >
                                     <span>{showBankDetails ? 'Hide bank details' : 'See bank details'}</span>
                                     <Icon
@@ -909,6 +925,22 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
+            {showUserProfileButton && (
+                <div className="pr-1">
+                    <Button
+                        onClick={() => router.push(`/${transaction.userName}`)}
+                        shadowSize="4"
+                        variant={
+                            transaction.extraDataForDrawer?.transactionCardType === 'request'
+                                ? 'purple'
+                                : 'primary-soft'
+                        }
+                        className="flex w-full items-center gap-1"
+                    >
+                        Go to {transaction.userName} profile
+                    </Button>
+                </div>
+            )}
             {/* Cancel deposit button for bridge_onramp transactions in awaiting_funds state */}
             {transaction.direction === 'bank_deposit' &&
                 transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.REQUEST &&
@@ -996,13 +1028,13 @@ export const TransactionDetailsReceipt = ({
                 )}
 
             {/* support link section */}
-            <Link
-                href={'/support'}
-                className="flex items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+            <button
+                onClick={() => setIsSupportModalOpen(true)}
+                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
             >
                 <Icon name="peanut-support" size={16} className="text-grey-1" />
                 Issues with this transaction?
-            </Link>
+            </button>
 
             {/* Cancel Link Modal  */}
 

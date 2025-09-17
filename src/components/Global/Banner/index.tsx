@@ -1,9 +1,12 @@
-import { usePathname, useRouter } from 'next/navigation'
+'use client'
+
+import { usePathname } from 'next/navigation'
 import { MaintenanceBanner } from './MaintenanceBanner'
 import { MarqueeWrapper } from '../MarqueeWrapper'
 import config from '@/config/routesUnderMaintenance'
 import { HandThumbsUp } from '@/assets'
 import Image from 'next/image'
+import { useSupportModalContext } from '@/context/SupportModalContext'
 
 export function Banner() {
     const pathname = usePathname()
@@ -23,10 +26,10 @@ export function Banner() {
 }
 
 function FeedbackBanner() {
-    const router = useRouter()
+    const { setIsSupportModalOpen } = useSupportModalContext()
 
     const handleClick = () => {
-        router.push('/support')
+        setIsSupportModalOpen(true)
     }
 
     return (

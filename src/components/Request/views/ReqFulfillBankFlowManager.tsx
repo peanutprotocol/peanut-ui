@@ -126,7 +126,7 @@ export const ReqFulfillBankFlowManager = ({ parsedPaymentData }: { parsedPayment
             if (!user?.user.userId) throw new Error('User not found')
             const result = await updateUserById({
                 userId: user.user.userId,
-                fullName: `${data.firstName} ${data.lastName}`,
+                fullName: `${data.fullName}`,
                 email: data.email,
             })
             if (result.error) {
