@@ -169,7 +169,9 @@ export default function ConfirmPaymentView({
                     dispatch(paymentActions.setChargeDetails(null))
                 })
         } else if (!chargeIdFromUrl && !chargeDetails) {
-            dispatch(paymentActions.setError('Payment details are missing. Please go back and try again.'))
+            dispatch(
+                paymentActions.setError('Payment details are missing. Please go back and try again or contact support.')
+            )
         }
     }, [chargeIdFromUrl, chargeDetails, dispatch])
 
