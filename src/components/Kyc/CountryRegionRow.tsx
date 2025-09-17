@@ -1,5 +1,5 @@
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { CountryFlagAndName } from './Country-Flag-And-Name'
+import { CountryFlagAndName } from './CountryFlagAndName'
 
 interface CountryRegionRowProps {
     countryCode?: string | null
