@@ -5,6 +5,7 @@ import { useAuth } from '@/context/authContext'
 import { CountryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import { BASE_URL } from '@/constants'
 import { MantecaKycStatus } from '@/interfaces'
+import { useWebSocket } from './useWebSocket'
 
 type UseMantecaKycFlowOptions = {
     onClose?: () => void
@@ -21,10 +22,37 @@ export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose, country }
         visible: false,
         closeConfirmMessage: undefined,
     })
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const [isMantecaKycRequired, setNeedsMantecaKyc] = useState<boolean>(false)
 
     const userKycVerifications = user?.user?.kycVerifications
+
+    const handleIframeClose = useCallback(
+        (source?: 'manual' | 'completed' | 'tos_accepted') => {
+            setIframeOptions((prev) => ({ ...prev, visible: false }))
+            if (source === 'completed') {
+                onSuccess?.()
+                return
+            }
+            if (source === 'manual') {
+                onManualClose?.()
+                return
+            }
+            onClose?.()
+        },
+        [onClose, onSuccess, onManualClose]
+    )
+
+    useWebSocket({
+        username: user?.user.username ?? undefined,
+        autoConnect: true,
+        onMantecaKycStatusUpdate: async (status) => {
+            if (status === MantecaKycStatus.ACTIVE || status === 'WIDGET_FINISHED') {
+                await fetchUser()
+                handleIframeClose('completed')
+            }
+        },
+    })
 
     useEffect(() => {
         // determine if manteca kyc is required based on geo data available in kycVerifications
@@ -70,22 +98,6 @@ export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose, country }
             setIsLoading(false)
         }
     }, [])
-
-    const handleIframeClose = useCallback(
-        (source?: 'manual' | 'completed' | 'tos_accepted') => {
-            setIframeOptions((prev) => ({ ...prev, visible: false }))
-            if (source === 'completed') {
-                onSuccess?.()
-                return
-            }
-            if (source === 'manual') {
-                onManualClose?.()
-                return
-            }
-            onClose?.()
-        },
-        [onClose, onSuccess, onManualClose]
-    )
 
     return {
         isLoading,
