@@ -100,8 +100,6 @@ export function ConfirmBankClaimView({
             countryCodeForFlag.toLowerCase() === currency.flagCode.toLowerCase()
     )?.currencyCode
 
-    console.log(claimLinkData)
-    console.log(nonEuroCurrency)
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
             <div>
