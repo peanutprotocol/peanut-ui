@@ -74,11 +74,13 @@ export const MantecaGeoSpecificKycModal = ({
     selectedCountry,
     setIsMantecaModalOpen,
     isMantecaModalOpen,
+    onKycSuccess,
 }: {
     isUserBridgeKycApproved: boolean
     selectedCountry: { id: string; title: string }
     setIsMantecaModalOpen: (isOpen: boolean) => void
     isMantecaModalOpen: boolean
+    onKycSuccess: () => void
 }) => {
     return (
         <InitiateMantecaKYCModal
@@ -115,6 +117,7 @@ export const MantecaGeoSpecificKycModal = ({
             onClose={() => setIsMantecaModalOpen(false)}
             onKycSuccess={() => {
                 setIsMantecaModalOpen(false)
+                onKycSuccess?.()
             }}
             onManualClose={() => setIsMantecaModalOpen(false)}
             country={{ id: selectedCountry.id, title: selectedCountry.title, type: 'country', path: '' }}

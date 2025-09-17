@@ -17,13 +17,13 @@ interface UserDetailsFormProps {
 }
 
 export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDetailsFormProps>(
-    ({ onSubmit, isSubmitting, onValidChange, initialData }, ref) => {
+    ({ onSubmit, onValidChange, initialData }, ref) => {
         const [submissionError, setSubmissionError] = useState<string | null>(null)
 
         const {
             control,
             handleSubmit,
-            formState: { errors, isValid, isValidating },
+            formState: { errors, isValid },
         } = useForm<UserDetailsFormData>({
             defaultValues: {
                 fullName: initialData?.fullName ?? '',

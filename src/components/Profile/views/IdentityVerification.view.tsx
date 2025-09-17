@@ -20,6 +20,7 @@ import { MantecaKycStatus } from '@/interfaces'
 import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
+import { getRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
 
 const IdentityVerificationView = () => {
     const { user, fetchUser } = useAuth()
@@ -34,6 +35,25 @@ const IdentityVerificationView = () => {
     const [selectedCountry, setSelectedCountry] = useState<{ id: string; title: string } | null>(null)
     const [userClickedCountry, setUserClickedCountry] = useState<{ id: string; title: string } | null>(null)
 
+    const handleRedirect = useCallback(() => {
+        const redirectUrl = getRedirectUrl()
+        if (redirectUrl) {
+            clearRedirectUrl()
+            router.push(redirectUrl)
+        } else {
+            router.replace('/profile')
+        }
+    }, [router])
+
+    const handleKycSuccess = useCallback(async () => {
+        await fetchUser()
+        handleRedirect()
+    }, [router, fetchUser])
+
+    const handleMantecaKycSuccess = useCallback(() => {
+        handleRedirect()
+    }, [router])
+
     const {
         iframeOptions,
         handleInitiateKyc,
@@ -42,7 +62,7 @@ const IdentityVerificationView = () => {
         closeVerificationProgressModal,
         error: kycError,
         isLoading: isKycLoading,
-    } = useBridgeKycFlow()
+    } = useBridgeKycFlow({ onKycSuccess: handleKycSuccess })
 
     const { isUserBridgeKycApproved } = useKycStatus()
 
@@ -232,6 +252,7 @@ const IdentityVerificationView = () => {
                     selectedCountry={selectedCountry}
                     setIsMantecaModalOpen={setIsMantecaModalOpen}
                     isMantecaModalOpen={isMantecaModalOpen}
+                    onKycSuccess={handleMantecaKycSuccess}
                 />
             )}
         </div>
