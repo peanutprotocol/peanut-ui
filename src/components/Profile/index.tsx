@@ -95,6 +95,7 @@ export const Profile = () => {
                     {/* Logout Button */}
                     <div className="w-full pb-10">
                         <Button
+                            loading={isLoggingOut}
                             disabled={isLoggingOut}
                             variant="primary-soft"
                             shadowSize="4"
