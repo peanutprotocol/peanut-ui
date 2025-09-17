@@ -177,6 +177,7 @@ export const mantecaApi = {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                    'api-key': 'DRdzuEiRvTtbFYKGahIdFUHuwhYzl1vo',
                 },
                 body: JSON.stringify({
                     usdAmount: params.usdAmount,
