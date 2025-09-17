@@ -20,7 +20,7 @@ const PintaReqViewWrapper = ({ children, view }: PintaReqViewWrapperProps) => {
         },
         ERROR: {
             title: 'There was an error',
-            description: 'Please try again later.',
+            description: 'Please contact Support.',
         },
     }
 
