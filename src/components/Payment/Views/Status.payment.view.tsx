@@ -36,6 +36,7 @@ type DirectSuccessViewProps = {
     isExternalWalletFlow?: boolean
     isWithdrawFlow?: boolean
     redirectTo?: string
+    onComplete?: () => void
 }
 
 const DirectSuccessView = ({
@@ -49,6 +50,7 @@ const DirectSuccessView = ({
     isExternalWalletFlow,
     isWithdrawFlow,
     redirectTo = '/home',
+    onComplete,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const { chargeDetails, parsedPaymentData, usdAmount, paymentDetails } = usePaymentStore()
@@ -162,6 +164,7 @@ const DirectSuccessView = ({
     }, [queryClient])
 
     const handleDone = () => {
+        onComplete?.()
         if (!!authUser?.user.userId) {
             // reset payment state when done
             router.push('/home')
@@ -187,6 +190,7 @@ const DirectSuccessView = ({
                         icon="cancel"
                         title={headerTitle}
                         onPrev={() => {
+                            onComplete?.()
                             router.push(redirectTo)
                         }}
                     />
