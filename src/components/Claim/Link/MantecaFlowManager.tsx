@@ -19,12 +19,14 @@ interface MantecaFlowManagerProps {
 }
 
 const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount, attachment }) => {
-    const { setClaimToMercadoPago } = useClaimBankFlow()
+    const { setClaimToMercadoPago, selectedCountry } = useClaimBankFlow()
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
     const router = useRouter()
     const [destinationAddress, setDestinationAddress] = useState('')
 
     const isSuccess = currentStep === MercadoPagoStep.SUCCESS
+    const selectedCurrency = selectedCountry?.currency || 'ARS'
+    const logo = selectedCountry?.id ? undefined : MERCADO_PAGO
 
     const renderStepDetails = () => {
         if (currentStep === MercadoPagoStep.DETAILS) {
@@ -43,6 +45,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     claimLink={claimLinkData.link}
                     destinationAddress={destinationAddress}
                     amount={amount}
+                    currency={selectedCurrency}
                 />
             )
         }
@@ -88,7 +91,8 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     tokenSymbol={claimLinkData.tokenSymbol}
                     message={attachment.message}
                     fileUrl={attachment.attachmentUrl}
-                    logo={isSuccess ? undefined : MERCADO_PAGO}
+                    logo={isSuccess ? undefined : logo}
+                    countryCodeForFlag={selectedCountry?.id.toLowerCase()}
                 />
 
                 {renderStepDetails()}

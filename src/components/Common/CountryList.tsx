@@ -135,7 +135,7 @@ export const CountryList = ({
                                 isSupported = isBridgeSupportedCountry || isMantecaSupportedCountry
                             } else if (viewMode === 'claim-request') {
                                 // support all countries
-                                isSupported = isBridgeSupportedCountry
+                                isSupported = isBridgeSupportedCountry || isMantecaSupportedCountry
                             } else {
                                 // support all countries
                                 isSupported = true
