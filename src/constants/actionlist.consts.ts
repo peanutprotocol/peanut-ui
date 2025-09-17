@@ -27,7 +27,7 @@ export const ACTION_METHODS: PaymentMethod[] = [
         title: 'Mercado Pago',
         description: 'Instant transfers',
         icons: [MERCADO_PAGO],
-        soon: true,
+        soon: false,
     },
     {
         id: 'exchange-or-wallet',

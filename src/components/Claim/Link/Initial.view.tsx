@@ -52,6 +52,7 @@ import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 import useKycStatus from '@/hooks/useKycStatus'
+import MantecaFlowManager from './MantecaFlowManager'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const {
@@ -92,6 +93,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         setShowVerificationModal,
         setClaimToExternalWallet,
         resetFlow: resetClaimBankFlow,
+        claimToMercadoPago,
     } = useClaimBankFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
@@ -638,6 +640,22 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
+    }
+
+    if (claimToMercadoPago) {
+        return (
+            <MantecaFlowManager
+                claimLinkData={claimLinkData}
+                attachment={attachment}
+                amount={
+                    isReward
+                        ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!
+                        : (formatTokenAmount(
+                              Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
+                          ) ?? '')
+                }
+            />
+        )
     }
 
     return (

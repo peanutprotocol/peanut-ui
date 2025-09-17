@@ -42,7 +42,12 @@ interface IActionListProps {
  */
 export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLinkData }: IActionListProps) {
     const router = useRouter()
-    const { setClaimToExternalWallet, setFlowStep: setClaimBankFlowStep, setShowVerificationModal } = useClaimBankFlow()
+    const {
+        setClaimToExternalWallet,
+        setFlowStep: setClaimBankFlowStep,
+        setShowVerificationModal,
+        setClaimToMercadoPago,
+    } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const { chargeDetails } = usePaymentStore()
@@ -55,6 +60,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
         setShowRequestFulfilmentBankFlowManager,
         setShowExternalWalletFulfilMethods,
         setFlowStep: setRequestFulfilmentBankFlowStep,
+        setFulfillUsingManteca,
     } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
 
@@ -81,7 +87,8 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     }
                     break
                 case 'mercadopago':
-                    break // soon tag, so no action needed
+                    setClaimToMercadoPago(true)
+                    break
                 case 'exchange-or-wallet':
                     setClaimToExternalWallet(true)
                     break
@@ -103,7 +110,8 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     }
                     break
                 case 'mercadopago':
-                    break // soon tag, so no action needed
+                    setFulfillUsingManteca(true)
+                    break
                 case 'exchange-or-wallet':
                     setShowExternalWalletFulfilMethods(true)
                     break

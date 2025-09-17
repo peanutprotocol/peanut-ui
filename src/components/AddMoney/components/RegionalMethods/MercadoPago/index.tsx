@@ -2,7 +2,6 @@
 import { FC, useEffect, useMemo, useState } from 'react'
 import MercadoPagoDepositDetails from './MercadoPagoDepositDetails'
 import InputAmountStep from '../../InputAmountStep'
-import { createMantecaOnramp } from '@/app/actions/onramp'
 import { useParams, useRouter } from 'next/navigation'
 import { CountryData, countryData } from '@/components/AddMoney/consts'
 import { MantecaDepositDetails } from '@/types/manteca.types'
@@ -11,6 +10,7 @@ import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { mantecaApi } from '@/services/manteca'
 
 interface MercadoPagoProps {
     source: 'bank' | 'regionalMethod'
@@ -74,7 +74,7 @@ const MercadoPago: FC<MercadoPagoProps> = ({ source }) => {
         try {
             setError(null)
             setIsCreatingDeposit(true)
-            const depositData = await createMantecaOnramp({
+            const depositData = await mantecaApi.deposit({
                 usdAmount: tokenUSDAmount.replace(/,/g, ''),
                 currency: selectedCountry.currency,
             })
