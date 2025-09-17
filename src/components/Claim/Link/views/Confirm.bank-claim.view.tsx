@@ -15,6 +15,7 @@ import ExchangeRate from '@/components/ExchangeRate'
 import { AccountType } from '@/interfaces'
 import { useCurrency } from '@/hooks/useCurrency'
 import { getCurrencySymbol } from '@/utils/bridge.utils'
+import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 
 interface ConfirmBankClaimViewProps {
     onConfirm: () => void
@@ -91,6 +92,16 @@ export function ConfirmBankClaimView({
         return resolvedSymbol ?? getCurrencySymbol(currencyCode)
     }, [currencyCode, resolvedSymbol, failedConversion])
 
+    // Array for non-European countries, we show usd -> local currency exchange rate for these countries
+    const nonEuropeanCountries = ['mx', 'us', 'br', 'ar']
+    const nonEuroCurrency = countryCurrencyMappings.find(
+        (currency) =>
+            !nonEuropeanCountries?.includes(currency.flagCode.toLowerCase()) &&
+            countryCodeForFlag.toLowerCase() === currency.flagCode.toLowerCase()
+    )?.currencyCode
+
+    console.log(claimLinkData)
+    console.log(nonEuroCurrency)
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
             <div>
@@ -121,7 +132,11 @@ export function ConfirmBankClaimView({
                     {bankDetails.routingNumber && (
                         <PaymentInfoRow label="Routing Number" value={bankDetails.routingNumber.toUpperCase()} />
                     )}
-                    <ExchangeRate accountType={accountType} />
+                    <ExchangeRate
+                        accountType={accountType}
+                        nonEuroCurrency={nonEuroCurrency}
+                        sourceCurrency={currencyCode}
+                    />
                     <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                 </Card>
 
