@@ -6,17 +6,7 @@ import { useUserStore } from '@/redux/hooks'
 import { BridgeKycStatus, convertPersonaUrl } from '@/utils'
 import { InitiateKycResponse } from '@/app/actions/types/users.types'
 import { getKycDetails } from '@/app/actions/users'
-
-// persona event detail types
-interface PersonaEventDetail {
-    inquiryId: string
-    status: string
-    sessionToken?: string
-}
-
-interface PersonaEvent extends Event {
-    detail: PersonaEventDetail
-}
+import { IUserKycVerification } from '@/interfaces'
 
 interface UseKycFlowOptions {
     onKycSuccess?: () => void
@@ -24,10 +14,12 @@ interface UseKycFlowOptions {
     onManualClose?: () => void
 }
 
-export type KycHistoryEntry = {
+export interface KycHistoryEntry {
     isKyc: true
     uuid: string
     timestamp: string
+    verification?: IUserKycVerification
+    bridgeKycStatus?: BridgeKycStatus
 }
 
 // type guard to check if an entry is a KYC status item in history section
@@ -35,7 +27,7 @@ export const isKycStatusItem = (entry: object): entry is KycHistoryEntry => {
     return 'isKyc' in entry && entry.isKyc === true
 }
 
-export const useKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFlowOptions = {}) => {
+export const useBridgeKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFlowOptions = {}) => {
     const { user } = useUserStore()
     const router = useRouter()
     const isMounted = useRef(false)

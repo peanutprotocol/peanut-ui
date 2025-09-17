@@ -1,12 +1,12 @@
 import { Button, ButtonProps } from '@/components/0_Bruddle/Button'
 import IframeWrapper from '@/components/Global/IframeWrapper'
-import { useKycFlow } from '@/hooks/useKycFlow'
+import { useBridgeKycFlow } from '@/hooks/useBridgeKycFlow'
 
 // this component is the main entry point for the kyc flow
 // it renders a button that, when clicked, initiates the process of fetching
 // tos/kyc links, showing them in an iframe, and then displaying a status modal
 export const KycFlow = (props: ButtonProps) => {
-    const { isLoading, error, iframeOptions, handleInitiateKyc, handleIframeClose } = useKycFlow()
+    const { isLoading, error, iframeOptions, handleInitiateKyc, handleIframeClose } = useBridgeKycFlow()
 
     return (
         <>

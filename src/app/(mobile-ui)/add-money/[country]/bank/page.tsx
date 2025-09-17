@@ -9,7 +9,6 @@ import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils'
 import { countryData } from '@/components/AddMoney/consts'
-import { InitiateKYCModal } from '@/components/Kyc'
 import { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/context/authContext'
@@ -26,6 +25,7 @@ import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDe
 import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
 import MercadoPago from '@/components/AddMoney/components/RegionalMethods/MercadoPago'
+import { InitiateBridgeKYCModal } from '@/components/Kyc/InitiateBridgeKYCModal'
 
 type AddStep = 'inputAmount' | 'kyc' | 'loading' | 'collectUserDetails' | 'showDetails'
 
@@ -304,7 +304,7 @@ export default function OnrampBankPage() {
     if (step === 'kyc') {
         return (
             <div className="flex flex-col justify-start space-y-8">
-                <InitiateKYCModal
+                <InitiateBridgeKYCModal
                     isOpen={isKycModalOpen}
                     onClose={handleKycModalClose}
                     onKycSuccess={handleKycSuccess}
