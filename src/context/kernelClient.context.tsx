@@ -6,6 +6,7 @@ import {
     ZERODEV_KERNEL_VERSION,
 } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
+import { createKernelMigrationAccount } from '@zerodev/sdk/accounts'
 import { useAppDispatch } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, getFromLocalStorage } from '@/utils'
@@ -16,7 +17,7 @@ import {
     createZeroDevPaymasterClient,
     KernelAccountClient,
 } from '@zerodev/sdk'
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState, useMemo } from 'react'
 import { Chain, http, PublicClient, Transport } from 'viem'
 import { captureException } from '@sentry/nextjs'
 
@@ -33,25 +34,16 @@ const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
 const KernelClientContext = createContext<KernelClientContextType | undefined>(undefined)
 
-export const createPasskeyValidator = async (publicClient: PublicClient, webAuthnKey: WebAuthnKey) => {
+export const createPasskeyValidator = async (
+    publicClient: PublicClient,
+    webAuthnKey: WebAuthnKey,
+    validatorContractVersion: PasskeyValidatorContractVersion = PasskeyValidatorContractVersion.V0_0_3_PATCHED
+) => {
     return await toPasskeyValidator(publicClient, {
         webAuthnKey,
         entryPoint: USER_OP_ENTRY_POINT,
         kernelVersion: ZERODEV_KERNEL_VERSION,
-        validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2_UNPATCHED,
-    })
-}
-
-export const createKernelAccountForChain = async (
-    publicClient: PublicClient,
-    passkeyValidator: Awaited<ReturnType<typeof toPasskeyValidator>>
-) => {
-    return await createKernelAccount(publicClient, {
-        plugins: {
-            sudo: passkeyValidator,
-        },
-        entryPoint: USER_OP_ENTRY_POINT,
-        kernelVersion: ZERODEV_KERNEL_VERSION,
+        validatorContractVersion,
     })
 }
 
@@ -63,14 +55,43 @@ export interface KernelClientOptions {
 export const createKernelClientForChain = async <C extends Chain>(
     publicClient: PublicClient,
     chain: C,
-    passkeyValidator: Awaited<ReturnType<typeof toPasskeyValidator>>,
+    shouldUseMigrationKernel: boolean = false,
+    webAuthnKey: WebAuthnKey,
     options: KernelClientOptions
 ): Promise<GenericSmartAccountClient<C>> => {
     console.log(`Creating new kernel client for chain ${chain.name}...`)
 
     const { bundlerUrl, paymasterUrl } = options
 
-    const kernelAccount = await createKernelAccountForChain(publicClient, passkeyValidator)
+    let kernelAccount: Awaited<ReturnType<typeof createKernelAccount>>
+    const newValidator = await createPasskeyValidator(publicClient, webAuthnKey)
+    if (shouldUseMigrationKernel) {
+        const oldValidator = await createPasskeyValidator(
+            publicClient,
+            webAuthnKey,
+            PasskeyValidatorContractVersion.V0_0_2_UNPATCHED
+        )
+        kernelAccount = await createKernelMigrationAccount(publicClient, {
+            plugins: {
+                sudo: {
+                    migrate: {
+                        from: oldValidator,
+                        to: newValidator,
+                    },
+                },
+            },
+            entryPoint: USER_OP_ENTRY_POINT,
+            kernelVersion: ZERODEV_KERNEL_VERSION,
+        })
+    } else {
+        kernelAccount = await createKernelAccount(publicClient, {
+            plugins: {
+                sudo: newValidator,
+            },
+            entryPoint: USER_OP_ENTRY_POINT,
+            kernelVersion: ZERODEV_KERNEL_VERSION,
+        })
+    }
 
     const kernelClient = createKernelAccountClient({
         account: kernelAccount,
@@ -119,11 +140,20 @@ export const createKernelClientForChain = async <C extends Chain>(
     return kernelClient
 }
 
+const ZERODEV_MIGRATION_DATE = new Date('2025-09-18T12:00:00.000Z')
+
 export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     const [clientsByChain, setClientsByChain] = useState<Record<string, GenericSmartAccountClient>>({})
     const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
     const dispatch = useAppDispatch()
-    const { fetchUser, logoutUser } = useAuth()
+    const { fetchUser, logoutUser, user } = useAuth()
+
+    const isAfterZeroDevMigration = useMemo<boolean>(() => {
+        if (!user?.user?.createdAt) {
+            return true
+        }
+        return new Date(user.user.createdAt) > ZERODEV_MIGRATION_DATE
+    }, [user?.user?.createdAt])
 
     // lifecycle hooks
     useEffect(() => {
@@ -151,11 +181,16 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             for (const chainId in PUBLIC_CLIENTS_BY_CHAIN) {
                 const { client, chain, bundlerUrl, paymasterUrl } = PUBLIC_CLIENTS_BY_CHAIN[chainId]
                 try {
-                    const validator = await createPasskeyValidator(client, webAuthnKey)
-                    const kernelClient = await createKernelClientForChain(client, chain, validator, {
-                        bundlerUrl,
-                        paymasterUrl,
-                    })
+                    const kernelClient = await createKernelClientForChain(
+                        client,
+                        chain,
+                        isAfterZeroDevMigration,
+                        webAuthnKey,
+                        {
+                            bundlerUrl,
+                            paymasterUrl,
+                        }
+                    )
                     newClientsByChain[chainId] = kernelClient
                 } catch (error) {
                     console.error(`Error creating kernel client for chain ${chainId}:`, error)
@@ -177,7 +212,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         return () => {
             isMounted = false
         }
-    }, [webAuthnKey])
+    }, [webAuthnKey, isAfterZeroDevMigration])
 
     useEffect(() => {
         const peanutClient = clientsByChain[PEANUT_WALLET_CHAIN.id]
