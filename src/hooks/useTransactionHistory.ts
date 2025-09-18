@@ -20,6 +20,7 @@ export enum EHistoryEntryType {
     BRIDGE_ONRAMP = 'BRIDGE_ONRAMP',
     BANK_SEND_LINK_CLAIM = 'BANK_SEND_LINK_CLAIM',
     MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
+    MANTECA_OFFRAMP = 'MANTECA_OFFRAMP',
 }
 
 export enum EHistoryUserRole {

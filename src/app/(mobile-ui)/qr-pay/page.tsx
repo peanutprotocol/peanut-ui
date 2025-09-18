@@ -16,6 +16,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { clearRedirectUrl, getRedirectUrl, isTxReverted } from '@/utils/general.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { formatUnits, parseUnits } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
@@ -30,7 +31,6 @@ import ActionModal from '@/components/Global/ActionModal'
 import { saveRedirectUrl } from '@/utils/general.utils'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 
-const MANTECA_DEPOSIT_ADDRESS = '0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053'
 const MAX_QR_PAYMENT_AMOUNT = '200'
 
 export default function QRPayPage() {

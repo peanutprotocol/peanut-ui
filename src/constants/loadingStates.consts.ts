@@ -27,3 +27,4 @@ export type LoadingStates =
     | 'Logging in'
     | 'Logging out'
     | 'Paying'
+    | 'Withdrawing'
