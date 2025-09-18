@@ -394,8 +394,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
 
     const showActionList =
-        flow !== 'direct_pay' || // Always show for non-direct-pay flows
-        (flow === 'direct_pay' && !user) || // Show for direct-pay when user is not logged in
+        (flow !== 'direct_pay' || (flow === 'direct_pay' && !user)) && // Show for direct-pay when user is not logged in
         !fulfillUsingManteca // Show when not fulfilling using Manteca
     // Send to bank step if its mentioned in the URL and guest KYC is not needed
     useEffect(() => {

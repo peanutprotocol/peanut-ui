@@ -12,20 +12,24 @@ import { useQuery } from '@tanstack/react-query'
 import React from 'react'
 
 const MantecaFulfillment = () => {
-    const { setFulfillUsingManteca } = useRequestFulfillmentFlow()
+    const { setFulfillUsingManteca, selectedCountry, setSelectedCountry } = useRequestFulfillmentFlow()
     const { requestDetails, chargeDetails } = usePaymentStore()
     const { data: depositData, isLoading: isLoadingDeposit } = useQuery({
         queryKey: ['manteca-deposit', chargeDetails?.uuid],
         queryFn: () =>
             mantecaApi.deposit({
                 usdAmount: requestDetails?.tokenAmount || chargeDetails?.tokenAmount || '0',
-                currency: 'ARS',
+                currency: selectedCountry?.currency || 'ARS',
                 chargeId: chargeDetails?.uuid,
             }),
         refetchOnWindowFocus: false,
         staleTime: Infinity, // don't refetch the data
         enabled: Boolean(chargeDetails?.uuid),
     })
+
+    const actionCardLogo = selectedCountry?.id
+        ? `https://flagcdn.com/w320/${selectedCountry?.id.toLowerCase()}.png`
+        : MERCADO_PAGO
 
     const generateShareText = () => {
         const textParts = []
@@ -44,6 +48,7 @@ const MantecaFulfillment = () => {
             <NavHeader
                 title="Send"
                 onPrev={() => {
+                    setSelectedCountry(null)
                     setFulfillUsingManteca(false)
                 }}
             />
@@ -58,7 +63,8 @@ const MantecaFulfillment = () => {
                     tokenSymbol={requestDetails?.tokenSymbol || 'USDC'}
                     message={requestDetails?.reference || chargeDetails?.requestLink?.reference || ''}
                     fileUrl={requestDetails?.attachmentUrl || chargeDetails?.requestLink?.attachmentUrl || ''}
-                    logo={MERCADO_PAGO}
+                    logo={actionCardLogo}
+                    countryCodeForFlag={selectedCountry?.id.toLowerCase()}
                 />
 
                 {depositData?.error && <ErrorAlert description={depositData.error} />}

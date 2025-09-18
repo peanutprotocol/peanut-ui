@@ -52,6 +52,7 @@ export const CountryListRouter = ({
         setShowRequestFulfilmentBankFlowManager,
         setSelectedCountry: setSelectedCountryForRequest,
         setShowVerificationModal,
+        setFulfillUsingManteca,
     } = useRequestFulfillmentFlow()
     const savedAccounts = useSavedAccounts()
     const { chargeDetails } = usePaymentStore()
@@ -59,9 +60,9 @@ export const CountryListRouter = ({
     const { user } = useAuth()
 
     const handleCountryClick = (country: CountryData) => {
+        const isMantecaSupportedCountry = Object.keys(MantecaSupportedExchanges).includes(country.id)
         if (flow === 'claim') {
             setSelectedCountry(country)
-            const isMantecaSupportedCountry = Object.keys(MantecaSupportedExchanges).includes(country.id)
             if (isMantecaSupportedCountry) {
                 setFlowStep(null) // reset the flow step to initial view first
                 setClaimToMercadoPago(true)
@@ -69,8 +70,11 @@ export const CountryListRouter = ({
                 setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
             }
         } else if (flow === 'request') {
+            if (isMantecaSupportedCountry) {
+                setShowRequestFulfilmentBankFlowManager(false)
+                setFulfillUsingManteca(true)
+            }
             setSelectedCountryForRequest(country)
-
             if (requestType === BankRequestType.PayerKycNeeded) {
                 if (user && (!user.user.fullName || !user.user.email)) {
                     setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.CollectUserDetails)
