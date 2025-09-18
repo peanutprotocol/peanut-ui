@@ -2,7 +2,8 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useState, useCallback, useMemo, useEffect, useContext } from 'react'
-import { Card } from '@/components/0_Bruddle/Card'
+import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/KycVerificationInProgressModal'
+import Card from '@/components/Global/Card'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { mantecaApi } from '@/services/manteca'
@@ -216,18 +217,18 @@ export default function QRPayPage() {
     if (!!errorInitiatingPayment) {
         return (
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <Card className="shadow-4">
-                    <Card.Header>
-                        <Card.Title>Unable to get QR details</Card.Title>
-                        <Card.Description>
+                <Card className="shadow-4 space-y-2">
+                    <div className="space-y-2">
+                        <h1 className="text-3xl font-extrabold">Unable to get QR details</h1>
+                        <p className="text-lg">
                             {errorInitiatingPayment || 'An error occurred while getting the QR details.'}
-                        </Card.Description>
-                    </Card.Header>
-                    <Card.Content>
-                        <Button onClick={() => router.back()} variant="purple">
-                            Go Back
-                        </Button>
-                    </Card.Content>
+                        </p>
+                    </div>
+                    <div className="h-[1px] bg-black"></div>
+
+                    <Button onClick={() => router.back()} variant="purple">
+                        Go Back
+                    </Button>
                 </Card>
             </div>
         )
@@ -273,11 +274,7 @@ export default function QRPayPage() {
                             icon: 'check-circle',
                         },
                     ]}
-                    footer={
-                        <p className="flex items-center justify-center gap-1 text-xs text-gray-400">
-                            <Icon name="info" className="size-3" /> Peanut doesn't store any personal information
-                        </p>
-                    }
+                    footer={<PeanutDoesntStoreAnyPersonalInformation />}
                 />
             </div>
         )
