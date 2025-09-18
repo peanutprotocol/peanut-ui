@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
-    const maintenanceMode = true
+    const maintenanceMode = false
 
     if (maintenanceMode) {
         const allowedPaths = ['/', '/maintenance', '/apple-app-site-association', '/support']
