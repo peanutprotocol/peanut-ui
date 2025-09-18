@@ -15,7 +15,7 @@ import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { useCurrency } from '@/hooks/useCurrency'
 import { isTxReverted } from '@/utils/general.utils'
 import { loadingStateContext } from '@/context'
-import { countryCodeMap } from '@/components/AddMoney/consts'
+import { countryCodeMap, CountryData, countryData } from '@/components/AddMoney/consts'
 import Image from 'next/image'
 import { formatAmount } from '@/utils'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
@@ -23,6 +23,10 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { formatUnits, parseUnits } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
+import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
+import { useAuth } from '@/context/authContext'
+import { useWebSocket } from '@/hooks/useWebSocket'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success'
 
@@ -40,11 +44,13 @@ export default function MantecaWithdrawFlow() {
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const [bankDetails, setBankDetails] = useState<MantecaBankDetails>({ destinationAddress: '' })
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const router = useRouter()
     const searchParams = useSearchParams()
     const { resetWithdrawFlow } = useWithdrawFlow()
     const { sendMoney, balance } = useWallet()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
+    const { user, fetchUser } = useAuth()
 
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
@@ -52,6 +58,11 @@ export default function MantecaWithdrawFlow() {
 
     // Determine country and currency from URL params or context
     const countryPath = countryFromUrl || 'argentina'
+
+    // Map country path to CountryData for KYC
+    const selectedCountry = useMemo(() => {
+        return countryData.find((country) => country.type === 'country' && country.path === countryPath)
+    }, [countryPath])
 
     // Map country to currency
     const currencyMapping: { [key: string]: string } = {
@@ -72,6 +83,22 @@ export default function MantecaWithdrawFlow() {
         price: currencyPrice,
         isLoading: isCurrencyLoading,
     } = useCurrency(currencyMapping[countryPath])
+
+    // Initialize KYC flow hook
+    const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry as CountryData })
+
+    // WebSocket listener for KYC status updates
+    useWebSocket({
+        username: user?.user.username ?? undefined,
+        autoConnect: !!user?.user.username,
+        onMantecaKycStatusUpdate: (newStatus) => {
+            if (newStatus === 'ACTIVE' || newStatus === 'WIDGET_FINISHED') {
+                fetchUser()
+                setIsKycModalOpen(false)
+                setStep('review') // Proceed to review after successful KYC
+            }
+        },
+    })
 
     // Get country flag code
     const countryFlagCode = useMemo(() => {
@@ -100,6 +127,19 @@ export default function MantecaWithdrawFlow() {
             return
         }
         setErrorMessage(null)
+
+        // Check if we still need to determine KYC status
+        if (isMantecaKycRequired === null) {
+            // still loading/determining KYC status, don't proceed yet
+            return
+        }
+
+        // Check KYC status before proceeding to review
+        if (isMantecaKycRequired === true) {
+            setIsKycModalOpen(true)
+            return
+        }
+
         setStep('review')
     }
 
@@ -315,6 +355,21 @@ export default function MantecaWithdrawFlow() {
 
                         {errorMessage && <ErrorAlert description={errorMessage} />}
                     </div>
+
+                    {/* KYC Modal */}
+                    {isKycModalOpen && selectedCountry && (
+                        <InitiateMantecaKYCModal
+                            isOpen={isKycModalOpen}
+                            onClose={() => setIsKycModalOpen(false)}
+                            onManualClose={() => setIsKycModalOpen(false)}
+                            onKycSuccess={() => {
+                                setIsKycModalOpen(false)
+                                fetchUser()
+                                setStep('review')
+                            }}
+                            country={selectedCountry}
+                        />
+                    )}
                 </div>
             )}
 
