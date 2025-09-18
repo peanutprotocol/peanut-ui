@@ -555,6 +555,8 @@ export const PaymentForm = ({
         const stepFromURL = searchParams.get('step')
         if (user && stepFromURL === 'regional-req-fulfill') {
             setFulfillUsingManteca(true)
+        } else {
+            setFulfillUsingManteca(false)
         }
     }, [user, searchParams])
 
