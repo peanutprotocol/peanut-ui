@@ -145,3 +145,7 @@ export const getCountryCodeForWithdraw = (country: string) => {
 
     return threeDigitCode || country
 }
+
+export function validateCbuCvuAlias(value: string): boolean {
+    return true
+}

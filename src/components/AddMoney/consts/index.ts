@@ -2518,7 +2518,7 @@ export const countryCodeMap: { [key: string]: string } = {
     USA: 'US',
 }
 
-const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX', 'AR'])
+const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX', 'AR', 'BR', 'BO'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes

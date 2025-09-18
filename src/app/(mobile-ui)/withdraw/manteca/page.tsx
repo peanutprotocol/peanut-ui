@@ -15,10 +15,11 @@ import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { useCurrency } from '@/hooks/useCurrency'
 import { isTxReverted } from '@/utils/general.utils'
 import { loadingStateContext } from '@/context'
-import { countryCodeMap, CountryData, countryData } from '@/components/AddMoney/consts'
+import { countryData } from '@/components/AddMoney/consts'
 import Image from 'next/image'
 import { formatAmount } from '@/utils'
-import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
+import ValidatedInput from '@/components/Global/ValidatedInput'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { formatUnits, parseUnits } from 'viem'
@@ -45,6 +46,8 @@ export default function MantecaWithdrawFlow() {
     const [bankDetails, setBankDetails] = useState<MantecaBankDetails>({ destinationAddress: '' })
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
+    const [isDestinationAddressValid, setIsDestinationAddressValid] = useState(false)
+    const [isDestinationAddressChanging, setIsDestinationAddressChanging] = useState(false)
     const router = useRouter()
     const searchParams = useSearchParams()
     const { resetWithdrawFlow } = useWithdrawFlow()
@@ -64,28 +67,15 @@ export default function MantecaWithdrawFlow() {
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
 
-    // Map country to currency
-    const currencyMapping: { [key: string]: string } = {
-        argentina: 'ARS',
-        brazil: 'BRL',
-        chile: 'CLP',
-        colombia: 'COP',
-        panama: 'PUSD',
-        'costa-rica': 'CRC',
-        guatemala: 'GTQ',
-        philippines: 'PHP',
-        bolivia: 'BOB',
-    }
-
     const {
         code: currencyCode,
         symbol: currencySymbol,
         price: currencyPrice,
         isLoading: isCurrencyLoading,
-    } = useCurrency(currencyMapping[countryPath])
+    } = useCurrency(selectedCountry?.currency!)
 
     // Initialize KYC flow hook
-    const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry as CountryData })
+    const { isMantecaKycRequired } = useMantecaKycFlow({ country: selectedCountry })
 
     // WebSocket listener for KYC status updates
     useWebSocket({
@@ -102,11 +92,8 @@ export default function MantecaWithdrawFlow() {
 
     // Get country flag code
     const countryFlagCode = useMemo(() => {
-        const countryCode =
-            Object.keys(countryCodeMap).find((key) => countryCodeMap[key] === countryPath.toUpperCase()) ||
-            countryPath.slice(0, 2)
-        return countryCode.toLowerCase()
-    }, [countryPath])
+        return selectedCountry?.iso2?.toLowerCase()
+    }, [selectedCountry])
 
     // Get method display info
     const methodDisplayInfo = useMemo(() => {
@@ -120,6 +107,24 @@ export default function MantecaWithdrawFlow() {
             name: methodNames[selectedMethodType || 'bank-transfer'] || 'Bank Transfer',
         }
     }, [selectedMethodType])
+
+    const validateDestinationAddress = async (value: string) => {
+        value = value.trim()
+        if (!value) {
+            return false
+        }
+
+        let isValid = false
+        switch (countryPath) {
+            case 'argentina':
+                isValid = validateCbuCvuAlias(value)
+            default:
+                isValid = true
+                break
+        }
+
+        return isValid
+    }
 
     const handleBankDetailsSubmit = () => {
         if (!bankDetails.destinationAddress.trim()) {
@@ -331,11 +336,15 @@ export default function MantecaWithdrawFlow() {
                         <h2 className="text-lg font-bold">Enter {methodDisplayInfo.name} details</h2>
 
                         <div className="space-y-2">
-                            <BaseInput
-                                type="text"
-                                placeholder={countryPath === 'argentina' ? 'CBU, CVU or Alias' : 'Account Address'}
+                            <ValidatedInput
                                 value={bankDetails.destinationAddress}
-                                onChange={(e) => setBankDetails({ destinationAddress: e.target.value })}
+                                placeholder={countryPath === 'argentina' ? 'CBU, CVU or Alias' : 'Account Address'}
+                                onUpdate={(update) => {
+                                    setBankDetails({ destinationAddress: update.value })
+                                    setIsDestinationAddressValid(update.isValid)
+                                    setIsDestinationAddressChanging(update.isChanging)
+                                }}
+                                validate={validateDestinationAddress}
                             />
 
                             <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -346,7 +355,12 @@ export default function MantecaWithdrawFlow() {
 
                         <Button
                             onClick={handleBankDetailsSubmit}
-                            disabled={!bankDetails.destinationAddress.trim()}
+                            disabled={
+                                !bankDetails.destinationAddress.trim() ||
+                                isDestinationAddressChanging ||
+                                !isDestinationAddressValid
+                            }
+                            loading={isDestinationAddressChanging}
                             className="w-full"
                             shadowSize="4"
                         >
