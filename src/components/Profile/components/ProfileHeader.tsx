@@ -35,8 +35,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
     const profileUrl = `${BASE_URL}/${username}`
 
-    console.log('isVerified', isVerified)
-
     return (
         <>
             <div className={twMerge('flex flex-col items-center space-y-2', className)}>
