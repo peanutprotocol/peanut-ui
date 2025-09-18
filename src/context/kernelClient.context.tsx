@@ -38,7 +38,7 @@ export const createPasskeyValidator = async (publicClient: PublicClient, webAuth
         webAuthnKey,
         entryPoint: USER_OP_ENTRY_POINT,
         kernelVersion: ZERODEV_KERNEL_VERSION,
-        validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2,
+        validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2_UNPATCHED,
     })
 }
 
