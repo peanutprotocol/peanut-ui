@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { MERCADO_PAGO } from '@/assets'
+import { MERCADO_PAGO, PIX } from '@/assets'
 import { CountryData } from '@/components/AddMoney/consts'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import MantecaDetailsCard from '@/components/Global/MantecaDetailsCard'
@@ -16,7 +16,8 @@ import { mantecaApi } from '@/services/manteca'
 import { useQuery } from '@tanstack/react-query'
 
 const MantecaFulfillment = () => {
-    const { setFulfillUsingManteca, selectedCountry, setSelectedCountry } = useRequestFulfillmentFlow()
+    const { setFulfillUsingManteca, selectedCountry, setSelectedCountry, regionalMethodType } =
+        useRequestFulfillmentFlow()
     const { requestDetails, chargeDetails } = usePaymentStore()
     const [isKYCModalOpen, setIsKYCModalOpen] = useState(false)
     const { isUserMantecaKycApproved } = useKycStatus()
@@ -48,7 +49,9 @@ const MantecaFulfillment = () => {
 
     const actionCardLogo = selectedCountry?.id
         ? `https://flagcdn.com/w320/${selectedCountry?.id.toLowerCase()}.png`
-        : MERCADO_PAGO
+        : regionalMethodType === 'mercadopago'
+          ? MERCADO_PAGO
+          : PIX
 
     const handleKycCancel = () => {
         setIsKYCModalOpen(false)

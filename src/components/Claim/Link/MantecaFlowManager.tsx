@@ -1,6 +1,6 @@
 'use client'
 
-import { MERCADO_PAGO } from '@/assets'
+import { MERCADO_PAGO, PIX } from '@/assets'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
@@ -23,7 +23,7 @@ interface MantecaFlowManagerProps {
 }
 
 const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount, attachment }) => {
-    const { setClaimToMercadoPago, selectedCountry } = useClaimBankFlow()
+    const { setClaimToMercadoPago, selectedCountry, regionalMethodType } = useClaimBankFlow()
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
     const router = useRouter()
     const [destinationAddress, setDestinationAddress] = useState('')
@@ -43,7 +43,8 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
 
     const isSuccess = currentStep === MercadoPagoStep.SUCCESS
     const selectedCurrency = selectedCountry?.currency || 'ARS'
-    const logo = selectedCountry?.id ? undefined : MERCADO_PAGO
+    const regionalMethodLogo = regionalMethodType === 'mercadopago' ? MERCADO_PAGO : PIX
+    const logo = selectedCountry?.id ? undefined : regionalMethodLogo
 
     const handleKycCancel = () => {
         setIsKYCModalOpen(false)
@@ -114,7 +115,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     avatarSize="medium"
                     transactionType="REGIONAL_METHOD_CLAIM"
                     recipientType="USERNAME"
-                    recipientName={isSuccess ? 'You’ll receive' : 'Receive in Mercado Pago'}
+                    recipientName={isSuccess ? 'You’ll receive' : 'Receive in ' + regionalMethodType}
                     amount={amount}
                     tokenSymbol={claimLinkData.tokenSymbol}
                     message={attachment.message}

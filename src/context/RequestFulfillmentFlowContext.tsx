@@ -34,6 +34,8 @@ interface RequestFulfillmentFlowContextType {
     setRequesterDetails: (details: User | null) => void
     fulfillUsingManteca: boolean
     setFulfillUsingManteca: (fulfillUsingManteca: boolean) => void
+    regionalMethodType: 'mercadopago' | 'pix'
+    setRegionalMethodType: (regionalMethodType: 'mercadopago' | 'pix') => void
 }
 
 const RequestFulfillmentFlowContext = createContext<RequestFulfillmentFlowContextType | undefined>(undefined)
@@ -50,6 +52,7 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
     const [showVerificationModal, setShowVerificationModal] = useState(false)
     const [requesterDetails, setRequesterDetails] = useState<User | null>(null)
     const [fulfillUsingManteca, setFulfillUsingManteca] = useState(false)
+    const [regionalMethodType, setRegionalMethodType] = useState<'mercadopago' | 'pix'>('mercadopago')
 
     const resetFlow = useCallback(() => {
         setExternalWalletFulfilMethod(null)
@@ -61,6 +64,7 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
         setShowVerificationModal(false)
         setRequesterDetails(null)
         setFulfillUsingManteca(false)
+        setRegionalMethodType('mercadopago')
     }, [])
 
     const value = useMemo(
@@ -84,6 +88,8 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
             setRequesterDetails,
             fulfillUsingManteca,
             setFulfillUsingManteca,
+            regionalMethodType,
+            setRegionalMethodType,
         }),
         [
             resetFlow,
@@ -96,6 +102,7 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
             showVerificationModal,
             requesterDetails,
             fulfillUsingManteca,
+            regionalMethodType,
         ]
     )
 
