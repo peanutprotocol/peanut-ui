@@ -248,6 +248,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             isPeerActuallyUser = false
             break
         case EHistoryEntryType.BRIDGE_OFFRAMP:
+        case EHistoryEntryType.MANTECA_OFFRAMP:
             direction = 'bank_withdraw'
             transactionCardType = 'bank_withdraw'
             nameForDetails = 'Bank Account'

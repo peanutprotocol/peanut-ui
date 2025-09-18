@@ -217,11 +217,18 @@ export const DEFAULT_WITHDRAW_METHODS: SpecificPaymentMethod[] = [
 
 const countrySpecificWithdrawMethods: Record<
     string,
-    Array<{ title: string; description: string; icon?: IconName | string }>
+    Array<{ title: string; description: string; icon?: IconName | string; isSoon?: boolean }>
 > = {
     India: [{ title: 'UPI', description: 'Unified Payments Interface, ~17B txns/month, 84% of digital payments.' }],
     Brazil: [{ title: 'Pix', description: '75%+ population use it, 40% e-commerce share.' }],
-    Argentina: [{ title: 'MercadoPago', description: 'Dominant wallet in LATAM, supports QR and bank transfers.' }],
+    Argentina: [
+        {
+            title: 'Mercado Pago',
+            description: 'Instant transfers',
+            icon: MERCADO_PAGO,
+            isSoon: false,
+        },
+    ],
     Mexico: [{ title: 'CoDi', description: 'Central bank-backed RTP, adoption growing.' }],
     Kenya: [{ title: 'M-Pesa', description: 'Over 90% penetration, also in Tanzania, Mozambique, etc.' }],
     Portugal: [{ title: 'MB WAY', description: 'Popular for QR payments, instant transfers.' }],
@@ -2523,12 +2530,31 @@ countryData.forEach((country) => {
         const specificMethodDetails = countrySpecificWithdrawMethods[countryTitle]
         if (specificMethodDetails && specificMethodDetails.length > 0) {
             specificMethodDetails.forEach((method) => {
+                const methodId = `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-withdraw`
+
+                // Check if this is a Manteca country to add appropriate routing
+                const isMantecaCountry = [
+                    'argentina',
+                    'chile',
+                    'brazil',
+                    'colombia',
+                    'panama',
+                    'costa-rica',
+                    'guatemala',
+                    'philippines',
+                    'bolivia',
+                ].includes(country.path)
+
                 withdrawList.push({
-                    id: `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-withdraw`,
+                    id: methodId,
                     icon: method.icon ?? undefined,
                     title: method.title,
                     description: method.description,
-                    isSoon: true,
+                    isSoon: method.isSoon ?? true,
+                    // Add path for Manteca countries to route to Manteca flow
+                    path: isMantecaCountry
+                        ? `/withdraw/manteca?method=${method.title.toLowerCase().replace(/\s+/g, '-')}&country=${country.path}`
+                        : undefined,
                 })
             })
         }
@@ -2560,10 +2586,24 @@ countryData.forEach((country) => {
         // only add default bank if it doesn't already exist AND (SEPA was not added OR it's not considered redundant by SEPA)
         // for now, we simplify: if SEPA was added, we assume default bank is redundant.
         if (!genericBankExists && !sepaWasAdded) {
+            const isMantecaCountry = [
+                'argentina',
+                'chile',
+                'brazil',
+                'colombia',
+                'panama',
+                'costa-rica',
+                'guatemala',
+                'philippines',
+                'bolivia',
+            ].includes(country.path)
+
             withdrawList.push({
                 ...DEFAULT_BANK_WITHDRAW_METHOD,
                 id: `${countryCode.toLowerCase()}-default-bank-withdraw`,
-                path: `/withdraw/${countryCode.toLowerCase()}/bank`,
+                path: isMantecaCountry
+                    ? `/withdraw/manteca?method=bank-transfer&country=${country.path}`
+                    : `/withdraw/${countryCode.toLowerCase()}/bank`,
                 isSoon: !isCountryEnabledForBankTransfer(countryCode),
             })
         }

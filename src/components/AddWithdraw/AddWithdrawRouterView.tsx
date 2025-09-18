@@ -9,6 +9,7 @@ import { useUserStore } from '@/redux/hooks'
 import { AccountType, Account } from '@/interfaces'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
+import { isMantecaCountry } from '@/constants/manteca.consts'
 import Card from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { CountryList } from '../Common/CountryList'
@@ -33,7 +34,8 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 }) => {
     const router = useRouter()
     const { user } = useUserStore()
-    const { setSelectedBankAccount, showAllWithdrawMethods, setShowAllWithdrawMethods } = useWithdrawFlow()
+    const { setSelectedBankAccount, showAllWithdrawMethods, setShowAllWithdrawMethods, setSelectedMethod } =
+        useWithdrawFlow()
     const onrampFlowContext = useOnrampFlow()
     const { setFromBankSelected } = onrampFlowContext
     const [recentMethodsState, setRecentMethodsState] = useState<RecentMethod[]>([])
@@ -90,6 +92,23 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             return
         }
 
+        // NEW: For withdraw flow, set selected method in context instead of navigating
+        if (flow === 'withdraw') {
+            const methodType =
+                method.type === 'crypto' ? 'crypto' : isMantecaCountry(method.path) ? 'manteca' : 'bridge'
+
+            setSelectedMethod({
+                type: methodType,
+                countryPath: method.path,
+                currency: method.currency,
+                title: method.title,
+            })
+
+            // Don't navigate - let the main withdraw page handle the flow
+            return
+        }
+
+        // Original add flow logic
         const newRecentMethod: RecentMethod = {
             id: method.id,
             type: method.type as 'crypto' | 'country',
@@ -168,6 +187,14 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 savedAccounts={savedAccounts}
                 onAccountClick={(account, path) => {
                     setSelectedBankAccount(account)
+
+                    // FIXED: For withdraw flow, route to saved account path
+                    if (flow === 'withdraw') {
+                        router.push(path)
+                        return
+                    }
+
+                    // Original add flow
                     router.push(path)
                 }}
                 onSelectNewMethodClick={() => setShouldShowAllMethods(true)}
@@ -233,6 +260,14 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 inputTitle={mainHeading}
                 viewMode="add-withdraw"
                 onCountryClick={(country) => {
+                    if (flow === 'withdraw') {
+                        // FIXED: Route directly to country page for method selection
+                        const countryPath = `${baseRoute}/${country.path}`
+                        router.push(countryPath)
+                        return
+                    }
+
+                    // Original add flow
                     const countryPath = `${baseRoute}/${country.path}`
                     router.push(countryPath)
                 }}
@@ -240,8 +275,13 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     if (flow === 'add') {
                         setIsDrawerOpen(true)
                     } else {
-                        const cryptoPath = `${baseRoute}/crypto`
-                        router.push(cryptoPath)
+                        // Set crypto method and navigate to main page for amount input
+                        setSelectedMethod({
+                            type: 'crypto',
+                            countryPath: 'crypto',
+                            title: 'Crypto',
+                        })
+                        router.push('/withdraw')
                     }
                 }}
                 flow={flow}
