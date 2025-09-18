@@ -8,8 +8,8 @@ export function YourMoney() {
             <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-7 md:flex-row">
                 <div className="mb-12 mt-4 w-full space-y-6 text-center md:mb-20 md:mt-6 md:w-1/2 md:text-left">
                     <h1 className="font-roboto-flex-extrabold text-6xl font-extraBlack md:text-6xl lg:text-headingMedium">
-                        YOUR MONEY,
-                        <br /> ANYWHERE
+                        GLOBAL CASH.
+                        <br /> LOCAL FEEL
                     </h1>
 
                     <h2 className="font-roboto-flex text-lg md:text-4xl md:font-medium">
@@ -17,8 +17,7 @@ export function YourMoney() {
                     </h2>
 
                     <p className="font-roboto-flex text-left text-xl font-light md:text-4xl md:font-normal">
-                        Peanut turns the entire planet into one seamless wallet, moving funds in real time across the
-                        world with zero hidden spreads or hoops to jump through.
+                        From New York to Madrid to Mexico City — send and share instantly.
                     </p>
                 </div>
 

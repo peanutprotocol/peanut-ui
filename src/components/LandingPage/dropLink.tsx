@@ -17,7 +17,7 @@ export function DropLink() {
             <div className="flex w-[80rem] flex-col items-center justify-center p-6 md:flex-row">
                 <div className="w-full space-y-8 md:w-2/3">
                     <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
-                        JUST DROP A LINK
+                        PAYING AS EASY AS A TEXT.
                     </h1>
 
                     <Image
@@ -29,8 +29,8 @@ export function DropLink() {
                     />
 
                     <p className="font-roboto-flex text-left text-xl md:pr-24 md:text-2xl">
-                        Send or request funds in seconds through WhatsApp, a phone number, or a QR code. No bank
-                        details, no friction.
+                        Chat or in IRL. Works on WhatsApp, SMS, QR codes. No bank details, they don&apos;t even have to
+                        have Peanut.
                     </p>
 
                     <a href="/setup" target="_blank" rel="noopener noreferrer">
@@ -38,7 +38,7 @@ export function DropLink() {
                             shadowSize="4"
                             className="mt-8 hidden w-58 bg-white px-7 pb-11 pt-4 text-base font-extrabold hover:bg-white/90 md:inline-block md:w-72 md:px-10 md:text-lg"
                         >
-                            CREATE PAYMENT LINK
+                            TRY NOW!
                         </Button>
                     </a>
                 </div>
