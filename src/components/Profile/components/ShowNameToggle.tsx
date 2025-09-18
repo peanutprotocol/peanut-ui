@@ -1,3 +1,5 @@
+'use client'
+
 import { updateUserById } from '@/app/actions/users'
 import Loading from '@/components/Global/Loading'
 import { useAuth } from '@/context/authContext'
