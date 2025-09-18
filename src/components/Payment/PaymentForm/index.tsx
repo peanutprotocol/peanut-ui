@@ -81,8 +81,12 @@ export const PaymentForm = ({
         error: paymentStoreError,
         attachmentOptions,
     } = usePaymentStore()
-    const { setShowExternalWalletFulfilMethods, setExternalWalletFulfilMethod, fulfillUsingManteca } =
-        useRequestFulfillmentFlow()
+    const {
+        setShowExternalWalletFulfilMethods,
+        setExternalWalletFulfilMethod,
+        fulfillUsingManteca,
+        setFulfillUsingManteca,
+    } = useRequestFulfillmentFlow()
     const recipientUsername = !chargeDetails && recipient?.recipientType === 'USERNAME' ? recipient.identifier : null
     const { user: recipientUser } = useUserByUsername(recipientUsername)
 
@@ -546,6 +550,13 @@ export const PaymentForm = ({
             dispatch(paymentActions.setBeerQuantity(Number(inputTokenAmount)))
         }
     }, [isPintaReq, inputTokenAmount])
+
+    useEffect(() => {
+        const stepFromURL = searchParams.get('step')
+        if (user && stepFromURL === 'regional-req-fulfill') {
+            setFulfillUsingManteca(true)
+        }
+    }, [user, searchParams])
 
     const isInsufficientBalanceError = useMemo(() => {
         return error?.includes("You don't have enough balance.")

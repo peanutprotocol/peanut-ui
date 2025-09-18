@@ -24,6 +24,7 @@ import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 import ActionListDaimoPayButton from './ActionListDaimoPayButton'
 import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../Claim/useClaimLink'
+import { useAuth } from '@/context/authContext'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
@@ -63,6 +64,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
         setFulfillUsingManteca,
     } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
+    const { user } = useAuth()
 
     const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
@@ -87,6 +89,11 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     }
                     break
                 case 'mercadopago':
+                    if (!user) {
+                        addParamStep('regional-claim')
+                        setShowVerificationModal(true)
+                        return
+                    }
                     setClaimToMercadoPago(true)
                     break
                 case 'exchange-or-wallet':
@@ -110,6 +117,11 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     }
                     break
                 case 'mercadopago':
+                    if (!user) {
+                        addParamStep('regional-req-fulfill')
+                        setIsGuestVerificationModalOpen(true)
+                        return
+                    }
                     setFulfillUsingManteca(true)
                     break
                 case 'exchange-or-wallet':
