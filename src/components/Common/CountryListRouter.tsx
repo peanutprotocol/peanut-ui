@@ -9,7 +9,7 @@ import { formatUnits } from 'viem'
 import { formatTokenAmount, printableAddress } from '@/utils/general.utils'
 import { CountryList } from '@/components/Common/CountryList'
 import { ClaimLinkData } from '@/services/sendLinks'
-import { CountryData } from '@/components/AddMoney/consts'
+import { CountryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
 import { useCallback, useMemo } from 'react'
@@ -41,7 +41,12 @@ export const CountryListRouter = ({
     requestLinkData,
     inputTitle,
 }: ICountryListRouterViewProps) => {
-    const { setFlowStep: setClaimBankFlowStep, setSelectedCountry } = useClaimBankFlow()
+    const {
+        setFlowStep: setClaimBankFlowStep,
+        setSelectedCountry,
+        setClaimToMercadoPago,
+        setFlowStep,
+    } = useClaimBankFlow()
     const {
         setFlowStep: setRequestFulfilmentBankFlowStep,
         setShowRequestFulfilmentBankFlowManager,
@@ -56,7 +61,13 @@ export const CountryListRouter = ({
     const handleCountryClick = (country: CountryData) => {
         if (flow === 'claim') {
             setSelectedCountry(country)
-            setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
+            const isMantecaSupportedCountry = Object.keys(MantecaSupportedExchanges).includes(country.id)
+            if (isMantecaSupportedCountry) {
+                setFlowStep(null) // reset the flow step to initial view first
+                setClaimToMercadoPago(true)
+            } else {
+                setClaimBankFlowStep(ClaimBankFlowStep.BankDetailsForm)
+            }
         } else if (flow === 'request') {
             setSelectedCountryForRequest(country)
 

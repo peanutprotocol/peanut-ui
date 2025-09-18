@@ -165,13 +165,14 @@ export default function PeanutActionDetailsCard({
     const isWithdrawBankAccount = transactionType === 'WITHDRAW_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
     const isAddBankAccount = transactionType === 'ADD_MONEY_BANK_ACCOUNT'
     const isClaimLinkBankAccount = transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
+    const isRegionalMethodClaim = transactionType === 'REGIONAL_METHOD_CLAIM'
 
     const withdrawBankIcon = () => {
         const imgSrc = logo ? logo : `https://flagcdn.com/w320/${countryCodeForFlag}.png`
-        if (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount)
+        if (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim)
             return (
                 <div className="relative mr-1 h-12 w-12">
-                    {countryCodeForFlag && (
+                    {(countryCodeForFlag || logo) && (
                         <Image
                             src={imgSrc}
                             alt={`${countryCodeForFlag} flag`}
@@ -180,9 +181,11 @@ export default function PeanutActionDetailsCard({
                             className="h-12 w-12 rounded-full object-cover"
                         />
                     )}
-                    <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 p-1.5">
-                        <Icon name="bank" className="h-full w-full text-black" />
-                    </div>
+                    {!isRegionalMethodClaim && (
+                        <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 p-1.5">
+                            <Icon name="bank" className="h-full w-full text-black" />
+                        </div>
+                    )}
                 </div>
             )
         return undefined
@@ -192,7 +195,8 @@ export default function PeanutActionDetailsCard({
         <Card className={twMerge('p-4', className)}>
             <div className="flex items-center gap-3">
                 <div className="flex items-center gap-3">
-                    {viewType !== 'SUCCESS' && (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount) ? (
+                    {viewType !== 'SUCCESS' &&
+                    (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim) ? (
                         withdrawBankIcon()
                     ) : (
                         <AvatarWithBadge
