@@ -41,6 +41,7 @@ import { PostSignupActionManager } from '@/components/Global/PostSignupActionMan
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
+import useKycStatus from '@/hooks/useKycStatus'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -61,6 +62,7 @@ export default function Home() {
 
     const { isFetchingUser, addAccount } = useAuth()
     const { user } = useUserStore()
+    const { isUserKycApproved } = useKycStatus()
     const username = user?.user.username
 
     const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
@@ -214,11 +216,7 @@ export default function Home() {
         <PageContainer>
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
-                    <UserHeader
-                        username={username!}
-                        fullName={userFullName}
-                        isVerified={user?.user.bridgeKycStatus === 'approved'}
-                    />
+                    <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
                     <SearchUsers />
                 </div>
                 <div className="space-y-4">

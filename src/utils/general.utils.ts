@@ -1217,6 +1217,16 @@ export const saveRedirectUrl = () => {
     saveToLocalStorage('redirect', relativeUrl)
 }
 
+export const getRedirectUrl = () => {
+    return getFromLocalStorage('redirect')
+}
+
+export const clearRedirectUrl = () => {
+    if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('redirect')
+    }
+}
+
 export const sanitizeRedirectURL = (redirectUrl: string): string => {
     try {
         const u = new URL(redirectUrl, window.location.origin)

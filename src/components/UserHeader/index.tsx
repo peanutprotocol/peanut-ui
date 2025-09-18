@@ -8,6 +8,7 @@ import { Tooltip } from '../Tooltip'
 import { useMemo } from 'react'
 import { isAddress } from 'viem'
 import { printableAddress } from '@/utils'
+import useKycStatus from '@/hooks/useKycStatus'
 
 interface UserHeaderProps {
     username: string
@@ -16,6 +17,8 @@ interface UserHeaderProps {
 }
 
 export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) => {
+    const { isUserKycApproved: isViewerVerified } = useKycStatus()
+
     return (
         <div className="flex items-center gap-1.5">
             <Link href={`/profile`} className="flex items-center gap-2">
@@ -24,7 +27,11 @@ export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) 
                     className="h-7 w-7 text-[11px] md:h-8 md:w-8 md:text-[13px]"
                     name={fullName || username}
                 />
-                <VerifiedUserLabel name={username} isVerified={isVerified} />
+                <VerifiedUserLabel
+                    name={username}
+                    isVerified={isVerified}
+                    isAuthenticatedUserVerified={isViewerVerified}
+                />
             </Link>
             <CopyToClipboard textToCopy={`${BASE_URL}/${username}`} fill="black" iconSize={'4'} />
         </div>

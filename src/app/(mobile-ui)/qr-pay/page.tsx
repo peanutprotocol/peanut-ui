@@ -13,7 +13,7 @@ import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { isTxReverted } from '@/utils/general.utils'
+import { clearRedirectUrl, getRedirectUrl, isTxReverted } from '@/utils/general.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
@@ -26,6 +26,10 @@ import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { captureException } from '@sentry/nextjs'
 import { isPaymentProcessorQR } from '@/components/Global/DirectSendQR/utils'
+import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
+import ActionModal from '@/components/Global/ActionModal'
+import { saveRedirectUrl } from '@/utils/general.utils'
+import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 
 const MAX_QR_PAYMENT_AMOUNT = '200'
 
@@ -48,6 +52,7 @@ export default function QRPayPage() {
     const { openTransactionDetails, selectedTransaction, isDrawerOpen, closeTransactionDetails } =
         useTransactionDetailsDrawer()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
+    const { shouldBlockPay, kycGateState } = useQrKycGate()
 
     const resetState = () => {
         setIsSuccess(false)
@@ -63,7 +68,7 @@ export default function QRPayPage() {
         setLoadingState('Idle')
     }
 
-    // First fetch for qrcode info
+    // First fetch for qrcode info — only after KYC gating allows proceeding
     useEffect(() => {
         resetState()
 
@@ -72,17 +77,8 @@ export default function QRPayPage() {
             return
         }
 
-        mantecaApi
-            .initiateQrPayment({ qrCode })
-            .then((paymentLock) => {
-                setPaymentLock(paymentLock)
-            })
-            .catch((error) => {
-                setErrorInitiatingPayment(error.message)
-            })
-            .finally(() => {
-                setIsFirstLoad(false)
-            })
+        // defer until gating computed later in component
+        setIsFirstLoad(false)
         // Trigger on rescan
     }, [timestamp])
 
@@ -136,6 +132,20 @@ export default function QRPayPage() {
                 return null
         }
     }, [paymentLock])
+
+    // fetch payment lock only when gating allows proceeding and we don't yet have a lock
+    useEffect(() => {
+        if (!qrCode || !isPaymentProcessorQR(qrCode)) return
+        if (!!paymentLock) return
+        if (kycGateState !== QrKycState.PROCEED_TO_PAY) return
+
+        setLoadingState('Fetching details')
+        mantecaApi
+            .initiateQrPayment({ qrCode })
+            .then((pl) => setPaymentLock(pl))
+            .catch((error) => setErrorInitiatingPayment(error.message))
+            .finally(() => setLoadingState('Idle'))
+    }, [kycGateState, paymentLock, qrCode, setLoadingState])
 
     const merchantName = useMemo(() => {
         if (!paymentLock) return null
@@ -219,6 +229,56 @@ export default function QRPayPage() {
                         </Button>
                     </Card.Content>
                 </Card>
+            </div>
+        )
+    }
+
+    if (shouldBlockPay) {
+        return (
+            <div className="flex min-h-[inherit] flex-col gap-8">
+                <NavHeader title="Pay" />
+                <MantecaGeoSpecificKycModal
+                    isUserBridgeKycApproved={kycGateState === QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER}
+                    selectedCountry={{ id: 'AR', title: 'Argentina' }}
+                    setIsMantecaModalOpen={() => {
+                        router.back()
+                    }}
+                    isMantecaModalOpen={kycGateState === QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER}
+                    onKycSuccess={() => {
+                        saveRedirectUrl()
+                        const redirectUrl = getRedirectUrl()
+                        if (redirectUrl) {
+                            clearRedirectUrl()
+                            router.push(redirectUrl)
+                        } else {
+                            router.replace('/home')
+                        }
+                    }}
+                />
+                <ActionModal
+                    visible={kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION}
+                    onClose={() => router.back()}
+                    title="Verify your identity to continue"
+                    description="You'll need to verify your identity before paying with a QR code. Don't worry it usually just takes a few minutes."
+                    icon="shield"
+                    ctas={[
+                        {
+                            text: 'Verify now',
+                            onClick: () => {
+                                saveRedirectUrl()
+                                router.push('/profile/identity-verification')
+                            },
+                            variant: 'purple',
+                            shadowSize: '4',
+                            icon: 'check-circle',
+                        },
+                    ]}
+                    footer={
+                        <p className="flex items-center justify-center gap-1 text-xs text-gray-400">
+                            <Icon name="info" className="size-3" /> Peanut doesn't store any personal information
+                        </p>
+                    }
+                />
             </div>
         )
     }
@@ -361,7 +421,12 @@ export default function QRPayPage() {
                     shadowSize="4"
                     loading={isLoading}
                     disabled={
-                        !!errorInitiatingPayment || !!errorMessage || !amount || isLoading || !!balanceErrorMessage
+                        !!errorInitiatingPayment ||
+                        !!errorMessage ||
+                        !amount ||
+                        isLoading ||
+                        !!balanceErrorMessage ||
+                        shouldBlockPay
                     }
                 >
                     {isLoading ? loadingState : 'Pay'}

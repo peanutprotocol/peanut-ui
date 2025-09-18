@@ -9,6 +9,7 @@ interface UseWebSocketOptions {
     username?: string
     onHistoryEntry?: (entry: HistoryEntry) => void
     onKycStatusUpdate?: (status: string) => void
+    onMantecaKycStatusUpdate?: (status: string) => void
     onTosUpdate?: (data: { accepted: boolean }) => void
     onConnect?: () => void
     onDisconnect?: () => void
@@ -21,6 +22,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         username,
         onHistoryEntry,
         onKycStatusUpdate,
+        onMantecaKycStatusUpdate,
         onTosUpdate,
         onConnect,
         onDisconnect,
@@ -31,12 +33,28 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([])
     const wsRef = useRef<PeanutWebSocket | null>(null)
 
-    const callbacksRef = useRef({ onHistoryEntry, onKycStatusUpdate, onTosUpdate, onConnect, onDisconnect, onError })
+    const callbacksRef = useRef({
+        onHistoryEntry,
+        onKycStatusUpdate,
+        onMantecaKycStatusUpdate,
+        onTosUpdate,
+        onConnect,
+        onDisconnect,
+        onError,
+    })
 
     // Update callbacks ref when
     useEffect(() => {
-        callbacksRef.current = { onHistoryEntry, onKycStatusUpdate, onTosUpdate, onConnect, onDisconnect, onError }
-    }, [onHistoryEntry, onKycStatusUpdate, onTosUpdate, onConnect, onDisconnect, onError])
+        callbacksRef.current = {
+            onHistoryEntry,
+            onKycStatusUpdate,
+            onMantecaKycStatusUpdate,
+            onTosUpdate,
+            onConnect,
+            onDisconnect,
+            onError,
+        }
+    }, [onHistoryEntry, onKycStatusUpdate, onMantecaKycStatusUpdate, onTosUpdate, onConnect, onDisconnect, onError])
 
     // Connect to WebSocket
     const connect = useCallback(() => {
@@ -115,6 +133,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             }
         }
 
+        const handleMantecaKycStatusUpdate = (data: { status: string }) => {
+            if (callbacksRef.current.onMantecaKycStatusUpdate) {
+                callbacksRef.current.onMantecaKycStatusUpdate(data.status)
+            } else {
+                console.log(`[WebSocket] No onMantecaKycStatusUpdate callback registered for user: ${username}`)
+            }
+        }
+
         const handleTosUpdate = (data: { status: string }) => {
             if (callbacksRef.current.onTosUpdate) {
                 callbacksRef.current.onTosUpdate({ accepted: data.status === 'approved' })
@@ -129,6 +155,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         ws.on('error', handleError)
         ws.on('history_entry', handleHistoryEntry)
         ws.on('kyc_status_update', handleKycStatusUpdate)
+        ws.on('manteca_kyc_status_update', handleMantecaKycStatusUpdate)
         ws.on('persona_tos_status_update', handleTosUpdate)
 
         // Auto-connect if enabled
@@ -143,6 +170,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             ws.off('error', handleError)
             ws.off('history_entry', handleHistoryEntry)
             ws.off('kyc_status_update', handleKycStatusUpdate)
+            ws.off('manteca_kyc_status_update', handleMantecaKycStatusUpdate)
             ws.off('persona_tos_status_update', handleTosUpdate)
         }
     }, [autoConnect, connect, username])

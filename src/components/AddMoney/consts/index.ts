@@ -4,6 +4,20 @@ import { METAMASK_LOGO, RAINBOW_LOGO, TRUST_WALLET_LOGO } from '@/assets/wallets
 import { IconName } from '@/components/Global/Icons/Icon'
 import { StaticImageData } from 'next/image'
 
+// ref: https://docs.manteca.dev/cripto/key-concepts/exchanges-multi-country#Available-Exchanges
+export const MantecaSupportedExchanges = {
+    AR: 'ARGENTINA',
+    CL: 'CHILE',
+    BR: 'BRAZIL',
+    CO: 'COLOMBIA',
+    PA: 'PANAMA',
+    CR: 'COSTA_RICA',
+    GT: 'GUATEMALA',
+    // MX: 'MEXICO', // manteca supports MEXICO, but mercado pago doesnt support qr payments for mexico
+    PH: 'PHILIPPINES',
+    BO: 'BOLIVIA',
+}
+
 export interface CryptoSource {
     id: string
     name: string
@@ -2619,7 +2633,7 @@ countryData.forEach((country) => {
         // filter add methods: include Mercado Pago only for LATAM countries
         const currentAddMethods = UPDATED_DEFAULT_ADD_MONEY_METHODS.filter((method) => {
             if (method.id === 'mercado-pago-add') {
-                return LATAM_COUNTRY_CODES.includes(countryCode)
+                return !!MantecaSupportedExchanges[countryCode as keyof typeof MantecaSupportedExchanges]
             }
             return true
         }).map((m) => {
@@ -2630,10 +2644,13 @@ countryData.forEach((country) => {
             } else if (newMethod.id === 'crypto-add') {
                 newMethod.path = `/add-money/crypto`
                 newMethod.isSoon = false
-            } else if (newMethod.id === 'mercado-pago-add' && countryCode === 'AR') {
+            } else if (
+                newMethod.id === 'mercado-pago-add' &&
+                MantecaSupportedExchanges[countryCode as keyof typeof MantecaSupportedExchanges]
+            ) {
                 newMethod.isSoon = false
                 newMethod.path = `/add-money/${country.path}/mercadopago`
-            } else {
+            } else if (newMethod.id === 'mercado-pago-add') {
                 newMethod.isSoon = true
             }
             return newMethod

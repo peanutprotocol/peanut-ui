@@ -1,5 +1,7 @@
 'use client'
 import MercadoPago from '@/components/AddMoney/components/RegionalMethods/MercadoPago'
+import { CountryData, countryData } from '@/components/AddMoney/consts'
+import { MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import { useParams } from 'next/navigation'
 
 export default function AddMoneyRegionalMethodPage() {
@@ -7,7 +9,12 @@ export default function AddMoneyRegionalMethodPage() {
     const country = params.country as string
     const method = params['regional-method'] as string
 
-    if (country === 'argentina' && method === 'mercadopago') {
+    const countryDetails: CountryData | undefined = countryData.find((c) => c.path === country)
+
+    if (
+        MantecaSupportedExchanges[countryDetails?.id as keyof typeof MantecaSupportedExchanges] &&
+        method === 'mercadopago'
+    ) {
         return <MercadoPago source="regionalMethod" />
     }
 

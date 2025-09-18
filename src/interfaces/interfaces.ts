@@ -221,6 +221,24 @@ interface ReferralConnection {
     account_identifier: string
 }
 
+export enum MantecaKycStatus {
+    ONBOARDING = 'ONBOARDING',
+    ACTIVE = 'ACTIVE',
+    INACTIVE = 'INACTIVE',
+}
+
+export interface IUserKycVerification {
+    provider: 'MANTECA' | 'BRIDGE'
+    mantecaGeo?: string | null
+    bridgeGeo?: string | null
+    status: MantecaKycStatus
+    approvedAt?: string | null
+    providerUserId?: string | null
+    providerRawStatus?: string | null
+    createdAt: string
+    updatedAt: string
+}
+
 export interface User {
     userId: string
     email: string
@@ -230,6 +248,7 @@ export interface User {
     bridgeKycStartedAt?: string
     bridgeKycApprovedAt?: string
     bridgeKycRejectedAt?: string
+    kycVerifications?: IUserKycVerification[] // currently only used for Manteca, can be extended to other providers in the future, bridge is not migrated as it might affect existing users
     tosStatus?: string
     tosAcceptedAt?: string
     bridgeCustomerId: string | null
