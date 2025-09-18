@@ -19,6 +19,7 @@ import {
 } from '@zerodev/sdk'
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState, useMemo } from 'react'
 import { Chain, http, PublicClient, Transport } from 'viem'
+import type { Address } from 'viem'
 import { captureException } from '@sentry/nextjs'
 
 interface KernelClientContextType {
@@ -55,8 +56,9 @@ export interface KernelClientOptions {
 export const createKernelClientForChain = async <C extends Chain>(
     publicClient: PublicClient,
     chain: C,
-    shouldUseMigrationKernel: boolean = false,
+    shouldUseNewKernel: boolean = false,
     webAuthnKey: WebAuthnKey,
+    address: Address | undefined,
     options: KernelClientOptions
 ): Promise<GenericSmartAccountClient<C>> => {
     console.log(`Creating new kernel client for chain ${chain.name}...`)
@@ -65,13 +67,17 @@ export const createKernelClientForChain = async <C extends Chain>(
 
     let kernelAccount: Awaited<ReturnType<typeof createKernelAccount>>
     const newValidator = await createPasskeyValidator(publicClient, webAuthnKey)
-    if (shouldUseMigrationKernel) {
+    if (!shouldUseNewKernel) {
+        if (!address) {
+            throw new Error('Address is required for migration kernel')
+        }
         const oldValidator = await createPasskeyValidator(
             publicClient,
             webAuthnKey,
             PasskeyValidatorContractVersion.V0_0_2_UNPATCHED
         )
         kernelAccount = await createKernelMigrationAccount(publicClient, {
+            address,
             plugins: {
                 sudo: {
                     migrate: {
@@ -186,6 +192,9 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                         chain,
                         isAfterZeroDevMigration,
                         webAuthnKey,
+                        isAfterZeroDevMigration
+                            ? undefined
+                            : (user?.accounts.find((a) => a.type === 'peanut-wallet')!.identifier as Address),
                         {
                             bundlerUrl,
                             paymasterUrl,
