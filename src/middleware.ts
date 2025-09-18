@@ -3,6 +3,24 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
 export function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl
+    const maintenanceMode = true
+
+    if (maintenanceMode) {
+        const allowedPaths = ['/', '/maintenance', '/apple-app-site-association', '/support']
+        if (
+            !allowedPaths.includes(pathname) &&
+            !pathname.startsWith('/api/') &&
+            !pathname.startsWith('/_next/') &&
+            !pathname.startsWith('/.well-known/') &&
+            !pathname.match(
+                /.*\.(jpg|jpeg|png|gif|svg|ico|ttf|woff|woff2|eot|css|js|json|xml|txt|mp3|mp4|webm|ogg|wav|flac|aac)$/
+            )
+        ) {
+            return NextResponse.redirect(new URL('/maintenance', request.url))
+        }
+    }
+
     const url = request.nextUrl.clone()
     const promoList: { [key: string]: string } = JSON.parse(process.env.PROMO_LIST ?? '{}')
 
@@ -46,5 +64,23 @@ const isPromoLink = (url: URL) => {
 
 // Updated matcher to include root path
 export const config = {
-    matcher: ['/', '/claim/:path*', '/api/:path*'],
+    matcher: [
+        '/',
+        '/home',
+        '/claim/:path*',
+        '/api/:path*',
+        '/home/:path*',
+        '/profile/:path*',
+        '/send/:path*',
+        '/request/:path*',
+        '/settings/:path*',
+        '/setup/:path*',
+        '/share/:path*',
+        '/history/:path*',
+        '/raffle/:path*',
+        '/c/:path*',
+        '/pay/:path*',
+        '/p/:path*',
+        '/link/:path*',
+    ],
 }
