@@ -117,7 +117,12 @@ export default function MantecaWithdrawFlow() {
         let isValid = false
         switch (countryPath) {
             case 'argentina':
-                isValid = validateCbuCvuAlias(value)
+                const { valid, message } = validateCbuCvuAlias(value)
+                isValid = valid
+                if (!valid) {
+                    setErrorMessage(message!)
+                }
+                break
             default:
                 isValid = true
                 break
@@ -343,6 +348,9 @@ export default function MantecaWithdrawFlow() {
                                     setBankDetails({ destinationAddress: update.value })
                                     setIsDestinationAddressValid(update.isValid)
                                     setIsDestinationAddressChanging(update.isChanging)
+                                    if (update.isValid || update.value === '') {
+                                        setErrorMessage(null)
+                                    }
                                 }}
                                 validate={validateDestinationAddress}
                             />
