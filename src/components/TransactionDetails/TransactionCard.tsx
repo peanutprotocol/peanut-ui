@@ -1,4 +1,3 @@
-import StatusBadge, { StatusType } from '@/components/Global/Badges/StatusBadge'
 import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon, IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
@@ -7,12 +6,14 @@ import { TransactionDirection } from '@/components/TransactionDetails/Transactio
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { formatNumberForDisplay } from '@/utils'
+import { formatNumberForDisplay, printableAddress } from '@/utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import React from 'react'
-import AddressLink from '../Global/AddressLink'
 import { STABLE_COINS } from '@/constants'
 import Image from 'next/image'
+import StatusPill, { StatusPillType } from '../Global/StatusPill'
+import { VerifiedUserLabel } from '../UserHeader'
+import { isAddress } from 'viem'
 
 export type TransactionType =
     | 'send'
@@ -23,16 +24,20 @@ export type TransactionType =
     | 'receive'
     | 'bank_withdraw'
     | 'bank_deposit'
+    | 'bank_request_fulfillment'
+    | 'claim_external'
+    | 'bank_claim'
 
 interface TransactionCardProps {
     type: TransactionType
     name: string
     amount: number // For USD, this amount might come signed from mapTransactionDataForDrawer
-    status?: StatusType
+    status?: StatusPillType
     initials?: string
     position?: CardPosition
     transaction: TransactionDetails
     isPending?: boolean
+    haveSentMoneyToUser?: boolean
 }
 
 /**
@@ -49,6 +54,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     position = 'middle',
     transaction,
     isPending = false,
+    haveSentMoneyToUser = false,
 }) => {
     // hook to manage the state of the details drawer (open/closed, selected transaction)
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
@@ -67,7 +73,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const defaultDisplayDecimals = actualCurrencyCode === 'JPY' ? 0 : 2 // JPY has 0, others default to 2
 
     // Special handling for bank_deposit transactions with non-USD currency
-    if (type === 'bank_deposit' && actualCurrencyCode && actualCurrencyCode.toUpperCase() !== 'USD') {
+    if (
+        (type === 'bank_deposit' || type === 'bank_request_fulfillment') &&
+        actualCurrencyCode &&
+        actualCurrencyCode.toUpperCase() !== 'USD'
+    ) {
         const isCompleted = transaction.status === 'completed'
 
         if (isCompleted) {
@@ -100,6 +110,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             arsSign = '+'
         }
         finalDisplayAmount = `${arsSign}${getDisplayCurrencySymbol('ARS')}${formatNumberForDisplay(transaction.currency.amount, { maxDecimals: defaultDisplayDecimals })}`
+    }
+    // keep currency as $ because we will always receive in USDC
+    else if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.DEPOSIT) {
+        finalDisplayAmount = `+$${formatNumberForDisplay(Math.abs(amount).toString(), { maxDecimals: defaultDisplayDecimals })}`
     } else {
         const isStableCoin = transaction.tokenSymbol && STABLE_COINS.includes(transaction.tokenSymbol)
         const displaySymbol =
@@ -137,7 +151,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         {avatarUrl ? (
                             <div
                                 className={
-                                    'flex h-12 w-12 items-center justify-center rounded-full border border-black bg-white py-2.5 pl-3.5 pr-0.5'
+                                    'relative flex h-12 w-12 items-center justify-center rounded-full border border-black bg-white py-2.5 pl-3.5 pr-0.5'
                                 }
                             >
                                 <Image
@@ -147,6 +161,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     width={30}
                                     height={30}
                                 />
+
+                                {status && <StatusPill status={status} />}
                             </div>
                         ) : (
                             <TransactionAvatarBadge
@@ -156,14 +172,19 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 transactionType={type}
                                 context="card"
                                 size="small"
+                                status={status}
                             />
                         )}
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
                             <div className="flex flex-row items-center gap-2">
                                 {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
-                                <div className="max-w-40 truncate font-roboto text-[16px] font-medium">
-                                    <AddressLink address={name} isLink={false} />
+                                <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
+                                    <VerifiedUserLabel
+                                        name={isAddress(name) ? printableAddress(name) : name}
+                                        isVerified={transaction.isVerified}
+                                        haveSentMoneyToUser={haveSentMoneyToUser}
+                                    />
                                 </div>
                             </div>
                             {/* display the action icon and type text */}
@@ -177,7 +198,6 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     {/* amount and status on the right side */}
                     <div className="flex flex-col items-end space-y-1">
                         <span className="font-roboto text-[16px] font-medium">{finalDisplayAmount}</span>
-                        {status && <StatusBadge status={status} />}
                     </div>
                 </div>
             </Card>
@@ -215,6 +235,8 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
         case 'withdraw':
         case 'bank_withdraw':
         case 'cashout':
+        case 'claim_external':
+        case 'bank_claim':
             iconName = 'arrow-up'
             iconSize = 8
             break
@@ -222,6 +244,9 @@ function getActionIcon(type: TransactionType, direction: TransactionDirection): 
         case 'bank_deposit':
             iconName = 'arrow-down'
             iconSize = 8
+            break
+        case 'bank_request_fulfillment':
+            iconName = 'arrow-up-right'
             break
         default:
             return null
@@ -235,8 +260,15 @@ function getActionText(type: TransactionType): string {
         case 'bank_withdraw':
             actionText = 'Withdraw'
             break
+        case 'bank_claim':
+        case 'claim_external':
+            actionText = 'Claim'
+            break
         case 'bank_deposit':
             actionText = 'Add'
+            break
+        case 'bank_request_fulfillment':
+            actionText = 'Request paid via bank'
             break
     }
     return actionText

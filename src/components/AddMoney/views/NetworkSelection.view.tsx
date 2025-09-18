@@ -14,11 +14,12 @@ import React, { useContext } from 'react'
 export interface SelectedNetwork extends NetworkConfig {}
 
 interface NetworkSelectionViewProps {
+    headerTitle?: string
     onNetworkSelect: (network: SelectedNetwork) => void
     onBack: () => void
 }
 
-const NetworkSelectionView: React.FC<NetworkSelectionViewProps> = ({ onNetworkSelect, onBack }) => {
+const NetworkSelectionView: React.FC<NetworkSelectionViewProps> = ({ headerTitle, onNetworkSelect, onBack }) => {
     const { supportedSquidChainsAndTokens } = useContext(tokenSelectorContext)
 
     const popularNetworks: SelectedNetwork[] = TOKEN_SELECTOR_POPULAR_NETWORK_IDS.map((net) => {
@@ -36,7 +37,7 @@ const NetworkSelectionView: React.FC<NetworkSelectionViewProps> = ({ onNetworkSe
 
     return (
         <div className="w-full space-y-8 self-start">
-            <NavHeader title="Add Money" onPrev={onBack} />
+            <NavHeader title={headerTitle ?? 'Add Money'} onPrev={onBack} />
             <div className="flex h-full w-full flex-col justify-start gap-2 self-start pb-5 md:pb-0">
                 <h2 className="text-base font-bold">What network will you use?</h2>
                 <div className="flex flex-col gap-3 pr-1 pt-2">
@@ -49,7 +50,7 @@ const NetworkSelectionView: React.FC<NetworkSelectionViewProps> = ({ onNetworkSe
                             <NetworkListItem
                                 key={index}
                                 chainId={squidChainDetails?.chainId ?? network.chainId}
-                                name={squidChainDetails?.axelarChainName ?? network.name}
+                                name={squidChainDetails?.networkName ?? network.name}
                                 iconUrl={squidChainDetails?.chainIconURI ?? network.iconUrl}
                                 isComingSoon={isComingSoon}
                                 iconClassName={
@@ -60,7 +61,7 @@ const NetworkSelectionView: React.FC<NetworkSelectionViewProps> = ({ onNetworkSe
                                 onClick={() =>
                                     onNetworkSelect({
                                         chainId: squidChainDetails?.chainId ?? network.chainId,
-                                        name: squidChainDetails?.axelarChainName ?? network.name,
+                                        name: squidChainDetails?.networkName ?? network.name,
                                         iconUrl: squidChainDetails?.chainIconURI ?? network.iconUrl,
                                     })
                                 }

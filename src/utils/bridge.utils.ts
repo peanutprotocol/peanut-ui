@@ -11,7 +11,7 @@ export type BridgeOperationType = 'onramp' | 'offramp'
  * Payment rails differ between onramp and offramp operations
  */
 export const getCurrencyConfig = (countryId: string, operationType: BridgeOperationType): CurrencyConfig => {
-    if (countryId === 'US') {
+    if (countryId === 'US' || countryId === 'USA') {
         return {
             currency: 'usd',
             paymentRail: operationType === 'onramp' ? 'ach_push' : 'ach',
@@ -30,14 +30,6 @@ export const getCurrencyConfig = (countryId: string, operationType: BridgeOperat
         currency: 'eur',
         paymentRail: 'sepa', // SEPA works for both onramp and offramp in Europe
     }
-}
-
-/**
- * Legacy function for backwards compatibility with existing onramp code
- * @deprecated Use getCurrencyConfig with operationType parameter instead
- */
-export const getOnrampCurrencyConfig = (countryId: string): CurrencyConfig => {
-    return getCurrencyConfig(countryId, 'onramp')
 }
 
 /**

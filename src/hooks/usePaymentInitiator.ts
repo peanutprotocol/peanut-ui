@@ -26,7 +26,7 @@ import { useAppKitAccount } from '@reown/appkit/react'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { parseUnits } from 'viem'
-import type { TransactionReceipt, Address, Hex } from 'viem'
+import type { TransactionReceipt, Address, Hex, Hash } from 'viem'
 import { useConfig, useSendTransaction, useSwitchChain, useAccount as useWagmiAccount } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { getRoute, type PeanutCrossChainRoute } from '@/services/swap'
@@ -62,7 +62,7 @@ export interface InitiatePaymentPayload {
         price: number
     }
     currencyAmount?: string
-    isAddMoneyFlow?: boolean
+    isExternalWalletFlow?: boolean
     transactionType?: TChargeTransactionType
     attachmentOptions?: IAttachmentOptions
 }
@@ -132,16 +132,13 @@ export const usePaymentInitiator = () => {
             loadingStep !== 'Charge Created',
         [loadingStep]
     )
-
-    // reset state
-    useEffect(() => {
+    const reset = useCallback(() => {
         setError(null)
         setLoadingStep('Idle')
         setIsFeeEstimationError(false)
         setIsCalculatingFees(false)
         setIsPreparingTx(false)
         setIsEstimatingGas(false)
-
         setUnsignedTx(null)
         setXChainUnsignedTxs(null)
         setXChainRoute(undefined)
@@ -150,7 +147,13 @@ export const usePaymentInitiator = () => {
         setEstimatedGasCostUsd(undefined)
         setTransactionHash(null)
         setPaymentDetails(null)
-    }, [selectedChainID, selectedTokenAddress, requestDetails])
+        setCreatedChargeDetails(null)
+    }, [])
+
+    // reset state
+    useEffect(() => {
+        reset()
+    }, [selectedChainID, selectedTokenAddress, requestDetails, reset])
 
     const handleError = useCallback(
         (err: unknown, step: string): InitiationResult => {
@@ -465,41 +468,43 @@ export const usePaymentInitiator = () => {
                 throw new Error('Charge data is missing required properties for transaction preparation.')
             }
 
-            let receipt: TransactionReceipt
+            let receipt: TransactionReceipt | null
+            let userOpHash: Hash
             const transactionsToSend = xChainUnsignedTxs ?? (unsignedTx ? [unsignedTx] : null)
             if (transactionsToSend && transactionsToSend.length > 0) {
                 setLoadingStep('Sending Transaction')
-                receipt = await sendTransactions(transactionsToSend, PEANUT_WALLET_CHAIN.id.toString())
+                const txResult = await sendTransactions(transactionsToSend, PEANUT_WALLET_CHAIN.id.toString())
+                receipt = txResult.receipt
+                userOpHash = txResult.userOpHash
             } else if (
                 areEvmAddressesEqual(chargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) &&
                 chargeDetails.chainId === PEANUT_WALLET_CHAIN.id.toString()
             ) {
-                receipt = await sendMoney(
+                const txResult = await sendMoney(
                     chargeDetails.requestLink.recipientAddress as `0x${string}`,
                     chargeDetails.tokenAmount
                 )
+                receipt = txResult.receipt
+                userOpHash = txResult.userOpHash
             } else {
                 console.error('No transaction prepared to send for peanut wallet.')
                 throw new Error('No transaction prepared to send.')
             }
 
             // validation of the received receipt.
-            if (!receipt || !receipt.transactionHash) {
-                console.error('sendTransactions returned invalid receipt (missing hash?):', receipt)
-                throw new Error('Transaction likely failed or was not submitted correctly by the wallet.')
-            }
-            if (isTxReverted(receipt)) {
+            if (receipt !== null && isTxReverted(receipt)) {
                 console.error('Transaction reverted according to receipt:', receipt)
                 throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
             }
 
+            const txHash = receipt?.transactionHash ?? userOpHash
             // update payment status in the backend api.
             setLoadingStep('Updating Payment Status')
             // peanut wallet flow: payer is the peanut wallet itself
             const payment: PaymentCreationResponse = await chargesApi.createPayment({
                 chargeId: chargeDetails.uuid,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                hash: receipt.transactionHash,
+                hash: txHash,
                 tokenAddress: PEANUT_WALLET_TOKEN,
                 payerAddress: peanutWalletAddress ?? '',
             })
@@ -507,11 +512,11 @@ export const usePaymentInitiator = () => {
 
             setPaymentDetails(payment)
             dispatch(paymentActions.setPaymentDetails(payment))
-            dispatch(paymentActions.setTransactionHash(receipt.transactionHash))
+            dispatch(paymentActions.setTransactionHash(txHash))
 
             setLoadingStep('Success')
             console.log('Peanut Wallet payment successful.')
-            return { status: 'Success', charge: chargeDetails, payment, txHash: receipt.transactionHash, success: true }
+            return { status: 'Success', charge: chargeDetails, payment, txHash: txHash, success: true }
         },
         [sendTransactions, xChainUnsignedTxs, unsignedTx, peanutWalletAddress]
     )
@@ -656,7 +661,7 @@ export const usePaymentInitiator = () => {
                 if (
                     chargeCreated &&
                     (payload.isPintaReq ||
-                        payload.isAddMoneyFlow ||
+                        payload.isExternalWalletFlow ||
                         !isPeanutWallet ||
                         (isPeanutWallet &&
                             (!areEvmAddressesEqual(determinedChargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) ||
@@ -666,7 +671,7 @@ export const usePaymentInitiator = () => {
                         `Charge created. Transitioning to Confirm view for: ${
                             payload.isPintaReq
                                 ? 'Pinta Request'
-                                : payload.isAddMoneyFlow
+                                : payload.isExternalWalletFlow
                                   ? 'Add Money Flow'
                                   : 'External Wallet'
                         }.`
@@ -676,7 +681,7 @@ export const usePaymentInitiator = () => {
                 }
 
                 // 3. if user is on the initial screen and chargeid is present, execute the handle charge state flow
-                if (payload.isAddMoneyFlow && currentView === 'INITIAL' && payload.chargeId) {
+                if (payload.isExternalWalletFlow && currentView === 'INITIAL' && payload.chargeId) {
                     console.log('Executing add money flow: ChargeID already exists')
                     setLoadingStep('Charge Created')
 
@@ -684,7 +689,7 @@ export const usePaymentInitiator = () => {
                 }
 
                 // 4. execute payment based on wallet type
-                if (payload.isAddMoneyFlow) {
+                if (payload.isExternalWalletFlow) {
                     if (!wagmiAddress) {
                         console.error('Add Money flow requires an external wallet (WAGMI) to be connected.')
                         throw new Error('External wallet not connected for Add Money flow.')
@@ -744,12 +749,74 @@ export const usePaymentInitiator = () => {
         setLoadingStep('Error')
     }, [setError, setLoadingStep])
 
+    const initiateDaimoPayment = useCallback(
+        async (payload: InitiatePaymentPayload) => {
+            try {
+                console.log('handleDaimoPayment', payload)
+                let determinedChargeDetails: TRequestChargeResponse | null = null
+                const { chargeDetails } = await determineChargeDetails(payload)
+
+                determinedChargeDetails = chargeDetails
+                console.log('Proceeding with charge details:', determinedChargeDetails.uuid)
+                return { status: 'Charge Created', charge: determinedChargeDetails, success: false }
+            } catch (err) {
+                return handleError(err, loadingStep)
+            }
+        },
+        [determineChargeDetails, setLoadingStep, setPaymentDetails]
+    )
+
+    const completeDaimoPayment = useCallback(
+        async ({
+            chargeDetails,
+            destinationchainId,
+            txHash,
+            payerAddress,
+            sourceChainId,
+            sourceTokenAddress,
+            sourceTokenSymbol,
+        }: {
+            chargeDetails: TRequestChargeResponse
+            txHash: string
+            destinationchainId: number
+            payerAddress: string
+            sourceChainId: number
+            sourceTokenAddress: string
+            sourceTokenSymbol: string
+        }) => {
+            try {
+                setLoadingStep('Updating Payment Status')
+                const payment = await chargesApi.createPayment({
+                    chargeId: chargeDetails.uuid,
+                    chainId: destinationchainId.toString(),
+                    hash: txHash,
+                    tokenAddress: chargeDetails.tokenAddress,
+                    payerAddress,
+                    sourceChainId: sourceChainId?.toString(),
+                    sourceTokenAddress,
+                    sourceTokenSymbol,
+                })
+
+                setPaymentDetails(payment)
+                dispatch(paymentActions.setPaymentDetails(payment))
+
+                setLoadingStep('Success')
+                console.log('Daimo payment successful.')
+                return { status: 'Success', charge: chargeDetails, payment, txHash, success: true }
+            } catch (err) {
+                return handleError(err, loadingStep)
+            }
+        },
+        [determineChargeDetails, setLoadingStep, setPaymentDetails]
+    )
+
     return {
         initiatePayment,
         prepareTransactionDetails,
         isProcessing,
         isPreparingTx,
         loadingStep,
+        setLoadingStep,
         error,
         activeChargeDetails,
         transactionHash,
@@ -766,5 +833,8 @@ export const usePaymentInitiator = () => {
         diffTokens,
         cancelOperation,
         xChainRoute,
+        reset,
+        completeDaimoPayment,
+        initiateDaimoPayment,
     }
 }

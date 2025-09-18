@@ -3,6 +3,7 @@ import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon, IconName } from '@/components/Global/Icons/Icon'
 import Link from 'next/link'
 import React from 'react'
+import { twMerge } from 'tailwind-merge'
 
 interface ProfileMenuItemProps {
     icon: IconName
@@ -12,6 +13,8 @@ interface ProfileMenuItemProps {
     position?: CardPosition
     comingSoon?: boolean
     isExternalLink?: boolean
+    endIcon?: IconName
+    endIconClassName?: string
 }
 
 const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
@@ -22,6 +25,8 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     position = 'middle',
     comingSoon = false,
     isExternalLink,
+    endIcon,
+    endIconClassName,
 }) => {
     const content = (
         <div className="flex items-center justify-between py-1">
@@ -34,7 +39,12 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                 {comingSoon ? (
                     <StatusBadge status="soon" size="medium" />
                 ) : (
-                    <Icon name="chevron-up" size={24} fill="black" className="rotate-90" />
+                    <Icon
+                        name={endIcon ?? 'chevron-up'}
+                        size={24}
+                        fill="black"
+                        className={twMerge(endIcon ? endIconClassName : 'rotate-90')}
+                    />
                 )}
             </div>
         </div>
@@ -43,6 +53,14 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     if (comingSoon || !href) {
         return (
             <Card position={position} className="bg-grey-4 p-4">
+                {content}
+            </Card>
+        )
+    }
+
+    if (onClick) {
+        return (
+            <Card position={position} onClick={onClick} className="cursor-pointer p-4 active:bg-grey-4">
                 {content}
             </Card>
         )

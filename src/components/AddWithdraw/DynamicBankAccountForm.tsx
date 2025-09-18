@@ -7,12 +7,13 @@ import { AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType } from
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { countryCodeMap } from '@/components/AddMoney/consts'
 import { useParams } from 'next/navigation'
-import { validateBankAccount, validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-accounts.utils'
+import { validateIban, validateBic, isValidRoutingNumber } from '@/utils/bridge-accounts.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
+import { getCountryFromIban, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
 
 const isIBANCountry = (country: string) => {
     return countryCodeMap[country.toUpperCase()] !== undefined
@@ -31,33 +32,49 @@ export type IBankAccountDetails = {
     city: string
     state: string
     postalCode: string
-    iban?: string
+    iban: string
     country: string
 }
 
 interface DynamicBankAccountFormProps {
     country: string
+    countryName?: string
     onSuccess: (payload: AddBankAccountPayload, rawData: IBankAccountDetails) => Promise<{ error?: string }>
     initialData?: Partial<IBankAccountDetails>
     flow?: 'claim' | 'withdraw'
     actionDetailsProps?: Partial<PeanutActionDetailsCardProps>
+    error: string | null
 }
 
 export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, DynamicBankAccountFormProps>(
-    ({ country, onSuccess, initialData, flow = 'withdraw', actionDetailsProps }, ref) => {
+    (
+        {
+            country,
+            onSuccess,
+            initialData,
+            flow = 'withdraw',
+            actionDetailsProps,
+            countryName: countryNameFromProps,
+            error,
+        },
+        ref
+    ) => {
         const { user } = useAuth()
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const [showBicField, setShowBicField] = useState(false)
-        const { country: countryName } = useParams()
+        const { country: countryNameParams } = useParams()
         const { amountToWithdraw } = useWithdrawFlow()
         const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
         const lastName = lastNameParts.join(' ')
+
+        let selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
 
         const {
             control,
             handleSubmit,
             setValue,
+            getValues,
             formState: { errors, isValid, isValidating, touchedFields },
         } = useForm<IBankAccountDetails>({
             defaultValues: {
@@ -75,6 +92,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 ...initialData,
             },
             mode: 'onBlur',
+            reValidateMode: 'onSubmit',
         })
 
         useImperativeHandle(ref, () => ({
@@ -82,12 +100,22 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         }))
 
         const onSubmit = async (data: IBankAccountDetails) => {
+            // If validation is still running, don't proceed
+            if (isValidating) {
+                console.log('Validation still checking, skipping submission')
+                return
+            }
+
+            // Clear any existing submission errors before starting
+            if (submissionError) {
+                setSubmissionError(null)
+            }
+
             setIsSubmitting(true)
-            setSubmissionError(null)
             try {
-                const isIban = isIBANCountry(country)
-                const isUs = country.toUpperCase() === 'US'
+                const isUs = country.toUpperCase() === 'USA'
                 const isMx = country.toUpperCase() === 'MX'
+                const isIban = isUs || isMx ? false : isIBANCountry(country)
 
                 let accountType: BridgeAccountType
                 if (isIban) accountType = BridgeAccountType.IBAN
@@ -98,22 +126,35 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 const accountNumber = isMx ? data.clabe : data.accountNumber
 
                 const { firstName, lastName } = data
-                let bic = data.bic
+                let bic = data.bic || getValues('bic')
+                const iban = data.iban || getValues('iban')
 
-                if (isIban && !bic) {
-                    try {
-                        bic = await getBicFromIban(accountNumber)
-                        if (!bic) {
+                // for IBAN countries, ensure BIC is available
+                if (isIban) {
+                    // if BIC field is shown but empty, don't proceed
+                    if (showBicField && !bic) {
+                        setSubmissionError('BIC is required')
+                        return
+                    }
+
+                    // if BIC field is not shown and no BIC available, try to get it automatically
+                    if (!showBicField && !bic) {
+                        try {
+                            const autoBic = await getBicFromIban(accountNumber)
+                            if (autoBic) {
+                                bic = autoBic
+                                // set the BIC value in the form without showing the field
+                                setValue('bic', autoBic, { shouldValidate: false })
+                            } else {
+                                setShowBicField(true)
+                                setSubmissionError('BIC is required')
+                                return
+                            }
+                        } catch (error) {
                             setShowBicField(true)
-                            setIsSubmitting(false)
                             setSubmissionError('BIC is required')
                             return
                         }
-                    } catch (error) {
-                        setShowBicField(true)
-                        setIsSubmitting(false)
-                        setSubmissionError('BIC is required')
-                        return
                     }
                 }
 
@@ -121,7 +162,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     accountType,
                     accountNumber: accountNumber.replace(/\s/g, ''),
                     countryCode: isUs ? 'USA' : country.toUpperCase(),
-                    countryName: countryName as string,
+                    countryName: selectedCountry,
                     accountOwnerType: BridgeAccountOwnerType.INDIVIDUAL,
                     accountOwnerName: {
                         firstName: firstName.trim(),
@@ -143,7 +184,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                 const result = await onSuccess(payload as AddBankAccountPayload, {
                     ...data,
-                    iban: isIban ? data.accountNumber : undefined,
+                    iban: isIban ? data.accountNumber || iban || '' : '',
+                    accountNumber: isIban ? '' : data.accountNumber,
+                    bic: bic,
                     country,
                     firstName: data.firstName.trim(),
                     lastName: data.lastName.trim(),
@@ -159,9 +202,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             }
         }
 
-        const isIban = isIBANCountry(country)
-        const isUs = country.toUpperCase() === 'US'
         const isMx = country.toUpperCase() === 'MX'
+        const isUs = country.toUpperCase() === 'USA'
+        const isIban = isUs || isMx ? false : isIBANCountry(country)
 
         const renderInput = (
             name: keyof IBankAccountDetails,
@@ -184,6 +227,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 placeholder={placeholder}
                                 className="h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm"
                                 onBlur={async (e) => {
+                                    // remove any whitespace from the input field
+                                    // note: @dev not a great fix, this should also be fixed in the backend
+                                    if (typeof field.value === 'string') {
+                                        field.onChange(field.value.trim())
+                                    }
                                     field.onBlur()
                                     if (onBlur) {
                                         await onBlur(field)
@@ -204,7 +252,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         }, [country])
 
         return (
-            <div className="my-auto flex h-full min-h-[inherit] w-full flex-col justify-center space-y-4 pb-5">
+            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}
                     avatarSize="small"
@@ -225,9 +273,23 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         }}
                         className="space-y-4"
                     >
+                        {flow === 'claim' && !user?.user.userId && (
+                            <div className="w-full space-y-4">
+                                {renderInput('firstName', 'First Name', { required: 'First name is required' })}
+                                {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
+                            </div>
+                        )}
+                        {flow === 'claim' && user?.user.userId && !user.user.fullName && (
+                            <div className="w-full space-y-4">
+                                {renderInput('firstName', 'First Name', { required: 'First name is required' })}
+                                {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
+                            </div>
+                        )}
                         {flow === 'claim' &&
-                            renderInput('name', 'Full Name', {
-                                required: 'Full name is required',
+                            user?.user.userId &&
+                            !user.user.email &&
+                            renderInput('email', 'E-mail', {
+                                required: 'Email is required',
                             })}
                         {flow !== 'claim' && !user?.user?.fullName && (
                             <div className="w-full space-y-4">
@@ -246,14 +308,25 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                   required: 'CLABE is required',
                                   minLength: { value: 18, message: 'CLABE must be 18 digits' },
                                   maxLength: { value: 18, message: 'CLABE must be 18 digits' },
+                                  validate: async (value: string) =>
+                                      validateMXCLabeAccount(value).isValid || 'Invalid CLABE',
                               })
                             : isIban
                               ? renderInput(
                                     'accountNumber',
                                     'IBAN',
                                     {
-                                        required: 'Account number is required',
-                                        validate: async (val: string) => (await validateIban(val)) || 'Invalid IBAN',
+                                        required: 'IBAN is required',
+                                        validate: async (val: string) => {
+                                            const isValidIban = await validateIban(val)
+                                            if (!isValidIban) return 'Invalid IBAN'
+
+                                            if (getCountryFromIban(val)?.toLowerCase() !== selectedCountry) {
+                                                return 'IBAN does not match the selected country'
+                                            }
+
+                                            return true
+                                        },
                                     },
                                     'text',
                                     undefined,
@@ -267,17 +340,32 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     {
                                         required: 'Account number is required',
                                         validate: async (value: string) =>
-                                            (await validateBankAccount(value)) || 'Invalid account number',
+                                            validateUSBankAccount(value).isValid || 'Invalid account number',
                                     },
                                     'text'
                                 )}
 
                         {isIban &&
                             showBicField &&
-                            renderInput('bic', 'BIC', {
-                                required: 'BIC is required',
-                                validate: async (value: string) => (await validateBic(value)) || 'Invalid BIC code',
-                            })}
+                            renderInput(
+                                'bic',
+                                'BIC',
+                                {
+                                    required: 'BIC is required',
+                                    validate: async (value: string) => {
+                                        if (!value || value.trim().length === 0) return 'BIC is required'
+                                        const isValid = await validateBic(value.trim())
+                                        return isValid || 'Invalid BIC code'
+                                    },
+                                },
+                                'text',
+                                undefined,
+                                (field) => {
+                                    if (field.value && field.value.trim().length > 0 && submissionError) {
+                                        setSubmissionError(null)
+                                    }
+                                }
+                            )}
                         {isUs &&
                             renderInput('routingNumber', 'Routing Number', {
                                 required: 'Routing number is required',
@@ -287,15 +375,17 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                         {!isIban && (
                             <>
-                                {renderInput('street', 'Bank Address', { required: 'Bank address is required' })}
+                                {renderInput('street', 'Your Street Address', {
+                                    required: 'Street address is required',
+                                })}
 
-                                {renderInput('city', 'City', { required: 'City is required' })}
+                                {renderInput('city', 'Your City', { required: 'City is required' })}
 
-                                {renderInput('state', 'State', {
+                                {renderInput('state', 'Your State', {
                                     required: 'State is required',
                                 })}
 
-                                {renderInput('postalCode', 'Postal Code', {
+                                {renderInput('postalCode', 'Your Postal Code', {
                                     required: 'Postal code is required',
                                 })}
                             </>
@@ -305,12 +395,16 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             variant="purple"
                             shadowSize="4"
                             className="!mt-4 w-full"
-                            loading={isSubmitting || isValidating}
-                            disabled={isSubmitting || !isValid || isValidating}
+                            loading={isSubmitting}
+                            disabled={isSubmitting || !isValid}
                         >
                             Review
                         </Button>
-                        {submissionError && <ErrorAlert description={submissionError} />}
+                        {submissionError ? (
+                            <ErrorAlert description={submissionError} />
+                        ) : (
+                            error && <ErrorAlert description={error} />
+                        )}
                     </form>
                 </div>
             </div>

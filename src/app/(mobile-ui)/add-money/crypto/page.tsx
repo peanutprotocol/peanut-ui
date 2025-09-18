@@ -1,25 +1,43 @@
 'use client'
+import { ARBITRUM_ICON } from '@/assets'
 import { CryptoSourceListCard } from '@/components/AddMoney/components/CryptoSourceListCard'
-import { CRYPTO_EXCHANGES, CRYPTO_WALLETS, CryptoSource, CryptoToken } from '@/components/AddMoney/consts'
+import {
+    CRYPTO_EXCHANGES,
+    CRYPTO_WALLETS,
+    CryptoSource,
+    CryptoToken,
+    DEPOSIT_CRYPTO_TOKENS,
+} from '@/components/AddMoney/consts'
 import { CryptoDepositQR } from '@/components/AddMoney/views/CryptoDepositQR.view'
 import NetworkSelectionView, { SelectedNetwork } from '@/components/AddMoney/views/NetworkSelection.view'
 import TokenSelectionView from '@/components/AddMoney/views/TokenSelection.view'
-import ActionModal from '@/components/Global/ActionModal'
 import NavHeader from '@/components/Global/NavHeader'
-import { Slider } from '@/components/Slider'
+import PeanutLoading from '@/components/Global/PeanutLoading'
+import { PEANUT_WALLET_CHAIN } from '@/constants'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import TokenAndNetworkConfirmationModal from '@/components/Global/TokenAndNetworkConfirmationModal'
 
 type AddMoneyCryptoStep = 'sourceSelection' | 'tokenSelection' | 'networkSelection' | 'riskModal' | 'qrScreen'
 
-const AddMoneyCryptoPage = () => {
+interface AddMoneyCryptoPageProps {
+    headerTitle?: string
+    onBack?: () => void
+    depositAddress?: string
+}
+
+const AddMoneyCryptoPage = ({ headerTitle, onBack, depositAddress }: AddMoneyCryptoPageProps) => {
     const router = useRouter()
-    const { address: peanutWalletAddress } = useWallet()
-    const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('tokenSelection') // hotfix for deposit - select tokenSelection view as default
-    const [selectedSource, setSelectedSource] = useState<CryptoSource | null>(CRYPTO_EXCHANGES[3]) // hotfix for deposit - select Other exhange by default
-    const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(null)
-    const [selectedNetwork, setSelectedNetwork] = useState<SelectedNetwork | null>(null)
+    const { address: peanutWalletAddress, isConnected } = useWallet()
+    const [currentStep, setCurrentStep] = useState<AddMoneyCryptoStep>('qrScreen')
+    const [selectedSource, setSelectedSource] = useState<CryptoSource | null>(CRYPTO_EXCHANGES[3])
+    const [selectedToken, setSelectedToken] = useState<CryptoToken | null>(DEPOSIT_CRYPTO_TOKENS[0])
+    const [selectedNetwork, setSelectedNetwork] = useState<SelectedNetwork | null>({
+        chainId: PEANUT_WALLET_CHAIN.id.toString(),
+        name: PEANUT_WALLET_CHAIN.name,
+        iconUrl: ARBITRUM_ICON,
+    })
     const [isRiskAccepted, setIsRiskAccepted] = useState(false)
 
     useEffect(() => {
@@ -51,11 +69,6 @@ const AddMoneyCryptoPage = () => {
     }
 
     const handleBackToSourceSelection = () => {
-        // hotfix for deposit - redirect to previous route if user is on tokenSelection and selected source is other-exchanges
-        if (selectedSource?.id === 'other-exchanges' && currentStep === 'tokenSelection') {
-            router.back()
-            return
-        }
         setCurrentStep('sourceSelection')
         setSelectedSource(null)
         resetSelections()
@@ -72,41 +85,30 @@ const AddMoneyCryptoPage = () => {
         setIsRiskAccepted(false)
     }
 
-    const handleBackToNetworkSelectionFromQR = () => {
-        if (selectedSource?.type === 'exchange') {
-            setCurrentStep('tokenSelection') // hotfix for deposit - redirect to tokenSelection view if user is on qrScreen and selected source is exchange
-        } else {
-            setCurrentStep('networkSelection')
-        }
-    }
-
     if (currentStep === 'tokenSelection' && selectedSource) {
-        return <TokenSelectionView onTokenSelect={handleTokenSelected} onBack={handleBackToSourceSelection} />
+        return (
+            <TokenSelectionView
+                headerTitle={headerTitle}
+                onTokenSelect={handleTokenSelected}
+                onBack={onBack ?? handleBackToSourceSelection}
+            />
+        )
     }
 
     if ((currentStep === 'networkSelection' || currentStep === 'riskModal') && selectedSource && selectedToken) {
         return (
             <>
-                <NetworkSelectionView onNetworkSelect={handleNetworkSelected} onBack={handleBackToTokenSelection} />
+                <NetworkSelectionView
+                    headerTitle={headerTitle}
+                    onNetworkSelect={handleNetworkSelected}
+                    onBack={handleBackToTokenSelection}
+                />
                 {currentStep === 'riskModal' && selectedToken && selectedNetwork && (
-                    <ActionModal
-                        visible={true}
+                    <TokenAndNetworkConfirmationModal
+                        token={selectedToken}
+                        network={selectedNetwork}
                         onClose={handleBackToNetworkSelectionFromRisk}
-                        icon={'alert'}
-                        iconContainerClassName="bg-yellow-1"
-                        title={`Only send ${selectedToken.symbol} on ${selectedNetwork.name}`}
-                        description={
-                            <span className="text-sm">
-                                Sending funds via any other network will result in a <b>permanent loss.</b>
-                            </span>
-                        }
-                        footer={
-                            <div className="w-full">
-                                <Slider onValueChange={(v) => v && setIsRiskAccepted(true)} />
-                            </div>
-                        }
-                        ctas={[]}
-                        modalPanelClassName="max-w-xs"
+                        onAccept={() => setIsRiskAccepted(true)}
                     />
                 )}
             </>
@@ -114,19 +116,27 @@ const AddMoneyCryptoPage = () => {
     }
 
     if (currentStep === 'qrScreen' && selectedSource && selectedToken && selectedNetwork) {
+        if (!isConnected) {
+            return <PeanutLoading />
+        }
+
+        if (isConnected && !peanutWalletAddress) {
+            router.push('/')
+            return null
+        }
         return (
             <CryptoDepositQR
                 tokenName={selectedToken.symbol}
                 chainName={selectedNetwork.name}
-                depositAddress={peanutWalletAddress}
-                onBack={handleBackToNetworkSelectionFromQR}
+                depositAddress={depositAddress ?? peanutWalletAddress}
+                onBack={() => router.back()}
             />
         )
     }
 
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
-            <NavHeader title="Add Money" onPrev={() => router.back()} />
+            <NavHeader title={'Add Money'} onPrev={() => router.back()} />
             <div className="flex flex-col gap-2 px-1">
                 <h2 className="text-base font-bold">Where are you adding from?</h2>
 

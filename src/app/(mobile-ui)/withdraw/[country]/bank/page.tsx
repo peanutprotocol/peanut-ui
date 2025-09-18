@@ -132,14 +132,17 @@ export default function WithdrawBankPage() {
             }
 
             // Step 2: prepare and send the transaction from peanut wallet to the deposit address
-            const receipt = await sendMoney(data.depositInstructions.toAddress as `0x${string}`, createPayload.amount)
+            const { receipt, userOpHash } = await sendMoney(
+                data.depositInstructions.toAddress as `0x${string}`,
+                createPayload.amount
+            )
 
-            if (isTxReverted(receipt)) {
+            if (receipt !== null && isTxReverted(receipt)) {
                 throw new Error('Transaction reverted by the network.')
             }
 
             // Step 3: Confirm the transfer with the backend to make it visible in history
-            const confirmResult = await confirmOfframp(data.transferId, receipt.transactionHash)
+            const confirmResult = await confirmOfframp(data.transferId, receipt?.transactionHash ?? userOpHash)
 
             if (confirmResult.error) {
                 // This is a tricky state. The on-chain tx succeeded, but the backend failed to record it.
@@ -180,7 +183,7 @@ export default function WithdrawBankPage() {
     }
 
     return (
-        <div className="flex h-full min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
+        <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
             <NavHeader
                 title="Withdraw"
                 icon={view === 'SUCCESS' ? 'cancel' : undefined}

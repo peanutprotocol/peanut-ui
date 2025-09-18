@@ -8,7 +8,7 @@ export type WithdrawView = 'INITIAL' | 'CONFIRM' | 'STATUS'
 
 export interface WithdrawData {
     token: ITokenPriceData
-    chain: peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }
+    chain: peanutInterfaces.ISquidChain & { networkName: string; tokens: peanutInterfaces.ISquidToken[] }
     address: string
     amount: string
 }

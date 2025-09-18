@@ -46,10 +46,11 @@ type ConfirmPaymentViewProps = {
         price: number
     }
     currencyAmount?: string
-    isAddMoneyFlow?: boolean
+    isExternalWalletFlow?: boolean
     /** Whether this is a direct payment, for xchain we dont care if a little
      * less arrives*/
     isDirectUsdPayment?: boolean
+    headerTitle?: string
 }
 
 /**
@@ -60,15 +61,16 @@ type ConfirmPaymentViewProps = {
  * @param isPintaReq - Whether this is a Pinta request payment (beer payment flow)
  * @param currency - Currency details for display (code, symbol, price)
  * @param currencyAmount - Amount in the specified currency
- * @param isAddMoneyFlow - Whether this is an add money flow (deposit to wallet)
+ * @param isExternalWalletFlow - Whether this is an add money flow (deposit to wallet)
  * @param isDirectUsdPayment - Whether this is a direct payment, for xchain we dont care if a little less arrives
  */
 export default function ConfirmPaymentView({
     isPintaReq = false,
     currency,
     currencyAmount,
-    isAddMoneyFlow,
+    isExternalWalletFlow,
     isDirectUsdPayment = false,
+    headerTitle,
 }: ConfirmPaymentViewProps) {
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
@@ -95,7 +97,7 @@ export default function ConfirmPaymentView({
     const queryClient = useQueryClient()
     const [isRouteExpired, setIsRouteExpired] = useState(false)
 
-    const isUsingExternalWallet = isAddMoneyFlow || !isPeanutWallet
+    const isUsingExternalWallet = isExternalWalletFlow || !isPeanutWallet
 
     const networkFee = useMemo<string | React.ReactNode>(() => {
         if (isFeeEstimationError) return '-'
@@ -189,7 +191,7 @@ export default function ConfirmPaymentView({
                     chainId: fromChainId,
                 },
                 usdAmount,
-                disableCoral: isAddMoneyFlow && isUsingExternalWallet,
+                disableCoral: isExternalWalletFlow && isUsingExternalWallet,
             })
         }
     }, [
@@ -200,7 +202,7 @@ export default function ConfirmPaymentView({
         isDirectUsdPayment,
         wagmiAddress,
         peanutWalletAddress,
-        isAddMoneyFlow,
+        isExternalWalletFlow,
         isUsingExternalWallet,
     ])
 
@@ -261,6 +263,10 @@ export default function ConfirmPaymentView({
     }, [routeTypeError, paymentError, isRouteExpired])
 
     const handleGoBack = () => {
+        if (isExternalWalletFlow) {
+            dispatch(paymentActions.setView('INITIAL'))
+            return
+        }
         dispatch(paymentActions.setView('INITIAL'))
         window.history.replaceState(null, '', `${window.location.pathname}`)
         dispatch(paymentActions.setChargeDetails(null))
@@ -283,8 +289,8 @@ export default function ConfirmPaymentView({
             skipChargeCreation: true,
             currency,
             currencyAmount,
-            isAddMoneyFlow,
-            transactionType: isAddMoneyFlow ? 'DEPOSIT' : 'REQUEST',
+            isExternalWalletFlow,
+            transactionType: isExternalWalletFlow ? 'DEPOSIT' : 'REQUEST',
         })
 
         if (result.success) {
@@ -305,7 +311,7 @@ export default function ConfirmPaymentView({
         queryClient,
         currency,
         currencyAmount,
-        isAddMoneyFlow,
+        isExternalWalletFlow,
     ])
 
     const handleRetry = useCallback(async () => {
@@ -319,21 +325,23 @@ export default function ConfirmPaymentView({
     }, [handlePayment, routeTypeError, handleRouteRefresh, isRouteExpired])
 
     const getButtonText = useCallback(() => {
+        const buttonText = headerTitle ? 'Send money' : 'Add Money'
         if (isProcessing) {
-            if (isAddMoneyFlow) return 'Add Money'
+            if (isExternalWalletFlow) return buttonText
             return loadingStep === 'Idle' ? 'Send' : 'Sending'
         }
-        if (isAddMoneyFlow) return 'Add Money'
+        if (isExternalWalletFlow) return buttonText
         if (isEstimatingGas || isCalculatingFees || isPreparingTx) return 'Send'
         if (isPintaReq) return 'Confirm Payment'
         return 'Send'
-    }, [isProcessing, loadingStep, isPreparingTx, isEstimatingGas, isCalculatingFees, isPintaReq, isAddMoneyFlow])
+    }, [isProcessing, loadingStep, isPreparingTx, isEstimatingGas, isCalculatingFees, isPintaReq, isExternalWalletFlow])
 
     const getIcon = useCallback((): IconName | undefined => {
-        if (isAddMoneyFlow) return 'arrow-down'
+        if (isExternalWalletFlow && headerTitle) return 'arrow-up-right'
+        if (isExternalWalletFlow) return 'arrow-down'
         if (isProcessing) return undefined
         return 'arrow-up-right'
-    }, [isAddMoneyFlow])
+    }, [isExternalWalletFlow])
 
     const amountForDisplay = useMemo(() => {
         if (usdAmount) {
@@ -418,12 +426,12 @@ export default function ConfirmPaymentView({
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader title={isAddMoneyFlow ? 'Add Money' : 'Send'} onPrev={handleGoBack} />
+            <NavHeader title={headerTitle ?? (isExternalWalletFlow ? 'Add Money' : 'Send')} onPrev={handleGoBack} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4 pb-5">
                 {parsedPaymentData?.recipient && (
                     <PeanutActionDetailsCard
                         avatarSize="small"
-                        transactionType={isAddMoneyFlow ? 'ADD_MONEY' : 'REQUEST_PAYMENT'}
+                        transactionType={'REQUEST_PAYMENT'}
                         recipientType={parsedPaymentData.recipient.recipientType ?? 'USERNAME'}
                         recipientName={
                             parsedPaymentData.recipient.identifier || chargeDetails?.requestLink?.recipientAddress || ''
@@ -451,7 +459,7 @@ export default function ConfirmPaymentView({
                         value={minReceived ?? '-'}
                         moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
                     />
-                    {isCrossChainPayment && !isAddMoneyFlow && (
+                    {isCrossChainPayment && !isExternalWalletFlow && (
                         <PaymentInfoRow
                             label="Requested"
                             value={
@@ -467,7 +475,7 @@ export default function ConfirmPaymentView({
                         />
                     )}
                     <PaymentInfoRow
-                        label={isCrossChainPayment && !isAddMoneyFlow ? `Sending` : 'Token and network'}
+                        label={isCrossChainPayment && !isExternalWalletFlow ? `Sending` : 'Token and network'}
                         value={
                             <TokenChainInfoDisplay
                                 tokenIconUrl={sendingTokenIconUrl}
@@ -480,7 +488,7 @@ export default function ConfirmPaymentView({
                         }
                     />
 
-                    {isAddMoneyFlow && (
+                    {isExternalWalletFlow && (
                         <PaymentInfoRow
                             label="From"
                             value={

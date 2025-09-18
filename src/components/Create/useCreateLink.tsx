@@ -1,19 +1,17 @@
 'use client'
-import { getLinkFromTx } from '@/app/actions/claimLinks'
+import { getLinkFromTx, getNextDepositIndex } from '@/app/actions/claimLinks'
 import { PEANUT_API_URL, PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, next_proxy_url } from '@/constants'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { fetchWithSentry, isNativeCurrency, saveToLocalStorage } from '@/utils'
 import peanut, {
     generateKeysFromString,
-    getContractAbi,
-    getContractAddress,
     getLatestContractVersion,
     getLinkFromParams,
     getRandomString,
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext } from 'react'
-import type { Hash } from 'viem'
+import type { Hash, Address } from 'viem'
 import { bytesToNumber, encodeFunctionData, parseAbi, parseEther, parseEventLogs, parseUnits, toBytes } from 'viem'
 import { useSignTypedData } from 'wagmi'
 
@@ -361,9 +359,12 @@ export const useCreateLink = () => {
                 chainId,
                 type: 'normal',
             })
-            const contractAbi = getContractAbi(contractVersion)
-            const contractAddress: Hash = getContractAddress(chainId, contractVersion) as Hash
             const tokenAddress = PEANUT_WALLET_TOKEN as Hash
+            const contractAbi = peanut.getContractAbi(contractVersion)
+            const contractAddress: Address = peanut.getContractAddress(
+                PEANUT_WALLET_CHAIN.id.toString(),
+                contractVersion
+            ) as Hash
 
             const approveData = encodeFunctionData({
                 abi: parseAbi(['function approve(address _spender, uint256 _amount) external returns (bool)']),
@@ -375,19 +376,29 @@ export const useCreateLink = () => {
                 functionName: 'makeDeposit',
                 args: [tokenAddress, 1, amount, 0, generatedKeys.address as Hash],
             })
-            const receipt = await handleSendUserOpEncoded(
-                [
-                    { to: tokenAddress, value: 0n, data: approveData },
-                    { to: contractAddress, value: 0n, data: makeDepositData },
-                ],
-                chainId
-            )
-            const depositEvent = parseEventLogs({
-                abi: contractAbi,
-                eventName: 'DepositEvent',
-                logs: receipt.logs,
-            })[0]
-            const depositIdx = bytesToNumber(toBytes(depositEvent.topics[1]!))
+            const [nextIndex, { receipt }] = await Promise.all([
+                getNextDepositIndex(contractVersion),
+                handleSendUserOpEncoded(
+                    [
+                        { to: tokenAddress, value: 0n, data: approveData },
+                        { to: contractAddress, value: 0n, data: makeDepositData },
+                    ],
+                    chainId
+                ),
+            ])
+            let depositIdx: number
+            let txHash: Hash | undefined = undefined
+            if (receipt !== null) {
+                const depositEvent = parseEventLogs({
+                    abi: contractAbi,
+                    eventName: 'DepositEvent',
+                    logs: receipt.logs,
+                })[0]
+                depositIdx = bytesToNumber(toBytes(depositEvent.topics[1]!))
+                txHash = depositEvent.transactionHash
+            } else {
+                depositIdx = nextIndex
+            }
 
             const link = getLinkFromParams(
                 chainId,
@@ -403,7 +414,7 @@ export const useCreateLink = () => {
                 chainId,
                 contractVersion,
                 depositIdx,
-                txHash: receipt.transactionHash,
+                txHash,
                 amount,
                 tokenAddress,
             }

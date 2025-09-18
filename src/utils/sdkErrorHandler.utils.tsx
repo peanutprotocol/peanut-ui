@@ -112,7 +112,7 @@ export const ErrorHandler = (error: any) => {
         } else if (error.toString().includes('The operation either timed out or was not allowed')) {
             return 'Please confirm the transaction.'
         } else {
-            return 'Something failed. Please try again.'
+            return 'There was an issue with your request. Please contact support.'
         }
     }
 }

@@ -2,7 +2,7 @@
 
 import Layout from '@/components/Global/Layout'
 import {
-    BusinessIntegrate,
+    DropLink,
     FAQs,
     Hero,
     Marquee,
@@ -10,7 +10,9 @@ import {
     SecurityBuiltIn,
     SendInSeconds,
     YourMoney,
+    RegulatedRails,
 } from '@/components/LandingPage'
+import Footer from '@/components/LandingPage/Footer'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useEffect, useState, useRef } from 'react'
 
@@ -177,27 +179,25 @@ export default function LandingPage() {
 
     return (
         <Layout className="enable-select !m-0 w-full !p-0">
-            <Hero
-                heading={hero.heading}
-                primaryCta={hero.primaryCta}
-                buttonVisible={buttonVisible}
-                buttonScale={buttonScale}
-            />
-            <Marquee {...marqueeProps} />
-            <YourMoney />
+            <Hero primaryCta={hero.primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
             <Marquee {...marqueeProps} />
             <NoFees />
             <Marquee {...marqueeProps} />
-            <SecurityBuiltIn />
+            <RegulatedRails />
             <Marquee {...marqueeProps} />
-            <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
+            <YourMoney />
+            <Marquee {...marqueeProps} />
+            <SecurityBuiltIn />
             <Marquee {...marqueeProps} />
             <div ref={sendInSecondsRef}>
                 <SendInSeconds />
             </div>
             <Marquee {...marqueeProps} />
-            <BusinessIntegrate />
+            <DropLink />
             <Marquee {...marqueeProps} />
+            <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
+            <Marquee {...marqueeProps} />
+            <Footer />
         </Layout>
     )
 }

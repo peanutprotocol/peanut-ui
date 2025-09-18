@@ -4,7 +4,7 @@ import PaymentPage from './client'
 import getOrigin from '@/lib/hosting/get-origin'
 import { BASE_URL } from '@/constants'
 import { isAddress } from 'viem'
-import { printableAddress } from '@/utils'
+import { printableAddress, resolveAddressToUsername } from '@/utils'
 import { chargesApi } from '@/services/charges'
 import { parseAmountAndToken } from '@/lib/url-parser/parser'
 
@@ -41,17 +41,28 @@ export async function generateMetadata({ params, searchParams }: any) {
     const isEnsName = recipient.endsWith('.eth')
     const isAddressOrEns = isEthAddress || isEnsName
 
+    // If params length is 1 that means its a profile link
+    const isPeanutUsername = resolvedParams.recipient.length === 1 && !isEthAddress && !isEnsName
+
     // Determine if we should generate custom OG image
-    const shouldGenerateCustomOG = amount || isAddressOrEns || chargeId
+    const shouldGenerateCustomOG = amount || isAddressOrEns || chargeId || isPeanutUsername
 
     let isPaid = false
     let ogImageUrl = '/metadata-img.png' // Default fallback
+    let username = null
 
     // Only check charge status if there's a chargeId
     if (chargeId) {
         try {
             const chargeDetails = await chargesApi.get(chargeId)
             isPaid = chargeDetails?.fulfillmentPayment?.status === 'SUCCESSFUL'
+            if (isPaid) {
+                // If the charge is paid (i.e its a receipt), we need to get the username of the payer
+                username = chargeDetails.payments.find((payment) => payment.status === 'SUCCESSFUL')?.payerAccount?.user
+                    ?.username
+            } else {
+                username = chargeDetails.requestee?.username
+            }
 
             // If we don't have amount/token from URL but have chargeId, get them from charge details
             if (!amount && chargeDetails) {
@@ -87,15 +98,29 @@ export async function generateMetadata({ params, searchParams }: any) {
                 ogUrl.searchParams.set('isReceipt', 'true')
             }
 
+            if (isPeanutUsername) {
+                ogUrl.searchParams.set('isPeanutUsername', 'true')
+            }
+
             ogImageUrl = ogUrl.toString()
         }
     }
 
-    // Generate appropriate title
-    if (amount && token) {
-        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting ${amount} ${token.toUpperCase()}`
+    // Generate appropriate title and description
+    let description = 'Tap the link to pay instantly and without fees.'
+
+    // Check if this is a receipt (chargeId exists and charge is paid)
+    const isReceipt = chargeId && isPaid
+
+    if (isReceipt) {
+        // Receipt case - show who shared the receipt
+        const displayName = username || (isEthAddress ? printableAddress(recipient) : recipient)
+        title = `${displayName} shared a receipt for $${amount} via Peanut`
+        description = 'Tap to view the payment details instantly and securely.'
+    } else if (amount && token) {
+        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount} via Peanut`
     } else if (amount) {
-        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount}`
+        title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting $${amount} via Peanut`
     } else if (isAddressOrEns) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} is requesting funds`
     } else if (chargeId) {
@@ -103,26 +128,35 @@ export async function generateMetadata({ params, searchParams }: any) {
         title = `${isEthAddress ? printableAddress(recipient) : recipient} | Peanut`
     } else {
         // For Peanut usernames without amounts, use generic title
-        title = `${recipient} | Peanut`
+        title = `${recipient} on Peanut`
+        description = `Check ${recipient}’s profile, send or request money instant in one tap, fee-free and secure.`
     }
 
     return {
         title,
-        description: 'Send cryptocurrency to friends, family, or anyone else using Peanut on any chain.',
+        description,
         ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
         icons: {
-            icon: '/logo-favicon.png',
+            icon: '/favicon.ico',
         },
         openGraph: {
             title,
-            description: 'Seamless payment infrastructure for sending and receiving digital assets.',
+            description,
             images: [{ url: ogImageUrl, width: 1200, height: 630 }],
+            type: 'website',
+            siteName: 'Peanut',
         },
         twitter: {
             card: 'summary_large_image',
+            site: '@PeanutProtocol',
+            creator: '@PeanutProtocol',
             title,
-            description: 'Send cryptocurrency to friends, family, or anyone else using Peanut on any chain.',
-            images: [ogImageUrl],
+            description,
+            images: [
+                {
+                    url: ogImageUrl,
+                },
+            ],
         },
     }
 }
@@ -130,8 +164,9 @@ export async function generateMetadata({ params, searchParams }: any) {
 export default function Page(props: PageProps) {
     const params = use(props.params)
     const recipient = params.recipient ?? []
+
     return (
-        <PageContainer className="min-h-[inherit]">
+        <PageContainer>
             <PaymentPage recipient={recipient} />
         </PageContainer>
     )

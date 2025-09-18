@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
 import { useTransactionHistory, HistoryEntry } from '@/hooks/useTransactionHistory'
-import { ApiUser } from '@/services/users'
+import { RecentUser } from '@/services/users'
 
 export function useRecentUsers() {
     const { data } = useTransactionHistory({ mode: 'latest', limit: 20 })
     const recentTransactions = useMemo(() => {
         if (!data) return []
-        return data.entries.reduce((acc: Pick<ApiUser, 'userId' | 'username' | 'fullName'>[], entry: HistoryEntry) => {
+        return data.entries.reduce((acc: RecentUser[], entry: HistoryEntry) => {
             let account
             if (entry.userRole === 'SENDER') {
                 account = entry.recipientAccount
@@ -23,6 +23,7 @@ export function useRecentUsers() {
                 userId: account.userId!,
                 username: account.username!,
                 fullName: account.fullName!,
+                kycStatus: entry.isVerified ? 'approved' : 'not_started',
             })
             return acc
         }, [])

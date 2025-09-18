@@ -50,7 +50,15 @@ import { BadgeIcon } from './badge'
 import { UserIdIcon } from './user-id'
 import { ClockIcon } from './clock'
 import { DollarIcon } from './dollar'
-import { LinkShashIcon } from './link-slash'
+import { LinkSlashIcon } from './link-slash'
+import { SuccessIcon } from './success'
+import { PendingIcon } from './pending'
+import { ProcessingIcon } from './processing'
+import { FailedIcon } from './failed'
+import { ChevronDownIcon } from './chevron-down'
+import { DoubleCheckIcon } from './double-check'
+import { QuestionMarkIcon } from './question-mark'
+import { ShieldIcon } from './shield'
 
 // available icon names
 export type IconName =
@@ -67,6 +75,7 @@ export type IconName =
     | 'check-circle'
     | 'cancel'
     | 'download'
+    | 'double-check'
     | 'eye'
     | 'eye-slash'
     | 'exchange'
@@ -106,6 +115,13 @@ export type IconName =
     | 'user-id'
     | 'clock'
     | 'dollar'
+    | 'success'
+    | 'pending'
+    | 'processing'
+    | 'failed'
+    | 'chevron-down'
+    | 'question-mark'
+    | 'shield'
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName
@@ -125,6 +141,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'chevron-up': ChevronUpIcon,
     download: DownloadIcon,
     dollar: DollarIcon,
+    'double-check': DoubleCheckIcon,
     eye: EyeIcon,
     'eye-slash': EyeSlashIcon,
     exchange: ExchangeIcon,
@@ -140,7 +157,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     currency: CurrencyIcon,
     achievements: AchievementsIcon,
     link: LinkIcon,
-    'link-slash': LinkShashIcon,
+    'link-slash': LinkSlashIcon,
     logout: LogoutIcon,
     paperclip: PaperClipIcon,
     smile: SmileIcon,
@@ -166,6 +183,13 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     retry: RetryIcon,
     'user-id': UserIdIcon,
     clock: ClockIcon,
+    success: SuccessIcon,
+    pending: PendingIcon,
+    processing: ProcessingIcon,
+    failed: FailedIcon,
+    'chevron-down': ChevronDownIcon,
+    'question-mark': QuestionMarkIcon,
+    shield: ShieldIcon,
 }
 
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, ...props }) => {

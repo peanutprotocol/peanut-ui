@@ -53,8 +53,7 @@ export const useWallet = () => {
                 data: (tx.data as Hex | undefined) ?? '0x',
             }))
             chainId = chainId ?? PEANUT_WALLET_CHAIN.id.toString()
-            let receipt = await handleSendUserOpEncoded(params, chainId)
-            return receipt
+            return await handleSendUserOpEncoded(params, chainId)
         },
         [handleSendUserOpEncoded]
     )
@@ -112,7 +111,7 @@ export const useWallet = () => {
 
     return {
         address: address!,
-        balance: BigInt(balance),
+        balance: balance !== undefined ? BigInt(balance) : undefined,
         isConnected: isKernelClientReady,
         sendTransactions,
         sendMoney,

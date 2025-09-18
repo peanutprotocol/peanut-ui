@@ -10,32 +10,24 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import Image from 'next/image'
 import Link from 'next/link'
 import ProfileHeader from './ProfileHeader'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
-import { formatExtendedNumber } from '@/utils'
 import Card from '@/components/Global/Card'
-import { useAuth } from '@/context/authContext'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import { checkIfInternalNavigation } from '@/utils'
 
 interface PublicProfileProps {
     username: string
-    isVerified?: boolean
     isLoggedIn?: boolean
     onSendClick?: () => void
 }
 
-const PublicProfile: React.FC<PublicProfileProps> = ({
-    username,
-    isVerified = false,
-    isLoggedIn = false,
-    onSendClick,
-}) => {
+const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = false, onSendClick }) => {
     const dispatch = useAppDispatch()
+    const [totalSentByLoggedInUser, setTotalSentByLoggedInUser] = useState<string>('0')
     const [fullName, setFullName] = useState<string>(username)
-    const [totalSent, setTotalSent] = useState<string>('0.00')
-    const [totalReceived, setTotalReceived] = useState<string>('0.00')
-    const { user } = useAuth()
+    const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
     const router = useRouter()
 
     // Handle send button click
@@ -50,10 +42,17 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
     useEffect(() => {
         usersApi.getByUsername(username).then((user) => {
             if (user?.fullName) setFullName(user.fullName)
-            setTotalSent(user.totalUsdSent)
-            setTotalReceived(user.totalUsdReceived)
+            if (user?.kycStatus === 'approved') setIsKycVerified(true)
+            // to check if the logged in user has sent money to the profile user,
+            // we check the amount that the profile user has received from the logged in user.
+            if (user?.totalUsdReceivedFromCurrentUser) {
+                setTotalSentByLoggedInUser(user.totalUsdReceivedFromCurrentUser)
+            }
         })
     }, [username])
+
+    // this flag is true if the current user has sent money to the profile user before.
+    const haveSentMoneyToUser = useMemo(() => Number(totalSentByLoggedInUser) > 0, [totalSentByLoggedInUser])
 
     return (
         <div className="flex h-full w-full flex-col space-y-4 bg-background">
@@ -65,7 +64,19 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                         <Image src={PEANUT_LOGO_BLACK} alt="Peanut Text" height={12} />
                     </div>
                 ) : (
-                    <NavHeader onPrev={router.back} hideLabel />
+                    <NavHeader
+                        onPrev={() => {
+                            // Check if the referrer is from the same domain (internal navigation)
+                            const isInternalReferrer = checkIfInternalNavigation()
+
+                            if (isInternalReferrer && window.history.length > 1) {
+                                router.back()
+                            } else {
+                                router.push('/home')
+                            }
+                        }}
+                        hideLabel
+                    />
                 )}
             </div>
 
@@ -75,8 +86,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                     showShareButton={false}
                     name={fullName}
                     username={username}
-                    isVerified={isVerified}
+                    isVerified={isKycVerified}
                     className="mb-6"
+                    haveSentMoneyToUser={haveSentMoneyToUser}
                 />
 
                 {/* Action Buttons */}
@@ -107,24 +119,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({
                     </Link>
                 </div>
 
-                {!!user && totalSent !== '0.00' && totalReceived !== '0.00' && (
-                    <div className="space-y-6">
-                        <div>
-                            <Card position="first">
-                                <div className="flex items-center justify-between py-2">
-                                    <span className="font-medium">Total sent to</span>
-                                    <span className="font-medium">${formatExtendedNumber(totalSent)}</span>
-                                </div>
-                            </Card>
-                            <Card position="last">
-                                <div className="flex items-center justify-between py-2">
-                                    <span className="font-medium">Total received from</span>
-                                    <span className="font-medium">${formatExtendedNumber(totalReceived)}</span>
-                                </div>
-                            </Card>
-                        </div>
-                    </div>
-                )}
                 {/* Show create account box to guest users */}
                 {!isLoggedIn && (
                     <div className="relative flex flex-col items-center">

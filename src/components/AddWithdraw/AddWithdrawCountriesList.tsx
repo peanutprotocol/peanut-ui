@@ -11,18 +11,19 @@ import Image, { StaticImageData } from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { InitiateKYCModal } from '@/components/Kyc'
 import { DynamicBankAccountForm, IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount, updateUserById } from '@/app/actions/users'
-import { jsonParse, jsonStringify } from '@/utils/general.utils'
 import { KYCStatus } from '@/utils/bridge-accounts.utils'
 import { AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
-import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { Account } from '@/interfaces'
 import PeanutLoading from '../Global/PeanutLoading'
+import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -31,14 +32,18 @@ interface AddWithdrawCountriesListProps {
 const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const router = useRouter()
     const params = useParams()
+
+    // hooks
+    const { deviceType } = useDeviceType()
     const { user, fetchUser } = useAuth()
     const { setSelectedBankAccount, amountToWithdraw } = useWithdrawFlow()
-    const { setFromBankSelected } = useOnrampFlow()
+
+    // component level states
     const [view, setView] = useState<'list' | 'form'>('list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
-    const [cachedBankDetails, setCachedBankDetails] = useState<Partial<IBankAccountDetails> | null>(null)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(user?.user?.kycStatus as KYCStatus)
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     useWebSocket({
         username: user?.user.username ?? undefined,
@@ -65,18 +70,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const currentCountry = countryData.find(
         (country) => country.type === 'country' && country.path === countrySlugFromUrl
     )
-
-    useEffect(() => {
-        if (user?.user.userId) {
-            const item = sessionStorage.getItem(`temp-bank-account-${user.user.userId}`)
-            const data = item ? jsonParse(item) : null
-            const currentStatus = liveKycStatus || user.user.kycStatus
-            if (data && currentStatus === 'approved' && !cachedBankDetails) {
-                setCachedBankDetails(data)
-                setView('form')
-            }
-        }
-    }, [user, liveKycStatus, cachedBankDetails])
 
     const handleFormSubmit = async (
         payload: AddBankAccountPayload,
@@ -124,9 +117,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 setSelectedBankAccount(newAccountFromResponse)
             }
 
-            if (user?.user.userId) {
-                sessionStorage.removeItem(`temp-bank-account-${user.user.userId}`)
-            }
             if (currentCountry) {
                 router.push(`/withdraw/${currentCountry.path}/bank`)
             }
@@ -151,10 +141,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         // scenario (2): if the user hasn't completed kyc yet
         if (!isUserKycVerified) {
-            const { firstName, lastName, email, ...detailsToSave } = rawData
-            if (user?.user.userId) {
-                sessionStorage.setItem(`temp-bank-account-${user.user.userId}`, jsonStringify(detailsToSave))
-            }
             setIsKycModalOpen(true)
         }
 
@@ -162,9 +148,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     }
 
     const handleKycSuccess = () => {
-        setIsKycModalOpen(false)
-        if (formRef.current) {
-            formRef.current.handleSubmit()
+        // only transition to form if this component initiated the KYC modal
+        if (isKycModalOpen) {
+            setIsKycModalOpen(false)
+            setView('form')
         }
     }
 
@@ -187,9 +174,37 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         }
     }, [amountToWithdraw, router, flow])
 
+    const methods = useMemo(() => {
+        if (!currentCountry) return undefined
+
+        const countryMethods = COUNTRY_SPECIFIC_METHODS[currentCountry.id]
+        if (!countryMethods) return undefined
+
+        if (flow !== 'add') {
+            return countryMethods
+        }
+
+        // filter apple pay and google pay for add flow based on device type
+        const filteredAddMethods = (countryMethods.add || []).filter((method) => {
+            if (method.id === 'apple-pay-add') {
+                return deviceType === DeviceType.IOS || deviceType === DeviceType.WEB
+            }
+            if (method.id === 'google-pay-add') {
+                return deviceType === DeviceType.ANDROID || deviceType === DeviceType.WEB
+            }
+
+            return true
+        })
+
+        return {
+            ...countryMethods,
+            add: filteredAddMethods,
+        }
+    }, [currentCountry, flow, deviceType])
+
     if (!amountToWithdraw && flow === 'withdraw') {
         return (
-            <div className="flex h-full min-h-[inherit] w-full items-center justify-center md:min-h-[80vh]">
+            <div className="flex h-full w-full items-center justify-center md:min-h-[80vh]">
                 <PeanutLoading />
             </div>
         )
@@ -206,13 +221,21 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     if (view === 'form') {
         return (
-            <div className="min-h-[inherit] w-full space-y-8 self-start">
-                <NavHeader title={'Withdraw'} onPrev={() => setView('list')} />
+            <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+                <NavHeader
+                    title={flow === 'withdraw' ? 'Withdraw' : 'Add money'}
+                    onPrev={() => {
+                        // ensure kyc modal isn't open so late success events don't flip view
+                        setIsKycModalOpen(false)
+                        setView('list')
+                    }}
+                />
                 <DynamicBankAccountForm
                     ref={formRef}
-                    country={currentCountry.id}
+                    country={getCountryCodeForWithdraw(currentCountry.id)}
                     onSuccess={handleFormSubmit}
-                    initialData={cachedBankDetails ?? {}}
+                    initialData={{}}
+                    error={null}
                 />
                 <InitiateKYCModal
                     isOpen={isKycModalOpen}
@@ -222,8 +245,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             </div>
         )
     }
-
-    const methods = COUNTRY_SPECIFIC_METHODS[currentCountry.id]
 
     const renderPaymentMethods = (title: string, paymentMethods: SpecificPaymentMethod[]) => {
         if (!paymentMethods || paymentMethods.length === 0) {
@@ -272,6 +293,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                 if (flow === 'withdraw') {
                                     handleWithdrawMethodClick(method)
                                 } else if (method.path) {
+                                    if (method.id === 'crypto-add') {
+                                        setIsDrawerOpen(true)
+                                        return
+                                    }
                                     router.push(method.path)
                                 }
                             }}
@@ -309,6 +334,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     methods?.withdraw &&
                     renderPaymentMethods('Choose withdrawing method', methods.withdraw)}
             </div>
+            {flow === 'add' && (
+                <CryptoMethodDrawer
+                    isDrawerOpen={isDrawerOpen}
+                    setisDrawerOpen={setIsDrawerOpen}
+                    closeDrawer={() => setIsDrawerOpen(false)}
+                />
+            )}
             <InitiateKYCModal
                 isOpen={isKycModalOpen}
                 onClose={() => setIsKycModalOpen(false)}

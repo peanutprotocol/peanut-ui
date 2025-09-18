@@ -17,6 +17,7 @@ import { KycStatusItem } from '../Kyc/KycStatusItem'
 import { isKycStatusItem, KycHistoryEntry } from '@/hooks/useKycFlow'
 import { KYCStatus } from '@/utils'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useUserInteractions } from '@/hooks/useUserInteractions'
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -60,6 +61,26 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 
     // Combine fetched history with real-time updates
     const [combinedEntries, setCombinedEntries] = useState<Array<any>>([])
+
+    // get all the user ids from the combined entries to check for interactions
+    const userIds = useMemo(() => {
+        if (!combinedEntries.length) return []
+        return Array.from(
+            new Set(
+                combinedEntries
+                    .map((entry) => {
+                        if (isKycStatusItem(entry)) return null
+                        if (entry.userRole === 'SENDER') return entry.recipientAccount.userId
+                        if (entry.userRole === 'RECIPIENT') return entry.senderAccount?.userId
+                        return null
+                    })
+                    .filter((userId) => userId) as string[]
+            )
+        )
+    }, [combinedEntries])
+
+    // fetch the interaction status for the user ids
+    const { interactions } = useUserInteractions(userIds)
 
     useEffect(() => {
         if (historyData?.entries) {
@@ -138,7 +159,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     if (isLoading) {
         return (
             <div className="space-y-2">
-                <h2 className="text-base font-bold">Transactions</h2>
+                <h2 className="text-base font-bold">Activity</h2>
                 <div className="flex flex-col">
                     {Array.from({ length: 5 }).map((_, index) => (
                         <HistorySkeleton key={index} position={getCardPosition(index, 5)} />
@@ -207,6 +228,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                                     transaction={transactionDetails}
                                     position={position}
                                     isPending={true}
+                                    haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
                                 />
                             )
                         })}
@@ -243,6 +265,13 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
 
                         // determine card position for styling (first, middle, last, single)
 
+                        const haveSentMoneyToUser =
+                            item.userRole === 'SENDER'
+                                ? interactions[item.recipientAccount.userId]
+                                : item.senderAccount?.userId
+                                  ? interactions[item.senderAccount.userId]
+                                  : false
+
                         return (
                             <TransactionCard
                                 key={item.uuid}
@@ -253,6 +282,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                                 initials={transactionDetails.initials}
                                 transaction={transactionDetails}
                                 position={position}
+                                haveSentMoneyToUser={haveSentMoneyToUser}
                             />
                         )
                     })}

@@ -1,14 +1,15 @@
 import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
-import BottomDrawer from '@/components/Global/BottomDrawer'
 import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
-import { useDynamicHeight } from '@/hooks/ui/useDynamicHeight'
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import AvatarWithBadge from '../AvatarWithBadge'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
+import { VerifiedUserLabel } from '@/components/UserHeader'
+import { useAuth } from '@/context/authContext'
 
 interface ProfileHeaderProps {
     name: string
@@ -16,6 +17,7 @@ interface ProfileHeaderProps {
     isVerified?: boolean
     className?: string
     showShareButton?: boolean
+    haveSentMoneyToUser?: boolean
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -24,24 +26,31 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     isVerified = false,
     className,
     showShareButton = true,
+    haveSentMoneyToUser = false,
 }) => {
+    const { user: authenticatedUser } = useAuth()
+    const isAuthenticatedUserVerified = authenticatedUser?.user.kycStatus === 'approved'
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-    const contentRef = useRef<HTMLDivElement>(null)
-    const drawerHeightVh = useDynamicHeight(contentRef, { maxHeightVh: 90, minHeightVh: 10, extraVhOffset: 5 })
-    const currentExpandedHeight = drawerHeightVh ?? 80
-    const currentHalfHeight = Math.min(60, drawerHeightVh ?? 60)
 
     const profileUrl = `${BASE_URL}/${username}`
+
+    console.log('isVerified', isVerified)
 
     return (
         <>
             <div className={twMerge('flex flex-col items-center space-y-2', className)}>
                 {/* Avatar with initials */}
-                <AvatarWithBadge isVerified={isVerified} name={name || username} />
+                <AvatarWithBadge name={name || username} />
 
                 {/* Name */}
-                <h1 className="mb-4 text-2xl font-bold">{name}</h1>
-
+                <VerifiedUserLabel
+                    name={name}
+                    isVerified={isVerified}
+                    className="text-2xl font-bold"
+                    iconSize={20}
+                    haveSentMoneyToUser={haveSentMoneyToUser}
+                    isAuthenticatedUserVerified={isAuthenticatedUserVerified}
+                />
                 {/* Username with share drawer */}
                 {showShareButton && (
                     <Button
@@ -63,24 +72,20 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
             {isDrawerOpen && (
                 <>
-                    <BottomDrawer
-                        initialPosition="expanded"
-                        handleTitle={'Your Peanut profile is public'}
-                        handleSubtitle="Share it to receive payments!"
-                        collapsedHeight={10}
-                        expandedHeight={currentExpandedHeight}
-                        halfHeight={currentHalfHeight}
-                        isOpen={isDrawerOpen}
-                        onClose={() => setIsDrawerOpen(false)}
-                    >
-                        <div className="space-y-6" ref={contentRef}>
+                    <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+                        <DrawerContent className="space-y-6 p-5">
+                            <DrawerTitle className="mb-8 space-y-2">
+                                <h2 className="text-lg font-bold">Your Peanut profile is public</h2>
+                                <h2 className="text-base font-light">Share it to receive payments!</h2>
+                            </DrawerTitle>
+
                             <QRCodeWrapper url={profileUrl} />
                             <Divider className="text-gray-500" text="or" />
                             <ShareButton url={profileUrl} title="Share your profile">
                                 Share Profile link
                             </ShareButton>
-                        </div>
-                    </BottomDrawer>
+                        </DrawerContent>
+                    </Drawer>
                 </>
             )}
         </>

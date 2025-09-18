@@ -32,14 +32,14 @@ import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
 import AddMoneyPromptModal from '@/components/Home/AddMoneyPromptModal'
 import BalanceWarningModal from '@/components/Global/BalanceWarningModal'
-import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
-import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
+// import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
+// import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
 import { AccountType } from '@/interfaces'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
-import { useGuestFlow } from '@/context/GuestFlowContext'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
+import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -48,7 +48,7 @@ export default function Home() {
     const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
     const { rewardWalletBalance } = useWalletStore()
     const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
-    const { resetGuestFlow } = useGuestFlow()
+    const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
@@ -64,7 +64,7 @@ export default function Home() {
     const [showIOSPWAInstallModal, setShowIOSPWAInstallModal] = useState(false)
     const [showAddMoneyPromptModal, setShowAddMoneyPromptModal] = useState(false)
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
-    const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
+    // const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
 
     const userFullName = useMemo(() => {
@@ -84,9 +84,9 @@ export default function Home() {
     const isLoading = isFetchingUser && !username
 
     useEffect(() => {
-        resetGuestFlow()
+        resetClaimBankFlow()
         resetWithdrawFlow()
-    }, [resetGuestFlow, resetWithdrawFlow])
+    }, [resetClaimBankFlow, resetWithdrawFlow])
 
     useEffect(() => {
         // We have some users that didn't have the peanut wallet created
@@ -135,8 +135,10 @@ export default function Home() {
 
     // effect for showing balance warning modal
     useEffect(() => {
-        if (typeof window !== 'undefined' && !isFetchingBalance) {
-            const hasSeenBalanceWarning = getFromLocalStorage('hasSeenBalanceWarning')
+        if (isFetchingBalance || balance === undefined) return
+
+        if (typeof window !== 'undefined') {
+            const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
             const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
 
             // show if:
@@ -157,8 +159,10 @@ export default function Home() {
 
     // effect for showing balance warning modal
     useEffect(() => {
-        if (typeof window !== 'undefined' && !isFetchingBalance) {
-            const hasSeenBalanceWarning = getFromLocalStorage('hasSeenBalanceWarning')
+        if (isFetchingBalance || balance === undefined) return
+
+        if (typeof window !== 'undefined') {
+            const hasSeenBalanceWarning = getFromLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`)
             const balanceInUsd = Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
 
             // show if:
@@ -266,18 +270,18 @@ export default function Home() {
                 visible={showBalanceWarningModal}
                 onCloseAction={() => {
                     setShowBalanceWarningModal(false)
-                    saveToLocalStorage('hasSeenBalanceWarning', 'true', BALANCE_WARNING_EXPIRY)
+                    saveToLocalStorage(`${user!.user.userId}-hasSeenBalanceWarning`, 'true', BALANCE_WARNING_EXPIRY)
                 }}
             />
 
-            {/* Referral Campaign Modal */}
-            <ReferralCampaignModal
+            {/* Referral Campaign Modal - DISABLED FOR NOW */}
+            {/* <ReferralCampaignModal
                 visible={showReferralCampaignModal}
                 onClose={() => setShowReferralCampaignModal(false)}
-            />
+            /> */}
 
-            {/* Floating Referral Button */}
-            <FloatingReferralButton onClick={() => setShowReferralCampaignModal(true)} />
+            {/* Floating Referral Button - DISABLED FOR NOW */}
+            {/* <FloatingReferralButton onClick={() => setShowReferralCampaignModal(true)} /> */}
 
             {/* Post Signup Action Modal */}
             <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
@@ -291,7 +295,7 @@ function WalletBalance({
     onToggleBalanceVisibility,
     isFetchingBalance,
 }: {
-    balance: bigint
+    balance: bigint | undefined
     isBalanceHidden: boolean
     onToggleBalanceVisibility: (e: React.MouseEvent<HTMLButtonElement>) => void
     isFetchingBalance?: boolean
@@ -304,14 +308,13 @@ function WalletBalance({
                 </span>
             )
         }
-
-        return formatExtendedNumber(printableUsdc(balance ?? 0))
+        return balance !== undefined ? formatExtendedNumber(printableUsdc(balance)) : ''
     }, [isBalanceHidden, balance])
 
     return (
         <div className="flex items-center gap-4">
             <div className="flex items-end gap-2 text-[48px] font-black leading-none md:text-[56px]">
-                {isFetchingBalance ? (
+                {isFetchingBalance || balance === undefined ? (
                     <span className="block pl-3">
                         <Loading />
                     </span>

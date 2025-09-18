@@ -25,7 +25,7 @@ export const CryptoDepositQR = ({ tokenName, chainName, depositAddress, onBack }
     }, [depositAddress])
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
+        <div className="flex w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
             <NavHeader title={'Add Money'} onPrev={onBack} />
 
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">

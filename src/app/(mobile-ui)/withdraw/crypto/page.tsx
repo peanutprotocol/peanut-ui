@@ -24,16 +24,18 @@ import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, ROUTE_NOT_FOUND_ERROR } from '@/constants'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { captureMessage } from '@sentry/nextjs'
 import type { Address } from 'viem'
 import { Slider } from '@/components/Slider'
+import { tokenSelectorContext } from '@/context'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
     const dispatch = useAppDispatch()
     const { chargeDetails: activeChargeDetailsFromStore } = usePaymentStore()
     const { isConnected: isPeanutWallet, address } = useWallet()
+    const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
         amountToWithdraw,
         usdAmount,
@@ -60,6 +62,7 @@ export default function WithdrawCryptoPage() {
         xChainRoute,
         isCalculatingFees,
         isPreparingTx,
+        reset: resetPaymentInitiator,
     } = usePaymentInitiator()
 
     // Helper to manage errors consistently
@@ -82,7 +85,8 @@ export default function WithdrawCryptoPage() {
 
     useEffect(() => {
         dispatch(paymentActions.resetPaymentState())
-    }, [dispatch])
+        resetPaymentInitiator()
+    }, [dispatch, resetPaymentInitiator])
 
     useEffect(() => {
         if (!amountToWithdraw) {
@@ -109,10 +113,10 @@ export default function WithdrawCryptoPage() {
                     tokenAddress: PEANUT_WALLET_TOKEN,
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 },
-                usdAmount: amountToWithdraw,
+                usdAmount: usdAmount,
             })
         }
-    }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, amountToWithdraw, address])
+    }, [currentView, activeChargeDetailsFromStore, withdrawData, prepareTransactionDetails, usdAmount, address])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -251,9 +255,9 @@ export default function WithdrawCryptoPage() {
                 tokenAddress: PEANUT_WALLET_TOKEN,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
             },
-            usdAmount: amountToWithdraw,
+            usdAmount: usdAmount,
         })
-    }, [activeChargeDetailsFromStore, prepareTransactionDetails, amountToWithdraw, address])
+    }, [activeChargeDetailsFromStore, prepareTransactionDetails, usdAmount, address])
 
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')
@@ -278,8 +282,10 @@ export default function WithdrawCryptoPage() {
     useEffect(() => {
         return () => {
             resetWithdrawFlow()
+            resetPaymentInitiator()
+            resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
         }
-    }, [resetWithdrawFlow])
+    }, [resetWithdrawFlow, resetPaymentInitiator])
 
     // Check for route type errors (similar to payment flow)
     const routeTypeError = useMemo<string | null>(() => {
@@ -316,7 +322,7 @@ export default function WithdrawCryptoPage() {
     }
 
     return (
-        <div className="mx-auto h-full min-h-[inherit] w-full max-w-md space-y-4 self-center">
+        <div className="mx-auto min-h-[inherit] w-full max-w-md space-y-4 self-center">
             {currentView === 'INITIAL' && (
                 <InitialWithdrawView
                     amount={usdAmount}

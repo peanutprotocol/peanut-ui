@@ -2,6 +2,7 @@ import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
 import { IOfframpSuccessScreenProps, IOfframpConfirmScreenProps } from '../Offramp/Offramp.consts'
 import { ClaimLinkData } from '@/services/sendLinks'
+import { type PeanutCrossChainRoute } from '@/services/swap'
 export type ClaimType = 'claim' | 'claimxchain'
 
 export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
@@ -41,8 +42,8 @@ export interface IClaimScreenProps {
     setEstimatedPoints: (points: number) => void
     attachment: { message: string | undefined; attachmentUrl: string | undefined }
     setAttachment: (attachment: { message: string | undefined; attachmentUrl: string | undefined }) => void
-    selectedRoute: any
-    setSelectedRoute: (route: any) => void
+    selectedRoute: PeanutCrossChainRoute | undefined
+    setSelectedRoute: (route: PeanutCrossChainRoute | undefined) => void
     hasFetchedRoute: boolean
     setHasFetchedRoute: (fetched: boolean) => void
     recipientType: interfaces.RecipientType

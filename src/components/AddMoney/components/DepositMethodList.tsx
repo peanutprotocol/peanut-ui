@@ -2,7 +2,6 @@
 import { CardPosition } from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
-import { IconName } from '@/components/Global/Icons/Icon'
 import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
 import { countryCodeMap } from '../consts'
@@ -38,7 +37,7 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                 if (isSingleOverall) {
                     determinedPosition = 'single'
                 } else if (isFirstOverall) {
-                    determinedPosition = 'first'
+                    determinedPosition = isCryptoAtSlot0 && isAllMethodsView ? 'single' : 'first'
                 } else if (isCryptoAtSlot0 && isCurrentMethodCountry && index === 1 && isAllMethodsView) {
                     // if crypto card is at methods[0], and this is the country card at methods[1],
                     // treat this country card as 'first' in its own group.

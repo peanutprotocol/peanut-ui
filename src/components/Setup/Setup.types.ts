@@ -9,6 +9,7 @@ export type ScreenId =
     | 'add-wallets'
     | 'success'
     | 'unsupported-browser'
+    | 'join-beta'
 
 export type LayoutType = 'signup' | 'standard' | 'android-initial-pwa-install'
 
@@ -26,6 +27,7 @@ export type ScreenProps = {
     'pwa-install': undefined
     'android-initial-pwa-install': undefined
     'unsupported-browser': undefined
+    'join-beta': undefined
 }
 
 export interface StepComponentProps {
