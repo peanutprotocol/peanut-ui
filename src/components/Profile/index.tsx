@@ -10,6 +10,8 @@ import { useRouter } from 'next/navigation'
 import { checkIfInternalNavigation } from '@/utils'
 import ActionModal from '../Global/ActionModal'
 import { useState } from 'react'
+import Card from '../Global/Card'
+import ShowNameToggle from './components/ShowNameToggle'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -72,6 +74,19 @@ export const Profile = () => {
                             showTooltip
                             toolTipText="No need to verify unless you want to move money to or from your bank."
                         />
+
+                        <Card className="p-4" position="middle">
+                            <div className="flex items-center justify-between py-1">
+                                <div className="flex items-center gap-2">
+                                    <Icon name={'eye'} size={20} fill="black" />
+                                    <span className="text-base font-medium">Show my full name</span>
+                                </div>
+
+                                <div className="flex items-center">
+                                    <ShowNameToggle />
+                                </div>
+                            </div>
+                        </Card>
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem
                             icon="bank"
