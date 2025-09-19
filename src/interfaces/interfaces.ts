@@ -237,6 +237,7 @@ export interface User {
     telegram: string | null
     hasPwAccess: boolean
     showFullName: boolean
+    createdAt: string
     accounts: Account[]
 }
 
