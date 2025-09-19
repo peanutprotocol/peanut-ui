@@ -1,31 +1,69 @@
-import { MERCADO_PAGO } from '@/assets'
+import React, { useEffect, useState } from 'react'
+import { MERCADO_PAGO, PIX } from '@/assets'
+import { CountryData } from '@/components/AddMoney/consts'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import MantecaDetailsCard from '@/components/Global/MantecaDetailsCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ShareButton from '@/components/Global/ShareButton'
+import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
+import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
+import useKycStatus from '@/hooks/useKycStatus'
 import { usePaymentStore } from '@/redux/hooks'
 import { mantecaApi } from '@/services/manteca'
 import { useQuery } from '@tanstack/react-query'
-import React from 'react'
 
 const MantecaFulfillment = () => {
-    const { setFulfillUsingManteca } = useRequestFulfillmentFlow()
+    const { setFulfillUsingManteca, selectedCountry, setSelectedCountry, regionalMethodType } =
+        useRequestFulfillmentFlow()
     const { requestDetails, chargeDetails } = usePaymentStore()
+    const [isKYCModalOpen, setIsKYCModalOpen] = useState(false)
+    const { isUserMantecaKycApproved } = useKycStatus()
+    const { fetchUser } = useAuth()
+
+    const currency = selectedCountry?.currency || 'ARS'
     const { data: depositData, isLoading: isLoadingDeposit } = useQuery({
-        queryKey: ['manteca-deposit', chargeDetails?.uuid],
+        queryKey: ['manteca-deposit', chargeDetails?.uuid, currency],
         queryFn: () =>
             mantecaApi.deposit({
                 usdAmount: requestDetails?.tokenAmount || chargeDetails?.tokenAmount || '0',
-                currency: 'ARS',
+                currency,
                 chargeId: chargeDetails?.uuid,
             }),
         refetchOnWindowFocus: false,
         staleTime: Infinity, // don't refetch the data
-        enabled: Boolean(chargeDetails?.uuid),
+        enabled: Boolean(chargeDetails?.uuid) && isUserMantecaKycApproved,
     })
+
+    const argentinaCountryData = {
+        id: 'AR',
+        type: 'country',
+        title: 'Argentina',
+        currency: 'ARS',
+        path: 'argentina',
+        iso2: 'AR',
+        iso3: 'ARG',
+    } as CountryData
+
+    const actionCardLogo = selectedCountry?.id
+        ? `https://flagcdn.com/w320/${selectedCountry?.id.toLowerCase()}.png`
+        : regionalMethodType === 'mercadopago'
+          ? MERCADO_PAGO
+          : PIX
+
+    const handleKycCancel = () => {
+        setIsKYCModalOpen(false)
+        setSelectedCountry(null)
+        setFulfillUsingManteca(false)
+    }
+
+    useEffect(() => {
+        if (!isUserMantecaKycApproved) {
+            setIsKYCModalOpen(true)
+        }
+    }, [isUserMantecaKycApproved])
 
     const generateShareText = () => {
         const textParts = []
@@ -44,6 +82,7 @@ const MantecaFulfillment = () => {
             <NavHeader
                 title="Send"
                 onPrev={() => {
+                    setSelectedCountry(null)
                     setFulfillUsingManteca(false)
                 }}
             />
@@ -58,7 +97,8 @@ const MantecaFulfillment = () => {
                     tokenSymbol={requestDetails?.tokenSymbol || 'USDC'}
                     message={requestDetails?.reference || chargeDetails?.requestLink?.reference || ''}
                     fileUrl={requestDetails?.attachmentUrl || chargeDetails?.requestLink?.attachmentUrl || ''}
-                    logo={MERCADO_PAGO}
+                    logo={actionCardLogo}
+                    countryCodeForFlag={selectedCountry?.id.toLowerCase()}
                 />
 
                 {depositData?.error && <ErrorAlert description={depositData.error} />}
@@ -103,6 +143,19 @@ const MantecaFulfillment = () => {
                     </>
                 )}
             </div>
+            {isKYCModalOpen && (
+                <InitiateMantecaKYCModal
+                    isOpen={isKYCModalOpen}
+                    onClose={handleKycCancel}
+                    onManualClose={handleKycCancel}
+                    onKycSuccess={() => {
+                        // close the modal and let the user continue with amount input
+                        setIsKYCModalOpen(false)
+                        fetchUser()
+                    }}
+                    country={selectedCountry || argentinaCountryData}
+                />
+            )}
         </div>
     )
 }

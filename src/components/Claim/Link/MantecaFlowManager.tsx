@@ -1,16 +1,20 @@
 'use client'
 
-import { MERCADO_PAGO } from '@/assets'
+import { MERCADO_PAGO, PIX } from '@/assets'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { ClaimLinkData } from '@/services/sendLinks'
-import { FC, useState } from 'react'
+import { FC, useEffect, useState } from 'react'
 import MantecaDetailsStep from './views/MantecaDetailsStep.view'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle'
 import { useRouter } from 'next/navigation'
+import useKycStatus from '@/hooks/useKycStatus'
+import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
+import { useAuth } from '@/context/authContext'
+import { CountryData } from '@/components/AddMoney/consts'
 
 interface MantecaFlowManagerProps {
     claimLinkData: ClaimLinkData
@@ -19,12 +23,39 @@ interface MantecaFlowManagerProps {
 }
 
 const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount, attachment }) => {
-    const { setClaimToMercadoPago } = useClaimBankFlow()
+    const { setClaimToMercadoPago, selectedCountry, regionalMethodType } = useClaimBankFlow()
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
     const router = useRouter()
     const [destinationAddress, setDestinationAddress] = useState('')
+    const [isKYCModalOpen, setIsKYCModalOpen] = useState(false)
+    const argentinaCountryData = {
+        id: 'AR',
+        type: 'country',
+        title: 'Argentina',
+        currency: 'ARS',
+        path: 'argentina',
+        iso2: 'AR',
+        iso3: 'ARG',
+    } as CountryData
+
+    const { isUserMantecaKycApproved } = useKycStatus()
+    const { fetchUser } = useAuth()
 
     const isSuccess = currentStep === MercadoPagoStep.SUCCESS
+    const selectedCurrency = selectedCountry?.currency || 'ARS'
+    const regionalMethodLogo = regionalMethodType === 'mercadopago' ? MERCADO_PAGO : PIX
+    const logo = selectedCountry?.id ? undefined : regionalMethodLogo
+
+    const handleKycCancel = () => {
+        setIsKYCModalOpen(false)
+        onPrev()
+    }
+
+    useEffect(() => {
+        if (!isUserMantecaKycApproved) {
+            setIsKYCModalOpen(true)
+        }
+    }, [isUserMantecaKycApproved])
 
     const renderStepDetails = () => {
         if (currentStep === MercadoPagoStep.DETAILS) {
@@ -43,6 +74,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     claimLink={claimLinkData.link}
                     destinationAddress={destinationAddress}
                     amount={amount}
+                    currency={selectedCurrency}
                 />
             )
         }
@@ -83,15 +115,30 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     avatarSize="medium"
                     transactionType="REGIONAL_METHOD_CLAIM"
                     recipientType="USERNAME"
-                    recipientName={isSuccess ? 'You’ll receive' : 'Receive in Mercado Pago'}
+                    recipientName={isSuccess ? 'You’ll receive' : 'Receive in ' + regionalMethodType}
                     amount={amount}
                     tokenSymbol={claimLinkData.tokenSymbol}
                     message={attachment.message}
                     fileUrl={attachment.attachmentUrl}
-                    logo={isSuccess ? undefined : MERCADO_PAGO}
+                    logo={isSuccess ? undefined : logo}
+                    countryCodeForFlag={selectedCountry?.id?.toLowerCase()}
                 />
 
                 {renderStepDetails()}
+
+                {isKYCModalOpen && (
+                    <InitiateMantecaKYCModal
+                        isOpen={isKYCModalOpen}
+                        onClose={handleKycCancel}
+                        onManualClose={handleKycCancel}
+                        onKycSuccess={() => {
+                            // close the modal and let the user continue with amount input
+                            setIsKYCModalOpen(false)
+                            fetchUser()
+                        }}
+                        country={selectedCountry || argentinaCountryData}
+                    />
+                )}
             </div>
         </div>
     )

@@ -23,7 +23,7 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
 
     return (
         <>
-            <p className="font-bold">Enter Mercado Pago account details</p>
+            <p className="font-bold">Enter account details</p>
 
             <BaseInput
                 value={destinationAddress}

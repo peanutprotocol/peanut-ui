@@ -14,12 +14,19 @@ interface MantecaReviewStepProps {
     claimLink: string
     destinationAddress: string
     amount: string
+    currency: string
 }
 
-const MantecaReviewStep: FC<MantecaReviewStepProps> = ({ setCurrentStep, claimLink, destinationAddress, amount }) => {
+const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
+    setCurrentStep,
+    claimLink,
+    destinationAddress,
+    amount,
+    currency,
+}) => {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const { price, isLoading } = useCurrency('ARS') // TODO: change to the currency of the selected Method
+    const { price, isLoading } = useCurrency(currency)
 
     const detailsCardRows: MantecaCardRow[] = [
         {
@@ -31,7 +38,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({ setCurrentStep, claimLi
         {
             key: 'exchangeRate',
             label: 'Exchange Rate',
-            value: `1 USD = ${price?.buy} ARS`,
+            value: `1 USD = ${price?.buy} ${currency}`,
         },
         {
             key: 'fee',
@@ -55,7 +62,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({ setCurrentStep, claimLi
                     amount: amount.replace(/,/g, ''),
                     destinationAddress,
                     txHash,
-                    currency: 'ARS', // TODO: source-selected currency
+                    currency,
                 })
                 if (withdrawError || !data) {
                     setError(withdrawError || 'Something went wrong. Please contact Support')

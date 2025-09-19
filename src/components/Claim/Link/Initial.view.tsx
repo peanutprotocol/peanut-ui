@@ -94,6 +94,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         setClaimToExternalWallet,
         resetFlow: resetClaimBankFlow,
         claimToMercadoPago,
+        setClaimToMercadoPago,
     } = useClaimBankFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const {
@@ -632,9 +633,13 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
-        if (user && claimLinkData.status !== 'CLAIMED' && stepFromURL === 'claim' && isPeanutWallet) {
+        if (user && claimLinkData.status !== 'CLAIMED') {
             removeParamStep()
-            handleClaimLink(false, true)
+            if (stepFromURL === 'claim' && isPeanutWallet) {
+                handleClaimLink(false, true)
+            } else if (stepFromURL === 'regional-claim') {
+                setClaimToMercadoPago(true)
+            }
         }
     }, [user, searchParams, isPeanutWallet])
 

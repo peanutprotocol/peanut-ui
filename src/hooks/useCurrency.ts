@@ -22,7 +22,7 @@ export const useCurrency = (currencyCode: string | null) => {
     const [code, setCode] = useState<string | null>(currencyCode?.toUpperCase() ?? null)
     const [symbol, setSymbol] = useState<string | null>(null)
     const [price, setPrice] = useState<{ buy: number; sell: number } | null>(null)
-    const [isLoading, setIsLoading] = useState<boolean>(false)
+    const [isLoading, setIsLoading] = useState<boolean>(true)
 
     useEffect(() => {
         if (!code) {
