@@ -63,6 +63,7 @@ export const TransactionDetailsReceipt = ({
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
     const { setIsSupportModalOpen } = useSupportModalContext()
     const router = useRouter()
+    const [cancelLinkText, setCancelLinkText] = useState<'Cancelling' | 'Cancelled' | 'Cancel link'>('Cancel link')
 
     useEffect(() => {
         setIsModalOpen?.(showCancelLinkModal)
@@ -808,7 +809,7 @@ export const TransactionDetailsReceipt = ({
                         setIsLoading &&
                         onClose && (
                             <Button
-                                disabled={isLoading}
+                                disabled={isLoading || cancelLinkText === 'Cancelled'}
                                 onClick={() => setShowCancelLinkModal(true)}
                                 loading={isLoading}
                                 variant={'primary-soft'}
@@ -823,7 +824,7 @@ export const TransactionDetailsReceipt = ({
                                         />
                                     )}
                                 </div>
-                                <span>Cancel link</span>
+                                <span>{cancelLinkText}</span>
                             </Button>
                         )}
                 </div>
@@ -1045,6 +1046,7 @@ export const TransactionDetailsReceipt = ({
                     amount={amountDisplay}
                     onClick={() => {
                         setIsLoading(true)
+                        setCancelLinkText('Cancelling')
                         setShowCancelLinkModal(false)
                         sendLinksApi
                             .claim(user!.user.username!, transaction.extraDataForDrawer!.link!)
@@ -1056,8 +1058,10 @@ export const TransactionDetailsReceipt = ({
                                         .invalidateQueries({
                                             queryKey: [TRANSACTIONS],
                                         })
-                                        .then(() => {
+                                        .then(async () => {
                                             setIsLoading(false)
+                                            setCancelLinkText('Cancelled')
+                                            await new Promise((resolve) => setTimeout(resolve, 2000))
                                             onClose()
                                         })
                                 }, 3000)
@@ -1066,6 +1070,7 @@ export const TransactionDetailsReceipt = ({
                                 captureException(error)
                                 console.error('Error claiming link:', error)
                                 setIsLoading(false)
+                                setCancelLinkText('Cancel link')
                             })
                     }}
                 />

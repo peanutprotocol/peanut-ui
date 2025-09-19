@@ -15,7 +15,7 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const LinkSendSuccessView = () => {
     const dispatch = useAppDispatch()
@@ -27,13 +27,14 @@ const LinkSendSuccessView = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [showCancelLinkModal, setshowCancelLinkModal] = useState(false)
 
-    if (isLoading) {
-        return (
-            <div className="flex w-full items-center justify-center">
-                <PeanutLoading coverFullScreen />
-            </div>
-        )
-    }
+    const [cancelLinkText, setCancelLinkText] = useState<'Cancelling' | 'Cancelled' | 'Cancel link'>('Cancel link')
+
+    useEffect(() => {
+        return () => {
+            // clear state on unmount
+            dispatch(sendFlowActions.resetSendFlow())
+        }
+    }, [dispatch])
 
     return (
         <div className="flex  w-full flex-col justify-start space-y-8">
@@ -67,7 +68,8 @@ const LinkSendSuccessView = () => {
                             variant={'primary-soft'}
                             className="flex w-full items-center gap-1"
                             shadowSize="4"
-                            disabled={isLoading}
+                            disabled={isLoading || cancelLinkText === 'Cancelled'}
+                            loading={isLoading}
                         >
                             {!isLoading && (
                                 <div className="flex items-center">
@@ -77,7 +79,7 @@ const LinkSendSuccessView = () => {
                                     />
                                 </div>
                             )}
-                            <span>Cancel link</span>
+                            <span>{cancelLinkText}</span>
                         </Button>
                     </div>
                 )}
@@ -92,6 +94,7 @@ const LinkSendSuccessView = () => {
                     onClick={() => {
                         setIsLoading(true)
                         setshowCancelLinkModal(false)
+                        setCancelLinkText('Cancelling')
                         sendLinksApi
                             .claim(user!.user.username!, link)
                             .then(() => {
@@ -102,10 +105,11 @@ const LinkSendSuccessView = () => {
                                         .invalidateQueries({
                                             queryKey: ['transactions'],
                                         })
-                                        .then(() => {
+                                        .then(async () => {
                                             setIsLoading(false)
+                                            setCancelLinkText('Cancelled')
+                                            await new Promise((resolve) => setTimeout(resolve, 2000))
                                             router.push('/home')
-                                            dispatch(sendFlowActions.resetSendFlow())
                                         })
                                 }, 3000)
                             })
@@ -113,6 +117,7 @@ const LinkSendSuccessView = () => {
                                 captureException(error)
                                 console.error('Error claiming link:', error)
                                 setIsLoading(false)
+                                setCancelLinkText('Cancel link')
                             })
                     }}
                 />

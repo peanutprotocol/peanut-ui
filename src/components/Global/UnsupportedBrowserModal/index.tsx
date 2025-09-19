@@ -101,7 +101,7 @@ const UnsupportedBrowserModalContent = ({
                     toast.error('Failed to copy link.')
                 }
             },
-            className: 'bg-primary-1 hover:bg-primary-2 text-black',
+            className: 'bg-primary-1 hover:bg-primary-2 text-black sm:py-3',
             shadowSize: '4',
         },
         {
@@ -127,6 +127,7 @@ const UnsupportedBrowserModalContent = ({
             modalPanelClassName="max-w-md"
             contentContainerClassName="text-center"
             descriptionClassName="mb-0"
+            ctaClassName="flex-col sm:flex-col"
         />
     )
 }
