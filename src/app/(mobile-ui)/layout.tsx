@@ -22,6 +22,9 @@ import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useSupportModalContext } from '@/context/SupportModalContext'
+import ForcePWAInstall from '@/components/ForcePWAInstall'
+import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
+import { usePWAStatus } from '@/hooks/usePWAStatus'
 
 // Allow access to some public paths without authentication
 const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support)/
@@ -34,6 +37,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const [hasToken, setHasToken] = useState(false)
     const isUserLoggedIn = !!user?.user.userId || false
     const { setIsSupportModalOpen } = useSupportModalContext()
+    const { deviceType } = useDeviceType()
+    const isPWA = usePWAStatus()
     const isHome = pathName === '/home'
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
@@ -92,6 +97,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <PeanutLoading />
             </div>
         )
+    }
+
+    // force PWA install for iOS devices
+    if (deviceType === DeviceType.IOS && !isPWA) {
+        return <ForcePWAInstall />
     }
 
     return (
