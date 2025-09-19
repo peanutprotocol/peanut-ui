@@ -70,9 +70,9 @@ const UnsupportedBrowserModalContent = ({
         }
     }, [])
 
-    // if (!showInAppBrowserModalViaDetection && !visible) {
-    //     return null
-    // }
+    if (!showInAppBrowserModalViaDetection && !visible) {
+        return null
+    }
 
     const handleModalClose = () => {
         if (allowClose) {

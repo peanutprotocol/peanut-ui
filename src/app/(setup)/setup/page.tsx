@@ -170,7 +170,7 @@ export default function SetupPage() {
         )
     }
 
-    if (true) {
+    if (showBrowserNotSupportedModal || showDeviceNotSupportedModal) {
         return <UnsupportedBrowserModal visible={true} allowClose={false} />
     }
 
