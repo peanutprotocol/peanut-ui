@@ -11,9 +11,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { mantecaApi } from '@/services/manteca'
-import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { useCurrency } from '@/hooks/useCurrency'
-import { isTxReverted } from '@/utils/general.utils'
 import { loadingStateContext } from '@/context'
 import { countryData } from '@/components/AddMoney/consts'
 import Image from 'next/image'
@@ -28,8 +26,10 @@ import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { useCreateLink } from '@/components/Create/useCreateLink'
+import { useSupportModalContext } from '@/context/SupportModalContext'
 
-type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success'
+type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
 interface MantecaBankDetails {
     destinationAddress: string
@@ -51,9 +51,11 @@ export default function MantecaWithdrawFlow() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { resetWithdrawFlow } = useWithdrawFlow()
-    const { sendMoney, balance } = useWallet()
+    const { balance } = useWallet()
+    const { createLink } = useCreateLink()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { user, fetchUser } = useAuth()
+    const { setIsSupportModalOpen } = useSupportModalContext()
 
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
@@ -159,34 +161,32 @@ export default function MantecaWithdrawFlow() {
         try {
             setLoadingState('Preparing transaction')
 
-            // Send crypto to Manteca address
-            const { userOpHash, receipt } = await sendMoney(MANTECA_DEPOSIT_ADDRESS, usdAmount)
+            const { link } = await createLink(parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS))
 
-            if (receipt !== null && isTxReverted(receipt)) {
-                setErrorMessage('Transaction reverted by the network.')
-                return
-            }
-
-            const txHash = receipt?.transactionHash ?? userOpHash
             setLoadingState('Withdrawing')
-
             // Call Manteca withdraw API
             const result = await mantecaApi.withdraw({
                 amount: usdAmount,
                 destinationAddress: bankDetails.destinationAddress,
-                txHash: txHash,
+                sendLink: link,
                 currency: currencyCode,
             })
 
             if (result.error) {
-                setErrorMessage(result.error)
+                setErrorMessage(
+                    'Withdraw cancelled, please check that the destination address is correct. If problem persists contact support'
+                )
+                setStep('failure')
                 return
             }
 
             setStep('success')
         } catch (error) {
             console.error('Manteca withdraw error:', error)
-            setErrorMessage('An unexpected error occurred. Please contact support.')
+            setErrorMessage(
+                'Withdraw cancelled, please check that the destination address is correct. If problem persists contact support'
+            )
+            setStep('failure')
         } finally {
             setLoadingState('Idle')
         }
@@ -194,10 +194,16 @@ export default function MantecaWithdrawFlow() {
 
     const resetState = () => {
         setStep('amountInput')
+        setAmount(undefined)
+        setCurrencyAmount(undefined)
+        setUsdAmount(undefined)
         setBankDetails({ destinationAddress: '' })
         setErrorMessage(null)
-        resetWithdrawFlow()
+        setIsKycModalOpen(false)
+        setIsDestinationAddressValid(false)
+        setIsDestinationAddressChanging(false)
         setBalanceErrorMessage(null)
+        resetWithdrawFlow()
     }
 
     useEffect(() => {
@@ -254,6 +260,34 @@ export default function MantecaWithdrawFlow() {
                             Back to home
                         </Button>
                     </div>
+                </div>
+            </div>
+        )
+    }
+
+    if (step === 'failure') {
+        return (
+            <div className="flex min-h-[inherit] flex-col gap-8">
+                <NavHeader title="Withdraw" />
+                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                    <Card className="shadow-4">
+                        <Card.Header>
+                            <Card.Title>Something went wrong!</Card.Title>
+                            <Card.Description>{errorMessage}</Card.Description>
+                        </Card.Header>
+                        <Card.Content className="flex flex-col gap-3">
+                            <Button onClick={resetState} variant="purple">
+                                Try again
+                            </Button>
+                            <Button
+                                onClick={() => setIsSupportModalOpen(true)}
+                                variant="transparent"
+                                className="text-sm underline"
+                            >
+                                Contact Support
+                            </Button>
+                        </Card.Content>
+                    </Card>
                 </div>
             </div>
         )

@@ -2,16 +2,14 @@ import { Button } from '@/components/0_Bruddle'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import MantecaDetailsCard, { MantecaCardRow } from '@/components/Global/MantecaDetailsCard'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import { MANTECA_DEPOSIT_ADDRESS } from '@/constants'
 import { useCurrency } from '@/hooks/useCurrency'
 import { mantecaApi } from '@/services/manteca'
-import { sendLinksApi } from '@/services/sendLinks'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import { Dispatch, FC, SetStateAction, useState } from 'react'
 
 interface MantecaReviewStepProps {
     setCurrentStep: Dispatch<SetStateAction<MercadoPagoStep>>
-    claimLink: string
+    sendLink: string
     destinationAddress: string
     amount: string
     currency: string
@@ -19,7 +17,7 @@ interface MantecaReviewStepProps {
 
 const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
     setCurrentStep,
-    claimLink,
+    sendLink,
     destinationAddress,
     amount,
     currency,
@@ -52,16 +50,10 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
             try {
                 setError(null)
                 setIsSubmitting(true)
-                const claimResponse = await sendLinksApi.claim(MANTECA_DEPOSIT_ADDRESS, claimLink)
-                const txHash = claimResponse?.claim?.txHash
-                if (!txHash) {
-                    setError('Claim failed: missing transaction hash.')
-                    return
-                }
                 const { data, error: withdrawError } = await mantecaApi.withdraw({
                     amount: amount.replace(/,/g, ''),
                     destinationAddress,
-                    txHash,
+                    sendLink,
                     currency,
                 })
                 if (withdrawError || !data) {

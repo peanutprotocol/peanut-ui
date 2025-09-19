@@ -334,6 +334,7 @@ export default function QRPayPage() {
                                     id: qrPayment!.id,
                                     direction: 'qr_payment',
                                     userName: qrPayment!.details.merchant.name,
+                                    fullName: qrPayment!.details.merchant.name,
                                     amount: Number(usdAmount),
                                     currency: {
                                         amount: qrPayment!.details.paymentAssetAmount,

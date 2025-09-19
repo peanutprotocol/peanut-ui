@@ -71,7 +71,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
             return (
                 <MantecaReviewStep
                     setCurrentStep={setCurrentStep}
-                    claimLink={claimLinkData.link}
+                    sendLink={claimLinkData.link}
                     destinationAddress={destinationAddress}
                     amount={amount}
                     currency={selectedCurrency}
