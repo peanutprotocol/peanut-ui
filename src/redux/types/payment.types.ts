@@ -15,7 +15,6 @@ export interface IPaymentState {
     createdChargeDetails: TCharge | null
     resolvedAddress: string | null
     error: string | null
-    beerQuantity: number
     usdAmount: string | null
     daimoError: string | null
     isDaimoPaymentProcessing: boolean

@@ -254,11 +254,6 @@ export default function DirectSendQr({
                     redirectUrl = path
                 }
                 break
-            case EQrType.PINTA_MERCHANT:
-                {
-                    redirectUrl = `/${data}@polygon/PNT`
-                }
-                break
             case EQrType.EVM_ADDRESS:
                 {
                     toConfirmUrl = `/${data}`
