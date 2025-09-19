@@ -278,7 +278,6 @@ export default function WithdrawCryptoPage() {
     // reset withdraw flow when this component unmounts
     useEffect(() => {
         return () => {
-            resetWithdrawFlow()
             resetPaymentInitiator()
             resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
         }
@@ -366,6 +365,9 @@ export default function WithdrawCryptoPage() {
                                 address={withdrawData.address}
                             />
                         }
+                        onComplete={() => {
+                            resetWithdrawFlow()
+                        }}
                     />
                 </>
             )}

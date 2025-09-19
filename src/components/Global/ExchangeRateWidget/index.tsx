@@ -91,9 +91,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
 
     // Determine delivery time text based on destination currency
     const deliveryTimeText = useMemo(() => {
-        return destinationCurrency === 'USD'
-            ? 'Should arrive in hours. Estimate.'
-            : 'Should arrive in minutes. Estimate.'
+        return destinationCurrency === 'USD' ? 'Should arrive in hours.' : 'Should arrive in minutes.'
     }, [destinationCurrency])
 
     return (

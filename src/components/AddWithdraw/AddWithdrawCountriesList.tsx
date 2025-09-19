@@ -97,7 +97,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 return { error: result.error }
             }
             if (!result.data) {
-                return { error: 'Failed to process bank account. Please try again.' }
+                return { error: 'Failed to process bank account. Please try again or contact support.' }
             }
 
             // after successfully adding, we refetch user data to get the new account

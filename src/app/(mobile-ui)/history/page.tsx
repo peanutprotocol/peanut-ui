@@ -104,7 +104,7 @@ const HistoryPage = () => {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Transactions</h2>{' '}
-                <EmptyState icon="alert" title="Error loading transactions!" description="Please try again later" />
+                <EmptyState icon="alert" title="Error loading transactions!" description="Please contact support." />
             </div>
         )
     }

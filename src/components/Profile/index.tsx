@@ -60,6 +60,10 @@ export const Profile = () => {
                                 router.push('/profile/identity-verification')
                             }}
                             position="middle"
+                            endIcon={isUserKycApproved ? 'check' : undefined}
+                            endIconClassName={isUserKycApproved ? 'text-success-3 size-4' : undefined}
+                            showTooltip
+                            toolTipText="No need to verify unless you want to move money to or from your bank."
                         />
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem
@@ -84,6 +88,7 @@ export const Profile = () => {
                     {/* Logout Button */}
                     <div className="w-full pb-10">
                         <Button
+                            loading={isLoggingOut}
                             disabled={isLoggingOut}
                             variant="primary-soft"
                             shadowSize="4"

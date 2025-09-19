@@ -30,6 +30,7 @@ export default function WithdrawPage() {
         resetWithdrawFlow,
         selectedMethod,
         setSelectedMethod,
+        setShowAllWithdrawMethods,
     } = useWithdrawFlow()
 
     // FIXED FLOW: Only crypto gets amount input on main page, countries route directly
@@ -82,6 +83,13 @@ export default function WithdrawPage() {
             }
         }
     }, [selectedMethod, amountFromContext, step, rawTokenAmount])
+
+    useEffect(() => {
+        // If amount is available (i.e) user clicked back from select method view, show all methods
+        if (amountFromContext) {
+            setShowAllWithdrawMethods(true)
+        }
+    }, [])
 
     const validateAmount = useCallback(
         (amountStr: string): boolean => {

@@ -103,7 +103,7 @@ export const useBridgeKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFl
                         closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
                     })
                 } else {
-                    const errorMsg = 'Could not retrieve verification links. Please try again.'
+                    const errorMsg = 'Could not retrieve verification links. Please contact support.'
                     setError(errorMsg)
                     return { success: false, error: errorMsg }
                 }

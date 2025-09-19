@@ -42,6 +42,7 @@ export interface TransactionDetails {
     id: string
     direction: TransactionDirection
     userName: string
+    fullName: string
     amount: number | bigint
     currency?: {
         amount: string
@@ -147,6 +148,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     let uiStatus: StatusPillType = 'pending'
     let isLinkTx = false
     let isPeerActuallyUser = false
+    let fullName = '' // Full name of the user for PFP Avatar
 
     // determine direction, card type, peer name, and flags based on original type and user role
     switch (entry.type) {
@@ -156,12 +158,13 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             transactionCardType = 'send'
             if (entry.userRole === EHistoryUserRole.SENDER) {
                 nameForDetails = entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
+                fullName = entry.recipientAccount?.fullName ?? ''
             } else {
                 direction = 'receive'
                 transactionCardType = 'receive'
                 nameForDetails =
                     entry.senderAccount?.username ?? entry.senderAccount?.identifier ?? 'Requested via Link'
-                isLinkTx = !entry.senderAccount // If the sender is not an user then it's a public link
+                ;((fullName = entry.senderAccount?.fullName ?? ''), (isLinkTx = !entry.senderAccount)) // If the sender is not an user then it's a public link
             }
             break
         case EHistoryEntryType.SEND_LINK:
@@ -173,6 +176,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                     entry.recipientAccount?.username ||
                     entry.recipientAccount?.identifier ||
                     (entry.status === 'COMPLETED' ? 'You sent via link' : "You're sending via link")
+                fullName = entry.recipientAccount?.username ?? ''
                 isPeerActuallyUser = !!entry.recipientAccount?.isUser
                 isLinkTx = !isPeerActuallyUser
             } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
@@ -188,6 +192,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                     transactionCardType = 'receive'
                     nameForDetails =
                         entry.senderAccount?.username || entry.senderAccount?.identifier || 'Received via Link'
+                    fullName = entry.senderAccount?.fullName ?? ''
                     isPeerActuallyUser = !!entry.senderAccount?.isUser
                     isLinkTx = !isPeerActuallyUser
                 }
@@ -199,6 +204,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                 direction = 'claim_external'
                 transactionCardType = 'claim_external'
                 nameForDetails = entry.recipientAccount?.username || entry.recipientAccount?.identifier
+                fullName = entry.recipientAccount?.username ?? ''
             }
             break
         case EHistoryEntryType.REQUEST:
@@ -206,12 +212,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                 transactionCardType = 'bank_request_fulfillment'
                 direction = 'bank_request_fulfillment'
                 nameForDetails = entry.recipientAccount?.username ?? entry.recipientAccount?.identifier
+                fullName = entry.recipientAccount?.fullName ?? ''
                 isPeerActuallyUser = !!entry.recipientAccount?.isUser || !!entry.senderAccount?.isUser
             } else if (entry.userRole === EHistoryUserRole.RECIPIENT) {
                 direction = 'request_sent'
                 transactionCardType = 'request'
                 nameForDetails =
                     entry.senderAccount?.username || entry.senderAccount?.identifier || 'Requested via Link'
+                fullName = entry.senderAccount?.fullName ?? ''
                 isPeerActuallyUser = !!entry.senderAccount?.isUser
             } else {
                 if (
@@ -224,12 +232,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                         entry.recipientAccount?.username ||
                         entry.recipientAccount?.identifier ||
                         `Request From ${entry.recipientAccount?.username || entry.recipientAccount?.identifier}`
+                    fullName = entry.recipientAccount?.fullName ?? ''
                     isPeerActuallyUser = !!entry.recipientAccount?.isUser
                 } else {
                     direction = 'send'
                     transactionCardType = 'send'
                     nameForDetails =
                         entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Paid Request To'
+                    fullName = entry.recipientAccount?.fullName ?? ''
                     isPeerActuallyUser = !!entry.recipientAccount?.isUser
                 }
             }
@@ -266,6 +276,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                         entry.recipientAccount?.username ??
                         entry.recipientAccount?.fullName ??
                         entry.recipientAccount?.identifier
+                    fullName = entry.recipientAccount?.fullName ?? ''
                     isPeerActuallyUser = true
                 } else {
                     // case 3: claimed by a guest. show as generic bank claim.
@@ -431,12 +442,18 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
 
     const rewardData = REWARD_TOKENS[entry.tokenAddress?.toLowerCase()]
 
+    // If full name is empty, set it to same as nameForDetails as fallback
+    if (!fullName || fullName === '') {
+        fullName = nameForDetails
+    }
+
     // build the final transactiondetails object for the ui
     const transactionDetails: TransactionDetails = {
         id: entry.uuid,
         direction: direction,
         userName: nameForDetails,
         amount,
+        fullName,
         currency: rewardData ? undefined : entry.currency,
         currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,

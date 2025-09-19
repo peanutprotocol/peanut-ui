@@ -179,7 +179,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Recent Transactions</h2>{' '}
-                <EmptyState icon="alert" title="Error loading transactions!" description="Please try again later" />
+                <EmptyState icon="alert" title="Error loading transactions!" description="Please contact Support." />
             </div>
         )
     }
