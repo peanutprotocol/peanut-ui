@@ -82,8 +82,8 @@ export const PaymentForm = ({
         attachmentOptions,
     } = usePaymentStore()
     const {
-        setShowExternalWalletFulfilMethods,
-        setExternalWalletFulfilMethod,
+        setShowExternalWalletFulfillMethods,
+        setExternalWalletFulfillMethod,
         fulfillUsingManteca,
         setFulfillUsingManteca,
     } = useRequestFulfillmentFlow()
@@ -644,8 +644,8 @@ export const PaymentForm = ({
 
     const handleGoBack = () => {
         if (isExternalWalletFlow) {
-            setShowExternalWalletFulfilMethods(true)
-            setExternalWalletFulfilMethod(null)
+            setShowExternalWalletFulfillMethods(true)
+            setExternalWalletFulfillMethod(null)
             return
         } else if (window.history.length > 1) {
             router.back()

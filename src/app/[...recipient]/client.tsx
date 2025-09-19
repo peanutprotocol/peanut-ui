@@ -64,7 +64,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
     const {
-        showExternalWalletFulfilMethods,
+        showExternalWalletFulfillMethods,
         showRequestFulfilmentBankFlowManager,
         setShowRequestFulfilmentBankFlowManager,
         setFlowStep: setRequestFulfilmentBankFlowStep,
@@ -432,7 +432,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     }
 
     // render external wallet fulfilment methods
-    if (showExternalWalletFulfilMethods) {
+    if (showExternalWalletFulfillMethods) {
         return <ExternalWalletFulfilManager parsedPaymentData={parsedPaymentData as ParsedURL} />
     }
 

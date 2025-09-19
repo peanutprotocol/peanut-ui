@@ -62,7 +62,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     const { addParamStep } = useClaimLink()
     const {
         setShowRequestFulfilmentBankFlowManager,
-        setShowExternalWalletFulfilMethods,
+        setShowExternalWalletFulfillMethods,
         setFlowStep: setRequestFulfilmentBankFlowStep,
         setFulfillUsingManteca,
         setRegionalMethodType: setRequestFulfillmentRegionalMethodType,
@@ -135,7 +135,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                     setFulfillUsingManteca(true)
                     break
                 case 'exchange-or-wallet':
-                    setShowExternalWalletFulfilMethods(true)
+                    setShowExternalWalletFulfillMethods(true)
                     break
             }
         }

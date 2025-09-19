@@ -16,12 +16,12 @@ export enum RequestFulfillmentBankFlowStep {
 
 interface RequestFulfillmentFlowContextType {
     resetFlow: () => void
-    showExternalWalletFulfilMethods: boolean
-    setShowExternalWalletFulfilMethods: (showExternalWalletFulfilMethods: boolean) => void
+    showExternalWalletFulfillMethods: boolean
+    setShowExternalWalletFulfillMethods: (showExternalWalletFulfillMethods: boolean) => void
     showRequestFulfilmentBankFlowManager: boolean
     setShowRequestFulfilmentBankFlowManager: (showRequestFulfilmentBankFlowManager: boolean) => void
-    externalWalletFulfilMethod: ExternalWalletFulfilMethod | null
-    setExternalWalletFulfilMethod: (externalWalletFulfilMethod: ExternalWalletFulfilMethod | null) => void
+    externalWalletFulfillMethod: ExternalWalletFulfilMethod | null
+    setExternalWalletFulfillMethod: (externalWalletFulfillMethod: ExternalWalletFulfilMethod | null) => void
     flowStep: RequestFulfillmentBankFlowStep | null
     setFlowStep: (step: RequestFulfillmentBankFlowStep | null) => void
     selectedCountry: CountryData | null
@@ -41,8 +41,8 @@ interface RequestFulfillmentFlowContextType {
 const RequestFulfillmentFlowContext = createContext<RequestFulfillmentFlowContextType | undefined>(undefined)
 
 export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [showExternalWalletFulfilMethods, setShowExternalWalletFulfilMethods] = useState(false)
-    const [externalWalletFulfilMethod, setExternalWalletFulfilMethod] = useState<ExternalWalletFulfilMethod | null>(
+    const [showExternalWalletFulfillMethods, setShowExternalWalletFulfillMethods] = useState(false)
+    const [externalWalletFulfillMethod, setExternalWalletFulfillMethod] = useState<ExternalWalletFulfilMethod | null>(
         null
     )
     const [showRequestFulfilmentBankFlowManager, setShowRequestFulfilmentBankFlowManager] = useState(false)
@@ -55,8 +55,8 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
     const [regionalMethodType, setRegionalMethodType] = useState<'mercadopago' | 'pix'>('mercadopago')
 
     const resetFlow = useCallback(() => {
-        setExternalWalletFulfilMethod(null)
-        setShowExternalWalletFulfilMethods(false)
+        setExternalWalletFulfillMethod(null)
+        setShowExternalWalletFulfillMethods(false)
         setFlowStep(null)
         setShowRequestFulfilmentBankFlowManager(false)
         setSelectedCountry(null)
@@ -70,10 +70,10 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
     const value = useMemo(
         () => ({
             resetFlow,
-            externalWalletFulfilMethod,
-            setExternalWalletFulfilMethod,
-            showExternalWalletFulfilMethods,
-            setShowExternalWalletFulfilMethods,
+            externalWalletFulfillMethod,
+            setExternalWalletFulfillMethod,
+            showExternalWalletFulfillMethods,
+            setShowExternalWalletFulfillMethods,
             flowStep,
             setFlowStep,
             showRequestFulfilmentBankFlowManager,
@@ -93,8 +93,8 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
         }),
         [
             resetFlow,
-            externalWalletFulfilMethod,
-            showExternalWalletFulfilMethods,
+            externalWalletFulfillMethod,
+            showExternalWalletFulfillMethods,
             flowStep,
             showRequestFulfilmentBankFlowManager,
             selectedCountry,
