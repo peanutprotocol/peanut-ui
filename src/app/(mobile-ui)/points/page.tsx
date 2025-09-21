@@ -2,17 +2,32 @@
 
 import { Button } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import Card from '@/components/Global/Card'
+import Card, { getCardPosition } from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import PeanutLoading from '@/components/Global/PeanutLoading'
+import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
+import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
+import { invitesApi } from '@/services/invites'
+import { useQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 
 const PointsPage = () => {
+    const { data: invites, isLoading } = useQuery({
+        queryKey: ['invites'],
+        queryFn: () => invitesApi.getInvites(),
+    })
+    const router = useRouter()
     const { user } = useAuth()
+
+    if (isLoading) {
+        return <PeanutLoading coverFullScreen />
+    }
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title="Invites" onPrev={() => {}} />
+            <NavHeader title="Invites" onPrev={() => router.back()} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
                 <h1 className="font-bold">Refer friends</h1>
@@ -25,20 +40,53 @@ const PointsPage = () => {
                     </Button>
                 </div>
 
-                {/* <Button shadowSize="4">Invite a friend!</Button> */}
+                {invites.length > 0 && (
+                    <>
+                        <Button shadowSize="4">Invite a friend!</Button>
+                        <h2 className="!mt-8 font-bold">People you invited</h2>
+                        <div>
+                            {invites.map((invite: any, i: number) => {
+                                const username = invite.invitee.username
+                                const isVerified = invite.invitee.bridgeKycStatus === 'approved'
+                                return (
+                                    <Card key={invite.id} position={getCardPosition(i, invites.length)}>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <TransactionAvatarBadge
+                                                    initials={username}
+                                                    userName={username}
+                                                    isLinkTransaction={false}
+                                                    transactionType={'send'}
+                                                    context="card"
+                                                    size="small"
+                                                />
+                                            </div>
 
-                <Card className="flex flex-col items-center justify-center gap-4 py-4">
-                    <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
-                        <Icon name="trophy" />
-                    </div>
-                    <h2 className="font-medium">No points yet</h2>
+                                            <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
+                                                <VerifiedUserLabel name={username} isVerified={isVerified} />
+                                            </div>
+                                        </div>
+                                    </Card>
+                                )
+                            })}
+                        </div>
+                    </>
+                )}
 
-                    <p className="text-center text-sm text-grey-1">
-                        Earn points for every action you take on Peanut and when your invites create an account.
-                    </p>
+                {invites.length === 0 && (
+                    <Card className="flex flex-col items-center justify-center gap-4 py-4">
+                        <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
+                            <Icon name="trophy" />
+                        </div>
+                        <h2 className="font-medium">No points yet</h2>
 
-                    <Button shadowSize="4">Invite a friend!</Button>
-                </Card>
+                        <p className="text-center text-sm text-grey-1">
+                            Earn points for every action you take on Peanut and when your invites create an account.
+                        </p>
+
+                        <Button shadowSize="4">Invite a friend!</Button>
+                    </Card>
+                )}
             </section>
         </PageContainer>
     )

@@ -11,6 +11,7 @@ import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
 import { captureException } from '@sentry/nextjs'
+import { invitesApi } from '@/services/invites'
 
 // types
 type UserOpEncodedParams = {
@@ -53,6 +54,8 @@ export const useZeroDev = () => {
                 passkeyServerHeaders: {},
                 rpID: window.location.hostname.replace(/^www\./, ''),
             })
+
+            await invitesApi.acceptInvite('LOCALZISHANINVITESYOU')
 
             setWebAuthnKey(webAuthnKey)
             saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
