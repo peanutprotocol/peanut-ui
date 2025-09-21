@@ -1,32 +1,46 @@
 'use client'
 
-import Icon from '@/components/Global/Icon'
+import { Button } from '@/components/0_Bruddle'
+import PageContainer from '@/components/0_Bruddle/PageContainer'
+import Card from '@/components/Global/Card'
+import { Icon } from '@/components/Global/Icons/Icon'
+import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
-import peanutClub from '@/assets/peanut/peanut-club.png'
 
 const PointsPage = () => {
     const { user } = useAuth()
-    const points = user?.totalPoints ?? 0
-    const invites = user?.referredUsers ?? 0
 
     return (
-        <div className="flex h-full w-full flex-col items-center justify-between">
-            <div className="flex flex-col gap-2">
-                <div>
-                    <div className="flex flex-row items-center">
-                        <Icon name="arrow-next" className="h-8 w-8" />
-                        {points} Points
-                    </div>
+        <PageContainer className="flex flex-col">
+            <NavHeader title="Invites" onPrev={() => {}} />
+
+            <section className="mx-auto mb-auto mt-10 w-full space-y-4">
+                <h1 className="font-bold">Refer friends</h1>
+                <div className="flex w-full items-center justify-between gap-3">
+                    <Card className="flex w-1/2 items-center justify-center py-3.5">
+                        <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${user?.user.username?.toUpperCase()}INVITESYOU`}</p>
+                    </Card>
+                    <Button icon="copy" shadowSize="4" variant="primary-soft">
+                        <p className="text-sm"> Copy code</p>
+                    </Button>
                 </div>
-                <div>
-                    <div className="flex flex-row items-center">
-                        <Icon name="arrow-next" className="h-8 w-8" />
-                        {invites} Invites
+
+                {/* <Button shadowSize="4">Invite a friend!</Button> */}
+
+                <Card className="flex flex-col items-center justify-center gap-4 py-4">
+                    <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
+                        <Icon name="trophy" />
                     </div>
-                </div>
-            </div>
-            <img src={peanutClub.src} className="h-[240px] w-[240px] object-contain" alt="logo" />
-        </div>
+                    <h2 className="font-medium">No points yet</h2>
+
+                    <p className="text-center text-sm text-grey-1">
+                        Earn points for every action you take on Peanut and when your invites create an account.
+                    </p>
+
+                    <Button shadowSize="4">Invite a friend!</Button>
+                </Card>
+            </section>
+        </PageContainer>
     )
 }
 

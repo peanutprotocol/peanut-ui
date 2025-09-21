@@ -24,7 +24,7 @@ import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 
 // Allow access to some public paths without authentication
-const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support)/
+const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|join-waitlist)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()

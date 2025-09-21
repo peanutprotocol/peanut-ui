@@ -41,6 +41,7 @@ import { PostSignupActionManager } from '@/components/Global/PostSignupActionMan
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
+import starImage from '@/assets/icons/star.png'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -219,7 +220,12 @@ export default function Home() {
                         fullName={userFullName}
                         isVerified={user?.user.bridgeKycStatus === 'approved'}
                     />
-                    <SearchUsers />
+                    <div className="flex items-center gap-2">
+                        <Link href="/points">
+                            <Image src={starImage} alt="star" width={20} height={20} />
+                        </Link>
+                        <SearchUsers />
+                    </div>
                 </div>
                 <div className="space-y-4">
                     <ActionButtonGroup>

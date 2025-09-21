@@ -17,6 +17,7 @@ import Card from '@/components/Global/Card'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { checkIfInternalNavigation } from '@/utils'
 import { useAuth } from '@/context/authContext'
+import ShareButton from '@/components/Global/ShareButton'
 
 interface PublicProfileProps {
     username: string
@@ -138,18 +139,14 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             ) : (
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <h2 className="text-lg font-extrabold">Join Peanut!</h2>
-                                        <p>Send and receive payments in seconds with your own Peanut account.</p>
+                                        <h2 className="text-lg font-extrabold">No invite, no Peanut</h2>
+                                        <p>
+                                            Peanut is invite-only.
+                                            <br />
+                                            Go beg your friend for an invite link!
+                                        </p>
                                     </div>
-                                    <Button
-                                        variant="purple"
-                                        shadowSize="4"
-                                        className="mt-1 flex w-full items-center justify-center gap-2 rounded-sm"
-                                        onClick={() => router.push('/setup')}
-                                    >
-                                        <Icon name="user-plus" size={16} fill="black" />
-                                        <span className="font-bold">Create Account</span>
-                                    </Button>
+                                    <ShareButton generateText={async () => 'Invite me'}>Beg for an invite</ShareButton>
                                 </div>
                             )}
                         </Card>
