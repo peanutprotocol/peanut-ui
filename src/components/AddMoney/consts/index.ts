@@ -1,4 +1,4 @@
-import { APPLE_PAY, GOOGLE_PAY, MERCADO_PAGO, SOLANA_ICON, TRON_ICON } from '@/assets'
+import { APPLE_PAY, GOOGLE_PAY, MERCADO_PAGO, SOLANA_ICON, TRON_ICON, PIX } from '@/assets'
 import { BINANCE_LOGO, LEMON_LOGO, RIPIO_LOGO } from '@/assets/exchanges'
 import { METAMASK_LOGO, RAINBOW_LOGO, TRUST_WALLET_LOGO } from '@/assets/wallets'
 import { IconName } from '@/components/Global/Icons/Icon'
@@ -234,7 +234,7 @@ const countrySpecificWithdrawMethods: Record<
     Array<{ title: string; description: string; icon?: IconName | string; isSoon?: boolean }>
 > = {
     India: [{ title: 'UPI', description: 'Unified Payments Interface, ~17B txns/month, 84% of digital payments.' }],
-    Brazil: [{ title: 'Pix', description: '75%+ population use it, 40% e-commerce share.' }],
+    Brazil: [{ title: 'Pix', description: 'Instant transfers', icon: PIX, isSoon: false }],
     Argentina: [
         {
             title: 'Mercado Pago',
@@ -2518,7 +2518,7 @@ export const countryCodeMap: { [key: string]: string } = {
     USA: 'US',
 }
 
-const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX', 'AR', 'BR', 'BO'])
+const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX', 'AR', 'BO'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes

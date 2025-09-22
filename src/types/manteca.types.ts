@@ -1,3 +1,5 @@
+import { MantecaAccountType } from '@/constants/manteca.consts'
+
 export interface MantecaDepositDetails {
     depositAddress: string
     depositAlias: string
@@ -13,6 +15,8 @@ export enum MercadoPagoStep {
 export type MantecaWithdrawData = {
     amount: string
     destinationAddress: string
+    bankCode?: string
+    accountType?: MantecaAccountType
     sendLink: string
     currency: string
 }

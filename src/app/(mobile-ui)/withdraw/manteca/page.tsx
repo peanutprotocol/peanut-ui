@@ -2,7 +2,7 @@
 
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
-import { useState, useMemo, useContext, useEffect } from 'react'
+import { useState, useMemo, useContext, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -28,12 +28,10 @@ import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { useSupportModalContext } from '@/context/SupportModalContext'
+import { MantecaAccountType, MANTECA_COUNTRIES_CONFIG, MantecaBankCode } from '@/constants/manteca.consts'
+import Select from '@/components/Global/Select'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
-
-interface MantecaBankDetails {
-    destinationAddress: string
-}
 
 const MAX_WITHDRAW_AMOUNT = '500'
 
@@ -43,7 +41,9 @@ export default function MantecaWithdrawFlow() {
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
     const [step, setStep] = useState<MantecaWithdrawStep>('amountInput')
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
-    const [bankDetails, setBankDetails] = useState<MantecaBankDetails>({ destinationAddress: '' })
+    const [destinationAddress, setDestinationAddress] = useState<string>('')
+    const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)
+    const [accountType, setAccountType] = useState<MantecaAccountType | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const [isDestinationAddressValid, setIsDestinationAddressValid] = useState(false)
@@ -68,6 +68,11 @@ export default function MantecaWithdrawFlow() {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
+
+    const countryConfig = useMemo(() => {
+        if (!selectedCountry) return undefined
+        return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
+    }, [selectedCountry])
 
     const {
         code: currencyCode,
@@ -133,9 +138,21 @@ export default function MantecaWithdrawFlow() {
         return isValid
     }
 
-    const handleBankDetailsSubmit = () => {
-        if (!bankDetails.destinationAddress.trim()) {
+    const isCompleteBankDetails = useMemo<boolean>(() => {
+        return (
+            !!destinationAddress.trim() &&
+            (!countryConfig?.needsBankCode || selectedBank != null) &&
+            (!countryConfig?.needsAccountType || accountType != null)
+        )
+    }, [selectedBank, accountType, countryConfig, destinationAddress])
+
+    const handleBankDetailsSubmit = useCallback(() => {
+        if (!destinationAddress.trim()) {
             setErrorMessage('Please enter your account address')
+            return
+        }
+        if ((countryConfig?.needsBankCode && !selectedBank) || (countryConfig?.needsAccountType && !accountType)) {
+            setErrorMessage('Please complete the bank details')
             return
         }
         setErrorMessage(null)
@@ -153,10 +170,10 @@ export default function MantecaWithdrawFlow() {
         }
 
         setStep('review')
-    }
+    }, [selectedBank, accountType, destinationAddress, countryConfig?.needsBankCode, countryConfig?.needsAccountType])
 
     const handleWithdraw = async () => {
-        if (!bankDetails.destinationAddress || !usdAmount || !currencyCode) return
+        if (!destinationAddress || !usdAmount || !currencyCode) return
 
         try {
             setLoadingState('Preparing transaction')
@@ -167,7 +184,9 @@ export default function MantecaWithdrawFlow() {
             // Call Manteca withdraw API
             const result = await mantecaApi.withdraw({
                 amount: usdAmount,
-                destinationAddress: bankDetails.destinationAddress,
+                destinationAddress,
+                bankCode: selectedBank?.code,
+                accountType: accountType ?? undefined,
                 sendLink: link,
                 currency: currencyCode,
             })
@@ -197,7 +216,9 @@ export default function MantecaWithdrawFlow() {
         setAmount(undefined)
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
-        setBankDetails({ destinationAddress: '' })
+        setDestinationAddress('')
+        setSelectedBank(null)
+        setAccountType(null)
         setErrorMessage(null)
         setIsKycModalOpen(false)
         setIsDestinationAddressValid(false)
@@ -225,7 +246,7 @@ export default function MantecaWithdrawFlow() {
         }
     }, [usdAmount, balance])
 
-    if (isCurrencyLoading || !currencyPrice) {
+    if (isCurrencyLoading || !currencyPrice || !selectedCountry) {
         return <PeanutLoading />
     }
 
@@ -246,7 +267,7 @@ export default function MantecaWithdrawFlow() {
                                 {currencyCode} {currencyAmount}
                             </div>
                             <div className="text-lg font-bold">≈ ${usdAmount} USD</div>
-                            <h1 className="text-sm font-normal text-grey-1">to {bankDetails.destinationAddress}</h1>
+                            <h1 className="text-sm font-normal text-grey-1">to {destinationAddress}</h1>
                         </div>
                     </Card>
                     <div className="w-full space-y-5">
@@ -366,6 +387,7 @@ export default function MantecaWithdrawFlow() {
                                 <p className="text-2xl font-bold">
                                     {currencyCode} {currencyAmount}
                                 </p>
+                                <div className="text-lg font-bold">≈ {usdAmount} USD</div>
                             </div>
                         </div>
                     </Card>
@@ -376,10 +398,10 @@ export default function MantecaWithdrawFlow() {
 
                         <div className="space-y-2">
                             <ValidatedInput
-                                value={bankDetails.destinationAddress}
-                                placeholder={countryPath === 'argentina' ? 'CBU, CVU or Alias' : 'Account Address'}
+                                value={destinationAddress}
+                                placeholder={countryConfig!.accountNumberLabel}
                                 onUpdate={(update) => {
-                                    setBankDetails({ destinationAddress: update.value })
+                                    setDestinationAddress(update.value)
                                     setIsDestinationAddressValid(update.isValid)
                                     setIsDestinationAddressChanging(update.isChanging)
                                     if (update.isValid || update.value === '') {
@@ -388,6 +410,31 @@ export default function MantecaWithdrawFlow() {
                                 }}
                                 validate={validateDestinationAddress}
                             />
+                            {countryConfig?.needsAccountType && (
+                                <Select
+                                    value={accountType ? { id: accountType, title: accountType } : null}
+                                    onChange={(item) => {
+                                        setAccountType(MantecaAccountType[item.id as keyof typeof MantecaAccountType])
+                                    }}
+                                    items={countryConfig.validAccountTypes.map((type) => ({ id: type, title: type }))}
+                                    placeholder="Select account type"
+                                    className="w-full"
+                                />
+                            )}
+                            {countryConfig?.needsBankCode && (
+                                <Select
+                                    value={selectedBank ? { id: selectedBank.code, title: selectedBank.name } : null}
+                                    onChange={(item) => {
+                                        setSelectedBank({ code: item.id, name: item.title })
+                                    }}
+                                    items={countryConfig.validBankCodes.map((bank) => ({
+                                        id: bank.code,
+                                        title: bank.name,
+                                    }))}
+                                    placeholder="Select bank"
+                                    className="w-full"
+                                />
+                            )}
 
                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                 <Icon name="info" size={16} />
@@ -398,9 +445,7 @@ export default function MantecaWithdrawFlow() {
                         <Button
                             onClick={handleBankDetailsSubmit}
                             disabled={
-                                !bankDetails.destinationAddress.trim() ||
-                                isDestinationAddressChanging ||
-                                !isDestinationAddressValid
+                                !isCompleteBankDetails || isDestinationAddressChanging || !isDestinationAddressValid
                             }
                             loading={isDestinationAddressChanging}
                             className="w-full"
@@ -452,12 +497,13 @@ export default function MantecaWithdrawFlow() {
                                 <p className="text-2xl font-bold">
                                     {currencyCode} {currencyAmount}
                                 </p>
+                                <div className="text-lg font-bold">≈ {usdAmount} USD</div>
                             </div>
                         </div>
                     </Card>
                     {/* Review Summary */}
                     <Card className="space-y-0 px-4">
-                        <PaymentInfoRow label="CBU, CVU or Alias" value={bankDetails.destinationAddress} />
+                        <PaymentInfoRow label="CBU, CVU or Alias" value={destinationAddress} />
                         <PaymentInfoRow
                             label="Exchange Rate"
                             value={`1 USD = ${currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
