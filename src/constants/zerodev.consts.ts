@@ -2,7 +2,7 @@ import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import type { Chain, PublicClient } from 'viem'
 import { createPublicClient } from 'viem'
 import { getTransportWithFallback } from '@/app/actions/clients'
-import { arbitrum, polygon } from 'viem/chains'
+import { arbitrum } from 'viem/chains'
 
 // consts needed to define low level SDK kernel
 // as per: https://docs.zerodev.app/sdk/getting-started/tutorial-passkeys
@@ -23,17 +23,10 @@ export const PEANUT_WALLET_TOKEN_NAME = 'USD Coin'
 export const PEANUT_WALLET_TOKEN_IMG_URL =
     'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png'
 
-export const PINTA_WALLET_CHAIN = polygon
-export const PINTA_WALLET_TOKEN_DECIMALS = 10
-export const PINTA_WALLET_TOKEN = '0x9Ae69fDfF2FA97e34B680752D8E70dfD529Ea6ca'
-export const PINTA_WALLET_TOKEN_NAME = 'PINTA'
-export const PINTA_WALLET_TOKEN_SYMBOL = 'PNT'
-
 export const USDT_IN_MAINNET = '0xdac17f958d2ee523a2206206994597c13d831ec7'
 
 export const PEANUT_WALLET_SUPPORTED_TOKENS: Record<string, string[]> = {
     [PEANUT_WALLET_CHAIN.id.toString()]: [PEANUT_WALLET_TOKEN],
-    [PINTA_WALLET_CHAIN.id.toString()]: [PINTA_WALLET_TOKEN],
 }
 
 /**
@@ -46,6 +39,11 @@ export const USER_OP_ENTRY_POINT = getEntryPoint('0.7')
 export const ZERODEV_KERNEL_VERSION = KERNEL_V3_1
 export const USER_OPERATION_REVERT_REASON_TOPIC = '0x1c4fada7374c0a9ee8841fc38afe82932dc0f8e69012e927f061a8bae611a201'
 
+/**
+ * This is a mapping of chain ID to the public client and chain details
+ * This is for the standard chains supported in the app. For now Arbitrum, but
+ * for example if we have rewards on other chains, we can add them here.
+ */
 export const PUBLIC_CLIENTS_BY_CHAIN: Record<
     string,
     {
@@ -65,17 +63,6 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
         bundlerUrl: BUNDLER_URL,
         paymasterUrl: PAYMASTER_URL,
     },
-    [polygon.id]: {
-        client: createPublicClient({
-            transport: getTransportWithFallback(polygon.id),
-            chain: polygon,
-            pollingInterval: 2500,
-        }),
-        chain: polygon,
-        bundlerUrl: process.env.NEXT_PUBLIC_POLYGON_BUNDLER_URL!,
-        paymasterUrl: process.env.NEXT_PUBLIC_POLYGON_PAYMASTER_URL!,
-    },
 }
 
 export const peanutPublicClient = PUBLIC_CLIENTS_BY_CHAIN[PEANUT_WALLET_CHAIN.id].client
-export const pintaPublicClient = PUBLIC_CLIENTS_BY_CHAIN[PINTA_WALLET_CHAIN.id].client
