@@ -511,30 +511,30 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             )}
             {currentView === 'STATUS' && (
                 <>
-                    isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
-                    <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-                        <NavHeader disableBackBtn={!user?.user.userId} title="Receipt" />
-                        <TransactionDetailsReceipt
-                            className="my-auto flex h-full flex-col justify-center space-y-4"
-                            transaction={selectedTransaction}
-                            onClose={fetchChargeDetails}
-                            setIsLoading={setisLinkCancelling}
-                            isLoading={isLinkCancelling}
-                        />
-                    </div>
+                    {isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
+                        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+                            <NavHeader disableBackBtn={!user?.user.userId} title="Receipt" />
+                            <TransactionDetailsReceipt
+                                className="my-auto flex h-full flex-col justify-center space-y-4"
+                                transaction={selectedTransaction}
+                                onClose={fetchChargeDetails}
+                                setIsLoading={setisLinkCancelling}
+                                isLoading={isLinkCancelling}
+                            />
+                        </div>
                     ) : (
-                    <DirectSuccessView
-                        key={`success-${flow}`}
-                        headerTitle={isExternalWalletFlow ? 'Add Money' : 'Send'}
-                        recipientType={parsedPaymentData?.recipient?.recipientType}
-                        type="SEND"
-                        currencyAmount={
-                            currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
-                        }
-                        isExternalWalletFlow={isExternalWalletFlow}
-                        redirectTo={isExternalWalletFlow ? '/add-money' : '/send'}
-                    />
-                    )
+                        <DirectSuccessView
+                            key={`success-${flow}`}
+                            headerTitle={isExternalWalletFlow ? 'Add Money' : 'Send'}
+                            recipientType={parsedPaymentData?.recipient?.recipientType}
+                            type="SEND"
+                            currencyAmount={
+                                currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined
+                            }
+                            isExternalWalletFlow={isExternalWalletFlow}
+                            redirectTo={isExternalWalletFlow ? '/add-money' : '/send'}
+                        />
+                    )}
                 </>
             )}
 
