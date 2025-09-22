@@ -6,7 +6,6 @@ import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
-import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -458,19 +457,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         )
     }
 
-    // pinta token payment flow
-    if (parsedPaymentData?.token?.symbol === 'PNT') {
-        return (
-            <div className={twMerge('mx-auto h-full w-full space-y-8 self-center')}>
-                <div>
-                    {currentView === 'INITIAL' && <InitialPaymentView {...parsedPaymentData} isPintaReq={true} />}
-                    {currentView === 'CONFIRM' && <ConfirmPaymentView isPintaReq={true} />}
-                    {currentView === 'STATUS' && <PintaReqPaySuccessView />}
-                </div>
-            </div>
-        )
-    }
-    // default payment flow
     return (
         <div className={twMerge('mx-auto min-h-[inherit] w-full space-y-8 self-center')}>
             {!user && parsedPaymentData?.recipient?.recipientType !== 'USERNAME' && (
@@ -516,7 +502,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             {currentView === 'CONFIRM' && (
                 <ConfirmPaymentView
                     key={`confirm-${flow}`}
-                    isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
                     currencyAmount={currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined}
                     isExternalWalletFlow={isExternalWalletFlow}
                     isDirectUsdPayment={isDirectPay}
@@ -524,9 +509,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             )}
             {currentView === 'STATUS' && (
                 <>
-                    {parsedPaymentData?.token?.symbol === 'PNT' ? (
-                        <PintaReqPaySuccessView />
-                    ) : isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
+                    {isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
                         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
                             <NavHeader disableBackBtn={!user?.user.userId} title="Receipt" />
                             <TransactionDetailsReceipt

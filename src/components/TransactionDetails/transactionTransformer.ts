@@ -1,4 +1,3 @@
-import { PeanutArmHoldingBeer } from '@/assets'
 import { StatusType } from '@/components/Global/Badges/StatusBadge'
 import { TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
 import { TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
@@ -25,14 +24,8 @@ export type RewardData = {
     getSymbol: (amount: number | bigint) => string
     avatarUrl: string
 }
-export const REWARD_TOKENS: { [key: string]: RewardData } = {
-    '0x9ae69fdff2fa97e34b680752d8e70dfd529ea6ca': {
-        symbol: 'Beers',
-        formatAmount: (amount: number | bigint) => (Number(amount) === 1 ? '1 Beer' : `${amount.toString()} Beers`),
-        getSymbol: (amount: number | bigint) => (Number(amount) === 1 ? 'Beer' : 'Beers'),
-        avatarUrl: PeanutArmHoldingBeer,
-    },
-}
+// Configure reward tokens here
+export const REWARD_TOKENS: { [key: string]: RewardData } = {}
 
 /**
  * defines the structure of the data expected by the transaction details drawer component.

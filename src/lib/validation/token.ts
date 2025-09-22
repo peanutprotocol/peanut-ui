@@ -1,32 +1,13 @@
 import { getSquidChainsAndTokens } from '@/app/actions/squid'
-import {
-    PEANUT_WALLET_CHAIN,
-    PEANUT_WALLET_TOKEN,
-    PINTA_WALLET_TOKEN,
-    PINTA_WALLET_TOKEN_DECIMALS,
-    PINTA_WALLET_TOKEN_NAME,
-    PINTA_WALLET_TOKEN_SYMBOL,
-} from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { ChainValidationError } from '../url-parser/errors'
 import { POPULAR_CHAIN_NAME_VARIANTS } from '../url-parser/parser.consts'
 
-import { polygon } from 'viem/chains'
-
-const EXTRA_TOKENS_BY_CHAIN: Record<string, interfaces.ISquidToken[]> = {
-    [polygon.id.toString()]: [
-        {
-            active: true,
-            chainId: polygon.id.toString(),
-            address: PINTA_WALLET_TOKEN,
-            name: PINTA_WALLET_TOKEN_NAME,
-            symbol: PINTA_WALLET_TOKEN_SYMBOL,
-            decimals: PINTA_WALLET_TOKEN_DECIMALS,
-            logoURI: 'https://polygonscan.com/token/images/pintatoken_32.png',
-            usdPrice: 2.5,
-        },
-    ],
-}
+// This is used to support other tokens, specifically for reward tokens for
+// example, it was used to support beer token in polygon in early versions of the app
+// We keep the mapping for future configuration
+const EXTRA_TOKENS_BY_CHAIN: Record<string, interfaces.ISquidToken[]> = {}
 
 export async function getTokenAndChainDetails(
     tokenSymbol: string,
