@@ -289,11 +289,12 @@ export default function DirectSendQr({
                 }
                 break
             case EQrType.MERCADO_PAGO:
+            case EQrType.ARGENTINA_QR3:
             case EQrType.PIX:
                 {
                     const timestamp = Date.now()
                     // Casing matters, so send original instead of normalized
-                    redirectUrl = `/qr-pay?qrCode=${originalData}&t=${timestamp}`
+                    redirectUrl = `/qr-pay?qrCode=${originalData}&t=${timestamp}&type=${qrType}`
                 }
                 break
             case EQrType.BITCOIN_ONCHAIN:

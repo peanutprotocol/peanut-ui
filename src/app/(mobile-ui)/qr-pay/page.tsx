@@ -31,6 +31,7 @@ import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
 import ActionModal from '@/components/Global/ActionModal'
 import { saveRedirectUrl } from '@/utils/general.utils'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
+import { EQrType } from '@/components/Global/DirectSendQR/utils'
 
 const MAX_QR_PAYMENT_AMOUNT = '200'
 
@@ -39,6 +40,7 @@ export default function QRPayPage() {
     const router = useRouter()
     const qrCode = searchParams.get('qrCode')
     const timestamp = searchParams.get('t')
+    const qrType = searchParams.get('type')
     const { balance, sendMoney } = useWallet()
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -122,17 +124,17 @@ export default function QRPayPage() {
     }, [paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
 
     const methodIcon = useMemo(() => {
-        if (!paymentLock) return null
-        switch (paymentLock.type) {
-            case 'QR3_PAYMENT':
-            case 'QR3':
+        switch (qrType) {
+            case EQrType.MERCADO_PAGO:
                 return MERCADO_PAGO
-            case 'PIX':
+            case EQrType.ARGENTINA_QR3:
+                return 'https://flagcdn.com/w160/ar.png'
+            case EQrType.PIX:
                 return PIX
             default:
                 return null
         }
-    }, [paymentLock])
+    }, [qrType])
 
     // fetch payment lock only when gating allows proceeding and we don't yet have a lock
     useEffect(() => {
