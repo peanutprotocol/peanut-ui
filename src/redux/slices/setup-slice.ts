@@ -10,6 +10,7 @@ const initialState: ISetupState = {
     isLoading: false,
     telegramHandle: '',
     steps: [],
+    inviteCode: '',
 }
 
 const setupSlice = createSlice({
@@ -26,6 +27,7 @@ const setupSlice = createSlice({
             state.direction = 0
             state.isLoading = false
             state.steps = []
+            state.inviteCode = ''
         },
         nextStep: (state) => {
             state.direction = 1
@@ -48,6 +50,9 @@ const setupSlice = createSlice({
         },
         setTelegramHandle: (state, action: PayloadAction<string>) => {
             state.telegramHandle = action.payload
+        },
+        setInviteCode: (state, action: PayloadAction<string>) => {
+            state.inviteCode = action.payload
         },
     },
 })

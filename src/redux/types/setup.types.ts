@@ -7,4 +7,5 @@ export interface ISetupState {
     isLoading: boolean
     steps: ISetupStep[]
     telegramHandle: string
+    inviteCode: string
 }

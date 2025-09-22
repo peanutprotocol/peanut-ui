@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { Button } from '@/components/0_Bruddle'
 import InvitesPageLayout from '@/components/Invites/InvitesPageLayout'
 
-export default function JoinWaitlist() {
+export default function WaitlistPage() {
     const [inviteCode, setInviteCode] = useState('')
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
@@ -68,8 +68,6 @@ export default function JoinWaitlist() {
                                 Next
                             </Button>
                         </div>
-
-                        <Button shadowSize="4">Join Waitlist</Button>
 
                         <button className="text-sm underline">Log in with a different account</button>
                     </div>

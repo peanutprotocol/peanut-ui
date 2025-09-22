@@ -1,3 +1,4 @@
+import { validateInviteCode } from '@/app/actions/invites'
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils'
 import Cookies from 'js-cookie'
@@ -27,5 +28,10 @@ export const invitesApi = {
         })
         const invitesRes = await response.json()
         return invitesRes.invites
+    },
+
+    validateInviteCode: async (inviteCode: string): Promise<boolean> => {
+        const res = await validateInviteCode(inviteCode)
+        return res.data?.success || false
     },
 }
