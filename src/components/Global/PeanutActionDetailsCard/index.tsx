@@ -216,13 +216,7 @@ export default function PeanutActionDetailsCard({
                                 transactionType !== 'ADD_MONEY' &&
                                 !isClaimLinkBankAccount &&
                                 !(transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && viewType === 'SUCCESS') &&
-                                ` ${
-                                    tokenSymbol.toLowerCase() === 'pnt'
-                                        ? Number(amount) === 1
-                                            ? 'Beer'
-                                            : 'Beers'
-                                        : tokenSymbol
-                                }`}
+                                ` ${tokenSymbol}`}
                         </h2>
                     )}
 

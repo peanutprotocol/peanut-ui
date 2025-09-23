@@ -12,7 +12,6 @@ import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useUserStore } from '@/redux/hooks'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
-import { usePathname } from 'next/navigation'
 import { isKycStatusItem } from '@/hooks/useKycFlow'
 import React, { useEffect, useMemo, useRef } from 'react'
 
@@ -20,7 +19,6 @@ import React, { useEffect, useMemo, useRef } from 'react'
  * displays the user's transaction history with infinite scrolling and date grouping.
  */
 const HistoryPage = () => {
-    const pathname = usePathname()
     const loaderRef = useRef<HTMLDivElement>(null)
     const { user } = useUserStore()
 

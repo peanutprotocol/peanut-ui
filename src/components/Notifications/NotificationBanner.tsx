@@ -1,15 +1,21 @@
 'use client'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { useNotifications } from '@/hooks/useNotifications'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import ActionModal from '../Global/ActionModal'
 
-const NotificationBanner = ({ onClick, onClose }: { onClick: () => void; onClose: () => void }) => {
+const NotificationBanner = ({
+    onClick,
+    onClose,
+    isPermissionDenied,
+}: {
+    onClick: () => void
+    onClose: () => void
+    isPermissionDenied: boolean
+}) => {
     const [showBanner, setShowBanner] = useState(true)
     const [showPermissionDeniedModal, setShowPermissionDeniedModal] = useState(false)
-    const { isPermissionDenied } = useNotifications()
 
     const handleClick = () => {
         onClick()

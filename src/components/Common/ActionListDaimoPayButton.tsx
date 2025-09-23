@@ -45,7 +45,6 @@ const ActionListDaimoPayButton = () => {
         const payload: InitiatePaymentPayload = {
             recipient: parsedPaymentData?.recipient,
             tokenAmount,
-            isPintaReq: false, // explicitly set to false for non-PINTA requests
             requestId: requestId ?? undefined,
             chargeId: chargeDetails?.uuid,
             currency: currencyCode

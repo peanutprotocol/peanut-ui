@@ -39,7 +39,7 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
     const bridgeKycStatus: BridgeKycStatus = user?.user?.bridgeKycStatus || 'not_started'
     // check if the username is the same as the current user
     const isSameUser = username === user?.user.username
-    const { fetchBalance, getRewardWalletBalance } = useWallet()
+    const { fetchBalance } = useWallet()
 
     // WebSocket for real-time updates
     const { historyEntries: wsHistoryEntries } = useWebSocket({
@@ -52,10 +52,9 @@ const HomeHistory = ({ isPublic = false, username }: { isPublic?: boolean; usern
                     (entry.type === EHistoryEntryType.REQUEST && entry.status.toUpperCase() === 'COMPLETED')
                 ) {
                     fetchBalance()
-                    getRewardWalletBalance()
                 }
             },
-            [fetchBalance, getRewardWalletBalance]
+            [fetchBalance]
         ),
     })
 

@@ -2,23 +2,20 @@
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { Button } from '../0_Bruddle'
 import Modal from '../Global/Modal'
-import { useState } from 'react'
 import { SetupImageSection } from '../Setup/components/SetupWrapper'
 import { useNotifications } from '@/hooks/useNotifications'
 
 export default function SetupNotifcationsModal() {
-    const [isOpen, setIsOpen] = useState(true)
-    const { requestPermission, closePermissionModal, afterPermissionAttempt } = useNotifications()
+    const { showPermissionModal, requestPermission, closePermissionModal, afterPermissionAttempt } = useNotifications()
 
     const handleModalClose = () => {
-        setIsOpen(false)
         closePermissionModal()
     }
 
     return (
         <>
             <Modal
-                visible={isOpen}
+                visible={showPermissionModal}
                 onClose={handleModalClose}
                 classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
                 classButtonClose="hidden"
@@ -49,10 +46,9 @@ export default function SetupNotifcationsModal() {
                                 variant="purple"
                                 shadowSize="4"
                                 onClick={async () => {
-                                    // Keep modal open to preserve the same user gesture context
                                     await requestPermission()
                                     await afterPermissionAttempt()
-                                    setIsOpen(false)
+                                    closePermissionModal()
                                 }}
                             >
                                 Enable notifications
