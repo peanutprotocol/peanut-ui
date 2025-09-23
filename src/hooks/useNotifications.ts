@@ -5,6 +5,9 @@ import OneSignal from 'react-onesignal'
 import { getFromLocalStorage, saveToLocalStorage } from '@/utils'
 import { useUserStore } from '@/redux/hooks'
 
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+const TEN_SECONDS_MS = 10000
+
 export function useNotifications() {
     const { user } = useUserStore()
     const externalId = user?.user.userId
@@ -136,9 +139,20 @@ export function useNotifications() {
                     await w.__ONE_SIGNAL_INIT_PROMISE__
                 } else {
                     w.__ONE_SIGNAL_INIT_PROMISE__ = (async () => {
+                        const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID
+                        const safariWebId = process.env.NEXT_PUBLIC_SAFARI_WEB_ID
+                        const webhookUrl = process.env.NEXT_PUBLIC_ONESIGNAL_WEBHOOK!
+
+                        if (!appId || !safariWebId) {
+                            console.error(
+                                'OneSignal configuration missing: NEXT_PUBLIC_ONESIGNAL_APP_ID and NEXT_PUBLIC_SAFARI_WEB_ID are required'
+                            )
+                            return
+                        }
+
                         await OneSignal.init({
-                            appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
-                            safari_web_id: process.env.NEXT_PUBLIC_SAFARI_WEB_ID!,
+                            appId: appId,
+                            safari_web_id: safariWebId,
                             // disable automatic prompts - we handle them manually
                             autoResubscribe: false,
                             autoRegister: false,
@@ -153,8 +167,8 @@ export function useNotifications() {
                             },
                             webhooks: {
                                 cors: true,
-                                'notification.willDisplay': process.env.NEXT_PUBLIC_WEBHOOKS_ONESIGNAL_URL!,
-                                'notification.clicked': process.env.NEXT_PUBLIC_WEBHOOKS_ONESIGNAL_URL!,
+                                'notification.willDisplay': webhookUrl,
+                                'notification.clicked': webhookUrl,
                             },
                         })
                         w.__ONE_SIGNAL_READY__ = true
@@ -309,10 +323,9 @@ export function useNotifications() {
         let showAt: number = 0
         if (process.env.NEXT_PUBLIC_ENV === 'production') {
             // 7 days = 7 * 24 * 60 * 60 * 1000 milliseconds
-            const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
             showAt = Date.now() + SEVEN_DAYS_MS
         } else {
-            showAt = Date.now() + 10000 // testing: 10 seconds
+            showAt = Date.now() + TEN_SECONDS_MS
         }
         saveToLocalStorage('notif_modal_closed', true)
         saveToLocalStorage('notif_banner_show_at', showAt)
@@ -339,7 +352,12 @@ export function useNotifications() {
 
     // snooze banner and reschedule (10s for testing, 7 days for prod)
     const closeReminderBanner = useCallback(() => {
-        const showAt = Date.now() + 10000 // testing: 10 seconds; prod: 7 days
+        let showAt: number = 0
+        if (process.env.NEXT_PUBLIC_ENV === 'production') {
+            showAt = Date.now() + SEVEN_DAYS_MS
+        } else {
+            showAt = Date.now() + TEN_SECONDS_MS
+        }
         saveToLocalStorage('notif_banner_show_at', showAt)
         setShowReminderBanner(false)
 
