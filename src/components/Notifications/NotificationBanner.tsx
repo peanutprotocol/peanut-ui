@@ -68,14 +68,10 @@ const NotificationBanner = ({
                     title="Notifications are turned off"
                     description={
                         <p>
-                            <span>Please enable notifications to receive updates by re-installing the PWA.</span>
-                            <br />
-                            <span>
-                                Unfortunately browser limitations prevent us from re-enabling notifications until you
-                                manually re-install the PWA.
-                            </span>
+                            <span>To start getting alerts, open Settings, go to Notifications, and select Peanut.</span>
                         </p>
                     }
+                    icon="bell"
                     onClose={() => {
                         setShowPermissionDeniedModal(false)
                     }}
