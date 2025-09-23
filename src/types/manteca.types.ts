@@ -17,7 +17,7 @@ export type MantecaWithdrawData = {
     destinationAddress: string
     bankCode?: string
     accountType?: MantecaAccountType
-    sendLink: string
+    txHash: string
     currency: string
 }
 

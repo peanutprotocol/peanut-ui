@@ -11,7 +11,9 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { mantecaApi } from '@/services/manteca'
+import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { useCurrency } from '@/hooks/useCurrency'
+import { isTxReverted } from '@/utils/general.utils'
 import { loadingStateContext } from '@/context'
 import { countryData } from '@/components/AddMoney/consts'
 import Image from 'next/image'
@@ -26,7 +28,6 @@ import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { useCreateLink } from '@/components/Create/useCreateLink'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { MantecaAccountType, MANTECA_COUNTRIES_CONFIG, MantecaBankCode } from '@/constants/manteca.consts'
 import Select from '@/components/Global/Select'
@@ -51,8 +52,7 @@ export default function MantecaWithdrawFlow() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { resetWithdrawFlow } = useWithdrawFlow()
-    const { balance } = useWallet()
-    const { createLink } = useCreateLink()
+    const { sendMoney, balance } = useWallet()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { user, fetchUser } = useAuth()
     const { setIsSupportModalOpen } = useSupportModalContext()
@@ -178,16 +178,24 @@ export default function MantecaWithdrawFlow() {
         try {
             setLoadingState('Preparing transaction')
 
-            const { link } = await createLink(parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS))
+            // Send crypto to Manteca address
+            const { userOpHash, receipt } = await sendMoney(MANTECA_DEPOSIT_ADDRESS, usdAmount)
 
+            if (receipt !== null && isTxReverted(receipt)) {
+                setErrorMessage('Transaction reverted by the network.')
+                return
+            }
+
+            const txHash = receipt?.transactionHash ?? userOpHash
             setLoadingState('Withdrawing')
+
             // Call Manteca withdraw API
             const result = await mantecaApi.withdraw({
                 amount: usdAmount,
                 destinationAddress,
                 bankCode: selectedBank?.code,
                 accountType: accountType ?? undefined,
-                sendLink: link,
+                txHash,
                 currency: currencyCode,
             })
 
@@ -223,8 +231,8 @@ export default function MantecaWithdrawFlow() {
         setIsKycModalOpen(false)
         setIsDestinationAddressValid(false)
         setIsDestinationAddressChanging(false)
-        setBalanceErrorMessage(null)
         resetWithdrawFlow()
+        setBalanceErrorMessage(null)
     }
 
     useEffect(() => {
@@ -313,7 +321,6 @@ export default function MantecaWithdrawFlow() {
             </div>
         )
     }
-
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader
@@ -503,7 +510,7 @@ export default function MantecaWithdrawFlow() {
                     </Card>
                     {/* Review Summary */}
                     <Card className="space-y-0 px-4">
-                        <PaymentInfoRow label="CBU, CVU or Alias" value={destinationAddress} />
+                        <PaymentInfoRow label={countryConfig!.accountNumberLabel} value={destinationAddress} />
                         <PaymentInfoRow
                             label="Exchange Rate"
                             value={`1 USD = ${currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
