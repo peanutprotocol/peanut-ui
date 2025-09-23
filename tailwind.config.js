@@ -88,6 +88,7 @@ module.exports = {
                 },
                 orange: {
                     1: '#FE8E3E',
+                    2: '#FF5656',
                 },
                 success: {
                     1: '#16B413',
