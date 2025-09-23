@@ -294,7 +294,7 @@ export default function DirectSendQr({
                 {
                     const timestamp = Date.now()
                     // Casing matters, so send original instead of normalized
-                    redirectUrl = `/qr-pay?qrCode=${originalData}&t=${timestamp}&type=${qrType}`
+                    redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(originalData)}&t=${timestamp}&type=${qrType}`
                 }
                 break
             case EQrType.BITCOIN_ONCHAIN:

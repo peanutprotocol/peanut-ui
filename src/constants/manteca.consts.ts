@@ -53,13 +53,13 @@ type MantecaCountryConfig = {
 
 /**
  * Configuration for each country that uses Manteca
-  * Some countries needs only account number but others need extra data,
-  * and that data like account type and bank code is different for each
-  * country and part of a list of valid values so we need to have a
-  * config for each country
-  *
-  * @see https://docs.manteca.dev/cripto/start-operating/manual-operation/requesting-a-withdraw/defining-the-destination
-  */
+ * Some countries needs only account number but others need extra data,
+ * and that data like account type and bank code is different for each
+ * country and part of a list of valid values so we need to have a
+ * config for each country
+ *
+ * @see https://docs.manteca.dev/cripto/start-operating/manual-operation/requesting-a-withdraw/defining-the-destination
+ */
 export const MANTECA_COUNTRIES_CONFIG: Record<string, MantecaCountryConfig> = {
     AR: {
         accountNumberLabel: 'CBU, CVU or Alias',

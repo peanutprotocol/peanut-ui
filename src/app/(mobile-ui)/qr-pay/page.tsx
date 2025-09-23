@@ -38,7 +38,7 @@ const MAX_QR_PAYMENT_AMOUNT = '200'
 export default function QRPayPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
-    const qrCode = searchParams.get('qrCode')
+    const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
     const { balance, sendMoney } = useWallet()
