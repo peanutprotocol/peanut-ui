@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { getCurrencyPrice } from '@/app/actions/currency'
 
 export const SYMBOLS_BY_CURRENCY_CODE: Record<string, string> = {
-    ARS: 'AR$',
+    ARS: 'ARS',
     USD: '$',
     EUR: '€',
     MXN: 'MX$',
