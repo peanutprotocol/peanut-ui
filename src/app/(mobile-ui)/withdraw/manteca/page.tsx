@@ -200,19 +200,19 @@ export default function MantecaWithdrawFlow() {
             })
 
             if (result.error) {
-                setErrorMessage(
-                    'Withdraw cancelled, please check that the destination address is correct. If problem persists contact support'
-                )
-                setStep('failure')
+                if (result.error === 'Unexpected error') {
+                    setErrorMessage('Withdraw failed unexpectedly. If problem persists contact support')
+                    setStep('failure')
+                } else {
+                    setErrorMessage(result.message ?? result.error)
+                }
                 return
             }
 
             setStep('success')
         } catch (error) {
             console.error('Manteca withdraw error:', error)
-            setErrorMessage(
-                'Withdraw cancelled, please check that the destination address is correct. If problem persists contact support'
-            )
+            setErrorMessage('Withdraw failed unexpectedly. If problem persists contact support')
             setStep('failure')
         } finally {
             setLoadingState('Idle')

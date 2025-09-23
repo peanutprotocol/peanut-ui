@@ -70,6 +70,7 @@ export type MantecaWithdrawResponseData = {
 export type MantecaWithdrawResponse = {
     data?: MantecaWithdrawResponseData
     error?: string
+    message?: string
 }
 
 export interface CreateMantecaOnrampParams {
