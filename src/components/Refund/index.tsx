@@ -140,11 +140,14 @@ export const Refund = () => {
                                 classButton="h-auto px-0 border-none bg-trasparent text-sm !font-normal"
                                 classOptions="-left-4 -right-3 w-auto py-1 overflow-auto max-h-36"
                                 classArrow="ml-1"
-                                items={consts.supportedPeanutChains}
+                                items={consts.supportedPeanutChains.map((chain) => ({
+                                    id: chain.chainId,
+                                    title: chain.name,
+                                }))}
                                 value={
-                                    consts.supportedPeanutChains.find(
-                                        (chain) => chain.chainId === refundFormWatch.chainId
-                                    )?.name
+                                    consts.supportedPeanutChains
+                                        .map((c) => ({ id: c.chainId, title: c.name }))
+                                        .find((i) => i.id === refundFormWatch.chainId) ?? null
                                 }
                                 onChange={(chainId: any) => {
                                     refundForm.setValue('chainId', chainId.chainId)
