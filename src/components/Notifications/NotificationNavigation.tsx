@@ -28,7 +28,7 @@ export default function NotificationNavigation() {
     return (
         <Link href={'/notifications'} className={twMerge('relative', notificationCount > 0 && 'animate-pulsate')}>
             <Icon name="bell" size={20} />
-            {notificationCount > 0 && <div className="bg-orange-2 absolute -right-1 -top-1.5 h-2 w-2 rounded-full" />}
+            {notificationCount > 0 && <div className="absolute -right-1 -top-1.5 h-2 w-2 rounded-full bg-orange-2" />}
         </Link>
     )
 }
