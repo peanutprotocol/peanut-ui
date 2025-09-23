@@ -192,7 +192,7 @@ export default function MantecaWithdrawFlow() {
             // Call Manteca withdraw API
             const result = await mantecaApi.withdraw({
                 amount: usdAmount,
-                destinationAddress,
+                destinationAddress: destinationAddress.toLowerCase(),
                 bankCode: selectedBank?.code,
                 accountType: accountType ?? undefined,
                 txHash,
