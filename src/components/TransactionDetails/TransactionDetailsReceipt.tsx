@@ -122,8 +122,9 @@ export const TransactionDetailsReceipt = ({
             ),
             fee: transaction.fee !== undefined,
             exchangeRate: !!(
-                (transaction.direction === 'bank_deposit' || transaction.direction === 'qr_payment') &&
-                transaction.status === 'completed' &&
+                (transaction.direction === 'bank_deposit' ||
+                    transaction.direction === 'qr_payment' ||
+                    transaction.direction === 'bank_withdraw') &&
                 transaction.currency?.code &&
                 transaction.currency.code.toUpperCase() !== 'USD'
             ),
@@ -457,25 +458,12 @@ export const TransactionDetailsReceipt = ({
                     {/* Exchange rate and original currency for completed bank_deposit transactions */}
                     {rowVisibilityConfig.exchangeRate && (
                         <>
-                            {transaction.direction !== 'qr_payment' && (
+                            {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                                 <PaymentInfoRow
-                                    label="Original amount"
-                                    value={(() => {
-                                        const currencyAmount =
-                                            transaction.currency?.amount || transaction.amount.toString()
-                                        const currencySymbol = getDisplayCurrencySymbol(transaction.currency!.code)
-                                        return `${currencySymbol} ${formatAmount(Number(currencyAmount))}`
-                                    })()}
-                                    hideBottomBorder={false}
+                                    label="Value in USD"
+                                    value={`${formatAmount(transaction.amount.toString())} USD`}
                                 />
                             )}
-                            {transaction.direction === 'qr_payment' &&
-                                transaction.extraDataForDrawer?.receipt?.exchange_rate && (
-                                    <PaymentInfoRow
-                                        label="Value in USD"
-                                        value={`${formatAmount(transaction.amount.toString())} USD`}
-                                    />
-                                )}
                             {/* TODO: stop using snake_case!!!!! */}
                             {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                                 <PaymentInfoRow

@@ -21,6 +21,7 @@ export enum EHistoryEntryType {
     BANK_SEND_LINK_CLAIM = 'BANK_SEND_LINK_CLAIM',
     MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
     MANTECA_OFFRAMP = 'MANTECA_OFFRAMP',
+    MANTECA_ONRAMP = 'MANTECA_ONRAMP',
 }
 
 export enum EHistoryUserRole {

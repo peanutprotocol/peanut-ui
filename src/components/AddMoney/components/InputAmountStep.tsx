@@ -44,8 +44,6 @@ const InputAmountStep = ({
                 <TokenAmountInput
                     tokenValue={tokenAmount}
                     setTokenValue={(e) => setTokenAmount(e ?? '')}
-                    walletBalance={undefined}
-                    hideCurrencyToggle
                     setUsdValue={(e) => setTokenUSDAmount(e)}
                     currency={
                         currencyData
@@ -56,7 +54,7 @@ const InputAmountStep = ({
                               }
                             : undefined
                     }
-                    hideBalance={true}
+                    hideBalance
                 />
                 <div className="flex items-center gap-2 text-xs text-grey-1">
                     <Icon name="info" width={16} height={16} />

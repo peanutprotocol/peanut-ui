@@ -176,16 +176,26 @@ export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
     {
         id: 'crypto-add',
         icon: 'wallet-outline' as IconName,
+        path: '/add-money/crypto',
         title: 'From Crypto',
         description: 'Usually arrives instantly',
         isSoon: false,
     },
     {
         id: 'mercado-pago-add',
+        path: '/add-money/argentina/manteca',
         icon: MERCADO_PAGO,
         title: 'Mercado Pago',
-        description: 'Popular in LATAM',
-        isSoon: true,
+        description: 'Instant transfers',
+        isSoon: false,
+    },
+    {
+        id: 'pix-add',
+        icon: PIX,
+        path: '/add-money/brazil/manteca',
+        title: 'Pix',
+        description: 'Instant transfers',
+        isSoon: false,
     },
     {
         id: 'apple-pay-add',
@@ -2518,19 +2528,22 @@ export const countryCodeMap: { [key: string]: string } = {
     USA: 'US',
 }
 
-const enabledBankTransferCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX', 'AR', 'BO'])
+const enabledBankWithdrawCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX', 'AR', 'BO'])
+
+const enabledBankDepositCountries = new Set([...Object.values(countryCodeMap), 'US', 'AR'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes
-const isCountryEnabledForBankTransfer = (countryCode: string): boolean => {
+const isCountryEnabledForBankTransfer = (countryCode: string, direction: 'withdraw' | 'deposit'): boolean => {
     // Direct check for 2-letter codes
-    if (enabledBankTransferCountries.has(countryCode)) {
+    const enabledCountries = direction === 'withdraw' ? enabledBankWithdrawCountries : enabledBankDepositCountries
+    if (enabledCountries.has(countryCode)) {
         return true
     }
 
     // Check if it's a 3-letter code that maps to an enabled 2-letter code
     const mappedCode = countryCodeMap[countryCode]
-    return mappedCode ? enabledBankTransferCountries.has(mappedCode) : false
+    return mappedCode ? enabledCountries.has(mappedCode) : false
 }
 
 countryData.forEach((country) => {
@@ -2618,7 +2631,7 @@ countryData.forEach((country) => {
                 path: isMantecaCountry
                     ? `/withdraw/manteca?method=bank-transfer&country=${country.path}`
                     : `/withdraw/${countryCode.toLowerCase()}/bank`,
-                isSoon: !isCountryEnabledForBankTransfer(countryCode),
+                isSoon: !isCountryEnabledForBankTransfer(countryCode, 'withdraw'),
             })
         }
 
@@ -2633,25 +2646,21 @@ countryData.forEach((country) => {
         // filter add methods: include Mercado Pago only for LATAM countries
         const currentAddMethods = UPDATED_DEFAULT_ADD_MONEY_METHODS.filter((method) => {
             if (method.id === 'mercado-pago-add') {
-                return !!MantecaSupportedExchanges[countryCode as keyof typeof MantecaSupportedExchanges]
+                return countryCode === 'AR'
+            }
+            if (method.id === 'pix-add') {
+                return countryCode === 'BR'
             }
             return true
         }).map((m) => {
             const newMethod = { ...m }
             if (newMethod.id === 'bank-transfer-add') {
-                newMethod.path = `/add-money/${country.path}/bank`
-                newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode) || countryCode === 'MX'
-            } else if (newMethod.id === 'crypto-add') {
-                newMethod.path = `/add-money/crypto`
-                newMethod.isSoon = false
-            } else if (
-                newMethod.id === 'mercado-pago-add' &&
-                MantecaSupportedExchanges[countryCode as keyof typeof MantecaSupportedExchanges]
-            ) {
-                newMethod.isSoon = false
-                newMethod.path = `/add-money/${country.path}/mercadopago`
-            } else if (newMethod.id === 'mercado-pago-add') {
-                newMethod.isSoon = true
+                if (MantecaSupportedExchanges[countryCode as keyof typeof MantecaSupportedExchanges]) {
+                    newMethod.path = `/add-money/${country.path}/manteca`
+                } else {
+                    newMethod.path = `/add-money/${country.path}/bank`
+                }
+                newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode, 'deposit')
             }
             return newMethod
         })

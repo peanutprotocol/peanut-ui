@@ -287,6 +287,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             }
             break
         case EHistoryEntryType.BRIDGE_ONRAMP:
+        case EHistoryEntryType.MANTECA_ONRAMP:
             direction = 'bank_deposit'
             transactionCardType = 'bank_deposit'
             nameForDetails = 'Bank Account'
