@@ -1,5 +1,5 @@
 'use client'
-import MercadoPago from '@/components/AddMoney/components/RegionalMethods/MercadoPago'
+import MantecaAddMoney from '@/components/AddMoney/components/MantecaAddMoney'
 import { CountryData, countryData } from '@/components/AddMoney/consts'
 import { MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import { useParams } from 'next/navigation'
@@ -13,10 +13,8 @@ export default function AddMoneyRegionalMethodPage() {
 
     if (
         MantecaSupportedExchanges[countryDetails?.id as keyof typeof MantecaSupportedExchanges] &&
-        method === 'mercadopago'
+        method === 'manteca'
     ) {
-        return <MercadoPago source="regionalMethod" />
+        return <MantecaAddMoney source="regionalMethod" />
     }
-
-    return <div>Unsupported Method</div>
 }

@@ -67,8 +67,8 @@ const MantecaFulfillment = () => {
 
     const generateShareText = () => {
         const textParts = []
-        textParts.push(`CBU: ${depositData?.data?.depositAddress}`)
-        textParts.push(`Alias: ${depositData?.data?.depositAlias}`)
+        textParts.push(`CBU: ${depositData?.data?.details.depositAddress}`)
+        textParts.push(`Alias: ${depositData?.data?.details.depositAlias}`)
 
         return textParts.join('\n')
     }
@@ -109,22 +109,22 @@ const MantecaFulfillment = () => {
 
                         <MantecaDetailsCard
                             rows={[
-                                ...(depositData?.data?.depositAddress
+                                ...(depositData?.data?.details.depositAddress
                                     ? [
                                           {
                                               key: 'cbu',
                                               label: 'CBU',
-                                              value: depositData.data.depositAddress,
+                                              value: depositData.data.details.depositAddress,
                                               allowCopy: true,
                                           },
                                       ]
                                     : []),
-                                ...(depositData?.data?.depositAlias
+                                ...(depositData?.data?.details.depositAlias
                                     ? [
                                           {
                                               key: 'alias',
                                               label: 'Alias',
-                                              value: depositData.data.depositAlias,
+                                              value: depositData.data.details.depositAlias,
                                               hideBottomBorder: true,
                                           },
                                       ]

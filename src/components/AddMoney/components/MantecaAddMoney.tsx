@@ -1,10 +1,10 @@
 'use client'
 import { FC, useEffect, useMemo, useState } from 'react'
-import MercadoPagoDepositDetails from './MercadoPagoDepositDetails'
-import InputAmountStep from '../../InputAmountStep'
+import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
+import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { useParams, useRouter } from 'next/navigation'
 import { CountryData, countryData } from '@/components/AddMoney/consts'
-import { MantecaDepositDetails } from '@/types/manteca.types'
+import { MantecaDeposiResponseData } from '@/types/manteca.types'
 import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -12,13 +12,13 @@ import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { mantecaApi } from '@/services/manteca'
 
-interface MercadoPagoProps {
+interface MantecaAddMoneyProps {
     source: 'bank' | 'regionalMethod'
 }
 
 type stepType = 'inputAmount' | 'depositDetails'
 
-const MercadoPago: FC<MercadoPagoProps> = ({ source }) => {
+const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     const params = useParams()
     const router = useRouter()
     const [step, setStep] = useState<stepType>('inputAmount')
@@ -26,7 +26,7 @@ const MercadoPago: FC<MercadoPagoProps> = ({ source }) => {
     const [tokenAmount, setTokenAmount] = useState('')
     const [tokenUSDAmount, setTokenUSDAmount] = useState('')
     const [error, setError] = useState<string | null>(null)
-    const [depositDetails, setDepositDetails] = useState<MantecaDepositDetails>()
+    const [depositDetails, setDepositDetails] = useState<MantecaDeposiResponseData>()
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
 
     const selectedCountryPath = params.country as string
@@ -131,10 +131,10 @@ const MercadoPago: FC<MercadoPagoProps> = ({ source }) => {
     }
 
     if (step === 'depositDetails' && depositDetails) {
-        return <MercadoPagoDepositDetails source={source} depositDetails={depositDetails} />
+        return <MantecaDepositShareDetails source={source} depositDetails={depositDetails} />
     }
 
     return null
 }
 
-export default MercadoPago
+export default MantecaAddMoney

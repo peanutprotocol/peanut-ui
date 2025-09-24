@@ -1,9 +1,58 @@
 import { MantecaAccountType } from '@/constants/manteca.consts'
 
-export interface MantecaDepositDetails {
-    depositAddress: string
-    depositAlias: string
-    depositAmount: string
+export interface MantecaDeposiResponseData {
+    id: string
+    numberId: string
+    externalId: string
+    userId: string
+    userNumberId: string
+    userExternalId: string
+    status: string
+    type: 'RAMP_OPERATION'
+    details: {
+        depositAddresses: {
+            BANK_TRANSFER: string
+        }
+        depositAddress: string
+        depositAlias: string
+        withdrawCostInAgainst: string
+        withdrawCostInAsset: string
+        price: string
+        priceExpireAt: string
+    }
+    currentStage: number
+    stages: {
+        '1': {
+            stageType: 'DEPOSIT'
+            asset: string
+            thresholdAmount: string
+            useOverflow: boolean
+            expireAt: string
+        }
+        '2': {
+            stageType: string
+            side: string
+            type: string
+            asset: string
+            against: string
+            assetAmount: string
+            price: string
+            priceCode: string
+        }
+        '3': {
+            stageType: string
+            network: string
+            asset: string
+            amount: string
+            to: string
+            destination: {
+                address: string
+                bankCode: string
+            }
+        }
+    }
+    creationTime: string
+    updatedAt: string
 }
 
 export enum MercadoPagoStep {
