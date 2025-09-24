@@ -137,22 +137,20 @@ export default function NotificationsPage() {
                                                 position={position}
                                                 className="px-5 py-2"
                                                 onClick={async () => {
-                                                    try {
-                                                        void notificationsApi.markRead([notif.id])
-                                                        setNotifications((prev) =>
-                                                            prev.map((it) =>
-                                                                it.id === notif.id
-                                                                    ? {
-                                                                          ...it,
-                                                                          state: {
-                                                                              ...it.state,
-                                                                              readAt: new Date().toISOString(),
-                                                                          },
-                                                                      }
-                                                                    : it
-                                                            )
+                                                    void notificationsApi.markRead([notif.id]).catch(() => {})
+                                                    setNotifications((prev) =>
+                                                        prev.map((it) =>
+                                                            it.id === notif.id
+                                                                ? {
+                                                                      ...it,
+                                                                      state: {
+                                                                          ...it.state,
+                                                                          readAt: new Date().toISOString(),
+                                                                      },
+                                                                  }
+                                                                : it
                                                         )
-                                                    } catch {}
+                                                    )
                                                 }}
                                             >
                                                 <Link href={href ?? ''} className="relative flex items-start gap-3">
