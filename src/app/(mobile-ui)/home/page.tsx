@@ -38,7 +38,7 @@ import { PostSignupActionManager } from '@/components/Global/PostSignupActionMan
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
-import SetupNotifcationsModal from '@/components/Notifications/SetupNotifcationsModal'
+import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
 import NotificationBanner from '@/components/Notifications/NotificationBanner'
 import { useNotifications } from '@/hooks/useNotifications'
 
@@ -50,7 +50,7 @@ export default function Home() {
         showPermissionModal,
         showReminderBanner,
         requestPermission,
-        closeReminderBanner,
+        snoozeReminderBanner,
         afterPermissionAttempt,
         isPermissionDenied,
     } = useNotifications()
@@ -260,7 +260,7 @@ export default function Home() {
                     </ActionButtonGroup>
                 </div>
 
-                {showPermissionModal && <SetupNotifcationsModal />}
+                {showPermissionModal && <SetupNotificationsModal />}
                 {showReminderBanner && (
                     <NotificationBanner
                         isPermissionDenied={isPermissionDenied}
@@ -269,7 +269,7 @@ export default function Home() {
                             await afterPermissionAttempt()
                         }}
                         onClose={() => {
-                            closeReminderBanner()
+                            snoozeReminderBanner()
                         }}
                     />
                 )}
