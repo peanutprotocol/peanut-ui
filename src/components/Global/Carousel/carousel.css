@@ -1,0 +1,25 @@
+/* Custom styles for react-slick carousel dots */
+
+.carousel-container .slick-dots li {
+    width: 6px;
+}
+.carousel-container .slick-dots li button:before {
+    @apply text-[8px];
+}
+
+.carousel-container .slick-dots li.slick-active button:before {
+    @apply text-primary-1 opacity-100;
+}
+
+/* Add spacing between slides without reducing card width */
+.carousel-container .slick-list {
+    @apply -mx-2;
+}
+
+.carousel-container .slick-slide {
+    @apply px-2;
+}
+
+.carousel-container .slick-slide > div {
+    /* Remove the margin to maintain full card width */
+}
