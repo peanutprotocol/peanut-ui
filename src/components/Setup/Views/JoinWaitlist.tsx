@@ -27,7 +27,7 @@ const JoinWaitlist = () => {
         setisLoading(true)
         const res = await invitesApi.validateInviteCode(inviteCode)
         setisLoading(false)
-        return res
+        return res.success
     }
 
     const handleError = (error: any) => {

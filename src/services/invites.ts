@@ -37,13 +37,16 @@ export const invitesApi = {
         return invitesRes.invites
     },
 
-    validateInviteCode: async (inviteCode: string): Promise<boolean> => {
+    validateInviteCode: async (inviteCode: string): Promise<{ success: boolean; username: string }> => {
         try {
             const res = await validateInviteCode(inviteCode)
-            return res.data?.success || false
+            return {
+                success: res.data?.success || false,
+                username: res.data?.username || '',
+            }
         } catch (e) {
             console.error('Error validating invite code:', e)
-            return false
+            return { success: false, username: '' }
         }
     },
 }

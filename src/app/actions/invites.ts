@@ -4,7 +4,9 @@ import { fetchWithSentry } from '@/utils'
 
 const API_KEY = process.env.PEANUT_API_KEY!
 
-export async function validateInviteCode(inviteCode: string): Promise<{ data?: { success: boolean }; error?: string }> {
+export async function validateInviteCode(
+    inviteCode: string
+): Promise<{ data?: { success: boolean; username: string }; error?: string }> {
     const apiUrl = process.env.PEANUT_API_URL
 
     if (!apiUrl || !API_KEY) {
@@ -27,7 +29,9 @@ export async function validateInviteCode(inviteCode: string): Promise<{ data?: {
             return { error: data.error || 'Failed to validate invite code.' }
         }
 
-        return { data: { success: true } }
+        const data = await response.json()
+
+        return { data: { success: true, username: data.username } }
     } catch (error) {
         console.error('Error calling validate invite code API:', error)
         if (error instanceof Error) {

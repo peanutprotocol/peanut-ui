@@ -1,10 +1,40 @@
+'use client'
 import InvitesPageLayout from '@/components/Invites/InvitesPageLayout'
 
 import peanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { invitesApi } from '@/services/invites'
+import { useQuery } from '@tanstack/react-query'
+import PeanutLoading from '@/components/Global/PeanutLoading'
+import { useAppDispatch } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
 
 export default function InvitePage() {
+    const searchParams = useSearchParams()
+    const inviteCode = searchParams.get('code')
+
+    const dispatch = useAppDispatch()
+    const router = useRouter()
+
+    const { data: inviteCodeData, isLoading } = useQuery({
+        queryKey: ['validateInviteCode', inviteCode],
+        queryFn: () => invitesApi.validateInviteCode(inviteCode!),
+        enabled: !!inviteCode,
+    })
+
+    const handleClaimInvite = async () => {
+        if (inviteCode) {
+            dispatch(setupActions.setInviteCode(inviteCode))
+            router.push('/setup?step=signup')
+        }
+    }
+
+    if (isLoading) {
+        return <PeanutLoading coverFullScreen />
+    }
+
     return (
         <InvitesPageLayout image={peanutAnim.src}>
             <div
@@ -15,12 +45,14 @@ export default function InvitePage() {
             >
                 <div className="mx-auto w-full md:max-w-xs">
                     <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                        <h1 className="text-xl font-extrabold">[user] invited you to Peanut</h1>
+                        <h1 className="text-xl font-extrabold">{inviteCodeData?.username} invited you to Peanut</h1>
                         <p className="text-base font-medium">
                             Members-only access. Use this invite to open your wallet and start sending and receiving
                             money globally.
                         </p>
-                        <Button shadowSize="4">Claim your spot</Button>
+                        <Button onClick={handleClaimInvite} shadowSize="4">
+                            Claim your spot
+                        </Button>
 
                         <button className="text-sm underline">Already have an account? Log in!</button>
                     </div>

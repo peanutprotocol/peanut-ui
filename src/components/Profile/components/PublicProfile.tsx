@@ -18,6 +18,7 @@ import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF
 import { checkIfInternalNavigation } from '@/utils'
 import { useAuth } from '@/context/authContext'
 import ShareButton from '@/components/Global/ShareButton'
+import ActionModal from '@/components/Global/ActionModal'
 
 interface PublicProfileProps {
     username: string
@@ -33,7 +34,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const router = useRouter()
     const { user } = useAuth()
     const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
-
+    const [showInviteModal, setShowInviteModal] = useState(false)
     // Handle send button click
     const handleSend = () => {
         if (onSendClick) {
@@ -110,18 +111,17 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             <span className="font-bold">Send</span>
                         </Button>
 
-                        <Link href={`/request/${username}`} className="w-1/2">
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                className="flex items-center justify-center gap-2 rounded-full py-3"
-                            >
-                                <div className="flex size-5 items-center justify-center">
-                                    <Icon name="arrow-down-left" size={8} fill="black" />
-                                </div>
-                                <span className="font-bold">Request</span>
-                            </Button>
-                        </Link>
+                        <Button
+                            onClick={() => setShowInviteModal(true)}
+                            variant="purple"
+                            shadowSize="4"
+                            className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
+                        >
+                            <div className="flex size-5 items-center justify-center">
+                                <Icon name="arrow-down-left" size={8} fill="black" />
+                            </div>
+                            <span className="font-bold">Request</span>
+                        </Button>
                     </div>
                 )}
 
@@ -169,6 +169,17 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
                 {/* Show history to logged in users  */}
                 {isLoggedIn && <HomeHistory isPublic={false} username={username} />}
+
+                <ActionModal
+                    icon="user"
+                    title="No invite, no Peanut"
+                    description={`Peanut is invite-only.\nGo beg your friend for an invite link!`}
+                    visible={showInviteModal}
+                    onClose={() => {
+                        setShowInviteModal(false)
+                    }}
+                    ctas={[{ text: 'Beg for an invite', onClick: () => {}, shadowSize: '4', icon: 'share' }]}
+                />
             </div>
         </div>
     )

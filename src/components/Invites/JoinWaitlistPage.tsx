@@ -22,7 +22,7 @@ const JoinWaitlistPage = () => {
         setisLoading(true)
         const res = await invitesApi.validateInviteCode(inviteCode)
         setisLoading(false)
-        return res
+        return res.success
     }
 
     const handleAcceptInvite = async () => {
