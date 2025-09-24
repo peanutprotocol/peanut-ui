@@ -1,6 +1,6 @@
 import { PEANUT_API_URL, PEANUT_API_KEY } from '@/constants'
 import {
-    MantecaDeposiResponseData,
+    MantecaDepositResponseData,
     MantecaWithdrawData,
     MantecaWithdrawResponse,
     CreateMantecaOnrampParams,
@@ -172,7 +172,7 @@ export const mantecaApi = {
 
     deposit: async (
         params: CreateMantecaOnrampParams
-    ): Promise<{ data?: MantecaDeposiResponseData; error?: string }> => {
+    ): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
         try {
             const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/deposit`, {
                 method: 'POST',

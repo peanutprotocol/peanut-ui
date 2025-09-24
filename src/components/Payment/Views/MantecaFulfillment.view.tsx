@@ -1,12 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { MERCADO_PAGO, PIX } from '@/assets'
 import { CountryData } from '@/components/AddMoney/consts'
-import ErrorAlert from '@/components/Global/ErrorAlert'
-import MantecaDetailsCard from '@/components/Global/MantecaDetailsCard'
-import NavHeader from '@/components/Global/NavHeader'
-import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
+import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-import ShareButton from '@/components/Global/ShareButton'
+import NavHeader from '@/components/Global/NavHeader'
 import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
@@ -16,8 +12,7 @@ import { mantecaApi } from '@/services/manteca'
 import { useQuery } from '@tanstack/react-query'
 
 const MantecaFulfillment = () => {
-    const { setFulfillUsingManteca, selectedCountry, setSelectedCountry, regionalMethodType } =
-        useRequestFulfillmentFlow()
+    const { setFulfillUsingManteca, selectedCountry, setSelectedCountry } = useRequestFulfillmentFlow()
     const { requestDetails, chargeDetails } = usePaymentStore()
     const [isKYCModalOpen, setIsKYCModalOpen] = useState(false)
     const { isUserMantecaKycApproved } = useKycStatus()
@@ -47,12 +42,6 @@ const MantecaFulfillment = () => {
         iso3: 'ARG',
     } as CountryData
 
-    const actionCardLogo = selectedCountry?.id
-        ? `https://flagcdn.com/w320/${selectedCountry?.id.toLowerCase()}.png`
-        : regionalMethodType === 'mercadopago'
-          ? MERCADO_PAGO
-          : PIX
-
     const handleKycCancel = () => {
         setIsKYCModalOpen(false)
         setSelectedCountry(null)
@@ -64,14 +53,6 @@ const MantecaFulfillment = () => {
             setIsKYCModalOpen(true)
         }
     }, [isUserMantecaKycApproved])
-
-    const generateShareText = () => {
-        const textParts = []
-        textParts.push(`CBU: ${depositData?.data?.details.depositAddress}`)
-        textParts.push(`Alias: ${depositData?.data?.details.depositAlias}`)
-
-        return textParts.join('\n')
-    }
 
     if (isLoadingDeposit) {
         return <PeanutLoading coverFullScreen />
@@ -87,62 +68,8 @@ const MantecaFulfillment = () => {
                 }}
             />
 
-            <div className="my-auto space-y-4">
-                <PeanutActionDetailsCard
-                    avatarSize="medium"
-                    transactionType="REQUEST_PAYMENT"
-                    recipientType="USERNAME"
-                    recipientName={requestDetails?.recipientAccount.user.username ?? ''}
-                    amount={requestDetails?.tokenAmount || chargeDetails?.tokenAmount || '0'}
-                    tokenSymbol={requestDetails?.tokenSymbol || 'USDC'}
-                    message={requestDetails?.reference || chargeDetails?.requestLink?.reference || ''}
-                    fileUrl={requestDetails?.attachmentUrl || chargeDetails?.requestLink?.attachmentUrl || ''}
-                    logo={actionCardLogo}
-                    countryCodeForFlag={selectedCountry?.id.toLowerCase()}
-                />
+            {depositData?.data && <MantecaDepositShareDetails source={'bank'} depositDetails={depositData.data} />}
 
-                {depositData?.error && <ErrorAlert description={depositData.error} />}
-
-                {depositData?.data && (
-                    <>
-                        <p className="font-bold">Account details</p>
-
-                        <MantecaDetailsCard
-                            rows={[
-                                ...(depositData?.data?.details.depositAddress
-                                    ? [
-                                          {
-                                              key: 'cbu',
-                                              label: 'CBU',
-                                              value: depositData.data.details.depositAddress,
-                                              allowCopy: true,
-                                          },
-                                      ]
-                                    : []),
-                                ...(depositData?.data?.details.depositAlias
-                                    ? [
-                                          {
-                                              key: 'alias',
-                                              label: 'Alias',
-                                              value: depositData.data.details.depositAlias,
-                                              hideBottomBorder: true,
-                                          },
-                                      ]
-                                    : []),
-                            ]}
-                        />
-
-                        <ShareButton
-                            generateText={async () => generateShareText()}
-                            title="Account Details"
-                            variant="purple"
-                            className="w-full"
-                        >
-                            Share Details
-                        </ShareButton>
-                    </>
-                )}
-            </div>
             {isKYCModalOpen && (
                 <InitiateMantecaKYCModal
                     isOpen={isKYCModalOpen}

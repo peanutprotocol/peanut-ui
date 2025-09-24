@@ -5,17 +5,17 @@ import { useParams, useRouter } from 'next/navigation'
 import React, { useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
 import ShareButton from '@/components/Global/ShareButton'
-import { MantecaDeposiResponseData } from '@/types/manteca.types'
+import { MantecaDepositResponseData } from '@/types/manteca.types'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
 
-const MercadoPagoDepositDetails = ({
+const MantecaDepositShareDetails = ({
     depositDetails,
     source,
 }: {
-    depositDetails: MantecaDeposiResponseData
+    depositDetails: MantecaDepositResponseData
     source: 'bank' | 'regionalMethod'
 }) => {
     const router = useRouter()
@@ -129,4 +129,4 @@ const MercadoPagoDepositDetails = ({
     )
 }
 
-export default MercadoPagoDepositDetails
+export default MantecaDepositShareDetails

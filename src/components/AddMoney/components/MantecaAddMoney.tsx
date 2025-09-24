@@ -4,7 +4,7 @@ import MantecaDepositShareDetails from '@/components/AddMoney/components/Manteca
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { useParams, useRouter } from 'next/navigation'
 import { CountryData, countryData } from '@/components/AddMoney/consts'
-import { MantecaDeposiResponseData } from '@/types/manteca.types'
+import { MantecaDepositResponseData } from '@/types/manteca.types'
 import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -26,7 +26,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     const [tokenAmount, setTokenAmount] = useState('')
     const [tokenUSDAmount, setTokenUSDAmount] = useState('')
     const [error, setError] = useState<string | null>(null)
-    const [depositDetails, setDepositDetails] = useState<MantecaDeposiResponseData>()
+    const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
 
     const selectedCountryPath = params.country as string
@@ -97,7 +97,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
         if (isMantecaKycRequired) {
             setIsKycModalOpen(true)
         }
-    }, [isMantecaKycRequired, countryData])
+    }, [isMantecaKycRequired])
 
     if (!selectedCountry) return null
 

@@ -17,4 +17,5 @@ export default function AddMoneyRegionalMethodPage() {
     ) {
         return <MantecaAddMoney source="regionalMethod" />
     }
+    return null
 }

@@ -1,6 +1,6 @@
 import { MantecaAccountType } from '@/constants/manteca.consts'
 
-export interface MantecaDeposiResponseData {
+export interface MantecaDepositResponseData {
     id: string
     numberId: string
     externalId: string
