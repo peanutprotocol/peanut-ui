@@ -41,6 +41,7 @@ import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
 import NotificationBanner from '@/components/Notifications/NotificationBanner'
 import { useNotifications } from '@/hooks/useNotifications'
+import NotificationNavigation from '@/components/Notifications/NotificationNavigation'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -233,7 +234,10 @@ export default function Home() {
                         fullName={userFullName}
                         isVerified={user?.user.bridgeKycStatus === 'approved'}
                     />
-                    <SearchUsers />
+                    <div className="flex items-center">
+                        <SearchUsers />
+                        <NotificationNavigation />
+                    </div>
                 </div>
                 <div className="space-y-4">
                     <ActionButtonGroup>
