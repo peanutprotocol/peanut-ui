@@ -13,7 +13,6 @@ import { formatAmount } from '@/utils'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useRef, useContext } from 'react'
 import { formatUnits } from 'viem'
-import { isMantecaCountry } from '@/constants/manteca.consts'
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
 
@@ -27,7 +26,6 @@ export default function WithdrawPage() {
         setError,
         error,
         setUsdAmount,
-        resetWithdrawFlow,
         selectedMethod,
         setSelectedMethod,
         setShowAllWithdrawMethods,

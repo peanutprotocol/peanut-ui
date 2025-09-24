@@ -1,7 +1,6 @@
 'use client'
 
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useState, useMemo, useContext, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -52,7 +51,6 @@ export default function MantecaWithdrawFlow() {
     const [isDestinationAddressChanging, setIsDestinationAddressChanging] = useState(false)
     const router = useRouter()
     const searchParams = useSearchParams()
-    const { resetWithdrawFlow } = useWithdrawFlow()
     const { sendMoney, balance } = useWallet()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { user, fetchUser } = useAuth()
@@ -232,7 +230,6 @@ export default function MantecaWithdrawFlow() {
         setIsKycModalOpen(false)
         setIsDestinationAddressValid(false)
         setIsDestinationAddressChanging(false)
-        resetWithdrawFlow()
         setBalanceErrorMessage(null)
     }
 
@@ -334,7 +331,7 @@ export default function MantecaWithdrawFlow() {
                     } else if (step === 'bankDetails') {
                         setStep('amountInput')
                     } else {
-                        router.push('/withdraw')
+                        router.replace(`/withdraw/${selectedCountry?.path}`)
                     }
                 }}
             />
