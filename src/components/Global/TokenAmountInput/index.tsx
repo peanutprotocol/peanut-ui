@@ -3,6 +3,7 @@ import { tokenSelectorContext } from '@/context'
 import { formatAmountWithoutComma, formatTokenAmount } from '@/utils'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../Icon'
+import { twMerge } from 'tailwind-merge'
 
 interface TokenAmountInputProps {
     className?: string
@@ -204,13 +205,13 @@ const TokenAmountInput = ({
             action=""
             onClick={handleContainerClick}
         >
-            <div className="flex h-full w-full flex-col items-center justify-center gap-1">
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-2">
                 <div className="flex items-center gap-1 font-bold">
-                    <label className={`text-2xl ${displayValue ? 'text-black' : 'text-gray-2'}`}>{displaySymbol}</label>
+                    <label className={`text-xl ${displayValue ? 'text-black' : 'text-gray-1'}`}>{displaySymbol}</label>
 
                     {/* Input */}
                     <input
-                        className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                        className={`h-12 w-[4ch] max-w-80 bg-transparent text-6xl font-black outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                         placeholder={'0.00'}
                         onChange={(e) => {
                             const value = formatAmountWithoutComma(e.target.value)
@@ -238,14 +239,14 @@ const TokenAmountInput = ({
 
                 {/* Conversion */}
                 {showConversion && (
-                    <label className="text-lg font-bold">
+                    <label className={twMerge('text-lg font-bold', !Number(alternativeDisplayValue) && 'text-gray-1')}>
                         ≈ {alternativeDisplayValue} {alternativeDisplaySymbol}
                     </label>
                 )}
 
                 {/* Balance */}
                 {walletBalance && !hideBalance && (
-                    <div className="text-center text-lg text-grey-1">
+                    <div className="text-center text-grey-1">
                         Balance: {displayMode === 'FIAT' && currency ? 'USD ' : '$ '}
                         {walletBalance}
                     </div>
@@ -259,8 +260,16 @@ const TokenAmountInput = ({
                     onClick={(e) => {
                         e.preventDefault()
                         const currentValue = displayValue
-                        setDisplayValue(alternativeDisplayValue)
-                        setAlternativeDisplayValue(currentValue)
+                        if (!alternativeDisplayValue || alternativeDisplayValue === '0.00') {
+                            setDisplayValue('')
+                        } else {
+                            setDisplayValue(alternativeDisplayValue)
+                        }
+                        if (!currentValue) {
+                            setAlternativeDisplayValue('0.00')
+                        } else {
+                            setAlternativeDisplayValue(currentValue)
+                        }
                         setIsInputUsd(!isInputUsd)
                     }}
                 >

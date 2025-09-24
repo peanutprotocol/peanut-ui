@@ -338,7 +338,7 @@ export default function MantecaWithdrawFlow() {
 
             {step === 'amountInput' && (
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                    <div className="text-sm font-bold">Amount to withdraw</div>
+                    <div className="text-xl font-bold">Amount to withdraw</div>
                     <TokenAmountInput
                         tokenValue={amount}
                         setTokenValue={setAmount}
@@ -361,7 +361,7 @@ export default function MantecaWithdrawFlow() {
                                 setStep('bankDetails')
                             }
                         }}
-                        disabled={!usdAmount || !!balanceErrorMessage}
+                        disabled={!Number(usdAmount) || !!balanceErrorMessage}
                         className="w-full"
                     >
                         Continue
