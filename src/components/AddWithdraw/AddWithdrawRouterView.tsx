@@ -26,6 +26,27 @@ interface AddWithdrawRouterViewProps {
 
 const MAX_RECENT_METHODS = 5
 
+function saveRecentMethod(method: DepositMethod) {
+    const newRecentMethod: RecentMethod = {
+        id: method.id,
+        type: method.type as 'crypto' | 'country',
+        title: method.title,
+        description: method.description,
+        iconUrl: method.iconUrl,
+        currency: method.currency,
+        path: method.path,
+    }
+
+    const prefs = getUserPreferences() || {}
+    const currentRecentList = prefs.recentAddMethods || []
+
+    const filteredList = currentRecentList.filter((m) => m.id !== newRecentMethod.id)
+
+    const updatedRecentList = [newRecentMethod, ...filteredList].slice(0, MAX_RECENT_METHODS)
+
+    updateUserPreferences({ ...prefs, recentAddMethods: updatedRecentList })
+}
+
 export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     flow,
     pageTitle,
@@ -57,7 +78,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             const bankAccounts =
                 user?.accounts.filter(
                     (acc) =>
-                        acc.type === AccountType.IBAN || acc.type === AccountType.US || acc.type === AccountType.CLABE
+                        acc.type === AccountType.IBAN ||
+                        acc.type === AccountType.US ||
+                        acc.type === AccountType.CLABE ||
+                        acc.type === AccountType.MANTECA
                 ) ?? []
 
             if (bankAccounts.length > 0) {
@@ -81,6 +105,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     }, [flow, user, setShouldShowAllMethods])
 
     const handleMethodSelected = (method: DepositMethod) => {
+        if (flow === 'add') {
+            saveRecentMethod(method)
+        }
+
         // Handle "From Bank" specially for add flow
         if (flow === 'add' && method.id === 'bank-transfer-add') {
             setFromBankSelected(true)
@@ -106,37 +134,6 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
             // Don't navigate - let the main withdraw page handle the flow
             return
-        }
-
-        // Original add flow logic
-        const newRecentMethod: RecentMethod = {
-            id: method.id,
-            type: method.type as 'crypto' | 'country',
-            title: method.title,
-            description: method.description,
-            iconUrl: method.iconUrl,
-            currency: method.currency,
-            path: method.path,
-        }
-
-        const prefs = getUserPreferences() || {}
-        let currentRecentList: RecentMethod[] = []
-        if (flow === 'add') {
-            currentRecentList = prefs.recentAddMethods || []
-        } else {
-            currentRecentList = prefs.recentWithdrawMethods || []
-        }
-
-        const filteredList = currentRecentList.filter(
-            (m) => !(m.id === newRecentMethod.id && m.type === newRecentMethod.type)
-        )
-
-        const updatedRecentList = [newRecentMethod, ...filteredList].slice(0, MAX_RECENT_METHODS)
-
-        if (flow === 'add') {
-            updateUserPreferences({ ...prefs, recentAddMethods: updatedRecentList })
-        } else {
-            // for withdraw, we don't save to recents from the 'all methods' list, we show saved accounts
         }
 
         if (method.path) {
@@ -190,7 +187,13 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
                     // FIXED: For withdraw flow, route to saved account path
                     if (flow === 'withdraw') {
-                        router.push(path)
+                        if (account.type === AccountType.MANTECA) {
+                            router.push(
+                                `/withdraw/manteca?country=${account.details.countryName}&destination=${account.identifier}`
+                            )
+                        } else {
+                            router.push(path)
+                        }
                         return
                     }
 
@@ -261,13 +264,13 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 viewMode="add-withdraw"
                 onCountryClick={(country) => {
                     if (flow === 'withdraw') {
-                        // FIXED: Route directly to country page for method selection
                         const countryPath = `${baseRoute}/${country.path}`
                         router.push(countryPath)
                         return
                     }
 
-                    // Original add flow
+                    //Add
+                    saveRecentMethod(country)
                     const countryPath = `${baseRoute}/${country.path}`
                     router.push(countryPath)
                 }}

@@ -269,6 +269,7 @@ export enum AccountType {
     EVM_ADDRESS = 'evm-address',
     PEANUT_WALLET = 'peanut-wallet',
     BRIDGE = 'bridgeBankAccount',
+    MANTECA = 'manteca',
 }
 
 export interface Account {

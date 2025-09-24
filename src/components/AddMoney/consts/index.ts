@@ -2487,9 +2487,12 @@ const LATAM_COUNTRY_CODES = [
 export const countryCodeMap: { [key: string]: string } = {
     ALA: 'AX',
     AND: 'AD',
+    ARG: 'AR',
     AUT: 'AT',
     BEL: 'BE',
     BGR: 'BG',
+    BOL: 'BO',
+    BRA: 'BR',
     HRV: 'HR',
     CYP: 'CY',
     CZE: 'CZ',
