@@ -9,7 +9,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
-import { formatAmount, formatDate, getInitialsFromName } from '@/utils'
+import { formatAmount, formatDate, getInitialsFromName, formatNumberForDisplay, isStableCoin } from '@/utils'
 import { formatIban, printableAddress, shortenAddress, shortenAddressLong, slugify } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
@@ -349,6 +349,12 @@ export const TransactionDetailsReceipt = ({
                         transaction.tokenDisplayDetails &&
                         tokenData?.icon &&
                         tokenData?.symbol && (
+                            <>
+                            {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
+                            <PaymentInfoRow
+                                label="Token amount" 
+                                value={transaction.amount}
+                            />)}
                             <PaymentInfoRow
                                 label="Token and network"
                                 value={
@@ -390,6 +396,7 @@ export const TransactionDetailsReceipt = ({
                                 }
                                 hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
                             />
+                            </>
                         )}
 
                     {rowVisibilityConfig.txId && transaction.txHash && (
@@ -460,8 +467,8 @@ export const TransactionDetailsReceipt = ({
                         <>
                             {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                                 <PaymentInfoRow
-                                    label="Value in USD"
-                                    value={`${formatAmount(transaction.amount.toString())} USD`}
+                                    label={`Value in ${transaction.currency!.code}`}
+                                    value={`${transaction.currency!.code} ${formatNumberForDisplay(transaction.currency!.amount, { maxDecimals: 2 })}`}
                                 />
                             )}
                             {/* TODO: stop using snake_case!!!!! */}

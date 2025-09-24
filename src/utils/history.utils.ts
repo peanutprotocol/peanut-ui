@@ -17,3 +17,26 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
         }
     }
 }
+
+/** Returns the sign of the transaction, based on the direction and status of the transaction. */
+export function getTransactionSign(transaction: Pick<TransactionDetails, 'direction' | 'status'>): '-' | '+' | '' {
+    if (transaction.status !== 'completed') {
+        return ''
+    }
+    switch (transaction.direction) {
+        case 'send':
+        case 'request_received':
+        case 'withdraw':
+        case 'bank_withdraw':
+        case 'bank_claim':
+        case 'claim_external':
+        case 'qr_payment':
+            return '-'
+        case 'receive':
+        case 'request_sent':
+        case 'add':
+        case 'bank_deposit':
+        case 'bank_request_fulfillment':
+            return '+'
+    }
+}
