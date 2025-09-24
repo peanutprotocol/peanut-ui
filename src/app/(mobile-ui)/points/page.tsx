@@ -3,6 +3,7 @@
 import { Button } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card, { getCardPosition } from '@/components/Global/Card'
+import CopyToClipboardButton from '@/components/Global/CopyToClipboard/CopyToClipboardButton'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -21,6 +22,8 @@ const PointsPage = () => {
     const router = useRouter()
     const { user } = useAuth()
 
+    const inviteCode = `${user?.user.username?.toUpperCase()}INVITESYOU`
+
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
     }
@@ -33,11 +36,9 @@ const PointsPage = () => {
                 <h1 className="font-bold">Refer friends</h1>
                 <div className="flex w-full items-center justify-between gap-3">
                     <Card className="flex w-1/2 items-center justify-center py-3.5">
-                        <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${user?.user.username?.toUpperCase()}INVITESYOU`}</p>
+                        <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
                     </Card>
-                    <Button icon="copy" shadowSize="4" variant="primary-soft">
-                        <p className="text-sm"> Copy code</p>
-                    </Button>
+                    <CopyToClipboardButton textToCopy={`${inviteCode}`} />
                 </div>
 
                 {invites.length > 0 && (

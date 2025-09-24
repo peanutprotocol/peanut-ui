@@ -11,6 +11,8 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { invitesApi } from '@/services/invites'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { getFromLocalStorage, sanitizeRedirectURL } from '@/utils'
 
 const JoinWaitlist = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -22,6 +24,8 @@ const JoinWaitlist = () => {
     const toast = useToast()
     const { handleNext } = useSetupFlow()
     const dispatch = useAppDispatch()
+    const router = useRouter()
+    const searchParams = useSearchParams()
 
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
         setisLoading(true)
@@ -40,6 +44,26 @@ const JoinWaitlist = () => {
         toast.error(errorMessage)
         Sentry.captureException(error, { extra: { errorCode: error.code } })
     }
+
+    const onLoginClick = async () => {
+        try {
+            await handleLogin()
+            const localStorageRedirect = getFromLocalStorage('redirect')
+            const redirect_uri = searchParams.get('redirect_uri')
+            if (redirect_uri) {
+                const sanitizedRedirectUrl = sanitizeRedirectURL(redirect_uri)
+                router.push(sanitizedRedirectUrl)
+            } else if (localStorageRedirect) {
+                localStorage.removeItem('redirect')
+                router.push(localStorageRedirect)
+            } else {
+                router.push('/home')
+            }
+        } catch (e) {
+            handleError(e)
+        }
+    }
+
     return (
         <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
@@ -81,15 +105,7 @@ const JoinWaitlist = () => {
                 </Button>
             )}
 
-            <button
-                disabled={isLoggingIn}
-                onClick={() => {
-                    handleLogin().catch((e) => {
-                        handleError(e)
-                    })
-                }}
-                className="text-sm underline"
-            >
+            <button disabled={isLoggingIn} onClick={onLoginClick} className="text-sm underline">
                 {isLoggingIn ? 'Please wait..' : 'Already have an account? Log in!'}
             </button>
         </div>

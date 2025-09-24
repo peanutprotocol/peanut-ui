@@ -12,10 +12,12 @@ import ActionModal from '../Global/ActionModal'
 import { useState } from 'react'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
+import CopyToClipboardButton from '../Global/CopyToClipboard/CopyToClipboardButton'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
     const [isKycApprovedModalOpen, setIsKycApprovedModalOpen] = useState(false)
+    const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const router = useRouter()
 
     const logout = async () => {
@@ -24,6 +26,8 @@ export const Profile = () => {
 
     const fullName = user?.user.fullName || user?.user?.username || 'Anonymous User'
     const username = user?.user.username || 'anonymous'
+
+    const inviteCode = `${user?.user.username?.toUpperCase()}INVITESYOU`
 
     const isKycApproved = user?.user.bridgeKycStatus === 'approved'
 
@@ -54,6 +58,13 @@ export const Profile = () => {
                         position="single"
                         isExternalLink
                     /> */}
+                    <ProfileMenuItem
+                        icon="smile"
+                        label="Invite friends to Peanut"
+                        onClick={() => setIsInviteFriendsModalOpen(true)}
+                        href="/dummy" // Dummy link, wont be called
+                        position="single"
+                    />
                     {/* Menu Items - First Group */}
                     <div>
                         <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
@@ -136,6 +147,32 @@ export const Profile = () => {
                         shadowSize: '4',
                         className: 'md:py-2',
                         onClick: () => setIsKycApprovedModalOpen(false),
+                    },
+                ]}
+            />
+
+            <ActionModal
+                visible={isInviteFriendsModalOpen}
+                onClose={() => setIsInviteFriendsModalOpen(false)}
+                title="Refer friends!"
+                description="Earn points when your referrals create an account in Peanut and also pocket 20% of the points they make!"
+                icon="user-plus"
+                content={
+                    <div className="flex w-full items-center justify-between gap-3">
+                        <Card className="flex w-1/2 items-center justify-center py-1.5">
+                            <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
+                        </Card>
+                        <CopyToClipboardButton className="w-1/2" textToCopy={`${inviteCode}`} size="medium" />
+                    </div>
+                }
+                ctas={[
+                    {
+                        icon: 'share',
+                        text: 'Share link',
+                        shadowSize: '4',
+                        onClick: () => {
+                            navigator.clipboard.writeText(inviteCode)
+                        },
                     },
                 ]}
             />

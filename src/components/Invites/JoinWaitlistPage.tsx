@@ -2,13 +2,14 @@
 
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import InvitesPageLayout from './InvitesPageLayout'
 import { twMerge } from 'tailwind-merge'
 import ValidatedInput from '../Global/ValidatedInput'
 import { Button } from '../0_Bruddle'
 import ErrorAlert from '../Global/ErrorAlert'
 import peanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_02.gif'
+import { useRouter } from 'next/navigation'
 
 const JoinWaitlistPage = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -16,7 +17,9 @@ const JoinWaitlistPage = () => {
     const [isChanging, setIsChanging] = useState(false)
     const [isLoading, setisLoading] = useState(false)
     const [error, setError] = useState('')
-    const { fetchUser } = useAuth()
+    const { fetchUser, isFetchingUser, logoutUser, user } = useAuth()
+    const [isLoggingOut, setisLoggingOut] = useState(false)
+    const router = useRouter()
 
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
         setisLoading(true)
@@ -40,6 +43,19 @@ const JoinWaitlistPage = () => {
             setisLoading(false)
         }
     }
+
+    const handleLogout = async () => {
+        setisLoggingOut(true)
+        await logoutUser()
+        router.push('/setup')
+        setisLoggingOut(false)
+    }
+
+    useEffect(() => {
+        if (!isFetchingUser && !user) {
+            router.push('/setup')
+        }
+    }, [isFetchingUser])
 
     return (
         <InvitesPageLayout image={peanutAnim.src}>
@@ -98,7 +114,9 @@ const JoinWaitlistPage = () => {
                         {/* Show error from the API call */}
                         {error && <ErrorAlert description={error} />}
 
-                        <button className="text-sm underline">Log in with a different account</button>
+                        <button onClick={handleLogout} className="text-sm underline">
+                            {isLoggingOut ? 'Please wait...' : 'Log in with a different account'}
+                        </button>
                     </div>
                 </div>
             </div>
