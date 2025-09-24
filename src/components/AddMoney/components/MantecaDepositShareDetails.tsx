@@ -38,6 +38,17 @@ const MercadoPagoDepositDetails = ({
         return countryId.toLowerCase()
     }, [currentCountryDetails])
 
+    const depositAddressLabel = useMemo(() => {
+        switch (currentCountryDetails?.id) {
+            case 'AR':
+                return 'CBU'
+            case 'BR':
+                return 'Pix Key'
+            default:
+                return 'Deposit Address'
+        }
+    }, [currentCountryDetails])
+
     const depositAddress = depositDetails.details.depositAddress
     const depositAlias = depositDetails.details.depositAlias
     const depositAmount = depositDetails.stages['1'].thresholdAmount
@@ -52,7 +63,7 @@ const MercadoPagoDepositDetails = ({
         textParts.push(`Amount: ${currencySymbol} ${depositAmount}`)
 
         if (depositAddress) {
-            textParts.push(`CBU: ${depositAddress}`)
+            textParts.push(`${depositAddressLabel}: ${depositAddress}`)
         }
         if (depositAlias) {
             textParts.push(`Alias: ${depositAlias}`)
@@ -93,8 +104,14 @@ const MercadoPagoDepositDetails = ({
                 </Card>
                 <h2 className="font-bold">Account details</h2>
                 <Card className="space-y-0 rounded-sm px-4">
-                    {depositAddress && <PaymentInfoRow label="CBU" value={depositAddress} allowCopy />}
+                    {depositAddress && <PaymentInfoRow label={depositAddressLabel} value={depositAddress} allowCopy />}
                     {depositAlias && <PaymentInfoRow label="Alias" value={depositAlias} allowCopy />}
+                    {currentCountryDetails?.id === 'AR' && (
+                        <>
+                            <PaymentInfoRow label="Razón Social" value="Sixalime Sas" />
+                            <PaymentInfoRow label="CUIT" value="30-71678845-3" />
+                        </>
+                    )}
                     <PaymentInfoRow label="Exchange Rate" value={`1 USD = ${exchangeRate} ${currencySymbol}`} />
                     <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
                 </Card>
