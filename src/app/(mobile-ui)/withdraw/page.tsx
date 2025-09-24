@@ -224,8 +224,7 @@ export default function WithdrawPage() {
                 />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="space-y-1">
-                        <div className="text-sm font-bold">Amount to withdraw</div>
-                        <div className="text-xs text-grey-1">Withdrawing via {methodTitle}</div>
+                        <div className="text-xl font-bold">Amount to withdraw</div>
                     </div>
                     <TokenAmountInput
                         key={tokenInputKey} // force re-render to clear any internal state
