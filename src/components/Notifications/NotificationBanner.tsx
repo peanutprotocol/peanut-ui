@@ -53,12 +53,14 @@ const NotificationBanner = ({
                                 Turn on notifications and get alerts for all your wallet activity.
                             </div>
                         </div>
-                        <div
+                        <button
+                            type="button"
+                            aria-label="Close"
                             onClick={handleHideBanner}
                             className="absolute right-0 top-2 w-fit cursor-pointer p-0 text-black"
                         >
                             <Icon name="cancel" className="h-3 w-3" />
-                        </div>
+                        </button>
                     </div>
                 </div>
             </Card>

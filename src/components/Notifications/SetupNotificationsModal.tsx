@@ -5,7 +5,7 @@ import Modal from '../Global/Modal'
 import { SetupImageSection } from '../Setup/components/SetupWrapper'
 import { useNotifications } from '@/hooks/useNotifications'
 
-export default function SetupNotifcationsModal() {
+export default function SetupNotificationsModal() {
     const { showPermissionModal, requestPermission, closePermissionModal, afterPermissionAttempt } = useNotifications()
 
     const handleModalClose = () => {
@@ -46,9 +46,13 @@ export default function SetupNotifcationsModal() {
                                 variant="purple"
                                 shadowSize="4"
                                 onClick={async () => {
-                                    await requestPermission()
-                                    await afterPermissionAttempt()
-                                    closePermissionModal()
+                                    try {
+                                        await requestPermission()
+                                        await afterPermissionAttempt()
+                                    } finally {
+                                        // Always close, even if requestPermission throws or user cancels
+                                        closePermissionModal()
+                                    }
                                 }}
                             >
                                 Enable notifications
