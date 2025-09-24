@@ -8,6 +8,7 @@ import { twMerge } from 'tailwind-merge'
 export interface ActionModalButtonProps extends ButtonProps {
     text: string
     iconPosition?: 'left' | 'right'
+    children?: React.ReactNode
 }
 
 export interface ActionModalCheckboxProps {
@@ -165,6 +166,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                             className: btnClassName,
                                             icon: btnIcon,
                                             iconPosition,
+                                            children,
                                             ...rest
                                         },
                                         index
@@ -185,6 +187,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                                 )}
                                                 {...rest}
                                             >
+                                                {children}
                                                 {btnIcon && currentIconPosition === 'left' && (
                                                     <Icon
                                                         name={btnIcon}

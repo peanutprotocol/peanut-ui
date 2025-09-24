@@ -18,18 +18,20 @@ import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBa
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
-import { usePaymentStore } from '@/redux/hooks'
+import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { GuestVerificationModal } from '../Global/GuestVerificationModal'
 import ActionListDaimoPayButton from './ActionListDaimoPayButton'
 import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../Claim/useClaimLink'
+import { setupActions } from '@/redux/slices/setup-slice'
 
 interface IActionListProps {
     flow: 'claim' | 'request'
     claimLinkData?: ClaimLinkData
     requestLinkData?: ParsedURL
     isLoggedIn: boolean
+    isInviteLink?: boolean
 }
 
 /**
@@ -40,7 +42,13 @@ interface IActionListProps {
  * @param {boolean} props.isLoggedIn Whether the user is logged in, used to show cta for continue with peanut if not logged in
  * @returns {JSX.Element}
  */
-export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLinkData }: IActionListProps) {
+export default function ActionList({
+    claimLinkData,
+    isLoggedIn,
+    flow,
+    requestLinkData,
+    isInviteLink,
+}: IActionListProps) {
     const router = useRouter()
     const { setClaimToExternalWallet, setFlowStep: setClaimBankFlowStep, setShowVerificationModal } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
@@ -57,6 +65,10 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
         setFlowStep: setRequestFulfilmentBankFlowStep,
     } = useRequestFulfillmentFlow()
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
+    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
+    const [showInviteModal, setShowInviteModal] = useState(false)
+
+    const dispatch = useAppDispatch()
 
     const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
@@ -133,21 +145,24 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
         })
     }, [requiresVerification])
 
+    const handleContinueWithPeanut = () => {
+        addParamStep('claim')
+        // push to setup page with redirect uri, to prevent the user from losing the flow context
+        const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
+        if (isInviteLink) {
+            const username = requestLinkData?.recipient?.identifier.toUpperCase()
+            const inviteCode = `${username}INVITESYOU`
+            dispatch(setupActions.setInviteCode(inviteCode))
+            router.push(`/setup?step=signup&redirect_uri=${redirectUri}`)
+        } else {
+            router.push(`/setup?redirect_uri=${redirectUri}`)
+        }
+    }
+
     return (
         <div className="space-y-2">
             {!isLoggedIn && (
-                <Button
-                    shadowSize="4"
-                    onClick={() => {
-                        addParamStep('claim')
-                        // push to setup page with redirect uri, to prevent the user from losing the flow context
-                        const redirectUri = encodeURIComponent(
-                            window.location.pathname + window.location.search + window.location.hash
-                        )
-                        router.push(`/setup?redirect_uri=${redirectUri}`)
-                    }}
-                    className="flex w-full items-center gap-1"
-                >
+                <Button shadowSize="4" onClick={handleContinueWithPeanut} className="flex w-full items-center gap-1">
                     <div>Continue with </div>
                     <div className="flex items-center gap-1">
                         <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
@@ -164,7 +179,14 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
 
                     return (
                         <MethodCard
-                            onClick={() => handleMethodClick(method)}
+                            onClick={() => {
+                                if (isInviteLink) {
+                                    setSelectedMethod(method)
+                                    setShowInviteModal(true)
+                                } else {
+                                    handleMethodClick(method)
+                                }
+                            }}
                             key={method.id}
                             method={method}
                             requiresVerification={method.id === 'bank' && requiresVerification}
@@ -189,6 +211,49 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
                 onClose={() => setIsGuestVerificationModalOpen(false)}
                 description="To fulfill this request using bank account, please create an account and verify your identity."
                 redirectToVerification
+            />
+
+            {/* Invites modal */}
+
+            <ActionModal
+                visible={showInviteModal}
+                title="Don’t lose your invite!"
+                titleClassName=" font-extrabold text-lg"
+                description={`This link unlocks Peanut. Using ${selectedMethod?.title} will skip your invite.`}
+                onClose={() => {
+                    setShowInviteModal(false)
+                    setSelectedMethod(null)
+                }}
+                ctaClassName="flex-col sm:flex-col"
+                ctas={[
+                    {
+                        text: '',
+                        onClick: handleContinueWithPeanut,
+                        shadowSize: '4',
+                        className: 'sm:py-3',
+                        children: (
+                            <>
+                                <div>Join</div>
+                                <div className="flex items-center gap-1">
+                                    <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                                    <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                                </div>
+                            </>
+                        ),
+                    },
+                    {
+                        text: `Continue with ${selectedMethod?.title}`,
+                        onClick: () => {
+                            if (selectedMethod) {
+                                handleMethodClick(selectedMethod)
+                                setShowInviteModal(false)
+                                setSelectedMethod(null)
+                            }
+                        },
+                        variant: 'transparent',
+                        className: 'underline text-sm !font-normal w-full !transform-none !pt-2',
+                    },
+                ]}
             />
         </div>
     )

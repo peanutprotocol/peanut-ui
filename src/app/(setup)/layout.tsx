@@ -1,7 +1,7 @@
 'use client'
 
 import { usePWAStatus } from '@/hooks/usePWAStatus'
-import { useAppDispatch } from '@/redux/hooks'
+import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect } from 'react'
 import { setupSteps } from '../../components/Setup/Setup.consts'
@@ -13,11 +13,12 @@ const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
     const isPWA = usePWAStatus()
     const searchParams = useSearchParams()
     const selectedStep = searchParams.get('step')
+    const { inviteCode } = useSetupStore()
 
     useEffect(() => {
         // filter steps and set them in redux state
         const filteredSteps = setupSteps.filter((step) => {
-            if (selectedStep === 'signup' && step.screenId === 'welcome') {
+            if (selectedStep === 'signup' && inviteCode && step.screenId === 'welcome') {
                 return false
             }
             return step.screenId !== 'pwa-install' || !isPWA
