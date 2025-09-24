@@ -11,6 +11,7 @@ import Image from 'next/image'
 import { PEANUTMAN_LOGO } from '@/assets'
 import Link from 'next/link'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { Button } from '@/components/0_Bruddle'
 
 export default function NotificationsPage() {
     const loadingRef = useRef<HTMLDivElement>(null)
@@ -18,20 +19,29 @@ export default function NotificationsPage() {
     const [nextPageCursor, setNextPageCursor] = useState<string | null>(null)
     const [isInitialLoading, setIsInitialLoading] = useState(true)
     const [isLoadingMore, setIsLoadingMore] = useState(false)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
+
+    const loadInitialPage = async () => {
+        // load the first page of notifications
+        setIsInitialLoading(true)
+        setErrorMessage(null)
+        try {
+            const res = await notificationsApi.list({ limit: 20 })
+            setNotifications(res.items)
+            setNextPageCursor(res.nextCursor)
+        } catch (_e) {
+            // set an error state if api fails
+            setErrorMessage('Failed to load notifications. Please try again.')
+            setNotifications([])
+            setNextPageCursor(null)
+        } finally {
+            setIsInitialLoading(false)
+        }
+    }
 
     useEffect(() => {
-        const loadInitialPage = async () => {
-            // load the first page of notifications
-            setIsInitialLoading(true)
-            try {
-                const res = await notificationsApi.list({ limit: 20 })
-                setNotifications(res.items)
-                setNextPageCursor(res.nextCursor)
-            } finally {
-                setIsInitialLoading(false)
-            }
-        }
-        loadInitialPage()
+        void loadInitialPage()
     }, [])
 
     useEffect(() => {
@@ -55,10 +65,14 @@ export default function NotificationsPage() {
         // load the next page when the sentinel enters the viewport
         if (!nextPageCursor) return
         setIsLoadingMore(true)
+        setLoadMoreError(null)
         try {
             const res = await notificationsApi.list({ limit: 20, cursor: nextPageCursor })
             setNotifications((prev) => [...prev, ...res.items])
             setNextPageCursor(res.nextCursor)
+        } catch (_e) {
+            // show error below the list and allow retry
+            setLoadMoreError('Failed to load more notifications. Tap to retry.')
         } finally {
             setIsLoadingMore(false)
         }
@@ -92,6 +106,18 @@ export default function NotificationsPage() {
             <div className="h-full w-full space-y-6">
                 <NavHeader title="Notifications" />
                 <div className="h-full w-full">
+                    {/* error banner for partial failures */}
+                    {!isInitialLoading && notifications.length > 0 && errorMessage && (
+                        <div className="px-2">
+                            <EmptyState title="Something went wrong" description={errorMessage ?? ''} icon="bell" />
+                            <div className="mt-4 flex justify-center">
+                                <Button shadowSize="4" onClick={() => void loadInitialPage()}>
+                                    Retry
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
                     {!!grouped.length ? (
                         grouped.map((group, groupIdx) => {
                             return (
@@ -149,7 +175,7 @@ export default function NotificationsPage() {
                                                         ) : null}
                                                     </div>
                                                     {!notif.state.readAt ? (
-                                                        <span className="absolute -right-3 top-0 size-2 rounded-full bg-orange-2" />
+                                                        <span className="bg-orange-2 absolute -right-3 top-0 size-2 rounded-full" />
                                                     ) : null}
                                                 </Link>
                                             </Card>
@@ -159,14 +185,34 @@ export default function NotificationsPage() {
                             )
                         })
                     ) : (
-                        <EmptyState
-                            title="No notifications yet!"
-                            description="You will see your notifications here."
-                            icon="bell"
-                        />
+                        <div>
+                            {errorMessage ? (
+                                <div className="px-2">
+                                    <EmptyState title="Something went wrong" description={errorMessage} icon="bell" />
+                                    <div className="mt-4 flex justify-center">
+                                        <Button shadowSize="4" onClick={() => void loadInitialPage()}>
+                                            Retry
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <EmptyState
+                                    title="No notifications yet!"
+                                    description="You will see your notifications here."
+                                    icon="bell"
+                                />
+                            )}
+                        </div>
                     )}
                     <div ref={loadingRef} className="w-full py-4">
                         {isLoadingMore && <div className="w-full text-center">Loading more...</div>}
+                        {loadMoreError && (
+                            <div className="w-full text-center text-sm text-red">
+                                <button onClick={() => void loadNextPage()} className="underline">
+                                    {loadMoreError}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
