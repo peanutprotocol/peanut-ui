@@ -11,6 +11,8 @@ import { useCurrency } from '@/hooks/useCurrency'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { mantecaApi } from '@/services/manteca'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { parseUnits } from 'viem'
 
 interface MantecaAddMoneyProps {
     source: 'bank' | 'regionalMethod'
@@ -18,13 +20,16 @@ interface MantecaAddMoneyProps {
 
 type stepType = 'inputAmount' | 'depositDetails'
 
+const MAX_DEPOSIT_AMOUNT = '2000'
+const MIN_DEPOSIT_AMOUNT = '1'
+
 const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     const params = useParams()
     const router = useRouter()
     const [step, setStep] = useState<stepType>('inputAmount')
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
     const [tokenAmount, setTokenAmount] = useState('')
-    const [tokenUSDAmount, setTokenUSDAmount] = useState('')
+    const [usdAmount, setUsdAmount] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
@@ -48,6 +53,21 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
             }
         },
     })
+
+    useEffect(() => {
+        if (!usdAmount || usdAmount === '0.00') {
+            setError(null)
+            return
+        }
+        const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
+        if (paymentAmount < parseUnits(MIN_DEPOSIT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setError(`Deposit amount must be at least $${MIN_DEPOSIT_AMOUNT}`)
+        } else if (paymentAmount > parseUnits(MAX_DEPOSIT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
+            setError(`Deposit amount exceeds maximum limit of $${MAX_DEPOSIT_AMOUNT}`)
+        } else {
+            setError(null)
+        }
+    }, [usdAmount])
 
     const handleKycCancel = () => {
         setIsKycModalOpen(false)
@@ -75,7 +95,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
             setError(null)
             setIsCreatingDeposit(true)
             const depositData = await mantecaApi.deposit({
-                usdAmount: tokenUSDAmount.replace(/,/g, ''),
+                usdAmount: usdAmount.replace(/,/g, ''),
                 currency: selectedCountry.currency,
             })
             if (depositData.error) {
@@ -110,7 +130,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
                     onSubmit={handleAmountSubmit}
                     isLoading={isCreatingDeposit}
                     error={error}
-                    setTokenUSDAmount={setTokenUSDAmount}
+                    setUsdAmount={setUsdAmount}
                     currencyData={currencyData}
                 />
                 {isKycModalOpen && (

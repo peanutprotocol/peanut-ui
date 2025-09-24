@@ -15,7 +15,7 @@ interface InputAmountStepProps {
     isLoading: boolean
     tokenAmount: string
     setTokenAmount: React.Dispatch<React.SetStateAction<string>>
-    setTokenUSDAmount: React.Dispatch<React.SetStateAction<string>>
+    setUsdAmount: React.Dispatch<React.SetStateAction<string>>
     error: string | null
     currencyData?: ICurrency
 }
@@ -26,7 +26,7 @@ const InputAmountStep = ({
     onSubmit,
     isLoading,
     error,
-    setTokenUSDAmount,
+    setUsdAmount,
     currencyData,
 }: InputAmountStepProps) => {
     const router = useRouter()
@@ -44,7 +44,7 @@ const InputAmountStep = ({
                 <TokenAmountInput
                     tokenValue={tokenAmount}
                     setTokenValue={(e) => setTokenAmount(e ?? '')}
-                    setUsdValue={(e) => setTokenUSDAmount(e)}
+                    setUsdValue={setUsdAmount}
                     currency={
                         currencyData
                             ? {
@@ -64,7 +64,7 @@ const InputAmountStep = ({
                     variant="purple"
                     shadowSize="4"
                     onClick={onSubmit}
-                    disabled={isLoading || !parseFloat(tokenAmount.replace(/,/g, ''))}
+                    disabled={!!error || isLoading || !parseFloat(tokenAmount.replace(/,/g, ''))}
                     className="w-full"
                     loading={isLoading}
                 >

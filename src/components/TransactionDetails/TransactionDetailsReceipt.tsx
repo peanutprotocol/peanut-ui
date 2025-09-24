@@ -350,52 +350,50 @@ export const TransactionDetailsReceipt = ({
                         tokenData?.icon &&
                         tokenData?.symbol && (
                             <>
-                            {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
-                            <PaymentInfoRow
-                                label="Token amount" 
-                                value={transaction.amount}
-                            />)}
-                            <PaymentInfoRow
-                                label="Token and network"
-                                value={
-                                    isTokenDataLoading ? (
-                                        <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
-                                                {/* Main token icon */}
-                                                <DisplayIcon
-                                                    iconUrl={tokenData.icon}
-                                                    altText={tokenData.symbol || 'token'}
-                                                    fallbackName={tokenData.symbol || 'T'}
-                                                    sizeClass="h-6 w-6"
-                                                />
-                                                {/* Smaller chain icon, absolutely positioned */}
-                                                {transaction.tokenDisplayDetails.chainIconUrl && (
-                                                    <div className="absolute -bottom-1 -right-1">
-                                                        <DisplayIcon
-                                                            iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
-                                                            altText={
-                                                                transaction.tokenDisplayDetails.chainName || 'chain'
-                                                            }
-                                                            fallbackName={
-                                                                transaction.tokenDisplayDetails.chainName || 'C'
-                                                            }
-                                                            sizeClass="h-3.5 w-3.5 text-[7px]"
-                                                            className="rounded-full border-2 border-white dark:border-grey-4"
-                                                        />
-                                                    </div>
-                                                )}
+                                {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
+                                    <PaymentInfoRow label="Token amount" value={transaction.amount} />
+                                )}
+                                <PaymentInfoRow
+                                    label="Token and network"
+                                    value={
+                                        isTokenDataLoading ? (
+                                            <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                                    {/* Main token icon */}
+                                                    <DisplayIcon
+                                                        iconUrl={tokenData.icon}
+                                                        altText={tokenData.symbol || 'token'}
+                                                        fallbackName={tokenData.symbol || 'T'}
+                                                        sizeClass="h-6 w-6"
+                                                    />
+                                                    {/* Smaller chain icon, absolutely positioned */}
+                                                    {transaction.tokenDisplayDetails.chainIconUrl && (
+                                                        <div className="absolute -bottom-1 -right-1">
+                                                            <DisplayIcon
+                                                                iconUrl={transaction.tokenDisplayDetails.chainIconUrl}
+                                                                altText={
+                                                                    transaction.tokenDisplayDetails.chainName || 'chain'
+                                                                }
+                                                                fallbackName={
+                                                                    transaction.tokenDisplayDetails.chainName || 'C'
+                                                                }
+                                                                sizeClass="h-3.5 w-3.5 text-[7px]"
+                                                                className="rounded-full border-2 border-white dark:border-grey-4"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span>
+                                                    {tokenData.symbol.toUpperCase()} on{' '}
+                                                    {transaction.tokenDisplayDetails.chainName}
+                                                </span>
                                             </div>
-                                            <span>
-                                                {tokenData.symbol.toUpperCase()} on{' '}
-                                                {transaction.tokenDisplayDetails.chainName}
-                                            </span>
-                                        </div>
-                                    )
-                                }
-                                hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
-                            />
+                                        )
+                                    }
+                                    hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
+                                />
                             </>
                         )}
 
