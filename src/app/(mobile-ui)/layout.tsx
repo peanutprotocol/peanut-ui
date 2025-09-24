@@ -22,6 +22,7 @@ import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useSupportModalContext } from '@/context/SupportModalContext'
+import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 
 // Allow access to some public paths without authentication
 const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|join-waitlist)/
@@ -92,6 +93,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <PeanutLoading />
             </div>
         )
+    }
+
+    // Show waitlist page if user doesn't have app access
+    if (!isFetchingUser && !user?.user.hasAppAccess) {
+        return <JoinWaitlistPage />
     }
 
     return (

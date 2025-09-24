@@ -58,8 +58,6 @@ export const useZeroDev = () => {
 
             if (inviteCode.trim().length > 0) {
                 await invitesApi.acceptInvite(inviteCode)
-            } else {
-                // TODO: JOIN WAITLIST
             }
 
             setWebAuthnKey(webAuthnKey)

@@ -4,17 +4,24 @@ import { fetchWithSentry } from '@/utils'
 import Cookies from 'js-cookie'
 
 export const invitesApi = {
-    acceptInvite: async (inviteCode: string): Promise<any> => {
-        const jwtToken = Cookies.get('jwt-token')
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/invites`, {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${jwtToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ inviteCode, type: 'DIRECT' }),
-        })
-        return response.json()
+    acceptInvite: async (inviteCode: string): Promise<{ success: boolean }> => {
+        try {
+            const jwtToken = Cookies.get('jwt-token')
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/accept`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${jwtToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ inviteCode, type: 'DIRECT' }),
+            })
+            if (!response.ok) {
+                return { success: false }
+            }
+            return { success: true }
+        } catch {
+            return { success: false }
+        }
     },
 
     getInvites: async () => {
@@ -31,7 +38,12 @@ export const invitesApi = {
     },
 
     validateInviteCode: async (inviteCode: string): Promise<boolean> => {
-        const res = await validateInviteCode(inviteCode)
-        return res.data?.success || false
+        try {
+            const res = await validateInviteCode(inviteCode)
+            return res.data?.success || false
+        } catch (e) {
+            console.error('Error validating invite code:', e)
+            return false
+        }
     },
 }

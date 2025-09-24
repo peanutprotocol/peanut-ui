@@ -1,23 +1,44 @@
 'use client'
 
+import { useAuth } from '@/context/authContext'
+import { invitesApi } from '@/services/invites'
+import React, { useState } from 'react'
+import InvitesPageLayout from './InvitesPageLayout'
 import { twMerge } from 'tailwind-merge'
+import ValidatedInput from '../Global/ValidatedInput'
+import { Button } from '../0_Bruddle'
+import ErrorAlert from '../Global/ErrorAlert'
 import peanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_02.gif'
-import ValidatedInput from '@/components/Global/ValidatedInput'
-import { useState } from 'react'
-import { Button } from '@/components/0_Bruddle'
-import InvitesPageLayout from '@/components/Invites/InvitesPageLayout'
 
-export default function WaitlistPage() {
+const JoinWaitlistPage = () => {
     const [inviteCode, setInviteCode] = useState('')
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     const [isLoading, setisLoading] = useState(false)
+    const [error, setError] = useState('')
+    const { fetchUser } = useAuth()
 
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
         setisLoading(true)
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+        const res = await invitesApi.validateInviteCode(inviteCode)
         setisLoading(false)
-        return inviteCode.length === 6
+        return res
+    }
+
+    const handleAcceptInvite = async () => {
+        setisLoading(true)
+        try {
+            const res = await invitesApi.acceptInvite(inviteCode)
+            if (res.success) {
+                fetchUser()
+            } else {
+                setError('Something went wrong. Please try again or contact support.')
+            }
+        } catch {
+            setError('Something went wrong. Please try again or contact support.')
+        } finally {
+            setisLoading(false)
+        }
     }
 
     return (
@@ -58,16 +79,24 @@ export default function WaitlistPage() {
                                     'rounded-sm'
                                 )}
                             />
+
                             <Button
                                 className="h-12 w-4/12"
                                 loading={isLoading}
                                 shadowSize="4"
-                                onClick={() => {}}
+                                onClick={() => {
+                                    handleAcceptInvite()
+                                }}
                                 disabled={!isValid || isChanging || isLoading}
                             >
                                 Next
                             </Button>
                         </div>
+
+                        {!isValid && !isChanging && !!inviteCode && <ErrorAlert description="Invalid invite code" />}
+
+                        {/* Show error from the API call */}
+                        {error && <ErrorAlert description={error} />}
 
                         <button className="text-sm underline">Log in with a different account</button>
                     </div>
@@ -76,3 +105,5 @@ export default function WaitlistPage() {
         </InvitesPageLayout>
     )
 }
+
+export default JoinWaitlistPage
