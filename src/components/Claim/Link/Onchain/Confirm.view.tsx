@@ -23,7 +23,6 @@ import { useContext, useState, useMemo } from 'react'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import useClaimLink from '../../useClaimLink'
-import { PINTA_WALLET_TOKEN } from '@/constants'
 import { useAuth } from '@/context/authContext'
 import { sendLinksApi } from '@/services/sendLinks'
 
@@ -49,10 +48,11 @@ export const ConfirmClaimLinkView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
 
+    // We may need this when we re add rewards via specific tokens
+    // If not, feel free to remove
     const isReward = useMemo(() => {
-        if (!claimLinkData.tokenAddress) return false
-        return areEvmAddressesEqual(claimLinkData.tokenAddress, PINTA_WALLET_TOKEN)
-    }, [claimLinkData.tokenAddress])
+        return false
+    }, [])
 
     // Determine which chain/token details to show – prefer the selectedRoute details if present,
     // otherwise fall back to what the user picked in the token selector.

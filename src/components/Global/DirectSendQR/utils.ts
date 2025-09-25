@@ -1,15 +1,9 @@
 import { getTokenSymbol, validateEnsName, getTokenDecimals } from '@/utils'
 import { isAddress, formatUnits } from 'viem'
 
-// Constants
-const PINTA_MERCHANTS: Record<string, string> = {
-    '0x0ff60f43e8c04d57c7374537d8432da8fedbb41d': 'Casa Temple',
-}
-
 export enum EQrType {
     PEANUT_URL = 'PEANUT_URL',
     ENS_NAME = 'ENS_NAME',
-    PINTA_MERCHANT = 'PINTA_MERCHANT',
     EVM_ADDRESS = 'EVM_ADDRESS',
     URL = 'URL',
     EIP_681 = 'EIP_681',
@@ -74,7 +68,7 @@ export function recognizeQr(data: string): QrType | null {
         return EQrType.PEANUT_URL
     }
     if (isAddress(data)) {
-        return PINTA_MERCHANTS[data] ? EQrType.PINTA_MERCHANT : EQrType.EVM_ADDRESS
+        return EQrType.EVM_ADDRESS
     }
     if (validateEnsName(data)) {
         return EQrType.ENS_NAME
