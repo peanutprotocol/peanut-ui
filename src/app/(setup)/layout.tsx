@@ -3,12 +3,13 @@
 import { usePWAStatus } from '@/hooks/usePWAStatus'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
 import { useSearchParams } from 'next/navigation'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 
-const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
+function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const dispatch = useAppDispatch()
     const isPWA = usePWAStatus()
     const searchParams = useSearchParams()
@@ -27,6 +28,14 @@ const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
     }, [isPWA, selectedStep, inviteCode])
 
     return <>{children}</>
+}
+
+const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
+    return (
+        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+            <SetupLayoutContent>{children}</SetupLayoutContent>
+        </Suspense>
+    )
 }
 
 export default SetupLayout

@@ -6,12 +6,12 @@ import { BeforeInstallPromptEvent, ScreenId, ISetupStep } from '@/components/Set
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { isLikelyWebview, isDeviceOsSupported, getDeviceTypeForLogic } from '@/components/Setup/Setup.utils'
 
-export default function SetupPage() {
+function SetupPageContent() {
     const { steps } = useSetupStore()
     const { step, handleNext, handleBack } = useSetupFlow()
     const [direction, setDirection] = useState(0)
@@ -204,5 +204,13 @@ export default function SetupPage() {
         >
             <step.component />
         </SetupWrapper>
+    )
+}
+
+export default function SetupPage() {
+    return (
+        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+            <SetupPageContent />
+        </Suspense>
     )
 }

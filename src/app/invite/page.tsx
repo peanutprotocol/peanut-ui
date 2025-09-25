@@ -11,8 +11,9 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import ValidationErrorView from '@/components/Payment/Views/Error.validation.view'
+import { Suspense } from 'react'
 
-export default function InvitePage() {
+function InvitePageContent() {
     const searchParams = useSearchParams()
     const inviteCode = searchParams.get('code')
 
@@ -40,7 +41,7 @@ export default function InvitePage() {
         return <PeanutLoading coverFullScreen />
     }
 
-    if (isError || !inviteCodeData) {
+    if (isError || !inviteCodeData?.success) {
         return (
             <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">
                 <ValidationErrorView
@@ -77,5 +78,13 @@ export default function InvitePage() {
                 </div>
             </div>
         </InvitesPageLayout>
+    )
+}
+
+export default function InvitePage() {
+    return (
+        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+            <InvitePageContent />
+        </Suspense>
     )
 }
