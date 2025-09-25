@@ -11,7 +11,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountType, Account } from '@/interfaces'
-import { formatIban, shortenAddressLong, isTxReverted } from '@/utils/general.utils'
+import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
@@ -275,7 +275,7 @@ export default function WithdrawBankPage() {
                 <DirectSuccessView
                     isWithdrawFlow
                     currencyAmount={`$${amountToWithdraw}`}
-                    message={bankAccount ? shortenAddressLong(bankAccount.identifier.toUpperCase()) : ''}
+                    message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
                 />
             )}
         </div>

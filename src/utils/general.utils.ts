@@ -39,28 +39,23 @@ export const shortenAddress = (address?: string, chars?: number) => {
     return firstBit + '...'
 }
 
-export const shortenAddressLong = (
-    address?: string,
-    chars?: number,
-    firstChars?: number,
-    lastChars?: number
-): string => {
-    if (!address) return ''
+export const shortenStringLong = (s?: string, chars?: number, firstChars?: number, lastChars?: number): string => {
+    if (!s) return ''
 
     // Default values
     const defaultChars = chars || 6
     const firstBitLength = firstChars || defaultChars
     const lastBitLength = lastChars || defaultChars
 
-    const firstBit = address.substring(0, firstBitLength)
-    const endingBit = address.substring(address.length - lastBitLength, address.length)
+    const firstBit = s.substring(0, firstBitLength)
+    const endingBit = s.substring(s.length - lastBitLength, s.length)
 
     return firstBit + '...' + endingBit
 }
 
 export const printableAddress = (address: string, firstCharsLen?: number, lastCharsLen?: number): string => {
     if (!isAddress(address)) return address
-    return shortenAddressLong(address, undefined, firstCharsLen, lastCharsLen)
+    return shortenStringLong(address, undefined, firstCharsLen, lastCharsLen)
 }
 
 /**
