@@ -60,6 +60,7 @@ const PIX_REGEX = /^.*000201.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
 export const PAYMENT_PROCESSOR_REGEXES: { [key in QrType]?: RegExp } = {
     [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
     [EQrType.PIX]: PIX_REGEX,
+    [EQrType.ARGENTINA_QR3]: ARGENTINA_QR3_REGEX,
 }
 
 const EIP_681_REGEX = /^ethereum:(?:pay-)?([^@/?]+)(?:@([^/?]+))?(?:\/([^?]+))?(?:\?(.*))?$/i

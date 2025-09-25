@@ -381,7 +381,13 @@ export default function QRPayPage() {
                 <Card className="p-4">
                     <div className="flex items-center space-x-3">
                         <div className="flex items-center justify-center rounded-full bg-white">
-                            <Image src={methodIcon} alt="Mercado Pago" width={50} height={50} />
+                            <Image
+                                src={methodIcon}
+                                alt="Mercado Pago"
+                                width={48}
+                                height={48}
+                                className="h-12 w-12 rounded-full object-cover"
+                            />
                         </div>
                         <div>
                             <p className="flex items-center gap-1 text-center text-sm text-gray-600">
