@@ -12,15 +12,19 @@ import { useMemo } from 'react'
 export default function useKycStatus() {
     const { user } = useAuth()
 
-    const isUserBridgeKycApproved = user?.user.bridgeKycStatus === 'approved'
+    const isUserBridgeKycApproved = useMemo(() => user?.user.bridgeKycStatus === 'approved', [user])
 
     const isUserMantecaKycApproved = useMemo(
         () =>
             user?.user.kycVerifications?.some((verification) => verification.status === MantecaKycStatus.ACTIVE) ??
             false,
-        [user?.user.kycVerifications]
+        [user]
     )
-    const isUserKycApproved = isUserBridgeKycApproved || isUserMantecaKycApproved
+
+    const isUserKycApproved = useMemo(
+        () => isUserBridgeKycApproved || isUserMantecaKycApproved,
+        [isUserBridgeKycApproved, isUserMantecaKycApproved]
+    )
 
     return { isUserBridgeKycApproved, isUserMantecaKycApproved, isUserKycApproved }
 }

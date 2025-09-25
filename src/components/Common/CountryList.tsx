@@ -6,7 +6,7 @@ import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import Image from 'next/image'
 import { useMemo, useState, type ReactNode } from 'react'
 import { getCardPosition } from '../Global/Card'
-import { useGeoLocaion } from '@/hooks/useGeoLocaion'
+import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { CountryListSkeleton } from './CountryListSkeleton'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import StatusBadge from '../Global/Badges/StatusBadge'
@@ -40,16 +40,12 @@ export const CountryList = ({
     getRightContent,
 }: CountryListViewProps) => {
     const [searchTerm, setSearchTerm] = useState('')
-    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocaion()
+    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()
 
-    const supportedCountries = useMemo(() => {
-        return countryData.filter((country) => country.type === 'country')
-    }, [])
+    const supportedCountries = countryData.filter((country) => country.type === 'country')
 
     // sort countries based on user's geo location, fallback to alphabetical order
     const sortedCountries = useMemo(() => {
-        if (isGeoLoading) return []
-
         return [...supportedCountries].sort((a, b) => {
             if (userGeoLocationCountryCode) {
                 const aIsUserCountry =
@@ -62,7 +58,7 @@ export const CountryList = ({
             }
             return a.title.localeCompare(b.title)
         })
-    }, [supportedCountries, userGeoLocationCountryCode, isGeoLoading])
+    }, [userGeoLocationCountryCode])
 
     // filter countries based on search term
     const filteredCountries = useMemo(() => {
