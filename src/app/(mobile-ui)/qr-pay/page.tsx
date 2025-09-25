@@ -278,6 +278,23 @@ export default function QRPayPage() {
                     ]}
                     footer={<PeanutDoesntStoreAnyPersonalInformation />}
                 />
+                <ActionModal
+                    visible={kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS}
+                    onClose={() => router.back()}
+                    title="Identity Verification"
+                    description="Your identity is being verified. Please wait."
+                    icon="shield"
+                    ctas={[
+                        {
+                            text: 'Close',
+                            onClick: () => {
+                                router.back()
+                            },
+                            shadowSize: '4',
+                            className: 'md:py-2',
+                        },
+                    ]}
+                />
             </div>
         )
     }
