@@ -49,7 +49,6 @@ const IdentityVerificationView = () => {
     const {
         iframeOptions,
         handleInitiateKyc,
-        handleIframeClose,
         isVerificationProgressModalOpen,
         closeVerificationProgressModal,
         error: kycError,
@@ -100,7 +99,7 @@ const IdentityVerificationView = () => {
         if (showUserDetailsForm) {
             setShowUserDetailsForm(false)
         } else {
-            router.replace('/profile')
+            handleRedirect()
         }
     }, [showUserDetailsForm])
 
@@ -169,11 +168,14 @@ const IdentityVerificationView = () => {
 
                     {(userUpdateError || kycError) && <ErrorAlert description={userUpdateError ?? kycError ?? ''} />}
 
-                    <IframeWrapper {...iframeOptions} onClose={handleIframeClose} />
+                    <IframeWrapper {...iframeOptions} onClose={handleRedirect} />
 
                     <KycVerificationInProgressModal
                         isOpen={isVerificationProgressModalOpen}
-                        onClose={closeVerificationProgressModal}
+                        onClose={() => {
+                            closeVerificationProgressModal()
+                            handleRedirect()
+                        }}
                     />
                 </div>
             ) : (
@@ -205,7 +207,6 @@ const IdentityVerificationView = () => {
                                 setIsMantecaModalOpen(true)
                             }
                         }}
-                        onCryptoClick={() => console.log('crypto')}
                     />
                 </div>
             )}
@@ -226,7 +227,10 @@ const IdentityVerificationView = () => {
                         text: 'Close',
                         shadowSize: '4',
                         className: 'md:py-2',
-                        onClick: () => setIsAlreadyVerifiedModalOpen(false),
+                        onClick: () => {
+                            setIsAlreadyVerifiedModalOpen(false)
+                            handleRedirect()
+                        },
                     },
                 ]}
             />
