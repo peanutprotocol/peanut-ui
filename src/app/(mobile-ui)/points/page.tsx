@@ -7,6 +7,7 @@ import CopyToClipboardButton from '@/components/Global/CopyToClipboard/CopyToCli
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import ShareButton from '@/components/Global/ShareButton'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
@@ -23,6 +24,7 @@ const PointsPage = () => {
     const { user } = useAuth()
 
     const inviteCode = `${user?.user.username?.toUpperCase()}INVITESYOU`
+    const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -43,7 +45,16 @@ const PointsPage = () => {
 
                 {invites.length > 0 && (
                     <>
-                        <Button shadowSize="4">Invite a friend!</Button>
+                        <ShareButton
+                            generateText={() =>
+                                Promise.resolve(
+                                    `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
+                                )
+                            }
+                            title="Share your invite link"
+                        >
+                            Share Invite link
+                        </ShareButton>
                         <h2 className="!mt-8 font-bold">People you invited</h2>
                         <div>
                             {invites.map((invite: any, i: number) => {
@@ -84,8 +95,16 @@ const PointsPage = () => {
                         <p className="text-center text-sm text-grey-1">
                             Earn points for every action you take on Peanut and when your invites create an account.
                         </p>
-
-                        <Button shadowSize="4">Invite a friend!</Button>
+                        <ShareButton
+                            generateText={() =>
+                                Promise.resolve(
+                                    `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
+                                )
+                            }
+                            title="Share your invite link"
+                        >
+                            Share Invite link
+                        </ShareButton>
                     </Card>
                 )}
             </section>

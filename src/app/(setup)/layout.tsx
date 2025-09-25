@@ -24,7 +24,7 @@ const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
             return step.screenId !== 'pwa-install' || !isPWA
         })
         dispatch(setupActions.setSteps(filteredSteps))
-    }, [isPWA])
+    }, [isPWA, selectedStep, inviteCode])
 
     return <>{children}</>
 }

@@ -146,7 +146,16 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                             Go beg your friend for an invite link!
                                         </p>
                                     </div>
-                                    <ShareButton generateText={async () => 'Invite me'}>Beg for an invite</ShareButton>
+                                    <ShareButton
+                                        generateText={() =>
+                                            Promise.resolve(
+                                                `Bro… I’m on my knees. Peanut is invite-only and I’m locked outside. Save my life and send me your invite`
+                                            )
+                                        }
+                                        title="Beg for an invite"
+                                    >
+                                        Beg for an invite
+                                    </ShareButton>
                                 </div>
                             )}
                         </Card>
@@ -178,7 +187,18 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     onClose={() => {
                         setShowInviteModal(false)
                     }}
-                    ctas={[{ text: 'Beg for an invite', onClick: () => {}, shadowSize: '4', icon: 'share' }]}
+                    content={
+                        <ShareButton
+                            generateText={() =>
+                                Promise.resolve(
+                                    `Bro… I’m on my knees. Peanut is invite-only and I’m locked outside. Save my life and send me your invite`
+                                )
+                            }
+                            title="Beg for an invite"
+                        >
+                            Beg for an invite
+                        </ShareButton>
+                    }
                 />
             </div>
         </div>

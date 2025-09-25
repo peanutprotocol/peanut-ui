@@ -15,8 +15,8 @@ import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager
 
 const SetupPasskey = () => {
     const dispatch = useAppDispatch()
-    const { username, telegramHandle } = useSetupStore()
-    const { isLoading } = useSetupFlow()
+    const { username, telegramHandle, inviteCode } = useSetupStore()
+    const { isLoading, handleNext } = useSetupFlow()
     const { handleRegister, address } = useZeroDev()
     const { user, isFetchingUser } = useAuth()
     const { addAccount } = useAuth()
@@ -35,6 +35,12 @@ const SetupPasskey = () => {
                 telegramHandle: telegramHandle.length > 0 ? telegramHandle : undefined,
             })
                 .then(() => {
+                    // if no invite code, go to collect email step
+                    if (!inviteCode) {
+                        handleNext()
+                        return
+                    }
+
                     const redirect_uri = searchParams.get('redirect_uri')
                     if (redirect_uri) {
                         const sanitizedRedirectUrl = sanitizeRedirectURL(redirect_uri)

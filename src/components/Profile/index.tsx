@@ -13,6 +13,7 @@ import { useState } from 'react'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
 import CopyToClipboardButton from '../Global/CopyToClipboard/CopyToClipboardButton'
+import ShareButton from '../Global/ShareButton'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -28,6 +29,7 @@ export const Profile = () => {
     const username = user?.user.username || 'anonymous'
 
     const inviteCode = `${user?.user.username?.toUpperCase()}INVITESYOU`
+    const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
 
     const isKycApproved = user?.user.bridgeKycStatus === 'approved'
 
@@ -158,23 +160,25 @@ export const Profile = () => {
                 description="Earn points when your referrals create an account in Peanut and also pocket 20% of the points they make!"
                 icon="user-plus"
                 content={
-                    <div className="flex w-full items-center justify-between gap-3">
-                        <Card className="flex w-1/2 items-center justify-center py-1.5">
-                            <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
-                        </Card>
-                        <CopyToClipboardButton className="w-1/2" textToCopy={`${inviteCode}`} size="medium" />
-                    </div>
+                    <>
+                        <div className="flex w-full items-center justify-between gap-3">
+                            <Card className="flex w-1/2 items-center justify-center py-1.5">
+                                <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
+                            </Card>
+                            <CopyToClipboardButton className="w-1/2" textToCopy={`${inviteCode}`} size="medium" />
+                        </div>
+                        <ShareButton
+                            generateText={() =>
+                                Promise.resolve(
+                                    `I’m using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here’s my invite: ${inviteLink}`
+                                )
+                            }
+                            title="Share your invite link"
+                        >
+                            Share Invite link
+                        </ShareButton>
+                    </>
                 }
-                ctas={[
-                    {
-                        icon: 'share',
-                        text: 'Share link',
-                        shadowSize: '4',
-                        onClick: () => {
-                            navigator.clipboard.writeText(inviteCode)
-                        },
-                    },
-                ]}
             />
         </div>
     )

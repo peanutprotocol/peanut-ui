@@ -10,6 +10,8 @@ import { Button } from '../0_Bruddle'
 import ErrorAlert from '../Global/ErrorAlert'
 import peanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_02.gif'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
+import PeanutLoading from '../Global/PeanutLoading'
 
 const JoinWaitlistPage = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -20,6 +22,12 @@ const JoinWaitlistPage = () => {
     const { fetchUser, isFetchingUser, logoutUser, user } = useAuth()
     const [isLoggingOut, setisLoggingOut] = useState(false)
     const router = useRouter()
+
+    const { data, isLoading: isLoadingWaitlistPosition } = useQuery({
+        queryKey: ['waitlist-position'],
+        queryFn: () => invitesApi.getWaitlistQueuePosition(),
+        enabled: !!user?.user.userId,
+    })
 
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
         setisLoading(true)
@@ -57,6 +65,10 @@ const JoinWaitlistPage = () => {
         }
     }, [isFetchingUser])
 
+    if (isLoadingWaitlistPosition) {
+        return <PeanutLoading coverFullScreen />
+    }
+
     return (
         <InvitesPageLayout image={peanutAnim.src}>
             <div
@@ -68,6 +80,8 @@ const JoinWaitlistPage = () => {
                 <div className="mx-auto w-full md:max-w-xs">
                     <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
                         <h1 className="text-xl font-extrabold">You&apos;re still in Peanut jail</h1>
+
+                        <h2 className="text-xl font-bold">Prisioner #{data?.position}</h2>
                         <p className="text-base font-medium">
                             No bail without an invite. Got a code? Prove it below. No code? Back to the waitlist. Go beg
                             your friend!
@@ -109,7 +123,9 @@ const JoinWaitlistPage = () => {
                             </Button>
                         </div>
 
-                        {!isValid && !isChanging && !!inviteCode && <ErrorAlert description="Invalid invite code" />}
+                        {!isValid && !isChanging && !!inviteCode && (
+                            <ErrorAlert description="This code won’t take you out of jail. Try another one!" />
+                        )}
 
                         {/* Show error from the API call */}
                         {error && <ErrorAlert description={error} />}
