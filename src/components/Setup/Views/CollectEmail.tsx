@@ -25,7 +25,11 @@ const CollectEmail = () => {
         try {
             setError('')
             setisLoading(true)
-            await updateUserById({ email })
+            const { error } = await updateUserById({ email })
+            if (error) {
+                setError('Something went wrong. Please try again or contact support')
+                return
+            }
             setisLoading(false)
             router.push('/home')
         } catch {
@@ -66,7 +70,7 @@ const CollectEmail = () => {
                 Finish setup
             </Button>
 
-            {error || (!isValid && !isChanging && !!email && <ErrorAlert description={error || 'Invalid email'} />)}
+            {!!error || (!isValid && !isChanging && !!email && <ErrorAlert description={error || 'Invalid email'} />)}
         </div>
     )
 }
