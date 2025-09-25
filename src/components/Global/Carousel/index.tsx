@@ -6,13 +6,11 @@ import './carousel.css'
 import Slider from 'react-slick'
 import Card from '../Card'
 
-const Carousel = () => {
+const Carousel = ({ children }: { children: React.ReactNode }) => {
     return (
         <div className="carousel-container">
             <Slider dots={true} infinite={true} speed={500} slidesToShow={1} slidesToScroll={1}>
-                <Card className="p-4">hello</Card>
-                <Card className="p-4">hello2</Card>
-                <Card className="p-4">hello3</Card>
+                {children}
             </Slider>
         </div>
     )
