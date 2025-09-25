@@ -63,7 +63,7 @@ const JoinWaitlistPage = () => {
         if (!isFetchingUser && !user) {
             router.push('/setup')
         }
-    }, [isFetchingUser])
+    }, [isFetchingUser, user, router])
 
     if (isLoadingWaitlistPosition) {
         return <PeanutLoading coverFullScreen />

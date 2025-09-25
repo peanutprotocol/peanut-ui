@@ -51,7 +51,11 @@ const JoinWaitlist = () => {
             const localStorageRedirect = getFromLocalStorage('redirect')
             const redirect_uri = searchParams.get('redirect_uri')
             if (redirect_uri) {
-                const sanitizedRedirectUrl = sanitizeRedirectURL(redirect_uri)
+                let decodedRedirect = redirect_uri
+                try {
+                    decodedRedirect = decodeURIComponent(redirect_uri)
+                } catch {}
+                const sanitizedRedirectUrl = sanitizeRedirectURL(decodedRedirect)
                 router.push(sanitizedRedirectUrl)
             } else if (localStorageRedirect) {
                 localStorage.removeItem('redirect')

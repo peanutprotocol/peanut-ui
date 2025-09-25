@@ -23,7 +23,8 @@ const PointsPage = () => {
     const router = useRouter()
     const { user } = useAuth()
 
-    const inviteCode = `${user?.user.username?.toUpperCase()}INVITESYOU`
+    const username = user?.user.username
+    const inviteCode = username ? `${username.toUpperCase()}INVITESYOU` : ''
     const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite?code=${inviteCode}`
 
     if (isLoading) {

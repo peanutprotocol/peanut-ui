@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
+import ValidationErrorView from '@/components/Payment/Views/Error.validation.view'
 
 export default function InvitePage() {
     const searchParams = useSearchParams()
@@ -18,7 +19,11 @@ export default function InvitePage() {
     const dispatch = useAppDispatch()
     const router = useRouter()
 
-    const { data: inviteCodeData, isLoading } = useQuery({
+    const {
+        data: inviteCodeData,
+        isLoading,
+        isError,
+    } = useQuery({
         queryKey: ['validateInviteCode', inviteCode],
         queryFn: () => invitesApi.validateInviteCode(inviteCode!),
         enabled: !!inviteCode,
@@ -33,6 +38,19 @@ export default function InvitePage() {
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
+    }
+
+    if (isError || !inviteCodeData) {
+        return (
+            <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">
+                <ValidationErrorView
+                    title="Invalid Invite Code"
+                    message="The invite code you are trying to use is invalid. Please check the URL and try again."
+                    buttonText="Join waitlist"
+                    redirectTo="/setup"
+                />
+            </div>
+        )
     }
 
     return (

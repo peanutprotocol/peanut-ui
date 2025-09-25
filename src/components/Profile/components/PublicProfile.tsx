@@ -112,7 +112,13 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         </Button>
 
                         <Button
-                            onClick={() => setShowInviteModal(true)}
+                            onClick={() => {
+                                if (isLoggedIn && user?.user.hasAppAccess) {
+                                    router.push(`/request/${username}`)
+                                } else {
+                                    setShowInviteModal(true)
+                                }
+                            }}
                             variant="purple"
                             shadowSize="4"
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"

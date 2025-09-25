@@ -31,8 +31,10 @@ const InvitesPageLayout = ({ image, children }: InvitesPageLayoutProps) => {
                     {/* render animated star decorations */}
                     {STAR_POSITIONS.map((positions, index) => (
                         <Image
+                            key={`star-${index}`}
                             src={starImage.src}
-                            alt="star"
+                            alt=""
+                            aria-hidden
                             width={56}
                             height={56}
                             className={twMerge(positions, 'absolute z-10')}

@@ -1,3 +1,4 @@
+'use client'
 import { Button, ButtonSize } from '@/components/0_Bruddle'
 import React, { useState } from 'react'
 

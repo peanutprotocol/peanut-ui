@@ -25,16 +25,22 @@ export const invitesApi = {
     },
 
     getInvites: async () => {
-        const jwtToken = Cookies.get('jwt-token')
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/invites`, {
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${jwtToken}`,
-                'Content-Type': 'application/json',
-            },
-        })
-        const invitesRes = await response.json()
-        return invitesRes.invites
+        try {
+            const jwtToken = Cookies.get('jwt-token')
+            if (!jwtToken) return []
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/invites`, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${jwtToken}`,
+                    'Content-Type': 'application/json',
+                },
+            })
+            if (!response.ok) return []
+            const invitesRes = await response.json().catch(() => ({}))
+            return invitesRes.invites || []
+        } catch {
+            return []
+        }
     },
 
     validateInviteCode: async (inviteCode: string): Promise<{ success: boolean; username: string }> => {

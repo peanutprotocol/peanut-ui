@@ -25,7 +25,7 @@ import { useSupportModalContext } from '@/context/SupportModalContext'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 
 // Allow access to some public paths without authentication
-const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|join-waitlist)/
+const publicPathRegex = /^\/(request\/pay|claim|pay\/.+$|support|invite)/
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
