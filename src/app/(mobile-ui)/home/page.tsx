@@ -222,7 +222,7 @@ export default function Home() {
                     />
                     <div className="flex items-center gap-2">
                         <Link href="/points">
-                            <Image src={starImage.src} alt="star" width={20} height={20} />
+                            <Image src={starImage} alt="star" width={20} height={20} />
                         </Link>
                         <SearchUsers />
                     </div>

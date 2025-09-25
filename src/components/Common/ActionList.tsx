@@ -25,7 +25,8 @@ import ActionListDaimoPayButton from './ActionListDaimoPayButton'
 import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../Claim/useClaimLink'
 import { setupActions } from '@/redux/slices/setup-slice'
-
+import starImage from '@/assets/icons/star.png'
+import { useAuth } from '@/context/authContext'
 interface IActionListProps {
     flow: 'claim' | 'request'
     claimLinkData?: ClaimLinkData
@@ -67,6 +68,7 @@ export default function ActionList({
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
     const [showInviteModal, setShowInviteModal] = useState(false)
+    const { user } = useAuth()
 
     const dispatch = useAppDispatch()
 
@@ -146,10 +148,12 @@ export default function ActionList({
     }, [requiresVerification])
 
     const handleContinueWithPeanut = () => {
-        addParamStep('claim')
+        if (flow === 'claim') {
+            addParamStep('claim')
+        }
         // push to setup page with redirect uri, to prevent the user from losing the flow context
         const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
-        if (isInviteLink) {
+        if (isInviteLink && !userHasAppAccess) {
             const username = requestLinkData?.recipient?.identifier.toUpperCase()
             const inviteCode = `${username}INVITESYOU`
             dispatch(setupActions.setInviteCode(inviteCode))
@@ -158,6 +162,9 @@ export default function ActionList({
             router.push(`/setup?redirect_uri=${redirectUri}`)
         }
     }
+
+    const username = claimLinkData?.sender?.username ?? requestLinkData?.recipient?.identifier
+    const userHasAppAccess = user?.user.hasAppAccess
 
     return (
         <div className="space-y-2">
@@ -170,6 +177,13 @@ export default function ActionList({
                     </div>
                 </Button>
             )}
+            {isInviteLink && !userHasAppAccess && (
+                <div className="!mt-6 flex w-full items-center justify-between">
+                    <Image src={starImage.src} alt="star" width={20} height={20} />{' '}
+                    <p className="text-center text-sm">Invited by {username}, you have early access to Peanut!</p>
+                    <Image src={starImage.src} alt="star" width={20} height={20} />
+                </div>
+            )}
             <Divider text="or" />
             <div className="space-y-2">
                 {sortedActionMethods.map((method) => {
@@ -180,7 +194,7 @@ export default function ActionList({
                     return (
                         <MethodCard
                             onClick={() => {
-                                if (isInviteLink) {
+                                if (isInviteLink && !userHasAppAccess) {
                                     setSelectedMethod(method)
                                     setShowInviteModal(true)
                                 } else {
