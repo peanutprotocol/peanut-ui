@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { mantecaApi } from '@/services/manteca'
 
 interface ExchangeRateResponse {
     rate: number
@@ -12,6 +13,9 @@ interface BridgeExchangeRateResponse {
 
 // Currency pairs that should use Bridge API (USD to these currencies only)
 const BRIDGE_PAIRS = new Set(['USD-EUR', 'USD-MXN', 'USD-BRL'])
+
+// LATAM currencies that should use Manteca API
+const MANTECA_CURRENCIES = new Set(['ARS', 'BRL', 'COP', 'CRC', 'PUSD', 'GTQ', 'PHP', 'BOB'])
 
 export async function GET(request: NextRequest) {
     try {
@@ -43,6 +47,23 @@ export async function GET(request: NextRequest) {
         if (fromUc === 'USD' || toUc === 'USD') {
             const pairKey = `${fromUc}-${toUc}`
             const reversePairKey = `${toUc}-${fromUc}`
+
+            // Check if either currency is a LATAM currency that uses Manteca
+            if (MANTECA_CURRENCIES.has(fromUc) || MANTECA_CURRENCIES.has(toUc)) {
+                const mantecaRate = await fetchFromManteca(fromUc, toUc)
+                if (mantecaRate !== null) {
+                    return NextResponse.json(
+                        { rate: mantecaRate },
+                        {
+                            headers: {
+                                'Cache-Control': 's-maxage=300, stale-while-revalidate=600',
+                            },
+                        }
+                    )
+                }
+                // Fall back to other providers if Manteca fails
+                console.warn(`Manteca failed for ${pairKey}, falling back to other providers`)
+            }
 
             // Check if we should use Bridge for this pair or its reverse
             const shouldUseBridge = BRIDGE_PAIRS.has(pairKey)
@@ -99,6 +120,11 @@ async function getExchangeRate(from: string, to: string): Promise<number | null>
         const pairKey = `${from}-${to}`
         const reversePairKey = `${to}-${from}`
 
+        // Check if either currency is a LATAM currency that uses Manteca
+        if (MANTECA_CURRENCIES.has(from) || MANTECA_CURRENCIES.has(to)) {
+            return await fetchFromManteca(from, to)
+        }
+
         // Check if we should use Bridge for this pair or its reverse
         const shouldUseBridge = BRIDGE_PAIRS.has(pairKey)
         const shouldUseBridgeReverse = BRIDGE_PAIRS.has(reversePairKey)
@@ -128,6 +154,39 @@ async function getExchangeRate(from: string, to: string): Promise<number | null>
         return data.rate
     } catch (error) {
         console.error(`Failed to get exchange rate for ${from}-${to}:`, error)
+        return null
+    }
+}
+
+async function fetchFromManteca(from: string, to: string): Promise<number | null> {
+    console.log('Fetching from manteca')
+    try {
+        // Manteca API provides rates against USDC, so we need to handle different scenarios
+        if (from === 'USD' && MANTECA_CURRENCIES.has(to)) {
+            // USD → LATAM currency: use sell rate (selling USD to get LATAM currency)
+            const response = await mantecaApi.getPrices({ asset: 'USDC', against: to })
+            return Number(response.effectiveSell)
+        } else if (MANTECA_CURRENCIES.has(from) && to === 'USD') {
+            // LATAM currency → USD: use buy rate (buying USD with LATAM currency)
+            const response = await mantecaApi.getPrices({ asset: 'USDC', against: from })
+            return 1 / Number(response.effectiveBuy)
+        } else if (MANTECA_CURRENCIES.has(from) && MANTECA_CURRENCIES.has(to)) {
+            // LATAM currency → LATAM currency: convert through USD
+            const fromResponse = await mantecaApi.getPrices({ asset: 'USDC', against: from })
+            const toResponse = await mantecaApi.getPrices({ asset: 'USDC', against: to })
+
+            // from → USD → to
+            const fromToUsd = 1 / Number(fromResponse.effectiveBuy)
+            const usdToTo = Number(toResponse.effectiveSell)
+            return fromToUsd * usdToTo
+        } else {
+            // One currency is LATAM, the other is not USD - this shouldn't happen in our flow
+            // but we'll return null to fall back to other providers
+            console.warn(`Unsupported Manteca conversion: ${from} → ${to}`)
+            return null
+        }
+    } catch (error) {
+        console.error(`Manteca API error for ${from}-${to}:`, error)
         return null
     }
 }
