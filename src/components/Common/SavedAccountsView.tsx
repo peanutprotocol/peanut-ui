@@ -1,5 +1,5 @@
 'use client'
-import { countryData as ALL_METHODS_DATA, countryCodeMap } from '@/components/AddMoney/consts'
+import { countryData as ALL_METHODS_DATA, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { shortenAddressLong, formatIban } from '@/utils/general.utils'
 import { AccountType, Account } from '@/interfaces'
 import Image from 'next/image'
@@ -74,7 +74,8 @@ export function SavedAccountsMapping({
                 }
 
                 const threeLetterCountryCode = (details.countryCode ?? '').toUpperCase()
-                const twoLetterCountryCode = countryCodeMap[threeLetterCountryCode] ?? threeLetterCountryCode
+                const twoLetterCountryCode =
+                    ALL_COUNTRIES_ALPHA3_TO_ALPHA2[threeLetterCountryCode] ?? threeLetterCountryCode
 
                 const countryCodeForFlag = twoLetterCountryCode.toLowerCase() ?? ''
 

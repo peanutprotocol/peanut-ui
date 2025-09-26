@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
-import { countryCodeMap } from '@/components/AddMoney/consts'
+import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
@@ -183,7 +183,8 @@ export default function WithdrawBankPage() {
 
     const countryCodeForFlag = () => {
         if (!bankAccount?.details?.countryCode) return ''
-        const code = countryCodeMap[bankAccount.details.countryCode ?? ''] ?? bankAccount.details.countryCode
+        const code =
+            ALL_COUNTRIES_ALPHA3_TO_ALPHA2[bankAccount.details.countryCode ?? ''] ?? bankAccount.details.countryCode
         return code.toLowerCase()
     }
 

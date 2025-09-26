@@ -1,7 +1,7 @@
 'use client'
 import { updateUserById } from '@/app/actions/users'
 import { Button } from '@/components/0_Bruddle'
-import { countryCodeMap, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
+import { BRIDGE_ALPHA3_TO_ALPHA2, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import { UserDetailsForm, UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { CountryList } from '@/components/Common/CountryList'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -23,7 +23,6 @@ import useKycStatus from '@/hooks/useKycStatus'
 import { getRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
 
 const IdentityVerificationView = () => {
-    const { user, fetchUser } = useAuth()
     const router = useRouter()
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isUserDetailsFormValid, setIsUserDetailsFormValid] = useState(false)
@@ -34,8 +33,10 @@ const IdentityVerificationView = () => {
     const [isMantecaModalOpen, setIsMantecaModalOpen] = useState(false)
     const [selectedCountry, setSelectedCountry] = useState<{ id: string; title: string } | null>(null)
     const [userClickedCountry, setUserClickedCountry] = useState<{ id: string; title: string } | null>(null)
+    const { isUserBridgeKycApproved } = useKycStatus()
+    const { user, fetchUser } = useAuth()
 
-    const handleRedirect = useCallback(() => {
+    const handleRedirect = () => {
         const redirectUrl = getRedirectUrl()
         if (redirectUrl) {
             clearRedirectUrl()
@@ -43,87 +44,80 @@ const IdentityVerificationView = () => {
         } else {
             router.replace('/profile')
         }
-    }, [router])
-
-    const handleKycSuccess = useCallback(async () => {
-        await fetchUser()
-        handleRedirect()
-    }, [router, fetchUser])
-
-    const handleMantecaKycSuccess = useCallback(() => {
-        handleRedirect()
-    }, [router])
+    }
 
     const {
         iframeOptions,
         handleInitiateKyc,
-        handleIframeClose,
         isVerificationProgressModalOpen,
         closeVerificationProgressModal,
         error: kycError,
         isLoading: isKycLoading,
-    } = useBridgeKycFlow({ onKycSuccess: handleKycSuccess })
-
-    const { isUserBridgeKycApproved } = useKycStatus()
-
-    const [firstName, ...lastNameParts] = (user?.user.fullName ?? '').split(' ')
-    const lastName = lastNameParts.join(' ')
+    } = useBridgeKycFlow({
+        onKycSuccess: async () => {
+            await fetchUser()
+            handleRedirect()
+        },
+    })
 
     const initialUserDetails: Partial<UserDetailsFormData> = useMemo(
         () => ({
             fullName: user?.user.fullName ?? '',
             email: user?.user.email ?? '',
         }),
-        [user?.user.fullName, user?.user.email, firstName, lastName]
+        [user]
     )
 
-    const handleUserDetailsSubmit = async (data: UserDetailsFormData) => {
-        setIsUpdatingUser(true)
-        setUserUpdateError(null)
-        try {
-            if (!user?.user.userId) throw new Error('User not found')
-            const result = await updateUserById({
-                userId: user.user.userId,
-                fullName: data.fullName,
-                email: data.email,
-            })
-            if (result.error) {
-                throw new Error(result.error)
+    const handleUserDetailsSubmit = useCallback(
+        async (data: UserDetailsFormData) => {
+            setIsUpdatingUser(true)
+            setUserUpdateError(null)
+            try {
+                if (!user?.user.userId) throw new Error('User not found')
+                const result = await updateUserById({
+                    userId: user.user.userId,
+                    fullName: data.fullName,
+                    email: data.email,
+                })
+                if (result.error) {
+                    throw new Error(result.error)
+                }
+                await fetchUser()
+                await handleInitiateKyc()
+            } catch (error: any) {
+                setUserUpdateError(error.message)
+                return { error: error.message }
+            } finally {
+                setIsUpdatingUser(false)
             }
-            await fetchUser()
-            await handleInitiateKyc()
-        } catch (error: any) {
-            setUserUpdateError(error.message)
-            return { error: error.message }
-        } finally {
-            setIsUpdatingUser(false)
-        }
-        return {}
-    }
+            return {}
+        },
+        [user]
+    )
 
     const handleBack = useCallback(() => {
         if (showUserDetailsForm) {
             setShowUserDetailsForm(false)
         } else {
-            router.replace('/profile')
+            handleRedirect()
         }
-    }, [router, showUserDetailsForm])
+    }, [showUserDetailsForm])
 
     // country validation helpers
-    const isBridgeSupportedCountry = useCallback((code: string) => {
+    const isBridgeSupportedCountry = (code: string) => {
         const upper = code.toUpperCase()
         return (
             upper === 'US' ||
             upper === 'MX' ||
-            Object.keys(countryCodeMap).includes(upper) ||
-            Object.values(countryCodeMap).includes(upper)
+            Object.keys(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper) ||
+            Object.values(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper)
         )
-    }, [])
+    }
 
-    const isMantecaSupportedCountry = useCallback((code: string) => {
+    const isMantecaSupportedCountry = (code: string) => {
         const upper = code.toUpperCase()
         return Object.prototype.hasOwnProperty.call(MantecaSupportedExchanges, upper)
-    }, [])
+    }
 
     const isVerifiedForCountry = useCallback(
         (code: string) => {
@@ -139,91 +133,83 @@ const IdentityVerificationView = () => {
             )
             return Boolean(mantecaActive)
         },
-        [isBridgeSupportedCountry, user?.user.bridgeKycStatus, user?.user.kycVerifications]
+        [user]
     )
-
-    // view components
-    const CountrySelectionView = () => (
-        <div className="my-auto">
-            <CountryList
-                inputTitle="Select your region."
-                viewMode="general-verification"
-                getRightContent={(country) =>
-                    isVerifiedForCountry(country.id) ? (
-                        <Icon name="check" className="size-4 text-success-3" />
-                    ) : undefined
-                }
-                onCountryClick={(country) => {
-                    const { id, title } = country
-                    setUserClickedCountry({ id, title })
-
-                    if (isVerifiedForCountry(id)) {
-                        setIsAlreadyVerifiedModalOpen(true)
-                        return
-                    }
-
-                    if (isBridgeSupportedCountry(id)) {
-                        setShowUserDetailsForm(true)
-                        return
-                    }
-
-                    if (isMantecaSupportedCountry(id)) {
-                        setSelectedCountry({ id, title })
-                        setIsMantecaModalOpen(true)
-                    }
-                }}
-                onCryptoClick={() => console.log('crypto')}
-            />
-        </div>
-    )
-
-    const UserDetailsFormView = () => (
-        <div className="my-auto pt-[25%]">
-            <h1 className="mb-3 font-bold">Provide information to begin verification</h1>
-
-            <UserDetailsForm
-                ref={formRef}
-                onSubmit={handleUserDetailsSubmit}
-                isSubmitting={isUpdatingUser}
-                onValidChange={setIsUserDetailsFormValid}
-                initialData={initialUserDetails}
-            />
-
-            <Button
-                onClick={() => formRef.current?.handleSubmit()}
-                loading={isUpdatingUser || isKycLoading}
-                variant="purple"
-                shadowSize="4"
-                className="mt-3 w-full"
-                disabled={!isUserDetailsFormValid || isUpdatingUser || isKycLoading}
-                icon="check-circle"
-            >
-                Verify now
-            </Button>
-
-            <PeanutDoesntStoreAnyPersonalInformation className="mt-3 w-full justify-center" />
-
-            {(userUpdateError || kycError) && <ErrorAlert description={userUpdateError ?? kycError ?? ''} />}
-
-            <IframeWrapper {...iframeOptions} onClose={handleIframeClose} />
-
-            <KycVerificationInProgressModal
-                isOpen={isVerificationProgressModalOpen}
-                onClose={closeVerificationProgressModal}
-            />
-        </div>
-    )
-
-    // determine which view to show based on current state
-    const getCurrentView = () => {
-        return showUserDetailsForm ? <UserDetailsFormView /> : <CountrySelectionView />
-    }
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
             <NavHeader title="Identity Verification" onPrev={handleBack} />
 
-            {getCurrentView()}
+            {showUserDetailsForm ? (
+                <div className="my-auto pt-[25%]">
+                    <h1 className="mb-3 font-bold">Provide information to begin verification</h1>
+
+                    <UserDetailsForm
+                        ref={formRef}
+                        onSubmit={handleUserDetailsSubmit}
+                        isSubmitting={isUpdatingUser}
+                        onValidChange={setIsUserDetailsFormValid}
+                        initialData={initialUserDetails}
+                    />
+
+                    <Button
+                        onClick={() => formRef.current?.handleSubmit()}
+                        loading={isUpdatingUser || isKycLoading}
+                        variant="purple"
+                        shadowSize="4"
+                        className="mt-3 w-full"
+                        disabled={!isUserDetailsFormValid || isUpdatingUser || isKycLoading}
+                        icon="check-circle"
+                    >
+                        Verify now
+                    </Button>
+
+                    <PeanutDoesntStoreAnyPersonalInformation className="mt-3 w-full justify-center" />
+
+                    {(userUpdateError || kycError) && <ErrorAlert description={userUpdateError ?? kycError ?? ''} />}
+
+                    <IframeWrapper {...iframeOptions} onClose={handleRedirect} />
+
+                    <KycVerificationInProgressModal
+                        isOpen={isVerificationProgressModalOpen}
+                        onClose={() => {
+                            closeVerificationProgressModal()
+                            handleRedirect()
+                        }}
+                    />
+                </div>
+            ) : (
+                <div className="my-auto">
+                    <CountryList
+                        inputTitle="Select your region."
+                        viewMode="general-verification"
+                        getRightContent={(country) =>
+                            isVerifiedForCountry(country.id) ? (
+                                <Icon name="check" className="size-4 text-success-3" />
+                            ) : undefined
+                        }
+                        onCountryClick={(country) => {
+                            const { id, title } = country
+                            setUserClickedCountry({ id, title })
+
+                            if (isVerifiedForCountry(id)) {
+                                setIsAlreadyVerifiedModalOpen(true)
+                                return
+                            }
+
+                            if (isBridgeSupportedCountry(id)) {
+                                setShowUserDetailsForm(true)
+                                return
+                            }
+
+                            if (isMantecaSupportedCountry(id)) {
+                                setSelectedCountry({ id, title })
+                                setIsMantecaModalOpen(true)
+                            }
+                        }}
+                    />
+                </div>
+            )}
 
             <ActionModal
                 visible={isAlreadyVerifiedModalOpen}
@@ -241,7 +227,10 @@ const IdentityVerificationView = () => {
                         text: 'Close',
                         shadowSize: '4',
                         className: 'md:py-2',
-                        onClick: () => setIsAlreadyVerifiedModalOpen(false),
+                        onClick: () => {
+                            setIsAlreadyVerifiedModalOpen(false)
+                            handleRedirect()
+                        },
                     },
                 ]}
             />
@@ -252,7 +241,7 @@ const IdentityVerificationView = () => {
                     selectedCountry={selectedCountry}
                     setIsMantecaModalOpen={setIsMantecaModalOpen}
                     isMantecaModalOpen={isMantecaModalOpen}
-                    onKycSuccess={handleMantecaKycSuccess}
+                    onKycSuccess={handleRedirect}
                 />
             )}
         </div>

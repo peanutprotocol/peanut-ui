@@ -4,7 +4,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
 import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
-import { countryCodeMap } from '../consts'
+import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '../consts'
 
 export interface DepositMethod {
     type: 'crypto' | 'country'
@@ -54,7 +54,8 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                 }
 
                 const threeLetterCountryCode = (method.id ?? '').toUpperCase()
-                const twoLetterCountryCode = countryCodeMap[threeLetterCountryCode] ?? threeLetterCountryCode
+                const twoLetterCountryCode =
+                    ALL_COUNTRIES_ALPHA3_TO_ALPHA2[threeLetterCountryCode] ?? threeLetterCountryCode
 
                 const countryCodeForFlag = twoLetterCountryCode.toLowerCase() ?? ''
 
