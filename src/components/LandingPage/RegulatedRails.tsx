@@ -103,8 +103,9 @@ export function RegulatedRails() {
                     REGULATED RAILS, SELF-CUSTODY CONTROL
                 </h1>
                 <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">
-                    Peanut connects your self-custodial wallet to global regulated banks and top compliance partners. It
-                    operates under international licenses and standards to keep transactions secure.
+                    Peanut is a self-custodial wallet that seamlessly connects to banks and payment networks (examples
+                    below) via multiple 3rd party partners who operate under international licenses and standards to
+                    keep every transaction secure, private, and under your control.
                 </p>
 
                 <h6 className="font-roboto-flex mt-3 text-xs md:text-lg">

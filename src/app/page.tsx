@@ -36,7 +36,7 @@ export default function LandingPage() {
             message: ['No fees', 'Instant', '24/7', 'USD', 'EUR', 'CRYPTO', 'GLOBAL', 'SELF-CUSTODIAL'],
         },
         primaryCta: {
-            label: 'TRY NOW!',
+            label: 'JOIN WAITLIST',
             href: '/setup',
         },
     }

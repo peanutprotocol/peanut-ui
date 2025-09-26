@@ -31,9 +31,9 @@ export function YourMoney() {
                     >
                         <Button
                             shadowSize="4"
-                            className="h-10 w-28 bg-white py-0 text-sm font-extrabold hover:bg-white/90 md:w-40 md:py-6 md:text-lg"
+                            className="h-10 w-38 bg-white py-0 text-sm font-extrabold hover:bg-white/90 md:w-40 md:py-6 md:text-lg"
                         >
-                            TRY NOW
+                            JOIN WAITLIST
                         </Button>
                     </a>
                 </div>

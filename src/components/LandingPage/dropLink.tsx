@@ -38,7 +38,7 @@ export function DropLink() {
                             shadowSize="4"
                             className="mt-8 hidden w-58 bg-white px-7 pb-11 pt-4 text-base font-extrabold hover:bg-white/90 md:inline-block md:w-72 md:px-10 md:text-lg"
                         >
-                            TRY NOW!
+                            JOIN WAITLIST
                         </Button>
                     </a>
                 </div>
