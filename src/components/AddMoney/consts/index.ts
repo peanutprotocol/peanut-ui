@@ -2484,7 +2484,7 @@ const LATAM_COUNTRY_CODES = [
 
 // bridge EAA country codes, source: https://apidocs.bridge.xyz/docs/sepa-euro-transactions
 // note: this is a map of 3-letter country codes to 2-letter country codes, for flags to work, bridge expects 3 letter codes
-export const countryCodeMap: { [key: string]: string } = {
+export const BRIDGE_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ALA: 'AX',
     AND: 'AD',
     AUT: 'AT',
@@ -2528,9 +2528,20 @@ export const countryCodeMap: { [key: string]: string } = {
     USA: 'US',
 }
 
-const enabledBankWithdrawCountries = new Set([...Object.values(countryCodeMap), 'US', 'MX', 'AR', 'BO'])
+export const MANTECA_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
+    ARG: 'AR',
+    BOL: 'BO',
+    BRA: 'BR',
+}
 
-const enabledBankDepositCountries = new Set([...Object.values(countryCodeMap), 'US', 'AR'])
+export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
+    ...BRIDGE_ALPHA3_TO_ALPHA2,
+    ...MANTECA_ALPHA3_TO_ALPHA2,
+}
+
+const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR', 'BO'])
+
+const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'AR'])
 
 // Helper function to check if a country code is enabled for bank transfers
 // Handles both 2-letter and 3-letter country codes
@@ -2542,7 +2553,7 @@ const isCountryEnabledForBankTransfer = (countryCode: string, direction: 'withdr
     }
 
     // Check if it's a 3-letter code that maps to an enabled 2-letter code
-    const mappedCode = countryCodeMap[countryCode]
+    const mappedCode = ALL_COUNTRIES_ALPHA3_TO_ALPHA2[countryCode]
     return mappedCode ? enabledCountries.has(mappedCode) : false
 }
 

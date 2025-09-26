@@ -1,7 +1,7 @@
 'use client'
 import { updateUserById } from '@/app/actions/users'
 import { Button } from '@/components/0_Bruddle'
-import { countryCodeMap, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
+import { BRIDGE_ALPHA3_TO_ALPHA2, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
 import { UserDetailsForm, UserDetailsFormData } from '@/components/AddMoney/UserDetailsForm'
 import { CountryList } from '@/components/Common/CountryList'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -109,8 +109,8 @@ const IdentityVerificationView = () => {
         return (
             upper === 'US' ||
             upper === 'MX' ||
-            Object.keys(countryCodeMap).includes(upper) ||
-            Object.values(countryCodeMap).includes(upper)
+            Object.keys(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper) ||
+            Object.values(BRIDGE_ALPHA3_TO_ALPHA2).includes(upper)
         )
     }
 

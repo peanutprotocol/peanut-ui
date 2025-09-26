@@ -1,5 +1,11 @@
 'use client'
-import { countryCodeMap, CountryData, countryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
+import {
+    BRIDGE_ALPHA3_TO_ALPHA2,
+    CountryData,
+    countryData,
+    MantecaSupportedExchanges,
+    ALL_COUNTRIES_ALPHA3_TO_ALPHA2,
+} from '@/components/AddMoney/consts'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { SearchInput } from '@/components/SearchUsers/SearchInput'
 import { SearchResultCard } from '@/components/SearchUsers/SearchResultCard'
@@ -49,9 +55,11 @@ export const CountryList = ({
         return [...supportedCountries].sort((a, b) => {
             if (userGeoLocationCountryCode) {
                 const aIsUserCountry =
-                    countryCodeMap[a.id] === userGeoLocationCountryCode || a.id === userGeoLocationCountryCode
+                    ALL_COUNTRIES_ALPHA3_TO_ALPHA2[a.id] === userGeoLocationCountryCode ||
+                    a.id === userGeoLocationCountryCode
                 const bIsUserCountry =
-                    countryCodeMap[b.id] === userGeoLocationCountryCode || b.id === userGeoLocationCountryCode
+                    ALL_COUNTRIES_ALPHA3_TO_ALPHA2[b.id] === userGeoLocationCountryCode ||
+                    b.id === userGeoLocationCountryCode
 
                 if (aIsUserCountry && !bIsUserCountry) return -1
                 if (!aIsUserCountry && bIsUserCountry) return 1
@@ -107,14 +115,14 @@ export const CountryList = ({
                     {filteredCountries.length > 0 ? (
                         filteredCountries.map((country, index) => {
                             const twoLetterCountryCode =
-                                countryCodeMap[country.id.toUpperCase()] ?? country.id.toLowerCase()
+                                ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.id.toUpperCase()] ?? country.id.toLowerCase()
                             const position = getCardPosition(index, filteredCountries.length)
 
                             const isBridgeSupportedCountry = [
                                 'US',
                                 'MX',
-                                ...Object.keys(countryCodeMap),
-                                ...Object.values(countryCodeMap),
+                                ...Object.keys(BRIDGE_ALPHA3_TO_ALPHA2),
+                                ...Object.values(BRIDGE_ALPHA3_TO_ALPHA2),
                             ].includes(country.id)
                             const isMantecaSupportedCountry = Object.keys(MantecaSupportedExchanges).includes(
                                 country.id

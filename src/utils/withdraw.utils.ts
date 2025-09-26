@@ -1,4 +1,4 @@
-import { countryData, countryCodeMap } from '@/components/AddMoney/consts'
+import { countryData, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 
 /**
  * Extracts the country name from an IBAN by parsing the first 2 characters (country code)
@@ -136,12 +136,14 @@ export const validateMXCLabeAccount = (accountNumber: string) => {
 // Returns the 3-letter country code for the given country code
 export const getCountryCodeForWithdraw = (country: string) => {
     // If the input is already a 3-digit code and exists in the map, return it
-    if (countryCodeMap[country]) {
+    if (ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country]) {
         return country
     }
 
     // If the input is a 2-digit code, find the corresponding 3-digit code
-    const threeDigitCode = Object.keys(countryCodeMap).find((key) => countryCodeMap[key] === country)
+    const threeDigitCode = Object.keys(ALL_COUNTRIES_ALPHA3_TO_ALPHA2).find(
+        (key) => ALL_COUNTRIES_ALPHA3_TO_ALPHA2[key] === country
+    )
 
     return threeDigitCode || country
 }
