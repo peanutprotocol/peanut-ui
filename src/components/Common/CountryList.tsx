@@ -135,8 +135,9 @@ export const CountryList = ({
                                 // all countries supported for claim-request
                                 isSupported = true
                             } else if (viewMode === 'general-verification') {
-                                // support all bridge and manteca supported countries
-                                isSupported = isBridgeSupportedCountry || isMantecaSupportedCountry
+                                // all countries can verify even if they cant
+                                // withdraw
+                                isSupported = true
                             } else if (viewMode === 'claim-request') {
                                 // support all bridge and manteca supported countries
                                 isSupported = isBridgeSupportedCountry || isMantecaSupportedCountry
@@ -144,14 +145,6 @@ export const CountryList = ({
                                 // support all countries
                                 isSupported = true
                             }
-
-                            // flag used to show soon badge based on the view mode, check country code map keys and values for supported countries
-                            // const isSupported =
-                            //     viewMode === 'add-withdraw' ||
-                            //     viewMode === 'general-verification' ||
-                            //     ['US', 'MX', ...Object.keys(countryCodeMap), ...Object.values(countryCodeMap)].includes(
-                            //         country.id
-                            //     )
 
                             const customRight = getRightContent ? getRightContent(country, isSupported) : undefined
 

@@ -29,7 +29,7 @@ export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDeta
                 fullName: initialData?.fullName ?? '',
                 email: initialData?.email ?? '',
             },
-            mode: 'onBlur',
+            mode: 'all',
         })
 
         useEffect(() => {

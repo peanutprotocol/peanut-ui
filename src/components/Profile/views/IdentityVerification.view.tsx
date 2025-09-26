@@ -125,13 +125,14 @@ const IdentityVerificationView = () => {
             // bridge approval covers us/mx/sepa generally
             if (isBridgeSupportedCountry(upper) && isUserBridgeKycApproved) return true
             // manteca per-geo check
-            const mantecaActive = user?.user.kycVerifications?.some(
-                (v) =>
-                    v.provider === 'MANTECA' &&
-                    (v.mantecaGeo || '').toUpperCase() === upper &&
-                    v.status === MantecaKycStatus.ACTIVE
-            )
-            return Boolean(mantecaActive)
+            const mantecaActive =
+                user?.user.kycVerifications?.some(
+                    (v) =>
+                        v.provider === 'MANTECA' &&
+                        (v.mantecaGeo || '').toUpperCase() === upper &&
+                        v.status === MantecaKycStatus.ACTIVE
+                ) ?? false
+            return mantecaActive
         },
         [user]
     )
@@ -181,7 +182,7 @@ const IdentityVerificationView = () => {
             ) : (
                 <div className="my-auto">
                     <CountryList
-                        inputTitle="Select your region."
+                        inputTitle="Select your country of citizenship."
                         viewMode="general-verification"
                         getRightContent={(country) =>
                             isVerifiedForCountry(country.id) ? (
@@ -197,14 +198,11 @@ const IdentityVerificationView = () => {
                                 return
                             }
 
-                            if (isBridgeSupportedCountry(id)) {
-                                setShowUserDetailsForm(true)
-                                return
-                            }
-
                             if (isMantecaSupportedCountry(id)) {
                                 setSelectedCountry({ id, title })
                                 setIsMantecaModalOpen(true)
+                            } else {
+                                setShowUserDetailsForm(true)
                             }
                         }}
                     />
