@@ -39,8 +39,65 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        const pairKey = `${fromUc}-${toUc}`
-        const reversePairKey = `${toUc}-${fromUc}`
+        // If either currency is USD, handle direct conversion
+        if (fromUc === 'USD' || toUc === 'USD') {
+            const pairKey = `${fromUc}-${toUc}`
+            const reversePairKey = `${toUc}-${fromUc}`
+
+            // Check if we should use Bridge for this pair or its reverse
+            const shouldUseBridge = BRIDGE_PAIRS.has(pairKey)
+            const shouldUseBridgeReverse = BRIDGE_PAIRS.has(reversePairKey)
+
+            if (shouldUseBridge || shouldUseBridgeReverse) {
+                // For Bridge pairs, we need to determine which rate to use
+                let bridgeResult
+                if (shouldUseBridge) {
+                    // Direct pair (e.g., USD→EUR): use sell_rate
+                    bridgeResult = await fetchFromBridge(fromUc, toUc, 'sell_rate', false)
+                } else {
+                    // Reverse pair (e.g., EUR→USD): fetch USD→EUR and use buy_rate, then invert
+                    bridgeResult = await fetchFromBridge(toUc, fromUc, 'buy_rate', true)
+                }
+
+                if (bridgeResult) {
+                    return bridgeResult
+                }
+                // Fall back to Frankfurter if Bridge fails
+                console.warn(`Bridge failed for ${pairKey}, falling back to Frankfurter`)
+            }
+
+            // Use Frankfurter for all other pairs or as fallback
+            return await fetchFromFrankfurter(fromUc, toUc)
+        }
+
+        // For non-USD pairs, convert through USD: from → USD → to
+        const fromToUsdRate = await getExchangeRate(fromUc, 'USD')
+        const usdToToRate = await getExchangeRate('USD', toUc)
+
+        if (!fromToUsdRate || !usdToToRate) {
+            return NextResponse.json({ error: 'Failed to fetch intermediate USD rates' }, { status: 500 })
+        }
+
+        const combinedRate = fromToUsdRate * usdToToRate
+
+        return NextResponse.json(
+            { rate: combinedRate },
+            {
+                headers: {
+                    'Cache-Control': 's-maxage=300, stale-while-revalidate=600',
+                },
+            }
+        )
+    } catch (error) {
+        console.error('Exchange rate API error:', error)
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+}
+
+async function getExchangeRate(from: string, to: string): Promise<number | null> {
+    try {
+        const pairKey = `${from}-${to}`
+        const reversePairKey = `${to}-${from}`
 
         // Check if we should use Bridge for this pair or its reverse
         const shouldUseBridge = BRIDGE_PAIRS.has(pairKey)
@@ -51,24 +108,27 @@ export async function GET(request: NextRequest) {
             let bridgeResult
             if (shouldUseBridge) {
                 // Direct pair (e.g., USD→EUR): use sell_rate
-                bridgeResult = await fetchFromBridge(fromUc, toUc, 'sell_rate', false)
+                bridgeResult = await fetchFromBridge(from, to, 'sell_rate', false)
             } else {
                 // Reverse pair (e.g., EUR→USD): fetch USD→EUR and use buy_rate, then invert
-                bridgeResult = await fetchFromBridge(toUc, fromUc, 'buy_rate', true)
+                bridgeResult = await fetchFromBridge(to, from, 'buy_rate', true)
             }
 
             if (bridgeResult) {
-                return bridgeResult
+                const data = await bridgeResult.json()
+                return data.rate
             }
             // Fall back to Frankfurter if Bridge fails
             console.warn(`Bridge failed for ${pairKey}, falling back to Frankfurter`)
         }
 
         // Use Frankfurter for all other pairs or as fallback
-        return await fetchFromFrankfurter(fromUc, toUc)
+        const frankfurterResult = await fetchFromFrankfurter(from, to)
+        const data = await frankfurterResult.json()
+        return data.rate
     } catch (error) {
-        console.error('Exchange rate API error:', error)
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+        console.error(`Failed to get exchange rate for ${from}-${to}:`, error)
+        return null
     }
 }
 
