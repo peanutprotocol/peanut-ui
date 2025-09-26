@@ -50,13 +50,15 @@ const IdentityVerificationView = () => {
         iframeOptions,
         handleInitiateKyc,
         isVerificationProgressModalOpen,
+        handleIframeClose,
         closeVerificationProgressModal,
         error: kycError,
         isLoading: isKycLoading,
     } = useBridgeKycFlow({
         onKycSuccess: async () => {
             await fetchUser()
-            handleRedirect()
+            // wait for the user to be updated
+            setTimeout(() => handleRedirect(), 500)
         },
     })
 
@@ -169,7 +171,7 @@ const IdentityVerificationView = () => {
 
                     {(userUpdateError || kycError) && <ErrorAlert description={userUpdateError ?? kycError ?? ''} />}
 
-                    <IframeWrapper {...iframeOptions} onClose={handleRedirect} />
+                    <IframeWrapper {...iframeOptions} onClose={handleIframeClose} />
 
                     <KycVerificationInProgressModal
                         isOpen={isVerificationProgressModalOpen}

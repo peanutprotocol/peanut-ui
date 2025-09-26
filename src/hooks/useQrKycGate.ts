@@ -78,6 +78,7 @@ export function useQrKycGate(): QrKycGateResult {
         shouldBlockPay:
             kycGateState === QrKycState.REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER ||
             kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
+            kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS ||
             kycGateState === QrKycState.LOADING,
     }
 
