@@ -120,13 +120,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             handleSubmit: handleSubmit(onSubmit),
         }))
 
-        // Clear submission error when form becomes valid and BIC field is filled (if shown)
-        useEffect(() => {
-            if (submissionError && isValid && (!isIban || getValues('bic'))) {
-                setSubmissionError(null)
-            }
-        }, [isValid, submissionError, isIban, getValues])
-
         // Trigger BIC validation when debounced value changes
         useEffect(() => {
             if (isIban && debouncedBicValue && debouncedBicValue.trim().length > 0) {

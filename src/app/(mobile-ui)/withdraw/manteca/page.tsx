@@ -332,7 +332,10 @@ export default function MantecaWithdrawFlow() {
                     } else if (step === 'bankDetails') {
                         setStep('amountInput')
                     } else {
-                        router.replace(`/withdraw/${selectedCountry?.path}`)
+                        router.back()
+                        setTimeout(() => {
+                            router.replace(`/withdraw/${selectedCountry?.path}`)
+                        }, 100)
                     }
                 }}
             />

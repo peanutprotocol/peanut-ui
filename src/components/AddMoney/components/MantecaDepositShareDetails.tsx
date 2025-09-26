@@ -10,6 +10,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
+import { shortenStringLong } from '@/utils'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -50,6 +51,7 @@ const MantecaDepositShareDetails = ({
     }, [currentCountryDetails])
 
     const depositAddress = depositDetails.details.depositAddress
+    const shortenedAddress = depositAddress.length > 30 ? shortenStringLong(depositAddress, 10) : depositAddress
     const depositAlias = depositDetails.details.depositAlias
     const depositAmount = depositDetails.stages['1'].thresholdAmount
     const usdAmount = depositDetails.stages['3'].amount
@@ -104,7 +106,14 @@ const MantecaDepositShareDetails = ({
                 </Card>
                 <h2 className="font-bold">Account details</h2>
                 <Card className="space-y-0 rounded-sm px-4">
-                    {depositAddress && <PaymentInfoRow label={depositAddressLabel} value={depositAddress} allowCopy />}
+                    {depositAddress && (
+                        <PaymentInfoRow
+                            label={depositAddressLabel}
+                            value={shortenedAddress}
+                            copyValue={depositAddress}
+                            allowCopy
+                        />
+                    )}
                     {depositAlias && <PaymentInfoRow label="Alias" value={depositAlias} allowCopy />}
                     {currentCountryDetails?.id === 'AR' && (
                         <>

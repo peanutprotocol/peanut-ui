@@ -278,6 +278,23 @@ export default function QRPayPage() {
                     ]}
                     footer={<PeanutDoesntStoreAnyPersonalInformation />}
                 />
+                <ActionModal
+                    visible={kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS}
+                    onClose={() => router.back()}
+                    title="Identity Verification"
+                    description="Your identity is being verified. Please wait."
+                    icon="shield"
+                    ctas={[
+                        {
+                            text: 'Close',
+                            onClick: () => {
+                                router.back()
+                            },
+                            shadowSize: '4',
+                            className: 'md:py-2',
+                        },
+                    ]}
+                />
             </div>
         )
     }
@@ -381,7 +398,13 @@ export default function QRPayPage() {
                 <Card className="p-4">
                     <div className="flex items-center space-x-3">
                         <div className="flex items-center justify-center rounded-full bg-white">
-                            <Image src={methodIcon} alt="Mercado Pago" width={50} height={50} />
+                            <Image
+                                src={methodIcon}
+                                alt="Mercado Pago"
+                                width={48}
+                                height={48}
+                                className="h-12 w-12 rounded-full object-cover"
+                            />
                         </div>
                         <div>
                             <p className="flex items-center gap-1 text-center text-sm text-gray-600">

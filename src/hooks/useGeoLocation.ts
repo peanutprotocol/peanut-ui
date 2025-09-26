@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
  * Used to get the user's country code from ipapi.co
  * @returns {object} An object containing the country code, whether the request is loading, and any error that occurred
  */
-export const useGeoLocaion = () => {
+export const useGeoLocation = () => {
     const [countryCode, setCountryCode] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)

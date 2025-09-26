@@ -10,7 +10,7 @@ import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import { sendLinksApi } from '@/services/sendLinks'
 import { formatAmount, formatDate, getInitialsFromName, formatNumberForDisplay, isStableCoin } from '@/utils'
-import { formatIban, printableAddress, shortenAddress, shortenAddressLong, slugify } from '@/utils/general.utils'
+import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { getDisplayCurrencySymbol } from '@/utils/currency'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -408,12 +408,12 @@ export const TransactionDetailsReceipt = ({
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-2 hover:underline"
                                     >
-                                        <span>{shortenAddressLong(transaction.txHash)}</span>
+                                        <span>{shortenStringLong(transaction.txHash)}</span>
                                         <Icon name="external-link" size={12} />
                                     </Link>
                                 ) : (
                                     <div className="flex items-center gap-2">
-                                        <span>{shortenAddressLong(transaction.txHash)}</span>
+                                        <span>{shortenStringLong(transaction.txHash)}</span>
                                         <CopyToClipboard textToCopy={transaction.txHash} iconSize="4" />
                                     </div>
                                 )

@@ -1,6 +1,6 @@
 'use client'
 import { countryData as ALL_METHODS_DATA, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
-import { shortenAddressLong, formatIban } from '@/utils/general.utils'
+import { shortenStringLong, formatIban } from '@/utils/general.utils'
 import { AccountType, Account } from '@/interfaces'
 import Image from 'next/image'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -101,7 +101,7 @@ export function SavedAccountsMapping({
                 return (
                     <SearchResultCard
                         key={account.id}
-                        title={shortenAddressLong(formatIban(account.identifier), 6)}
+                        title={shortenStringLong(formatIban(account.identifier), 6)}
                         position={position}
                         onClick={() => onItemClick(account, path)}
                         className="p-4 py-2.5"

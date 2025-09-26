@@ -50,8 +50,9 @@ const MP_AR_REGEX = /^00020101021[12].*(?:0015com\.mercadopago|0016com\.mercadol
  * 1. Standard EMVco QR code format
  * 2. Argentina country code (5802AR)
  * 3. Argentine Peso currency (5303032)
+ * The three parts can be in any order in the QR
  */
-const ARGENTINA_QR3_REGEX = /^00020101021[12].*5303032.*5802AR.*/i
+const ARGENTINA_QR3_REGEX = /^(?=.*00020101021[12])(?=.*5303032)(?=.*5802AR)/i
 
 /* PIX is also a emvco qr code */
 const PIX_REGEX = /^.*000201.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
@@ -59,6 +60,7 @@ const PIX_REGEX = /^.*000201.*0014br\.gov\.bcb\.pix.*5303986.*5802BR.*$/i
 export const PAYMENT_PROCESSOR_REGEXES: { [key in QrType]?: RegExp } = {
     [EQrType.MERCADO_PAGO]: MP_AR_REGEX,
     [EQrType.PIX]: PIX_REGEX,
+    [EQrType.ARGENTINA_QR3]: ARGENTINA_QR3_REGEX,
 }
 
 const EIP_681_REGEX = /^ethereum:(?:pay-)?([^@/?]+)(?:@([^/?]+))?(?:\/([^?]+))?(?:\?(.*))?$/i

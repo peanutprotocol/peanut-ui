@@ -9,6 +9,7 @@ export enum QrKycState {
     LOADING = 'loading',
     PROCEED_TO_PAY = 'proceed_to_pay',
     REQUIRES_IDENTITY_VERIFICATION = 'requires_identity_verification',
+    IDENTITY_VERIFICATION_IN_PROGRESS = 'identity_verification_in_progress',
     REQUIRES_MANTECA_KYC_FOR_ARG_BRIDGE_USER = 'requires_manteca_kyc_for_arg_bridge_user',
 }
 
@@ -33,12 +34,14 @@ export function useQrKycGate(): QrKycGateResult {
             return
         }
 
-        const hasAnyMantecaKyc =
-            currentUser.kycVerifications?.some(
-                (v) => v.provider === 'MANTECA' && v.status === MantecaKycStatus.ACTIVE
-            ) ?? false
+        const mantecaKycs = currentUser.kycVerifications?.filter((v) => v.provider === 'MANTECA') ?? []
 
-        if (hasAnyMantecaKyc) {
+        const hasAnyMantecaKyc = mantecaKycs.length > 0
+        const hasAnyActiveMantecaKyc =
+            hasAnyMantecaKyc &&
+            mantecaKycs.some((v) => v.provider === 'MANTECA' && v.status === MantecaKycStatus.ACTIVE)
+
+        if (hasAnyActiveMantecaKyc) {
             setKycGateState(QrKycState.PROCEED_TO_PAY)
             return
         }
@@ -55,6 +58,11 @@ export function useQrKycGate(): QrKycGateResult {
                 // fail to require identity verification to avoid blocking pay due to rare outages
                 setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
             }
+            return
+        }
+
+        if (hasAnyMantecaKyc) {
+            setKycGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
             return
         }
 

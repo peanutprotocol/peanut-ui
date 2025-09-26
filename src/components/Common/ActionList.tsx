@@ -25,7 +25,7 @@ import ActionListDaimoPayButton from './ActionListDaimoPayButton'
 import { ACTION_METHODS, PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../Claim/useClaimLink'
 import { useAuth } from '@/context/authContext'
-import { useGeoLocaion } from '@/hooks/useGeoLocaion'
+import { useGeoLocation } from '@/hooks/useGeoLocation'
 import Loading from '../Global/Loading'
 
 interface IActionListProps {
@@ -70,7 +70,7 @@ export default function ActionList({ claimLinkData, isLoggedIn, flow, requestLin
     const [isGuestVerificationModalOpen, setIsGuestVerificationModalOpen] = useState(false)
     const { user } = useAuth()
 
-    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocaion()
+    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()
 
     const handleMethodClick = async (method: PaymentMethod) => {
         if (flow === 'claim' && claimLinkData) {
