@@ -201,11 +201,11 @@ export default function QRPayPage() {
 
     // Check user balance
     useEffect(() => {
-        if (!usdAmount || balance === undefined) {
+        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
             setBalanceErrorMessage(null)
             return
         }
-        const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
+        const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
         if (paymentAmount > parseUnits(MAX_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`QR payment amount exceeds maximum limit of $${MAX_QR_PAYMENT_AMOUNT}`)
         } else if (paymentAmount > balance) {

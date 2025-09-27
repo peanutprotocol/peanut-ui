@@ -239,7 +239,7 @@ export default function MantecaWithdrawFlow() {
     }, [])
 
     useEffect(() => {
-        if (!usdAmount || usdAmount === '0.00' || balance === undefined) {
+        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
             setBalanceErrorMessage(null)
             return
         }
