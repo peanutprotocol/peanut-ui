@@ -1,5 +1,8 @@
 export const MANTECA_DEPOSIT_ADDRESS = '0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053'
 
+export const MANTECA_ARG_DEPOSIT_NAME = 'Sixalime Sas'
+export const MANTECA_ARG_DEPOSIT_CUIT = '30-71678845-3'
+
 // Countries that use Manteca for bank withdrawals instead of Bridge
 export const MANTECA_COUNTRIES = [
     'argentina', // ARS, USD, BRL (QR pix payments)
@@ -38,6 +41,7 @@ export type MantecaBankCode = {
 
 type MantecaCountryConfig = {
     accountNumberLabel: string
+    depositAddressLabel: string
 } & (
     | {
           needsBankCode: true
@@ -63,16 +67,19 @@ type MantecaCountryConfig = {
 export const MANTECA_COUNTRIES_CONFIG: Record<string, MantecaCountryConfig> = {
     AR: {
         accountNumberLabel: 'CBU, CVU or Alias',
+        depositAddressLabel: 'CBU',
         needsBankCode: false,
         needsAccountType: false,
     },
     BR: {
         accountNumberLabel: 'PIX Key',
+        depositAddressLabel: 'PIX Key',
         needsBankCode: false,
         needsAccountType: false,
     },
     BO: {
         accountNumberLabel: 'Account Number',
+        depositAddressLabel: 'Deposit Address',
         needsBankCode: true,
         needsAccountType: true,
         validAccountTypes: [MantecaAccountType.CHECKING, MantecaAccountType.SAVINGS],

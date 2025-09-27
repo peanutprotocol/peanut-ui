@@ -84,6 +84,10 @@ export interface TransactionDetails {
             account_holder_name?: string
         }
         receipt?: {
+            depositDetails?: {
+                depositAddress: string
+                depositAlias: string
+            }
             initial_amount?: string
             developer_fee?: string
             exchange_fee?: string

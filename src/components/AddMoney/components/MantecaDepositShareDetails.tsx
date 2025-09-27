@@ -11,6 +11,11 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
 import { shortenStringLong } from '@/utils'
+import {
+    MANTECA_ARG_DEPOSIT_CUIT,
+    MANTECA_ARG_DEPOSIT_NAME,
+    MANTECA_COUNTRIES_CONFIG,
+} from '@/constants/manteca.consts'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -40,14 +45,8 @@ const MantecaDepositShareDetails = ({
     }, [currentCountryDetails])
 
     const depositAddressLabel = useMemo(() => {
-        switch (currentCountryDetails?.id) {
-            case 'AR':
-                return 'CBU'
-            case 'BR':
-                return 'Pix Key'
-            default:
-                return 'Deposit Address'
-        }
+        if (!currentCountryDetails) return 'Deposit Address'
+        return MANTECA_COUNTRIES_CONFIG[currentCountryDetails.id]?.depositAddressLabel ?? 'Deposit Address'
     }, [currentCountryDetails])
 
     const depositAddress = depositDetails.details.depositAddress
@@ -117,8 +116,8 @@ const MantecaDepositShareDetails = ({
                     {depositAlias && <PaymentInfoRow label="Alias" value={depositAlias} allowCopy />}
                     {currentCountryDetails?.id === 'AR' && (
                         <>
-                            <PaymentInfoRow label="Razón Social" value="Sixalime Sas" />
-                            <PaymentInfoRow label="CUIT" value="30-71678845-3" />
+                            <PaymentInfoRow label="Razón Social" value={MANTECA_ARG_DEPOSIT_NAME} />
+                            <PaymentInfoRow label="CUIT" value={MANTECA_ARG_DEPOSIT_CUIT} />
                         </>
                     )}
                     <PaymentInfoRow label="Exchange Rate" value={`1 USD = ${exchangeRate} ${currencySymbol}`} />
