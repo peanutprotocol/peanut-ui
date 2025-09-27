@@ -30,6 +30,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { MantecaAccountType, MANTECA_COUNTRIES_CONFIG, MantecaBankCode } from '@/constants/manteca.consts'
 import Select from '@/components/Global/Select'
+import { SoundPlayer } from '@/components/Global/SoundPlayer'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -262,6 +263,7 @@ export default function MantecaWithdrawFlow() {
     if (step === 'success') {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
+                <SoundPlayer sound="success" />
                 <NavHeader title="Withdraw" />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <Card className="flex flex-row items-center gap-3 p-4">

@@ -31,6 +31,7 @@ import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
 import ActionModal from '@/components/Global/ActionModal'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { EQrType } from '@/components/Global/DirectSendQR/utils'
+import { SoundPlayer } from '@/components/Global/SoundPlayer'
 
 const MAX_QR_PAYMENT_AMOUNT = '200'
 
@@ -309,6 +310,7 @@ export default function QRPayPage() {
     } else if (isSuccess) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
+                <SoundPlayer sound="success" />
                 <NavHeader title="Pay" />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <Card className="flex flex-row items-center gap-3 p-4">
