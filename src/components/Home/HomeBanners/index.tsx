@@ -12,7 +12,7 @@ const HomeBanners = () => {
         <Carousel>
             {banners.map((banner) => (
                 <BannerCard
-                    key={banner.title}
+                    key={banner.id}
                     title={banner.title}
                     description={banner.description}
                     icon={banner.icon as IconName}
