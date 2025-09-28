@@ -170,7 +170,9 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    FROM NEW YORK TO MADRID TO MEXICO CITY
+                    FROM NEW YORK <br className="block lg:hidden" />
+                    TO MADRID <br className="block md:hidden" />
+                    TO MEXICO CITY
                 </span>
                 {primaryCta && renderCTAButton(primaryCta, 'primary')}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
