@@ -5,7 +5,7 @@ import { useUserStore } from '@/redux/hooks'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import StatusBadge, { StatusType } from '../Global/Badges/StatusBadge'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { KYCStatus, formatDate } from '@/utils'
+import { BridgeKycStatus, formatDate } from '@/utils'
 import { HTMLAttributes } from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -19,7 +19,7 @@ export const KycStatusItem = ({
 }) => {
     const { user } = useUserStore()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-    const [wsKycStatus, setWsKycStatus] = useState<KYCStatus | undefined>(undefined)
+    const [wsBridgeKycStatus, setWsBridgeKycStatus] = useState<BridgeKycStatus | undefined>(undefined)
 
     const handleCloseDrawer = useCallback(() => {
         setIsDrawerOpen(false)
@@ -30,26 +30,26 @@ export const KycStatusItem = ({
         username: user?.user.username ?? undefined,
         autoConnect: true,
         onKycStatusUpdate: (newStatus) => {
-            setWsKycStatus(newStatus as KYCStatus)
+            setWsBridgeKycStatus(newStatus as BridgeKycStatus)
         },
     })
 
-    const kycStatus = wsKycStatus || user?.user?.kycStatus
+    const birdgeKycStatus = wsBridgeKycStatus || user?.user?.bridgeKycStatus
 
     const subtitle = useMemo(() => {
-        const kycStartedAt = user?.user?.kycStartedAt
-        if (!kycStartedAt) {
+        const bridgeKycStartedAt = user?.user?.bridgeKycStartedAt
+        if (!bridgeKycStartedAt) {
             return 'Verification in progress'
         }
         try {
-            return `Submitted on ${formatDate(new Date(kycStartedAt)).split(' - ')[0]}`
+            return `Submitted on ${formatDate(new Date(bridgeKycStartedAt)).split(' - ')[0]}`
         } catch (error) {
-            console.error('Failed to parse kycStartedAt date:', error)
+            console.error('Failed to parse bridgeKycStartedAt date:', error)
             return 'Verification in progress'
         }
-    }, [user?.user?.kycStartedAt])
+    }, [user?.user?.bridgeKycStartedAt])
 
-    if (!kycStatus || kycStatus === 'not_started') {
+    if (!birdgeKycStatus || birdgeKycStatus === 'not_started') {
         return null
     }
 
@@ -74,10 +74,10 @@ export const KycStatusItem = ({
             <KycStatusDrawer
                 isOpen={isDrawerOpen}
                 onClose={handleCloseDrawer}
-                kycStatus={kycStatus}
-                kycStartedAt={user?.user?.kycStartedAt}
-                kycApprovedAt={user?.user?.kycApprovedAt}
-                kycRejectedAt={user?.user?.kycRejectedAt}
+                bridgeKycStatus={birdgeKycStatus}
+                bridgeKycStartedAt={user?.user?.bridgeKycStartedAt}
+                bridgeKycApprovedAt={user?.user?.bridgeKycApprovedAt}
+                bridgeKycRejectedAt={user?.user?.bridgeKycRejectedAt}
             />
         </>
     )

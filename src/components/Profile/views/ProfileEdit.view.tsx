@@ -112,7 +112,7 @@ export const ProfileEditView = () => {
         <div className="space-y-8">
             <NavHeader title="Edit Profile" onPrev={() => router.push('/profile')} />
 
-            <ProfileHeader name={fullName} username={username} isVerified={user?.user.kycStatus === 'approved'} />
+            <ProfileHeader name={fullName} username={username} isVerified={user?.user.bridgeKycStatus === 'approved'} />
 
             <div className="space-y-4">
                 <ProfileEditField
@@ -120,6 +120,7 @@ export const ProfileEditView = () => {
                     value={formData.name}
                     onChange={(value) => handleChange('name', value)}
                     placeholder="Add your name"
+                    disabled={user?.user.bridgeKycStatus === 'approved'}
                 />
 
                 <ProfileEditField
@@ -127,6 +128,7 @@ export const ProfileEditView = () => {
                     value={formData.surname}
                     onChange={(value) => handleChange('surname', value)}
                     placeholder="Add your surname"
+                    disabled={user?.user.bridgeKycStatus === 'approved'}
                 />
 
                 <ProfileEditField

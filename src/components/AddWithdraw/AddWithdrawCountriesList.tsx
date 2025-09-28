@@ -15,7 +15,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { InitiateKYCModal } from '@/components/Kyc'
 import { DynamicBankAccountForm, IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount, updateUserById } from '@/app/actions/users'
-import { KYCStatus } from '@/utils/bridge-accounts.utils'
+import { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
@@ -24,6 +24,8 @@ import PeanutLoading from '../Global/PeanutLoading'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import CryptoMethodDrawer from '../AddMoney/components/CryptoMethodDrawer'
+import { useAppDispatch } from '@/redux/hooks'
+import { bankFormActions } from '@/redux/slices/bank-form-slice'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -37,27 +39,30 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const { deviceType } = useDeviceType()
     const { user, fetchUser } = useAuth()
     const { setSelectedBankAccount, amountToWithdraw } = useWithdrawFlow()
+    const dispatch = useAppDispatch()
 
     // component level states
     const [view, setView] = useState<'list' | 'form'>('list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
-    const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(user?.user?.kycStatus as KYCStatus)
+    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(
+        user?.user?.bridgeKycStatus as BridgeKycStatus
+    )
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     useWebSocket({
         username: user?.user.username ?? undefined,
         autoConnect: !!user?.user.username,
         onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as KYCStatus)
+            setLiveKycStatus(newStatus as BridgeKycStatus)
         },
     })
 
     useEffect(() => {
-        if (user?.user.kycStatus) {
-            setLiveKycStatus(user.user.kycStatus as KYCStatus)
+        if (user?.user.bridgeKycStatus) {
+            setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
         }
-    }, [user?.user.kycStatus])
+    }, [user?.user.bridgeKycStatus])
 
     useEffect(() => {
         fetchUser()
@@ -75,7 +80,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         payload: AddBankAccountPayload,
         rawData: IBankAccountDetails
     ): Promise<{ error?: string }> => {
-        const currentKycStatus = liveKycStatus || user?.user.kycStatus
+        const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
         const isUserKycVerified = currentKycStatus === 'approved'
 
         const hasNameOnLoad = !!user?.user.fullName
@@ -91,7 +96,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 return { error: result.error }
             }
             if (!result.data) {
-                return { error: 'Failed to process bank account. Please try again.' }
+                return { error: 'Failed to process bank account. Please try again or contact support.' }
             }
 
             // after successfully adding, we refetch user data to get the new account
@@ -225,6 +230,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 <NavHeader
                     title={flow === 'withdraw' ? 'Withdraw' : 'Add money'}
                     onPrev={() => {
+                        // clear DynamicBankAccountForm data
+                        dispatch(bankFormActions.clearFormData())
                         // ensure kyc modal isn't open so late success events don't flip view
                         setIsKycModalOpen(false)
                         setView('list')

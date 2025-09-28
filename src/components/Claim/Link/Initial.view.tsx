@@ -11,13 +11,7 @@ import {
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
-import {
-    PEANUT_WALLET_CHAIN,
-    PEANUT_WALLET_TOKEN,
-    PINTA_WALLET_CHAIN,
-    PINTA_WALLET_TOKEN,
-    ROUTE_NOT_FOUND_ERROR,
-} from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, ROUTE_NOT_FOUND_ERROR } from '@/constants'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
@@ -103,7 +97,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         isXChain,
         setIsXChain,
     } = useContext(tokenSelectorContext)
-    const { claimLink, claimLinkXchain } = useClaimLink()
+    const { claimLink, claimLinkXchain, removeParamStep } = useClaimLink()
     const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
     const router = useRouter()
     const { user } = useAuth()
@@ -126,16 +120,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }, [claimLinkData, isPeanutWallet])
 
-    const isPeanutClaimOnlyMode = useMemo(() => {
-        return searchParams.get('t') === 'pnt'
-    }, [searchParams])
-
     const isPeanutChain = useMemo(() => {
-        return (
-            claimLinkData.chainId === PEANUT_WALLET_CHAIN.id.toString() ||
-            (areEvmAddressesEqual(claimLinkData.tokenAddress, PINTA_WALLET_TOKEN) &&
-                claimLinkData.chainId === PINTA_WALLET_CHAIN.id.toString())
-        )
+        return claimLinkData.chainId === PEANUT_WALLET_CHAIN.id.toString()
     }, [claimLinkData])
 
     // set token selector chain/token to peanut wallet chain/token if recipient type is username
@@ -157,7 +143,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }, [recipientType, claimLinkData.chainId, isPeanutChain, claimLinkData.tokenAddress])
 
     const handleClaimLink = useCallback(
-        async (bypassModal = false) => {
+        async (bypassModal = false, autoClaim = false) => {
             if (!isPeanutWallet && !bypassModal) {
                 setShowConfirmationModal(true)
                 return
@@ -175,8 +161,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             try {
                 setLoadingState('Executing transaction')
                 if (isPeanutWallet) {
-                    await sendLinksApi.claim(user?.user.username ?? address, claimLinkData.link)
-
+                    if (autoClaim) {
+                        await sendLinksApi.autoClaimLink(user?.user.username ?? address, claimLinkData.link)
+                    } else {
+                        await sendLinksApi.claim(user?.user.username ?? address, claimLinkData.link)
+                    }
                     setClaimType('claim')
                     onCustom('SUCCESS')
                     fetchBalance()
@@ -329,7 +318,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     recipient: recipient.name ?? recipient.address,
                     password: '',
                 })
-                if (user?.user.kycStatus === 'approved') {
+                if (user?.user.bridgeKycStatus === 'approved') {
                     const account = user.accounts.find(
                         (account) =>
                             account.identifier.replaceAll(/\s/g, '').toLowerCase() ===
@@ -399,10 +388,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
 
+    // We may need this when we re add rewards via specific tokens
+    // If not, feel free to remove
     const isReward = useMemo(() => {
-        if (!claimLinkData.tokenAddress) return false
-        return areEvmAddressesEqual(claimLinkData.tokenAddress, PINTA_WALLET_TOKEN)
-    }, [claimLinkData.tokenAddress])
+        return false
+    }, [])
 
     const fetchRoute = useCallback(
         async (toToken?: string, toChain?: string) => {
@@ -623,6 +613,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         }
     }
 
+    useEffect(() => {
+        const stepFromURL = searchParams.get('step')
+        if (user && claimLinkData.status !== 'CLAIMED' && stepFromURL === 'claim' && isPeanutWallet) {
+            removeParamStep()
+            handleClaimLink(false, true)
+        }
+    }, [user, searchParams, isPeanutWallet])
+
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
     }
@@ -670,7 +668,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                  */}
                 {recipientType !== 'iban' &&
                     recipientType !== 'us' &&
-                    !isPeanutClaimOnlyMode &&
                     claimBankFlowStep !== ClaimBankFlowStep.BankCountryList &&
                     !!claimToExternalWallet && (
                         <TokenSelector viewType="claim" disabled={recipientType === 'username'} />
@@ -678,33 +675,29 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
                 <div className="space-y-2">
                     {/* Alternative options section with divider */}
-                    {!isPeanutClaimOnlyMode && (
-                        <>
-                            {/* Manual Input Section - Always visible in non-peanut-only mode */}
-                            {!!claimToExternalWallet && (
-                                <GeneralRecipientInput
-                                    placeholder="Enter a username, an address or ENS"
-                                    recipient={recipient}
-                                    onUpdate={(update: GeneralRecipientUpdate) => {
-                                        setRecipient(update.recipient)
-                                        if (!update.recipient.address) {
-                                            setRecipientType('address')
-                                            // Reset loading state when input is cleared
-                                            setLoadingState('Idle')
-                                        } else {
-                                            setRecipientType(update.type)
-                                        }
-                                        setIsValidRecipient(update.isValid)
-                                        setErrorState({
-                                            showError: !update.isValid,
-                                            errorMessage: update.errorMessage,
-                                        })
-                                        setInputChanging(update.isChanging)
-                                    }}
-                                    showInfoText={false}
-                                />
-                            )}
-                        </>
+                    {/* Manual Input Section - Always visible in non-peanut-only mode */}
+                    {!!claimToExternalWallet && (
+                        <GeneralRecipientInput
+                            placeholder="Enter a username, an address or ENS"
+                            recipient={recipient}
+                            onUpdate={(update: GeneralRecipientUpdate) => {
+                                setRecipient(update.recipient)
+                                if (!update.recipient.address) {
+                                    setRecipientType('address')
+                                    // Reset loading state when input is cleared
+                                    setLoadingState('Idle')
+                                } else {
+                                    setRecipientType(update.type)
+                                }
+                                setIsValidRecipient(update.isValid)
+                                setErrorState({
+                                    showError: !update.isValid,
+                                    errorMessage: update.errorMessage,
+                                })
+                                setInputChanging(update.isChanging)
+                            }}
+                            showInfoText={false}
+                        />
                     )}
                     {recipientType === 'username' && !!claimToExternalWallet && (
                         <div className="text-xs text-grey-1">
@@ -732,7 +725,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                             {getButtonText()}
                         </Button>
                     )}
-                    {!isPeanutClaimOnlyMode && !claimToExternalWallet && (
+                    {!claimToExternalWallet && (
                         <ActionList flow="claim" claimLinkData={claimLinkData} isLoggedIn={!!user?.user.userId} />
                     )}
                 </div>
@@ -780,9 +773,13 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 modalPanelClassName="max-w-md mx-8"
             />
             <GuestVerificationModal
+                redirectToVerification
                 secondaryCtaLabel="Claim with other method"
-                isOpen={showVerificationModal && !user}
-                onClose={() => setShowVerificationModal(false)}
+                isOpen={showVerificationModal}
+                onClose={() => {
+                    removeParamStep()
+                    setShowVerificationModal(false)
+                }}
                 description="The sender isn't verified, so please create an account and verify your identity to have the funds deposited to your bank."
             />
         </div>
