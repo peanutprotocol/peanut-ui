@@ -13,7 +13,7 @@ interface BannerCardProps {
 
 const BannerCard = ({ title, description, icon, onClose }: BannerCardProps) => {
     return (
-        <Card className="relative flex flex-row items-center justify-around p-3">
+        <Card className="embla__slide relative flex flex-row items-center justify-around p-2">
             <div className="absolute right-2 top-2">
                 <Icon onClick={onClose} name="cancel" size={10} />
             </div>

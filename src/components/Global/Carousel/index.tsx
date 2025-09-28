@@ -1,17 +1,23 @@
 'use client'
-import 'slick-carousel/slick/slick.css'
-import 'slick-carousel/slick/slick-theme.css'
-import './carousel.css'
-
-import Slider from 'react-slick'
-import Card from '../Card'
+import { useCarouselDotButton } from '@/hooks/useCarouselDotButton'
+import useEmblaCarousel from 'embla-carousel-react'
 
 const Carousel = ({ children }: { children: React.ReactNode }) => {
+    const [emblaRef, emblaApi] = useEmblaCarousel()
+    const { selectedIndex, scrollSnaps, onDotButtonClick } = useCarouselDotButton(emblaApi)
     return (
-        <div className="carousel-container">
-            <Slider dots={true} infinite={true} speed={500} slidesToShow={1} slidesToScroll={1}>
-                {children}
-            </Slider>
+        <div className="flex w-full flex-col items-center justify-center gap-2 overflow-hidden" ref={emblaRef}>
+            <div className="flex w-full gap-2">{children}</div>
+
+            <div className="flex gap-2">
+                {scrollSnaps.map((_, index) => (
+                    <button
+                        className={`size-2 rounded-full ${selectedIndex === index ? 'bg-primary-1' : 'bg-grey-2'}`}
+                        key={index}
+                        onClick={() => onDotButtonClick(index)}
+                    />
+                ))}
+            </div>
         </div>
     )
 }
