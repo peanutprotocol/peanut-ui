@@ -89,9 +89,6 @@ importers:
       '@typeform/embed-react':
         specifier: ^3.20.0
         version: 3.20.0(react@19.1.1)
-      '@types/react-slick':
-        specifier: ^0.23.13
-        version: 0.23.13
       '@vercel/analytics':
         specifier: ^1.4.1
         version: 1.5.0(next@15.3.1(@babel/core@7.28.3)(@opentelemetry/api@1.9.0)(babel-plugin-macros@3.1.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)
@@ -173,9 +170,6 @@ importers:
       react-redux:
         specifier: ^9.2.0
         version: 9.2.0(@types/react@18.3.23)(react@19.1.1)(redux@5.0.1)
-      react-slick:
-        specifier: ^0.31.0
-        version: 0.31.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react-tooltip:
         specifier: ^5.28.0
         version: 5.29.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -185,9 +179,6 @@ importers:
       siwe:
         specifier: ^2.3.2
         version: 2.3.2(ethers@5.7.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))
-      slick-carousel:
-        specifier: ^1.8.1
-        version: 1.8.1(jquery@3.7.1)
       tailwind-merge:
         specifier: ^1.14.0
         version: 1.14.0
@@ -3276,9 +3267,6 @@ packages:
     peerDependencies:
       '@types/react': ^18.0.0
 
-  '@types/react-slick@0.23.13':
-    resolution: {integrity: sha512-bNZfDhe/L8t5OQzIyhrRhBr/61pfBcWaYJoq6UDqFtv5LMwfg4NsVDD2J8N01JqdAdxLjOt66OZEp6PX+dGs/A==}
-
   '@types/react@18.3.23':
     resolution: {integrity: sha512-/LDXMQh55EzZQ0uVAZmKKhfENivEvWz6E+EYzh+/MCjMhNsotd+ZHhBGIjFDTi6+fz0OhQQQLbTgdQIxxCsC0w==}
 
@@ -5376,9 +5364,6 @@ packages:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
     engines: {node: '>=10'}
 
-  jquery@3.7.1:
-    resolution: {integrity: sha512-m4avr8yL8kmFN8psrbFFFmB/If14iN5o9nw/NgnnM+kybDJpRsAynV2BsfpTYrTRysYUdADVD7CkUUizgkpLfg==}
-
   js-base64@3.7.8:
     resolution: {integrity: sha512-hNngCeKxIUQiEUN3GPJOkz4wF/YvdUdbNL9hsBcMQTkKzboD7T/q3OYOuuPZLUE6dBxSGpwhk5mwuDud7JVAow==}
 
@@ -5443,9 +5428,6 @@ packages:
 
   json-stringify-safe@5.0.1:
     resolution: {integrity: sha512-ZClg6AaYvamvYEE82d3Iyd3vSSIjQ+odgjaTzRuO3s7toCdFKczob2i0zCh7JE8kWn17yvAWhUVxvqGwUalsRA==}
-
-  json2mq@0.2.0:
-    resolution: {integrity: sha512-SzoRg7ux5DWTII9J2qkrZrqV1gt+rTaoufMxEzXbS26Uid0NwaJd123HcoB80TgubEppxxIGdNxCx50fEoEWQA==}
 
   json5@2.2.3:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
@@ -6455,12 +6437,6 @@ packages:
       '@types/react':
         optional: true
 
-  react-slick@0.31.0:
-    resolution: {integrity: sha512-zo6VLT8wuSBJffg/TFPbzrw2dEnfZ/cUKmYsKByh3AgatRv29m2LoFbq5vRMa3R3A4wp4d8gwbJKO2fWZFaI3g==}
-    peerDependencies:
-      react: ^0.14.0 || ^15.0.1 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^0.14.0 || ^15.0.1 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-
   react-style-singleton@2.2.3:
     resolution: {integrity: sha512-b6jSvxvVnyptAiLjbkWLE/lOnR4lfTtDAl+eUC7RZy+QQWc6wRzIV2CE6xBuMmDxc2qIihtDCZD5NPOFl7fRBQ==}
     engines: {node: '>=10'}
@@ -6779,11 +6755,6 @@ packages:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
     engines: {node: '>=8'}
 
-  slick-carousel@1.8.1:
-    resolution: {integrity: sha512-XB9Ftrf2EEKfzoQXt3Nitrt/IPbT+f1fgqBdoxO3W/+JYvtEOW6EgxnWfr9GH6nmULv7Y2tPmEX3koxThVmebA==}
-    peerDependencies:
-      jquery: '>=1.8.0'
-
   smart-buffer@4.2.0:
     resolution: {integrity: sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg==}
     engines: {node: '>= 6.0.0', npm: '>= 3.0.0'}
@@ -6902,9 +6873,6 @@ packages:
   strict-uri-encode@2.0.0:
     resolution: {integrity: sha512-QwiXZgpRcKkhTj2Scnn++4PKtWsH0kpzZ62L2R6c/LUVYv7hVnZqcg2+sMuT6R7Jusu1vviK/MFsu6kNJfWlEQ==}
     engines: {node: '>=4'}
-
-  string-convert@0.2.1:
-    resolution: {integrity: sha512-u/1tdPl4yQnPBjnVrmdLo9gtuLvELKsAoRapekWggdiQNvvvum+jYF329d84NAa660KQw7pB2n36KrIKVoXa3A==}
 
   string-length@4.0.2:
     resolution: {integrity: sha512-+l6rNN5fYHNhZZy41RXsYptCjA2Igmq4EG7kZAYFQI1E1VTXarr6ZPXBg6eq7Y6eK4FEhY6AJlyuFIb/v/S0VQ==}
@@ -11913,10 +11881,6 @@ snapshots:
     dependencies:
       '@types/react': 18.3.23
 
-  '@types/react-slick@0.23.13':
-    dependencies:
-      '@types/react': 18.3.23
-
   '@types/react@18.3.23':
     dependencies:
       '@types/prop-types': 15.7.15
@@ -15017,8 +14981,6 @@ snapshots:
 
   joycon@3.1.1: {}
 
-  jquery@3.7.1: {}
-
   js-base64@3.7.8: {}
 
   js-cookie@3.0.5: {}
@@ -15091,10 +15053,6 @@ snapshots:
   json-schema-traverse@1.0.0: {}
 
   json-stringify-safe@5.0.1: {}
-
-  json2mq@0.2.0:
-    dependencies:
-      string-convert: 0.2.1
 
   json5@2.2.3: {}
 
@@ -16203,15 +16161,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.23
 
-  react-slick@0.31.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
-    dependencies:
-      classnames: 2.5.1
-      json2mq: 0.2.0
-      lodash.debounce: 4.0.8
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
-      resize-observer-polyfill: 1.5.1
-
   react-style-singleton@2.2.3(@types/react@18.3.23)(react@19.1.1):
     dependencies:
       get-nonce: 1.0.1
@@ -16579,10 +16528,6 @@ snapshots:
 
   slash@3.0.0: {}
 
-  slick-carousel@1.8.1(jquery@3.7.1):
-    dependencies:
-      jquery: 3.7.1
-
   smart-buffer@4.2.0: {}
 
   smol-toml@1.4.2: {}
@@ -16703,8 +16648,6 @@ snapshots:
       bare-events: 2.6.1
 
   strict-uri-encode@2.0.0: {}
-
-  string-convert@0.2.1: {}
 
   string-length@4.0.2:
     dependencies:
