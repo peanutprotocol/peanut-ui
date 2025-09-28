@@ -4,6 +4,7 @@ import { updateUserById } from '@/app/actions/users'
 import { Button } from '@/components/0_Bruddle'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import ValidatedInput from '@/components/Global/ValidatedInput'
+import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -15,6 +16,7 @@ const CollectEmail = () => {
     const [isLoading, setisLoading] = useState(false)
     const [error, setError] = useState('')
     const router = useRouter()
+    const { user } = useAuth()
 
     const validateEmail = async (email: string) => {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -25,7 +27,10 @@ const CollectEmail = () => {
         try {
             setError('')
             setisLoading(true)
-            const { error } = await updateUserById({ email })
+            const { error } = await updateUserById({
+                userId: user?.user.userId,
+                email,
+            })
             if (error) {
                 setError('Something went wrong. Please try again or contact support')
                 return
