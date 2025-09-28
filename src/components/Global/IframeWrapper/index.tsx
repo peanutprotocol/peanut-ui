@@ -5,6 +5,7 @@ import { Icon, IconName } from '../Icons/Icon'
 import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import StartVerificationView from './StartVerificationView'
+import { useSupportModalContext } from '@/context/SupportModalContext'
 
 export type IFrameWrapperProps = {
     src: string
@@ -20,6 +21,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     const [copied, setCopied] = useState(false)
     const [isVerificationStarted, setIsVerificationStarted] = useState(false)
     const router = useRouter()
+    const { setIsSupportModalOpen } = useSupportModalContext()
 
     const handleCopy = (textToCopy: string) => {
         navigator.clipboard.writeText(textToCopy).then(() => {
@@ -54,7 +56,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     {
                         text: 'Chat with support',
                         icon: 'peanut-support' as IconName,
-                        onClick: () => router.push('/support'),
+                        onClick: () => setIsSupportModalOpen(true),
                         variant: 'transparent' as ButtonVariant,
                         className: 'underline text-sm font-medium w-full fill-none h-fit mt-3',
                     },
@@ -138,11 +140,11 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             key={src}
                             src={src}
                             allow="camera;"
-                            style={{ width: '100%', height: '80%', border: 'none' }}
+                            style={{ width: '100%', height: '85%', border: 'none' }}
                             className="rounded-md"
                             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation"
                         />
-                        <div className="flex h-1/5 w-full flex-col items-center justify-center gap-4 px-5">
+                        <div className="flex h-[15%] w-full flex-col items-center justify-center gap-4 px-5">
                             <Button
                                 variant={'purple'}
                                 className={`max-w-md`}

@@ -5,7 +5,6 @@ import { PayloadAction } from '@reduxjs/toolkit'
 
 const initialState: WalletUIState = {
     signInModalVisible: false,
-    rewardWalletBalance: '',
     balance: undefined,
 }
 
@@ -18,9 +17,6 @@ const walletSlice = createSlice({
         },
         setBalance: (state, action: PayloadAction<bigint>) => {
             state.balance = action.payload.toString()
-        },
-        setRewardWalletBalance: (state, action) => {
-            state.rewardWalletBalance = action.payload
         },
     },
 })

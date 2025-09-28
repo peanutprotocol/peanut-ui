@@ -1,14 +1,5 @@
 import * as consts from '@/constants'
-import {
-    PEANUT_WALLET_SUPPORTED_TOKENS,
-    PINTA_WALLET_CHAIN,
-    PINTA_WALLET_TOKEN,
-    PINTA_WALLET_TOKEN_DECIMALS,
-    PINTA_WALLET_TOKEN_NAME,
-    PINTA_WALLET_TOKEN_SYMBOL,
-    STABLE_COINS,
-    USER_OPERATION_REVERT_REASON_TOPIC,
-} from '@/constants'
+import { PEANUT_WALLET_SUPPORTED_TOKENS, STABLE_COINS, USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants'
 import * as interfaces from '@/interfaces'
 import { AccountType } from '@/interfaces'
 import * as Sentry from '@sentry/nextjs'
@@ -1011,13 +1002,6 @@ export function getTokenDetails({ tokenAddress, chainId }: { tokenAddress: Addre
           decimals: number
       }
     | undefined {
-    if (chainId === PINTA_WALLET_CHAIN.id.toString() && areEvmAddressesEqual(tokenAddress, PINTA_WALLET_TOKEN)) {
-        return {
-            symbol: PINTA_WALLET_TOKEN_SYMBOL,
-            name: PINTA_WALLET_TOKEN_NAME,
-            decimals: PINTA_WALLET_TOKEN_DECIMALS,
-        }
-    }
     const chainTokens = consts.peanutTokenDetails.find((c) => c.chainId === chainId)?.tokens
     if (!chainTokens) return undefined
     const tokenDetails = chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
@@ -1185,9 +1169,6 @@ export function getRequestLink(
 
 // for now it works
 export function getTokenLogo(tokenSymbol: string): string {
-    if (tokenSymbol.toLowerCase() === 'pnt') {
-        return 'https://polygonscan.com/token/images/pintatoken_32.png'
-    }
     return `https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/${tokenSymbol.toLowerCase()}.svg`
 }
 
@@ -1213,7 +1194,22 @@ export function isStableCoin(tokenSymbol: string): boolean {
 
 export const saveRedirectUrl = () => {
     const currentUrl = new URL(window.location.href)
-    saveToLocalStorage('redirect', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`)
+    const relativeUrl = currentUrl.href.replace(currentUrl.origin, '')
+    saveToLocalStorage('redirect', relativeUrl)
+}
+
+export const sanitizeRedirectURL = (redirectUrl: string): string => {
+    try {
+        const u = new URL(redirectUrl, window.location.origin)
+        if (u.origin === window.location.origin) {
+            return u.pathname + u.search + u.hash
+        }
+    } catch {
+        if (redirectUrl.startsWith('/')) {
+            return redirectUrl
+        }
+    }
+    return redirectUrl
 }
 
 export const formatPaymentStatus = (status: string): string => {

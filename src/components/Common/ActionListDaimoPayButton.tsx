@@ -34,7 +34,7 @@ const ActionListDaimoPayButton = () => {
 
         if (!parsedPaymentData) {
             console.error('Invalid payment data')
-            dispatch(paymentActions.setError('Something went wrong. Please try again.'))
+            dispatch(paymentActions.setError('Something went wrong. Please try again or contact support.'))
             return false
         }
 
@@ -45,7 +45,6 @@ const ActionListDaimoPayButton = () => {
         const payload: InitiatePaymentPayload = {
             recipient: parsedPaymentData?.recipient,
             tokenAmount,
-            isPintaReq: false, // explicitly set to false for non-PINTA requests
             requestId: requestId ?? undefined,
             chargeId: chargeDetails?.uuid,
             currency: currencyCode
@@ -69,12 +68,12 @@ const ActionListDaimoPayButton = () => {
             console.log('Charge created!!')
             return true
         } else if (result.status === 'Error') {
-            dispatch(paymentActions.setError('Something went wrong. Please try again.'))
+            dispatch(paymentActions.setError('Something went wrong. Please try again or contact support.'))
             console.error('Payment initiation failed:', result)
             return false
         } else {
             console.warn('Unexpected status from usePaymentInitiator:', result.status)
-            dispatch(paymentActions.setError('Something went wrong. Please try again.'))
+            dispatch(paymentActions.setError('Something went wrong. Please try again or contact support.'))
             return false
         }
     }, [

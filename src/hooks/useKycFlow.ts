@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation'
 import { IFrameWrapperProps } from '@/components/Global/IframeWrapper'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
-import { KYCStatus, convertPersonaUrl } from '@/utils'
+import { BridgeKycStatus, convertPersonaUrl } from '@/utils'
 import { InitiateKycResponse } from '@/app/actions/types/users.types'
 import { getKycDetails } from '@/app/actions/users'
 
@@ -43,7 +43,9 @@ export const useKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFlowOpti
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [apiResponse, setApiResponse] = useState<InitiateKycResponse | null>(null)
-    const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(user?.user?.kycStatus as KYCStatus)
+    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(
+        user?.user?.bridgeKycStatus as BridgeKycStatus
+    )
 
     const [iframeOptions, setIframeOptions] = useState<Omit<IFrameWrapperProps, 'onClose'>>({
         src: '',
@@ -57,7 +59,7 @@ export const useKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFlowOpti
         username: user?.user.username ?? undefined,
         autoConnect: true,
         onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as KYCStatus)
+            setLiveKycStatus(newStatus as BridgeKycStatus)
         },
         onTosUpdate: (data) => {
             if (data.accepted) {
@@ -109,7 +111,7 @@ export const useKycFlow = ({ onKycSuccess, flow, onManualClose }: UseKycFlowOpti
                         closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
                     })
                 } else {
-                    const errorMsg = 'Could not retrieve verification links. Please try again.'
+                    const errorMsg = 'Could not retrieve verification links. Please contact support.'
                     setError(errorMsg)
                     return { success: false, error: errorMsg }
                 }

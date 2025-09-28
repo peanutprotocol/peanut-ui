@@ -5,8 +5,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 
 export type UserDetailsFormData = {
-    firstName: string
-    lastName: string
+    fullName: string
     email: string
 }
 
@@ -27,8 +26,7 @@ export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDeta
             formState: { errors, isValid, isValidating },
         } = useForm<UserDetailsFormData>({
             defaultValues: {
-                firstName: initialData?.firstName ?? '',
-                lastName: initialData?.lastName ?? '',
+                fullName: initialData?.fullName ?? '',
                 email: initialData?.email ?? '',
             },
             mode: 'onBlur',
@@ -94,8 +92,7 @@ export const UserDetailsForm = forwardRef<{ handleSubmit: () => void }, UserDeta
                         className="space-y-4"
                     >
                         <div className="w-full space-y-4">
-                            {renderInput('firstName', 'First Name', { required: 'First name is required' })}
-                            {renderInput('lastName', 'Last Name', { required: 'Last name is required' })}
+                            {renderInput('fullName', 'Full Name', { required: 'Full name is required' })}
                             {renderInput('email', 'E-mail', {
                                 required: 'Email is required',
                                 pattern: {
