@@ -74,7 +74,7 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
                 return onrampData
             } catch (error) {
                 console.error('Error creating onramp:', error)
-                setError('Failed to create bank transfer. Please try again or contact support.')
+                setError('Failed to create bank transfer. Please try again.')
                 throw error
             } finally {
                 setIsLoading(false)

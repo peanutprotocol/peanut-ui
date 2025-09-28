@@ -1,7 +1,6 @@
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import Card, { CardPosition } from '@/components/Global/Card'
 import { Icon, IconName } from '@/components/Global/Icons/Icon'
-import { Tooltip } from '@/components/Tooltip'
 import Link from 'next/link'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -16,8 +15,6 @@ interface ProfileMenuItemProps {
     isExternalLink?: boolean
     endIcon?: IconName
     endIconClassName?: string
-    showTooltip?: boolean
-    toolTipText?: string
 }
 
 const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
@@ -30,19 +27,12 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     isExternalLink,
     endIcon,
     endIconClassName,
-    showTooltip = false,
-    toolTipText,
 }) => {
     const content = (
         <div className="flex items-center justify-between py-1">
             <div className="flex items-center gap-2">
                 <Icon name={icon} size={20} fill="black" />
                 <span className="text-base font-medium">{label}</span>
-                {showTooltip && (
-                    <Tooltip content={toolTipText}>
-                        <Icon name="info" size={14} fill="black" />
-                    </Tooltip>
-                )}
             </div>
 
             <div className="flex items-center">

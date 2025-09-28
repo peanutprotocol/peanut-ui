@@ -169,7 +169,7 @@ const TokenAmountInput = ({
     useEffect(() => {
         if (inputRef.current) {
             if (displayValue?.length !== 0) {
-                inputRef.current.style.width = `${displayValue?.length ?? 0}ch`
+                inputRef.current.style.width = `${(displayValue?.length ?? 0) + 1}ch`
             } else {
                 inputRef.current.style.width = `4ch`
             }
@@ -203,7 +203,7 @@ const TokenAmountInput = ({
             <div className="flex h-14 w-full flex-row items-center justify-center gap-1">
                 <label className={`text-h1 ${displayValue ? 'text-black' : 'text-gray-2'}`}>{displaySymbol}</label>
                 <input
-                    className={`h-12 max-w-80 bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
+                    className={`h-12 w-[4ch] max-w-80 bg-transparent text-h1 outline-none transition-colors placeholder:text-h1 focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1`}
                     placeholder={'0.00'}
                     onChange={(e) => {
                         const value = formatAmountWithoutComma(e.target.value)

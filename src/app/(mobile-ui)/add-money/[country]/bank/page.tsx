@@ -10,7 +10,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { InitiateKYCModal } from '@/components/Kyc'
-import { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
+import { KYCStatus } from '@/utils/bridge-accounts.utils'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/context/authContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
@@ -37,7 +37,7 @@ export default function OnrampBankPage() {
     const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
 
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
-    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(undefined)
+    const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(undefined)
     const { amountToOnramp: amountFromContext, setAmountToOnramp, setError, error, setOnrampData } = useOnrampFlow()
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isUpdatingUser, setIsUpdatingUser] = useState(false)
@@ -58,15 +58,15 @@ export default function OnrampBankPage() {
         username: user?.user.username ?? undefined,
         autoConnect: !!user?.user.username,
         onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as BridgeKycStatus)
+            setLiveKycStatus(newStatus as KYCStatus)
         },
     })
 
     useEffect(() => {
-        if (user?.user.bridgeKycStatus) {
-            setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
+        if (user?.user.kycStatus) {
+            setLiveKycStatus(user.user.kycStatus as KYCStatus)
         }
-    }, [user?.user.bridgeKycStatus])
+    }, [user?.user.kycStatus])
 
     useEffect(() => {
         fetchUser()
@@ -84,7 +84,7 @@ export default function OnrampBankPage() {
     useEffect(() => {
         if (user === null) return // wait for user to be fetched
         if (step === 'loading') {
-            const currentKycStatus = liveKycStatus || user?.user.bridgeKycStatus
+            const currentKycStatus = liveKycStatus || user?.user.kycStatus
             const isUserKycVerified = currentKycStatus === 'approved'
 
             if (!isUserKycVerified) {
@@ -216,7 +216,7 @@ export default function OnrampBankPage() {
             if (!user?.user.userId) throw new Error('User not found')
             const result = await updateUserById({
                 userId: user.user.userId,
-                fullName: data.fullName,
+                fullName: `${data.firstName} ${data.lastName}`,
                 email: data.email,
             })
             if (result.error) {
@@ -246,7 +246,8 @@ export default function OnrampBankPage() {
 
     const initialUserDetails: Partial<UserDetailsFormData> = useMemo(
         () => ({
-            fullName: user?.user.fullName ?? '',
+            firstName: user?.user.fullName ? firstName : '',
+            lastName: user?.user.fullName ? lastName : '',
             email: user?.user.email ?? '',
         }),
         [user?.user.fullName, user?.user.email, firstName, lastName]

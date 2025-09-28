@@ -27,7 +27,6 @@ export default function WithdrawPage() {
         error,
         setUsdAmount,
         resetWithdrawFlow,
-        setShowAllWithdrawMethods,
     } = useWithdrawFlow()
 
     // choose the first screen: if an amount already exists we jump straight to the method list
@@ -75,7 +74,6 @@ export default function WithdrawPage() {
     useEffect(() => {
         if (amountFromContext && parseFloat(amountFromContext) > 0) {
             setStep('selectMethod')
-
             if (!rawTokenAmount) {
                 setRawTokenAmount(amountFromContext)
             }
@@ -88,13 +86,6 @@ export default function WithdrawPage() {
             }
         }
     }, [amountFromContext, step])
-
-    useEffect(() => {
-        // If amount is available (i.e) user clicked back from select method view, show all methods
-        if (amountFromContext) {
-            setShowAllWithdrawMethods(true)
-        }
-    }, [])
 
     const validateAmount = useCallback(
         (amountStr: string): boolean => {

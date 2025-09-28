@@ -6,7 +6,6 @@ import { IconName } from '@/components/Global/Icons/Icon'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { usePasskeySupport } from '@/hooks/usePasskeySupport'
 
 export const inAppSignatures = [
     'WebView',
@@ -47,13 +46,29 @@ const UnsupportedBrowserModalContent = ({
     const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(false)
     const [copyButtonText, setCopyButtonText] = useState('Copy Link')
     const toast = useToast()
-    const { isSupported: isPasskeySupported } = usePasskeySupport()
 
     useEffect(() => {
-        if (!isPasskeySupported) {
-            setShowInAppBrowserModalViaDetection(true)
+        // in-app browser detection - only run if not manually triggered
+        if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+            const ua = navigator.userAgent || navigator.vendor || (window as any).opera
+
+            let isLikelyInApp = inAppSignatures.some((sig) => new RegExp(sig, 'i').test(ua))
+
+            const isStandalonePWA = window.matchMedia('(display-mode: standalone)').matches
+            if (isStandalonePWA) {
+                isLikelyInApp = false
+            }
+
+            const isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream
+            if (isIOS && !isLikelyInApp && !/Safari|CriOS|FxiOS|EdgiOS/.test(ua)) {
+                isLikelyInApp = true
+            }
+
+            if (isLikelyInApp) {
+                setShowInAppBrowserModalViaDetection(true)
+            }
         }
-    }, [isPasskeySupported])
+    }, [])
 
     if (!showInAppBrowserModalViaDetection && !visible) {
         return null
@@ -86,7 +101,7 @@ const UnsupportedBrowserModalContent = ({
                     toast.error('Failed to copy link.')
                 }
             },
-            className: 'bg-primary-1 hover:bg-primary-2 text-black sm:py-3',
+            className: 'bg-primary-1 hover:bg-primary-2 text-black',
             shadowSize: '4',
         },
         {
@@ -112,7 +127,6 @@ const UnsupportedBrowserModalContent = ({
             modalPanelClassName="max-w-md"
             contentContainerClassName="text-center"
             descriptionClassName="mb-0"
-            ctaClassName="flex-col sm:flex-col"
         />
     )
 }

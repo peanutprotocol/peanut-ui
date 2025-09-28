@@ -40,7 +40,7 @@ export default function SetupPage() {
             // check for native passkey support
             let passkeySupport = true
             try {
-                passkeySupport = await PublicKeyCredential.isConditionalMediationAvailable()
+                passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
             } catch (e) {
                 passkeySupport = false
                 console.error('Error checking passkey support:', e)

@@ -20,6 +20,7 @@ const initialState: IPaymentState = {
     paymentDetails: null,
     resolvedAddress: null,
     error: null,
+    beerQuantity: 0,
     usdAmount: null,
     daimoError: null,
     isDaimoPaymentProcessing: false,
@@ -58,6 +59,9 @@ const paymentSlice = createSlice({
         },
         setError: (state, action: PayloadAction<string | null>) => {
             state.error = action.payload
+        },
+        setBeerQuantity: (state, action: PayloadAction<number>) => {
+            state.beerQuantity = action.payload
         },
         setUsdAmount: (state, action: PayloadAction<string | null>) => {
             state.usdAmount = action.payload

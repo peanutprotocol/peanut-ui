@@ -1,21 +1,9 @@
 import { AccountType } from '@/interfaces'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import useGetExchangeRate, { IExchangeRate } from '@/hooks/useGetExchangeRate'
-import { useExchangeRate } from '@/hooks/useExchangeRate'
 
-interface IExchangeRateProps extends Omit<IExchangeRate, 'enabled'> {
-    nonEuroCurrency?: string
-    sourceCurrency?: string
-}
-
-const ExchangeRate = ({ accountType, nonEuroCurrency, sourceCurrency = 'USD' }: IExchangeRateProps) => {
-    const { exchangeRate, isFetchingRate } = useGetExchangeRate({ accountType, enabled: !nonEuroCurrency })
-    const { exchangeRate: nonEruoExchangeRate, isLoading } = useExchangeRate({
-        sourceCurrency,
-        destinationCurrency: nonEuroCurrency || 'EUR',
-        initialSourceAmount: 1,
-        enabled: !!nonEuroCurrency,
-    })
+const ExchangeRate = ({ accountType }: IExchangeRate) => {
+    const { exchangeRate, isFetchingRate } = useGetExchangeRate({ accountType })
 
     const toCurrency = accountType === AccountType.IBAN ? 'EUR' : accountType === AccountType.CLABE ? 'MXN' : 'USD'
 
@@ -23,28 +11,13 @@ const ExchangeRate = ({ accountType, nonEuroCurrency, sourceCurrency = 'USD' }: 
         return <PaymentInfoRow loading={isFetchingRate} label="Exchange Rate" value={`1 USD`} />
     }
 
-    let displayValue = '-'
-    let isLoadingRate = false
-    let moreInfoText = ''
-
-    if (nonEuroCurrency) {
-        displayValue = nonEruoExchangeRate
-            ? `1 ${sourceCurrency} = ${parseFloat(nonEruoExchangeRate.toString()).toFixed(4)} ${nonEuroCurrency}`
-            : '-'
-        isLoadingRate = isLoading
-        moreInfoText =
-            "This is an approximate value. The actual amount received may vary based on your bank's exchange rate"
-    } else {
-        displayValue = exchangeRate ? `1 USD = ${parseFloat(exchangeRate).toFixed(4)} ${toCurrency}` : '-'
-        isLoadingRate = isFetchingRate
-        moreInfoText = `Exchange rates apply when converting to ${toCurrency}`
-    }
+    const displayValue = exchangeRate ? `1 USD = ${parseFloat(exchangeRate).toFixed(4)} ${toCurrency}` : '-'
 
     return (
         <PaymentInfoRow
-            loading={isLoadingRate}
+            loading={isFetchingRate}
             label="Exchange Rate"
-            moreInfoText={moreInfoText}
+            moreInfoText={`Exchange rates apply when converting to ${toCurrency}`}
             value={displayValue}
         />
     )

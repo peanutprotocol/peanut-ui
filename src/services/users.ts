@@ -27,10 +27,10 @@ export type ApiUser = {
     lastName: string
     totalUsdSentToCurrentUser: string
     totalUsdReceivedFromCurrentUser: string
-    bridgeKycStatus: string
+    kycStatus: string
 }
 
-export type RecentUser = Pick<ApiUser, 'userId' | 'username' | 'fullName' | 'bridgeKycStatus'>
+export type RecentUser = Pick<ApiUser, 'userId' | 'username' | 'fullName' | 'kycStatus'>
 
 export interface UserSearchResponse {
     users: Array<ApiUser>

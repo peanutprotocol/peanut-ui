@@ -68,7 +68,7 @@ export const VerifiedUserLabel = ({
 
     return (
         <div className="flex items-center gap-1.5">
-            <div className={twMerge('text-center text-sm font-semibold md:text-base', className)}>
+            <div className={twMerge('text-sm font-semibold md:text-base', className)}>
                 {isCryptoAddress ? printableAddress(name, 4, 4) : name}
             </div>
             {badge && (

@@ -1,19 +1,21 @@
 'use client'
 
+import { PeanutArmHoldingBeer } from '@/assets'
 import { Button, ButtonSize, ButtonVariant } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import IOSInstallPWAModal from '@/components/Global/IOSInstallPWAModal'
 import Loading from '@/components/Global/Loading'
 import PeanutLoading from '@/components/Global/PeanutLoading'
-//import RewardsModal from '@/components/Global/RewardsModal'
+import RewardsModal from '@/components/Global/RewardsModal'
 import HomeHistory from '@/components/Home/HomeHistory'
-//import RewardsCardModal from '@/components/Home/RewardsCardModal'
+import RewardsCardModal from '@/components/Home/RewardsCardModal'
 import { SearchUsers } from '@/components/SearchUsers'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useUserStore } from '@/redux/hooks'
+import { useUserStore, useWalletStore } from '@/redux/hooks'
 import {
     formatExtendedNumber,
     getUserPreferences,
@@ -23,6 +25,7 @@ import {
     saveToLocalStorage,
 } from '@/utils'
 import { useDisconnect } from '@reown/appkit/react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -37,16 +40,16 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
 
 export default function Home() {
-    const { balance, address, isFetchingBalance } = useWallet()
+    const { balance, address, isFetchingBalance, isFetchingRewardBalance } = useWallet()
+    const { rewardWalletBalance } = useWalletStore()
+    const [isRewardsModalOpen, setIsRewardsModalOpen] = useState(false)
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
-    const { deviceType } = useDeviceType()
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
         return prefs?.balanceHidden ?? false
@@ -86,7 +89,6 @@ export default function Home() {
     }, [resetClaimBankFlow, resetWithdrawFlow])
 
     useEffect(() => {
-        if (isFetchingUser) return
         // We have some users that didn't have the peanut wallet created
         // correctly, so we need to create it
         if (address && user && !user.accounts.some((a) => a.type === AccountType.PEANUT_WALLET)) {
@@ -96,7 +98,7 @@ export default function Home() {
                 userId: user.user.userId,
             })
         }
-    }, [user, address, isFetchingUser])
+    }, [user, address, addAccount])
 
     // always reset external wallet connection on home page
     useEffect(() => {
@@ -108,7 +110,9 @@ export default function Home() {
     // effect for showing iOS PWA Install modal
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const isIOS = deviceType === DeviceType.IOS
+            const isIOS =
+                /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
             const hasSeenModalThisSession = sessionStorage.getItem('hasSeenIOSPWAPromptThisSession')
             const redirectUrl = getFromLocalStorage('redirect')
@@ -127,7 +131,7 @@ export default function Home() {
                 setShowIOSPWAInstallModal(false)
             }
         }
-    }, [user?.hasPwaInstalled, isPostSignupActionModalVisible, deviceType])
+    }, [user?.hasPwaInstalled, isPostSignupActionModalVisible])
 
     // effect for showing balance warning modal
     useEffect(() => {
@@ -212,7 +216,7 @@ export default function Home() {
                     <UserHeader
                         username={username!}
                         fullName={userFullName}
-                        isVerified={user?.user.bridgeKycStatus === 'approved'}
+                        isVerified={user?.user.kycStatus === 'approved'}
                     />
                     <SearchUsers />
                 </div>
@@ -241,14 +245,19 @@ export default function Home() {
                     </ActionButtonGroup>
                 </div>
 
-                <HomeHistory username={username ?? undefined} />
-                {/* Render the new Rewards Modal
-                <RewardsModal />
-                */}
+                {/* Rewards Card - only shows if balance is non-zero */}
+                <div onClick={() => setIsRewardsModalOpen(true)} className="cursor-pointer">
+                    <RewardsCard
+                        balance={Math.floor(Number(rewardWalletBalance) ?? 0).toString() ?? '0'}
+                        isFetchingRewardBalance={isFetchingRewardBalance}
+                    />
+                </div>
 
-                {/* Render the new Rewards Card Modal
+                <HomeHistory username={username ?? undefined} />
+                <RewardsModal />
+
+                {/* Render the new Rewards Card Modal */}
                 <RewardsCardModal visible={isRewardsModalOpen} onClose={() => setIsRewardsModalOpen(false)} />
-                */}
             </div>
             {/* iOS PWA Install Modal */}
             <IOSInstallPWAModal visible={showIOSPWAInstallModal} onClose={() => setShowIOSPWAInstallModal(false)} />
@@ -404,4 +413,42 @@ function ActionButton({ label, action, variant = 'primary-soft', size = 'small' 
 
 function ActionButtonGroup({ children }: { children: React.ReactNode }) {
     return <div className="flex items-center justify-normal gap-4">{children}</div>
+}
+
+function RewardsCard({
+    balance,
+    isFetchingRewardBalance,
+}: {
+    balance: string | undefined
+    isFetchingRewardBalance: boolean
+}) {
+    if (!balance || balance === '0') return null
+
+    return (
+        <div className="mt-6 space-y-3">
+            <h2 className="font-bold">Rewards</h2>
+            <Card position="single">
+                <div className="flex w-full items-center justify-between font-roboto">
+                    <div className="flex items-center gap-3">
+                        <div
+                            className={
+                                'flex size-8 items-center justify-center rounded-full border border-black bg-white py-2.5 pl-3 pr-0.5'
+                            }
+                        >
+                            <Image
+                                src={PeanutArmHoldingBeer}
+                                alt="Peanut arm holding beer"
+                                className={twMerge('size-6 object-contain')}
+                                width={24}
+                                height={24}
+                            />
+                        </div>
+
+                        <span className="text-sm font-medium">Beers</span>
+                    </div>
+                    <span className="text-sm font-medium">{isFetchingRewardBalance ? <Loading /> : balance}</span>
+                </div>
+            </Card>
+        </div>
+    )
 }

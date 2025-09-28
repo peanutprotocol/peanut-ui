@@ -6,6 +6,7 @@ describe('recognizeQr', () => {
         ['https://peanut.example.org/link/abc', EQrType.PEANUT_URL],
         ['https://peanut.example.org/something-else', EQrType.PEANUT_URL],
         ['0x1234567890123456789012345678901234567890', EQrType.EVM_ADDRESS],
+        ['0x0ff60f43e8c04d57c7374537d8432da8fedbb41d', EQrType.PINTA_MERCHANT],
         ['vitalik.eth', EQrType.ENS_NAME],
         ['jota.peanut.me', EQrType.ENS_NAME],
         ['ethereum:0x1234567890123456789012345678901234567890?value=1e18', EQrType.EIP_681],

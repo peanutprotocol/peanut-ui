@@ -1,18 +1,28 @@
 'use client'
 
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, peanutPublicClient } from '@/constants'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    PEANUT_WALLET_TOKEN_DECIMALS,
+    peanutPublicClient,
+    PINTA_WALLET_TOKEN,
+    PINTA_WALLET_TOKEN_DECIMALS,
+    pintaPublicClient,
+} from '@/constants'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
+import { formatAmount } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useEffect, useState } from 'react'
 import type { Hex, Address } from 'viem'
-import { erc20Abi, parseUnits, encodeFunctionData } from 'viem'
+import { erc20Abi, formatUnits, parseUnits, encodeFunctionData, getAddress } from 'viem'
 import { useZeroDev } from '../useZeroDev'
 
 export const useWallet = () => {
     const dispatch = useAppDispatch()
     const { address, isKernelClientReady, handleSendUserOpEncoded } = useZeroDev()
     const [isFetchingBalance, setIsFetchingBalance] = useState(true)
+    const [isFetchingRewardBalance, setIsFetchingRewardBalance] = useState(true)
     const { balance } = useWalletStore()
 
     const sendMoney = useCallback(
@@ -70,10 +80,34 @@ export const useWallet = () => {
             })
     }, [address, dispatch])
 
+    const getRewardWalletBalance = useCallback(async () => {
+        if (!address) {
+            console.warn('Cannot fetch reward balance, address is undefined.')
+            return ''
+        }
+        await pintaPublicClient
+            .readContract({
+                address: PINTA_WALLET_TOKEN,
+                abi: erc20Abi,
+                functionName: 'balanceOf',
+                args: [getAddress(address)],
+            })
+            .then((balance) => {
+                const formatedBalance = formatAmount(formatUnits(balance, PINTA_WALLET_TOKEN_DECIMALS))
+                dispatch(walletActions.setRewardWalletBalance(formatedBalance))
+                setIsFetchingRewardBalance(false)
+            })
+            .catch((error) => {
+                console.error('Error fetching reward balance:', error)
+                setIsFetchingRewardBalance(false)
+            })
+    }, [address, dispatch])
+
     useEffect(() => {
         if (!address) return
         fetchBalance()
-    }, [address, fetchBalance])
+        getRewardWalletBalance()
+    }, [address, fetchBalance, getRewardWalletBalance])
 
     return {
         address: address!,
@@ -81,7 +115,9 @@ export const useWallet = () => {
         isConnected: isKernelClientReady,
         sendTransactions,
         sendMoney,
+        getRewardWalletBalance,
         fetchBalance,
         isFetchingBalance,
+        isFetchingRewardBalance,
     }
 }

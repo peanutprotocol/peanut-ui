@@ -9,7 +9,7 @@ import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerification
 import { useAuth } from '@/context/authContext'
 import { useKycFlow } from '@/hooks/useKycFlow'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 
 const IdentityVerificationView = () => {
     const { user, fetchUser } = useAuth()
@@ -33,7 +33,8 @@ const IdentityVerificationView = () => {
 
     const initialUserDetails: Partial<UserDetailsFormData> = useMemo(
         () => ({
-            fullName: user?.user.fullName ?? '',
+            firstName: user?.user.fullName ? firstName : '',
+            lastName: user?.user.fullName ? lastName : '',
             email: user?.user.email ?? '',
         }),
         [user?.user.fullName, user?.user.email, firstName, lastName]
@@ -46,7 +47,7 @@ const IdentityVerificationView = () => {
             if (!user?.user.userId) throw new Error('User not found')
             const result = await updateUserById({
                 userId: user.user.userId,
-                fullName: data.fullName,
+                fullName: `${data.firstName} ${data.lastName}`,
                 email: data.email,
             })
             if (result.error) {
@@ -63,13 +64,6 @@ const IdentityVerificationView = () => {
         }
         return {}
     }
-
-    // if kyc is already approved, redirect to profile
-    useEffect(() => {
-        if (user?.user.bridgeKycStatus === 'approved') {
-            router.replace('/profile')
-        }
-    }, [user])
 
     return (
         <div className="flex min-h-[inherit] flex-col">

@@ -2,10 +2,10 @@ import { Button } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useZeroDev } from '@/hooks/useZeroDev'
-import { sanitizeRedirectURL, saveRedirectUrl } from '@/utils'
+import { saveRedirectUrl } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import * as Sentry from '@sentry/nextjs'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 interface GuestLoginCtaProps {
@@ -18,7 +18,6 @@ const GuestLoginCta = ({ hideConnectWallet = false, view }: GuestLoginCtaProps) 
     const toast = useToast()
     const router = useRouter()
     const { open: openReownModal } = useAppKit()
-    const searchParams = useSearchParams()
 
     // If user already has a passkey address, auto-redirect to avoid double prompting
     useEffect(() => {
@@ -40,11 +39,6 @@ const GuestLoginCta = ({ hideConnectWallet = false, view }: GuestLoginCtaProps) 
 
         try {
             await handleLogin()
-            const redirect_uri = searchParams.get('redirect_uri')
-            if (redirect_uri) {
-                const sanitizedRedirectUrl = sanitizeRedirectURL(redirect_uri)
-                router.push(sanitizedRedirectUrl)
-            }
         } catch (e) {
             toast.error('Error logging in')
             Sentry.captureException(e)

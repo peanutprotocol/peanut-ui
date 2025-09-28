@@ -13,7 +13,7 @@ export const getCountryFromIban = (iban: string): string | null => {
     const countryCode = cleanIban.substring(0, 2)
 
     // Try to find country by 2-letter code directly in countryData
-    let country = countryData.find((c) => c.type === 'country' && (c.id === countryCode || c.iso2 === countryCode))
+    let country = countryData.find((c) => c.type === 'country' && (c.id === countryCode || c.iso2 === countryCode)) // @dev TODO - fix the UK issue properly
 
     // If not found, get the 3-letter code and try that
     if (!country) {

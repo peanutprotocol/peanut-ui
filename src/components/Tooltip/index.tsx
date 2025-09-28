@@ -80,10 +80,6 @@ export const Tooltip = ({
                 onMouseLeave={hideTooltip}
                 onFocus={showTooltip}
                 onBlur={hideTooltip}
-                onClick={(e) => {
-                    e.stopPropagation()
-                    visible ? hideTooltip() : showTooltip()
-                }}
             >
                 {children}
             </div>

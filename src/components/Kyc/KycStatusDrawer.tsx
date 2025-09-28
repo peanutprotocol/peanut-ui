@@ -4,15 +4,15 @@ import { KycFailed } from './states/KycFailed'
 import { KycProcessing } from './states/KycProcessing'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Drawer, DrawerContent } from '../Global/Drawer'
-import { BridgeKycStatus } from '@/utils'
+import { KYCStatus } from '@/utils'
 import { getKycDetails } from '@/app/actions/users'
 import { useKycFlow } from '@/hooks/useKycFlow'
 import IFrameWrapper from '../Global/IframeWrapper'
 
 // a helper to categorize the kyc status from the user object
-const getKycStatusCategory = (bridgeKycStatus: BridgeKycStatus): 'processing' | 'completed' | 'failed' => {
+const getKycStatusCategory = (kycStatus: KYCStatus): 'processing' | 'completed' | 'failed' => {
     let category: 'processing' | 'completed' | 'failed'
-    switch (bridgeKycStatus) {
+    switch (kycStatus) {
         // note: not_started status is handled explicitly in KycStatusItem component
         case 'approved':
             category = 'completed'
@@ -32,20 +32,20 @@ const getKycStatusCategory = (bridgeKycStatus: BridgeKycStatus): 'processing' | 
 interface KycStatusDrawerProps {
     isOpen: boolean
     onClose: () => void
-    bridgeKycStatus: BridgeKycStatus
-    bridgeKycStartedAt?: string
-    bridgeKycApprovedAt?: string
-    bridgeKycRejectedAt?: string
+    kycStatus: KYCStatus
+    kycStartedAt?: string
+    kycApprovedAt?: string
+    kycRejectedAt?: string
 }
 
 // this component determines which kyc state to show inside the drawer and fetches rejection reasons if the kyc has failed.
 export const KycStatusDrawer = ({
     isOpen,
     onClose,
-    bridgeKycStatus,
-    bridgeKycStartedAt,
-    bridgeKycApprovedAt,
-    bridgeKycRejectedAt,
+    kycStatus,
+    kycStartedAt,
+    kycApprovedAt,
+    kycRejectedAt,
 }: KycStatusDrawerProps) => {
     const [rejectionReason, setRejectionReason] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
@@ -56,7 +56,7 @@ export const KycStatusDrawer = ({
         isLoading: isKycFlowLoading,
     } = useKycFlow({ onKycSuccess: onClose })
 
-    const statusCategory = getKycStatusCategory(bridgeKycStatus)
+    const statusCategory = getKycStatusCategory(kycStatus)
 
     useEffect(() => {
         // if the drawer is open and the kyc has failed, fetch the reason
@@ -96,31 +96,25 @@ export const KycStatusDrawer = ({
 
         switch (statusCategory) {
             case 'processing':
-                return <KycProcessing bridgeKycStartedAt={bridgeKycStartedAt} />
+                return <KycProcessing kycStartedAt={kycStartedAt} />
             case 'completed':
-                return <KycCompleted bridgeKycApprovedAt={bridgeKycApprovedAt} />
+                return <KycCompleted kycApprovedAt={kycApprovedAt} />
             case 'failed':
-                return (
-                    <KycFailed
-                        reason={rejectionReason}
-                        bridgeKycRejectedAt={bridgeKycRejectedAt}
-                        onRetry={handleInitiateKyc}
-                    />
-                )
+                return <KycFailed reason={rejectionReason} kycRejectedAt={kycRejectedAt} onRetry={handleInitiateKyc} />
             default:
                 return null
         }
     }
 
     // don't render the drawer if the kyc status is unknown or not started
-    if (bridgeKycStatus === 'not_started') {
+    if (kycStatus === 'not_started') {
         return null
     }
 
     return (
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
-                <DrawerContent className="p-5 pb-12">{renderContent()}</DrawerContent>
+                <DrawerContent className="p-5">{renderContent()}</DrawerContent>
             </Drawer>
             <IFrameWrapper
                 visible={iframeOptions.visible || isKycFlowLoading}

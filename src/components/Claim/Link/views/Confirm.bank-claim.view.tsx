@@ -13,7 +13,8 @@ import { ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
 import ExchangeRate from '@/components/ExchangeRate'
 import { AccountType } from '@/interfaces'
-import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
+import { useCurrency } from '@/hooks/useCurrency'
+import { getCurrencySymbol } from '@/utils/bridge.utils'
 
 interface ConfirmBankClaimViewProps {
     onConfirm: () => void
@@ -59,9 +60,36 @@ export function ConfirmBankClaimView({
         [claimLinkData]
     )
 
-    const nonEuroCurrency = countryCurrencyMappings.find(
-        (currency) => countryCodeForFlag.toLowerCase() === currency.flagCode.toLowerCase()
-    )?.currencyCode
+    // determine display currency based on account type
+    const currencyCode = useMemo(() => {
+        if (accountType === AccountType.CLABE) return 'MXN'
+        if (accountType === AccountType.US) return 'USD'
+        return 'EUR'
+    }, [accountType])
+
+    // fetch exchange rate and symbol (USD -> local currency)
+    const { symbol: resolvedSymbol, price, isLoading: isLoadingCurrency } = useCurrency(currencyCode)
+
+    // fallback if conversion fails
+    const failedConversion = useMemo(() => {
+        return currencyCode !== 'USD' && !isLoadingCurrency && (!price || isNaN(price))
+    }, [currencyCode, isLoadingCurrency, price])
+
+    // display amount in local currency
+    const displayAmount = useMemo(() => {
+        if (currencyCode === 'USD') return usdAmount
+        if (isLoadingCurrency) return '-'
+        if (!price || isNaN(price)) return usdAmount
+        const converted = (Number(usdAmount) * price).toFixed(2)
+        return converted
+    }, [price, usdAmount, currencyCode, isLoadingCurrency])
+
+    const displaySymbol = useMemo(() => {
+        if (currencyCode === 'USD') return '$'
+        // fallback to $ if conversion fails
+        if (failedConversion) return '$'
+        return resolvedSymbol ?? getCurrencySymbol(currencyCode)
+    }, [currencyCode, resolvedSymbol, failedConversion])
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
@@ -75,8 +103,10 @@ export function ConfirmBankClaimView({
                     transactionType="CLAIM_LINK_BANK_ACCOUNT"
                     recipientType="BANK_ACCOUNT"
                     recipientName={bankDetails.country}
-                    amount={usdAmount}
+                    amount={displayAmount}
                     tokenSymbol={claimLinkData.tokenSymbol}
+                    currencySymbol={displaySymbol}
+                    isLoading={isLoadingCurrency}
                 />
 
                 <Card className="rounded-sm">
@@ -91,7 +121,7 @@ export function ConfirmBankClaimView({
                     {bankDetails.routingNumber && (
                         <PaymentInfoRow label="Routing Number" value={bankDetails.routingNumber.toUpperCase()} />
                     )}
-                    <ExchangeRate accountType={accountType} nonEuroCurrency={nonEuroCurrency} />
+                    <ExchangeRate accountType={accountType} />
                     <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                 </Card>
 

@@ -4,16 +4,15 @@ import { useEffect, useState } from 'react'
 
 export interface IExchangeRate {
     accountType: AccountType
-    enabled?: boolean
 }
 
 /**
  * Used to get exchange rate for a given account type
  * @returns {string, boolean} The exchange rate for the given account type and a boolean indicating if the rate is being fetched
  */
-export default function useGetExchangeRate({ accountType, enabled = true }: IExchangeRate) {
+export default function useGetExchangeRate({ accountType }: IExchangeRate) {
     const [exchangeRate, setExchangeRate] = useState<string | null>(null)
-    const [isFetchingRate, setIsFetchingRate] = useState(enabled)
+    const [isFetchingRate, setIsFetchingRate] = useState(true)
 
     useEffect(() => {
         const fetchExchangeRate = async () => {
@@ -46,10 +45,9 @@ export default function useGetExchangeRate({ accountType, enabled = true }: IExc
                 setIsFetchingRate(false)
             }
         }
-        if (enabled) {
-            fetchExchangeRate()
-        }
-    }, [accountType, enabled])
+
+        fetchExchangeRate()
+    }, [accountType])
 
     return { exchangeRate, isFetchingRate }
 }

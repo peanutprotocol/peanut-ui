@@ -120,7 +120,6 @@ export type IconName =
     | 'processing'
     | 'failed'
     | 'chevron-down'
-    | 'shield'
     | 'question-mark'
     | 'shield'
 

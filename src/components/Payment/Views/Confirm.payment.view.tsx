@@ -1,20 +1,24 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle'
+import Divider from '@/components/0_Bruddle/Divider'
 import ActionModal from '@/components/Global/ActionModal'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import FlowHeader from '@/components/Global/FlowHeader'
 import { IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import PeanutSponsored from '@/components/Global/PeanutSponsored'
+import PintaReqViewWrapper from '@/components/PintaReqPay/PintaReqViewWrapper'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context'
 import { usePaymentInitiator } from '@/hooks/usePaymentInitiator'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useAppDispatch, usePaymentStore } from '@/redux/hooks'
+import { useAppDispatch, usePaymentStore, useWalletStore } from '@/redux/hooks'
 import { paymentActions } from '@/redux/slices/payment-slice'
 import { chargesApi } from '@/services/charges'
 import { ErrorHandler, formatAmount, areEvmAddressesEqual, isStableCoin } from '@/utils'
@@ -35,6 +39,7 @@ import { captureMessage } from '@sentry/nextjs'
 import AddressLink from '@/components/Global/AddressLink'
 
 type ConfirmPaymentViewProps = {
+    isPintaReq?: boolean
     currency?: {
         code: string
         symbol: string
@@ -53,12 +58,14 @@ type ConfirmPaymentViewProps = {
  * transaction execution for various payment flows including cross-chain payments, direct USD
  * payments, and add money flows.
  *
+ * @param isPintaReq - Whether this is a Pinta request payment (beer payment flow)
  * @param currency - Currency details for display (code, symbol, price)
  * @param currencyAmount - Amount in the specified currency
  * @param isExternalWalletFlow - Whether this is an add money flow (deposit to wallet)
  * @param isDirectUsdPayment - Whether this is a direct payment, for xchain we dont care if a little less arrives
  */
 export default function ConfirmPaymentView({
+    isPintaReq = false,
     currency,
     currencyAmount,
     isExternalWalletFlow,
@@ -68,7 +75,7 @@ export default function ConfirmPaymentView({
     const dispatch = useAppDispatch()
     const searchParams = useSearchParams()
     const chargeIdFromUrl = searchParams.get('chargeId')
-    const { chargeDetails, parsedPaymentData, usdAmount } = usePaymentStore()
+    const { chargeDetails, parsedPaymentData, beerQuantity, usdAmount } = usePaymentStore()
     const {
         initiatePayment,
         prepareTransactionDetails,
@@ -86,6 +93,7 @@ export default function ConfirmPaymentView({
     const { selectedTokenData, selectedChainID } = useContext(tokenSelectorContext)
     const { isConnected: isPeanutWallet, fetchBalance, address: peanutWalletAddress } = useWallet()
     const { isConnected: isWagmiConnected, address: wagmiAddress } = useAccount()
+    const { rewardWalletBalance } = useWalletStore()
     const queryClient = useQueryClient()
     const [isRouteExpired, setIsRouteExpired] = useState(false)
 
@@ -161,9 +169,7 @@ export default function ConfirmPaymentView({
                     dispatch(paymentActions.setChargeDetails(null))
                 })
         } else if (!chargeIdFromUrl && !chargeDetails) {
-            dispatch(
-                paymentActions.setError('Payment details are missing. Please go back and try again or contact support.')
-            )
+            dispatch(paymentActions.setError('Payment details are missing. Please go back and try again.'))
         }
     }, [chargeIdFromUrl, chargeDetails, dispatch])
 
@@ -206,6 +212,10 @@ export default function ConfirmPaymentView({
     }, [handleRouteRefresh])
 
     const isConnected = useMemo(() => isPeanutWallet || isWagmiConnected, [isPeanutWallet, isWagmiConnected])
+    const isInsufficientRewardsBalance = useMemo(() => {
+        if (!isPintaReq) return false
+        return Number(rewardWalletBalance) < beerQuantity
+    }, [isPintaReq, rewardWalletBalance, beerQuantity])
 
     const isLoading = useMemo(
         () => isProcessing || isPreparingTx || isCalculatingFees || isEstimatingGas,
@@ -266,9 +276,15 @@ export default function ConfirmPaymentView({
     const handlePayment = useCallback(async () => {
         if (!chargeDetails || !parsedPaymentData) return
 
+        if (isPintaReq && beerQuantity <= 0) {
+            dispatch(paymentActions.setError('Please select at least 1 beer to continue.'))
+            return
+        }
+
         const result = await initiatePayment({
             recipient: parsedPaymentData.recipient,
-            tokenAmount: chargeDetails.tokenAmount,
+            tokenAmount: isPintaReq ? beerQuantity.toString() : chargeDetails.tokenAmount,
+            isPintaReq: isPintaReq,
             chargeId: chargeDetails.uuid,
             skipChargeCreation: true,
             currency,
@@ -289,6 +305,8 @@ export default function ConfirmPaymentView({
         initiatePayment,
         parsedPaymentData,
         dispatch,
+        isPintaReq,
+        beerQuantity,
         fetchBalance,
         queryClient,
         currency,
@@ -314,8 +332,9 @@ export default function ConfirmPaymentView({
         }
         if (isExternalWalletFlow) return buttonText
         if (isEstimatingGas || isCalculatingFees || isPreparingTx) return 'Send'
+        if (isPintaReq) return 'Confirm Payment'
         return 'Send'
-    }, [isProcessing, loadingStep, isPreparingTx, isEstimatingGas, isCalculatingFees, isExternalWalletFlow])
+    }, [isProcessing, loadingStep, isPreparingTx, isEstimatingGas, isCalculatingFees, isPintaReq, isExternalWalletFlow])
 
     const getIcon = useCallback((): IconName | undefined => {
         if (isExternalWalletFlow && headerTitle) return 'arrow-up-right'
@@ -348,6 +367,48 @@ export default function ConfirmPaymentView({
             <div className="space-y-4 text-center">
                 <ErrorAlert description={message} />
                 <Button onClick={handleGoBack}>Go Back</Button>
+            </div>
+        )
+    }
+
+    if (isPintaReq) {
+        return (
+            <div className="space-y-4">
+                <FlowHeader onPrev={handleGoBack} />
+                <PintaReqViewWrapper view="CONFIRM">
+                    <div className="flex flex-col items-center justify-center gap-3 pt-2">
+                        <div className="text-h8">You're paying for</div>
+                        <div className="space-y-2 text-center">
+                            <div className="text-h5 font-bold">
+                                {beerQuantity} {beerQuantity > 1 ? 'Beers' : 'Beer'}
+                            </div>
+                            <p className="text-xs font-normal">From your Beer Account</p>
+                        </div>
+                    </div>
+                    <PeanutSponsored />
+                    <Divider />
+                    <Button
+                        variant="purple"
+                        onClick={handlePayment}
+                        disabled={
+                            !isConnected ||
+                            isLoading ||
+                            isInsufficientRewardsBalance ||
+                            beerQuantity <= 0 ||
+                            isFeeEstimationError
+                        }
+                        loading={isLoading}
+                    >
+                        {getButtonText()}
+                    </Button>
+                    {beerQuantity <= 0 && <ErrorAlert description="Please select at least 1 beer to continue." />}
+                    {isInsufficientRewardsBalance && (
+                        <ErrorAlert
+                            description={`You do not have enough balance in your Beer Account to claim ${beerQuantity} beers.`}
+                        />
+                    )}
+                    {paymentError && <ErrorAlert description={paymentError} />}
+                </PintaReqViewWrapper>
             </div>
         )
     }

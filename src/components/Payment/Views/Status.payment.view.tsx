@@ -1,9 +1,7 @@
 'use client'
-import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { Button } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
-import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
@@ -20,7 +18,6 @@ import { paymentActions } from '@/redux/slices/payment-slice'
 import { ApiUser } from '@/services/users'
 import { formatAmount, getInitialsFromName, printableAddress } from '@/utils'
 import { useQueryClient } from '@tanstack/react-query'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { ReactNode, useEffect, useMemo } from 'react'
 import { useDispatch } from 'react-redux'
@@ -36,7 +33,6 @@ type DirectSuccessViewProps = {
     isExternalWalletFlow?: boolean
     isWithdrawFlow?: boolean
     redirectTo?: string
-    onComplete?: () => void
 }
 
 const DirectSuccessView = ({
@@ -50,7 +46,6 @@ const DirectSuccessView = ({
     isExternalWalletFlow,
     isWithdrawFlow,
     redirectTo = '/home',
-    onComplete,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const { chargeDetails, parsedPaymentData, usdAmount, paymentDetails } = usePaymentStore()
@@ -164,7 +159,6 @@ const DirectSuccessView = ({
     }, [queryClient])
 
     const handleDone = () => {
-        onComplete?.()
         if (!!authUser?.user.userId) {
             // reset payment state when done
             router.push('/home')
@@ -190,7 +184,6 @@ const DirectSuccessView = ({
                         icon="cancel"
                         title={headerTitle}
                         onPrev={() => {
-                            onComplete?.()
                             router.push(redirectTo)
                         }}
                     />
@@ -237,7 +230,9 @@ const DirectSuccessView = ({
                             Back to home
                         </Button>
                     ) : (
-                        <CreateAccountButton onClick={() => router.push('/setup')} />
+                        <Button icon="user-plus" onClick={() => router.push('/setup')} shadowSize="4">
+                            Create Account
+                        </Button>
                     )}
                     {type === 'SEND' && !isExternalWalletFlow && !isWithdrawFlow && (
                         <Button

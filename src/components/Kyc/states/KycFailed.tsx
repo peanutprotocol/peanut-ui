@@ -9,22 +9,22 @@ import { formatDate } from '@/utils'
 // it displays the reason for the failure and provides a retry button.
 export const KycFailed = ({
     reason,
-    bridgeKycRejectedAt,
+    kycRejectedAt,
     onRetry,
 }: {
     reason: string | null
-    bridgeKycRejectedAt?: string
+    kycRejectedAt?: string
     onRetry: () => void
 }) => {
     const rejectedOn = useMemo(() => {
-        if (!bridgeKycRejectedAt) return 'N/A'
+        if (!kycRejectedAt) return 'N/A'
         try {
-            return formatDate(new Date(bridgeKycRejectedAt))
+            return formatDate(new Date(kycRejectedAt))
         } catch (error) {
-            console.error('Failed to parse bridgeKycRejectedAt date:', error)
+            console.error('Failed to parse kycRejectedAt date:', error)
             return 'N/A'
         }
-    }, [bridgeKycRejectedAt])
+    }, [kycRejectedAt])
 
     return (
         <div className="space-y-4">

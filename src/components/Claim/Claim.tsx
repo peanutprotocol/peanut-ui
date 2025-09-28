@@ -25,10 +25,6 @@ import * as _consts from './Claim.consts'
 import FlowManager from './Link/FlowManager'
 import { type PeanutCrossChainRoute } from '@/services/swap'
 import { NotFoundClaimLink, WrongPasswordClaimLink, ClaimedView } from './Generic'
-import SupportCTA from '../Global/SupportCTA'
-import { twMerge } from 'tailwind-merge'
-import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useSearchParams } from 'next/navigation'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -69,9 +65,6 @@ export const Claim = ({}) => {
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
     const senderId = claimLinkData?.sender.userId
     const { interactions } = useUserInteractions(senderId ? [senderId] : [])
-
-    const { setFlowStep: setClaimBankFlowStep } = useClaimBankFlow()
-    const searchParams = useSearchParams()
 
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!claimLinkData) return null
@@ -129,7 +122,7 @@ export const Claim = ({}) => {
             peanutFeeDetails: {
                 amountDisplay: '$ 0.00',
             },
-            isVerified: claimLinkData.sender?.bridgeKycStatus === 'approved',
+            isVerified: claimLinkData.sender?.kycStatus === 'approved',
             haveSentMoneyToUser: claimLinkData.sender?.userId
                 ? interactions[claimLinkData.sender.userId] || false
                 : false,
@@ -261,19 +254,8 @@ export const Claim = ({}) => {
         }
     }, [linkState, transactionForDrawer])
 
-    // redirect to bank flow if user is KYC approved and step is bank
-    useEffect(() => {
-        const stepFromURL = searchParams.get('step')
-        if (user?.user.bridgeKycStatus === 'approved' && stepFromURL === 'bank') {
-            setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
-        }
-    }, [user])
-
     return (
-        <PageContainer
-            alignItems="center"
-            className={twMerge('flex flex-col', !user && !isFetchingUser && 'min-h-[calc(100dvh-110px)]')}
-        >
+        <PageContainer alignItems="center">
             {linkState === _consts.claimLinkStateType.LOADING && <PeanutLoading />}
             {linkState === _consts.claimLinkStateType.CLAIM && (
                 <FlowManager
@@ -332,9 +314,6 @@ export const Claim = ({}) => {
                     onClose={() => checkLink(window.location.href)}
                 />
             )}
-
-            {/* Show only to guest users */}
-            {linkState !== _consts.claimLinkStateType.LOADING && !user && !isFetchingUser && <SupportCTA />}
         </PageContainer>
     )
 }

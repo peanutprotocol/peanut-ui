@@ -29,11 +29,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     haveSentMoneyToUser = false,
 }) => {
     const { user: authenticatedUser } = useAuth()
-    const isAuthenticatedUserVerified = authenticatedUser?.user.bridgeKycStatus === 'approved'
+    const isAuthenticatedUserVerified = authenticatedUser?.user.kycStatus === 'approved'
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-    const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
 
     const profileUrl = `${BASE_URL}/${username}`
+
+    console.log('isVerified', isVerified)
 
     return (
         <>
@@ -48,7 +49,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     className="text-2xl font-bold"
                     iconSize={20}
                     haveSentMoneyToUser={haveSentMoneyToUser}
-                    isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
+                    isAuthenticatedUserVerified={isAuthenticatedUserVerified}
                 />
                 {/* Username with share drawer */}
                 {showShareButton && (

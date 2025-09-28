@@ -65,7 +65,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
-    const userNameForAvatar = transaction.fullName || transaction.userName
+    const userNameForAvatar = transaction.userName
     const avatarUrl = transaction.extraDataForDrawer?.rewardData?.avatarUrl
 
     let finalDisplayAmount = ''

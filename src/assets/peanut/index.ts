@@ -1,3 +1,4 @@
+export { default as PEANUTMAN_BEER } from './peanut-holding-beer.svg'
 export { default as PEANUTMAN_MOBILE } from './peanut-holding-mobile.svg'
 export { default as PEANUTMAN_PFP } from './peanut-pfp.svg'
 export { default as PEANUTMAN_RAISING_HANDS } from './peanut-raising-hands.svg'

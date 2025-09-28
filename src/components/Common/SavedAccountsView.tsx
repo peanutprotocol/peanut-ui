@@ -83,7 +83,7 @@ export function SavedAccountsMapping({
                     countryInfo = ALL_METHODS_DATA.find((c) => c.id === 'US')
                 } else {
                     countryInfo = details.countryName
-                        ? ALL_METHODS_DATA.find((c) => c.path.toLowerCase() === details.countryName?.toLowerCase())
+                        ? ALL_METHODS_DATA.find((c) => c.title.toLowerCase() === details.countryName?.toLowerCase())
                         : ALL_METHODS_DATA.find((c) => c.id === threeLetterCountryCode)
                 }
 

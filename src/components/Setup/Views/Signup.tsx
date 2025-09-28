@@ -76,7 +76,7 @@ const SignupStep = () => {
                     return false
             }
         } catch (err) {
-            setError('Failed to check handle availability. Please try again or contact support.')
+            setError('Failed to check handle availability. Please try again.')
             return false
         }
     }

@@ -65,14 +65,10 @@ const HistoryPage = () => {
     const combinedAndSortedEntries = useMemo(() => {
         const entries: Array<any> = [...allEntries]
 
-        if (
-            user?.user?.bridgeKycStatus &&
-            user.user.bridgeKycStatus !== 'not_started' &&
-            user.user.bridgeKycStartedAt
-        ) {
+        if (user?.user?.kycStatus && user.user.kycStatus !== 'not_started' && user.user.kycStartedAt) {
             entries.push({
                 isKyc: true,
-                timestamp: user.user.bridgeKycStartedAt,
+                timestamp: user.user.kycStartedAt,
                 uuid: 'kyc-status-item',
             })
         }
@@ -96,7 +92,7 @@ const HistoryPage = () => {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Transactions</h2>{' '}
-                <EmptyState icon="alert" title="Error loading transactions!" description="Please contact support." />
+                <EmptyState icon="alert" title="Error loading transactions!" description="Please try again later" />
             </div>
         )
     }

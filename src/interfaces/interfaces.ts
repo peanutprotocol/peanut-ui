@@ -1,4 +1,4 @@
-import { BridgeKycStatus } from '@/utils'
+import { KYCStatus } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
@@ -226,17 +226,16 @@ export interface User {
     email: string
     profile_picture: string | null
     username: string | null
-    bridgeKycStatus: BridgeKycStatus
-    bridgeKycStartedAt?: string
-    bridgeKycApprovedAt?: string
-    bridgeKycRejectedAt?: string
+    kycStatus: KYCStatus
+    kycStartedAt?: string
+    kycApprovedAt?: string
+    kycRejectedAt?: string
     tosStatus?: string
     tosAcceptedAt?: string
     bridgeCustomerId: string | null
     fullName: string
     telegram: string | null
     hasPwAccess: boolean
-    showFullName: boolean
     createdAt: string
     accounts: Account[]
 }

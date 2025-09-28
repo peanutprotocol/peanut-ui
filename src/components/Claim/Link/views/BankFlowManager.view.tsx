@@ -26,10 +26,8 @@ import { CountryListRouter } from '@/components/Common/CountryListRouter'
 import NavHeader from '@/components/Global/NavHeader'
 import { InitiateKYCModal } from '@/components/Kyc'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { BridgeKycStatus } from '@/utils/bridge-accounts.utils'
+import { KYCStatus } from '@/utils/bridge-accounts.utils'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
-import { useAppDispatch } from '@/redux/hooks'
-import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
 
 type BankAccountWithId = IBankAccountDetails &
@@ -68,16 +66,13 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const savedAccounts = useSavedAccounts()
     const { isLoading, setLoadingState } = useContext(loadingStateContext)
     const { claimLink } = useClaimLink()
-    const dispatch = useAppDispatch()
 
     // local states for this component
     const [localBankDetails, setLocalBankDetails] = useState<BankAccountWithId | null>(null)
     const [receiverFullName, setReceiverFullName] = useState<string>('')
     const [error, setError] = useState<string | null>(null)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
-    const [liveKycStatus, setLiveKycStatus] = useState<BridgeKycStatus | undefined>(
-        user?.user?.bridgeKycStatus as BridgeKycStatus
-    )
+    const [liveKycStatus, setLiveKycStatus] = useState<KYCStatus | undefined>(user?.user?.kycStatus as KYCStatus)
     const [isProcessingKycSuccess, setIsProcessingKycSuccess] = useState(false)
     const [offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
 
@@ -86,16 +81,16 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         username: user?.user.username ?? undefined,
         autoConnect: !!user?.user.username,
         onKycStatusUpdate: (newStatus) => {
-            setLiveKycStatus(newStatus as BridgeKycStatus)
+            setLiveKycStatus(newStatus as KYCStatus)
         },
     })
 
     // effect to update live KYC status from user object
     useEffect(() => {
-        if (user?.user.bridgeKycStatus) {
-            setLiveKycStatus(user.user.bridgeKycStatus as BridgeKycStatus)
+        if (user?.user.kycStatus) {
+            setLiveKycStatus(user.user.kycStatus as KYCStatus)
         }
-    }, [user?.user.bridgeKycStatus])
+    }, [user?.user.kycStatus])
 
     /**
      * @name handleConfirmClaim
@@ -156,7 +151,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             }
 
             // handle error if user is not KYC approved
-            if (userForOfframp.bridgeKycStatus !== 'approved') throw new Error('User not KYC approved')
+            if (userForOfframp.kycStatus !== 'approved') throw new Error('User not KYC approved')
             if (!userForOfframp?.bridgeCustomerId) throw new Error('User bridge customer ID not found')
 
             // get payment rail and currency for the offramp
@@ -457,12 +452,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     <div>
                         <NavHeader
                             title="Receive"
-                            onPrev={() => {
-                                dispatch(bankFormActions.clearFormData()) // clear DynamicBankAccountForm data
+                            onPrev={() =>
                                 savedAccounts.length > 0
                                     ? setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
                                     : setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
-                            }}
+                            }
                         />
                     </div>
                     <DynamicBankAccountForm
@@ -472,7 +466,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         countryName={selectedCountry?.title ?? ''}
                         onSuccess={handleSuccess}
                         flow={'claim'}
-                        hideEmailInput={bankClaimType === BankClaimType.GuestBankClaim}
                         actionDetailsProps={{
                             transactionType: 'CLAIM_LINK_BANK_ACCOUNT',
                             recipientType: 'BANK_ACCOUNT',

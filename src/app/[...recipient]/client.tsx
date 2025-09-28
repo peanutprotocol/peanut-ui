@@ -6,6 +6,7 @@ import ConfirmPaymentView from '@/components/Payment/Views/Confirm.payment.view'
 import ValidationErrorView, { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import InitialPaymentView from '@/components/Payment/Views/Initial.payment.view'
 import DirectSuccessView from '@/components/Payment/Views/Status.payment.view'
+import PintaReqPaySuccessView from '@/components/PintaReqPay/Views/Success.pinta.view'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -26,13 +27,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { fetchTokenPrice } from '@/app/actions/tokens'
 import { GenericBanner } from '@/components/Global/Banner'
-import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
+import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import ExternalWalletFulfilManager from '@/components/Request/views/ExternalWalletFulfilManager'
 import ActionList from '@/components/Common/ActionList'
 import NavHeader from '@/components/Global/NavHeader'
 import { ReqFulfillBankFlowManager } from '@/components/Request/views/ReqFulfillBankFlowManager'
-import SupportCTA from '@/components/Global/SupportCTA'
-import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
 interface Props {
@@ -49,7 +48,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isUrlParsed, setIsUrlParsed] = useState(false)
     const [isRequestDetailsFetching, setIsRequestDetailsFetching] = useState(false)
-    const { user, isFetchingUser } = useAuth()
+    const { user } = useAuth()
     const searchParams = useSearchParams()
     const chargeId = searchParams.get('chargeId')
     const requestId = searchParams.get('id')
@@ -62,13 +61,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
     const [currencyAmount, setCurrencyAmount] = useState<string>('')
     const { isDrawerOpen, selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
-    const {
-        showExternalWalletFulfilMethods,
-        showRequestFulfilmentBankFlowManager,
-        setShowRequestFulfilmentBankFlowManager,
-        setFlowStep: setRequestFulfilmentBankFlowStep,
-    } = useRequestFulfillmentFlow()
-    const { requestType } = useDetermineBankRequestType(chargeDetails?.requestLink.recipientAccount.userId ?? '')
+    const { showExternalWalletFulfilMethods, showRequestFulfilmentBankFlowManager } = useRequestFulfillmentFlow()
 
     // determine if the current user is the recipient of the transaction
     const isCurrentUserRecipient = chargeDetails?.requestLink.recipientAccount?.userId === user?.user.userId
@@ -346,7 +339,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                 amountDisplay: '$ 0.00',
             },
             currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
-            isVerified: counterparty?.user?.bridgeKycStatus === 'approved',
+            isVerified: counterparty?.user?.kycStatus === 'approved',
             haveSentMoneyToUser: counterparty?.userId ? interactions[counterparty.userId] || false : false,
         }
 
@@ -390,21 +383,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             openTransactionDetails(transactionForDrawer)
         }
     }, [transactionForDrawer, currentView, dispatch, openTransactionDetails, isExternalWalletFlow, chargeId])
-
-    // Send to bank step if its mentioned in the URL and guest KYC is not needed
-    useEffect(() => {
-        const stepFromURL = searchParams.get('step')
-        if (
-            parsedPaymentData &&
-            chargeDetails &&
-            requestType !== BankRequestType.GuestKycNeeded &&
-            stepFromURL === 'bank'
-        ) {
-            setShowRequestFulfilmentBankFlowManager(true)
-
-            setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
-        }
-    }, [searchParams, parsedPaymentData, chargeDetails, requestType])
 
     let showActionList = flow !== 'direct_pay'
 
@@ -459,6 +437,19 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
         )
     }
 
+    // pinta token payment flow
+    if (parsedPaymentData?.token?.symbol === 'PNT') {
+        return (
+            <div className={twMerge('mx-auto h-full w-full space-y-8 self-center')}>
+                <div>
+                    {currentView === 'INITIAL' && <InitialPaymentView {...parsedPaymentData} isPintaReq={true} />}
+                    {currentView === 'CONFIRM' && <ConfirmPaymentView isPintaReq={true} />}
+                    {currentView === 'STATUS' && <PintaReqPaySuccessView />}
+                </div>
+            </div>
+        )
+    }
+    // default payment flow
     return (
         <div className={twMerge('mx-auto min-h-[inherit] w-full space-y-8 self-center')}>
             {!user && parsedPaymentData?.recipient?.recipientType !== 'USERNAME' && (
@@ -504,6 +495,7 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             {currentView === 'CONFIRM' && (
                 <ConfirmPaymentView
                     key={`confirm-${flow}`}
+                    isPintaReq={parsedPaymentData?.token?.symbol === 'PNT'}
                     currencyAmount={currencyCode && currencyAmount ? `${currencySymbol} ${currencyAmount}` : undefined}
                     isExternalWalletFlow={isExternalWalletFlow}
                     isDirectUsdPayment={isDirectPay}
@@ -511,7 +503,9 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
             )}
             {currentView === 'STATUS' && (
                 <>
-                    {isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
+                    {parsedPaymentData?.token?.symbol === 'PNT' ? (
+                        <PintaReqPaySuccessView />
+                    ) : isDrawerOpen && selectedTransaction?.id === transactionForDrawer?.id ? (
                         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
                             <NavHeader disableBackBtn={!user?.user.userId} title="Receipt" />
                             <TransactionDetailsReceipt
@@ -537,9 +531,6 @@ export default function PaymentPage({ recipient, flow = 'request_pay' }: Props) 
                     )}
                 </>
             )}
-
-            {/* Show only to guest users */}
-            {!user && !isFetchingUser && <SupportCTA />}
         </div>
     )
 }

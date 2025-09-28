@@ -5,7 +5,6 @@ import setupReducer from './slices/setup-slice'
 import userReducer from './slices/user-slice'
 import walletReducer from './slices/wallet-slice'
 import zeroDevReducer from './slices/zerodev-slice'
-import bankFormReducer from './slices/bank-form-slice'
 
 const store = configureStore({
     reducer: {
@@ -15,7 +14,6 @@ const store = configureStore({
         payment: paymentReducer,
         user: userReducer,
         sendFlow: sendFlowReducer,
-        bankForm: bankFormReducer,
     },
     // disable redux serialization checks
     middleware: (getDefaultMiddleware) =>

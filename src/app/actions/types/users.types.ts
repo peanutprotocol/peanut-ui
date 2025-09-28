@@ -9,7 +9,7 @@ export enum BridgeEndorsementType {
 export interface InitiateKycResponse {
     kycLink: string
     tosLink?: string
-    bridgeKycStatus: string
+    kycStatus: string
     tosStatus?: string
     error?: string // will be present on rejections
     reasons?: Array<{

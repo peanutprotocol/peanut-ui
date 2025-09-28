@@ -42,7 +42,7 @@ export const SearchResults = ({
                     <h2 className="mb-2 text-base font-bold">People</h2>
                     <div className="flex-1 overflow-y-auto">
                         {results.map((user, index) => {
-                            const isVerified = user.bridgeKycStatus === 'approved'
+                            const isVerified = user.kycStatus === 'approved'
                             const haveSentMoneyToUser = interactions[user.userId] || false
                             return (
                                 <SearchResultCard
@@ -101,7 +101,7 @@ export const SearchResults = ({
                     {recentTransactions.length > 0 ? (
                         <div className="flex-1 overflow-y-auto">
                             {recentTransactions.map((user, index) => {
-                                const isVerified = user.bridgeKycStatus === 'approved'
+                                const isVerified = user.kycStatus === 'approved'
                                 const haveSentMoneyToUser = interactions[user.userId] || false
                                 return (
                                     <SearchResultCard

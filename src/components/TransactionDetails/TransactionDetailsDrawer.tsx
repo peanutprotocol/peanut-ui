@@ -43,7 +43,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                 }
             }}
         >
-            <DrawerContent className="py-5">
+            <DrawerContent className="p-5">
                 <TransactionDetailsReceipt
                     isLoading={isLoading}
                     transaction={transaction}
@@ -53,7 +53,6 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                     transactionAmount={transactionAmount}
                     isModalOpen={isModalOpen}
                     setIsModalOpen={setIsModalOpen}
-                    className="px-5"
                 />
             </DrawerContent>
         </Drawer>

@@ -25,7 +25,7 @@ export function useDetermineBankRequestType(requesterUserId: string): {
 
     useEffect(() => {
         const determineBankRequestType = async () => {
-            const payerKycApproved = user?.user?.bridgeKycStatus === 'approved'
+            const payerKycApproved = user?.user?.kycStatus === 'approved'
 
             if (payerKycApproved) {
                 setRequestType(BankRequestType.UserBankRequest)
@@ -43,7 +43,7 @@ export function useDetermineBankRequestType(requesterUserId: string): {
 
             try {
                 const requesterDetails = await getUserById(requesterUserId)
-                const requesterKycApproved = requesterDetails?.bridgeKycStatus === 'approved'
+                const requesterKycApproved = requesterDetails?.kycStatus === 'approved'
 
                 if (requesterKycApproved) {
                     setRequesterDetails(requesterDetails)

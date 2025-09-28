@@ -1,4 +1,11 @@
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    PINTA_WALLET_CHAIN,
+    PINTA_WALLET_TOKEN,
+    PINTA_WALLET_TOKEN_DECIMALS,
+    PINTA_WALLET_TOKEN_SYMBOL,
+} from '@/constants'
 import { tokenSelectorContext } from '@/context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { ParsedURL } from '@/lib/url-parser/types/payment'
@@ -45,6 +52,7 @@ type LoadingStep = `${ELoadingStep}`
 export interface InitiatePaymentPayload {
     recipient: ParsedURL['recipient']
     tokenAmount: string
+    isPintaReq?: boolean
     chargeId?: string
     skipChargeCreation?: boolean
     requestId?: string // optional request ID from URL
@@ -316,8 +324,30 @@ export const usePaymentInitiator = () => {
                         throw new Error('Invalid request ID')
                     }
                 } else if (!requestDetails) {
-                    console.error('Request details not found and cannot create new one for this payment type.')
-                    throw new Error('Request details not found.')
+                    if (payload.isPintaReq && payload.recipient?.resolvedAddress) {
+                        console.log(
+                            'Request details missing, creating new Pinta request for:',
+                            payload.recipient.resolvedAddress
+                        )
+                        try {
+                            const request = await requestsApi.create({
+                                recipientAddress: payload.recipient.resolvedAddress,
+                                chainId: PINTA_WALLET_CHAIN.id.toString(),
+                                tokenAddress: PINTA_WALLET_TOKEN,
+                                tokenType: String(peanutInterfaces.EPeanutLinkType.erc20),
+                                tokenSymbol: PINTA_WALLET_TOKEN_SYMBOL,
+                                tokenDecimals: String(PINTA_WALLET_TOKEN_DECIMALS),
+                            })
+                            validRequestId = request.uuid
+                            console.log('Created new Pinta request:', validRequestId)
+                        } catch (creationError) {
+                            console.error('Failed to create Pinta request:', creationError)
+                            throw new Error('Failed to automatically create Pinta request.')
+                        }
+                    } else {
+                        console.error('Request details not found and cannot create new one for this payment type.')
+                        throw new Error('Request details not found.')
+                    }
                 } else {
                     validRequestId = requestDetails.uuid
                 }
@@ -327,10 +357,18 @@ export const usePaymentInitiator = () => {
                     throw new Error('Could not determine request ID')
                 }
 
-                const recipientChainId = requestDetails?.chainId ?? selectedChainID
-                const recipientTokenAddress = requestDetails?.tokenAddress ?? selectedTokenAddress
-                const recipientTokenSymbol = requestDetails?.tokenSymbol ?? selectedTokenData?.symbol ?? 'TOKEN'
-                const recipientTokenDecimals = requestDetails?.tokenDecimals ?? selectedTokenData?.decimals ?? 18
+                const recipientChainId = payload.isPintaReq
+                    ? PINTA_WALLET_CHAIN.id.toString()
+                    : (requestDetails?.chainId ?? selectedChainID)
+                const recipientTokenAddress = payload.isPintaReq
+                    ? PINTA_WALLET_TOKEN
+                    : (requestDetails?.tokenAddress ?? selectedTokenAddress)
+                const recipientTokenSymbol = payload.isPintaReq
+                    ? PINTA_WALLET_TOKEN_SYMBOL
+                    : (requestDetails?.tokenSymbol ?? selectedTokenData?.symbol ?? 'TOKEN')
+                const recipientTokenDecimals = payload.isPintaReq
+                    ? PINTA_WALLET_TOKEN_DECIMALS
+                    : (requestDetails?.tokenDecimals ?? selectedTokenData?.decimals ?? 18)
 
                 const localPrice =
                     payload.currencyAmount && payload.currency
@@ -345,9 +383,11 @@ export const usePaymentInitiator = () => {
                         chainId: recipientChainId,
                         tokenAmount: payload.tokenAmount,
                         tokenAddress: recipientTokenAddress,
-                        tokenType: isNativeCurrency(recipientTokenAddress)
-                            ? peanutInterfaces.EPeanutLinkType.native
-                            : peanutInterfaces.EPeanutLinkType.erc20,
+                        tokenType: payload.isPintaReq
+                            ? peanutInterfaces.EPeanutLinkType.erc20
+                            : isNativeCurrency(recipientTokenAddress)
+                              ? peanutInterfaces.EPeanutLinkType.native
+                              : peanutInterfaces.EPeanutLinkType.erc20,
                         tokenSymbol: recipientTokenSymbol,
                         tokenDecimals: Number(recipientTokenDecimals),
                         recipientAddress: payload.recipient?.resolvedAddress,
@@ -620,7 +660,8 @@ export const usePaymentInitiator = () => {
                 // 2. handle charge state
                 if (
                     chargeCreated &&
-                    (payload.isExternalWalletFlow ||
+                    (payload.isPintaReq ||
+                        payload.isExternalWalletFlow ||
                         !isPeanutWallet ||
                         (isPeanutWallet &&
                             (!areEvmAddressesEqual(determinedChargeDetails.tokenAddress, PEANUT_WALLET_TOKEN) ||
@@ -628,7 +669,11 @@ export const usePaymentInitiator = () => {
                 ) {
                     console.log(
                         `Charge created. Transitioning to Confirm view for: ${
-                            payload.isExternalWalletFlow ? 'Add Money Flow' : 'External Wallet'
+                            payload.isPintaReq
+                                ? 'Pinta Request'
+                                : payload.isExternalWalletFlow
+                                  ? 'Add Money Flow'
+                                  : 'External Wallet'
                         }.`
                     )
                     setLoadingStep('Charge Created')
@@ -655,7 +700,9 @@ export const usePaymentInitiator = () => {
                         throw new Error('Charge details missing for Add Money external payment.')
                     return await handleExternalWalletPayment(determinedChargeDetails)
                 } else if (isPeanutWallet && peanutWalletAddress) {
-                    console.log(`Executing Peanut Wallet transaction (chargeCreated: ${chargeCreated})`)
+                    console.log(
+                        `Executing Peanut Wallet transaction (chargeCreated: ${chargeCreated}, isPintaReq: ${payload.isPintaReq})`
+                    )
                     return await handlePeanutWalletPayment(determinedChargeDetails)
                 } else if (!isPeanutWallet) {
                     console.log('Handling payment for External Wallet (non-AddMoney, called from Confirm view).')
