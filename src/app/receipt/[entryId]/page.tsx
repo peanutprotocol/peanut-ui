@@ -27,8 +27,8 @@ export default async function ReceiptPage({
     }
     const { transactionDetails } = mapTransactionDataForDrawer(entry)
     return (
-        <div className="flex min-h-[100dvh] w-full flex-col items-center justify-center">
-            <TransactionDetailsReceipt transaction={transactionDetails} isPublic />
+        <div className="flex min-h-[100dvh] flex-col items-center justify-center">
+            <TransactionDetailsReceipt className="w-full px-5" transaction={transactionDetails!} />
         </div>
     )
 }
