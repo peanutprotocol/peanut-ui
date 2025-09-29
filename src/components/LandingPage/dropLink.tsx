@@ -107,7 +107,7 @@ export function DropLink() {
 
                     <p className="font-roboto-flex text-left text-xl md:pr-24 md:text-2xl">
                         Chat or IRL. Works on WhatsApp, SMS, QR codes. No bank details, they don&apos;t even need to
-                        signup or install Peanut.
+                        sign up or install Peanut.
                     </p>
 
                     <a href="/setup" target="_blank" rel="noopener noreferrer">

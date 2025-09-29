@@ -164,7 +164,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
 
             <div className="relative mb-4 flex w-full flex-col items-center justify-center md:mb-0">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
-                    TAKE. SEND. ANYWHERE
+                    TAP. SEND. ANYWHERE
                 </h2>
                 <span
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
