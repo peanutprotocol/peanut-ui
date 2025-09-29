@@ -2,7 +2,7 @@
 
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card, { getCardPosition } from '@/components/Global/Card'
-import CopyToClipboardButton from '@/components/Global/CopyToClipboard/CopyToClipboardButton'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -41,7 +41,8 @@ const PointsPage = () => {
                     <Card className="flex w-1/2 items-center justify-center py-3.5">
                         <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
                     </Card>
-                    <CopyToClipboardButton textToCopy={inviteCode} />
+
+                    <CopyToClipboard type="button" textToCopy={inviteCode} />
                 </div>
 
                 {invites.length > 0 && (

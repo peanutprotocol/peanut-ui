@@ -12,8 +12,8 @@ import ActionModal from '../Global/ActionModal'
 import { useState } from 'react'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
-import CopyToClipboardButton from '../Global/CopyToClipboard/CopyToClipboardButton'
 import ShareButton from '../Global/ShareButton'
+import CopyToClipboard from '../Global/CopyToClipboard'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -165,7 +165,12 @@ export const Profile = () => {
                             <Card className="flex w-1/2 items-center justify-center py-1.5">
                                 <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
                             </Card>
-                            <CopyToClipboardButton className="w-1/2" textToCopy={`${inviteCode}`} size="medium" />
+                            <CopyToClipboard
+                                type="button"
+                                className="w-1/2"
+                                textToCopy={`${inviteCode}`}
+                                buttonSize="medium"
+                            />
                         </div>
                         <ShareButton
                             generateText={() =>
