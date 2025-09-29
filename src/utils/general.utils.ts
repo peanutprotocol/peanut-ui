@@ -375,6 +375,10 @@ export const formatNumberForDisplay = (valueStr: string | undefined, options?: {
     })
 }
 
+export function formatCurrency(valueStr: string | undefined): string {
+    return formatNumberForDisplay(valueStr, { maxDecimals: 2 })
+}
+
 /**
  * formats a number by:
  * - displaying 2 significant digits for small numbers (<0.01)

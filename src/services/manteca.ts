@@ -205,6 +205,33 @@ export const mantecaApi = {
         }
     },
 
+    cancelDeposit: async (depositId: string): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
+        try {
+            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/deposit/${depositId}/cancel`, {
+                method: 'PATCH',
+                headers: {
+                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                },
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                console.log('error', response)
+                return { error: data.error || 'Failed to cancel manteca deposit.' }
+            }
+
+            return { data }
+        } catch (error) {
+            console.log('error', error)
+            console.error('Error calling cancel manteca deposit API:', error)
+            if (error instanceof Error) {
+                return { error: error.message }
+            }
+            return { error: 'An unexpected error occurred.' }
+        }
+    },
+
     withdraw: async (data: MantecaWithdrawData): Promise<MantecaWithdrawResponse> => {
         try {
             const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/withdraw`, {
