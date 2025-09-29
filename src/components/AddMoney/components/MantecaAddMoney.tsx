@@ -11,8 +11,9 @@ import { useCurrency } from '@/hooks/useCurrency'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { mantecaApi } from '@/services/manteca'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS } from '@/constants'
 import { parseUnits } from 'viem'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface MantecaAddMoneyProps {
     source: 'bank' | 'regionalMethod'
@@ -33,6 +34,7 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
     const [error, setError] = useState<string | null>(null)
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
+    const queryClient = useQueryClient()
 
     const selectedCountryPath = params.country as string
     const selectedCountry = useMemo(() => {
@@ -68,6 +70,12 @@ const MantecaAddMoney: FC<MantecaAddMoneyProps> = ({ source }) => {
             setError(null)
         }
     }, [usdAmount])
+
+    useEffect(() => {
+        if (step === 'depositDetails') {
+            queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        }
+    }, [step])
 
     const handleKycCancel = () => {
         setIsKycModalOpen(false)
