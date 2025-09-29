@@ -15,12 +15,14 @@ import { Button } from '@/components/0_Bruddle'
 
 export default function NotificationsPage() {
     const loadingRef = useRef<HTMLDivElement>(null)
+    const containerRef = useRef<HTMLDivElement>(null)
     const [notifications, setNotifications] = useState<InAppItem[]>([])
     const [nextPageCursor, setNextPageCursor] = useState<string | null>(null)
     const [isInitialLoading, setIsInitialLoading] = useState(true)
     const [isLoadingMore, setIsLoadingMore] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
+    const [markedIds, setMarkedIds] = useState<Set<string>>(new Set())
 
     const loadInitialPage = async () => {
         // load the first page of notifications
@@ -97,13 +99,62 @@ export default function NotificationsPage() {
         return groups
     }, [notifications])
 
+    // mark as read when notification cards become visible on screen
+    useEffect(() => {
+        // create an observer that marks unseen notifications as read when intersecting
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const toMark: string[] = []
+                const newlyMarked = new Set<string>()
+                for (const entry of entries) {
+                    const id = (entry.target as HTMLElement).dataset.notificationId
+                    if (!id) continue
+                    const notif = notifications.find((n) => n.id === id)
+                    if (!notif) continue
+                    const alreadyMarked = markedIds.has(id) || !!notif.state.readAt
+                    if (entry.isIntersecting && !alreadyMarked) {
+                        newlyMarked.add(id)
+                        toMark.push(id)
+                    }
+                }
+                if (toMark.length > 0) {
+                    // optimistically update ui and fire-and-forget api
+                    setNotifications((prev) =>
+                        prev.map((it) =>
+                            newlyMarked.has(it.id)
+                                ? { ...it, state: { ...it.state, readAt: new Date().toISOString() } }
+                                : it
+                        )
+                    )
+                    setMarkedIds((prev) => new Set<string>([...prev, ...Array.from(newlyMarked)]))
+                    void notificationsApi
+                        .markRead(toMark)
+                        .then(() => {
+                            // broadcast update so other ui (e.g. bell icon) can refresh unread count
+                            if (typeof window !== 'undefined') {
+                                window.dispatchEvent(new CustomEvent('notifications:updated'))
+                            }
+                        })
+                        .catch(() => {})
+                }
+            },
+            { threshold: 0.5 }
+        )
+
+        const root = containerRef.current
+        if (!root) return
+        const cards = root.querySelectorAll('[data-notification-id]')
+        cards.forEach((el) => observer.observe(el))
+        return () => observer.disconnect()
+    }, [notifications, markedIds])
+
     if (isInitialLoading && notifications.length === 0) {
         return <PeanutLoading />
     }
 
     return (
         <PageContainer>
-            <div className="h-full w-full space-y-6">
+            <div ref={containerRef} className="h-full w-full space-y-6">
                 <NavHeader title="Notifications" />
                 <div className="h-full w-full">
                     {/* error banner for partial failures */}
@@ -136,24 +187,13 @@ export default function NotificationsPage() {
                                                 key={notif.id}
                                                 position={position}
                                                 className="px-5 py-2"
-                                                onClick={async () => {
-                                                    void notificationsApi.markRead([notif.id]).catch(() => {})
-                                                    setNotifications((prev) =>
-                                                        prev.map((it) =>
-                                                            it.id === notif.id
-                                                                ? {
-                                                                      ...it,
-                                                                      state: {
-                                                                          ...it.state,
-                                                                          readAt: new Date().toISOString(),
-                                                                      },
-                                                                  }
-                                                                : it
-                                                        )
-                                                    )
-                                                }}
+                                                data-notification-id={notif.id}
                                             >
-                                                <Link href={href ?? ''} className="relative flex items-start gap-3">
+                                                <Link
+                                                    href={href ?? ''}
+                                                    className="relative flex items-start gap-3"
+                                                    data-notification-id={notif.id}
+                                                >
                                                     <Image
                                                         src={notif.iconUrl ?? PEANUTMAN_LOGO}
                                                         alt="icon"

@@ -23,10 +23,23 @@ export default function NotificationNavigation() {
             }
         }
         fetchNotificationCount()
+
+        // listen for notifications updates to refresh the badge
+        const onUpdated = () => {
+            void fetchNotificationCount()
+        }
+        if (typeof window !== 'undefined') {
+            window.addEventListener('notifications:updated', onUpdated)
+        }
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('notifications:updated', onUpdated)
+            }
+        }
     }, [])
 
     return (
-        <Link href={'/notifications'} className={twMerge('relative', notificationCount > 0 && 'animate-pulsate')}>
+        <Link href={'/notifications'} className={twMerge('relative')}>
             <Icon name="bell" size={20} />
             {notificationCount > 0 && <div className="absolute -right-1 -top-1.5 h-2 w-2 rounded-full bg-orange-2" />}
         </Link>
