@@ -16,7 +16,7 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { clearRedirectUrl, getRedirectUrl, isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
+import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS } from '@/constants'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { formatUnits, parseUnits } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -32,6 +32,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { EQrType } from '@/components/Global/DirectSendQR/utils'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
+import { useQueryClient } from '@tanstack/react-query'
 
 const MAX_QR_PAYMENT_AMOUNT = '200'
 
@@ -56,6 +57,7 @@ export default function QRPayPage() {
         useTransactionDetailsDrawer()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { shouldBlockPay, kycGateState } = useQrKycGate()
+    const queryClient = useQueryClient()
 
     const resetState = () => {
         setIsSuccess(false)
@@ -215,6 +217,12 @@ export default function QRPayPage() {
             setBalanceErrorMessage(null)
         }
     }, [usdAmount, balance])
+
+    useEffect(() => {
+        if (isSuccess) {
+            queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        }
+    }, [isSuccess])
 
     if (!!errorInitiatingPayment) {
         return (

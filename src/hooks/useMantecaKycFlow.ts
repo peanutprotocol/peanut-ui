@@ -28,8 +28,9 @@ export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose, country }
     const userKycVerifications = user?.user?.kycVerifications
 
     const handleIframeClose = useCallback(
-        (source?: 'manual' | 'completed' | 'tos_accepted') => {
+        async (source?: 'manual' | 'completed' | 'tos_accepted') => {
             setIframeOptions((prev) => ({ ...prev, visible: false }))
+            await fetchUser()
             if (source === 'completed') {
                 onSuccess?.()
                 return
@@ -48,8 +49,7 @@ export const useMantecaKycFlow = ({ onClose, onSuccess, onManualClose, country }
         autoConnect: true,
         onMantecaKycStatusUpdate: async (status) => {
             if (status === MantecaKycStatus.ACTIVE || status === 'WIDGET_FINISHED') {
-                await fetchUser()
-                handleIframeClose('completed')
+                await handleIframeClose('completed')
             }
         },
     })

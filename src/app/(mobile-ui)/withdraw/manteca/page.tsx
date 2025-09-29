@@ -10,7 +10,6 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { mantecaApi } from '@/services/manteca'
-import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { useCurrency } from '@/hooks/useCurrency'
 import { isTxReverted } from '@/utils/general.utils'
 import { loadingStateContext } from '@/context'
@@ -28,9 +27,16 @@ import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModa
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useSupportModalContext } from '@/context/SupportModalContext'
-import { MantecaAccountType, MANTECA_COUNTRIES_CONFIG, MantecaBankCode } from '@/constants/manteca.consts'
+import {
+    MantecaAccountType,
+    MANTECA_COUNTRIES_CONFIG,
+    MantecaBankCode,
+    MANTECA_DEPOSIT_ADDRESS,
+    TRANSACTIONS,
+} from '@/constants'
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
+import { useQueryClient } from '@tanstack/react-query'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -57,6 +63,7 @@ export default function MantecaWithdrawFlow() {
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { user, fetchUser } = useAuth()
     const { setIsSupportModalOpen } = useSupportModalContext()
+    const queryClient = useQueryClient()
 
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
@@ -255,6 +262,12 @@ export default function MantecaWithdrawFlow() {
             setBalanceErrorMessage(null)
         }
     }, [usdAmount, balance])
+
+    useEffect(() => {
+        if (step === 'success') {
+            queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        }
+    }, [step])
 
     if (isCurrencyLoading || !currencyPrice || !selectedCountry) {
         return <PeanutLoading />
