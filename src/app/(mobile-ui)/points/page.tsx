@@ -45,7 +45,7 @@ const PointsPage = () => {
                     <CopyToClipboard type="button" textToCopy={inviteCode} />
                 </div>
 
-                {invites.length > 0 && (
+                {invites?.length && invites.length > 0 && (
                     <>
                         <ShareButton
                             generateText={() =>
@@ -59,7 +59,7 @@ const PointsPage = () => {
                         </ShareButton>
                         <h2 className="!mt-8 font-bold">People you invited</h2>
                         <div>
-                            {invites.map((invite: any, i: number) => {
+                            {invites?.map((invite: any, i: number) => {
                                 const username = invite.invitee.username
                                 const isVerified = invite.invitee.bridgeKycStatus === 'approved'
                                 return (
@@ -87,7 +87,7 @@ const PointsPage = () => {
                     </>
                 )}
 
-                {invites.length === 0 && (
+                {invites?.length === 0 && (
                     <Card className="flex flex-col items-center justify-center gap-4 py-4">
                         <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
                             <Icon name="trophy" />

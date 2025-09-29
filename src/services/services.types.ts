@@ -306,3 +306,12 @@ export interface TCreateOfframpResponse {
     deposit_chain_id: number
     deposit_token_address: string
 }
+
+export interface Invite {
+    type: 'DIRECT' | 'PAYMENT_LINK'
+    createdAt: string
+    invitee: {
+        username: string
+        fullName: string | null
+    }
+}
