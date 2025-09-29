@@ -293,7 +293,7 @@ export default function QRPayPage() {
                     onClose={() => router.back()}
                     title="Verify your identity to continue"
                     description="You'll need to verify your identity before paying with a QR code. Don't worry it usually just takes a few minutes."
-                    icon="shield"
+                    icon={<Image src={methodIcon} alt="Mercado Pago" width={48} height={48} priority />}
                     ctas={[
                         {
                             text: 'Verify now',
