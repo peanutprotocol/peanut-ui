@@ -16,7 +16,7 @@ import { isTxReverted } from '@/utils/general.utils'
 import { loadingStateContext } from '@/context'
 import { countryData } from '@/components/AddMoney/consts'
 import Image from 'next/image'
-import { formatAmount } from '@/utils'
+import { formatAmount, formatNumberForDisplay } from '@/utils'
 import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
@@ -30,6 +30,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useSupportModalContext } from '@/context/SupportModalContext'
 import { MantecaAccountType, MANTECA_COUNTRIES_CONFIG, MantecaBankCode } from '@/constants/manteca.consts'
 import Select from '@/components/Global/Select'
+import { SoundPlayer } from '@/components/Global/SoundPlayer'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -239,7 +240,7 @@ export default function MantecaWithdrawFlow() {
     }, [])
 
     useEffect(() => {
-        if (!usdAmount || usdAmount === '0.00' || balance === undefined) {
+        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
             setBalanceErrorMessage(null)
             return
         }
@@ -262,6 +263,7 @@ export default function MantecaWithdrawFlow() {
     if (step === 'success') {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
+                <SoundPlayer sound="success" />
                 <NavHeader title="Withdraw" />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <Card className="flex flex-row items-center gap-3 p-4">
@@ -273,9 +275,11 @@ export default function MantecaWithdrawFlow() {
                         <div className="space-y-1">
                             <h1 className="text-sm font-normal text-grey-1">You just withdrew</h1>
                             <div className="text-2xl font-extrabold">
-                                {currencyCode} {currencyAmount}
+                                {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
                             </div>
-                            <div className="text-lg font-bold">≈ ${usdAmount} USD</div>
+                            <div className="text-lg font-bold">
+                                ≈ ${formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
+                            </div>
                             <h1 className="text-sm font-normal text-grey-1">to {destinationAddress}</h1>
                         </div>
                     </Card>
@@ -396,9 +400,11 @@ export default function MantecaWithdrawFlow() {
                                     <Icon name="arrow-up" size={10} /> You're withdrawing
                                 </p>
                                 <p className="text-2xl font-bold">
-                                    {currencyCode} {currencyAmount}
+                                    {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
                                 </p>
-                                <div className="text-lg font-bold">≈ {usdAmount} USD</div>
+                                <div className="text-lg font-bold">
+                                    ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
+                                </div>
                             </div>
                         </div>
                     </Card>
@@ -506,9 +512,11 @@ export default function MantecaWithdrawFlow() {
                                     <Icon name="arrow-up" size={10} /> You're withdrawing
                                 </p>
                                 <p className="text-2xl font-bold">
-                                    {currencyCode} {currencyAmount}
+                                    {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
                                 </p>
-                                <div className="text-lg font-bold">≈ {usdAmount} USD</div>
+                                <div className="text-lg font-bold">
+                                    ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
+                                </div>
                             </div>
                         </div>
                     </Card>

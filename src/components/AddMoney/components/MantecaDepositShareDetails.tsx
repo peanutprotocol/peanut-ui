@@ -10,12 +10,12 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
-import { shortenStringLong } from '@/utils'
 import {
     MANTECA_ARG_DEPOSIT_CUIT,
     MANTECA_ARG_DEPOSIT_NAME,
     MANTECA_COUNTRIES_CONFIG,
 } from '@/constants/manteca.consts'
+import { shortenStringLong, formatNumberForDisplay } from '@/utils'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -97,9 +97,11 @@ const MantecaDepositShareDetails = ({
                                 <Icon name="arrow-down" size={10} /> You're adding
                             </p>
                             <p className="text-2xl font-bold">
-                                {currencySymbol} {depositAmount}
+                                {currencySymbol} {formatNumberForDisplay(depositAmount, { maxDecimals: 2 })}
                             </p>
-                            <div className="text-lg font-bold">≈ {usdAmount} USD</div>
+                            <div className="text-lg font-bold">
+                                ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
+                            </div>
                         </div>
                     </div>
                 </Card>

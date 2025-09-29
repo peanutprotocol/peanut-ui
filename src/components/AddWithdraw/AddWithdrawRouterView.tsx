@@ -34,7 +34,7 @@ function saveRecentMethod(method: DepositMethod) {
         description: method.description,
         iconUrl: method.iconUrl,
         currency: method.currency,
-        path: method.path,
+        path: `/add-money/${method.path}`,
     }
 
     const prefs = getUserPreferences() || {}

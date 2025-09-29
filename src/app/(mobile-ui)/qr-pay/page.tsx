@@ -14,7 +14,7 @@ import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { clearRedirectUrl, getRedirectUrl, isTxReverted } from '@/utils/general.utils'
+import { clearRedirectUrl, getRedirectUrl, isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
@@ -29,9 +29,9 @@ import { captureException } from '@sentry/nextjs'
 import { isPaymentProcessorQR } from '@/components/Global/DirectSendQR/utils'
 import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
 import ActionModal from '@/components/Global/ActionModal'
-import { saveRedirectUrl } from '@/utils/general.utils'
 import { MantecaGeoSpecificKycModal } from '@/components/Kyc/InitiateMantecaKYCModal'
 import { EQrType } from '@/components/Global/DirectSendQR/utils'
+import { SoundPlayer } from '@/components/Global/SoundPlayer'
 
 const MAX_QR_PAYMENT_AMOUNT = '200'
 
@@ -202,11 +202,11 @@ export default function QRPayPage() {
 
     // Check user balance
     useEffect(() => {
-        if (!usdAmount || balance === undefined) {
+        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
             setBalanceErrorMessage(null)
             return
         }
-        const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
+        const paymentAmount = parseUnits(usdAmount.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
         if (paymentAmount > parseUnits(MAX_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`QR payment amount exceeds maximum limit of $${MAX_QR_PAYMENT_AMOUNT}`)
         } else if (paymentAmount > balance) {
@@ -310,6 +310,7 @@ export default function QRPayPage() {
     } else if (isSuccess) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
+                <SoundPlayer sound="success" />
                 <NavHeader title="Pay" />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <Card className="flex flex-row items-center gap-3 p-4">
@@ -328,9 +329,12 @@ export default function QRPayPage() {
                                 You paid {qrPayment!.details.merchant.name}
                             </h1>
                             <div className="text-2xl font-extrabold">
-                                {currency.symbol} {qrPayment!.details.paymentAssetAmount}
+                                {currency.symbol}{' '}
+                                {formatNumberForDisplay(qrPayment!.details.paymentAssetAmount, { maxDecimals: 2 })}
                             </div>
-                            <div className="text-lg font-bold">≈ {usdAmount} USD</div>
+                            <div className="text-lg font-bold">
+                                ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
+                            </div>
                         </div>
                     </Card>
                     <div className="w-full space-y-5">
