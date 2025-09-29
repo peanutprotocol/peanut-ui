@@ -361,3 +361,8 @@ input::placeholder {
     line-height: 100%;
     letter-spacing: -1px;
 }
+
+.embla__slide {
+    flex: 0 0 100%;
+    min-width: 0;
+}

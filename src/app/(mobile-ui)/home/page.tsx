@@ -41,6 +41,7 @@ import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import starImage from '@/assets/icons/star.png'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
+import HomeBanners from '@/components/Home/HomeBanners'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -284,6 +285,8 @@ export default function Home() {
                         />
                     </ActionButtonGroup>
                 </div>
+
+                <HomeBanners />
 
                 <HomeHistory username={username ?? undefined} />
                 {/* Render the new Rewards Modal
