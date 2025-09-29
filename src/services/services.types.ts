@@ -307,8 +307,13 @@ export interface TCreateOfframpResponse {
     deposit_token_address: string
 }
 
+export enum EInviteType {
+    DIRECT = 'DIRECT',
+    PAYMENT_LINK = 'PAYMENT_LINK',
+}
+
 export interface Invite {
-    type: 'DIRECT' | 'PAYMENT_LINK'
+    type: EInviteType
     createdAt: string
     invitee: {
         username: string

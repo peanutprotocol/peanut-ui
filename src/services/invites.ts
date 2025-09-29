@@ -2,10 +2,10 @@ import { validateInviteCode } from '@/app/actions/invites'
 import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils'
 import Cookies from 'js-cookie'
-import { Invite } from './services.types'
+import { EInviteType, Invite } from './services.types'
 
 export const invitesApi = {
-    acceptInvite: async (inviteCode: string): Promise<{ success: boolean }> => {
+    acceptInvite: async (inviteCode: string, type: EInviteType): Promise<{ success: boolean }> => {
         try {
             const jwtToken = Cookies.get('jwt-token')
             const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/accept`, {
@@ -14,7 +14,7 @@ export const invitesApi = {
                     Authorization: `Bearer ${jwtToken}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ inviteCode, type: 'DIRECT' }),
+                body: JSON.stringify({ inviteCode, type }),
             })
             if (!response.ok) {
                 return { success: false }

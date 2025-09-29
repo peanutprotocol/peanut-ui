@@ -27,6 +27,7 @@ import useClaimLink from '../Claim/useClaimLink'
 import { setupActions } from '@/redux/slices/setup-slice'
 import starImage from '@/assets/icons/star.png'
 import { useAuth } from '@/context/authContext'
+import { EInviteType } from '@/services/services.types'
 interface IActionListProps {
     flow: 'claim' | 'request'
     claimLinkData?: ClaimLinkData
@@ -159,6 +160,7 @@ export default function ActionList({
             const username = rawUsername ? rawUsername.toUpperCase() : ''
             const inviteCode = `${username}INVITESYOU`
             dispatch(setupActions.setInviteCode(inviteCode))
+            dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
             router.push(`/setup?step=signup&redirect_uri=${redirectUri}`)
         } else {
             router.push(`/setup?redirect_uri=${redirectUri}`)

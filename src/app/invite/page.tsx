@@ -13,6 +13,7 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import ValidationErrorView from '@/components/Payment/Views/Error.validation.view'
 import { Suspense } from 'react'
 import { useAuth } from '@/context/authContext'
+import { EInviteType } from '@/services/services.types'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
@@ -35,6 +36,7 @@ function InvitePageContent() {
     const handleClaimInvite = async () => {
         if (inviteCode) {
             dispatch(setupActions.setInviteCode(inviteCode))
+            dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
             router.push('/setup?step=signup')
         }
     }

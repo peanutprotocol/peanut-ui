@@ -1,4 +1,5 @@
 import { ISetupStep } from '@/components/Setup/Setup.types'
+import { EInviteType } from '@/services/services.types'
 
 export interface ISetupState {
     username: string
@@ -8,4 +9,5 @@ export interface ISetupState {
     steps: ISetupStep[]
     telegramHandle: string
     inviteCode: string
+    inviteType: EInviteType
 }

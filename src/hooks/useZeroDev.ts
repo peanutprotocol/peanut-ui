@@ -39,7 +39,7 @@ export const useZeroDev = () => {
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
     const { setWebAuthnKey, getClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
-    const { inviteCode } = useSetupStore()
+    const { inviteCode, inviteType } = useSetupStore()
 
     // Future note: could be `${username}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || 'peanut.me'}` (have to change BE too)
     const _getPasskeyName = (username: string) => `${username}.peanut.wallet`
@@ -57,7 +57,7 @@ export const useZeroDev = () => {
             })
 
             if (inviteCode.trim().length > 0) {
-                await invitesApi.acceptInvite(inviteCode)
+                await invitesApi.acceptInvite(inviteCode, inviteType)
             }
 
             setWebAuthnKey(webAuthnKey)

@@ -12,6 +12,7 @@ import peanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konr
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import PeanutLoading from '../Global/PeanutLoading'
+import { useSetupStore } from '@/redux/hooks'
 
 const JoinWaitlistPage = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -22,6 +23,7 @@ const JoinWaitlistPage = () => {
     const { fetchUser, isFetchingUser, logoutUser, user } = useAuth()
     const [isLoggingOut, setisLoggingOut] = useState(false)
     const router = useRouter()
+    const { inviteType } = useSetupStore()
 
     const { data, isLoading: isLoadingWaitlistPosition } = useQuery({
         queryKey: ['waitlist-position'],
@@ -39,7 +41,7 @@ const JoinWaitlistPage = () => {
     const handleAcceptInvite = async () => {
         setisLoading(true)
         try {
-            const res = await invitesApi.acceptInvite(inviteCode)
+            const res = await invitesApi.acceptInvite(inviteCode, inviteType)
             if (res.success) {
                 fetchUser()
             } else {
