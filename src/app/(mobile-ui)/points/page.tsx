@@ -1,6 +1,5 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card, { getCardPosition } from '@/components/Global/Card'
 import CopyToClipboardButton from '@/components/Global/CopyToClipboard/CopyToClipboardButton'
@@ -16,12 +15,13 @@ import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 
 const PointsPage = () => {
-    const { data: invites, isLoading } = useQuery({
-        queryKey: ['invites'],
-        queryFn: () => invitesApi.getInvites(),
-    })
     const router = useRouter()
     const { user } = useAuth()
+    const { data: invites, isLoading } = useQuery({
+        queryKey: ['invites', user?.user.userId],
+        queryFn: () => invitesApi.getInvites(),
+        enabled: !!user?.user.userId,
+    })
 
     const username = user?.user.username
     const inviteCode = username ? `${username.toUpperCase()}INVITESYOU` : ''
@@ -41,7 +41,7 @@ const PointsPage = () => {
                     <Card className="flex w-1/2 items-center justify-center py-3.5">
                         <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold md:text-base">{`${inviteCode}`}</p>
                     </Card>
-                    <CopyToClipboardButton textToCopy={`${inviteCode}`} />
+                    <CopyToClipboardButton textToCopy={inviteCode} />
                 </div>
 
                 {invites.length > 0 && (

@@ -1,5 +1,6 @@
 'use server'
 
+import { PEANUT_API_URL } from '@/constants'
 import { fetchWithSentry } from '@/utils'
 
 const API_KEY = process.env.PEANUT_API_KEY!
@@ -7,7 +8,7 @@ const API_KEY = process.env.PEANUT_API_KEY!
 export async function validateInviteCode(
     inviteCode: string
 ): Promise<{ data?: { success: boolean; username: string }; error?: string }> {
-    const apiUrl = process.env.PEANUT_API_URL
+    const apiUrl = PEANUT_API_URL
 
     if (!apiUrl || !API_KEY) {
         console.error('API URL or API Key is not configured.')

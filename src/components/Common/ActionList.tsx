@@ -48,7 +48,7 @@ export default function ActionList({
     isLoggedIn,
     flow,
     requestLinkData,
-    isInviteLink,
+    isInviteLink = false,
 }: IActionListProps) {
     const router = useRouter()
     const { setClaimToExternalWallet, setFlowStep: setClaimBankFlowStep, setShowVerificationModal } = useClaimBankFlow()
@@ -166,7 +166,7 @@ export default function ActionList({
     }
 
     const username = claimLinkData?.sender?.username ?? requestLinkData?.recipient?.identifier
-    const userHasAppAccess = user?.user.hasAppAccess
+    const userHasAppAccess = user?.user?.hasAppAccess ?? false
 
     return (
         <div className="space-y-2">

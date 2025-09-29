@@ -81,7 +81,7 @@ const JoinWaitlistPage = () => {
                     <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
                         <h1 className="text-xl font-extrabold">You&apos;re still in Peanut jail</h1>
 
-                        <h2 className="text-xl font-bold">Prisioner #{data?.position}</h2>
+                        <h2 className="text-xl font-bold">Prisoner #{data?.position}</h2>
                         <p className="text-base font-medium">
                             No bail without an invite. Got a code? Prove it below. No code? Back to the waitlist. Go beg
                             your friend!

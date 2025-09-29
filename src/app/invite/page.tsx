@@ -12,10 +12,12 @@ import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import ValidationErrorView from '@/components/Payment/Views/Error.validation.view'
 import { Suspense } from 'react'
+import { useAuth } from '@/context/authContext'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
     const inviteCode = searchParams.get('code')
+    const { logoutUser, isLoggingOut } = useAuth()
 
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -73,7 +75,9 @@ function InvitePageContent() {
                             Claim your spot
                         </Button>
 
-                        <button className="text-sm underline">Already have an account? Log in!</button>
+                        <button disabled={isLoggingOut} onClick={logoutUser} className="text-sm underline">
+                            {isLoggingOut ? 'Please wait...' : 'Already have an account? Log in!'}
+                        </button>
                     </div>
                 </div>
             </div>

@@ -47,7 +47,7 @@ const CollectEmail = () => {
     return (
         <div className="flex flex-col gap-4">
             <ValidatedInput
-                placeholder="Enter you email"
+                placeholder="Enter your email"
                 value={email}
                 debounceTime={750}
                 validate={validateEmail}
@@ -75,7 +75,7 @@ const CollectEmail = () => {
                 Finish setup
             </Button>
 
-            {!!error || (!isValid && !isChanging && !!email && <ErrorAlert description={error || 'Invalid email'} />)}
+            {(!!error || (!isValid && !isChanging && !!email)) && <ErrorAlert description={error || 'Invalid email'} />}
         </div>
     )
 }
