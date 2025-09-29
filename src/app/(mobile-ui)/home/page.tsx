@@ -222,40 +222,29 @@ export default function Home() {
                         <Link href="/points">
                             <motion.div
                                 animate={{
-                                    rotate: [0, -10, 10, -10, 10, 0],
-                                    scale: [1, 1.1, 1, 1.1, 1],
+                                    rotate: [0, 0, 0, 0, 0, 0, -15, 15, -10, 10, -5, 0],
+                                    scale: [1, 1, 1, 1, 1, 1, 1.2, 1.15, 1.2, 1.15, 1.1, 1],
+                                    y: [0, 0, 0, 0, 0, 0, -2, 0, -1, 0, -1, 0],
                                 }}
                                 transition={{
-                                    duration: 2,
+                                    duration: 6,
                                     repeat: Infinity,
                                     ease: 'easeInOut',
                                 }}
                                 whileHover={{
-                                    scale: 1.2,
-                                    rotate: 360,
-                                    transition: { duration: 0.5 },
+                                    scale: 1.3,
+                                    rotate: 20,
+                                    transition: { duration: 0.3, ease: 'easeOut' },
                                 }}
-                                whileTap={{ scale: 0.9 }}
-                                className="relative"
+                                whileTap={{
+                                    scale: 0.9,
+                                    transition: { duration: 0.1 },
+                                }}
+                                style={{
+                                    transition: 'transform 0.3s ease-out',
+                                }}
                             >
                                 <Image src={starImage} alt="star" width={20} height={20} />
-                                <motion.div
-                                    className="absolute inset-0 rounded-full"
-                                    animate={{
-                                        boxShadow: [
-                                            '0 0 0px rgba(255, 215, 0, 0)',
-                                            '0 0 10px rgba(255, 215, 0, 0.6)',
-                                            '0 0 20px rgba(255, 215, 0, 0.4)',
-                                            '0 0 10px rgba(255, 215, 0, 0.6)',
-                                            '0 0 0px rgba(255, 215, 0, 0)',
-                                        ],
-                                    }}
-                                    transition={{
-                                        duration: 2,
-                                        repeat: Infinity,
-                                        ease: 'easeInOut',
-                                    }}
-                                />
                             </motion.div>
                         </Link>
                         <SearchUsers />
