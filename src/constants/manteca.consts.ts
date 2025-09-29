@@ -72,7 +72,7 @@ export const MANTECA_COUNTRIES_CONFIG: Record<string, MantecaCountryConfig> = {
         needsAccountType: false,
     },
     BR: {
-        accountNumberLabel: 'PIX Key',
+        accountNumberLabel: 'PIX Key (Include +55 in case of phone number)',
         depositAddressLabel: 'PIX Key',
         needsBankCode: false,
         needsAccountType: false,
