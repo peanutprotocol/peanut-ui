@@ -19,6 +19,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_TOKEN_DECIMALS, TRANSACTIONS } from '@/constants'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { formatUnits, parseUnits } from 'viem'
+import type { TransactionReceipt, Hash } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
@@ -116,6 +117,10 @@ export default function QRPayPage() {
         getCurrencyObject().then(setCurrency)
     }, [paymentLock?.code])
 
+    const isBlockingError = useMemo(() => {
+        return !!errorMessage && errorMessage !== 'Please confirm the transaction.'
+    }, [errorMessage])
+
     const usdAmount = useMemo(() => {
         if (!paymentLock) return null
         if (paymentLock.code === '') {
@@ -181,9 +186,26 @@ export default function QRPayPage() {
             return
         }
         setLoadingState('Preparing transaction')
-        const { userOpHash, receipt } = await sendMoney(MANTECA_DEPOSIT_ADDRESS, finalPaymentLock.paymentAgainstAmount)
+        let userOpHash: Hash
+        let receipt: TransactionReceipt | null
+        try {
+            const result = await sendMoney(MANTECA_DEPOSIT_ADDRESS, finalPaymentLock.paymentAgainstAmount)
+            userOpHash = result.userOpHash
+            receipt = result.receipt
+        } catch (error) {
+            if ((error as Error).toString().includes('The operation either timed out or was not allowed')) {
+                setErrorMessage('Please confirm the transaction.')
+            } else {
+                captureException(error)
+                setErrorMessage('Could not sign the transaction.')
+                setIsSuccess(false)
+            }
+            setLoadingState('Idle')
+            return
+        }
         if (receipt !== null && isTxReverted(receipt)) {
             setErrorMessage('Transaction reverted by the network.')
+            setLoadingState('Idle')
             setIsSuccess(false)
             return
         }
@@ -457,7 +479,7 @@ export default function QRPayPage() {
                     loading={isLoading}
                     disabled={
                         !!errorInitiatingPayment ||
-                        !!errorMessage ||
+                        isBlockingError ||
                         !amount ||
                         isLoading ||
                         !!balanceErrorMessage ||
