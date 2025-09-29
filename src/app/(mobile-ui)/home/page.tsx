@@ -40,6 +40,7 @@ import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import starImage from '@/assets/icons/star.png'
 import Image from 'next/image'
+import { motion } from 'framer-motion'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -218,7 +219,43 @@ export default function Home() {
                     />
                     <div className="flex items-center gap-2">
                         <Link href="/points">
-                            <Image src={starImage} alt="star" width={20} height={20} />
+                            <motion.div
+                                animate={{
+                                    rotate: [0, -10, 10, -10, 10, 0],
+                                    scale: [1, 1.1, 1, 1.1, 1],
+                                }}
+                                transition={{
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    ease: 'easeInOut',
+                                }}
+                                whileHover={{
+                                    scale: 1.2,
+                                    rotate: 360,
+                                    transition: { duration: 0.5 },
+                                }}
+                                whileTap={{ scale: 0.9 }}
+                                className="relative"
+                            >
+                                <Image src={starImage} alt="star" width={20} height={20} />
+                                <motion.div
+                                    className="absolute inset-0 rounded-full"
+                                    animate={{
+                                        boxShadow: [
+                                            '0 0 0px rgba(255, 215, 0, 0)',
+                                            '0 0 10px rgba(255, 215, 0, 0.6)',
+                                            '0 0 20px rgba(255, 215, 0, 0.4)',
+                                            '0 0 10px rgba(255, 215, 0, 0.6)',
+                                            '0 0 0px rgba(255, 215, 0, 0)',
+                                        ],
+                                    }}
+                                    transition={{
+                                        duration: 2,
+                                        repeat: Infinity,
+                                        ease: 'easeInOut',
+                                    }}
+                                />
+                            </motion.div>
                         </Link>
                         <SearchUsers />
                     </div>
