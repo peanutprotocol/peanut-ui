@@ -33,9 +33,12 @@ export const useBanners = () => {
     }
 
     useEffect(() => {
-        if (user) {
-            generateBanners()
+        if (!user) {
+            setBanners([])
+            return
         }
+
+        generateBanners()
     }, [user])
 
     return { banners, setBanners }
