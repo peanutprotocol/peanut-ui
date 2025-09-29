@@ -38,7 +38,7 @@ import { PostSignupActionManager } from '@/components/Global/PostSignupActionMan
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
-import starImage from '@/assets/icons/star.png'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import HomeBanners from '@/components/Home/HomeBanners'
@@ -222,12 +222,11 @@ export default function Home() {
                         <Link href="/points">
                             <motion.div
                                 animate={{
-                                    rotate: [0, 0, 0, 0, 0, 0, -15, 15, -10, 10, -5, 0],
-                                    scale: [1, 1, 1, 1, 1, 1, 1.2, 1.15, 1.2, 1.15, 1.1, 1],
-                                    y: [0, 0, 0, 0, 0, 0, -2, 0, -1, 0, -1, 0],
+                                    rotate: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -15, 15, -10, 10, -5, 0],
+                                    y: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -2, 0, -1, 0, -1, 0],
                                 }}
                                 transition={{
-                                    duration: 6,
+                                    duration: 10,
                                     repeat: Infinity,
                                     ease: 'easeInOut',
                                 }}
@@ -244,7 +243,7 @@ export default function Home() {
                                     transition: 'transform 0.3s ease-out',
                                 }}
                             >
-                                <Image src={starImage} alt="star" width={20} height={20} />
+                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
                             </motion.div>
                         </Link>
                         <SearchUsers />
