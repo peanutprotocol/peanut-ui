@@ -38,6 +38,7 @@ import { PostSignupActionManager } from '@/components/Global/PostSignupActionMan
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
+import HomeBanners from '@/components/Home/HomeBanners'
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -240,6 +241,8 @@ export default function Home() {
                         />
                     </ActionButtonGroup>
                 </div>
+
+                <HomeBanners />
 
                 <HomeHistory username={username ?? undefined} />
                 {/* Render the new Rewards Modal
