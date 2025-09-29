@@ -11,6 +11,7 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
+import { Invite } from '@/services/services.types'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 
@@ -59,7 +60,7 @@ const PointsPage = () => {
                         </ShareButton>
                         <h2 className="!mt-8 font-bold">People you invited</h2>
                         <div>
-                            {invites?.map((invite: any, i: number) => {
+                            {invites?.map((invite: Invite, i: number) => {
                                 const username = invite.invitee.username
                                 const isVerified = invite.invitee.bridgeKycStatus === 'approved'
                                 return (

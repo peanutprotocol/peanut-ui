@@ -59,10 +59,13 @@ export const invitesApi = {
 
     getWaitlistQueuePosition: async (): Promise<{ success: boolean; position: number }> => {
         try {
+            const token = Cookies.get('jwt-token')
+            if (!token) return { success: false, position: 0 }
+
             const response = await fetchWithSentry(`${PEANUT_API_URL}/invites/waitlist-position`, {
                 method: 'GET',
                 headers: {
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                    Authorization: `Bearer ${token}`,
                 },
             })
 
@@ -71,7 +74,7 @@ export const invitesApi = {
             }
 
             const data = await response.json()
-            return { success: true, position: data.queuePosition }
+            return { success: true, position: Number(data.queuePosition) || 0 }
         } catch (e) {
             console.error('Error getting waitlist queue position:', e)
             return { success: false, position: 0 }

@@ -1,3 +1,4 @@
+import { BridgeKycStatus } from '@/utils'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'
@@ -313,9 +314,11 @@ export enum EInviteType {
 }
 
 export interface Invite {
+    id: string
     type: EInviteType
     createdAt: string
     invitee: {
+        bridgeKycStatus: BridgeKycStatus
         username: string
         fullName: string | null
     }
