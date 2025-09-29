@@ -21,6 +21,7 @@ import ValidatedInput from '@/components/Global/ValidatedInput'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { formatUnits, parseUnits } from 'viem'
+import type { TransactionReceipt, Hash } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useMantecaKycFlow } from '@/hooks/useMantecaKycFlow'
 import { InitiateMantecaKYCModal } from '@/components/Kyc/InitiateMantecaKYCModal'
@@ -37,6 +38,7 @@ import {
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
+import { captureException } from '@sentry/nextjs'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -185,9 +187,24 @@ export default function MantecaWithdrawFlow() {
 
         try {
             setLoadingState('Preparing transaction')
+            let userOpHash: Hash
+            let receipt: TransactionReceipt | null
 
-            // Send crypto to Manteca address
-            const { userOpHash, receipt } = await sendMoney(MANTECA_DEPOSIT_ADDRESS, usdAmount)
+            try {
+                // Send crypto to Manteca address
+                const result = await sendMoney(MANTECA_DEPOSIT_ADDRESS, usdAmount)
+                userOpHash = result.userOpHash
+                receipt = result.receipt
+            } catch (error) {
+                if ((error as Error).toString().includes('The operation either timed out or was not allowed')) {
+                    setErrorMessage('Please confirm the transaction.')
+                } else {
+                    captureException(error)
+                    setErrorMessage('Could not sign the transaction.')
+                }
+                setLoadingState('Idle')
+                return
+            }
 
             if (receipt !== null && isTxReverted(receipt)) {
                 setErrorMessage('Transaction reverted by the network.')

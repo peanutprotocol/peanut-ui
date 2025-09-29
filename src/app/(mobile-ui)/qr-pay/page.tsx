@@ -483,7 +483,9 @@ export default function QRPayPage() {
                         !amount ||
                         isLoading ||
                         !!balanceErrorMessage ||
-                        shouldBlockPay
+                        shouldBlockPay ||
+                        !usdAmount ||
+                        usdAmount === '0.00'
                     }
                 >
                     {isLoading ? loadingState : 'Pay'}
