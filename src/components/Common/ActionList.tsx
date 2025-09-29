@@ -154,9 +154,9 @@ export default function ActionList({
         }
         // push to setup page with redirect uri, to prevent the user from losing the flow context
         const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
-        if (isInviteLink && !userHasAppAccess) {
-            const rawUsername =
-                flow === 'request' ? requestLinkData?.recipient?.identifier : claimLinkData?.sender?.username
+        const rawUsername =
+            flow === 'request' ? requestLinkData?.recipient?.identifier : claimLinkData?.sender?.username
+        if (isInviteLink && !userHasAppAccess && rawUsername) {
             const username = rawUsername ? rawUsername.toUpperCase() : ''
             const inviteCode = `${username}INVITESYOU`
             dispatch(setupActions.setInviteCode(inviteCode))

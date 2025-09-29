@@ -57,7 +57,14 @@ export const useZeroDev = () => {
             })
 
             if (inviteCode.trim().length > 0) {
-                await invitesApi.acceptInvite(inviteCode, inviteType)
+                try {
+                    const result = await invitesApi.acceptInvite(inviteCode, inviteType)
+                    if (!result.success) {
+                        console.error('Error accepting invite', result)
+                    }
+                } catch (e) {
+                    console.error('Error accepting invite', e)
+                }
             }
 
             setWebAuthnKey(webAuthnKey)
