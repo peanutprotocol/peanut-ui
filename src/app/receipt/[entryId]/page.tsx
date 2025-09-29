@@ -28,13 +28,13 @@ export default async function ReceiptPage({
     }
     const { transactionDetails } = mapTransactionDataForDrawer(entry)
     return (
-        <>
-            <div className="mt-4 px-5 md:hidden">
+        <div className="p-6">
+            <div className="md:hidden">
                 <NavHeader title="Receipt" />
             </div>
             <div className="flex min-h-[100dvh] flex-col items-center justify-center">
-                <TransactionDetailsReceipt className="w-full px-5" transaction={transactionDetails!} />
+                <TransactionDetailsReceipt className="w-full" transaction={transactionDetails!} />
             </div>
-        </>
+        </div>
     )
 }
