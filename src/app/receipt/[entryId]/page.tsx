@@ -1,9 +1,10 @@
 import { connection } from 'next/server'
 import { notFound } from 'next/navigation'
-import { EHistoryEntryType, isFinalState, historyTypeFromNumber } from '@/utils/history.utils'
+import { isFinalState, historyTypeFromNumber } from '@/utils/history.utils'
 import { getHistoryEntry } from '@/app/actions/history'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
+import NavHeader from '@/components/Global/NavHeader'
 
 export default async function ReceiptPage({
     params,
@@ -27,8 +28,13 @@ export default async function ReceiptPage({
     }
     const { transactionDetails } = mapTransactionDataForDrawer(entry)
     return (
-        <div className="flex min-h-[100dvh] flex-col items-center justify-center">
-            <TransactionDetailsReceipt className="w-full px-5" transaction={transactionDetails!} />
-        </div>
+        <>
+            <div className="mt-4 px-5 md:hidden">
+                <NavHeader title="Receipt" />
+            </div>
+            <div className="flex min-h-[100dvh] flex-col items-center justify-center">
+                <TransactionDetailsReceipt className="w-full px-5" transaction={transactionDetails!} />
+            </div>
+        </>
     )
 }
