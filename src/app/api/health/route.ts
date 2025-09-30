@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { fetchWithSentry } from '@/utils'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+
 /**
  * Overall health check endpoint
  * Aggregates health status from all individual service health checks
@@ -84,6 +88,8 @@ export async function GET() {
                     headers: {
                         'Content-Type': 'application/json',
                     },
+                    cache: 'no-store',
+                    next: { revalidate: 0 },
                 })
 
                 if (!response.ok) {
@@ -189,23 +195,42 @@ export async function GET() {
             // Send Discord notification asynchronously (don't await to avoid delaying the response)
             sendDiscordNotification(responseData).catch(console.error)
 
-            return NextResponse.json(responseData, { status: 500 })
+            return NextResponse.json(responseData, {
+                status: 500,
+                headers: {
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    Pragma: 'no-cache',
+                    Expires: '0',
+                    'Surrogate-Control': 'no-store',
+                },
+            })
         }
 
-        return NextResponse.json({
-            status: overallStatus,
-            service: 'peanut-protocol',
-            timestamp: new Date().toISOString(),
-            responseTime: totalResponseTime,
-            healthScore,
-            summary: results.summary,
-            services: results.services,
-            systemInfo: {
-                environment: process.env.NODE_ENV,
-                version: process.env.npm_package_version || 'unknown',
-                region: process.env.VERCEL_REGION || 'unknown',
+        return NextResponse.json(
+            {
+                status: overallStatus,
+                service: 'peanut-protocol',
+                timestamp: new Date().toISOString(),
+                responseTime: totalResponseTime,
+                healthScore,
+                summary: results.summary,
+                services: results.services,
+                systemInfo: {
+                    environment: process.env.NODE_ENV,
+                    version: process.env.npm_package_version || 'unknown',
+                    region: process.env.VERCEL_REGION || 'unknown',
+                },
             },
-        })
+            {
+                status: 200,
+                headers: {
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    Pragma: 'no-cache',
+                    Expires: '0',
+                    'Surrogate-Control': 'no-store',
+                },
+            }
+        )
     } catch (error) {
         const totalResponseTime = Date.now() - startTime
 
@@ -218,7 +243,15 @@ export async function GET() {
                 responseTime: totalResponseTime,
                 healthScore: 0,
             },
-            { status: 500 }
+            {
+                status: 500,
+                headers: {
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    Pragma: 'no-cache',
+                    Expires: '0',
+                    'Surrogate-Control': 'no-store',
+                },
+            }
         )
     }
 }
