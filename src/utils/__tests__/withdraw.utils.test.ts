@@ -7,8 +7,11 @@ describe('Withdraw Utilities', () => {
         it.each([
             { value: '', valid: false, message: 'Invalid length' },
             { value: 'alias', valid: false, message: 'Invalid length' },
-            { value: 'alias.testvc.eth', valid: true, message: undefined },
-            { value: 'alias123!', valid: false, message: 'Alias must contain only letters, numbers, dots, and dashes' },
+            { value: 'alias.testvc.eth', valid: false, message: 'Invalid length' },
+            { value: 'alias123!', valid: false, message: 'Invalid length' },
+            //TODO: enable this again when alias is supported
+            //{ value: 'alias.testvc.eth', valid: true, message: undefined },
+            //{ value: 'alias123!', valid: false, message: 'Alias must contain only letters, numbers, dots, and dashes' },
             {
                 value: '0000003100066354450378',
                 valid: false,
